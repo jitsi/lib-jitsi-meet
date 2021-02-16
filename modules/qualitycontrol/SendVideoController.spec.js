@@ -1,18 +1,21 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-import { QualityController } from './QualityController';
+import { SendVideoController } from './SendVideoController';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
 /**
- * A mock JingleSessionPC impl that fit the needs of the QualityController module.
+ * A mock JingleSessionPC impl that fit the needs of the SendVideoController module.
  * Should a generic, shared one exist in the future this test file should switch to use it too.
  */
 class MockJingleSessionPC extends Listenable {
-    constructor() {
+    constructor(rtc, isP2P) {
         super();
+        this.rtc = rtc;
+        this.isP2P = isP2P;
         this._remoteRecvMaxFrameHeight = undefined;
         this.senderVideoConstraint = undefined;
     }
@@ -37,9 +40,15 @@ class MockJingleSessionPC extends Listenable {
 
     setRemoteRecvMaxFrameHeight(remoteRecvMaxFrameHeight) {
         this._remoteRecvMaxFrameHeight = remoteRecvMaxFrameHeight;
-        this.eventEmitter.emit(
-            MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-            this);
+        if (this.isP2P) {
+            this.eventEmitter.emit(
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
+                this);
+        } else {
+            this.rtc.eventEmitter.emit(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                { idealHeight: remoteRecvMaxFrameHeight });
+        }
     }
 }
 
@@ -53,7 +62,7 @@ class MockConference extends Listenable {
     constructor() {
         super();
         this.options = {
-            config: { }
+            config: { enableLayerSuspension: true }
         };
         this.activeMediaSession = undefined;
         this.mediaSessions = [];
@@ -83,19 +92,35 @@ class MockConference extends Listenable {
         return this.mediaSessions;
     }
 }
+
+/**
+ * Mock {@link RTC} - add things as needed, but only things useful for all tests.
+ */
+export class MockRTC extends Listenable {
+    /**
+     * constructor
+     */
+    /* eslint-disable no-useless-constructor */
+    constructor() {
+        super();
+    }
+}
+
 /* eslint-enable require-jsdoc */
 
-describe('QualityController', () => {
+describe('SendVideoController', () => {
     let conference;
-    let qualityController;
+    let rtc;
+    let sendVideoController;
     let jvbConnection;
     let p2pConnection;
 
     beforeEach(() => {
         conference = new MockConference();
-        qualityController = new QualityController(conference);
-        jvbConnection = new MockJingleSessionPC();
-        p2pConnection = new MockJingleSessionPC();
+        rtc = new MockRTC();
+        sendVideoController = new SendVideoController(conference, rtc);
+        jvbConnection = new MockJingleSessionPC(rtc, false /* isP2P */);
+        p2pConnection = new MockJingleSessionPC(rtc, true /* isP2P */);
 
         conference.addMediaSession(jvbConnection);
         conference.addMediaSession(p2pConnection);
@@ -125,7 +150,7 @@ describe('QualityController', () => {
             jvbConnection.setRemoteRecvMaxFrameHeight(720);
             p2pConnection.setRemoteRecvMaxFrameHeight(720);
 
-            qualityController.setPreferredSendMaxFrameHeight(0);
+            sendVideoController.setPreferredSendMaxFrameHeight(0);
 
             expect(jvbConnection.senderVideoConstraint).toBe(0);
             expect(p2pConnection.senderVideoConstraint).toBe(0);

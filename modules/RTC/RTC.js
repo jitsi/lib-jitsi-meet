@@ -157,11 +157,6 @@ export default class RTC extends Listenable {
          */
         this._lastNEndpoints = null;
 
-        /*
-         * Holds the sender video constraints signaled from the bridge.
-         */
-        this._senderVideoConstraints = {};
-
         /**
          * The number representing the maximum video height the local client
          * should receive from the bridge.
@@ -207,20 +202,8 @@ export default class RTC extends Listenable {
      * @returns {void}
      */
     destroy() {
-        RTCUtils.removeListener(
-            RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-            this._updateAudioOutputForAudioTracks
-        );
-
-        RTCUtils.removeListener(
-            RTCEvents.DEVICE_LIST_CHANGED,
-            this._onDeviceListChanged
-        );
-
-        this.removeListener(
-            RTCEvents.LASTN_ENDPOINT_CHANGED,
-            this._lastNChangeListener
-        );
+        RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this._updateAudioOutputForAudioTracks);
+        RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED, this._onDeviceListChanged);
 
         if (this._channelOpenListener) {
             this.removeListener(
@@ -275,7 +258,7 @@ export default class RTC extends Listenable {
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
         this._channel = new BridgeChannel(
-            peerconnection, wsUrl, this.eventEmitter, this._senderVideoConstraintsChanged.bind(this));
+            peerconnection, wsUrl, this.eventEmitter);
 
         this._channelOpenListener = () => {
             // When the channel becomes available, tell the bridge about
@@ -329,18 +312,6 @@ export default class RTC extends Listenable {
      */
     _onDeviceListChanged() {
         this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
-    }
-
-    /**
-     * Notifies this instance that the sender video constraints signaled from the bridge have changed.
-     *
-     * @param {Object} senderVideoConstraints the sender video constraints from the bridge.
-     * @private
-     */
-    _senderVideoConstraintsChanged(senderVideoConstraints) {
-        logger.info('Remote max frame height received on bridge channel: ', JSON.stringify(senderVideoConstraints));
-        this._senderVideoConstraints = senderVideoConstraints;
-        this.eventEmitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED);
     }
 
     /**
@@ -567,13 +538,6 @@ export default class RTC extends Listenable {
      */
     getLastN() {
         return this._lastN;
-    }
-
-    /**
-     * @return {Object} The sender video constraints signaled from the brridge.
-     */
-    getSenderVideoConstraints() {
-        return this._senderVideoConstraints;
     }
 
     /**
@@ -864,8 +828,7 @@ export default class RTC extends Listenable {
             this._channel.close();
             this._channel = null;
 
-            this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                this._lastNChangeListener);
+            this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED, this._lastNChangeListener);
         }
     }
 

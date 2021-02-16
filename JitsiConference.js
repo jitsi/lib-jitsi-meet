@@ -30,7 +30,8 @@ import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
 import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
-import { QualityController } from './modules/qualitycontrol/QualityController';
+import { ReceiveVideoController } from './modules/qualitycontrol/ReceiveVideoController';
+import { SendVideoController } from './modules/qualitycontrol/SendVideoController';
 import RecordingManager from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
@@ -376,7 +377,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.eventManager.setupRTCListeners();
     }
 
-    this.qualityController = new QualityController(this);
+    this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
+    this.sendVideoController = new SendVideoController(this, this.rtc);
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
@@ -1335,7 +1337,7 @@ JitsiConference.prototype.selectParticipants = function(participantIds) {
         throw new Error('Invalid argument; participantIds must be an array.');
     }
 
-    this.rtc.selectEndpoints(participantIds);
+    this.receiveVideoController.selectEndpoints(participantIds);
 };
 
 /**
@@ -1363,7 +1365,7 @@ JitsiConference.prototype.setLastN = function(lastN) {
     if (n < -1) {
         throw new RangeError('lastN cannot be smaller than -1');
     }
-    this.rtc.setLastN(n);
+    this.receiveVideoController.setLastN(n);
 
     // If the P2P session is not fully established yet, we wait until it gets
     // established.
@@ -3348,7 +3350,7 @@ JitsiConference.prototype.getSpeakerStats = function() {
  * @returns {void}
  */
 JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) {
-    this.qualityController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
+    this.receiveVideoController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
 };
 
 /**
@@ -3359,7 +3361,7 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) 
  * successful and rejected otherwise.
  */
 JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
-    return this.qualityController.setPreferredSendMaxFrameHeight(maxFrameHeight);
+    return this.sendVideoController.setPreferredSendMaxFrameHeight(maxFrameHeight);
 };
 
 /**
