@@ -1,15 +1,11 @@
 
-import { getLogger } from 'jitsi-meet-logger';
 import { Strophe } from 'strophe.js';
 
 
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
-import { ERROR_FEATURE_VERSION_MISMATCH } from './modules/xmpp/Caps';
 import * as MediaType from './service/RTC/MediaType';
-
-const logger = getLogger(__filename);
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -242,40 +238,6 @@ export default class JitsiParticipant {
      */
     getFeatures() {
         return Promise.resolve(this._features);
-    }
-
-    /**
-     * Returns a set with the features for the participant.
-     * @param {int} timeout the timeout in ms for reply from the participant.
-     * @returns {Promise<Set<String>, Error>}
-     */
-    queryFeatures(timeout = 5000) {
-        if (this._getFeaturesPromise) {
-            return this._getFeaturesPromise;
-        }
-
-        this._getFeaturesPromise = this._conference.xmpp.caps.getFeatures(this._jid, timeout)
-            .catch(error => {
-                // Retry on feature version mismatch
-                if (error === ERROR_FEATURE_VERSION_MISMATCH) {
-                    return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
-                }
-
-                logger.warn(`Failed to discover features of ${this._jid}`, error);
-
-                return Promise.reject(error);
-            });
-
-        return this._getFeaturesPromise
-            .then(result => {
-                this._getFeaturesPromise = undefined;
-
-                return result;
-            }, error => {
-                this._getFeaturesPromise = undefined;
-
-                throw error;
-            });
     }
 
     /**
