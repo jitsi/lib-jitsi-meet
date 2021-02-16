@@ -1536,9 +1536,9 @@ JitsiConference.prototype.onMemberJoined = function(
     const participant
         = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
-    participant._role = role;
-    participant._botType = botType;
-    participant._features = features || new Set();
+    participant.setRole(role);
+    participant.setBotType(botType);
+    participant.setFeatures(features);
 
     this.participants[id] = participant;
     this.eventEmitter.emit(
@@ -1606,7 +1606,7 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
     const botParticipant = peers.find(p => p.getJid() === jid);
 
     if (botParticipant) {
-        botParticipant._botType = botType;
+        botParticipant.setBotType(botType);
         const id = Strophe.getResourceFromJid(jid);
 
         this.eventEmitter.emit(
@@ -1619,7 +1619,7 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
     // poltergeist mode this is the moment when the poltergeist had exited and
     // the real participant had already replaced it.
     // In this case we can check and try p2p
-    if (!botParticipant._botType) {
+    if (!botParticipant.getBotType()) {
         this._maybeStartOrStopP2P();
     }
 };
@@ -1702,7 +1702,7 @@ JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
     if (!participant) {
         return;
     }
-    participant._role = role;
+    participant.setRole(role);
     this.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, id, role);
 };
 
@@ -3194,7 +3194,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
 JitsiConference.prototype._shouldBeInP2PMode = function() {
     const peers = this.getParticipants();
     const peerCount = peers.length;
-    const hasBotPeer = peers.find(p => p._botType === 'poltergeist' || p._features.has(FEATURE_JIGASI)) !== undefined;
+    const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist' || p.hasFeature(FEATURE_JIGASI)) !== undefined;
     const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
 
     logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);

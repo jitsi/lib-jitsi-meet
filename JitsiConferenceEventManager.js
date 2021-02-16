@@ -608,7 +608,7 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
         const participant = conference.getParticipantById(Strophe.getResourceFromJid(from));
 
         if (participant) {
-            participant._features = features || new Set();
+            participant.setFeatures(features);
             conference.eventEmitter.emit(JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED, participant);
         }
     };

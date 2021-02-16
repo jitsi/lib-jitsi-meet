@@ -226,6 +226,14 @@ export default class JitsiParticipant {
     }
 
     /**
+     * Sets a new participant role.
+     * @param {String} newRole - the new role.
+     */
+    setRole(newRole) {
+        this._role = newRole;
+    }
+
+    /**
      *
      */
     supportsDTMF() {
@@ -241,11 +249,37 @@ export default class JitsiParticipant {
     }
 
     /**
+     * Checks current set features.
+     * @param {String} feature - the feature to check.
+     * @return {boolean} <tt>true</tt> if this <tt>participant</tt> contains the
+     * <tt>feature</tt>.
+     */
+    hasFeature(feature) {
+        return this._features.has(feature);
+    }
+
+    /**
+     * Set new features.
+     * @param {Set<String>|undefined} newFeatures - Sets new features.
+     */
+    setFeatures(newFeatures) {
+        this._features = newFeatures || new Set();
+    }
+
+    /**
      * Returns the bot type for the participant.
      *
      * @returns {string|undefined} - The bot type of the participant.
      */
     getBotType() {
         return this._botType;
+    }
+
+    /**
+     * Sets the bot type for the participant.
+     * @param {String} newBotType - The new bot type to set.
+     */
+    setBotType(newBotType) {
+        this._botType = newBotType;
     }
 }
