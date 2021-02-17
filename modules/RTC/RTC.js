@@ -257,49 +257,42 @@ export default class RTC extends Listenable {
      * @param {string} [wsUrl] WebSocket URL.
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
-        this._channel = new BridgeChannel(
-            peerconnection, wsUrl, this.eventEmitter);
+        this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter);
 
         this._channelOpenListener = () => {
-            // When the channel becomes available, tell the bridge about
-            // video selections so that it can do adaptive simulcast,
-            // we want the notification to trigger even if userJid
-            // is undefined, or null.
-            try {
-                this._channel.sendSelectedEndpointsMessage(
-                    this._selectedEndpoints);
-
-                if (typeof this._maxFrameHeight !== 'undefined') {
-                    this._channel.sendReceiverVideoConstraintMessage(
-                        this._maxFrameHeight);
+            // When the channel becomes available, tell the bridge about video selections so that it can do adaptive
+            // simulcast, we want the notification to trigger even if userJid is undefined, or null.
+            if (this._receiverVideoConstraints) {
+                try {
+                    this._channel.sendNewReceiverVideoConstraintsMessage(this._receiverVideoConstraints);
+                } catch (error) {
+                    GlobalOnErrorHandler.callErrorHandler(error);
+                    logger.error(`Cannot send ReceiverVideoConstraints(
+                        ${JSON.stringify(this._receiverVideoConstraints)}) endpoint message`, error);
                 }
-            } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
-                logger.error(
-                    `Cannot send selected(${this._selectedEndpoint})`
-                    + `frameHeight(${this._maxFrameHeight}) endpoint message`,
-                    error);
+            } else {
+                try {
+                    this._channel.sendSelectedEndpointsMessage(this._selectedEndpoints);
+                    if (typeof this._maxFrameHeight !== 'undefined') {
+                        this._channel.sendReceiverVideoConstraintMessage(this._maxFrameHeight);
+                    }
+                    if (this._lastN !== -1) {
+                        this._channel.sendSetLastNMessage(this._lastN);
+                    }
+                } catch (error) {
+                    GlobalOnErrorHandler.callErrorHandler(error);
+                    logger.error(`Cannot send selected(${this._selectedEndpoint}), lastN(${this._lastN}),`
+                        + ` frameHeight(${this._maxFrameHeight}) endpoint message`, error);
+                }
             }
 
-            this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
-                this._channelOpenListener);
+            this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
             this._channelOpenListener = null;
-
-            // If setLastN was invoked before the bridge channel completed
-            // opening, apply the specified value now that the channel
-            // is open. NOTE that -1 is the default value assumed by both
-            // RTC module and the JVB.
-            if (this._lastN !== -1) {
-                this._channel.sendSetLastNMessage(this._lastN);
-            }
         };
-
-        this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
-            this._channelOpenListener);
+        this.addListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
 
         // Add Last N change listener.
-        this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-            this._lastNChangeListener);
+        this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED, this._lastNChangeListener);
     }
 
     /**
@@ -355,6 +348,20 @@ export default class RTC extends Listenable {
             }
 
             this._channel = null;
+        }
+    }
+
+    /**
+     * Sets the receiver video constraints that determine how bitrate is allocated to each of the video streams
+     * requested from the bridge. The constraints are cached and sent through the bridge channel once the channel
+     * is established.
+     * @param {*} constraints
+     */
+    setNewReceiverVideoConstraints(constraints) {
+        this._receiverVideoConstraints = constraints;
+
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendNewReceiverVideoConstraintsMessage(constraints);
         }
     }
 

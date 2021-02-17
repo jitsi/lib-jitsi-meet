@@ -235,6 +235,19 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
+     *
+     * @param {ReceiverVideoConstraints} constraints video constraints.
+     */
+    sendNewReceiverVideoConstraintsMessage(constraints) {
+        logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
+        this._send({
+            colibriClass: 'ReceiverVideoConstraints',
+            ...constraints
+        });
+    }
+
+    /**
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
     _handleChannel(channel) {
