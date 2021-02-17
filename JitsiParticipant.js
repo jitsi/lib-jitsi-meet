@@ -286,4 +286,13 @@ export default class JitsiParticipant {
     getBotType() {
         return this._botType;
     }
+
+    /**
+     * Returns the identity/email for the participant.
+     *
+     * @returns {string|undefined} - The identity the participant.
+     */
+    getIdentity() {
+        return this._identity;
+    }
 }
