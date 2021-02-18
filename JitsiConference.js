@@ -1512,11 +1512,11 @@ JitsiConference.prototype._maybeSetSITimeout = function() {
  * @param {string} id The id of the participant to mute.
  */
 JitsiConference.prototype.muteParticipant = function(id, mediaType) {
-    if(!mediaType) {
-        // Fallback to audio for backwards compatibility
-        mediaType = MediaType.AUDIO;
-    } else if(mediaType !== MediaType.AUDIO && mediaType !== MediaType.VIDEO) {
-        logger.error(`Unsupported media type: ${mediaType}`);
+    const muteMediaType = mediaType ? mediaType : MediaType.AUDIO;
+
+    if (muteMediaType !== MediaType.AUDIO && muteMediaType !== MediaType.VIDEO) {
+        logger.error(`Unsupported media type: ${muteMediaType}`);
+
         return;
     }
 
@@ -1525,7 +1525,7 @@ JitsiConference.prototype.muteParticipant = function(id, mediaType) {
     if (!participant) {
         return;
     }
-    this.room.muteParticipant(participant.getJid(), true, mediaType);
+    this.room.muteParticipant(participant.getJid(), true, muteMediaType);
 };
 
 /* eslint-disable max-params */
