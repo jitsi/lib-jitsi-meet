@@ -33,6 +33,7 @@ export class ReceiverVideoConstraints {
             constraints: {},
             defaultConstraints: this.defaultConstraints,
             lastN: this._lastN,
+            onStageEndpoints: [],
             selectedEndpoints: this._selectedEndpoints
         };
     }
