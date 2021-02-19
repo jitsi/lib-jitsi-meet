@@ -541,11 +541,9 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from === this.myroomjid) {
-            const newRole
-                = member.affiliation === 'owner' ? member.role : 'none';
 
-            if (this.role !== newRole) {
-                this.role = newRole;
+            if (this.role !== member.role) {
+                this.role = member.role;
                 this.eventEmitter.emit(
                     XMPPEvents.LOCAL_ROLE_CHANGED,
                     this.role);
