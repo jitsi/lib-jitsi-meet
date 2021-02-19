@@ -46,7 +46,7 @@ const logger = Logger.getLogger(__filename);
  * The amount of time to wait until firing
  * {@link JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN} event.
  */
-const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 1000;
+const USER_MEDIA_SLOW_PROMISE_TIMEOUT = 1000;
 
 /**
  * Gets the next lowest desirable resolution to try for a camera. If the given
@@ -300,6 +300,10 @@ export default _mergeNamespaceAndModule({
      * which should be created. should be created or some additional
      * configurations about resolution for example.
      * @param {Array} options.effects optional effects array for the track
+     * @param {boolean} options.firePermissionPromptIsShownEvent - if event
+     * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
+     * @param {boolean} options.fireSlowPromiseEvent - if event
+     * JitsiMediaDevicesEvents.USER_MEDIA_SLOW_PROMISE_TIMEOUT should be fired
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
@@ -322,26 +326,29 @@ export default _mergeNamespaceAndModule({
      * will finish the execution. If checkAgain returns false, createLocalTracks
      * will finish the execution with rejected Promise.
      *
-     * @param {boolean} (firePermissionPromptIsShownEvent) - if event
-     * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
+     * @deprecated old firePermissionPromptIsShownEvent
      * @param originalOptions - internal use only, to be able to store the
      * originally requested options.
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>} A promise
      * that returns an array of created JitsiTracks if resolved, or a
      * JitsiConferenceError if rejected.
      */
-    createLocalTracks(
-            options = {}, firePermissionPromptIsShownEvent, originalOptions) {
+    createLocalTracks(options = {}, oldfirePermissionPromptIsShownEvent, originalOptions) {
         let promiseFulfilled = false;
 
-        if (firePermissionPromptIsShownEvent === true) {
+        const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
+        const firePermissionPrompt = firePermissionPromptIsShownEvent || oldfirePermissionPromptIsShownEvent;
+
+        if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
+            JitsiMediaDevices.emitEvent(
+                JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
+                browser.getName());
+        } else if (fireSlowPromiseEvent) {
             window.setTimeout(() => {
                 if (!promiseFulfilled) {
-                    JitsiMediaDevices.emitEvent(
-                        JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                        browser.getName());
+                    JitsiMediaDevices.emitEvent(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
                 }
-            }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
+            }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }
 
         if (!window.connectionTimes) {
@@ -350,7 +357,7 @@ export default _mergeNamespaceAndModule({
         window.connectionTimes['obtainPermissions.start']
             = window.performance.now();
 
-        return RTC.obtainAudioAndVideoPermissions(options)
+        return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
                 promiseFulfilled = true;
 
@@ -360,7 +367,7 @@ export default _mergeNamespaceAndModule({
                 Statistics.sendAnalytics(
                     createGetUserMediaEvent(
                         'success',
-                        getAnalyticsAttributesFromOptions(options)));
+                        getAnalyticsAttributesFromOptions(restOptions)));
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -408,11 +415,11 @@ export default _mergeNamespaceAndModule({
 
                 if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION
                     && !browser.usesNewGumFlow()) {
-                    const oldResolution = options.resolution || '720';
+                    const oldResolution = restOptions.resolution || '720';
                     const newResolution = getLowerResolution(oldResolution);
 
                     if (newResolution !== null) {
-                        options.resolution = newResolution;
+                        restOptions.resolution = newResolution;
 
                         logger.debug(
                             'Retry createLocalTracks with resolution',
@@ -427,9 +434,8 @@ export default _mergeNamespaceAndModule({
                             }));
 
                         return this.createLocalTracks(
-                            options,
-                            undefined,
-                            originalOptions || Object.assign({}, options));
+                            restOptions,
+                            originalOptions || Object.assign({}, restOptions));
                     }
 
                     // We tried everything. If there is a mandatory device id,

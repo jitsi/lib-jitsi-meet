@@ -30,3 +30,5 @@ export const PERMISSIONS_CHANGED = 'rtc.permissions_changed';
  */
 export const PERMISSION_PROMPT_IS_SHOWN
     = 'mediaDevices.permissionPromptIsShown';
+
+export const SLOW_GET_USER_MEDIA = 'mediaDevices.slowGetUserMedia';
