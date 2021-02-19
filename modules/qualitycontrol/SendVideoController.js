@@ -30,8 +30,11 @@ export class SendVideoController {
         this.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
             videoConstraints => {
-                this._senderVideoConstraints = videoConstraints;
-                this._propagateSendMaxFrameHeight(videoConstraints);
+                // Propagate the sender constraint only if it has changed.
+                if (this._senderVideoConstraints?.idealHeight !== videoConstraints.idealHeight) {
+                    this._senderVideoConstraints = videoConstraints;
+                    this._propagateSendMaxFrameHeight();
+                }
             });
     }
 
