@@ -96,10 +96,15 @@ export class Context {
      * Sets a set of keys and resets the sendCount.
      * decryption.
      * @param {Object} keys set of keys.
+     * @param {Number} keyIndex optional
      * @private
      */
-    _setKeys(keys) {
-        this._cryptoKeyRing[this._currentKeyIndex] = keys;
+    _setKeys(keys, keyIndex = -1) {
+        if (keyIndex >= 0) {
+            this._cryptoKeyRing[keyIndex] = keys;
+        } else {
+            this._cryptoKeyRing[this._currentKeyIndex] = keys;
+        }
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
     }
 
@@ -322,7 +327,7 @@ export class Context {
                         new Uint8Array(calculatedTag.slice(0, DIGEST_LENGTH[encodedFrame.type])))) {
                     validAuthTag = true;
                     if (distance > 0) {
-                        this._setKeys(newKeys);
+                        this._setKeys(newKeys, keyIndex);
                     }
                     break;
                 }
