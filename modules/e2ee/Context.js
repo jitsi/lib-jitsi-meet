@@ -272,7 +272,7 @@ export class Context {
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1] & 0xf; // lower four bits.
 
-        if (this._cryptoKeyRing[keyIndex]) {
+        if (this._cryptoKeyRing[this._currentKeyIndex] && this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
             const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80
                 ? this._signatureOptions.byteLength : 0;
@@ -394,12 +394,6 @@ export class Context {
                     controller.enqueue(encodedFrame);
                 }
             });
-        } else if (keyIndex >= this._cryptoKeyRing.length && this._cryptoKeyRing[this._currentKeyIndex]) {
-            // If we are encrypting but don't have a key for the remote drop the frame.
-            // This is a heuristic since we don't know whether a packet is encrypted,
-            // do not have a checksum and do not have signaling for whether a remote participant does
-            // encrypt or not.
-            return;
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
