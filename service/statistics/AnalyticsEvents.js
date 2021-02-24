@@ -420,10 +420,11 @@ export const createP2PEvent = function(action, attributes = {}) {
 /**
  * Indicates that we received a remote command to mute.
  */
-export const createRemotelyMutedEvent = function() {
+export const createRemotelyMutedEvent = function(mediaType) {
     return {
         type: TYPE_OPERATIONAL,
-        action: 'remotely.muted'
+        action: 'remotely.muted',
+        mediaType
     };
 };
 
