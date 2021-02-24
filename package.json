@@ -41,6 +41,7 @@
     "@babel/plugin-transform-flow-strip-types": "7.0.0",
     "@babel/preset-env": "7.1.0",
     "@babel/preset-flow": "7.0.0",
+    "@types/jquery": "^3.5.5",
     "babel-eslint": "10.0.1",
     "babel-loader": "8.0.4",
     "core-js": "2.5.1",
@@ -66,7 +67,8 @@
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls",
-    "watch": "webpack --config webpack.config.js --watch --mode development"
+    "watch": "webpack --config webpack.config.js --watch --mode development",
+    "types": "npx typescript JitsiMeetJS.js --declaration --allowJs --emitDeclarationOnly --outDir types/generated"
   },
   "main": "./index.js",
   "license": "Apache-2.0"
