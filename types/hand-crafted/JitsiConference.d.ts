@@ -5,7 +5,7 @@ import JitsiParticipant from './JitsiParticipant';
 import JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from './modules/RTC/JitsiLocalTrack';
 import JitsiTrack from './modules/RTC/JitsiTrack';
-import Transcriber from './modules/transcription/Transcriber';
+import Transcriber from './modules/transcription/transcriber';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import { MediaType } from './service/RTC/MediaType';
