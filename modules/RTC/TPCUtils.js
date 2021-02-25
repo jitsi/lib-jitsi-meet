@@ -365,6 +365,8 @@ export class TPCUtils {
                     this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
                 });
         }
+
+        return Promise.resolve();
     }
 
     /**
