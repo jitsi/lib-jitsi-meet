@@ -884,15 +884,24 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
     }
 
     if (existingTrack && existingTrack.getTrack() === track) {
-        // Ignore duplicated event which can originate either from
-        // 'onStreamAdded' or 'onTrackAdded'.
+        // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
         logger.info(
             `${this} ignored duplicated remote track added event for: `
                 + `${ownerEndpointId}, ${mediaType}`);
 
         return;
     } else if (existingTrack) {
-        logger.error(`${this} overwriting remote track for ${ownerEndpointId} ${mediaType}`);
+        logger.error(`${this} received a second remote track for ${ownerEndpointId} ${mediaType}, `
+            + 'deleting the existing track.');
+
+        // The exisiting track needs to be removed here. We can get here when Jicofo reverses the order of source-add
+        // and source-remove messages. Ideally, when a remote endpoint changes source, like switching devices, it sends
+        // a source-remove (for old ssrc) followed by a source-add (for new ssrc) and Jicofo then should forward these
+        // two messages to all the other endpoints in the conference in the same order. However, sometimes, these
+        // messages arrive at the client in the reverse order resulting in two remote tracks (of same media type) being
+        // created and in case of video, a black strip (that of the first track which has ended) appears over the live
+        // track obscuring it. Removing the existing track when that happens will fix this issue.
+        this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
     }
 
     const remoteTrack
