@@ -96,7 +96,7 @@ const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-let availableDevices;
+let availableDevices = [];
 let availableDevicesPollTimer;
 
 /**
@@ -776,7 +776,6 @@ class RTCUtils extends Listenable {
             logger.info(`Disable HPF: ${disableHPF}`);
         }
 
-        availableDevices = [];
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
