@@ -108,29 +108,6 @@ function emptyFuncton() {
 }
 
 /**
- * Initialize wrapper function for enumerating devices.
- * TODO: remove this, it should no longer be needed.
- *
- * @returns {?Function}
- */
-function initEnumerateDevicesWithCallback() {
-    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-        return callback => {
-            navigator.mediaDevices.enumerateDevices()
-                .then(devices => {
-                    updateKnownDevices(devices);
-                    callback(devices);
-                })
-                .catch(error => {
-                    logger.warn(`Failed to  enumerate devices. ${error}`);
-                    updateKnownDevices([]);
-                    callback([]);
-                });
-        };
-    }
-}
-
-/**
  *
  * @param constraints
  * @param isNewStyleConstraintsSupported
@@ -804,8 +781,6 @@ class RTCUtils extends Listenable {
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
-        this.enumerateDevices = initEnumerateDevicesWithCallback();
-
         if (browser.usesNewGumFlow()) {
             this.RTCPeerConnectionType = RTCPeerConnection;
 
@@ -896,6 +871,24 @@ class RTCUtils extends Listenable {
         }
 
         this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
+    }
+
+
+    /**
+     *
+     * @param {Function} callback
+     */
+    enumerateDevices(callback) {
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                updateKnownDevices(devices);
+                callback(devices);
+            })
+            .catch(error => {
+                logger.warn(`Failed to  enumerate devices. ${error}`);
+                updateKnownDevices([]);
+                callback([]);
+            });
     }
 
     /* eslint-disable max-params */
