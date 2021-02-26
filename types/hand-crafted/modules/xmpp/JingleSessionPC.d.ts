@@ -1,7 +1,7 @@
 import JingleSession from './JingleSession';
 import XmppConnection from './XmppConnection';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 
 export default class JingleSessionPC extends JingleSession {
   static parseVideoSenders: ( jingleContents: JQuery ) => string | null;
