@@ -1986,8 +1986,10 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    // Add local tracks to the session
-    const localTracks = this.getLocalTracks();
+    // Do not add the local tracks to pc when client joins audio and video muted.
+    const localTracks = this.getLocalTracks()
+        .filter(track => (track.getType() === MediaType.AUDIO && !this.isStartAudioMuted())
+            || (track.getType() === MediaType.VIDEO && !this.isStartVideoMuted()));
 
     try {
         jingleSession.acceptOffer(
