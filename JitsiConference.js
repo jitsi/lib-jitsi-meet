@@ -2748,7 +2748,10 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    const localTracks = this.getLocalTracks();
+    // Do not add the local tracks to pc when client joins audio and video muted.
+    const localTracks = this.getLocalTracks()
+        .filter(track => (track.getType() === MediaType.AUDIO && !this.isStartAudioMuted())
+            || (track.getType() === MediaType.VIDEO && !this.isStartVideoMuted()));
 
     this.p2pJingleSession.acceptOffer(
         jingleOffer,
