@@ -153,8 +153,7 @@ export default class Lobby {
 
         if (displayName) {
             // remove previously set nickname
-            this.lobbyRoom.removeFromPresence('nick');
-            this.lobbyRoom.addToPresence('nick', {
+            this.lobbyRoom.addOrReplaceInPresence('nick', {
                 attributes: { xmlns: 'http://jabber.org/protocol/nick' },
                 value: displayName
             });
@@ -261,9 +260,8 @@ export default class Lobby {
 
                 // send our email, as we do not handle this on initial presence we need a second one
                 if (email && !isModerator) {
-                    this.lobbyRoom.removeFromPresence(EMAIL_COMMAND);
-                    this.lobbyRoom.addToPresence(EMAIL_COMMAND, { value: email });
-                    this.lobbyRoom.sendPresence();
+                    this.lobbyRoom.addOrReplaceInPresence(EMAIL_COMMAND, { value: email })
+                        && this.lobbyRoom.sendPresence();
                 }
             });
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_JOIN_ERROR, reject);
