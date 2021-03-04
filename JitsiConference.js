@@ -1048,6 +1048,19 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
 };
 
 /**
+ * Returns the list of local tracks that need to be added to the peerconnection on join.
+ * This takes the startAudioMuted/startVideoMuted flags into consideration since we do not
+ * want to add the tracks if the user joins the call audio/video muted. The tracks will be
+ * added when the user unmutes for the first time.
+ * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
+ */
+JitsiConference.prototype._getInitialLocalTracks = function() {
+    return this.getLocalTracks()
+        .filter(track => (track.getType() === MediaType.AUDIO && !this.isStartAudioMuted())
+        || (track.getType() === MediaType.VIDEO && !this.isStartVideoMuted()));
+};
+
+/**
  * Clear JitsiLocalTrack properties and listeners.
  * @param track the JitsiLocalTrack object.
  */
@@ -1986,8 +1999,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    // Add local tracks to the session
-    const localTracks = this.getLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     try {
         jingleSession.acceptOffer(
@@ -2746,7 +2758,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    const localTracks = this.getLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     this.p2pJingleSession.acceptOffer(
         jingleOffer,
@@ -3106,10 +3118,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    // NOTE one may consider to start P2P with the local tracks detached,
-    // but no data will be sent until ICE succeeds anyway. And we switch
-    // immediately once the P2P ICE connects.
-    const localTracks = this.getLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     this.p2pJingleSession.invite(localTracks);
 };
