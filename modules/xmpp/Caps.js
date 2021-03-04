@@ -162,7 +162,7 @@ export default class Caps extends Listenable {
                 });
             });
 
-            room.addToPresence('features', { children });
+            room.addOrReplaceInPresence('features', { children });
         }
     }
 
@@ -235,7 +235,7 @@ export default class Caps extends Listenable {
      * @param {ChatRoom} room the room.
      */
     _fixChatRoomPresenceMap(room) {
-        room.addToPresence('c', {
+        room.addOrReplaceInPresence('c', {
             attributes: {
                 xmlns: Strophe.NS.CAPS,
                 hash: HASH,
