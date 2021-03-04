@@ -6,6 +6,7 @@ import debounce from 'lodash.debounce';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
+import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
@@ -32,6 +33,7 @@ export class E2EEncryption {
         this._enabled = false;
         this._initialized = false;
         this._key = undefined;
+        this._enabling = undefined;
 
         this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
@@ -120,7 +122,17 @@ export class E2EEncryption {
             return;
         }
 
+        this._enabling && await this._enabling;
+
+        this._enabling = new Deferred();
+
         this._enabled = enabled;
+
+        if (enabled) {
+            await this._olmAdapter.initSessions();
+        }
+
+        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
         if (!this._initialized && enabled) {
             // Need to re-create the peerconnections in order to apply the insertable streams constraint.
@@ -136,10 +148,12 @@ export class E2EEncryption {
         this._key = enabled ? this._generateKey() : false;
 
         // Send it to others using the E2EE olm channel.
-        this._olmAdapter.updateKey(this._key).then(index => {
-            // Set our key so we begin encrypting.
-            this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
-        });
+        const index = await this._olmAdapter.updateKey(this._key);
+
+        // Set our key so we begin encrypting.
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+
+        this._enabling.resolve();
     }
 
     /**
@@ -265,7 +279,7 @@ export class E2EEncryption {
 
         this._key = new Uint8Array(newKey);
 
-        const index = await this._olmAdapter.updateCurrentKey(this._key);
+        const index = this._olmAdapter.updateCurrentKey(this._key);
 
         this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
