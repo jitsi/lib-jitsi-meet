@@ -600,7 +600,7 @@ export default class ParticipantConnectionStatusHandler {
 
         const inP2PMode = this.conference.isP2PActive();
         const isRestoringTimedOut = this._isRestoringTimedout(id);
-        const audioOnlyMode = this.rtc.getLastN() === 0;
+        const audioOnlyMode = this.conference.getLastN() === 0;
 
         // NOTE Overriding videoMuted to true for audioOnlyMode should disable
         // any detection based on video playback or the last N.
