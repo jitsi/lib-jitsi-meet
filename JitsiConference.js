@@ -1127,7 +1127,8 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             }
 
             return Promise.resolve();
-        }, error => Promise.reject(new Error(error)));
+        })
+        .catch(error => Promise.reject(new Error(error)));
 };
 
 /**
