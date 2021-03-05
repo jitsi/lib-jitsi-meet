@@ -184,6 +184,15 @@ export class ReceiveVideoController {
     }
 
     /**
+     * Returns the lastN value for the conference.
+     *
+     * @returns {number}
+     */
+    getLastN() {
+        return this._lastN;
+    }
+
+    /**
      * Elects the participants with the given ids to be the selected participants in order to always receive video
      * for this participant (even when last n is enabled).
      *

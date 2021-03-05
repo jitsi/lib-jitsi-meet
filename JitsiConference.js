@@ -1369,7 +1369,7 @@ JitsiConference.prototype.selectParticipants = function(participantIds) {
  * @returns {number}
  */
 JitsiConference.prototype.getLastN = function() {
-    return this.rtc.getLastN();
+    return this.receiveVideoController.getLastN();
 };
 
 /**
@@ -3033,7 +3033,7 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
 
         // Sync up video transfer active in case p2pJingleSession not existed
         // when the lastN value was being adjusted.
-        const isVideoActive = this.rtc.getLastN() !== 0;
+        const isVideoActive = this.getLastN() !== 0;
 
         this.p2pJingleSession
             .setMediaTransferActive(true, isVideoActive)
