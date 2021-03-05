@@ -1878,11 +1878,15 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  */
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     if (browser.usesUnifiedPlan()) {
+        logger.debug('TPC.replaceTrack using unified plan.');
+
         return this.tpcUtils.replaceTrack(oldTrack, newTrack)
 
             // renegotiate when SDP is used for simulcast munging
             .then(() => this.isSimulcastOn() && browser.usesSdpMungingForSimulcast());
     }
+
+    logger.debug('TPC.replaceTrack using plan B.');
 
     let promiseChain = Promise.resolve();
 

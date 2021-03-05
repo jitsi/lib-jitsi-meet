@@ -366,6 +366,8 @@ export class TPCUtils {
                 });
         }
 
+        logger.info('TPCUtils.replaceTrack called with no new track and no old track');
+
         return Promise.resolve();
     }
 
