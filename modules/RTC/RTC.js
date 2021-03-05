@@ -539,15 +539,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns the current value for "lastN" - the amount of videos are going
-     * to be delivered. When set to -1 for unlimited or all available videos.
-     * @return {number}
-     */
-    getLastN() {
-        return this._lastN;
-    }
-
-    /**
      * Get local video track.
      * @returns {JitsiLocalTrack|undefined}
      */
