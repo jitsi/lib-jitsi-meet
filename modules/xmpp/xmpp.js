@@ -1,4 +1,4 @@
-/* global $ */
+/* global */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { $msg, Strophe } from 'strophe.js';
@@ -9,6 +9,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import { $_ } from '../util/DomUtil';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -180,11 +181,14 @@ export default class XMPP extends Listenable {
         // they wanted to utilize the connected connection in an unload handler
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
-        $(window).on('beforeunload unload', ev => {
+        const onUnload = ev => {
             this.disconnect(ev).catch(() => {
                 // ignore errors in order to not brake the unload.
             });
-        });
+        };
+
+        window.addEventListener('beforeunload', onUnload);
+        window.addEventListener('unload', onUnload);
     }
 
     /**
@@ -821,8 +825,8 @@ export default class XMPP extends Listenable {
             return true;
         }
 
-        const jsonMessage = $(msg).find('>json-message')
-            .text();
+        const jsonMessage = $_(msg, '>json-message')?.textContent;
+
         const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
 
         if (parsedJson

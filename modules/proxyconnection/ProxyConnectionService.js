@@ -1,4 +1,4 @@
-/* globals $ */
+/* globals */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq } from 'strophe.js';
@@ -6,6 +6,7 @@ import { $iq } from 'strophe.js';
 import * as MediaType from '../../service/RTC/MediaType';
 import VideoType from '../../service/RTC/VideoType';
 import RTC from '../RTC/RTC';
+import { $_ } from '../util/DomUtil';
 
 import ProxyConnectionPC from './ProxyConnectionPC';
 import { ACTIONS } from './constants';
@@ -102,8 +103,8 @@ export default class ProxyConnectionService {
         }
 
         const iq = this._convertStringToXML(message.data.iq);
-        const $jingle = iq && iq.find('jingle');
-        const action = $jingle && $jingle.attr('action');
+        const jingle = iq && $_(iq, 'jingle');
+        const action = jingle && $_(iq, 'jingle').getAttribute('action');
 
         if (action === ACTIONS.INITIATE) {
             this._peerConnection = this._createPeerConnection(peerJid, {
@@ -115,7 +116,7 @@ export default class ProxyConnectionService {
         // Truthy check for peer connection added to protect against possibly
         // receiving actions before an ACTIONS.INITIATE.
         if (this._peerConnection) {
-            this._peerConnection.processMessage($jingle);
+            this._peerConnection.processMessage(jingle);
         }
 
         // Take additional steps to ensure the peer connection is cleaned up
@@ -172,7 +173,7 @@ export default class ProxyConnectionService {
         try {
             const xmlDom = new DOMParser().parseFromString(xml, 'text/xml');
 
-            return $(xmlDom);
+            return xmlDom;
         } catch (e) {
             logger.error('Attempted to convert incorrectly formatted xml');
 

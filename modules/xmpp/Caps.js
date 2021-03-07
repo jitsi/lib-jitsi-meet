@@ -1,8 +1,9 @@
-/* global $ */
+/* global */
 
 import { b64_sha1, Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { $_ } from '../util/DomUtil';
 import Listenable from '../util/Listenable';
 
 /**
@@ -190,21 +191,22 @@ export default class Caps extends Listenable {
                 const features = new Set();
                 const identities = new Set();
 
-                $(response)
-                    .find('>query>feature')
-                    .each(
-                        (_, el) => features.add(el.getAttribute('var')));
-                $(response)
-                    .find('>query>identity')
-                    .each(
-                        (_, el) => identities.add({
-                            type: el.getAttribute('type'),
-                            name: el.getAttribute('name'),
-                            category: el.getAttribute('category')
-                        }));
+                $_(response, '>query>feature').forEach(el => {
+                    features.add(el.getAttribute('var'));
+                });
+
+                $_(response, '>query>identity').forEach(el => {
+                    identities.add({
+                        type: el.getAttribute('type'),
+                        name: el.getAttribute('name'),
+                        category: el.getAttribute('category')
+                    });
+                });
+
                 resolve({
                     features,
-                    identities });
+                    identities
+                });
             }, reject, timeout)
         );
     }

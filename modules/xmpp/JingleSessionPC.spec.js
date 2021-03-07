@@ -1,4 +1,4 @@
-/* global $, jQuery */
+/* global */
 import { MockRTC } from '../RTC/MockClasses';
 
 import JingleSessionPC from './JingleSessionPC';
@@ -13,14 +13,19 @@ import { MockChatRoom, MockStropheConnection } from './MockClasses';
  * @returns {jQuery}
  */
 function createContentModify(senders = 'both', maxFrameHeight) {
-    const modifyContentsIq = jQuery.parseXML(
-        '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
-        + `<content name="video" senders="${senders}">`
-        + `<max-frame-height xmlns="http://jitsi.org/jitmeet/video">${maxFrameHeight}</max-frame-height>`
-        + '</content>'
-        + '</jingle>');
+    const jingle = document.createElementNS('urn:xmpp:jingle:1', 'jingle');
 
-    return $(modifyContentsIq).find('>jingle');
+    jingle.setAttribute('action', 'content-modify');
+    jingle.setAttribute('initiator', 'peer2');
+    jingle.setAttribute('sid', 'sid12345');
+    jingle.setAttribute('xmlns', 'urn:xmpp:jingle:1');
+
+    jingle.innerHTML
+        = `<content name="video" senders="${senders}">`
+        + `<max-frame-height xmlns="http://jitsi.org/jitmeet/video">${maxFrameHeight}</max-frame-height>`
+        + '</content>';
+
+    return jingle;
 }
 
 describe('JingleSessionPC', () => {

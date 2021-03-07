@@ -80,26 +80,26 @@ export default class ProxyConnectionPC {
     /**
      * Updates the peer connection based on the passed in jingle.
      *
-     * @param {Object} $jingle - An XML jingle element, wrapped in query,
+     * @param {Object} jingle - An XML jingle element, wrapped in query,
      * describing how the peer connection should be updated.
      * @returns {void}
      */
-    processMessage($jingle) {
-        switch ($jingle.attr('action')) {
+    processMessage(jingle) {
+        switch (jingle.getAttribute('action')) {
         case ACTIONS.ACCEPT:
-            this._onSessionAccept($jingle);
+            this._onSessionAccept(jingle);
             break;
 
         case ACTIONS.INITIATE:
-            this._onSessionInitiate($jingle);
+            this._onSessionInitiate(jingle);
             break;
 
         case ACTIONS.TERMINATE:
-            this._onSessionTerminate($jingle);
+            this._onSessionTerminate(jingle);
             break;
 
         case ACTIONS.TRANSPORT_INFO:
-            this._onTransportInfo($jingle);
+            this._onTransportInfo(jingle);
             break;
         }
     }

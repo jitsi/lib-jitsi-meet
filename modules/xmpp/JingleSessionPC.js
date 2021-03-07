@@ -1,4 +1,4 @@
-/* global __filename, $ */
+/* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
@@ -10,6 +10,7 @@ import {
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Statistics from '../statistics/statistics';
 import AsyncQueue from '../util/AsyncQueue';
+import { $$_, $_ } from '../util/DomUtil';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import { integerHash } from '../util/StringUtils';
 
@@ -74,10 +75,10 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     static parseVideoSenders(jingleContents) {
-        const videoContents = jingleContents.find('>content[name="video"]');
+        const videoContents = $_(jingleContents, '>content[name="video"]');
 
-        if (videoContents.length) {
-            const senders = videoContents[0].getAttribute('senders');
+        if (videoContents) {
+            const senders = videoContents.getAttribute('senders');
 
             if (senders === 'both'
                 || senders === 'initiator'
@@ -97,9 +98,9 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {Number|null}
      */
     static parseMaxFrameHeight(jingleContents) {
-        const maxFrameHeightSel = jingleContents.find('>content[name="video"]>max-frame-height');
+        const maxFrameHeightSel = $_(jingleContents, '>content[name="video"]>max-frame-height');
 
-        return maxFrameHeightSel.length ? Number(maxFrameHeightSel.text()) : null;
+        return maxFrameHeightSel ? Number(maxFrameHeightSel.textContent) : null;
     }
 
     /* eslint-disable max-params */
@@ -768,8 +769,8 @@ export default class JingleSessionPC extends JingleSession {
 
         const iceCandidates = [];
 
-        elem.find('>content>transport>candidate')
-            .each((idx, candidate) => {
+        $$_(elem, '>content>transport>candidate')
+            .forEach(candidate => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
                 line = line.replace('\r\n', '').replace('a=', '');
@@ -823,22 +824,20 @@ export default class JingleSessionPC extends JingleSession {
      * @param contents
      */
     readSsrcInfo(contents) {
-        const ssrcs
-            = $(contents).find(
-                '>description>'
-                    + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+        contents.forEach(content => {
 
-        ssrcs.each((i, ssrcElement) => {
-            const ssrc = Number(ssrcElement.getAttribute('ssrc'));
+            const ssrcs = $$_(content, '>description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
-            if (this.isP2P) {
+            ssrcs.forEach(ssrcElement => {
+                const ssrc = Number(ssrcElement.getAttribute('ssrc'));
+
+                if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
-                this.signalingLayer.setSSRCOwner(
+                    this.signalingLayer.setSSRCOwner(
                     ssrc, Strophe.getResourceFromJid(this.remoteJid));
-            } else {
-                $(ssrcElement)
-                    .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                    .each((i3, ssrcInfoElement) => {
+                } else {
+                    $$_(ssrcElement, '>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
+                    .forEach(ssrcInfoElement => {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
                         if (owner && owner.length) {
@@ -853,7 +852,8 @@ export default class JingleSessionPC extends JingleSession {
                             }
                         }
                     });
-            }
+                }
+            });
         });
     }
 
@@ -1035,10 +1035,8 @@ export default class JingleSessionPC extends JingleSession {
                 = this.peerconnection.localDescription.sdp;
 
             const bridgeSession
-                = $(jingleOfferAnswerIq)
-                    .find('>bridge-session['
-                        + 'xmlns="http://jitsi.org/protocol/focus"]');
-            const bridgeSessionId = bridgeSession.attr('id');
+                = $_(jingleOfferAnswerIq, '>bridge-session[xmlns="http://jitsi.org/protocol/focus"]');
+            const bridgeSessionId = bridgeSession.setAttribute('id');
 
             if (bridgeSessionId !== this._bridgeSessionId) {
                 this._bridgeSessionId = bridgeSessionId;
@@ -1140,11 +1138,10 @@ export default class JingleSessionPC extends JingleSession {
         // cleaned up to signal the known data channel is now invalid. After
         // that the original offer is set to have the SCTP connection
         // established with the new bridge.
-        const originalOffer = jingleOfferElem.clone();
+        const originalOffer = jingleOfferElem.cloneNode(true);
 
-        jingleOfferElem
-            .find('>content[name=\'data\']')
-            .attr('senders', 'rejected');
+        $_(jingleOfferElem, '>content[name="data"]')
+            .getAttribute('senders', 'rejected');
 
         // Remove all remote sources in order to reset the client's state
         // for the remote MediaStreams. When a conference is moved to
@@ -1152,21 +1149,17 @@ export default class JingleSessionPC extends JingleSession {
         // that is not in sync with the most recently seen by the client.
         // The symptoms include frozen or black video and lots of "failed to
         // unprotect SRTP packets" in Chrome logs.
-        jingleOfferElem
-            .find('>content>description>source')
-            .remove();
-        jingleOfferElem
-            .find('>content>description>ssrc-group')
-            .remove();
+        $_(jingleOfferElem, '>content>description>source').remove();
+        $_(jingleOfferElem, '>content>description>ssrc-group').remove();
 
         // On the JVB it's not a real ICE restart and all layers are re-initialized from scratch as Jicofo does
         // the restart by re-allocating new channels. Chrome (or WebRTC stack) needs to have the DTLS transport layer
         // reset to start a new handshake with fresh DTLS transport on the bridge. Make it think that the DTLS
         // fingerprint has changed by setting an all zeros key.
-        const newFingerprint = jingleOfferElem.find('>content>transport>fingerprint');
+        const newFingerprint = $_(jingleOfferElem, '>content>transport>fingerprint');
 
-        newFingerprint.attr('hash', 'sha-1');
-        newFingerprint.text('00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00');
+        newFingerprint.setAttribute('hash', 'sha-1');
+        newFingerprint.textContent = '00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
 
         // First set an offer with a rejected 'data' section
         this.setOfferAnswerCycle(
@@ -1560,23 +1553,14 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
 
-        $(sourceAddElem).each((i1, content) => {
-            const name = $(content).attr('name');
+        $$_(sourceAddElem).forEach(content => {
+            const name = content.setAttribute('name');
             let lines = '';
 
-            $(content)
-                .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
-                .each(function() {
-                    // eslint-disable-next-line no-invalid-this
-                    const semantics = this.getAttribute('semantics');
-                    const ssrcs
-                        = $(this) // eslint-disable-line no-invalid-this
-                            .find('>source')
-                            .map(function() {
-                                // eslint-disable-next-line no-invalid-this
-                                return this.getAttribute('ssrc');
-                            })
-                            .get();
+            $$_(content, 'ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+                .forEach(element => {
+                    const semantics = element.getAttribute('semantics');
+                    const ssrcs = $$_(element, '>source').map(() => element.getAttribute('ssrc'));
 
                     if (ssrcs.length) {
                         lines
@@ -1586,13 +1570,10 @@ export default class JingleSessionPC extends JingleSession {
                 });
 
             // handles both >source and >description>source
-            const tmp
-                = $(content).find(
-                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const tmp = $$_(content, 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
-            /* eslint-disable no-invalid-this */
-            tmp.each(function() {
-                const ssrc = $(this).attr('ssrc');
+            tmp.forEach(element => {
+                const ssrc = element.getAttribute('ssrc');
 
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
                     logger.warn(
@@ -1602,10 +1583,10 @@ export default class JingleSessionPC extends JingleSession {
                 }
 
                 // eslint-disable-next-line newline-per-chained-call
-                $(this).find('>parameter').each(function() {
-                    lines += `a=ssrc:${ssrc} ${$(this).attr('name')}`;
-                    if ($(this).attr('value') && $(this).attr('value').length) {
-                        lines += `:${$(this).attr('value')}`;
+                $$_(element, '>parameter').forEach(element2 => {
+                    lines += `a=ssrc:${ssrc} ${element2.getAttribute('name')}`;
+                    if (element2.getAttribute('value') && element2.getAttribute('value').length) {
+                        lines += `:${element2.getAttribute('value')}`;
                     }
                     lines += '\r\n';
                 });
@@ -1723,7 +1704,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         remoteSdp.fromJingle(offerIq);
-        this.readSsrcInfo($(offerIq).find('>content'));
+        this.readSsrcInfo($$_(offerIq, '>content'));
 
         return remoteSdp;
     }
@@ -1985,44 +1966,33 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
         const removeSsrcInfo = [];
 
-        $(sourceRemoveElem).each((i1, content) => {
-            const name = $(content).attr('name');
+        $$_(sourceRemoveElem).forEach(content => {
+            const name = content.getAttribute('name');
             let lines = '';
 
-            $(content)
-                .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
-                .each(function() {
-                    /* eslint-disable no-invalid-this */
-                    const semantics = this.getAttribute('semantics');
-                    const ssrcs
-                        = $(this)
-                            .find('>source')
-                            .map(function() {
-                                return this.getAttribute('ssrc');
-                            })
-                            .get();
+            $$_(content, 'ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+                .forEach(element => {
+                    const semantics = element.getAttribute('semantics');
+                    const ssrcs = $$_(element, '>source').map(() => element.getAttribute('ssrc'));
 
                     if (ssrcs.length) {
                         lines
                             += `a=ssrc-group:${semantics} ${
                                 ssrcs.join(' ')}\r\n`;
                     }
-
-                    /* eslint-enable no-invalid-this */
                 });
+
             const ssrcs = [];
 
             // handles both >source and >description>source versions
-            const tmp
-                = $(content).find(
-                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const tmp = $$_(content, 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
-            tmp.each(function() {
-                // eslint-disable-next-line no-invalid-this
-                const ssrc = $(this).attr('ssrc');
+            tmp.forEach(element => {
+                const ssrc = element.getAttribute('ssrc');
 
                 ssrcs.push(ssrc);
             });
+
             currentRemoteSdp.media.forEach((media, i2) => {
                 if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
@@ -2437,20 +2407,20 @@ export default class JingleSessionPC extends JingleSession {
             const error = {};
 
             // Get XMPP error code and condition(reason)
-            const errorElSel = $(errResponse).find('error');
+            const errorElSel = $_(errResponse, 'error');
 
-            if (errorElSel.length) {
-                error.code = errorElSel.attr('code');
-                const errorReasonSel = $(errResponse).find('error :first');
+            if (errorElSel) {
+                error.code = errorElSel.getAttribute('code');
+                const errorReasonSel = $_(errResponse, 'error > *');
 
-                if (errorReasonSel.length) {
-                    error.reason = errorReasonSel[0].tagName;
+                if (errorReasonSel) {
+                    error.reason = errorReasonSel.tagName;
                 }
 
-                const errorMsgSel = errorElSel.find('>text');
+                const errorMsgSel = $_(errorElSel, '>text');
 
-                if (errorMsgSel.length) {
-                    error.msg = errorMsgSel.text();
+                if (errorMsgSel) {
+                    error.msg = errorMsgSel.textContent;
                 }
             }
 

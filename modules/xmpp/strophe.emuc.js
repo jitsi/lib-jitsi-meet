@@ -1,9 +1,10 @@
-/* global $ */
+/* global */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { Strophe } from 'strophe.js';
 
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { $_ } from '../util/DomUtil';
 
 import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
@@ -98,8 +99,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         // Parse status.
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
-            + '>status[code="201"]').length) {
+        if ($_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="201"]')) {
             room.createNonAnonymousRoom();
         }
 

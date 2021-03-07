@@ -1,4 +1,4 @@
-/* global $, __filename */
+/* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
@@ -10,6 +10,7 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Statistics from '../statistics/statistics';
+import { $$_, $_ } from '../util/DomUtil';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
 
@@ -61,8 +62,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @param iq
      */
     onJingle(iq) {
-        const sid = $(iq).find('jingle').attr('sid');
-        const action = $(iq).find('jingle').attr('action');
+        const sid = $_(iq, 'jingle').getAttribute('sid');
+        const action = $_(iq, 'jingle').getAttribute('action');
         const fromJid = iq.getAttribute('from');
 
         // send ack first
@@ -134,11 +135,11 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         switch (action) {
         case 'session-initiate': {
             logger.log('(TIME) received session-initiate:\t', now);
-            const startMuted = $(iq).find('jingle>startmuted');
+            const startMuted = $_(iq, 'jingle>startmuted');
 
-            if (startMuted && startMuted.length > 0) {
-                const audioMuted = startMuted.attr('audio');
-                const videoMuted = startMuted.attr('video');
+            if (startMuted) {
+                const audioMuted = startMuted.getAttribute('audio');
+                const videoMuted = startMuted.getAttribute('video');
 
                 this.eventEmitter.emit(
                     XMPPEvents.START_MUTED_FROM_FOCUS,
@@ -154,8 +155,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
             sess
                 = new JingleSessionPC(
-                    $(iq).find('jingle').attr('sid'),
-                    $(iq).attr('to'),
+                    $_(iq, 'jingle').getAttribute('sid'),
+                    $_(iq).getAttribute('to'),
                     fromJid,
                     this.connection,
                     this.mediaConstraints,
@@ -169,21 +170,21 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             this.sessions[sess.sid] = sess;
 
             this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
-                sess, $(iq).find('>jingle'), now);
+                sess, $_(iq, '>jingle'), now);
             break;
         }
         case 'session-accept': {
             this.eventEmitter.emit(
-                XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+                XMPPEvents.CALL_ACCEPTED, sess, $_(iq, '>jingle'));
             break;
         }
         case 'content-modify': {
-            sess.modifyContents($(iq).find('>jingle'));
+            sess.modifyContents($_(iq, '>jingle'));
             break;
         }
         case 'transport-info': {
             this.eventEmitter.emit(
-                XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
+                XMPPEvents.TRANSPORT_INFO, sess, $_(iq, '>jingle'));
             break;
         }
         case 'session-terminate': {
@@ -191,10 +192,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             let reasonCondition = null;
             let reasonText = null;
 
-            if ($(iq).find('>jingle>reason').length) {
+            if ($_(iq, '>jingle>reason')) {
                 reasonCondition
-                    = $(iq).find('>jingle>reason>:first')[0].tagName;
-                reasonText = $(iq).find('>jingle>reason>text').text();
+                    = $_(iq, '>jingle>reason>:first').tagName;
+                reasonText = $_(iq, '>jingle>reason>text').textContent();
             }
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
@@ -210,7 +211,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     value: now
                 }));
 
-            sess.replaceTransport($(iq).find('>jingle'), () => {
+            sess.replaceTransport($_(iq, '>jingle'), () => {
                 const successTime = window.performance.now();
 
                 logger.info('(TIME) Transport replace success:\t', successTime);
@@ -228,11 +229,11 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         case 'addsource': // FIXME: proprietary, un-jingleish
         case 'source-add': // FIXME: proprietary
-            sess.addRemoteStream($(iq).find('>jingle>content'));
+            sess.addRemoteStream($_(iq, '>jingle>content'));
             break;
         case 'removesource': // FIXME: proprietary, un-jingleish
         case 'source-remove': // FIXME: proprietary
-            sess.removeRemoteStream($(iq).find('>jingle>content'));
+            sess.removeRemoteStream($_(iq, '>jingle>content'));
             break;
         default:
             logger.warn('jingle action not implemented', action);
@@ -332,37 +333,35 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
     onReceiveStunAndTurnCredentials(res) {
         const iceservers = [];
 
-        $(res).find('>services>service').each((idx, el) => {
-            // eslint-disable-next-line no-param-reassign
-            el = $(el);
+        $$_(res, '>services>service').forEach(el => {
             const dict = {};
-            const type = el.attr('type');
+            const type = el.getAttribute('type');
 
             switch (type) {
             case 'stun':
-                dict.urls = `stun:${el.attr('host')}`;
-                if (el.attr('port')) {
-                    dict.urls += `:${el.attr('port')}`;
+                dict.urls = `stun:${el.getAttribute('host')}`;
+                if (el.getAttribute('port')) {
+                    dict.urls += `:${el.getAttribute('port')}`;
                 }
                 iceservers.push(dict);
                 break;
             case 'turn':
             case 'turns': {
                 dict.urls = `${type}:`;
-                dict.username = el.attr('username');
-                dict.urls += el.attr('host');
-                const port = el.attr('port');
+                dict.username = el.getAttribute('username');
+                dict.urls += el.getAttribute('host');
+                const port = el.getAttribute('port');
 
                 if (port) {
-                    dict.urls += `:${el.attr('port')}`;
+                    dict.urls += `:${el.getAttribute('port')}`;
                 }
-                const transport = el.attr('transport');
+                const transport = el.getAttribute('transport');
 
                 if (transport && transport !== 'udp') {
                     dict.urls += `?transport=${transport}`;
                 }
 
-                dict.credential = el.attr('password')
+                dict.credential = el.getAttribute('password')
                         || dict.credential;
                 iceservers.push(dict);
                 break;

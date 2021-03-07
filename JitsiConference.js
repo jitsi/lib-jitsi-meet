@@ -1,4 +1,4 @@
-/* global __filename, $, Promise */
+/* global __filename, Promise */
 
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
@@ -39,6 +39,7 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
+import { $_ } from './modules/util/DomUtil';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -1965,9 +1966,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     }
 
     const serverRegion
-        = $(jingleOffer)
-            .find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]')
-            .attr('region');
+        = $_(jingleOffer, '>bridge-session[xmlns="http://jitsi.org/protocol/focus"]').getAttribute('region');
 
     this.eventEmitter.emit(
         JitsiConferenceEvents.SERVER_REGION_CHANGED,
@@ -2051,19 +2050,15 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
  * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
-    let wsUrl = null;
-    const webSocket
-        = $(offerIq)
-            .find('>content>transport>web-socket')
-            .first();
+    const webSocket = $_(offerIq, '>content>transport>web-socket');
 
-    if (webSocket.length === 1) {
-        wsUrl = webSocket[0].getAttribute('url');
-    }
+    if (webSocket) {
+        const wsUrl = webSocket.getAttribute('url');
 
-    if (wsUrl) {
-        // If the offer contains a websocket use it.
-        this.rtc.initializeBridgeChannel(null, wsUrl);
+        if (wsUrl) {
+            // If the offer contains a websocket use it.
+            this.rtc.initializeBridgeChannel(null, wsUrl);
+        }
     } else {
         // Otherwise, fall back to an attempt to use SCTP.
         this.rtc.initializeBridgeChannel(pc, null);
