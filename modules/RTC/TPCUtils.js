@@ -448,7 +448,7 @@ export class TPCUtils {
      * @returns {void}
      */
     updateEncodingsResolution(parameters) {
-        if (!(browser.isSafari() && parameters.encodings && Array.isArray(parameters.encodings))) {
+        if (!(browser.isWebKitBased() && parameters.encodings && Array.isArray(parameters.encodings))) {
             return;
         }
         const allEqualEncodings
