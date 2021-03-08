@@ -290,11 +290,10 @@ export default class BridgeChannel {
 
             switch (colibriClass) {
             case 'DominantSpeakerEndpointChangeEvent': {
-                // Endpoint ID from the Videobridge.
-                const dominantSpeakerEndpoint = obj.dominantSpeakerEndpoint;
+                const { dominantSpeakerEndpoint, previousSpeakers = [] } = obj;
 
-                logger.info(`New dominant speaker: ${dominantSpeakerEndpoint}.`);
-                emitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED, dominantSpeakerEndpoint);
+                logger.debug(`Dominant speaker: ${dominantSpeakerEndpoint}, previous speakers: ${previousSpeakers}`);
+                emitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED, dominantSpeakerEndpoint, previousSpeakers);
                 break;
             }
             case 'EndpointConnectivityStatusChangeEvent': {

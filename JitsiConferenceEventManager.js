@@ -490,16 +490,15 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.onRemoteTrackRemoved.bind(conference));
 
     rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
-        id => {
-            if (conference.lastDominantSpeaker !== id && conference.room) {
-                conference.lastDominantSpeaker = id;
+        (dominant, previous) => {
+            if (conference.lastDominantSpeaker !== dominant && conference.room) {
+                conference.lastDominantSpeaker = dominant;
                 conference.eventEmitter.emit(
-                    JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, id);
+                    JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous);
 
-                if (conference.statistics && conference.myUserId() === id) {
+                if (conference.statistics && conference.myUserId() === dominant) {
                     // We are the new dominant speaker.
-                    conference.statistics.sendDominantSpeakerEvent(
-                        conference.room.roomjid);
+                    conference.statistics.sendDominantSpeakerEvent(conference.room.roomjid);
                 }
             }
         });
