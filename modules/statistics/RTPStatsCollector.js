@@ -232,7 +232,7 @@ export default function StatsCollector(
      * @type {boolean}
      */
     this._usesPromiseGetStats
-        = browser.isSafari() || browser.isFirefox() || browser.isReactNative();
+        = browser.isWebKitBased() || browser.isFirefox() || browser.isReactNative();
 
     /**
      * The function which is to be used to retrieve the value associated in a

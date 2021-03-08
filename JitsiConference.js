@@ -439,7 +439,7 @@ JitsiConference.prototype._init = function(options = {}) {
 
     // Disable VAD processing on Safari since it causes audio input to
     // fail on some of the mobile devices.
-    if (config.enableTalkWhileMuted && !browser.isSafari()) {
+    if (config.enableTalkWhileMuted && !browser.isWebKitBased()) {
 
         // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
         // based detection.
@@ -463,7 +463,7 @@ JitsiConference.prototype._init = function(options = {}) {
 
     // Disable noisy mic detection on safari since it causes the audio input to
     // fail on Safari on iPadOS.
-    if (config.enableNoisyMicDetection && !browser.isSafari()) {
+    if (config.enableNoisyMicDetection && !browser.isWebKitBased()) {
         if (config.createVADProcessor) {
             if (!this._audioAnalyser) {
                 this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);

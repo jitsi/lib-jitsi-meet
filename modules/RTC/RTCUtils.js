@@ -175,7 +175,7 @@ function getConstraints(um, options = {}) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
-            || browser.isSafari()
+            || browser.isWebKitBased()
             || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
@@ -383,7 +383,7 @@ function newGetConstraints(um = [], options = {}) {
         // https://bugs.webkit.org/show_bug.cgi?id=210932
         // Camera doesn't start on older macOS versions if min/max constraints are specified.
         // TODO: remove this hack when the bug fix is available on Mojave, Sierra and High Sierra.
-        if (browser.isSafari()) {
+        if (browser.isWebKitBased()) {
             if (constraints.video.height && constraints.video.height.ideal) {
                 constraints.video.height = { ideal: clonedeep(constraints.video.height.ideal) };
             } else {
@@ -412,7 +412,7 @@ function newGetConstraints(um = [], options = {}) {
         }
 
         // Use the standard audio constraints on non-chromium browsers.
-        if (browser.isFirefox() || browser.isSafari()) {
+        if (browser.isFirefox() || browser.isWebKitBased()) {
             constraints.audio = {
                 deviceId: options.micDeviceId,
                 autoGainControl: !disableAGC && !disableAP,
