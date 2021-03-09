@@ -2128,20 +2128,18 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
         return Promise.resolve();
     }
     const parameters = videoSender.getParameters();
+    const preference = localVideoTrack.videoType === VideoType.CAMERA
+        ? DEGRADATION_PREFERENCE_CAMERA
+        : this.options.capScreenshareBitrate && browser.usesPlanB()
 
-    if (!parameters.encodings || !parameters.encodings.length) {
-        return Promise.resolve();
-    }
-    for (const encoding in parameters.encodings) {
-        if (parameters.encodings.hasOwnProperty(encoding)) {
-            const preference = localVideoTrack.videoType === VideoType.CAMERA
-                ? DEGRADATION_PREFERENCE_CAMERA
-                : DEGRADATION_PREFERENCE_DESKTOP;
+            // Prefer resolution for low fps share.
+            ? DEGRADATION_PREFERENCE_DESKTOP
 
-            logger.info(`Setting video sender degradation preference on ${this} to ${preference}`);
-            parameters.encodings[encoding].degradationPreference = preference;
-        }
-    }
+            // Prefer frame-rate for high fps share.
+            : DEGRADATION_PREFERENCE_CAMERA;
+
+    logger.info(`Setting a degradation preference of ${preference} on local video track`);
+    parameters.degradationPreference = preference;
     this.tpcUtils.updateEncodingsResolution(parameters);
 
     return videoSender.setParameters(parameters);
