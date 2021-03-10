@@ -93,6 +93,9 @@ let disableAGC = false;
 // Disables Highpass Filter
 let disableHPF = false;
 
+// Channel count used to enable stereo.
+let channelCount = null;
+
 const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
@@ -420,26 +423,14 @@ function newGetConstraints(um = [], options = {}) {
                 noiseSuppression: !disableNS && !disableAP
             };
         } else {
-            // NOTE(brian): the new-style ('advanced' instead of 'optional')
-            // doesn't seem to carry through the googXXX constraints
-            // Changing back to 'optional' here (even with video using
-            // the 'advanced' style) allows them to be passed through
-            // but also requires the device id to capture to be set in optional
-            // as sourceId otherwise the constraints are considered malformed.
-            if (!constraints.audio.optional) {
-                constraints.audio.optional = [];
-            }
-            constraints.audio.optional.push(
-                { sourceId: options.micDeviceId },
-                { echoCancellation: !disableAEC && !disableAP },
-                { googEchoCancellation: !disableAEC && !disableAP },
-                { googAutoGainControl: !disableAGC && !disableAP },
-                { googNoiseSuppression: !disableNS && !disableAP },
-                { googHighpassFilter: !disableHPF && !disableAP },
-                { googNoiseSuppression2: !disableNS && !disableAP },
-                { googEchoCancellation2: !disableAEC && !disableAP },
-                { googAutoGainControl2: !disableAGC && !disableAP }
-            );
+            constraints.audio = {
+                autoGainControl: { exact: !disableAGC && !disableAP },
+                channelCount,
+                deviceId: options.micDeviceId,
+                echoCancellation: { exact: !disableAEC && !disableAP },
+                noiseSuppression: { exact: !disableNS && !disableAP },
+                sampleRate: 48000
+            };
         }
     } else {
         constraints.audio = false;
@@ -775,6 +766,11 @@ class RTCUtils extends Listenable {
         if (typeof options.disableHPF === 'boolean') {
             disableHPF = options.disableHPF;
             logger.info(`Disable HPF: ${disableHPF}`);
+        }
+
+        if (typeof options.channelCount === 'number') {
+            channelCount = options.channelCount;
+            logger.info(`Channel count: ${channelCount}`);
         }
 
         window.clearInterval(availableDevicesPollTimer);

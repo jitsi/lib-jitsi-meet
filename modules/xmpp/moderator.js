@@ -186,13 +186,6 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
 
-    if (config.opusMaxAverageBitrate) {
-        elem.c(
-            'property', {
-                name: 'opusMaxAverageBitrate',
-                value: config.opusMaxAverageBitrate
-            }).up();
-    }
     if (this.options.conference.startAudioMuted !== undefined) {
         elem.c(
             'property', {
@@ -205,13 +198,6 @@ Moderator.prototype.createConferenceIq = function() {
             'property', {
                 name: 'startVideoMuted',
                 value: this.options.conference.startVideoMuted
-            }).up();
-    }
-    if (this.options.conference.stereo !== undefined) {
-        elem.c(
-            'property', {
-                name: 'stereo',
-                value: this.options.conference.stereo
             }).up();
     }
     elem.up();
