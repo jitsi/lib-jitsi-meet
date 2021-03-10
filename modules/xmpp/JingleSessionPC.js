@@ -826,7 +826,7 @@ export default class JingleSessionPC extends JingleSession {
     readSsrcInfo(contents) {
         contents.forEach(content => {
 
-            const ssrcs = $$_(content, '>description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const ssrcs = $$_(content, '>description>source[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             ssrcs.forEach(ssrcElement => {
                 const ssrc = Number(ssrcElement.getAttribute('ssrc'));
@@ -836,7 +836,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.signalingLayer.setSSRCOwner(
                     ssrc, Strophe.getResourceFromJid(this.remoteJid));
                 } else {
-                    $$_(ssrcElement, '>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
+                    $$_(ssrcElement, '>ssrc-info[*|xmlns="http://jitsi.org/jitmeet"]')
                     .forEach(ssrcInfoElement => {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
@@ -1034,7 +1034,7 @@ export default class JingleSessionPC extends JingleSession {
                 = this.peerconnection.localDescription.sdp;
 
             const bridgeSession
-                = $_(jingleOfferAnswerIq, '>bridge-session[xmlns="http://jitsi.org/protocol/focus"]');
+                = $_(jingleOfferAnswerIq, '>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]');
             const bridgeSessionId = bridgeSession.setAttribute('id');
 
             if (bridgeSessionId !== this._bridgeSessionId) {
@@ -1556,7 +1556,7 @@ export default class JingleSessionPC extends JingleSession {
             const name = content.setAttribute('name');
             let lines = '';
 
-            $$_(content, 'ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+            $$_(content, 'ssrc-group[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .forEach(element => {
                     const semantics = element.getAttribute('semantics');
                     const ssrcs = $$_(element, '>source').map(() => element.getAttribute('ssrc'));
@@ -1569,7 +1569,7 @@ export default class JingleSessionPC extends JingleSession {
                 });
 
             // handles both >source and >description>source
-            const tmp = $$_(content, 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const tmp = $$_(content, 'source[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             tmp.forEach(element => {
                 const ssrc = element.getAttribute('ssrc');
@@ -1969,7 +1969,7 @@ export default class JingleSessionPC extends JingleSession {
             const name = content.getAttribute('name');
             let lines = '';
 
-            $$_(content, 'ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+            $$_(content, 'ssrc-group[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .forEach(element => {
                     const semantics = element.getAttribute('semantics');
                     const ssrcs = $$_(element, '>source').map(() => element.getAttribute('ssrc'));
@@ -1984,7 +1984,7 @@ export default class JingleSessionPC extends JingleSession {
             const ssrcs = [];
 
             // handles both >source and >description>source versions
-            const tmp = $$_(content, 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const tmp = $$_(content, 'source[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             tmp.forEach(element => {
                 const ssrc = element.getAttribute('ssrc');

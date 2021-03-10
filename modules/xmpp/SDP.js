@@ -470,7 +470,7 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) {
 SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     let sdp = '';
     const feedbackElementTrrInt
-        = $_(elem, '>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+        = $_(elem, '>rtcp-fb-trr-int[*|xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
 
     if (feedbackElementTrrInt) {
         sdp += 'a=rtcp-fb:* trr-int ';
@@ -482,7 +482,7 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
         sdp += '\r\n';
     }
 
-    const feedbackElements = $$_(elem, '>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+    const feedbackElements = $$_(elem, '>rtcp-fb[*|xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
 
     feedbackElements.forEach(fb => {
         sdp += `a=rtcp-fb:${payloadtype} ${fb.getAttribute('type')}`;
@@ -507,7 +507,7 @@ SDP.prototype.fromJingle = function(jingle) {
 
     // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04
     // #section-8
-    const groups = $$_(jingle, '>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]');
+    const groups = $$_(jingle, '>group[*|xmlns="urn:xmpp:jingle:apps:grouping:0"]');
 
     if (groups.length) {
         groups.forEach(group => {
@@ -545,10 +545,10 @@ SDP.prototype.fromJingle = function(jingle) {
 SDP.prototype.jingle2media = function(content) {
 
     const desc = $_(content, '>description');
-    const transport = $_(content, '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
+    const transport = $_(content, '>transport[*|xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
 
     let sdp = '';
-    const sctp = $_(transport, '>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
+    const sctp = $_(transport, '>sctpmap[*|xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
 
     const media = { media: desc.getAttribute('media') };
 
@@ -557,7 +557,7 @@ SDP.prototype.jingle2media = function(content) {
         // estos hack to reject an m-line.
         media.port = '0';
     }
-    if ($_(transport, '>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]')) {
+    if ($_(transport, '>fingerprint[*|xmlns="urn:xmpp:jingle:apps:dtls:0"]')) {
         media.proto = sctp ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         media.proto = 'RTP/AVPF';
@@ -593,7 +593,7 @@ SDP.prototype.jingle2media = function(content) {
         if (transport.getAttribute('pwd')) {
             sdp += `${SDPUtil.buildICEPwd(transport.getAttribute('pwd'))}\r\n`;
         }
-        $$_(transport, '>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').forEach(fingerprint => {
+        $$_(transport, '>fingerprint[*|xmlns="urn:xmpp:jingle:apps:dtls:0"]').forEach(fingerprint => {
             sdp += `a=fingerprint:${fingerprint.getAttribute('hash')}`;
             sdp += ` ${fingerprint.textContent}`;
             sdp += '\r\n';
@@ -669,14 +669,14 @@ SDP.prototype.jingle2media = function(content) {
     sdp += this.rtcpFbFromJingle(desc, '*');
 
     // xep-0294
-    $$_(desc, '>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]')
+    $$_(desc, '>rtp-hdrext[*|xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]')
         .forEach(hdrExt => {
             sdp += `a=extmap:${hdrExt.getAttribute('id')} ${
                 hdrExt.getAttribute('uri')}\r\n`;
         });
 
     // XEP-0339 handle ssrc-group attributes
-    $$_(desc, '>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+    $$_(desc, '>ssrc-group[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
         .forEach(ssrcGroup => {
             const semantics = ssrcGroup.getAttribute('semantics');
             const ssrcs = $$_(ssrcGroup, '>source')
@@ -688,7 +688,7 @@ SDP.prototype.jingle2media = function(content) {
         });
 
     // XEP-0339 handle source attributes
-    $$_(desc, '>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+    $$_(desc, '>source[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
         .forEach(source => {
             const ssrc = source.getAttribute('ssrc');
 

@@ -371,7 +371,7 @@ export default class ChatRoom extends Listenable {
         });
 
         this.connection.sendIQ(getForm, form => {
-            if ($_(form, '>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_whois"]')) {
+            if ($_(form, '>query>x[*|xmlns="jabber:x:data"]>field[var="muc#roomconfig_whois"]')) {
                 const errmsg = 'non-anonymous rooms not supported';
 
                 GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
@@ -935,16 +935,16 @@ export default class ChatRoom extends Listenable {
      */
     onPresenceUnavailable(pres, from) {
         // ignore presence
-        if ($_(pres, '>ignore[xmlns="http://jitsi.org/jitmeet/"]')) {
+        if ($_(pres, '>ignore[*|xmlns="http://jitsi.org/jitmeet/"]')) {
             return true;
         }
 
         // room destroyed ?
-        const destroySelect = $_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>destroy');
+        const destroySelect = $_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>destroy');
 
         if (destroySelect) {
             let reason;
-            const reasonSelect = $_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>destroy>reason');
+            const reasonSelect = $_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>destroy>reason');
 
             if (reasonSelect) {
                 reason = reasonSelect.textContent;
@@ -957,12 +957,16 @@ export default class ChatRoom extends Listenable {
         }
 
         // Status code 110 indicates that this notification is "self-presence".
-        const isSelfPresence = Boolean($_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]'));
-        const isKick = Boolean($_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]'));
+        const isSelfPresence = Boolean(
+            $_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]')
+        );
+        const isKick = Boolean(
+            $_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]')
+        );
         const membersKeys = Object.keys(this.members);
 
         if (isKick) {
-            const actorSelect = $_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
+            const actorSelect = $_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
 
             const actorNick = actorSelect?.getAttribute('nick');
 
@@ -1005,7 +1009,7 @@ export default class ChatRoom extends Listenable {
      * @param from
      */
     onMessage(msg, from) {
-        const nick = $_(msg, '>nick[xmlns="http://jabber.org/protocol/nick"]')?.textContent
+        const nick = $_(msg, '>nick[*|xmlns="http://jabber.org/protocol/nick"]')?.textContent
             || Strophe.getResourceFromJid(from);
 
         const type = msg.getAttribute('type');
@@ -1033,7 +1037,7 @@ export default class ChatRoom extends Listenable {
 
         if (!stamp) {
             // or xep-0091 delay, UTC timestamp
-            stamp = $_(msg, '>[xmlns="jabber:x:delay"]').getAttribute('stamp');
+            stamp = $_(msg, '>[*|xmlns="jabber:x:delay"]').getAttribute('stamp');
 
             if (stamp) {
                 // the format is CCYYMMDDThh:mm:ss
@@ -1047,10 +1051,10 @@ export default class ChatRoom extends Listenable {
         if (from === this.roomjid) {
             let invite;
 
-            if ($_(msg, '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
+            if ($_(msg, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
                 this.discoRoomInfo();
-            } else if ((invite = $_(msg, '>x[xmlns="http://jabber.org/protocol/muc#user"]>invite')) && invite) {
-                const passwordSelect = $_(msg, '>x[xmlns="http://jabber.org/protocol/muc#user"]>password');
+            } else if ((invite = $_(msg, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite')) && invite) {
+                const passwordSelect = $_(msg, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
                 let password;
 
                 if (passwordSelect) {
@@ -1095,10 +1099,10 @@ export default class ChatRoom extends Listenable {
      * @param from
      */
     onPresenceError(pres, from) {
-        if ($_(pres, '>error[type="auth"]>not-authorized[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
+        if ($_(pres, '>error[type="auth"]>not-authorized[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
             logger.log('on password required', from);
             this.eventEmitter.emit(XMPPEvents.PASSWORD_REQUIRED);
-        } else if ($_(pres, '>error[type="cancel"]>not-allowed[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
+        } else if ($_(pres, '>error[type="cancel"]>not-allowed[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
             const toDomain = Strophe.getDomainFromJid(pres.getAttribute('to'));
 
             if (toDomain === this.xmpp.options.hosts.anonymousdomain) {
@@ -1116,7 +1120,9 @@ export default class ChatRoom extends Listenable {
         } else if ($_(pres, '>error>service-unavailable')) {
             logger.warn('Maximum users limit for the room has been reached', pres);
             this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
-        } else if ($_(pres, '>error[type="auth"]>registration-required[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
+        } else if (
+            $_(pres, '>error[type="auth"]>registration-required[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
+        ) {
 
             // let's extract the lobby jid from the custom field
             const lobbyRoomNode = $_(pres, '>lobbyroom');
@@ -1192,7 +1198,7 @@ export default class ChatRoom extends Listenable {
                 type: 'get'
             }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
-                if ($_(res, '>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_roomsecret"]')) {
+                if ($_(res, '>query>x[*|xmlns="jabber:x:data"]>field[var="muc#roomconfig_roomsecret"]')) {
                     const formsubmit = $iq({
                         to: this.roomjid,
                         type: 'set'
@@ -1289,7 +1295,7 @@ export default class ChatRoom extends Listenable {
                 type: 'get'
             }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
-                if ($_(res, '>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_membersonly"]')) {
+                if ($_(res, '>query>x[*|xmlns="jabber:x:data"]>field[var="muc#roomconfig_membersonly"]')) {
                     const formToSubmit = $iq({
                         to: this.roomjid,
                         type: 'set'

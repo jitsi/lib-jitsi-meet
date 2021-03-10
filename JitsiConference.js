@@ -1966,7 +1966,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     }
 
     const serverRegion
-        = $_(jingleOffer, '>bridge-session[xmlns="http://jitsi.org/protocol/focus"]').getAttribute('region');
+        = $_(jingleOffer, '>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]').getAttribute('region');
 
     this.eventEmitter.emit(
         JitsiConferenceEvents.SERVER_REGION_CHANGED,

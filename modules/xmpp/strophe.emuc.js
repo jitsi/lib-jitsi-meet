@@ -99,7 +99,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         // Parse status.
-        if ($_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="201"]')) {
+        if ($_(pres, '>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="201"]')) {
             room.createNonAnonymousRoom();
         }
 
