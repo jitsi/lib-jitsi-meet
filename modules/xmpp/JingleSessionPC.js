@@ -1035,7 +1035,7 @@ export default class JingleSessionPC extends JingleSession {
 
             const bridgeSession
                 = $_(jingleOfferAnswerIq, '>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]');
-            const bridgeSessionId = bridgeSession.setAttribute('id');
+            const bridgeSessionId = bridgeSession.getAttribute('id');
 
             if (bridgeSessionId !== this._bridgeSessionId) {
                 this._bridgeSessionId = bridgeSessionId;
@@ -1553,7 +1553,7 @@ export default class JingleSessionPC extends JingleSession {
         const addSsrcInfo = [];
 
         $$_(sourceAddElem).forEach(content => {
-            const name = content.setAttribute('name');
+            const name = content.getAttribute('name');
             let lines = '';
 
             $$_(content, 'ssrc-group[*|xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')

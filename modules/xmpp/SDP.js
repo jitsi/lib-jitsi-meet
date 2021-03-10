@@ -474,8 +474,8 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
 
     if (feedbackElementTrrInt) {
         sdp += 'a=rtcp-fb:* trr-int ';
-        if (feedbackElementTrrInt.setAttribute('value')) {
-            sdp += feedbackElementTrrInt.setAttribute('value');
+        if (feedbackElementTrrInt.getAttribute('value')) {
+            sdp += feedbackElementTrrInt.getAttribute('value');
         } else {
             sdp += '0';
         }
