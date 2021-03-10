@@ -162,11 +162,11 @@ export default class ProxyConnectionService {
     }
 
     /**
-     * Transforms a stringified xML into a XML wrapped in jQuery.
+     * Transforms a stringified xML into an xml document.
      *
      * @param {string} xml - The XML in string form.
      * @private
-     * @returns {Object|null} A jQuery version of the xml. Null will be returned
+     * @returns {XMLDocument|null} An xml node representing the xml document. Null will be returned
      * if an error is encountered during transformation.
      */
     _convertStringToXML(xml) {

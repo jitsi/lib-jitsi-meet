@@ -241,9 +241,7 @@ a=ssrc:3758540092 mslabel:mixedmslabel
             const offer = createStanzaElement(stanza);
             const sdp = new SDP('');
 
-            console.log('#####################', offer.querySelector);
             sdp.fromJingle($_(offer, '>jingle'));
-            console.log('#####################1');
             const rawSDP = sdp.raw.replace(/o=- \d+/, 'o=- 123'); // replace generated o= timestamp.
 
             expect(rawSDP).toEqual(expectedSDP);

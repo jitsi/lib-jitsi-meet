@@ -10,7 +10,7 @@ import { MockChatRoom, MockStropheConnection } from './MockClasses';
  * Creates 'content-modify' Jingle IQ.
  * @param {string} senders - 'both' or 'none'.
  * @param {number|undefined} maxFrameHeight - the receive max video frame height.
- * @returns {jQuery}
+ * @returns {Element}
  */
 function createContentModify(senders = 'both', maxFrameHeight) {
     const jingle = document.createElementNS('urn:xmpp:jingle:1', 'jingle');

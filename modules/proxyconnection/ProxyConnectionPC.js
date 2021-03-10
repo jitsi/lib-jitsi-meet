@@ -323,29 +323,29 @@ export default class ProxyConnectionPC {
      * The passed in jingle element should contain an SDP answer to a previously
      * sent SDP offer.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Element} jingle - The jingle element
      * @private
      * @returns {void}
      */
-    _onSessionAccept($jingle) {
+    _onSessionAccept(jingle) {
         if (!this._peerConnection) {
             logger.error('Received an answer when no peer connection exists.');
 
             return;
         }
 
-        this._peerConnection.setAnswer($jingle);
+        this._peerConnection.setAnswer(jingle);
     }
 
     /**
      * Callback invoked in response to a request to start a proxy connection.
      * The passed in jingle element should contain an SDP offer.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Element} jingle - The jingle element.
      * @private
      * @returns {void}
      */
-    _onSessionInitiate($jingle) {
+    _onSessionInitiate(jingle) {
         if (this._peerConnection) {
             logger.error('Received an offer when an offer was already sent.');
 
@@ -355,7 +355,7 @@ export default class ProxyConnectionPC {
         this._peerConnection = this._createPeerConnection();
 
         this._peerConnection.acceptOffer(
-            $jingle,
+            jingle,
             () => { /** no-op */ },
             () => this._onError(
                 this._options.peerJid,
@@ -394,11 +394,11 @@ export default class ProxyConnectionPC {
      * Callback invoked in response to ICE candidates from the remote peer.
      * The passed in jingle element should contain an ICE candidate.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Element} jingle - The jingle element.
      * @private
      * @returns {void}
      */
-    _onTransportInfo($jingle) {
-        this._peerConnection.addIceCandidates($jingle);
+    _onTransportInfo(jingle) {
+        this._peerConnection.addIceCandidates(jingle);
     }
 }

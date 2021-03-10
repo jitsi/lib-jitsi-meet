@@ -964,7 +964,7 @@ export default class ChatRoom extends Listenable {
         if (isKick) {
             const actorSelect = $_(pres, '>x[xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
 
-            const actorNick = actorSelect?.getAttribute('nick') || undefined;
+            const actorNick = actorSelect?.getAttribute('nick');
 
             // we first fire the kicked so we can show the participant
             // who kicked, before notifying that participant left

@@ -68,14 +68,14 @@ const DEFAULT_MAX_STATS = 300;
 export default class JingleSessionPC extends JingleSession {
     /**
      * Parses 'senders' attribute of the video content.
-     * @param {jQuery} jingleContents
+     * @param {Element} jingleContent
      * @return {string|null} one of the values of content "senders" attribute
      * defined by Jingle. If there is no "senders" attribute or if the value is
      * invalid then <tt>null</tt> will be returned.
      * @private
      */
-    static parseVideoSenders(jingleContents) {
-        const videoContents = $_(jingleContents, '>content[name="video"]');
+    static parseVideoSenders(jingleContent) {
+        const videoContents = $_(jingleContent, '>content[name="video"]');
 
         if (videoContents) {
             const senders = videoContents.getAttribute('senders');
@@ -94,7 +94,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parses the video max frame height value out of the 'content-modify' IQ.
      *
-     * @param {jQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
+     * @param {Element} jingleContents - A 'jingle' element.
      * @returns {Number|null}
      */
     static parseMaxFrameHeight(jingleContents) {
@@ -882,8 +882,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Accepts incoming Jingle 'session-initiate' and should send
      * 'session-accept' in result.
-     * @param jingleOffer jQuery selector pointing to the jingle element of
-     * the offer IQ
+     * @param jingleOffer jingle element of the offer IQ
      * @param success callback called when we accept incoming session
      * successfully and receive RESULT packet to 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept
@@ -1011,7 +1010,7 @@ export default class JingleSessionPC extends JingleSession {
      * This is a setRemoteDescription/setLocalDescription cycle which starts at
      * converting Strophe Jingle IQ into remote offer SDP. Once converted
      * setRemoteDescription, createAnswer and setLocalDescription calls follow.
-     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element
+     * @param jingleOfferAnswerIq node containing the jingle element
      *        of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we
@@ -1543,9 +1542,9 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parse the information from the xml sourceAddElem and translate it
      *  into sdp lines
-     * @param {jquery xml element} sourceAddElem the source-add
-     *  element from jingle
-     * @param {SDP object} currentRemoteSdp the current remote
+     * @param {Element[]} sourceAddElem the source-add
+     *  elements from jingle
+     * @param {Object} currentRemoteSdp the current remote
      *  sdp (as of this new source-add)
      * @returns {list} a list of SDP line strings that should
      *  be added to the remote SDP
@@ -1687,8 +1686,8 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Takes in a jingle offer iq, returns the new sdp offer
-     * @param {jquery xml element} offerIq the incoming offer
-     * @returns {SDP object} the jingle offer translated to SDP
+     * @param {Element} offerIq the incoming offer
+     * @returns {Object} the jingle offer translated to SDP
      */
     _processNewJingleOfferIq(offerIq) {
         const remoteSdp = new SDP('');
@@ -1956,9 +1955,9 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parse the information from the xml sourceRemoveElem and translate it
      *  into sdp lines
-     * @param {jquery xml element} sourceRemoveElem the source-remove
+     * @param {Element[]} sourceRemoveElem the source-remove
      *  element from jingle
-     * @param {SDP object} currentRemoteSdp the current remote
+     * @param {Object} currentRemoteSdp the current remote
      *  sdp (as of this new source-remove)
      * @returns {list} a list of SDP line strings that should
      *  be removed from the remote SDP
@@ -2233,16 +2232,15 @@ export default class JingleSessionPC extends JingleSession {
      * only checks the senders attribute of the video content in order to figure
      * out if the remote peer has video in the inactive state (stored locally
      * in {@link _remoteVideoActive} - see field description for more info).
-     * @param {jQuery} jingleContents jQuery selector pointing to the jingle
-     * element of the session modify IQ.
+     * @param {Element} jingleContent jingle element of the session modify IQ.
      * @see {@link _remoteVideoActive}
      * @see {@link _localVideoActive}
      */
-    modifyContents(jingleContents) {
+    modifyContents(jingleContent) {
         const newVideoSenders
-            = JingleSessionPC.parseVideoSenders(jingleContents);
+            = JingleSessionPC.parseVideoSenders(jingleContent);
         const newMaxFrameHeight
-            = JingleSessionPC.parseMaxFrameHeight(jingleContents);
+            = JingleSessionPC.parseMaxFrameHeight(jingleContent);
 
         // frame height is optional in our content-modify protocol
         if (newMaxFrameHeight) {
