@@ -1035,7 +1035,7 @@ export default class JingleSessionPC extends JingleSession {
 
             const bridgeSession
                 = $_(jingleOfferAnswerIq, '>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]');
-            const bridgeSessionId = bridgeSession.getAttribute('id');
+            const bridgeSessionId = bridgeSession?.getAttribute('id') || null;
 
             if (bridgeSessionId !== this._bridgeSessionId) {
                 this._bridgeSessionId = bridgeSessionId;

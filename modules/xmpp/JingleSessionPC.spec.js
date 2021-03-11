@@ -32,14 +32,7 @@ describe('JingleSessionPC', () => {
     let jingleSession;
     let connection;
     let rtc;
-    const offerIQ = {
-        find: () => {
-            return {
-                // eslint-disable-next-line no-empty-function
-                each: () => { }
-            };
-        }
-    };
+    const offerIQ = document.createElementNS('jabber:client', 'iq');
 
     const SID = 'sid12345';
 
