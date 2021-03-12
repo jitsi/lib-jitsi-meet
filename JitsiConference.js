@@ -1668,16 +1668,20 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     delete this.participants[id];
 
+    // Remove the ssrcs from the remote description.
+    const mediaSessions = this._getMediaSessions();
+
+    for (const session of mediaSessions) {
+        session.removeRemoteStreamsOnLeave(id);
+    }
     const removedTracks = this.rtc.removeRemoteTracks(id);
 
     removedTracks.forEach(
-        track =>
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track));
+        track => this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track));
 
     // there can be no participant in case the member that left is focus
     if (participant) {
-        this.eventEmitter.emit(
-            JitsiConferenceEvents.USER_LEFT, id, participant);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
     }
 
     this._maybeStartOrStopP2P(true /* triggered by user left event */);

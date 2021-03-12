@@ -631,6 +631,50 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(
 };
 
 /**
+ * Parses the remote description and returns the sdp lines of the sources associated with a remote participant.
+ *
+ * @param {string} id Endpoint id of the remote participant.
+ * @returns {Array<string>} The sdp lines that have the ssrc information.
+ */
+TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id) {
+    const removeSsrcInfo = [];
+    const remoteTracks = this.getRemoteTracks(id);
+
+    if (!remoteTracks?.length) {
+        return removeSsrcInfo;
+    }
+    const primarySsrcs = remoteTracks.map(track => track.getSSRC());
+    const sdp = new SDP(this.remoteDescription.sdp);
+
+    for (const media of sdp.media) {
+        primarySsrcs.forEach((ssrc, idx) => {
+            let lines = '';
+            let ssrcLines = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
+
+            if (ssrcLines.length) {
+                if (!removeSsrcInfo[idx]) {
+                    removeSsrcInfo[idx] = '';
+                }
+
+                // Check if there are any FID groups are present for the primary ssrc.
+                const fidLines = SDPUtil.findLines(media, `a=ssrc-group:FID ${ssrc}`);
+
+                if (fidLines.length) {
+                    const secondarySsrc = fidLines[0].split(' ')[2];
+
+                    lines += `${fidLines[0]}\r\n`;
+                    ssrcLines = ssrcLines.concat(SDPUtil.findLines(media, `a=ssrc:${secondarySsrc}`));
+                }
+                removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
+            }
+            removeSsrcInfo[idx] += lines;
+        });
+    }
+
+    return removeSsrcInfo;
+};
+
+/**
  * Tries to find {@link JitsiTrack} for given SSRC number. It will search both
  * local and remote tracks bound to this instance.
  * @param {number} ssrc

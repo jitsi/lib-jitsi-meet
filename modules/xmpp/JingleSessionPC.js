@@ -1663,6 +1663,40 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Handles the removal of SSRCs from remote description when an endpoint leaves the call.
+     *
+     * @param {*} id Endpoint id of the participant that has left the call.
+     */
+    removeRemoteStreamsOnLeave(id) {
+        const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
+
+        if (!removeSsrcInfo.length) {
+            logger.debug(`No remote SSRCs for participant: ${id} found.`);
+
+            return;
+        }
+        const workFunction = finishCallback => {
+
+            const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+            const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+
+            this._renegotiate(newRemoteSdp.raw)
+                .then(() => {
+                    const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSDP);
+                    finishCallback();
+                })
+                .catch(err => finishCallback(err));
+        };
+
+        logger.debug(`Queued removeRemoteStreamsOnLeave task for participant ${id} on ${this}`);
+
+        // Queue and execute.
+        this.modificationQueue.push(workFunction);
+    }
+
+    /**
      * Handles either Jingle 'source-add' or 'source-remove' message for this
      * Jingle session.
      * @param {boolean} isAdd <tt>true</tt> for 'source-add' or <tt>false</tt>
