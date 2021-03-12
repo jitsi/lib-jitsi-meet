@@ -510,7 +510,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 || this.videoType === VideoType.DESKTOP
                 || !browser.doesVideoMuteByStreamRemove()) {
             logMuteInfo();
-            if (this.track) {
+
+            // If we have a stream effect that implements its own mute functionality, prioritize it before
+            // normal mute e.g. the stream effect that implements system audio sharing has a custom
+            // mute state in which if the user mutes, system audio still has to go through.
+            if (this._streamEffect && this._streamEffect.setMuted) {
+                this._streamEffect.setMuted(muted);
+            } else if (this.track) {
                 this.track.enabled = !muted;
             }
         } else if (muted) {
@@ -712,6 +718,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
         if (this.isVideoTrack() && !this.isActive()) {
             return true;
+        }
+
+        // If currently used stream effect has its own muted state, use that.
+        if (this._streamEffect && this._streamEffect.isMuted) {
+            return this._streamEffect.isMuted();
         }
 
         return !this.track || !this.track.enabled;
