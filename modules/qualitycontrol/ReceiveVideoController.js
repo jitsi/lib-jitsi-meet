@@ -1,4 +1,5 @@
 import { getLogger } from 'jitsi-meet-logger';
+import isEqual from 'lodash.isequal';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
@@ -118,6 +119,23 @@ export class ReceiverVideoConstraints {
         if (changed) {
             this._maxFrameHeight = maxFrameHeight;
             logger.debug(`Updating receive maxFrameHeight: ${maxFrameHeight}`);
+        }
+
+        return changed;
+    }
+
+    /**
+     * Updates the receiver constraints sent to the bridge.
+     *
+     * @param {Object} videoConstraints
+     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
+     */
+    updateReceiverVideoConstraints(videoConstraints) {
+        const changed = !isEqual(this._receiverVideoConstraints, videoConstraints);
+
+        if (changed) {
+            this._receiverVideoConstraints = videoConstraints;
+            logger.debug(`Updating ReceiverVideoConstraints ${JSON.stringify(videoConstraints)}`);
         }
 
         return changed;
@@ -256,5 +274,20 @@ export class ReceiveVideoController {
                     && this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
             }
         }
+    }
+
+    /**
+     * Sets the receiver constraints for the conference.
+     *
+     * @param {Object} constraints The video constraints.
+     */
+    setReceiverConstraints(constraints) {
+        if (!this._receiverVideoConstraints) {
+            this._receiverVideoConstraints = new ReceiverVideoConstraints();
+        }
+
+        const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
+
+        constraintsChanged && this._rtc.setNewReceiverVideoConstraints(constraints);
     }
 }
