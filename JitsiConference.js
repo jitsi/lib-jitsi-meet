@@ -1473,14 +1473,15 @@ JitsiConference.prototype.grantOwner = function(id) {
 /**
  * Kick participant from this conference.
  * @param {string} id id of the participant to kick
+ * @param {string} reason reason of the participant to kick
  */
-JitsiConference.prototype.kickParticipant = function(id) {
+JitsiConference.prototype.kickParticipant = function(id, reason) {
     const participant = this.getParticipantById(id);
 
     if (!participant) {
         return;
     }
-    this.room.kick(participant.getJid());
+    this.room.kick(participant.getJid(), reason);
 };
 
 /**
@@ -1708,8 +1709,9 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
  * of the kick.
  * @param {string?} kickedParticipantId - when it is not a kick for local participant,
  * this is the id of the participant which was kicked.
+ * @param {string} reason - reason of the participant to kick
  */
-JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
+JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId, reason) {
     // This check which be true when we kick someone else. With the introduction of lobby
     // the ChatRoom KICKED event is now also emitted for ourselves (the kicker) so we want to
     // avoid emitting an event where `undefined` kicked someone.
@@ -1721,7 +1723,7 @@ JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kic
 
     if (isSelfPresence) {
         this.eventEmitter.emit(
-            JitsiConferenceEvents.KICKED, actorParticipant);
+            JitsiConferenceEvents.KICKED, actorParticipant, reason);
 
         this.leave();
 
@@ -1731,7 +1733,7 @@ JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kic
     const kickedParticipant = this.participants[kickedParticipantId];
 
     this.eventEmitter.emit(
-        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant);
+        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant, reason);
 };
 
 /**
