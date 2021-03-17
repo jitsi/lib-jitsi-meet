@@ -67,8 +67,8 @@ export default class XmppConnection extends Listenable {
         // The default maxRetries is 5, which is too long.
         this._stropheConn.maxRetries = 3;
 
-        this._lastSuccessTracker = new LastSuccessTracker();
-        this._lastSuccessTracker.startTracking(this, this._stropheConn);
+        this._rawInputTracker = new LastSuccessTracker();
+        this._rawInputTracker.startTracking(this, this._stropheConn);
 
         this._resumeTask = new ResumeTask(this._stropheConn);
 
@@ -348,7 +348,16 @@ export default class XmppConnection extends Listenable {
      * @returns {number|null}
      */
     getTimeSinceLastSuccess() {
-        return this._lastSuccessTracker.getTimeSinceLastSuccess();
+        return this._rawInputTracker.getTimeSinceLastSuccess();
+    }
+
+    /**
+     * See {@link LastRequestTracker.getLastFailedMessage}.
+     *
+     * @returns {string|null}
+     */
+    getLastFailedMessage() {
+        return this._rawInputTracker.getLastFailedMessage();
     }
 
     /**
