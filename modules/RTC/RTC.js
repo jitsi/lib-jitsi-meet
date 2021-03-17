@@ -649,29 +649,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Removes all JitsiRemoteTracks associated with given MUC nickname
-     * (resource part of the JID). Returns array of removed tracks.
-     *
-     * @param {string} Owner The resource part of the MUC JID.
-     * @returns {JitsiRemoteTrack[]}
-     */
-    removeRemoteTracks(owner) {
-        let removedTracks = [];
-
-        for (const tpc of this.peerConnections.values()) {
-            const pcRemovedTracks = tpc.removeRemoteTracks(owner);
-
-            removedTracks = removedTracks.concat(pcRemovedTracks);
-        }
-
-        logger.debug(
-            `Removed remote tracks for ${owner}`
-                + ` count: ${removedTracks.length}`);
-
-        return removedTracks;
-    }
-
-    /**
      *
      */
     static getPCConstraints(isP2P) {

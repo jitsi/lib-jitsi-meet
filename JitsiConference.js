@@ -1670,22 +1670,34 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     // Remove the ssrcs from the remote description.
     const mediaSessions = this._getMediaSessions();
+    const removePromises = [];
 
     for (const session of mediaSessions) {
-        session.removeRemoteStreamsOnLeave(id);
-    }
-    const removedTracks = this.rtc.removeRemoteTracks(id);
-
-    removedTracks.forEach(
-        track => this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track));
-
-    // there can be no participant in case the member that left is focus
-    if (participant) {
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
+        removePromises.push(session.removeRemoteStreamsOnLeave(id));
     }
 
-    this._maybeStartOrStopP2P(true /* triggered by user left event */);
-    this._maybeClearSITimeout();
+    Promise.allSettled(removePromises)
+        .then(results => {
+            let removedTracks = [];
+
+            results.map(result => result.value).forEach(value => {
+                if (value) {
+                    removedTracks = removedTracks.concat(value);
+                }
+            });
+
+            removedTracks.forEach(track => {
+                this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+            });
+
+            // There can be no participant in case the member that left is focus.
+            if (participant) {
+                this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
+            }
+
+            this._maybeStartOrStopP2P(true /* triggered by user left event */);
+            this._maybeClearSITimeout();
+        });
 };
 
 /**

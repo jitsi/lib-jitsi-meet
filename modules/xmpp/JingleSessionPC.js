@@ -1663,23 +1663,26 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Handles the removal of SSRCs from remote description when an endpoint leaves the call.
+     * Handles the deletion of the remote tracks and SSRCs associated with a remote endpoint.
      *
-     * @param {*} id Endpoint id of the participant that has left the call.
+     * @param {string} id Endpoint id of the participant that has left the call.
+     * @returns {Promise<JitsiRemoteTrack>} Promise that resolves with the tracks that are removed or error if the
+     * operation fails.
      */
     removeRemoteStreamsOnLeave(id) {
-        const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
+        let remoteTracks = [];
 
-        if (!removeSsrcInfo.length) {
-            logger.debug(`No remote SSRCs for participant: ${id} found.`);
-
-            return;
-        }
         const workFunction = finishCallback => {
+            const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
 
+            if (!removeSsrcInfo.length) {
+                logger.debug(`No remote SSRCs for participant: ${id} found.`);
+                finishCallback();
+            }
             const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
             const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
 
+            remoteTracks = this.peerconnection.removeRemoteTracks(id);
             this._renegotiate(newRemoteSdp.raw)
                 .then(() => {
                     const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
@@ -1690,10 +1693,21 @@ export default class JingleSessionPC extends JingleSession {
                 .catch(err => finishCallback(err));
         };
 
-        logger.debug(`Queued removeRemoteStreamsOnLeave task for participant ${id} on ${this}`);
+        return new Promise((resolve, reject) => {
+            logger.debug(`Queued removeRemoteStreamsOnLeave task for participant ${id} on ${this}`);
 
-        // Queue and execute.
-        this.modificationQueue.push(workFunction);
+            this.modificationQueue.push(
+                workFunction,
+                error => {
+                    if (error) {
+                        logger.error(`removeRemoteStreamsOnLeave error on ${this}:`, error);
+                        reject(error);
+                    } else {
+                        logger.info(`removeRemoteStreamsOnLeave done on ${this}!`);
+                        resolve(remoteTracks);
+                    }
+                });
+        });
     }
 
     /**
