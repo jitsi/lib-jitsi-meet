@@ -354,41 +354,41 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         );
     }
 
-    function processStats() {
-        // Interval updates
-        this.peerconnection.getStats(
-            report => {
-                let results = null;
+    this.statsIntervalId = setInterval(
+        () => {
+            // Interval updates
+            this.peerconnection.getStats(
+                report => {
+                    let results = null;
 
-                if (!report || !report.result
-                    || typeof report.result !== 'function') {
-                    // firefox
-                    results = report;
-                } else {
-                    // chrome
-                    results = report.result();
-                }
-
-                this.currentStatsReport = results;
-                try {
-                    if (this._usesPromiseGetStats) {
-                        this.processNewStatsReport();
+                    if (!report || !report.result
+                        || typeof report.result !== 'function') {
+                        // firefox
+                        results = report;
                     } else {
-                        this.processStatsReport();
+                        // chrome
+                        results = report.result();
                     }
-                } catch (e) {
-                    GlobalOnErrorHandler.callErrorHandler(e);
-                    logger.error(`Unsupported key:${e}`, e);
-                }
 
-                this.previousStatsReport = this.currentStatsReport;
-            },
-            error => this.errorCallback(error)
-        );
-    };
+                    this.currentStatsReport = results;
+                    try {
+                        if (this._usesPromiseGetStats) {
+                            this.processNewStatsReport();
+                        } else {
+                            this.processStatsReport();
+                        }
+                    } catch (e) {
+                        GlobalOnErrorHandler.callErrorHandler(e);
+                        logger.error(`Unsupported key:${e}`, e);
+                    }
 
-    processStats();
-    this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
+                    this.previousStatsReport = this.currentStatsReport;
+                },
+                error => this.errorCallback(error)
+            );
+        },
+        this.statsIntervalMilis
+    );
 };
 
 /**
