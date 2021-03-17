@@ -7,6 +7,7 @@ export default class LastRequestTracker {
      */
     constructor() {
         this._lastSuccess = null;
+        this._lastFailedMessage = null;
     }
 
     /**
@@ -19,6 +20,12 @@ export default class LastRequestTracker {
         const originalRawInput = stropheConnection.rawInput;
 
         stropheConnection.rawInput = (...args) => {
+            const rawMessage = args[0];
+
+            if (rawMessage.includes('failure')) {
+                this._lastFailedMessage = rawMessage;
+            }
+
             // It's okay to use rawInput callback only once the connection has been established, otherwise it will
             // treat 'item-not-found' or other connection error on websocket reconnect as successful stanza received.
             if (xmppConnection.connected) {
@@ -26,6 +33,15 @@ export default class LastRequestTracker {
             }
             originalRawInput.apply(stropheConnection, args);
         };
+    }
+
+    /**
+     * Returns the last raw failed incoming message on the xmpp connection.
+     *
+     * @returns {string|null}
+     */
+    getLastFailedMessage() {
+        return this._lastFailedMessage;
     }
 
     /**

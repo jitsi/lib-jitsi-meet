@@ -24,6 +24,11 @@ import initStropheUtil from './strophe.util';
 const logger = getLogger(__filename);
 
 /**
+* Regex to extract exact error message on jwt error.
+*/
+const FAILURE_REGEX = /<failure.*><not-allowed\/><text>(.*)<\/text><\/failure>/gi;
+
+/**
  * Creates XMPP connection.
  *
  * @param {Object} options
@@ -403,13 +408,31 @@ export default class XMPP extends Listenable {
                 }
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
+            const lastFailedRawMessage = this.getConnection().getLastFailedMessage();
+
             // wrong password or username, prompt user
             this.eventEmitter.emit(
                 JitsiConnectionEvents.CONNECTION_FAILED,
                 JitsiConnectionErrors.PASSWORD_REQUIRED,
-                msg,
+                msg || this._parseConnectionFailedMessage(lastFailedRawMessage),
                 credentials);
         }
+    }
+
+    /**
+    * Parses a raw failure xmpp xml message received on auth failed.
+    *
+    * @param {string} msg - The raw failure message from xmpp.
+    * @returns {string|null} - The parsed message from the raw xmpp message.
+    */
+    _parseConnectionFailedMessage(msg) {
+        if (!msg) {
+            return null;
+        }
+
+        const matches = FAILURE_REGEX.exec(msg);
+
+        return matches ? matches[1] : null;
     }
 
     /**
