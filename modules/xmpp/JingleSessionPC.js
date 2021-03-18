@@ -1663,6 +1663,54 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Handles the deletion of the remote tracks and SSRCs associated with a remote endpoint.
+     *
+     * @param {string} id Endpoint id of the participant that has left the call.
+     * @returns {Promise<JitsiRemoteTrack>} Promise that resolves with the tracks that are removed or error if the
+     * operation fails.
+     */
+    removeRemoteStreamsOnLeave(id) {
+        let remoteTracks = [];
+
+        const workFunction = finishCallback => {
+            const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
+
+            if (!removeSsrcInfo.length) {
+                logger.debug(`No remote SSRCs for participant: ${id} found.`);
+                finishCallback();
+            }
+            const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+            const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+
+            remoteTracks = this.peerconnection.removeRemoteTracks(id);
+            this._renegotiate(newRemoteSdp.raw)
+                .then(() => {
+                    const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSDP);
+                    finishCallback();
+                })
+                .catch(err => finishCallback(err));
+        };
+
+        return new Promise((resolve, reject) => {
+            logger.debug(`Queued removeRemoteStreamsOnLeave task for participant ${id} on ${this}`);
+
+            this.modificationQueue.push(
+                workFunction,
+                error => {
+                    if (error) {
+                        logger.error(`removeRemoteStreamsOnLeave error on ${this}:`, error);
+                        reject(error);
+                    } else {
+                        logger.info(`removeRemoteStreamsOnLeave done on ${this}!`);
+                        resolve(remoteTracks);
+                    }
+                });
+        });
+    }
+
+    /**
      * Handles either Jingle 'source-add' or 'source-remove' message for this
      * Jingle session.
      * @param {boolean} isAdd <tt>true</tt> for 'source-add' or <tt>false</tt>
