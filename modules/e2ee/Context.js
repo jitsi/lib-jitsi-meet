@@ -1,8 +1,6 @@
 /* eslint-disable no-bitwise */
-/* global BigInt */
 
-import { deriveKeys, importKey, ratchet } from './crypto-utils';
-import { isArrayEqual } from './utils';
+import { deriveKeys, importKey } from './crypto-utils';
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key. We use a size of 16 which corresponds to the four bits
@@ -25,26 +23,9 @@ const UNENCRYPTED_BYTES = {
     undefined: 1 // frame.type is not set on audio
 };
 
-// Use truncated SHA-256 hashes, 80 bіts for video, 32 bits for audio.
-// This follows the same principles as DTLS-SRTP.
-const AUTHENTICATIONTAG_OPTIONS = {
-    name: 'HMAC',
-    hash: 'SHA-256'
-};
-const ENCRYPTION_ALGORITHM = 'AES-CTR';
+const ENCRYPTION_ALGORITHM = 'AES-GCM';
 
-// https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
-const CTR_LENGTH = 64;
-
-const DIGEST_LENGTH = {
-    key: 10,
-    delta: 10,
-    undefined: 4 // frame.type is not set on audio
-};
-
-// Maximum number of forward ratchets to attempt when the authentication
-// tag on a remote packet does not match the current key.
-const RATCHET_WINDOW_SIZE = 8;
+const IV_LENGTH = 12;
 
 /**
  * Per-participant context holding the cryptographic keys and
@@ -61,10 +42,7 @@ export class Context {
         // A pointer to the currently used key.
         this._currentKeyIndex = -1;
 
-        // A per-sender counter that is used create the AES CTR.
-        // Must be incremented on every frame that is sent, can be reset on
-        // key changes.
-        this._sendCount = BigInt(0); // eslint-disable-line new-cap
+        this._sendCounts = new Map();
 
         this._id = id;
 
@@ -105,7 +83,6 @@ export class Context {
         } else {
             this._cryptoKeyRing[this._currentKeyIndex] = keys;
         }
-        this._sendCount = BigInt(0); // eslint-disable-line new-cap
     }
 
     /**
@@ -121,19 +98,6 @@ export class Context {
     }) {
         this._signatureKey = key;
         this._signatureOptions = options;
-    }
-
-    /**
-     * Decide whether we should sign a frame.
-     * @returns {boolean}
-     * @private
-     */
-    _shouldSignFrame() {
-        if (!this._signatureKey) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -161,92 +125,31 @@ export class Context {
         const keyIndex = this._currentKeyIndex;
 
         if (this._cryptoKeyRing[keyIndex]) {
-            this._sendCount++;
-
-            // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
-
-            // Construct frame trailer. Similar to the frame header described in
-            // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
-            // but we put it at the end.
-            //                                             0 1 2 3 4 5 6 7
-            // ---------+---------------------------------+-+-+-+-+-+-+-+-+
-            // payload  |    CTR... (length=LEN)          |S|LEN  |KID    |
-            // ---------+---------------------------------+-+-+-+-+-+-+-+-+
-            const counter = new Uint8Array(16);
-            const counterView = new DataView(counter.buffer);
-
-            // The counter is encoded as a variable-length field.
-            counterView.setBigUint64(8, this._sendCount);
-            let counterLength = 8;
-
-            for (let i = 8; i < counter.byteLength; i++ && counterLength--) {
-                if (counterView.getUint8(i) !== 0) {
-                    break;
-                }
-            }
-
-
-            // If a signature is included, the S bit is set and a fixed number
-            // of bytes (depending on the signature algorithm) is inserted between
-            // CTR and the trailing byte.
-            const signatureLength = this._shouldSignFrame(encodedFrame) ? this._signatureOptions.byteLength : 0;
-            const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
-
-            frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
-
-            // Since we never send a counter of 0 we send counterLength - 1 on the wire.
-            // This is different from the sframe draft, increases the key space and lets us
-            // ignore the case of a zero-length counter at the receiver.
-            frameTrailer[frameTrailer.byteLength - 1] = keyIndex | ((counterLength - 1) << 4);
-            if (signatureLength) {
-                frameTrailer[frameTrailer.byteLength - 1] |= 0x80; // set the signature bit.
-            }
-
-            // XOR the counter with the saltKey to construct the AES CTR.
-            const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
-
-            for (let i = 0; i < counter.byteLength; i++) {
-                counterView.setUint8(i, counterView.getUint8(i) ^ saltKey.getUint8(i));
-            }
+            const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
-                counter,
-                length: CTR_LENGTH
+                iv,
+                additionalData: new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
                 UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
-                const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
-                    + DIGEST_LENGTH[encodedFrame.type] + frameTrailer.byteLength);
+                const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength
+                    + iv.byteLength + 1);
                 const newUint8 = new Uint8Array(newData);
 
-                newUint8.set(frameHeader); // copy first bytes.
-                newUint8.set(new Uint8Array(cipherText), UNENCRYPTED_BYTES[encodedFrame.type]); // add ciphertext.
-                // Leave some space for the authentication tag. This is filled with 0s initially, similar to
-                // STUN message-integrity described in https://tools.ietf.org/html/rfc5389#section-15.4
-                newUint8.set(frameTrailer, frameHeader.byteLength + cipherText.byteLength
-                    + DIGEST_LENGTH[encodedFrame.type]); // append trailer.
+                newUint8.set(
+                    new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])); // copy first bytes.
+                newUint8.set(
+                    new Uint8Array(cipherText), UNENCRYPTED_BYTES[encodedFrame.type]); // add ciphertext.
+                newUint8.set(
+                    new Uint8Array(iv), UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength); // append IV.
+                newUint8[UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength + IV_LENGTH]
+                    = keyIndex; // set key index.
 
-                return crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS, this._cryptoKeyRing[keyIndex].authenticationKey,
-                    new Uint8Array(newData)).then(async authTag => {
-                    const truncatedAuthTag = new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]);
+                encodedFrame.data = newData;
 
-
-                    // Set the truncated authentication tag.
-                    newUint8.set(truncatedAuthTag, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
-
-                    // Sign with the long-term signature key.
-                    if (signatureLength) {
-                        const signature = await crypto.subtle.sign(this._signatureOptions,
-                            this._signatureKey, truncatedAuthTag);
-
-                        newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
-                    }
-                    encodedFrame.data = newData;
-
-                    return controller.enqueue(encodedFrame);
-                });
+                return controller.enqueue(encodedFrame);
             }, e => {
                 // TODO: surface this to the app.
                 console.error(e);
@@ -268,114 +171,30 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    async decodeFunction(encodedFrame, controller) {
+    decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
-        const keyIndex = data[encodedFrame.data.byteLength - 1] & 0xf; // lower four bits.
+        const keyIndex = data[encodedFrame.data.byteLength - 1];
 
-        if (this._cryptoKeyRing[this._currentKeyIndex] && this._cryptoKeyRing[keyIndex]) {
-            const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
-            const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80
-                ? this._signatureOptions.byteLength : 0;
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
-
-            // Extract the truncated authentication tag.
-            const authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
-                + counterLength + signatureLength + 1);
-            const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
-                + DIGEST_LENGTH[encodedFrame.type]);
-
-            // Verify the long-term signature of the authentication tag.
-            if (signatureLength) {
-                if (this._signatureKey) {
-                    const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
-                    const validSignature = await crypto.subtle.verify(this._signatureOptions,
-                            this._signatureKey, signature, authTag);
-
-                    if (!validSignature) {
-                        // TODO: surface this to the app. We are encrypted but validation failed.
-                        console.error('Long-term signature mismatch (or no signature key)');
-
-                        return;
-                    }
-
-                    // TODO: surface this to the app. We are now encrypted and verified.
-                } else {
-                    // TODO: surface this to the app. We are now encrypted but can not verify.
-                }
-
-                // Then set signature bytes to 0.
-                data.set(new Uint8Array(signatureLength), encodedFrame.data.byteLength - (signatureLength + 1));
-            }
-
-            // Set authentication tag bytes to 0.
-            data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), encodedFrame.data.byteLength
-                - (DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1));
-
-            // Do truncated hash comparison of the authentication tag.
-            // If the hash does not match we might have to advance the ratchet a limited number
-            // of times. See (even though the description there is odd)
-            // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1
-            let { authenticationKey, material } = this._cryptoKeyRing[keyIndex];
-            let validAuthTag = false;
-            let newKeys = null;
-
-            for (let distance = 0; distance < RATCHET_WINDOW_SIZE; distance++) {
-                const calculatedTag = await crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS,
-                    authenticationKey, encodedFrame.data);
-
-                if (isArrayEqual(new Uint8Array(authTag),
-                        new Uint8Array(calculatedTag.slice(0, DIGEST_LENGTH[encodedFrame.type])))) {
-                    validAuthTag = true;
-                    if (distance > 0) {
-                        this._setKeys(newKeys, keyIndex);
-                    }
-                    break;
-                }
-
-                // Attempt to ratchet and generate the next set of keys.
-                material = await importKey(await ratchet(material));
-                newKeys = await deriveKeys(material);
-                authenticationKey = newKeys.authenticationKey;
-            }
-
-            // Check whether we found a valid authentication tag.
-            if (!validAuthTag) {
-                // TODO: return an error to the app.
-
-                console.error('Authentication tag mismatch');
-
-                return;
-            }
-
-            // Extract the counter.
-            const counter = new Uint8Array(16);
-
-            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + signatureLength + 1),
-                encodedFrame.data.byteLength - (signatureLength + 1)), 16 - counterLength);
-            const counterView = new DataView(counter.buffer);
-
-            // XOR the counter with the saltKey to construct the AES CTR.
-            const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
-
-            for (let i = 0; i < counter.byteLength; i++) {
-                counterView.setUint8(i,
-                    counterView.getUint8(i) ^ saltKey.getUint8(i));
-            }
+        if (this._cryptoKeyRing[keyIndex]) {
+            const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - IV_LENGTH - 1, IV_LENGTH);
+            const cipherTextStart = UNENCRYPTED_BYTES[encodedFrame.type];
+            const cipherTextLength = encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
+                + IV_LENGTH + 1);
 
             return crypto.subtle.decrypt({
-                name: ENCRYPTION_ALGORITHM,
-                counter,
-                length: CTR_LENGTH
-            }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
-                    UNENCRYPTED_BYTES[encodedFrame.type],
-                    encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
-                    + DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1))
-            ).then(plainText => {
+                name: 'AES-GCM',
+                iv,
+                additionalData: new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])
+            },
+            this._cryptoKeyRing[keyIndex].encryptionKey,
+            new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
+            .then(plainText => {
                 const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);
 
-                newUint8.set(frameHeader);
+                newUint8.set(new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]));
                 newUint8.set(new Uint8Array(plainText), UNENCRYPTED_BYTES[encodedFrame.type]);
+
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
@@ -383,6 +202,7 @@ export class Context {
                 console.error(e);
 
                 // TODO: notify the application about error status.
+
                 // TODO: For video we need a better strategy since we do not want to based any
                 // non-error frames on a garbage keyframe.
                 if (encodedFrame.type === undefined) { // audio, replace with silence.
@@ -394,10 +214,56 @@ export class Context {
                     controller.enqueue(encodedFrame);
                 }
             });
+        } else if (keyIndex >= this._cryptoKeyRing.length && this._cryptoKeyRing[this._currentKeyIndex]) {
+            // If we are encrypting but don't have a key for the remote drop the frame.
+            // This is a heuristic since we don't know whether a packet is encrypted,
+            // do not have a checksum and do not have signaling for whether a remote participant does
+            // encrypt or not.
+            return;
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
         // we might want to buffer a bit but it is still unclear how to do that (and for how long etc).
         controller.enqueue(encodedFrame);
+    }
+
+    /**
+     * Construct the IV used for AES-GCM and sent (in plain) with the packet similar to
+     * https://tools.ietf.org/html/rfc7714#section-8.1
+     * It concatenates
+     * - the 32 bit synchronization source (SSRC) given on the encoded frame,
+     * - the 32 bit rtp timestamp given on the encoded frame,
+     * - a send counter that is specific to the SSRC. Starts at a random number.
+     * The send counter is essentially the pictureId but we currently have to implement this ourselves.
+     * There is no XOR with a salt. Note that this IV leaks the SSRC to the receiver but since this is
+     * randomly generated and SFUs may not rewrite this is considered acceptable.
+     * The SSRC is used to allow demultiplexing multiple streams with the same key, as described in
+     *   https://tools.ietf.org/html/rfc3711#section-4.1.1
+     * The RTP timestamp is 32 bits and advances by the codec clock rate (90khz for video, 48khz for
+     * opus audio) every second. For video it rolls over roughly every 13 hours.
+     * The send counter will advance at the frame rate (30fps for video, 50fps for 20ms opus audio)
+     * every second. It will take a long time to roll over.
+     *
+     * See also https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
+     */
+    _makeIV(synchronizationSource, timestamp) {
+        const iv = new ArrayBuffer(IV_LENGTH);
+        const ivView = new DataView(iv);
+
+        // having to keep our own send count (similar to a picture id) is not ideal.
+        if (!this._sendCounts.has(synchronizationSource)) {
+            // Initialize with a random offset, similar to the RTP sequence number.
+            this._sendCounts.set(synchronizationSource, Math.floor(Math.random() * 0xFFFF));
+        }
+
+        const sendCount = this._sendCounts.get(synchronizationSource);
+
+        ivView.setUint32(0, synchronizationSource);
+        ivView.setUint32(4, timestamp);
+        ivView.setUint32(8, sendCount % 0xFFFF);
+
+        this._sendCounts.set(synchronizationSource, sendCount + 1);
+
+        return iv;
     }
 }
