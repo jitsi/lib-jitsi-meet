@@ -815,7 +815,12 @@ class RTCUtils extends Listenable {
             throw new Error(message);
         }
 
-        this._initPCConstraints();
+        this.pcConstraints = browser.isChromiumBased() || browser.isReactNative()
+            ? { optional: [
+                { googScreencastMinBitrate: 100 },
+                { googCpuOveruseDetection: true }
+            ] }
+            : {};
 
         screenObtainer.init(
             options,
@@ -846,32 +851,6 @@ class RTCUtils extends Listenable {
             });
         }
     }
-
-    /**
-     * Creates instance objects for peer connection constraints both for p2p
-     * and outside of p2p.
-     */
-    _initPCConstraints() {
-        if (browser.isFirefox()) {
-            this.pcConstraints = {};
-        } else if (browser.isChromiumBased() || browser.isReactNative()) {
-            this.pcConstraints = { optional: [
-                { googHighStartBitrate: 0 },
-                { googPayloadPadding: true },
-                { googScreencastMinBitrate: 100 },
-                { googCpuOveruseDetection: true },
-                { googCpuOveruseEncodeUsage: true },
-                { googCpuUnderuseThreshold: 55 },
-                { googCpuOveruseThreshold: 85 }
-            ] };
-
-            this.p2pPcConstraints
-                = JSON.parse(JSON.stringify(this.pcConstraints));
-        }
-
-        this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
-    }
-
 
     /**
      *
