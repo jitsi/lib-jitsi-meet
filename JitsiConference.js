@@ -2001,6 +2001,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     try {
         jingleSession.initialize(this.room, this.rtc, {
             ...this.options.config,
+            customOptionalConstraints: this.connection.options.customOptionalConstraints || [],
             enableInsertableStreams: this._isE2EEEnabled()
         });
     } catch (error) {
@@ -2754,6 +2755,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         this.room,
         this.rtc, {
             ...this.options.config,
+            customOptionalConstraints: this.connection.options.customOptionalConstraints || [],
             enableInsertableStreams: this._isE2EEEnabled()
         });
 
@@ -3114,6 +3116,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         this.room,
         this.rtc, {
             ...this.options.config,
+            customOptionalConstraints: this.connection.options.customOptionalConstraints || [],
             enableInsertableStreams: this._isE2EEEnabled()
         });
 
