@@ -1471,6 +1471,23 @@ JitsiConference.prototype.grantOwner = function(id) {
 };
 
 /**
+ * Revoke owner rights to the participant or local Participant as
+ * the user might want to refuse to be a moderator.
+ * @param {string} id id of the participant to revoke owner rights to.
+ */
+JitsiConference.prototype.revokeOwner = function(id) {
+    const participant = this.getParticipantById(id);
+    const isMyself = this.myUserId() === id;
+
+    if (isMyself) {
+        this.room.setAffiliation(this.room.myroomjid, 'member');
+    } else if (participant) {
+        this.room.setAffiliation(participant.getJid(), 'member');
+    }
+};
+
+
+/**
  * Kick participant from this conference.
  * @param {string} id id of the participant to kick
  */
