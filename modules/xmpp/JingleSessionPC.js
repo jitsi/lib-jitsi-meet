@@ -1675,22 +1675,22 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishCallback => {
             const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
 
-            if (!removeSsrcInfo.length) {
-                logger.debug(`No remote SSRCs for participant: ${id} found.`);
+            if (removeSsrcInfo.length) {
+                const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+                const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+
+                remoteTracks = this.peerconnection.removeRemoteTracks(id);
+                this._renegotiate(newRemoteSdp.raw)
+                    .then(() => {
+                        const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+                        this.notifyMySSRCUpdate(oldLocalSdp, newLocalSDP);
+                        finishCallback();
+                    })
+                    .catch(err => finishCallback(err));
+            } else {
                 finishCallback();
             }
-            const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
-            const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
-
-            remoteTracks = this.peerconnection.removeRemoteTracks(id);
-            this._renegotiate(newRemoteSdp.raw)
-                .then(() => {
-                    const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSDP);
-                    finishCallback();
-                })
-                .catch(err => finishCallback(err));
         };
 
         return new Promise((resolve, reject) => {
