@@ -1478,7 +1478,7 @@ JitsiConference.prototype.grantOwner = function(id) {
 JitsiConference.prototype.revokeOwner = function(id) {
     const participant = this.getParticipantById(id);
     const isMyself = this.myUserId() === id;
-    const role = this.enableLobby() ? 'member' : 'none';
+    const role = this.isMembersOnly() ? 'member' : 'none';
 
     if (isMyself) {
         this.room.setAffiliation(this.room.myroomjid, role);
