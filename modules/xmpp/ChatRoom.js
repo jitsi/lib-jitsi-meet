@@ -1601,7 +1601,7 @@ export default class ChatRoom extends Listenable {
             return null;
         }
         const data = {
-            muted: false, // unmuted by default
+            muted: true, // muted by default
             videoType: undefined // no video type by default
         };
         let mutedNode = null;
@@ -1625,7 +1625,9 @@ export default class ChatRoom extends Listenable {
             return null;
         }
 
-        data.muted = mutedNode.length > 0 && mutedNode[0].value === 'true';
+        if (mutedNode.length > 0) {
+            data.muted = mutedNode[0].value === 'true';
+        }
 
         return data;
     }
