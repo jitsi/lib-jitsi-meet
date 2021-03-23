@@ -1184,12 +1184,12 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         }
     }
     if (newTrack.isVideoTrack()) {
-        this.sendCommand('videoType', {
-            value: newTrack.videoType,
-            attributes: {
-                xmlns: 'http://jitsi.org/jitmeet/video'
-            }
-        });
+        const videoTypeTagName = 'videoType';
+
+        // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
+        if (newTrack.videoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
+            this.sendCommand(videoTypeTagName, { value: newTrack.videoType });
+        }
     }
     this.rtc.addLocalTrack(newTrack);
 
