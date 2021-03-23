@@ -1396,7 +1396,7 @@ export default class ChatRoom extends Listenable {
      * Adds the key to the presence map, overriding any previous value.
      * @param key The key to add or replace.
      * @param values The new values.
-     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
+     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replace was
      * performed as the value was already there.
      */
     addOrReplaceInPresence(key, values) {
@@ -1539,10 +1539,16 @@ export default class ChatRoom extends Listenable {
      * @param mute
      */
     addAudioInfoToPresence(mute) {
+        const audioMutedTagName = 'audiomuted';
+
+        // we skip adding it as muted is default value
+        if (mute && !this.getFromPresence(audioMutedTagName)) {
+            return false;
+        }
+
         return this.addOrReplaceInPresence(
-            'audiomuted',
+            audioMutedTagName,
             {
-                attributes: { 'xmlns': 'http://jitsi.org/jitmeet/audio' },
                 value: mute.toString()
             });
     }
@@ -1565,10 +1571,16 @@ export default class ChatRoom extends Listenable {
      * @param mute
      */
     addVideoInfoToPresence(mute) {
+        const videoMutedTagName = 'videomuted';
+
+        // we skip adding it as muted is default value
+        if (mute && !this.getFromPresence(videoMutedTagName)) {
+            return false;
+        }
+
         return this.addOrReplaceInPresence(
-            'videomuted',
+            videoMutedTagName,
             {
-                attributes: { 'xmlns': 'http://jitsi.org/jitmeet/video' },
                 value: mute.toString()
             });
     }
