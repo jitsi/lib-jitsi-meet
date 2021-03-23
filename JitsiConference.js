@@ -1478,11 +1478,12 @@ JitsiConference.prototype.grantOwner = function(id) {
 JitsiConference.prototype.revokeOwner = function(id) {
     const participant = this.getParticipantById(id);
     const isMyself = this.myUserId() === id;
+    const role = this.enableLobby() ? 'member' : 'none';
 
     if (isMyself) {
-        this.room.setAffiliation(this.room.myroomjid, 'member');
+        this.room.setAffiliation(this.room.myroomjid, role);
     } else if (participant) {
-        this.room.setAffiliation(participant.getJid(), 'member');
+        this.room.setAffiliation(participant.getJid(), role);
     }
 };
 
