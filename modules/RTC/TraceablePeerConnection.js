@@ -646,8 +646,8 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
     const primarySsrcs = remoteTracks.map(track => track.getSSRC());
     const sdp = new SDP(this.remoteDescription.sdp);
 
-    for (const media of sdp.media) {
-        primarySsrcs.forEach((ssrc, idx) => {
+    primarySsrcs.forEach((ssrc, idx) => {
+        for (const media of sdp.media) {
             let lines = '';
             let ssrcLines = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
 
@@ -656,7 +656,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
                     removeSsrcInfo[idx] = '';
                 }
 
-                // Check if there are any FID groups are present for the primary ssrc.
+                // Check if there are any FID groups present for the primary ssrc.
                 const fidLines = SDPUtil.findLines(media, `a=ssrc-group:FID ${ssrc}`);
 
                 if (fidLines.length) {
@@ -666,10 +666,10 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
                     ssrcLines = ssrcLines.concat(SDPUtil.findLines(media, `a=ssrc:${secondarySsrc}`));
                 }
                 removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
+                removeSsrcInfo[idx] += lines;
             }
-            removeSsrcInfo[idx] += lines;
-        });
-    }
+        }
+    });
 
     return removeSsrcInfo;
 };
