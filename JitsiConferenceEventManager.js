@@ -76,6 +76,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         // else: there are no DataChannels in P2P session (at least for now)
     });
 
+    chatRoom.addListener(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, (from, features) => {
+        const participant = conference.getParticipantById(Strophe.getResourceFromJid(from));
+
+        if (participant) {
+            participant.setFeatures(features);
+            conference.eventEmitter.emit(JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED, participant);
+        }
+    });
+
     chatRoom.addListener(
         XMPPEvents.ICE_RESTART_SUCCESS,
         (jingleSession, offerIq) => {
@@ -607,11 +616,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 JitsiConferenceEventManager.prototype.removeXMPPListeners = function() {
     const conference = this.conference;
 
-    conference.xmpp.caps.removeListener(
-        XMPPEvents.PARTICIPANT_FEATURES_CHANGED,
-        this.xmppListeners[XMPPEvents.PARTICIPANT_FEATURES_CHANGED]);
-    delete this.xmppListeners[XMPPEvents.PARTICIPANT_FEATURES_CHANGED];
-
     Object.keys(this.xmppListeners).forEach(eventName => {
         conference.xmpp.removeListener(
             eventName,
@@ -626,18 +630,6 @@ JitsiConferenceEventManager.prototype.removeXMPPListeners = function() {
  */
 JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     const conference = this.conference;
-
-    const featuresChangedListener = (from, features) => {
-        const participant = conference.getParticipantById(Strophe.getResourceFromJid(from));
-
-        if (participant) {
-            participant.setFeatures(features);
-            conference.eventEmitter.emit(JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED, participant);
-        }
-    };
-
-    conference.xmpp.caps.addListener(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, featuresChangedListener);
-    this.xmppListeners[XMPPEvents.PARTICIPANT_FEATURES_CHANGED] = featuresChangedListener;
 
     this._addConferenceXMPPListener(
         XMPPEvents.CALL_INCOMING,
