@@ -182,7 +182,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsReceiverStats() {
         return typeof window.RTCRtpReceiver !== 'undefined'
-            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
+            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1
+
+            // Disable this on Safari because it is reporting 0.000001 as the audio levels for all
+            // remote audio tracks.
+            && !this.isWebKitBased();
     }
 
     /**

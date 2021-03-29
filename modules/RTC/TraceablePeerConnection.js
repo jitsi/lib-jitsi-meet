@@ -469,6 +469,32 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection = function(
 };
 
 /**
+ * Returns the list of RTCRtpReceivers created for the source of the given media type associated with
+ * the set of remote endpoints specified.
+ * @param {Array<string>} endpoints list of the endpoints
+ * @param {string} mediaType 'audio' or 'video'
+ * @returns {Array<RTCRtpReceiver>} list of receivers created by the peerconnection.
+ */
+TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoints, mediaType) {
+    let remoteTracks = [];
+    let receivers = [];
+
+    for (const endpoint of endpoints) {
+        remoteTracks = remoteTracks.concat(this.getRemoteTracks(endpoint, mediaType));
+    }
+
+    // Get the ids of the MediaStreamTracks associated with each of these remote tracks.
+    const remoteTrackIds = remoteTracks.map(remote => remote.track?.id);
+
+    receivers = this.peerconnection.getReceivers()
+        .filter(receiver => receiver.track
+            && receiver.track.kind === mediaType
+            && remoteTrackIds.find(trackId => trackId === receiver.track.id));
+
+    return receivers;
+};
+
+/**
  * Tells whether or not this TPC instance is using Simulcast.
  * @return {boolean} <tt>true</tt> if simulcast is enabled and active or
  * <tt>false</tt> if it's turned off.
@@ -526,16 +552,17 @@ TraceablePeerConnection.prototype._peerMutedChanged = function(
 };
 
 /**
- * Obtains audio levels of the remote audio tracks by getting the source
- * information on the RTCRtpReceivers. The information relevant to the ssrc
- * is updated each time a RTP packet constaining the ssrc is received.
- * @returns {Object} containing ssrc and audio level information as a
- * key-value pair.
+ * Obtains audio levels of the remote audio tracks by getting the source information on the RTCRtpReceivers.
+ * The information relevant to the ssrc is updated each time a RTP packet constaining the ssrc is received.
+ * @param {Array<string>} speakerList list of endpoint ids for which audio levels are to be gathered.
+ * @returns {Object} containing ssrc and audio level information as a key-value pair.
  */
-TraceablePeerConnection.prototype.getAudioLevels = function() {
+TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
     const audioLevels = {};
-    const audioReceivers = this.peerconnection.getReceivers()
-        .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO);
+    const audioReceivers = speakerList.length
+        ? this._getReceiversByEndpointIds(speakerList, MediaType.AUDIO)
+        : this.peerconnection.getReceivers()
+            .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
 
     audioReceivers.forEach(remote => {
         const ssrc = remote.getSynchronizationSources();
