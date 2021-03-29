@@ -5,6 +5,7 @@ import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import * as MediaType from './service/RTC/MediaType';
@@ -505,6 +506,20 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous);
 
+                if (previous && previous.length) {
+                    const speakerList = previous.slice(0);
+
+                    // Add the dominant speaker to the top of the list (exclude self).
+                    if (conference.myUserId !== dominant) {
+                        speakerList.splice(0, 0, dominant);
+                    }
+
+                    // Trim the list to the top 5 speakers only.
+                    if (speakerList.length > SPEAKERS_AUDIO_LEVELS) {
+                        speakerList.splice(SPEAKERS_AUDIO_LEVELS, speakerList.length - SPEAKERS_AUDIO_LEVELS);
+                    }
+                    conference.statistics && conference.statistics.setSpeakerList(speakerList);
+                }
                 if (conference.statistics && conference.myUserId() === dominant) {
                     // We are the new dominant speaker.
                     conference.statistics.sendDominantSpeakerEvent(conference.room.roomjid);

@@ -345,6 +345,20 @@ Statistics.prototype.removeLongTasksStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 
+/**
+ * Updates the list of speakers for which the audio levels are to be calculated. This is needed for the jvb pc only.
+ *
+ * @param {Array<string>} speakerList The list of remote endpoint ids.
+ * @returns {void}
+ */
+Statistics.prototype.setSpeakerList = function(speakerList) {
+    for (const rtpStats of Array.from(this.rtpStatsMap.values())) {
+        if (!rtpStats.peerconnection.isP2P) {
+            rtpStats.setSpeakerList(speakerList);
+        }
+    }
+};
+
 Statistics.prototype.dispose = function() {
     try {
         // NOTE Before reading this please see the comment in stopCallStats...

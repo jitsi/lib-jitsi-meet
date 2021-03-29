@@ -260,6 +260,7 @@ export default function StatsCollector(
     // Updates stats interval
     this.audioLevelsIntervalMilis = audioLevelsInterval;
 
+    this.speakerList = [];
     this.statsIntervalId = null;
     this.statsIntervalMilis = statsInterval;
 
@@ -270,7 +271,15 @@ export default function StatsCollector(
     this.ssrc2stats = new Map();
 }
 
-/* eslint-enable max-params */
+/**
+ * Set the list of the remote speakers for which audio levels are to be calculated.
+ *
+ * @param {Array<string>} speakerList - Endpoint ids.
+ * @returns {void}
+ */
+StatsCollector.prototype.setSpeakerList = function(speakerList) {
+    this.speakerList = speakerList;
+};
 
 /**
  * Stops stats updates.
@@ -308,7 +317,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         this.audioLevelsIntervalId = setInterval(
             () => {
                 if (browser.supportsReceiverStats()) {
-                    const audioLevels = this.peerconnection.getAudioLevels();
+                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
 
                     for (const ssrc in audioLevels) {
                         if (audioLevels.hasOwnProperty(ssrc)) {
