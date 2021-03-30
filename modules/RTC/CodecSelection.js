@@ -94,6 +94,7 @@ export class CodecSelection {
         }
 
         return window.RTCRtpReceiver
+            && window.RTCRtpReceiver.getCapabilities
             && window.RTCRtpReceiver.getCapabilities('video').codecs
             .some(codec => codec.mimeType.toLowerCase() === `video/${preferredCodec}`);
     }
