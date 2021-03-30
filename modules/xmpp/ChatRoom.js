@@ -1303,7 +1303,16 @@ export default class ChatRoom extends Listenable {
                         .up()
                         .up();
 
-                    this.connection.sendIQ(formsubmit, onSuccess, onError);
+                    this.connection.sendIQ(
+                        formsubmit,
+                        () => {
+
+                            // we set the password in chat room so we can use it
+                            // later when dialing out
+                            this.password = key;
+                            onSuccess();
+                        },
+                        onError);
                 } else {
                     onNotSupported();
                 }
