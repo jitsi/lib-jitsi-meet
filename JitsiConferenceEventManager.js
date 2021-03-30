@@ -556,6 +556,17 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             }
         });
 
+    rtc.addListener(RTCEvents.ENDPOINT_STATS_RECEIVED,
+        (from, payload) => {
+            const participant = conference.getParticipantById(from);
+
+            if (participant) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED, participant, payload);
+            } else {
+                logger.warn(`Ignoring ENDPOINT_STATS_RECEIVED for a non-existant participant: ${from}`);
+            }
+        });
+
     rtc.addListener(RTCEvents.LOCAL_UFRAG_CHANGED,
         (tpc, ufrag) => {
             if (!tpc.isP2P) {

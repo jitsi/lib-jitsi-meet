@@ -98,6 +98,11 @@ export const DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged';
 export const ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received';
 
 /**
+ * Indicates that a message for the remote endpoint statistics has been received on the bridge channel.
+ */
+export const ENDPOINT_STATS_RECEIVED = 'conference.endpoint_stats_received';
+
+/**
  * NOTE This is lib-jitsi-meet internal event and can be removed at any time !
  *
  * Event emitted when conference transits, between one to one and multiparty JVB

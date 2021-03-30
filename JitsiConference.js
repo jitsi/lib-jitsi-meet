@@ -2599,6 +2599,15 @@ JitsiConference.prototype.sendEndpointMessage = function(to, payload) {
 };
 
 /**
+ * Sends local stats via the bridge channel which then forwards to other endpoints selectively.
+ * @param {Object} payload The payload of the message.
+ * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
+ */
+JitsiConference.prototype.sendEndpointStatsMessage = function(payload) {
+    this.rtc.sendEndpointStatsMessage(payload);
+};
+
+/**
  * Sends a broadcast message via the data channel.
  * @param payload {object} the payload of the message.
  * @throws NetworkError or InvalidStateError or Error if the operation fails.

@@ -239,6 +239,8 @@ export default class ConnectionQuality {
 
         // Listen to DataChannel message from other participants in the
         // conference, and update the _remoteStats field accordingly.
+        // TODO - Delete this when all the mobile endpoints switch to using the new Colibri
+        // message format for sending the endpoint stats.
         conference.on(
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
@@ -246,6 +248,12 @@ export default class ConnectionQuality {
                     this._updateRemoteStats(
                         participant.getId(), payload.values);
                 }
+            });
+
+        conference.on(
+            ConferenceEvents.ENDPOINT_STATS_RECEIVED,
+            (participant, payload) => {
+                this._updateRemoteStats(participant.getId(), payload);
             });
 
         // Listen to local statistics events originating from the RTC module
@@ -465,19 +473,10 @@ export default class ConnectionQuality {
         };
 
         try {
-            this._conference.broadcastEndpointMessage({
-                type: STATS_MESSAGE_TYPE,
-                values: data });
-        } catch (e) {
-            // We often hit this in the beginning of a call, before the data
-            // channel is ready. It is not a big problem, because we will
-            // send the statistics again after a few seconds, and the error is
-            // already logged elsewhere. So just ignore it.
-
-            // let errorMsg = "Failed to broadcast local stats";
-            // logger.error(errorMsg, e);
-            // GlobalOnErrorHandler.callErrorHandler(
-            //    new Error(errorMsg + ": " + e));
+            this._conference.sendEndpointStatsMessage(data);
+        } catch (err) {
+            // Ignore the error as we might hit it in the beginning of the call before the channel is ready.
+            // The statistics will be sent again after few seconds and error is logged elseware as well.
         }
     }
 
