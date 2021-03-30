@@ -89,6 +89,11 @@ const RTCEvents = {
     ENDPOINT_MESSAGE_RECEIVED: 'rtc.endpoint_message_received',
 
     /**
+     * Indicates that the remote endpoint stats have been received on data channnel.
+     */
+    ENDPOINT_STATS_RECEIVED: 'rtc.endpoint_stats_received',
+
+    /**
      * Designates an event indicating that the local ICE username fragment of
      * the jingle session has changed.
      * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
