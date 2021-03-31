@@ -17,13 +17,6 @@ const logger = getLogger(__filename);
 // joins or leaves.
 const DEBOUNCE_PERIOD = 5000;
 
-// We use ECDSA with Curve P-521 for the long-term signing keys. See
-//   https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
-const SIGNATURE_OPTIONS = {
-    name: 'ECDSA',
-    namedCurve: 'P-521'
-};
-
 /**
  * This module integrates {@link E2EEContext} with {@link JitsiConference} in order to enable E2E encryption.
  */
@@ -39,7 +32,6 @@ export class E2EEncryption {
         this._enabled = false;
         this._initialized = false;
         this._key = undefined;
-        this._signatureKeyPair = undefined;
 
         this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
@@ -131,17 +123,6 @@ export class E2EEncryption {
         this._enabled = enabled;
 
         if (!this._initialized && enabled) {
-            // Generate a frame signing key pair. Per session currently.
-            this._signatureKeyPair = await crypto.subtle.generateKey(SIGNATURE_OPTIONS,
-                true, [ 'sign', 'verify' ]);
-            this._e2eeCtx.setSignatureKey(this.conference.myUserId(), this._signatureKeyPair.privateKey);
-
-            // Serialize the JWK of the signing key. Using JSON, might be easy to xml-ify.
-            const serializedSigningKey = await crypto.subtle.exportKey('jwk', this._signatureKeyPair.publicKey);
-
-            // TODO: sign this with the OLM account key.
-            this.conference.setLocalParticipantProperty('e2ee.signatureKey', JSON.stringify(serializedSigningKey));
-
             // Need to re-create the peerconnections in order to apply the insertable streams constraint.
             // TODO: this was necessary due to some audio issues when indertable streams are used
             // even though encryption is not performed. This should be fixed in the browser eventually.
@@ -267,19 +248,6 @@ export class E2EEncryption {
         switch (name) {
         case 'e2ee.idKey':
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
-            break;
-        case 'e2ee.signatureKey':
-            logger.debug(`Participant ${participant.getId()} updated their signature key: ${newValue}`);
-            if (newValue) {
-                const parsed = JSON.parse(newValue);
-
-                const importedKey = await crypto.subtle.importKey('jwk', parsed, { name: 'ECDSA',
-                    namedCurve: parsed.crv }, true, parsed.key_ops);
-
-                this._e2eeCtx.setSignatureKey(participant.getId(), importedKey);
-            } else {
-                logger.warn(`e2ee signatureKey for ${participant.getId()} could not be updated with empty value.`);
-            }
             break;
         }
     }
