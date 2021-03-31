@@ -58,16 +58,6 @@ onmessage = async event => {
         } else {
             context.setKey(false, keyIndex);
         }
-    } else if (operation === 'setSignatureKey') {
-        const { participantId, key, signatureOptions } = event.data;
-
-        if (!contexts.has(participantId)) {
-            contexts.set(participantId, new Context(participantId));
-        }
-        const context = contexts.get(participantId);
-
-        context.setSignatureKey(key, signatureOptions);
-
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 

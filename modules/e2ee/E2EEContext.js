@@ -139,17 +139,4 @@ export default class E2EEcontext {
             keyIndex
         });
     }
-
-    /**
-     * Set the E2EE signature key for the specified participant.
-     * @param {string} participantId - the ID of the participant who's key we are setting.
-     * @param {CryptoKey} key - the webcrypto key to set.
-     */
-    setSignatureKey(participantId, key) {
-        this._worker.postMessage({
-            operation: 'setSignatureKey',
-            participantId,
-            key
-        });
-    }
 }
