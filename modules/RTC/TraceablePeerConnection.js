@@ -1626,6 +1626,12 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
                     type: 'AS',
                     limit: this._isSharingScreen() ? HD_BITRATE : Math.floor(hdBitrate / 1000)
                 } ];
+            } else if (browser.isReactNative()) {
+                // Clear the bandwidth limit in SDP when VP9 is no longer the preferred codec.
+                // This is needed on react native clients only as react-native-webrtc returns the
+                // SDP that the application passed instead of returning the SDP off the native side.
+                // This line automatically gets cleared on web on every renegotiation.
+                mLine.bandwidth = undefined;
             }
         } else if (mLine.type === this.codecPreference.mediaType) {
             SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
