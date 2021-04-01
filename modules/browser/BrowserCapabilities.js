@@ -140,9 +140,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsCodecPreferences() {
         return this.usesUnifiedPlan()
-            && typeof window.RTCRtpTransceiver !== 'undefined'
-            && Object.keys(window.RTCRtpTransceiver.prototype).indexOf('setCodecPreferences') > -1
-            && Object.keys(RTCRtpSender.prototype).indexOf('getCapabilities') > -1
+            && Boolean(window.RTCRtpTransceiver
+            && window.RTCRtpTransceiver.setCodecPreferences
+            && window.RTCRtpReceiver
+            && window.RTCRtpReceiver.getCapabilities)
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
