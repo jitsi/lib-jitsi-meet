@@ -221,11 +221,17 @@ export class ReceiveVideoController {
         this._selectedEndpoints = ids;
 
         if (this._receiverVideoConstraints) {
-            const remoteEndpointIds = ids.filter(id => id !== this._conference.myUserId());
-
             // Filter out the local endpointId from the list of selected endpoints.
+            const remoteEndpointIds = ids.filter(id => id !== this._conference.myUserId());
+            const oldConstraints = this._receiverVideoConstraints.constraints;
+
             remoteEndpointIds.length && this._receiverVideoConstraints.updateSelectedEndpoints(remoteEndpointIds);
-            this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            const newConstraints = this._receiverVideoConstraints.constraints;
+
+            // Send bridge message only when the constraints change.
+            if (!isEqual(newConstraints, oldConstraints)) {
+                this._rtc.setNewReceiverVideoConstraints(newConstraints);
+            }
 
             return;
         }
