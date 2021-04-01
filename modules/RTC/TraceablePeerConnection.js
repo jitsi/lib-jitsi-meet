@@ -1600,34 +1600,36 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     const parsedSdp = transform.parse(description.sdp);
-    const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
 
-    if (this.codecPreference.enable) {
-        SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+    for (const mLine of parsedSdp.media) {
+        if (this.codecPreference.enable && mLine.type === this.codecPreference.mediaType) {
+            SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
-        // Strip the high profile H264 codecs on mobile clients for p2p connection.
-        // High profile codecs give better quality at the expense of higher load which
-        // we do not want on mobile clients.
-        // Jicofo offers only the baseline code for the jvb connection.
-        // TODO - add check for mobile browsers once js-utils provides that check.
-        if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            // Strip the high profile H264 codecs on mobile clients for p2p connection.
+            // High profile codecs give better quality at the expense of higher load which
+            // we do not want on mobile clients.
+            // Jicofo offers only the baseline code for the jvb connection.
+            // TODO - add check for mobile browsers once js-utils provides that check.
+            if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+                SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            }
+
+            // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
+            // as soon as the browser switches to VP9.
+            if (this.codecPreference.mimeType === CodecMimeType.VP9) {
+                const bitrates = this.videoBitrates.VP9 || this.videoBitrates;
+                const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
+
+                // Use only the HD bitrate for now as there is no API available yet for configuring
+                // the bitrates on the individual SVC layers.
+                mLine.bandwidth = [ {
+                    type: 'AS',
+                    limit: this._isSharingScreen() ? HD_BITRATE : Math.floor(hdBitrate / 1000)
+                } ];
+            }
+        } else if (mLine.type === this.codecPreference.mediaType) {
+            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
         }
-
-        // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
-        // as soon as the browser switches to VP9.
-        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
-            const bitrates = Object.values(this.videoBitrates.VP9 || this.videoBitrates);
-
-            // Use only the HD bitrate for now as there is no API available yet for configuring
-            // the bitrates on the individual SVC layers.
-            mLine.bandwidth = [ {
-                type: 'AS',
-                limit: this._isSharingScreen() ? HD_BITRATE : Math.floor(bitrates[2] / 1000)
-            } ];
-        }
-    } else {
-        SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
 
     return new RTCSessionDescription({
@@ -1862,8 +1864,29 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec = nul
     }
 
     if (browser.supportsCodecPreferences()) {
-        // TODO implement codec preference using RTCRtpTransceiver.setCodecPreferences()
-        // We are using SDP munging for now until all browsers support this.
+        const transceiver = this.peerconnection.getTransceivers()
+            .find(t => t.receiver && t.receiver?.track?.kind === MediaType.VIDEO);
+
+        if (!transceiver) {
+            return;
+        }
+        let capabilities = RTCRtpReceiver.getCapabilities('video').codecs;
+
+        if (enable) {
+            // Move the desired codec (all variations of it as well) to the beginning of the list.
+            /* eslint-disable-next-line arrow-body-style */
+            capabilities.sort(caps => {
+                return caps.mimeType.toLowerCase() === `video/${mimeType}` ? -1 : 1;
+            });
+        } else {
+            capabilities = capabilities.filter(caps => caps.mimeType.toLowerCase() !== `video/${mimeType}`);
+        }
+
+        try {
+            transceiver.setCodecPreferences(capabilities);
+        } catch (err) {
+            logger.warn(`Setting ${mimeType} as ${enable ? 'preferred' : 'disabled'} codec failed`, err);
+        }
     }
 };
 
