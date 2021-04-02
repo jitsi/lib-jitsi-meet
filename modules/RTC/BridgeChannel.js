@@ -180,7 +180,6 @@ export default class BridgeChannel {
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
     sendEndpointStatsMessage(payload) {
-        logger.debug(`Sending endpoint stats ${JSON.stringify(payload)}`);
         this._send({
             colibriClass: 'EndpointStats',
             ...payload
