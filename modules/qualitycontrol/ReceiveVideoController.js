@@ -223,7 +223,7 @@ export class ReceiveVideoController {
         if (this._receiverVideoConstraints) {
             // Filter out the local endpointId from the list of selected endpoints.
             const remoteEndpointIds = ids.filter(id => id !== this._conference.myUserId());
-            const oldConstraints = this._receiverVideoConstraints.constraints;
+            const oldConstraints = JSON.parse(JSON.stringify(this._receiverVideoConstraints.constraints));
 
             remoteEndpointIds.length && this._receiverVideoConstraints.updateSelectedEndpoints(remoteEndpointIds);
             const newConstraints = this._receiverVideoConstraints.constraints;
