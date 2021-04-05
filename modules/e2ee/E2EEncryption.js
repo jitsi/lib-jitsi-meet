@@ -9,7 +9,7 @@ import browser from '../browser';
 import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
-import { OlmAdapter } from './OlmAdapter';
+import { OlmAdapter, kOlmData } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
 const logger = getLogger(__filename);
@@ -88,6 +88,8 @@ export class E2EEncryption {
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
+
+        this._onParticipantE2EEPropertyChanged.bind(this);
     }
 
     /**
@@ -263,6 +265,30 @@ export class E2EEncryption {
         case 'e2ee.idKey':
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
             break;
+        case 'e2ee.enabled':
+            this._onParticipantE2EEPropertyChanged(participant, newValue);
+            break;
+        }
+    }
+
+    /**
+     * Handles an update in a participant's e2ee.enabled property changed.
+     * If e2ee disabled, frees the olm session and rotates the key.
+     *
+     * @param {JitsiParticipant} participant - The participant.
+     * @param {*} value - The property's previous value.
+     * @private
+     */
+    _onParticipantE2EEPropertyChanged(participant, value) {
+        if (!value && this._enabled) {
+            const olmData = participant[kOlmData] || {};
+
+            if (olmData.session) {
+                olmData.session.free();
+                olmData.session = undefined;
+            }
+
+            this._rotateKey();
         }
     }
 

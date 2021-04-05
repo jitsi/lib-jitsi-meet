@@ -10,6 +10,8 @@ import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
+export const kOlmData = Symbol('OlmData');
+
 const logger = getLogger(__filename);
 
 const REQ_TIMEOUT = 5 * 1000;
@@ -21,8 +23,6 @@ const OLM_MESSAGE_TYPES = {
     SESSION_ACK: 'session-ack',
     SESSION_INIT: 'session-init'
 };
-
-const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
     OLM_ID_KEY_READY: 'olm.id_key_ready',
