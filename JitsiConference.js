@@ -2384,11 +2384,9 @@ JitsiConference.prototype.getMeetingUniqueId = function() {
  * @public (FIXME how to make package local ?)
  */
 JitsiConference.prototype.getActivePeerConnection = function() {
-    if (this.isP2PActive()) {
-        return this.p2pJingleSession.peerconnection;
-    }
+    const session = this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
 
-    return this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+    return session ? session.peerconnection : null;
 };
 
 /**
