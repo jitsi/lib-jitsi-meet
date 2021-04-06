@@ -281,12 +281,7 @@ export class E2EEncryption {
      */
     _onParticipantE2EEPropertyChanged(participant, value) {
         if (!value && this._enabled) {
-            const olmData = participant[kOlmData] || {};
-
-            if (olmData.session) {
-                olmData.session.free();
-                olmData.session = undefined;
-            }
+            this._olmAdapter.clearParticipantSession(participant);
 
             this._rotateKey();
         }
