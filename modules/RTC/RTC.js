@@ -181,6 +181,9 @@ export default class RTC extends Listenable {
         this._updateAudioOutputForAudioTracks
             = this._updateAudioOutputForAudioTracks.bind(this);
 
+        // The default video type assumed by the bridge.
+        this._videoType = VideoType.CAMERA;
+
         // Switch audio output device on all remote audio tracks. Local audio
         // tracks handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
@@ -379,6 +382,20 @@ export default class RTC extends Listenable {
 
         if (this._channel && this._channel.isOpen()) {
             this._channel.sendReceiverVideoConstraintMessage(maxFrameHeight);
+        }
+    }
+
+    /**
+     * Sets the video type and availability for the local video source.
+     *
+     * @param {string} videoType 'camera' for camera, 'desktop' for screenshare and
+     * 'none' for when local video source is muted or removed from the peerconnection.
+     * @returns {void}
+     */
+    setVideoType(videoType) {
+        if (this._videoType !== videoType && this._channel && this._channel.isOpen()) {
+            this._videoType = videoType;
+            this._channel.sendVideoTypeMessage(videoType);
         }
     }
 

@@ -260,6 +260,19 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a 'VideoTypeMessage' message via the bridge channel.
+     *
+     * @param {string} videoType 'camera', 'desktop' or 'none'.
+     */
+    sendVideoTypeMessage(videoType) {
+        logger.debug(`Sending VideoTypeMessage with video type as ${videoType}`);
+        this._send({
+            colibriClass: 'VideoTypeMessage',
+            videoType
+        });
+    }
+
+    /**
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
     _handleChannel(channel) {
