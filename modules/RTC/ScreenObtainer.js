@@ -164,7 +164,7 @@ const ScreenObtainer = {
         }
 
         getDisplayMedia({
-            video: true,
+            video: options.video ? options.video : true,
             audio: true,
             cursor: 'always'
         })
