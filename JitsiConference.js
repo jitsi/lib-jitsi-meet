@@ -1120,10 +1120,14 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             if (oldTrack) {
                 this.onLocalTrackRemoved(oldTrack);
             }
+
+            // Send 'VideoTypeMessage' on the bridge channel for the new track.
             if (newTrack) {
-                // Now handle the addition of the newTrack at the
-                // JitsiConference level
+                // Now handle the addition of the newTrack at the JitsiConference level
                 this._setupNewTrack(newTrack);
+                newTrack.isVideoTrack() && this.rtc.setVideoType(newTrack.videoType);
+            } else {
+                oldTrack && oldTrack.isVideoTrack() && this.rtc.setVideoType(VideoType.NONE);
             }
 
             return Promise.resolve();
@@ -1229,20 +1233,20 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     if (this.jvbJingleSession) {
         addAsUnmutePromises.push(this.jvbJingleSession.addTrackAsUnmute(track));
     } else {
-        logger.info(
-            'Add local MediaStream as unmute -'
-                + ' no JVB Jingle session started yet');
+        logger.debug('Add local MediaStream as unmute - no JVB Jingle session started yet');
     }
 
     if (this.p2pJingleSession) {
         addAsUnmutePromises.push(this.p2pJingleSession.addTrackAsUnmute(track));
     } else {
-        logger.info(
-            'Add local MediaStream as unmute -'
-                + ' no P2P Jingle session started yet');
+        logger.debug('Add local MediaStream as unmute - no P2P Jingle session started yet');
     }
 
-    return Promise.all(addAsUnmutePromises);
+    return Promise.allSettled(addAsUnmutePromises)
+        .then(() => {
+            // Signal the video type to the bridge.
+            track.isVideoTrack() && this.rtc.setVideoType(track.videoType);
+        });
 };
 
 /**
@@ -1256,21 +1260,21 @@ JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
     const removeAsMutePromises = [];
 
     if (this.jvbJingleSession) {
-        removeAsMutePromises.push(
-            this.jvbJingleSession.removeTrackAsMute(track));
+        removeAsMutePromises.push(this.jvbJingleSession.removeTrackAsMute(track));
     } else {
-        logger.info(
-            'Remove local MediaStream - no JVB JingleSession started yet');
+        logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
     }
     if (this.p2pJingleSession) {
-        removeAsMutePromises.push(
-            this.p2pJingleSession.removeTrackAsMute(track));
+        removeAsMutePromises.push(this.p2pJingleSession.removeTrackAsMute(track));
     } else {
-        logger.info(
-            'Remove local MediaStream - no P2P JingleSession started yet');
+        logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
     }
 
-    return Promise.all(removeAsMutePromises);
+    return Promise.allSettled(removeAsMutePromises)
+        .then(() => {
+            // Signal the video type to the bridge.
+            track.isVideoTrack() && this.rtc.setVideoType(VideoType.NONE);
+        });
 };
 
 /**
