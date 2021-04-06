@@ -9,7 +9,7 @@ import browser from '../browser';
 import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
-import { OlmAdapter, kOlmData } from './OlmAdapter';
+import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
 const logger = getLogger(__filename);
