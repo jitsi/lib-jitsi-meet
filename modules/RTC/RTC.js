@@ -289,6 +289,13 @@ export default class RTC extends Listenable {
                 }
             }
 
+            try {
+                this._channel.sendVideoTypeMessage(this._videoType);
+            } catch (error) {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error(`Cannot send VideoTypeMessage ${this._videoType}`, error);
+            }
+
             this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
             this._channelOpenListener = null;
         };
@@ -393,9 +400,12 @@ export default class RTC extends Listenable {
      * @returns {void}
      */
     setVideoType(videoType) {
-        if (this._videoType !== videoType && this._channel && this._channel.isOpen()) {
+        if (this._videoType !== videoType) {
             this._videoType = videoType;
-            this._channel.sendVideoTypeMessage(videoType);
+
+            if (this._channel && this._channel.isOpen()) {
+                this._channel.sendVideoTypeMessage(videoType);
+            }
         }
     }
 
