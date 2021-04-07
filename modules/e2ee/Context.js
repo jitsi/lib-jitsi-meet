@@ -109,7 +109,6 @@ export class Context {
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
 
-        console.log("XXX encoding");
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
@@ -157,24 +156,49 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    decodeFunction(encodedFrame, controller) {
+    async decodeFunction(encodedFrame, controller) {
+       
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
-        console.log("XXX decoding");
-
         if (this._cryptoKeyRing[keyIndex]) {
+           const { encryptionKey } = this._cryptoKeyRing[keyIndex];
             const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - IV_LENGTH - 1, IV_LENGTH);
             const cipherTextStart = UNENCRYPTED_BYTES[encodedFrame.type];
             const cipherTextLength = encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
                 + IV_LENGTH + 1);
 
-            return crypto.subtle.decrypt({
+             encodedFrame = await this._decryptFrame(
+                encodedFrame,
+                iv,
+                keyIndex,
+                cipherTextStart,
+                cipherTextLength);
+        
+            return controller.enqueue(encodedFrame);
+        }
+
+        // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
+        // we might want to buffer a bit but it is still unclear how to do that (and for how long etc).
+        controller.enqueue(encodedFrame);
+    }
+
+    async _decryptFrame(
+        encodedFrame, 
+        iv,
+        keyIndex,
+        cipherTextStart,
+        cipherTextLength,
+        ratchetCount = 0) {
+
+        let { encryptionKey, material } = this._cryptoKeyRing[keyIndex];
+
+        return crypto.subtle.decrypt({
                 name: 'AES-GCM',
                 iv,
                 additionalData: new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])
             },
-            this._cryptoKeyRing[keyIndex].encryptionKey,
+            encryptionKey,
             new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
             .then(plainText => {
                 const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + plainText.byteLength);
@@ -185,29 +209,43 @@ export class Context {
 
                 encodedFrame.data = newData;
 
-                return controller.enqueue(encodedFrame);
-            }, e => {
-                console.error(e);
+                return encodedFrame;
+            }, async e => {
+               // console.error(e);
+                console.log("XXX error", e);
 
-                // TODO: notify the application about error status.
+                if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                    console.log("XXX ratchetCount1 ", ratchetCount);
+                    material = await importKey(await ratchet(material));
+                    console.log("XXX ratchetCount2 ", ratchetCount);
+                    const newKey = await deriveKeys(material);
+                    console.log("XXX ratchetCount3 ", ratchetCount);
+                    this._setKeys(newKey);
+                    console.log("XXX ratchetCount4 ", ratchetCount);
+                    return await _decryptFrame(
+                        encodedFrame, 
+                        iv,
+                        keyIndex,
+                        cipherTextStart,
+                        cipherTextLength,
+                        ratchetCount + 1);
+                } else {
+                    // TODO: notify the application about error status.
 
-                // TODO: For video we need a better strategy since we do not want to based any
-                // non-error frames on a garbage keyframe.
-                if (encodedFrame.type === undefined) { // audio, replace with silence.
-                    const newData = new ArrayBuffer(3);
-                    const newUint8 = new Uint8Array(newData);
+                    // TODO: For video we need a better strategy since we do not want to based any
+                    // non-error frames on a garbage keyframe.
+                    if (encodedFrame.type === undefined) { // audio, replace with silence.
+                        const newData = new ArrayBuffer(3);
+                        const newUint8 = new Uint8Array(newData);
 
-                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                    encodedFrame.data = newData;
-                    controller.enqueue(encodedFrame);
+                        newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
+                        encodedFrame.data = newData;
+                        return encodedFrame;
+                    }
                 }
             });
-        }
-
-        // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
-        // we might want to buffer a bit but it is still unclear how to do that (and for how long etc).
-        controller.enqueue(encodedFrame);
     }
+
 
     /**
      * Construct the IV used for AES-GCM and sent (in plain) with the packet similar to
