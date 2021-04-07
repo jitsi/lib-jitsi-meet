@@ -25,6 +25,8 @@ const UNENCRYPTED_BYTES = {
 };
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
 
+/* We use a 96 bit IV for AES GCM. This is signalled in plain together with the
+ packet. See https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams */
 const IV_LENGTH = 12;
 
 const RATCHET_WINDOW_SIZE = 8;
@@ -91,26 +93,35 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      *
-     * The packet format is a variant of
-     *   https://tools.ietf.org/html/draft-omara-sframe-00
-     * using a trailer instead of a header. One of the design goals was to not require
-     * changes to the SFU which for video requires not encrypting the keyframe bit of VP8
-     * as SFUs need to detect a keyframe (framemarking or the generic frame descriptor will
-     * solve this eventually). This also "hides" that a client is using E2EE a bit.
-     *
-     * Note that this operates on the full frame, i.e. for VP8 the data described in
-     *   https://tools.ietf.org/html/rfc6386#section-9.1
-     *
      * The VP8 payload descriptor described in
-     *   https://tools.ietf.org/html/rfc7741#section-4.2
-     * is part of the RTP packet and not part of the encoded frame and is therefore not
-     * controllable by us. This is fine as the SFU keeps having access to it for routing.
+     * https://tools.ietf.org/html/rfc7741#section-4.2
+     * is part of the RTP packet and not part of the frame and is not controllable by us.
+     * This is fine as the SFU keeps having access to it for routing.
+     *
+     * The encrypted frame is formed as follows:
+     * 1) Leave the first (10, 3, 1) bytes unencrypted, depending on the frame type and kind.
+     * 2) Form the GCM IV for the frame as described above.
+     * 3) Encrypt the rest of the frame using AES-GCM.
+     * 4) Allocate space for the encrypted frame.
+     * 5) Copy the unencrypted bytes to the start of the encrypted frame.
+     * 6) Append the ciphertext to the encrypted frame.
+     * 7) Append the IV.
+     * 8) Append a single byte for the key identifier.
+     * 9) Enqueue the encrypted frame for sending.
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
 
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
+
+            // Construct frame trailer. Similar to the frame header described in
+            // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
+            // but we put it at the end.
+            //                                             
+            // ---------+---------------------------------+---------------------------+-------
+            // payload  |    GCM... (length=LEN)          |IV...(length = IV_LENGTH)  |KID   |
+            // ---------+---------------------------------+---------------------------+-------
 
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
@@ -157,25 +168,16 @@ export class Context {
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
     async decodeFunction(encodedFrame, controller) {
-       
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
-           const { encryptionKey } = this._cryptoKeyRing[keyIndex];
-            const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - IV_LENGTH - 1, IV_LENGTH);
-            const cipherTextStart = UNENCRYPTED_BYTES[encodedFrame.type];
-            const cipherTextLength = encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
-                + IV_LENGTH + 1);
 
-             encodedFrame = await this._decryptFrame(
+            const decodedFrame = await this._decryptFrame(
                 encodedFrame,
-                iv,
-                keyIndex,
-                cipherTextStart,
-                cipherTextLength);
-        
-            return controller.enqueue(encodedFrame);
+                keyIndex);
+
+            return controller.enqueue(decodedFrame);
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
@@ -183,21 +185,42 @@ export class Context {
         controller.enqueue(encodedFrame);
     }
 
+    /**
+     * Function that will decrypt the given encoded frame. If the decryption fails, it will
+     * ratchet the key for up to RATCHET_WINDOW_SIZE times.
+     *
+     * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
+     * @param {number} keyIndex - the index of the decryption data in _cryptoKeyRing array.
+     * @param {number} ratchetCount - the number of retries after ratcheting the key.
+     * @returns {RTCEncodedVideoFrame|RTCEncodedAudioFrame} - The decrypted frame.
+     * @private
+     */
     async _decryptFrame(
-        encodedFrame, 
-        iv,
-        keyIndex,
-        cipherTextStart,
-        cipherTextLength,
-        ratchetCount = 0) {
+            encodedFrame,
+            keyIndex,
+            ratchetCount = 0) {
 
-        let { encryptionKey, material } = this._cryptoKeyRing[keyIndex];
+        const { encryptionKey } = this._cryptoKeyRing[keyIndex];
+        let { material } = this._cryptoKeyRing[keyIndex];
+
+        // Construct frame trailer. Similar to the frame header described in
+        // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
+        // but we put it at the end.
+        //                                             0 1 2 3 4 5 6 7
+        // ---------+---------------------------------+-+-+-+-+-+-+-+-+
+        // payload  |    CTR... (length=LEN)          |S|LEN  |KID    |
+        // ---------+---------------------------------+-+-+-+-+-+-+-+-+
+
+        const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - IV_LENGTH - 1, IV_LENGTH);
+        const cipherTextStart = UNENCRYPTED_BYTES[encodedFrame.type];
+        const cipherTextLength = encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
+            + IV_LENGTH + 1);
 
         return crypto.subtle.decrypt({
-                name: 'AES-GCM',
-                iv,
-                additionalData: new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])
-            },
+            name: 'AES-GCM',
+            iv,
+            additionalData: new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type])
+        },
             encryptionKey,
             new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
             .then(plainText => {
@@ -211,37 +234,33 @@ export class Context {
 
                 return encodedFrame;
             }, async e => {
-               // console.error(e);
-                console.log("XXX error", e);
+                console.error(e);
 
                 if (ratchetCount < RATCHET_WINDOW_SIZE) {
-                    console.log("XXX ratchetCount1 ", ratchetCount);
                     material = await importKey(await ratchet(material));
-                    console.log("XXX ratchetCount2 ", ratchetCount);
+
                     const newKey = await deriveKeys(material);
-                    console.log("XXX ratchetCount3 ", ratchetCount);
+
                     this._setKeys(newKey);
-                    console.log("XXX ratchetCount4 ", ratchetCount);
-                    return await _decryptFrame(
-                        encodedFrame, 
-                        iv,
+
+                    return await this._decryptFrame(
+                        encodedFrame,
                         keyIndex,
-                        cipherTextStart,
-                        cipherTextLength,
                         ratchetCount + 1);
-                } else {
-                    // TODO: notify the application about error status.
+                }
 
-                    // TODO: For video we need a better strategy since we do not want to based any
-                    // non-error frames on a garbage keyframe.
-                    if (encodedFrame.type === undefined) { // audio, replace with silence.
-                        const newData = new ArrayBuffer(3);
-                        const newUint8 = new Uint8Array(newData);
+                // TODO: notify the application about error status.
 
-                        newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                        encodedFrame.data = newData;
-                        return encodedFrame;
-                    }
+                // TODO: For video we need a better strategy since we do not want to based any
+                // non-error frames on a garbage keyframe.
+                if (encodedFrame.type === undefined) { // audio, replace with silence.
+                    const newData = new ArrayBuffer(3);
+                    const newUint8 = new Uint8Array(newData);
+
+                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
+                    encodedFrame.data = newData;
+
+                    return encodedFrame;
                 }
             });
     }
