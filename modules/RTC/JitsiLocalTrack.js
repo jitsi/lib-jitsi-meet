@@ -402,6 +402,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         if (!conference) {
             this._switchStreamEffect(effect);
+            if (this.isVideoTrack()) {
+                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+            }
 
             return Promise.resolve();
         }
