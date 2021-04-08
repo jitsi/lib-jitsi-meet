@@ -1409,6 +1409,7 @@ export default class ChatRoom extends Listenable {
      * @param values The new values.
      * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
      * performed as the value was already there.
+     * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
      */
     addToPresence(key, values) {
         return this.addOrReplaceInPresence(key, values);
