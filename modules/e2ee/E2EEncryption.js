@@ -88,8 +88,6 @@ export class E2EEncryption {
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
-
-        this._onParticipantE2EEPropertyChanged.bind(this);
     }
 
     /**
@@ -266,24 +264,12 @@ export class E2EEncryption {
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
             break;
         case 'e2ee.enabled':
-            this._onParticipantE2EEPropertyChanged(participant, newValue);
+            if (!newValue && this._enabled) {
+                this._olmAdapter.clearParticipantSession(participant);
+
+                this._rotateKey();
+            }
             break;
-        }
-    }
-
-    /**
-     * Handles an update in a participant's e2ee.enabled property changed.
-     * If e2ee disabled, frees the olm session and rotates the key.
-     *
-     * @param {JitsiParticipant} participant - The participant.
-     * @param {*} value - The property's previous value.
-     * @private
-     */
-    _onParticipantE2EEPropertyChanged(participant, value) {
-        if (!value && this._enabled) {
-            this._olmAdapter.clearParticipantSession(participant);
-
-            this._rotateKey();
         }
     }
 
