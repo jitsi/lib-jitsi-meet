@@ -263,6 +263,13 @@ export class E2EEncryption {
         case 'e2ee.idKey':
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
             break;
+        case 'e2ee.enabled':
+            if (!newValue && this._enabled) {
+                this._olmAdapter.clearParticipantSession(participant);
+
+                this._rotateKey();
+            }
+            break;
         }
     }
 

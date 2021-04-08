@@ -186,6 +186,19 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
+     * Frees the olmData session for the given participant.
+     *
+     */
+    clearParticipantSession(participant) {
+        const olmData = this._getParticipantOlmData(participant);
+
+        if (olmData.session) {
+            olmData.session.free();
+            olmData.session = undefined;
+        }
+    }
+
+    /**
      * Internal helper to bootstrap the olm library.
      *
      * @returns {Promise<void>}
@@ -440,12 +453,7 @@ export class OlmAdapter extends Listenable {
     _onParticipantLeft(id, participant) {
         logger.debug(`Participant ${id} left`);
 
-        const olmData = this._getParticipantOlmData(participant);
-
-        if (olmData.session) {
-            olmData.session.free();
-            olmData.session = undefined;
-        }
+        this.clearParticipantSession(participant);
     }
 
     /**
