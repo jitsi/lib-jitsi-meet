@@ -2150,65 +2150,59 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
 };
 
 /**
- * Converts an object to a config-like string.
- *
- * @param {Object} obj - The object to be converted into a config string.
- * @returns {String} - The config string.
- */
-TraceablePeerConnection.prototype.getConfigFromObject = function(obj) {
-    let config = '';
-
-    for (const key of Object.keys(obj)) {
-        config += `${key}=${obj[key]}; `;
-    }
-
-    return config.trim();
-};
-
-/**
  * Munges the stereo flag as well as the opusMaxAverageBitrate in the SDP, based
  * on values set through config.js, if present.
  *
  * @param {RTCSessionDescription} description that needs to be munged.
  * @returns {RTCSessionDescription} the munged description.
  */
-TraceablePeerConnection.prototype.mungeOpus = function(description) {
+TraceablePeerConnection.prototype._mungeOpus = function(description) {
     const parsedSdp = transform.parse(description.sdp);
-    const audio = parsedSdp.media.find(mLine => mLine.type === 'audio');
-    const { payload } = audio.rtp.find(protocol => protocol.codec === 'opus');
+    const mLines = parsedSdp.media;
 
-    if (!payload) {
-        // No Opus.
-        return description;
+    for (const mLine of mLines) {
+        if (mLine.type === 'audio') {
+            const { payload } = mLine.rtp.find(protocol => protocol.codec === 'opus');
+
+            if (!payload) {
+                break;
+            }
+
+            let fmtpOpus = mLine.fmtp.find(protocol => protocol.payload === payload);
+
+            if (!fmtpOpus) {
+                fmtpOpus = {
+                    payload,
+                    config: ''
+                };
+            }
+
+            const fmtpConfig = transform.parseParams(fmtpOpus.config);
+            let sdpChanged = false;
+
+            if (this.options.stereo) {
+                fmtpConfig.stereo = 1;
+                sdpChanged = true;
+            }
+
+            if (this.options.opusMaxAverageBitrate) {
+                fmtpConfig.opusMaxAverageBitrate = this.options.opusMaxAverageBitrate;
+                sdpChanged = true;
+            }
+
+            if (!sdpChanged) {
+                break;
+            }
+
+            let mungedConfig = '';
+
+            for (const key of Object.keys(fmtpConfig)) {
+                mungedConfig += `${key}=${fmtpConfig[key]}; `;
+            }
+
+            fmtpOpus.config = mungedConfig.trim();
+        }
     }
-
-    let fmtpOpus = audio.fmtp.find(protocol => protocol.payload === payload);
-
-    if (!fmtpOpus) {
-        fmtpOpus = {
-            payload,
-            config: ''
-        };
-    }
-
-    const fmtpConfig = transform.parseParams(fmtpOpus.config);
-    let sdpChanged = false;
-
-    if (this.options.stereo) {
-        fmtpConfig.stereo = 1;
-        sdpChanged = true;
-    }
-
-    if (this.options.opusMaxAverageBitrate) {
-        fmtpConfig.opusMaxAverageBitrate = this.options.opusMaxAverageBitrate;
-        sdpChanged = true;
-    }
-
-    if (!sdpChanged) {
-        return description;
-    }
-
-    fmtpOpus.config = this.getConfigFromObject(fmtpConfig);
 
     return new RTCSessionDescription({
         type: description.type,
@@ -2225,7 +2219,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
     localSdp = this._mungeCodecOrder(localSdp);
 
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
-    localSdp = this.mungeOpus(localSdp);
+    localSdp = this._mungeOpus(localSdp);
 
     if (browser.usesPlanB()) {
         localSdp = this._adjustLocalMediaDirection(localSdp);
@@ -2434,7 +2428,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     description = this._mungeCodecOrder(description);
 
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
-    description = this.mungeOpus(description);
+    description = this._mungeOpus(description);
 
     /* eslint-enable no-param-reassign */
 
