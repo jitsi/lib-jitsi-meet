@@ -163,14 +163,13 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        const { channelCount, disableAGC, disableAP, enableHdAudio } = this.options;
+        const { disableAGC, disableAP, enableHdAudio } = this.options;
         const audioProcessingValue = !disableAGC && !disableAP;
         const audio = enableHdAudio ? {
             autoGainControl: audioProcessingValue,
-            channelCount,
+            channelCount: 2,
             echoCancellation: audioProcessingValue,
-            noiseSuppression: audioProcessingValue,
-            sampleRate: 48000
+            noiseSuppression: audioProcessingValue
         } : true;
 
         getDisplayMedia({

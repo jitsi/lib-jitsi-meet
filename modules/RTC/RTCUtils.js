@@ -93,8 +93,8 @@ let disableAGC = false;
 // Disables Highpass Filter
 let disableHPF = false;
 
-// Channel count used to enable stereo.
-let channelCount = null;
+// Enables stereo.
+let stereo = null;
 
 const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
@@ -414,23 +414,15 @@ function newGetConstraints(um = [], options = {}) {
             constraints.audio = {};
         }
 
-        // Use the standard audio constraints on non-chromium browsers.
-        if (browser.isFirefox() || browser.isWebKitBased()) {
-            constraints.audio = {
-                deviceId: options.micDeviceId,
-                autoGainControl: !disableAGC && !disableAP,
-                echoCancellation: !disableAEC && !disableAP,
-                noiseSuppression: !disableNS && !disableAP
-            };
-        } else {
-            constraints.audio = {
-                autoGainControl: { exact: !disableAGC && !disableAP },
-                channelCount,
-                deviceId: options.micDeviceId,
-                echoCancellation: { exact: !disableAEC && !disableAP },
-                noiseSuppression: { exact: !disableNS && !disableAP },
-                sampleRate: 48000
-            };
+        constraints.audio = {
+            autoGainControl: { exact: !disableAGC && !disableAP },
+            deviceId: options.micDeviceId,
+            echoCancellation: { exact: !disableAEC && !disableAP },
+            noiseSuppression: { exact: !disableNS && !disableAP }
+        };
+
+        if (stereo) {
+            Object.assign(constraints.audio, { channelCount: 2 });
         }
     } else {
         constraints.audio = false;
@@ -767,10 +759,9 @@ class RTCUtils extends Listenable {
             disableHPF = options.disableHPF;
             logger.info(`Disable HPF: ${disableHPF}`);
         }
-
-        if (typeof options.channelCount === 'number') {
-            channelCount = options.channelCount;
-            logger.info(`Channel count: ${channelCount}`);
+        if (typeof options.stereo === 'boolean') {
+            stereo = options.stereo;
+            logger.info(`Stereo: ${stereo}`);
         }
 
         window.clearInterval(availableDevicesPollTimer);
