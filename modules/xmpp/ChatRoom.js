@@ -1537,7 +1537,7 @@ export default class ChatRoom extends Listenable {
         const audioMutedTagName = 'audiomuted';
 
         // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(audioMutedTagName)) {
+        if (mute && !this.getFromPresence(audioMutedTagName) && this.options.testing.enableSkipDefaultMutedState) {
             return false;
         }
 
@@ -1569,7 +1569,7 @@ export default class ChatRoom extends Listenable {
         const videoMutedTagName = 'videomuted';
 
         // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(videoMutedTagName)) {
+        if (mute && !this.getFromPresence(videoMutedTagName) && this.options.testing.enableSkipDefaultMutedState) {
             return false;
         }
 
