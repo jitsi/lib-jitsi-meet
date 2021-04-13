@@ -1,13 +1,18 @@
 /* global module */
 /**
  * Enumeration of the codec mime types
- * @type {{H264: string, VP8: string, VP9: string}}
+ * @type {{H264: string, OPUS: string, VP8: string, VP9: string}}
  */
 const CodecMimeType = {
     /**
-     * The h264 codec mime type
+     * The h264 codec mime type.
      */
     H264: 'h264',
+
+    /**
+     * The opus codec mime type.
+     */
+    OPUS: 'opus',
 
     /**
      * The vp8 codec mime type.

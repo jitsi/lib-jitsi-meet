@@ -2162,7 +2162,7 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
 
     for (const mLine of mLines) {
         if (mLine.type === 'audio') {
-            const { payload } = mLine.rtp.find(protocol => protocol.codec === 'opus');
+            const { payload } = mLine.rtp.find(protocol => protocol.codec === CodecMimeType.OPUS);
 
             if (!payload) {
                 break;
