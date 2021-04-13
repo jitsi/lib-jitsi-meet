@@ -706,7 +706,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
  *
  * @returns {Object}
  */
-TraceablePeerConnection.prototype.getTargetBitrates = function() {
+TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
     const currentCodec = this.getConfiguredVideoCodec();
 
     return this.videoBitrates[currentCodec.toUpperCase()] || this.videoBitrates;
@@ -2332,7 +2332,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
         }
     } else {
         // Do not change the max bitrate for desktop tracks in non-simulcast mode.
-        let bitrate = this.getTargetBitrates()?.high;
+        let bitrate = this.getTargetVideoBitrates()?.high;
 
         if (videoType === VideoType.CAMERA) {
             // Determine the bitrates based on the sender constraint applied for unicast tracks.

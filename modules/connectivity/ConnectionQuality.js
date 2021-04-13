@@ -4,6 +4,7 @@ import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import browser from '../browser';
 
 const Resolutions = require('../../service/RTC/Resolutions');
 const VideoType = require('../../service/RTC/VideoType');
@@ -21,27 +22,33 @@ const kSimulcastFormats = [
     { width: 1920,
         height: 1080,
         layers: 3,
-        target: 'high' },
+        target: 'high',
+        targetRN: 4000000 },
     { width: 1280,
         height: 720,
         layers: 3,
-        target: 'high' },
+        target: 'high',
+        targetRN: 2500000 },
     { width: 960,
         height: 540,
         layers: 3,
-        target: 'standard' },
+        target: 'standard',
+        targetRN: 900000 },
     { width: 640,
         height: 360,
         layers: 2,
-        target: 'standard' },
+        target: 'standard',
+        targetRN: 500000 },
     { width: 480,
         height: 270,
         layers: 2,
-        target: 'low' },
+        target: 'low',
+        targetRN: 350000 },
     { width: 320,
         height: 180,
         layers: 1,
-        target: 'low' }
+        target: 'low',
+        targetRN: 150000 }
 ];
 
 /**
@@ -85,15 +92,19 @@ function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings
 
             simulcastFormat = kSimulcastFormats.find(f => f.height === targetHeight);
             if (simulcastFormat) {
-                target += videoQualitySettings[simulcastFormat.target];
+                target += browser.isReactNative()
+                    ? simulcastFormat.targetRN
+                    : videoQualitySettings[simulcastFormat.target];
             } else {
                 break;
             }
         }
     } else if (simulcastFormat) {
-        // For VP9 SVC and H.264 (simulcast automatically disabled), target bitrate will be
+        // For VP9 SVC, H.264 (simulcast automatically disabled) and p2p, target bitrate will be
         // same as that of the individual stream bitrate.
-        target = videoQualitySettings[simulcastFormat.target];
+        target = browser.isReactNative()
+            ? simulcastFormat.targetRN
+            : videoQualitySettings[simulcastFormat.target];
     }
 
     // Allow for an additional 1 second for ramp up -- delay any initial drop
@@ -330,25 +341,26 @@ export default class ConnectionQuality {
                 quality = 0; // Still 1 bar, but slower climb-up.
             }
         } else {
-            // Calculate a value based on the sending bitrate.
-
-            // Figure out if simulcast is in use.
+            // Calculate a value based on the send video bitrate on the active TPC.
             const activeTPC = this._conference.getActivePeerConnection();
-            const isSimulcastOn = Boolean(activeTPC && activeTPC.isSimulcastOn());
-            const videoQualitySettings = activeTPC.getTargetBitrates();
 
-            // Add the codec info as well.
-            videoQualitySettings.codec = activeTPC.getConfiguredVideoCodec();
+            if (activeTPC) {
+                const isSimulcastOn = activeTPC.isSimulcastOn();
+                const videoQualitySettings = activeTPC.getTargetVideoBitrates();
 
-            // Time since sending of video was enabled.
-            const millisSinceStart = window.performance.now()
-                - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
+                // Add the codec info as well.
+                videoQualitySettings.codec = activeTPC.getConfiguredVideoCodec();
 
-            // Expected sending bitrate in perfect conditions.
-            let target = getTarget(isSimulcastOn, resolution, millisSinceStart, videoQualitySettings);
+                // Time since sending of video was enabled.
+                const millisSinceStart = window.performance.now()
+                    - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
 
-            target = Math.min(target, MAX_TARGET_BITRATE);
-            quality = 100 * this._localStats.bitrate.upload / target;
+                // Expected sending bitrate in perfect conditions.
+                let target = getTarget(isSimulcastOn, resolution, millisSinceStart, videoQualitySettings);
+
+                target = Math.min(target, MAX_TARGET_BITRATE);
+                quality = 100 * this._localStats.bitrate.upload / target;
+            }
 
             // Whatever the bitrate, drop early if there is significant loss
             if (packetLoss && packetLoss >= 10) {
