@@ -2116,6 +2116,12 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeOpus = function(description) {
+    const { opusMaxAverageBitrate, stereo } = this.options;
+
+    if (!opusMaxAverageBitrate || !stereo) {
+        return description;
+    }
+
     const parsedSdp = transform.parse(description.sdp);
     const mLines = parsedSdp.media;
 
@@ -2139,13 +2145,13 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
             const fmtpConfig = transform.parseParams(fmtpOpus.config);
             let sdpChanged = false;
 
-            if (this.options.stereo) {
+            if (stereo) {
                 fmtpConfig.stereo = 1;
                 sdpChanged = true;
             }
 
-            if (this.options.opusMaxAverageBitrate) {
-                fmtpConfig.opusMaxAverageBitrate = this.options.opusMaxAverageBitrate;
+            if (opusMaxAverageBitrate) {
+                fmtpConfig.opusMaxAverageBitrate = opusMaxAverageBitrate;
                 sdpChanged = true;
             }
 

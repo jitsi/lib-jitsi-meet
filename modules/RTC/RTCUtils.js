@@ -415,10 +415,10 @@ function newGetConstraints(um = [], options = {}) {
         }
 
         constraints.audio = {
-            autoGainControl: { exact: !disableAGC && !disableAP },
+            autoGainControl: !disableAGC && !disableAP,
             deviceId: options.micDeviceId,
-            echoCancellation: { exact: !disableAEC && !disableAP },
-            noiseSuppression: { exact: !disableNS && !disableAP }
+            echoCancellation: !disableAEC && !disableAP,
+            noiseSuppression: !disableNS && !disableAP
         };
 
         if (stereo) {
