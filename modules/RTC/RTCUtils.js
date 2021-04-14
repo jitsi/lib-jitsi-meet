@@ -759,8 +759,8 @@ class RTCUtils extends Listenable {
             disableHPF = options.disableHPF;
             logger.info(`Disable HPF: ${disableHPF}`);
         }
-        if (typeof options.stereo === 'boolean') {
-            stereo = options.stereo;
+        if (typeof options.audioQuality?.stereo === 'boolean') {
+            stereo = options.audioQuality.stereo;
             logger.info(`Stereo: ${stereo}`);
         }
 
