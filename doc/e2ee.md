@@ -54,23 +54,23 @@ authentication tags.
 
 At a high level the encrypted frame format looks like this:
 ```
-     +------------+------------------------------------------+^+
-     |unencrypted payload header (variable length)           | |
-   +^+------------+------------------------------------------+ |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                  Encrypted Frame                      | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | +------------------------+-------------------------+----- |
-   | | GCM... (length=LEN)    | IV...(length=IV_LENGTH) |KID | |
-   | +---------------------------------------+-+-+-+-+-+-+-+-+^|
-   |                                                           |
-   +----+Encrypted Portion            Authenticated Portion+---+
+     +------------+------------------------------------------------------------------------+^+
+     |unencrypted payload header (variable length)                                         | |
+   +^+------------+------------------------------------------------------------------------+ |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | |                                  Encrypted Frame                                    | |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | |                                                                                     | |
+   | | ---------+---------------------------------+-------------------------+-+---------+----
+   | | payload  | CTR...                          |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
+   | | ---------+---------------------------------+-------------------------+-+---------+----
+   |                                                                                         |
+   +----+Encrypted Portion                                          Authenticated Portion+---+
 ```
 
 We do not encrypt the first few bytes of the packet that form the
