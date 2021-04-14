@@ -1630,12 +1630,13 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
             if (this.codecPreference.mimeType === CodecMimeType.VP9) {
                 const bitrates = this.videoBitrates.VP9 || this.videoBitrates;
                 const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
+                const limit = Math.floor((this._isSharingScreen() ? HD_BITRATE : hdBitrate) / 1000);
 
                 // Use only the HD bitrate for now as there is no API available yet for configuring
                 // the bitrates on the individual SVC layers.
                 mLine.bandwidth = [ {
                     type: 'AS',
-                    limit: this._isSharingScreen() ? HD_BITRATE : Math.floor(hdBitrate / 1000)
+                    limit
                 } ];
             } else {
                 // Clear the bandwidth limit in SDP when VP9 is no longer the preferred codec.
