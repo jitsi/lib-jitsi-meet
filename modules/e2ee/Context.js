@@ -117,15 +117,17 @@ export class Context {
 
             // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
-            // will contain the R|IV_LENGTH and key index
+
+            // Frame trailer contains the R|IV_LENGTH and key index
             const frameTrailer = new Uint8Array(2);
-            frameTrailer[0] = IV_LENGTH; 
+
+            frameTrailer[0] = IV_LENGTH;
             frameTrailer[1] = keyIndex;
 
             // Construct frame trailer. Similar to the frame header described in
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
             // but we put it at the end.
-            //                                             
+            //
             // ---------+---------------------------------+-------------------------+-+---------+----
             // payload  | CTR...                          |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+---------------------------------+-------------------------+-+---------+----
@@ -147,7 +149,8 @@ export class Context {
                 newUint8.set(
                     new Uint8Array(iv), frameHeader.byteLength + cipherText.byteLength); // append IV.
                 newUint8.set(
-                        frameTrailer, frameHeader.byteLength + cipherText.byteLength + iv.byteLength); // append frame trailer.
+                        frameTrailer,
+                        frameHeader.byteLength + cipherText.byteLength + iv.byteLength); // append frame trailer.
 
                 encodedFrame.data = newData;
 
@@ -221,10 +224,14 @@ export class Context {
         const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
 
         const ivLength = frameTrailer[0];
-        const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - ivLength - frameTrailer.byteLength, ivLength);
+        const iv = new Uint8Array(
+            encodedFrame.data,
+            encodedFrame.data.byteLength - ivLength - frameTrailer.byteLength,
+            ivLength);
 
         const cipherTextStart = frameHeader.byteLength;
-        const cipherTextLength = encodedFrame.data.byteLength - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
+        const cipherTextLength = encodedFrame.data.byteLength
+                - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
 
         return crypto.subtle.decrypt({
             name: 'AES-GCM',
