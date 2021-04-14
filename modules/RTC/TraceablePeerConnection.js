@@ -702,6 +702,17 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
 };
 
 /**
+ * Returns the target bitrates configured for the local video source.
+ *
+ * @returns {Object}
+ */
+TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
+    const currentCodec = this.getConfiguredVideoCodec();
+
+    return this.videoBitrates[currentCodec.toUpperCase()] || this.videoBitrates;
+};
+
+/**
  * Tries to find {@link JitsiTrack} for given SSRC number. It will search both
  * local and remote tracks bound to this instance.
  * @param {number} ssrc
@@ -2321,7 +2332,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
         }
     } else {
         // Do not change the max bitrate for desktop tracks in non-simulcast mode.
-        let bitrate = this.videoBitrates.high;
+        let bitrate = this.getTargetVideoBitrates()?.high;
 
         if (videoType === VideoType.CAMERA) {
             // Determine the bitrates based on the sender constraint applied for unicast tracks.

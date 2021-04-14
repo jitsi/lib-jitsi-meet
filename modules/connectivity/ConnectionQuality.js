@@ -1,8 +1,10 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import browser from '../browser';
 
 const Resolutions = require('../../service/RTC/Resolutions');
 const VideoType = require('../../service/RTC/VideoType');
@@ -16,46 +18,37 @@ const logger = getLogger(__filename);
  */
 const STATS_MESSAGE_TYPE = 'stats';
 
-/**
- * See media/engine/simulcast.ss from webrtc.org
- */
 const kSimulcastFormats = [
     { width: 1920,
         height: 1080,
         layers: 3,
-        max: 5000,
-        target: 4000,
-        min: 800 },
+        target: 'high',
+        targetRN: 4000000 },
     { width: 1280,
         height: 720,
         layers: 3,
-        max: 2500,
-        target: 2500,
-        min: 600 },
+        target: 'high',
+        targetRN: 2500000 },
     { width: 960,
         height: 540,
         layers: 3,
-        max: 900,
-        target: 900,
-        min: 450 },
+        target: 'standard',
+        targetRN: 900000 },
     { width: 640,
         height: 360,
         layers: 2,
-        max: 700,
-        target: 500,
-        min: 150 },
+        target: 'standard',
+        targetRN: 500000 },
     { width: 480,
         height: 270,
         layers: 2,
-        max: 450,
-        target: 350,
-        min: 150 },
+        target: 'low',
+        targetRN: 350000 },
     { width: 320,
         height: 180,
         layers: 1,
-        max: 200,
-        target: 150,
-        min: 30 }
+        target: 'low',
+        targetRN: 150000 }
 ];
 
 /**
@@ -70,22 +63,14 @@ const MAX_TARGET_BITRATE = 2500;
  */
 let startBitrate = 800;
 
-
-/**
- * The current cap (in kbps) put on the video stream (or null if there isn't
- * a cap).  If there is a cap, we'll take it into account when calculating
- * the current quality.
- */
-let videoBitrateCap = null;
-
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.
  * @param simulcast {boolean} whether simulcast is enabled or not.
  * @param resolution {Resolution} the resolution.
- * @param millisSinceStart {number} the number of milliseconds since sending
- * video started.
+ * @param millisSinceStart {number} the number of milliseconds since sending video started.
+ * @param videoQualitySettings {Object} the bitrate and codec settings for the local video source.
  */
-function getTarget(simulcast, resolution, millisSinceStart) {
+function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings) {
     // Completely ignore the bitrate in the first 5 seconds, as the first
     // event seems to fire very early and the value is suspicious and causes
     // false positives.
@@ -96,44 +81,35 @@ function getTarget(simulcast, resolution, millisSinceStart) {
     let target = 0;
     let height = Math.min(resolution.height, resolution.width);
 
-    if (simulcast) {
-        // Find the first format with height no bigger than ours.
-        let simulcastFormat = kSimulcastFormats.find(f => f.height <= height);
+    // Find the first format with height no bigger than ours.
+    let simulcastFormat = kSimulcastFormats.find(f => f.height <= height);
 
-        if (simulcastFormat) {
-            // Sum the target fields from all simulcast layers for the given
-            // resolution (e.g. 720p + 360p + 180p).
-            for (height = simulcastFormat.height; height >= 180; height /= 2) {
-                const targetHeight = height;
+    if (simulcastFormat && simulcast && videoQualitySettings.codec === CodecMimeType.VP8) {
+        // Sum the target fields from all simulcast layers for the given
+        // resolution (e.g. 720p + 360p + 180p) for VP8 simulcast.
+        for (height = simulcastFormat.height; height >= 180; height /= 2) {
+            const targetHeight = height;
 
-                simulcastFormat
-                    = kSimulcastFormats.find(f => f.height === targetHeight);
-                if (simulcastFormat) {
-                    target += simulcastFormat.target;
-                } else {
-                    break;
-                }
+            simulcastFormat = kSimulcastFormats.find(f => f.height === targetHeight);
+            if (simulcastFormat) {
+                target += browser.isReactNative()
+                    ? simulcastFormat.targetRN
+                    : videoQualitySettings[simulcastFormat.target];
+            } else {
+                break;
             }
         }
-    } else {
-        // See GetMaxDefaultVideoBitrateKbps in
-        // media/engine/webrtcvideoengine2.cc from webrtc.org
-        const pixels = resolution.width * resolution.height;
-
-        if (pixels <= 320 * 240) {
-            target = 600;
-        } else if (pixels <= 640 * 480) {
-            target = 1700;
-        } else if (pixels <= 960 * 540) {
-            target = 2000;
-        } else {
-            target = 2500;
-        }
+    } else if (simulcastFormat) {
+        // For VP9 SVC, H.264 (simulcast automatically disabled) and p2p, target bitrate will be
+        // same as that of the individual stream bitrate.
+        target = browser.isReactNative()
+            ? simulcastFormat.targetRN
+            : videoQualitySettings[simulcastFormat.target];
     }
 
     // Allow for an additional 1 second for ramp up -- delay any initial drop
-    // of connection quality by 1 second.
-    return Math.min(target, rampUp(Math.max(0, millisSinceStart - 1000)));
+    // of connection quality by 1 second. Convert target from bps to kbps.
+    return Math.min(target / 1000, rampUp(Math.max(0, millisSinceStart - 1000)));
 }
 
 /**
@@ -205,13 +181,6 @@ export default class ConnectionQuality {
          */
         this._timeVideoUnmuted = -1;
 
-        /**
-         * The time at which a video bitrate cap was last removed.  We use
-         * this to calculate how much time we, as a sender, have had to
-         * ramp-up
-         */
-        this._timeLastBwCapRemoved = -1;
-
         // We assume a global startBitrate value for the sake of simplicity.
         if (options.config.startBitrate && options.config.startBitrate > 0) {
             startBitrate = options.config.startBitrate;
@@ -256,17 +225,8 @@ export default class ConnectionQuality {
                 this._updateRemoteStats(participant.getId(), payload);
             });
 
-        // Listen to local statistics events originating from the RTC module
-        // and update the _localStats field.
-        // Oh, and by the way, the resolutions of all remote participants are
-        // also piggy-backed in these "local" statistics. It's obvious, really,
-        // if one carefully reads the *code* (but not the docs) in
-        // UI/VideoLayout/VideoLayout.js#updateLocalConnectionStats in
-        // jitsi-meet
-        // TODO: We should keep track of the remote resolution in _remoteStats,
-        // and notify about changes via separate events.
-        conference.statistics.addConnectionStatsListener(
-            this._updateLocalStats.bind(this));
+        // Listen to local statistics events originating from the RTC module and update the _localStats field.
+        conference.statistics.addConnectionStatsListener(this._updateLocalStats.bind(this));
 
         // Save the last time we were unmuted.
         conference.on(
@@ -320,11 +280,9 @@ export default class ConnectionQuality {
 
     /**
      * Calculates a new "connection quality" value.
-     * @param videoType {VideoType} the type of the video source (camera or
-     * a screen capture).
+     * @param videoType {VideoType} the type of the video source (camera or a screen capture).
      * @param isMuted {boolean} whether the local video is muted.
-     * @param resolutionName {Resolution} the input resolution used by the
-     * camera.
+     * @param resolutionName {Resolution} the input resolution used by the camera.
      * @returns {*} the newly calculated connection quality.
      */
     _calculateConnectionQuality(videoType, isMuted, resolutionName) {
@@ -383,45 +341,26 @@ export default class ConnectionQuality {
                 quality = 0; // Still 1 bar, but slower climb-up.
             }
         } else {
-            // Calculate a value based on the sending bitrate.
-
-            // Figure out if simulcast is in use
+            // Calculate a value based on the send video bitrate on the active TPC.
             const activeTPC = this._conference.getActivePeerConnection();
-            const isSimulcastOn
-                = Boolean(activeTPC && activeTPC.isSimulcastOn());
 
-            const newVideoBitrateCap
-                = activeTPC && activeTPC.bandwidthLimiter
-                && activeTPC.bandwidthLimiter.getBandwidthLimit('video');
+            if (activeTPC) {
+                const isSimulcastOn = activeTPC.isSimulcastOn();
+                const videoQualitySettings = activeTPC.getTargetVideoBitrates();
 
-            // If we had a cap set but there isn't one now, then it has
-            // just been 'lifted', so we should treat this like a new
-            // ramp up.
-            if (!newVideoBitrateCap && videoBitrateCap) {
-                this._timeLastBwCapRemoved = window.performance.now();
+                // Add the codec info as well.
+                videoQualitySettings.codec = activeTPC.getConfiguredVideoCodec();
 
-                // Set the start bitrate to whatever we were just capped to
-                startBitrate = videoBitrateCap;
+                // Time since sending of video was enabled.
+                const millisSinceStart = window.performance.now()
+                    - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
+
+                // Expected sending bitrate in perfect conditions.
+                let target = getTarget(isSimulcastOn, resolution, millisSinceStart, videoQualitySettings);
+
+                target = Math.min(target, MAX_TARGET_BITRATE);
+                quality = 100 * this._localStats.bitrate.upload / target;
             }
-            videoBitrateCap = newVideoBitrateCap;
-
-            // time since sending of video was enabled.
-            const millisSinceStart = window.performance.now()
-                - Math.max(this._timeVideoUnmuted,
-                    this._timeIceConnected,
-                    this._timeLastBwCapRemoved);
-
-            // expected sending bitrate in perfect conditions
-            let target
-                = getTarget(isSimulcastOn, resolution, millisSinceStart);
-
-            target = Math.min(0.9 * target, MAX_TARGET_BITRATE);
-
-            if (videoBitrateCap) {
-                target = Math.min(target, videoBitrateCap);
-            }
-
-            quality = 100 * this._localStats.bitrate.upload / target;
 
             // Whatever the bitrate, drop early if there is significant loss
             if (packetLoss && packetLoss >= 10) {
@@ -433,15 +372,9 @@ export default class ConnectionQuality {
         if (this._lastConnectionQualityUpdate > 0) {
             const maxIncreasePerSecond = 2;
             const prevConnectionQuality = this._localStats.connectionQuality;
-            const diffSeconds
-                = (window.performance.now() - this._lastConnectionQualityUpdate)
-                    / 1000;
+            const diffSeconds = (window.performance.now() - this._lastConnectionQualityUpdate) / 1000;
 
-            quality
-                = Math.min(
-                    quality,
-                    prevConnectionQuality
-                        + (diffSeconds * maxIncreasePerSecond));
+            quality = Math.min(quality, prevConnectionQuality + (diffSeconds * maxIncreasePerSecond));
         }
 
         return Math.min(100, quality);
