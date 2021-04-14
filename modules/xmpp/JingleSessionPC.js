@@ -329,8 +329,7 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.videoQuality = options.videoQuality;
         pcOptions.forceTurnRelay = options.forceTurnRelay;
-        pcOptions.stereo = options.stereo;
-        pcOptions.opusMaxAverageBitrate = options.opusMaxAverageBitrate;
+        pcOptions.audioQuality = options.audioQuality;
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls

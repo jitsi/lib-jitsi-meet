@@ -2157,9 +2157,9 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeOpus = function(description) {
-    const { opusMaxAverageBitrate, stereo } = this.options;
+    const { audioQuality } = this.options;
 
-    if (!opusMaxAverageBitrate || !stereo) {
+    if (!audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
         return description;
     }
 
@@ -2171,7 +2171,8 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
             const { payload } = mLine.rtp.find(protocol => protocol.codec === CodecMimeType.OPUS);
 
             if (!payload) {
-                break;
+                // eslint-disable-next-line no-continue
+                continue;
             }
 
             let fmtpOpus = mLine.fmtp.find(protocol => protocol.payload === payload);
@@ -2186,18 +2187,19 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
             const fmtpConfig = transform.parseParams(fmtpOpus.config);
             let sdpChanged = false;
 
-            if (stereo) {
+            if (audioQuality?.stereo) {
                 fmtpConfig.stereo = 1;
                 sdpChanged = true;
             }
 
-            if (opusMaxAverageBitrate) {
-                fmtpConfig.opusMaxAverageBitrate = opusMaxAverageBitrate;
+            if (audioQuality?.opusMaxAverageBitrate) {
+                fmtpConfig.opusMaxAverageBitrate = audioQuality.opusMaxAverageBitrate;
                 sdpChanged = true;
             }
 
             if (!sdpChanged) {
-                break;
+                // eslint-disable-next-line no-continue
+                continue;
             }
 
             let mungedConfig = '';
