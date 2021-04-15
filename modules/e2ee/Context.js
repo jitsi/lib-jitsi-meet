@@ -128,9 +128,9 @@ export class Context {
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
             // but we put it at the end.
             //
-            // ---------+---------------------------------+-------------------------+-+---------+----
-            // payload  | CTR...                          |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
-            // ---------+---------------------------------+-------------------------+-+---------+----
+            // ---------+-------------------------+-+---------+----
+            // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
+            // ---------+-------------------------+-+---------+----
 
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
@@ -216,70 +216,69 @@ export class Context {
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
         // but we put it at the end.
         //
-        // ---------+---------------------------------+-------------------------+-+---------+----
-        // payload  | CTR...                          |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
-        // ---------+---------------------------------+-------------------------+-+---------+----
+        // ---------+-------------------------+-+---------+----
+        // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
+        // ---------+-------------------------+-+---------+----
 
-        const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
-        const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
+        try {
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
+            const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
 
-        const ivLength = frameTrailer[0];
-        const iv = new Uint8Array(
-            encodedFrame.data,
-            encodedFrame.data.byteLength - ivLength - frameTrailer.byteLength,
-            ivLength);
+            const ivLength = frameTrailer[0];
+            const iv = new Uint8Array(
+                encodedFrame.data,
+                encodedFrame.data.byteLength - ivLength - frameTrailer.byteLength,
+                ivLength);
 
-        const cipherTextStart = frameHeader.byteLength;
-        const cipherTextLength = encodedFrame.data.byteLength
-                - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
+            const cipherTextStart = frameHeader.byteLength;
+            const cipherTextLength = encodedFrame.data.byteLength
+                    - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
 
-        return crypto.subtle.decrypt({
-            name: 'AES-GCM',
-            iv,
-            additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
-        },
-            encryptionKey,
-            new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
-            .then(plainText => {
-                const newData = new ArrayBuffer(frameHeader.byteLength + plainText.byteLength);
+            const plainText = await crypto.subtle.decrypt({
+                name: 'AES-GCM',
+                iv,
+                additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
+            },
+                encryptionKey,
+                new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength));
+
+            const newData = new ArrayBuffer(frameHeader.byteLength + plainText.byteLength);
+            const newUint8 = new Uint8Array(newData);
+
+            newUint8.set(new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength));
+            newUint8.set(new Uint8Array(plainText), frameHeader.byteLength);
+
+            encodedFrame.data = newData;
+        } catch (error) {
+            console.error(error);
+
+            if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                material = await importKey(await ratchet(material));
+
+                const newKey = await deriveKeys(material);
+
+                this._setKeys(newKey);
+
+                return await this._decryptFrame(
+                    encodedFrame,
+                    keyIndex,
+                    ratchetCount + 1);
+            }
+
+            // TODO: notify the application about error status.
+
+            // TODO: For video we need a better strategy since we do not want to based any
+            // non-error frames on a garbage keyframe.
+            if (encodedFrame.type === undefined) { // audio, replace with silence.
+                const newData = new ArrayBuffer(3);
                 const newUint8 = new Uint8Array(newData);
 
-                newUint8.set(new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength));
-                newUint8.set(new Uint8Array(plainText), frameHeader.byteLength);
-
+                newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
                 encodedFrame.data = newData;
+            }
+        }
 
-                return encodedFrame;
-            }, async e => {
-                console.error(e);
-
-                if (ratchetCount < RATCHET_WINDOW_SIZE) {
-                    material = await importKey(await ratchet(material));
-
-                    const newKey = await deriveKeys(material);
-
-                    this._setKeys(newKey);
-
-                    return await this._decryptFrame(
-                        encodedFrame,
-                        keyIndex,
-                        ratchetCount + 1);
-                }
-
-                // TODO: notify the application about error status.
-
-                // TODO: For video we need a better strategy since we do not want to based any
-                // non-error frames on a garbage keyframe.
-                if (encodedFrame.type === undefined) { // audio, replace with silence.
-                    const newData = new ArrayBuffer(3);
-                    const newUint8 = new Uint8Array(newData);
-
-                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                    encodedFrame.data = newData;
-
-                    return encodedFrame;
-                }
-            });
+        return encodedFrame;
     }
 
 
