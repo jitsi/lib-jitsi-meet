@@ -13,7 +13,6 @@ export async function deriveKeys(material) {
     const encryptionKey = await crypto.subtle.deriveKey({
         name: 'HKDF',
         salt: textEncoder.encode('JFrameEncryptionKey'),
-        iterations: 100000,
         hash: 'SHA-256',
         info
     }, material, {
@@ -41,7 +40,6 @@ export async function ratchet(material) {
         name: 'HKDF',
         salt: textEncoder.encode('JFrameRatchetKey'),
         hash: 'SHA-256',
-        iterations: 100000,
         info: new ArrayBuffer()
     }, material, 256);
 }
