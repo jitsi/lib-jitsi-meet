@@ -2551,7 +2551,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
 
     if (this.isSimulcastOn()) {
         // Determine the encodings that need to stay enabled based on the new frameHeight provided.
-        const encodingsEnabledState = this.tpcUtils.getLocalStreamHeightConstraints(localVideoTrack.track)
+        this.encodingsEnabledState = this.tpcUtils.getLocalStreamHeightConstraints(localVideoTrack.track)
             .map(height => height <= newHeight);
 
         // Always keep the LD stream enabled, specifically when the LD stream's resolution is higher than of the
@@ -2562,11 +2562,11 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
             .findIndex(layer => layer.scaleResolutionDownBy === 4.0);
 
         if (newHeight > 0 && ldStreamIndex !== -1) {
-            encodingsEnabledState[ldStreamIndex] = true;
+            this.encodingsEnabledState[ldStreamIndex] = true;
         }
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
-                parameters.encodings[encoding].active = encodingsEnabledState[encoding];
+                parameters.encodings[encoding].active = this.encodingsEnabledState[encoding];
             }
         }
         this.tpcUtils.updateEncodingsResolution(parameters);
@@ -2941,30 +2941,35 @@ TraceablePeerConnection.prototype.addIceCandidate = function(candidate) {
 };
 
 /**
+ * Returns the number of simulcast streams that are currently enabled on the peerconnection.
+ *
+ * @returns {number} The number of simulcast streams currently enabled or 1 when simulcast is disabled.
+ */
+TraceablePeerConnection.prototype.getActiveSimulcastStreams = function() {
+    let activeStreams = 1;
+
+    if (this.isSimulcastOn() && this.encodingsEnabledState) {
+        activeStreams = this.encodingsEnabledState.filter(stream => Boolean(stream))?.length;
+    } else if (this.isSimulcastOn()) {
+        activeStreams = SIM_LAYER_RIDS.length;
+    }
+
+    return activeStreams;
+};
+
+/**
  * Obtains call-related stats from the peer connection.
  *
- * @param {Function} callback - The function to invoke after successfully
- * obtaining stats.
- * @param {Function} errback - The function to invoke after failing to obtain
- * stats.
+ * @param {Function} callback - The function to invoke after successfully obtaining stats.
+ * @param {Function} errback - The function to invoke after failing to obtain stats.
  * @returns {void}
  */
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
-    // TODO (brian): After moving all browsers to adapter, check if adapter is
-    // accounting for different getStats apis, making the browser-checking-if
-    // unnecessary.
-    if (browser.isWebKitBased() || browser.isFirefox() || browser.isReactNative()) {
-        // uses the new Promise based getStats
-        this.peerconnection.getStats()
-            .then(callback)
-            .catch(errback || (() => {
-
-                // Making sure that getStats won't fail if error callback is
-                // not passed.
-            }));
-    } else {
-        this.peerconnection.getStats(callback);
-    }
+    this.peerconnection.getStats()
+        .then(callback)
+        .catch(errback || (() => {
+            // Making sure that getStats won't fail if error callback is not passed.
+        }));
 };
 
 /**
