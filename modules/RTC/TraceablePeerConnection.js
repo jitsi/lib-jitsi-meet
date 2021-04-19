@@ -370,9 +370,6 @@ export default function TraceablePeerConnection(
                 } else {
                     stats.forEach(r => this._processStat(r, '', r));
                 }
-            }, () => {
-
-                // empty error callback
             });
         }, 1000);
     }
@@ -2965,11 +2962,8 @@ TraceablePeerConnection.prototype.getActiveSimulcastStreams = function() {
  * @returns {void}
  */
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
-    this.peerconnection.getStats()
-        .then(callback)
-        .catch(errback || (() => {
-            // Making sure that getStats won't fail if error callback is not passed.
-        }));
+    // eslint-disable-next-line no-empty-function
+    this.peerconnection.getStats().then(callback, errback || (() => {}));
 };
 
 /**
