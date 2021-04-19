@@ -1,32 +1,5 @@
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 
-const TRACK_ERROR_TO_MESSAGE_MAP = {};
-
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
-    = 'Video resolution is not supported: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_USER_CANCELED]
-    = 'User canceled screen sharing prompt';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
-    = 'Unknown error from screensharing';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
-    = 'Unkown error from desktop picker';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
-    = 'Failed to detect desktop picker';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL]
-    = 'Generic getUserMedia error';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.PERMISSION_DENIED]
-    = 'User denied permission to use device(s): ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NOT_FOUND]
-    = 'Requested device(s) was/were not found: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CONSTRAINT_FAILED]
-    = 'Constraint could not be satisfied: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TIMEOUT]
-    = 'Could not start media source. Timeout occured!';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
-    = 'Track has been already disposed';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
-    = 'Track does not have an associated Media Stream';
-
 // FIXME: Using prototype inheritance because otherwise instanceof is not
 // working properly (see https://github.com/babel/babel/issues/3083)
 
@@ -70,14 +43,14 @@ function JitsiTrackError(error, options, devices) {
         case 'SecurityError':
             this.name = JitsiTrackErrors.PERMISSION_DENIED;
             this.message
-                = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                = JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                     + (this.gum.devices || []).join(', ');
             break;
         case 'DevicesNotFoundError':
         case 'NotFoundError':
             this.name = JitsiTrackErrors.NOT_FOUND;
             this.message
-                = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                = JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                     + (this.gum.devices || []).join(', ');
             break;
         case 'ConstraintNotSatisfiedError':
@@ -99,14 +72,14 @@ function JitsiTrackError(error, options, devices) {
                         || constraintName === 'deviceId')) {
                 this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
                 this.message
-                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                    = JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                         + getResolutionFromFailedConstraint(
                             constraintName,
                             options);
             } else {
                 this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
                 this.message
-                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                    = JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                         + error.constraintName;
             }
             break;
@@ -115,13 +88,13 @@ function JitsiTrackError(error, options, devices) {
         default:
             this.name = JitsiTrackErrors.GENERAL;
             this.message
-                = error.message || TRACK_ERROR_TO_MESSAGE_MAP[this.name];
+                = error.message || JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[this.name];
             break;
         }
     } else if (typeof error === 'string') {
-        if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
+        if (JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[error]) {
             this.name = error;
-            this.message = options || TRACK_ERROR_TO_MESSAGE_MAP[error];
+            this.message = options || JitsiTrackErrors.TRACK_ERROR_TO_MESSAGE_MAP[error];
         } else {
             // this is some generic error that do not fit any of our
             // pre-defined errors, so don't give it any specific name, just

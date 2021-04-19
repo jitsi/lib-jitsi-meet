@@ -73,3 +73,33 @@ export const TRACK_NO_STREAM_FOUND = 'track.no_stream_found';
  * by a webcam.
  */
 export const UNSUPPORTED_RESOLUTION = 'gum.unsupported_resolution';
+
+/**
+ * A map which links errors to appropriate messages.
+ */
+export const TRACK_ERROR_TO_MESSAGE_MAP = {};
+
+TRACK_ERROR_TO_MESSAGE_MAP[UNSUPPORTED_RESOLUTION]
+    = 'Video resolution is not supported: ';
+TRACK_ERROR_TO_MESSAGE_MAP[SCREENSHARING_USER_CANCELED]
+    = 'User canceled screen sharing prompt';
+TRACK_ERROR_TO_MESSAGE_MAP[SCREENSHARING_GENERIC_ERROR]
+    = 'Unknown error from screensharing';
+TRACK_ERROR_TO_MESSAGE_MAP[ELECTRON_DESKTOP_PICKER_ERROR]
+    = 'Unkown error from desktop picker';
+TRACK_ERROR_TO_MESSAGE_MAP[ELECTRON_DESKTOP_PICKER_NOT_FOUND]
+    = 'Failed to detect desktop picker';
+TRACK_ERROR_TO_MESSAGE_MAP[GENERAL]
+    = 'Generic getUserMedia error';
+TRACK_ERROR_TO_MESSAGE_MAP[PERMISSION_DENIED]
+    = 'User denied permission to use device(s): ';
+TRACK_ERROR_TO_MESSAGE_MAP[NOT_FOUND]
+    = 'Requested device(s) was/were not found: ';
+TRACK_ERROR_TO_MESSAGE_MAP[CONSTRAINT_FAILED]
+    = 'Constraint could not be satisfied: ';
+TRACK_ERROR_TO_MESSAGE_MAP[TIMEOUT]
+    = 'Could not start media source. Timeout occured!';
+TRACK_ERROR_TO_MESSAGE_MAP[TRACK_IS_DISPOSED]
+    = 'Track has been already disposed';
+TRACK_ERROR_TO_MESSAGE_MAP[TRACK_NO_STREAM_FOUND]
+    = 'Track does not have an associated Media Stream';
