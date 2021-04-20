@@ -187,26 +187,33 @@ export default class Caps extends Listenable {
     _getDiscoInfo(jid, node, timeout) {
         return new Promise((resolve, reject) =>
             this.disco.info(jid, node, response => {
-                const features = new Set();
-                const identities = new Set();
-
-                $(response)
-                    .find('>query>feature')
-                    .each(
-                        (_, el) => features.add(el.getAttribute('var')));
-                $(response)
-                    .find('>query>identity')
-                    .each(
-                        (_, el) => identities.add({
-                            type: el.getAttribute('type'),
-                            name: el.getAttribute('name'),
-                            category: el.getAttribute('category')
-                        }));
-                resolve({
-                    features,
-                    identities });
+                resolve(this.parseDiscoInfo(response));
             }, reject, timeout)
         );
+    }
+
+    /**
+     * Parses the disco-info node and returns the sets of features and identities.
+     * @param {String} node The node with results to parse.
+     * @returns {{features: Set<any>, identities: Set<any>}}
+     */
+    parseDiscoInfo(node) {
+        const features = new Set();
+        const identities = new Set();
+
+        $(node).find('>query>feature')
+            .each((_, el) => features.add(el.getAttribute('var')));
+        $(node).find('>query>identity')
+            .each((_, el) => identities.add({
+                type: el.getAttribute('type'),
+                name: el.getAttribute('name'),
+                category: el.getAttribute('category')
+            }));
+
+        return {
+            features,
+            identities
+        };
     }
 
     /**
