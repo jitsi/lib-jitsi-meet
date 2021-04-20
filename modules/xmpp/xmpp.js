@@ -293,37 +293,8 @@ export default class XMPP extends Listenable {
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
 
-                    // check for speakerstats
-                    identities.forEach(identity => {
-                        if (identity.type === 'speakerstats') {
-                            this.speakerStatsComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'conference_duration') {
-                            this.conferenceDurationComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'lobbyrooms') {
-                            this.lobbySupported = true;
-                            identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
-                                .then(({ features: f }) => {
-                                    f.forEach(fr => {
-                                        if (fr.endsWith('#displayname_required')) {
-                                            this.eventEmitter.emit(
-                                                JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
-                                        }
-                                    });
-                                })
-                                .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
-                        }
-                    });
-
-                    if (this.speakerStatsComponentAddress
-                        || this.conferenceDurationComponentAddress) {
-                        this.connection.addHandler(
-                            this._onPrivateMessage.bind(this), null,
-                            'message', null, null);
-                    }
+                    this._processDiscoInfoIdentities(
+                        identities, undefined /* when querying we will query for features */);
                 })
                 .catch(error => {
                     const errmsg = 'Feature discovery error';
@@ -416,6 +387,50 @@ export default class XMPP extends Listenable {
                 JitsiConnectionErrors.PASSWORD_REQUIRED,
                 msg || this._parseConnectionFailedMessage(lastFailedRawMessage),
                 credentials);
+        }
+    }
+
+    /**
+     * Process received identities.
+     * @param {Set<String>} identities The identities to process.
+     * @param {Set<String>} features The features to process, optional. If missing lobby component will be queried
+     * for more features.
+     * @private
+     */
+    _processDiscoInfoIdentities(identities, features) {
+        // check for speakerstats
+        identities.forEach(identity => {
+            if (identity.type === 'speakerstats') {
+                this.speakerStatsComponentAddress = identity.name;
+            }
+
+            if (identity.type === 'conference_duration') {
+                this.conferenceDurationComponentAddress = identity.name;
+            }
+
+            if (identity.type === 'lobbyrooms') {
+                this.lobbySupported = true;
+                const processLobbyFeatures = f => {
+                    f.forEach(fr => {
+                        if (fr.endsWith('#displayname_required')) {
+                            this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
+                        }
+                    });
+                };
+
+                if (features) {
+                    processLobbyFeatures(features);
+                } else {
+                    identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                        .then(({ features: f }) => processLobbyFeatures(f))
+                        .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
+                }
+            }
+        });
+
+        if (this.speakerStatsComponentAddress
+            || this.conferenceDurationComponentAddress) {
+            this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
         }
     }
 
