@@ -278,15 +278,14 @@ export default class XMPP extends Listenable {
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
-            this.connection.jingle.getStunAndTurnCredentials();
+            this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
 
-            // FIXME no need to do it again on stream resume
-            this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
+            this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
                         logger.error(`Ping NOT supported by ${
@@ -303,6 +302,9 @@ export default class XMPP extends Listenable {
                         new Error(`${errmsg}: ${error}`));
                     logger.error(errmsg, error);
                 });
+
+            // make sure we don't query again
+            this.sendDiscoInfo = false;
 
             if (credentials.password) {
                 this.authenticatedUser = true;
@@ -484,6 +486,9 @@ export default class XMPP extends Listenable {
         //  Status.ATTACHED - The connection has been attached
 
         this._resetState();
+
+        this.sendDiscoInfo = true;
+
         this.connection.connect(
             jid,
             password,
