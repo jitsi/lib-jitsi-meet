@@ -498,6 +498,15 @@ export default class XMPP extends Listenable {
                 const { features, identities } = this.caps.parseDiscoInfo(msg);
 
                 this._processDiscoInfoIdentities(identities, features);
+
+                // check for shard name in identities
+                if (identities) {
+                    identities.forEach(i => {
+                        if (i.type === 'shard') {
+                            this.options.deploymentInfo.shard = i.name;
+                        }
+                    });
+                }
             }, null, 'message', 'conference-info', null);
         } else {
             logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
