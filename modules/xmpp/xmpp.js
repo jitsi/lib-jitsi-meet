@@ -505,7 +505,7 @@ export default class XMPP extends Listenable {
                         this.options.deploymentInfo.shard = i.name;
                     }
                 });
-            }, null, 'message', 'conference-info', null);
+            }, null, 'message', 'service-info', null);
         } else {
             logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
         }
