@@ -40,6 +40,12 @@ const IQ_TIMEOUT = 10000;
 const DEFAULT_MAX_STATS = 300;
 
 /**
+ * The time duration for which the client keeps gathering ICE candidates to be sent out in a single IQ.
+ * @type {number} timeout in ms.
+ */
+const ICE_CAND_GATHERING_TIMEOUT = 150;
+
+/**
  * @typedef {Object} JingleSessionPCOptions
  * @property {Object} abTesting - A/B testing related options (ask George).
  * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
@@ -603,9 +609,7 @@ export default class JingleSessionPC extends JingleSession {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
         if (candidate && candidate.candidate.length && !this.lasticecandidate) {
-            const ice
-                = SDPUtil.iceparams(
-                    localSDP.media[candidate.sdpMLineIndex], localSDP.session);
+            const ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
             const jcand = SDPUtil.candidateToJingle(candidate.candidate);
 
             if (!(ice && jcand)) {
@@ -620,14 +624,13 @@ export default class JingleSessionPC extends JingleSession {
 
             if (this.usedrip) {
                 if (this.dripContainer.length === 0) {
-                    // start 20ms callout
                     setTimeout(() => {
                         if (this.dripContainer.length === 0) {
                             return;
                         }
                         this.sendIceCandidates(this.dripContainer);
                         this.dripContainer = [];
-                    }, 20);
+                    }, ICE_CAND_GATHERING_TIMEOUT);
                 }
                 this.dripContainer.push(candidate);
             } else {
