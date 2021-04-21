@@ -172,7 +172,7 @@ const ScreenObtainer = {
         const video = Object.keys(options.gumOptions).length > 0 ? options.gumOptions : true;
 
         // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
-        video.frameRate && video.frameRate.min && delete video.frameRate.min;
+        video.frameRate && delete video.frameRate.min;
 
         const constraints = {
             video,
