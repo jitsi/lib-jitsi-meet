@@ -486,28 +486,6 @@ function getSSConstraints(options = {}) {
 }
 
 /**
- * Generates constraints for screen sharing when using getDisplayMedia.
- * The constraints(MediaTrackConstraints) are applied to the resulting track.
- *
- * @returns {Object} - MediaTrackConstraints constraints.
- */
-function getTrackSSConstraints(options = {}) {
-    // we used to set height and width in the constraints, but this can lead
-    // to inconsistencies if the browser is on a lower resolution screen
-    // and we share a screen with bigger resolution, so they are now not set
-    const constraints = {
-        frameRate: SS_DEFAULT_FRAME_RATE
-    };
-    const { desktopSharingFrameRate } = options;
-
-    if (desktopSharingFrameRate && desktopSharingFrameRate.max) {
-        constraints.frameRate = desktopSharingFrameRate.max;
-    }
-
-    return constraints;
-}
-
-/**
  * Updates the granted permissions based on the options we requested and the
  * streams we received.
  * @param um the options we requested to getUserMedia.
@@ -1120,8 +1098,7 @@ class RTCUtils extends Listenable {
             desktopSharingSources: options.desktopSharingSources,
             gumOptions: {
                 frameRate: options.desktopSharingFrameRate
-            },
-            trackOptions: getTrackSSConstraints(options)
+            }
         };
     }
 
@@ -1199,8 +1176,7 @@ class RTCUtils extends Listenable {
 
                 // Leverage the helper used by {@link _newGetDesktopMedia} to
                 // get constraints for the desktop stream.
-                const { gumOptions, trackOptions }
-                    = this._parseDesktopSharingOptions(otherOptions);
+                const { gumOptions } = this._parseDesktopSharingOptions(otherOptions);
 
                 const constraints = {
                     video: {
@@ -1211,19 +1187,10 @@ class RTCUtils extends Listenable {
 
                 return this._getUserMedia(requestedDevices, constraints, timeout)
                     .then(stream => {
-                        const track = stream && stream.getTracks()[0];
-                        const applyConstrainsPromise
-                            = track && track.applyConstraints
-                                ? track.applyConstraints(trackOptions)
-                                : Promise.resolve();
-
-                        return applyConstrainsPromise
-                            .then(() => {
-                                return {
-                                    sourceType: 'device',
-                                    stream
-                                };
-                            });
+                        return {
+                            sourceType: 'device',
+                            stream
+                        };
                     });
             }
 

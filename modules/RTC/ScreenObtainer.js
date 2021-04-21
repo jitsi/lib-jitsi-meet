@@ -152,8 +152,6 @@ const ScreenObtainer = {
      * @param errorCallback - The error callback.
      */
     obtainScreenFromGetDisplayMedia(options, callback, errorCallback) {
-        logger.info('Using getDisplayMedia for screen sharing');
-
         let getDisplayMedia;
 
         if (navigator.getDisplayMedia) {
@@ -171,32 +169,25 @@ const ScreenObtainer = {
             noiseSuppression: false
         } : true;
 
-        getDisplayMedia({
-            video: true,
+        const video = Object.keys(options.gumOptions).length > 0 ? options.gumOptions : true;
+
+        // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
+        video.frameRate && delete video.frameRate.min;
+
+        const constraints = {
+            video,
             audio,
             cursor: 'always'
-        })
+        };
+
+        logger.info('Using getDisplayMedia for screen sharing', constraints);
+
+        getDisplayMedia(constraints)
             .then(stream => {
-                let applyConstraintsPromise;
-
-                if (stream
-                    && stream.getTracks()
-                    && stream.getTracks().length > 0) {
-                    const videoTrack = stream.getVideoTracks()[0];
-
-                    // Apply video track constraint.
-                    if (videoTrack) {
-                        applyConstraintsPromise = videoTrack.applyConstraints(options.trackOptions);
-                    }
-                } else {
-                    applyConstraintsPromise = Promise.resolve();
-                }
-
-                applyConstraintsPromise.then(() =>
-                    callback({
-                        stream,
-                        sourceId: stream.id
-                    }));
+                callback({
+                    stream,
+                    sourceId: stream.id
+                });
             })
             .catch(error => {
                 const errorDetails = {
@@ -205,7 +196,7 @@ const ScreenObtainer = {
                     errorStack: error && error.stack
                 };
 
-                logger.error('getDisplayMedia error', errorDetails);
+                logger.error('getDisplayMedia error', constraints, errorDetails);
 
                 if (errorDetails.errorMsg && errorDetails.errorMsg.indexOf('denied by system') !== -1) {
                     // On Chrome this is the only thing different between error returned when user cancels
