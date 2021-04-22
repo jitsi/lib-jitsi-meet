@@ -13,7 +13,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
 
-import Caps from './Caps';
+import Caps, { parseDiscoInfo } from './Caps';
 import XmppConnection from './XmppConnection';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
@@ -278,52 +278,22 @@ export default class XMPP extends Listenable {
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
-            this.connection.jingle.getStunAndTurnCredentials();
+            this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
 
-            // FIXME no need to do it again on stream resume
-            this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
+            this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
                         logger.error(`Ping NOT supported by ${
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
 
-                    // check for speakerstats
-                    identities.forEach(identity => {
-                        if (identity.type === 'speakerstats') {
-                            this.speakerStatsComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'conference_duration') {
-                            this.conferenceDurationComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'lobbyrooms') {
-                            this.lobbySupported = true;
-                            identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
-                                .then(({ features: f }) => {
-                                    f.forEach(fr => {
-                                        if (fr.endsWith('#displayname_required')) {
-                                            this.eventEmitter.emit(
-                                                JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
-                                        }
-                                    });
-                                })
-                                .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
-                        }
-                    });
-
-                    if (this.speakerStatsComponentAddress
-                        || this.conferenceDurationComponentAddress) {
-                        this.connection.addHandler(
-                            this._onPrivateMessage.bind(this), null,
-                            'message', null, null);
-                    }
+                    this._processDiscoInfoIdentities(
+                        identities, undefined /* when querying we will query for features */);
                 })
                 .catch(error => {
                     const errmsg = 'Feature discovery error';
@@ -332,6 +302,9 @@ export default class XMPP extends Listenable {
                         new Error(`${errmsg}: ${error}`));
                     logger.error(errmsg, error);
                 });
+
+            // make sure we don't query again
+            this.sendDiscoInfo = false;
 
             if (credentials.password) {
                 this.authenticatedUser = true;
@@ -420,6 +393,50 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Process received identities.
+     * @param {Set<String>} identities The identities to process.
+     * @param {Set<String>} features The features to process, optional. If missing lobby component will be queried
+     * for more features.
+     * @private
+     */
+    _processDiscoInfoIdentities(identities, features) {
+        // check for speakerstats
+        identities.forEach(identity => {
+            if (identity.type === 'speakerstats') {
+                this.speakerStatsComponentAddress = identity.name;
+            }
+
+            if (identity.type === 'conference_duration') {
+                this.conferenceDurationComponentAddress = identity.name;
+            }
+
+            if (identity.type === 'lobbyrooms') {
+                this.lobbySupported = true;
+                const processLobbyFeatures = f => {
+                    f.forEach(fr => {
+                        if (fr.endsWith('#displayname_required')) {
+                            this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
+                        }
+                    });
+                };
+
+                if (features) {
+                    processLobbyFeatures(features);
+                } else {
+                    identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                        .then(({ features: f }) => processLobbyFeatures(f))
+                        .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
+                }
+            }
+        });
+
+        if (this.speakerStatsComponentAddress
+            || this.conferenceDurationComponentAddress) {
+            this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
+        }
+    }
+
+    /**
     * Parses a raw failure xmpp xml message received on auth failed.
     *
     * @param {string} msg - The raw failure message from xmpp.
@@ -469,6 +486,30 @@ export default class XMPP extends Listenable {
         //  Status.ATTACHED - The connection has been attached
 
         this._resetState();
+
+        this.sendDiscoInfo = true;
+
+        if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
+            this.connection._stropheConn._addSysHandler(msg => {
+                this.sendDiscoInfo = false;
+
+                this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
+
+                const { features, identities } = parseDiscoInfo(msg);
+
+                this._processDiscoInfoIdentities(identities, features);
+
+                // check for shard name in identities
+                identities.forEach(i => {
+                    if (i.type === 'shard') {
+                        this.options.deploymentInfo.shard = i.name;
+                    }
+                });
+            }, null, 'message', 'service-info', null);
+        } else {
+            logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
+        }
+
         this.connection.connect(
             jid,
             password,
