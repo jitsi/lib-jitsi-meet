@@ -487,6 +487,7 @@ export default class XMPP extends Listenable {
 
         this._resetState();
 
+        // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
 
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
@@ -528,6 +529,10 @@ export default class XMPP extends Listenable {
      */
     attach(options) {
         this._resetState();
+
+        // we want to send this only on the initial connect
+        this.sendDiscoInfo = true;
+
         const now = this.connectionTimes.attaching = window.performance.now();
 
         logger.log('(TIME) Strophe Attaching:\t', now);
