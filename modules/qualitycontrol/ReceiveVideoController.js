@@ -294,6 +294,10 @@ export class ReceiveVideoController {
 
         const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
 
-        constraintsChanged && this._rtc.setNewReceiverVideoConstraints(constraints);
+        if (constraintsChanged) {
+            this._lastN = constraints.lastN ?? this._lastN;
+            this._selectedEndpoints = constraints.selectedEndpoints ?? this._selectedEndpoints;
+            this._rtc.setNewReceiverVideoConstraints(constraints);
+        }
     }
 }
