@@ -70,7 +70,7 @@ const DEFAULT_CONSTRAINTS = {
 /**
  * The default frame rate for Screen Sharing.
  */
-const SS_DEFAULT_FRAME_RATE = 5;
+export const SS_DEFAULT_FRAME_RATE = 5;
 
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID

@@ -9,6 +9,7 @@ import {
     ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { SS_DEFAULT_FRAME_RATE } from '../RTC/RTCUtils';
 import Statistics from '../statistics/statistics';
 import AsyncQueue from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -352,20 +353,14 @@ export default class JingleSessionPC extends JingleSession {
                     || (options.preferH264 && !options.disableH264)
                     || (options.videoQuality && options.videoQuality.preferredCodec === CodecMimeType.H264);
 
-            // disable simulcast for screenshare and set the max bitrate to
-            // 500Kbps if the testing flag is present in config.js.
-            if (options.testing
-                && options.testing.capScreenshareBitrate
-                && typeof options.testing.capScreenshareBitrate === 'number') {
-                pcOptions.capScreenshareBitrate
-                    = Math.random()
-                    < options.testing.capScreenshareBitrate;
+            // Disable simulcast for low fps screenshare and enable it for high fps screenshare.
+            // testing.capScreenshareBitrate config.js setting has now been deprecated.
+            pcOptions.capScreenshareBitrate = !(typeof options.desktopSharingFrameRate?.max === 'number'
+                && options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
 
-                // add the capScreenshareBitrate to the permanent properties so
-                // that it's included with every event that we send to the
-                // analytics backend.
-                Statistics.analytics.addPermanentProperties({ capScreenshareBitrate: pcOptions.capScreenshareBitrate });
-            }
+            // add the capScreenshareBitrate to the permanent properties so that it's included with every event that we
+            // send to the analytics backend.
+            Statistics.analytics.addPermanentProperties({ capScreenshareBitrate: pcOptions.capScreenshareBitrate });
         }
 
         if (options.startSilent) {
