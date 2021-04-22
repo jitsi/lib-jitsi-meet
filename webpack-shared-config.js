@@ -59,7 +59,8 @@ module.exports = {
                     '@babel/plugin-transform-flow-strip-types',
                     '@babel/plugin-proposal-class-properties',
                     '@babel/plugin-proposal-optional-chaining',
-                    '@babel/plugin-proposal-export-namespace-from'
+                    '@babel/plugin-proposal-export-namespace-from',
+                    '@babel/plugin-proposal-nullish-coalescing-operator'
                 ]
             },
             test: /\.js$/
