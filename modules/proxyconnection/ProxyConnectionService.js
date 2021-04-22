@@ -276,7 +276,7 @@ export default class ProxyConnectionService {
         // Grab the webrtc media stream and pipe it through the same processing
         // that would occur for a locally obtained media stream.
         const mediaStream = jitsiRemoteTrack.getOriginalStream();
-        const jitsiLocalTracks = RTC.newCreateLocalTracks(
+        const jitsiLocalTracks = RTC.createLocalTracks(
             [
                 {
                     deviceId:

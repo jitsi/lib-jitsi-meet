@@ -9,7 +9,7 @@ import {
     ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-import { SS_DEFAULT_FRAME_RATE } from '../RTC/RTCUtils';
+import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import SDP from '../sdp/SDP';
 import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
