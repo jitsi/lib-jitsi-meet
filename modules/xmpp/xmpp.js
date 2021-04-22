@@ -13,7 +13,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
 
-import Caps from './Caps';
+import Caps, { parseDiscoInfo } from './Caps';
 import XmppConnection from './XmppConnection';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
@@ -495,7 +495,7 @@ export default class XMPP extends Listenable {
 
                 this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
 
-                const { features, identities } = this.caps.parseDiscoInfo(msg);
+                const { features, identities } = parseDiscoInfo(msg);
 
                 this._processDiscoInfoIdentities(identities, features);
 
