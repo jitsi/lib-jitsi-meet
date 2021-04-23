@@ -278,6 +278,11 @@ export default class XMPP extends Listenable {
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+            // once connected or attached we no longer need this handle, drop it if it exist
+            if (this._sysMessageHandler) {
+                this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
+            }
+
             this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
@@ -491,22 +496,8 @@ export default class XMPP extends Listenable {
         this.sendDiscoInfo = true;
 
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
-            this.connection._stropheConn._addSysHandler(msg => {
-                this.sendDiscoInfo = false;
-
-                this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
-
-                const { features, identities } = parseDiscoInfo(msg);
-
-                this._processDiscoInfoIdentities(identities, features);
-
-                // check for shard name in identities
-                identities.forEach(i => {
-                    if (i.type === 'shard') {
-                        this.options.deploymentInfo.shard = i.name;
-                    }
-                });
-            }, null, 'message', 'service-info', null);
+            this._sysMessageHandler = this._onSystemMessage.bind(this);
+            this.connection._stropheConn._addSysHandler(this._sysMessageHandler, null, 'message');
         } else {
             logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
         }
@@ -518,6 +509,34 @@ export default class XMPP extends Listenable {
                 jid,
                 password
             }));
+    }
+
+    /**
+     * Receives system messages during the connect/login process and checks for services or
+     * @param msg The received message.
+     * @returns {void}
+     * @private
+     */
+    _onSystemMessage(msg) {
+        this.sendDiscoInfo = false;
+
+        const foundIceServers = this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
+
+        const { features, identities } = parseDiscoInfo(msg);
+
+        this._processDiscoInfoIdentities(identities, features);
+
+        // check for shard name in identities
+        identities.forEach(i => {
+            if (i.type === 'shard') {
+                this.options.deploymentInfo.shard = i.name;
+            }
+        });
+
+        if (foundIceServers || identities.size > 0 || features.size > 0) {
+            this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
+            this._sysMessageHandler = null;
+        }
     }
 
     /**
