@@ -170,10 +170,11 @@ export class ReceiveVideoController {
         this._conference = conference;
         this._rtc = rtc;
 
+        // Enable new receiver constraints by default unless it is explicitly disabled through config.js.
+        const useNewReceiverConstraints = conference.options?.config?.useNewBandwidthAllocationStrategy ?? true;
+
         // Translate the legacy bridge channel signaling format to the new format.
-        this._receiverVideoConstraints = conference.options?.config?.useNewBandwidthAllocationStrategy
-            ? new ReceiverVideoConstraints()
-            : undefined;
+        this._receiverVideoConstraints = useNewReceiverConstraints ? new ReceiverVideoConstraints() : undefined;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
         this._lastN = LASTN_UNLIMITED;
