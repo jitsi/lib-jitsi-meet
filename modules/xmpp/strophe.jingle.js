@@ -328,6 +328,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * Parses response when querying for services using urn:xmpp:extdisco:1 or urn:xmpp:extdisco:2.
      * Stores results in jvbIceConfig and p2pIceConfig.
      * @param res The response iq.
+     * @return {boolean} Whether something was processed from the supplied message.
      */
     onReceiveStunAndTurnCredentials(res) {
         const iceservers = [];
@@ -392,6 +393,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         this.jvbIceConfig.iceServers = iceservers.filter(filter);
         this.p2pIceConfig.iceServers = iceservers;
+
+        return iceservers.length > 0;
     }
 
     /**
