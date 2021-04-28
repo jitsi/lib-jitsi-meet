@@ -3663,3 +3663,50 @@ JitsiConference.prototype.lobbyApproveAccess = function(id) {
         this.room.getLobby().approveAccess(id);
     }
 };
+
+/**
+ * Returns <tt>true</tt> if AV Moderation support is enabled in the backend.
+ *
+ * @returns {boolean} whether AV Moderation is supported in the backend.
+ */
+JitsiConference.prototype.isAVModerationSupported = function() {
+    return Boolean(this.room && this.room.getAVModeration().isSupported());
+};
+
+/**
+ * Enables AV Moderation by moderators
+ */
+JitsiConference.prototype.enableAVModeration = function() {
+    if (this.room && this.isModerator()) {
+        this.room.getAVModeration().enable(true);
+    }
+};
+
+/**
+ * Disabled AV Moderation by moderators
+ */
+JitsiConference.prototype.disableAVModeration = function() {
+    if (this.room && this.isModerator()) {
+        this.room.getAVModeration().enable(false);
+    }
+};
+
+/**
+ * Approve participant access to certain media, allows unmuting audio or video.
+ *
+ * @param {MediaType} mediaType "audio" or "video"
+ * @param id the id of the participant.
+ */
+JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
+    if (this.room && this.isModerator()
+        && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.getAVModeration().approve(mediaType, participant.getJid());
+    }
+};
