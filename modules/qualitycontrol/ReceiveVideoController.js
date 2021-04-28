@@ -199,7 +199,12 @@ export class ReceiveVideoController {
      * @private
      */
     _onMediaSessionStarted(mediaSession) {
-        this._maxFrameHeight && mediaSession.setReceiverVideoConstraint(this._maxFrameHeight);
+        if (mediaSession.isP2P || !this._receiverVideoConstraints) {
+            mediaSession.setReceiverVideoConstraint(this._maxFrameHeight);
+        } else {
+            this._receiverVideoConstraints.updateReceiveResolution(this._maxFrameHeight);
+            this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+        }
     }
 
     /**
