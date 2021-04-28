@@ -21,7 +21,8 @@ export default class SpeakerStatsCollector {
 
                 // userId: SpeakerStats
             },
-            dominantSpeakerId: null
+            dominantSpeakerId: null,
+            speakerChanges: [], // JvB Array of { start, end, userId } speaker changes
         };
 
         const userId = conference.myUserId();
@@ -62,7 +63,13 @@ export default class SpeakerStatsCollector {
             = this.stats.users[this.stats.dominantSpeakerId];
         const newDominantSpeaker = this.stats.users[dominantSpeakerId];
 
-        oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false);
+        if (oldDominantSpeaker) {
+            const tsEvent = oldDominantSpeaker.setDominantSpeaker(false);
+            if (tsEvent) {
+               tsEvent.userId = this.stats.dominantSpeakerId;
+               this.stats.speakerChanges.push( tsEvent );
+            }
+        }
         newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true);
         this.stats.dominantSpeakerId = dominantSpeakerId;
     }
@@ -126,6 +133,16 @@ export default class SpeakerStatsCollector {
      */
     getStats() {
         return this.stats.users;
+    }
+    
+    /**
+     * Return a copy of the array with historic dominant speaker change events.
+     *
+     * @returns {Object} start, end, userId
+     * @private
+     */
+    getSpeakerChangeHistory() {
+        return this.stats.speakerChanges;
     }
 
     /**
