@@ -220,22 +220,15 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                     }
                 } else {
                     // Interval updates
-                    this.peerconnection.getStats(
-                        report => {
-                            let results = null;
-
-                            if (!report || !report.result
-                                || typeof report.result !== 'function') {
-                                results = report;
-                            } else {
-                                results = report.result();
-                            }
-                            this.currentAudioLevelsReport = results;
+                    this.peerconnection.getStats()
+                        .then(report => {
+                            this.currentAudioLevelsReport = typeof report?.result === 'function'
+                                ? report.result()
+                                : report;
                             this.processAudioLevelReport();
                             this.baselineAudioLevelsReport = this.currentAudioLevelsReport;
-                        },
-                        error => this.errorCallback(error)
-                    );
+                        })
+                        .catch(error => this.errorCallback(error));
                 }
             },
             this.audioLevelsIntervalMilis
@@ -244,20 +237,12 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 
     const processStats = () => {
         // Interval updates
-        this.peerconnection.getStats(
-            report => {
-                let results = null;
+        this.peerconnection.getStats()
+            .then(report => {
+                this.currentStatsReport = typeof report?.result === 'function'
+                    ? report.result()
+                    : report;
 
-                if (!report || !report.result
-                    || typeof report.result !== 'function') {
-                    // firefox
-                    results = report;
-                } else {
-                    // chrome
-                    results = report.result();
-                }
-
-                this.currentStatsReport = results;
                 try {
                     this.processStatsReport();
                 } catch (error) {
@@ -265,9 +250,8 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                     logger.error('Processing of RTP stats failed:', error);
                 }
                 this.previousStatsReport = this.currentStatsReport;
-            },
-            error => this.errorCallback(error)
-        );
+            })
+            .catch(error => this.errorCallback(error));
     };
 
     processStats();
@@ -680,7 +664,9 @@ StatsCollector.prototype.processStatsReport = function() {
             // Get the number of simulcast streams currently enabled from TPC.
             const numberOfActiveStreams = this.peerconnection.getActiveSimulcastStreams();
 
-            ssrcStats.setFramerate(Math.round((frameRate / numberOfActiveStreams) || 0));
+            // Reset frame rate to 0 when video is suspended as a result of endpoint falling out of last-n.
+            frameRate = numberOfActiveStreams ? Math.round(frameRate / numberOfActiveStreams) : 0;
+            ssrcStats.setFramerate(frameRate);
         }
     });
 

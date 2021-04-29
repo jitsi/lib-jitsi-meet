@@ -355,9 +355,8 @@ export default function TraceablePeerConnection(
 
     if (this.maxstats) {
         this.statsinterval = window.setInterval(() => {
-            this.getStats(stats => {
-                if (stats.result
-                    && typeof stats.result === 'function') {
+            this.getStats().then(stats => {
+                if (typeof stats?.result === 'function') {
                     const results = stats.result();
 
                     for (let i = 0; i < results.length; ++i) {
@@ -2957,13 +2956,11 @@ TraceablePeerConnection.prototype.getActiveSimulcastStreams = function() {
 /**
  * Obtains call-related stats from the peer connection.
  *
- * @param {Function} callback - The function to invoke after successfully obtaining stats.
- * @param {Function} errback - The function to invoke after failing to obtain stats.
- * @returns {void}
+ * @returns {Promise<Object>} Promise which resolves with data providing statistics about
+ * the peerconnection.
  */
-TraceablePeerConnection.prototype.getStats = function(callback, errback) {
-    // eslint-disable-next-line no-empty-function
-    this.peerconnection.getStats().then(callback, errback || (() => {}));
+TraceablePeerConnection.prototype.getStats = function() {
+    return this.peerconnection.getStats();
 };
 
 /**
