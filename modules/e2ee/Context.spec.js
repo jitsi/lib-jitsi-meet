@@ -81,9 +81,9 @@ describe('E2EE Context', () => {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
 
-                    // An audio frame will have an overhead of 6 bytes with this counter and key size:
-                    //   4 bytes truncated signature, counter (1 byte) and 1 byte trailer.
-                    expect(data.byteLength).toEqual(audioBytes.length + 6);
+                    // An audio frame will have an overhead of 30 bytes and key size:
+                    // 16 bytes authentication tag, 12 bytes iv, iv length (1 byte) and 1 byte key index.
+                    expect(data.byteLength).toEqual(audioBytes.length + 30);
 
                     // TODO: provide test vector.
                     done();
@@ -98,10 +98,9 @@ describe('E2EE Context', () => {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
 
-                    // A video frame will have an overhead of 12 bytes with this counter and key size:
-                    //   10 bytes signature, counter (1 byte) and 1 byte trailer.
-
-                    expect(data.byteLength).toEqual(videoBytes.length + 12);
+                    // A video frame will have an overhead of 30 bytes and key size:
+                    // 16 bytes authentication tag, 12 bytes iv, iv length (1 byte) and 1 byte key index.
+                    expect(data.byteLength).toEqual(videoBytes.length + 30);
 
                     // TODO: provide test vector.
                     done();

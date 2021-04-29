@@ -39,28 +39,41 @@ the set of keys when we find a valid signature which avoids a denial of service 
 
 We are using a variant of [SFrame](https://tools.ietf.org/html/draft-omara-sframe-00)
 that uses a trailer instead of a header. We call it JFrame.
+`
+These transformations use AES-GCM (with a 128 bit key; we could have used
+256 bits but since the keys are short-lived decided against it) and the
+webcrypto API:
+  https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt
+
+AES-GCM needs a 96 bit initialization vector which we construct
+based on the SSRC, the rtp timestamp and a frame counter which is similar to
+how the IV is constructed in SRTP with GCM
+  https://tools.ietf.org/html/rfc7714#section-8.1
+
+This IV gets sent along with the packet, adding 12 bytes of overhead. The GCM
+tag length is the default 128 bits or 16 bytes. For video this overhead is ok but
+for audio (where the opus frames are much, much smaller) we are considering shorter
+authentication tags.
 
 At a high level the encrypted frame format looks like this:
 ```
-     +------------+------------------------------------------+^+
-     |unencrypted payload header (variable length)           | |
-   +^+------------+------------------------------------------+ |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                  Encrypted Frame                      | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   | |                                                       | |
-   +^+-------------------------------------------------------+ +
-   | |                 Authentication Tag                    | |
-   | +---------------------------------------+-+-+-+-+-+-+-+-+ |
-   | |    CTR... (length=LEN + 1)            |R|LEN  |KID    | |
-   | +---------------------------------------+-+-+-+-+-+-+-+-+^|
-   |                                                           |
-   +----+Encrypted Portion            Authenticated Portion+---+
+     +------------+--------------------------------------+^+
+     |unencrypted payload header (variable length)       | |
+   +^+------------+--------------------------------------+ |
+   | |                                                   | |
+   | |                                                   | |
+   | |                                                   | |
+   | |                                                   | |
+   | |              Encrypted Frame                      | |
+   | |                                                   | |
+   | |                                                   | |
+   | |                                                   | |
+   | |                                                   | |
+   | | ---------+-------------------------+-+---------+----
+   | | payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
+   | | ---------+-------------------------+-+---------+----
+   |                                                       |
+   +--+Encrypted Portion        Authenticated Portion+---+
 ```
 
 We do not encrypt the first few bytes of the packet that form the
