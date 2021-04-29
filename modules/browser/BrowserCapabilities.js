@@ -231,7 +231,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesUnifiedPlan() {
-        if (this.isFirefox() || this.isWebKitBased()) {
+        if (this.isFirefox() || this.isWebKitBased() || this.isChromiumBased()) {
             return true;
         }
 
@@ -326,7 +326,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSdpSemantics() {
-        return this.isChromiumBased();
+        return false;
     }
 
     /**

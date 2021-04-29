@@ -244,12 +244,19 @@ export class TPCUtils {
             const stream = localTrack.getOriginalStream();
 
             if (stream) {
-                this.pc.peerconnection.addStream(localTrack.getOriginalStream());
-
-                return this.setEncodings(localTrack).then(() => {
+                if (browser.isChromiumBased()) {
+                    // stream.getTracks().forEach(t => this.pc.peerconnection.addTrack(t, stream) );
+                    this.pc.peerconnection.addTrack(localTrack.getTrack(), stream);
                     this.pc.localTracks.set(localTrack.rtcId, localTrack);
                     transceiver.direction = 'sendrecv';
-                });
+                } else {
+                    this.pc.peerconnection.addStream(localTrack.getOriginalStream());
+
+                    return this.setEncodings(localTrack).then(() => {
+                        this.pc.localTracks.set(localTrack.rtcId, localTrack);
+                        transceiver.direction = 'sendrecv';
+                    });
+                }
             }
 
             return Promise.resolve();
