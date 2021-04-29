@@ -10,6 +10,9 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/RTCUtils';
+import SDP from '../sdp/SDP';
+import SDPDiffer from '../sdp/SDPDiffer';
+import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -19,9 +22,6 @@ import browser from './../browser';
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
-import SDP from './SDP';
-import SDPDiffer from './SDPDiffer';
-import SDPUtil from './SDPUtil';
 import SignalingLayerImpl from './SignalingLayerImpl';
 import XmppConnection from './XmppConnection';
 
