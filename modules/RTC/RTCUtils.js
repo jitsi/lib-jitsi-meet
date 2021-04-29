@@ -19,10 +19,10 @@ import Resolutions from '../../service/RTC/Resolutions';
 import VideoType from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
-import SDPUtil from '../xmpp/SDPUtil';
 
 import screenObtainer from './ScreenObtainer';
 
