@@ -496,8 +496,11 @@ export default class XMPP extends Listenable {
         this.sendDiscoInfo = true;
 
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
-            this._sysMessageHandler = this._onSystemMessage.bind(this);
-            this.connection._stropheConn._addSysHandler(this._sysMessageHandler, null, 'message');
+            this._sysMessageHandler = this.connection._stropheConn._addSysHandler(
+                this._onSystemMessage.bind(this),
+                null,
+                'message'
+            );
         } else {
             logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
         }
