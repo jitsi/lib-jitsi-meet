@@ -9,7 +9,7 @@ import XMPPEvents from '../../service/xmpp/XMPPEvents';
 export default class AVModeration {
 
     /**
-     * Constructs lobby room.
+     * Constructs AV moderation room.
      *
      * @param {ChatRoom} room the main room.
      */
@@ -26,16 +26,16 @@ export default class AVModeration {
     }
 
     /**
-     * Whether lobby is supported on backend.
+     * Whether AV moderation is supported on backend.
      *
-     * @returns {boolean} whether lobby is supported on backend.
+     * @returns {boolean} whether AV moderation is supported on backend.
      */
     isSupported() {
         return Boolean(this.xmpp.avModerationComponentAddress);
     }
 
     /**
-     * Enables or disabled AV Moderation by sending a msg with command to the component.
+     * Enables or disables AV Moderation by sending a msg with command to the component.
      */
     enable(state) {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
@@ -55,7 +55,7 @@ export default class AVModeration {
     }
 
     /**
-     * Enables or disabled AV Moderation by sending a msg with command to the component.
+     * Approves that a participant can unmute by sending a msg with its jid to the component.
      */
     approve(mediaType, jid) {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {

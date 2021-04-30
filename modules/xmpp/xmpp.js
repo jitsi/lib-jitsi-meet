@@ -527,6 +527,11 @@ export default class XMPP extends Listenable {
      * @private
      */
     _onSystemMessage(msg) {
+        // proceed only if the message has any of the expected information
+        if ($(msg).find('>services').length === 0 && $(msg).find('>query').length === 0) {
+            return;
+        }
+
         this.sendDiscoInfo = false;
 
         const foundIceServers = this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
