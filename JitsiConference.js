@@ -928,6 +928,8 @@ JitsiConference.prototype.setDisplayName = function(name) {
 JitsiConference.prototype.setSubject = function(subject) {
     if (this.room && this.isModerator()) {
         this.room.setSubject(subject);
+    } else {
+        logger.warn(`Failed to set subject, no room or not a moderator:${this.isModerator()}`);
     }
 };
 
@@ -2415,6 +2417,8 @@ JitsiConference.prototype.getConnectionState = function() {
  */
 JitsiConference.prototype.setStartMutedPolicy = function(policy) {
     if (!this.isModerator()) {
+        logger.warn(`Failed to set start muted policy, no room or not a moderator:${this.isModerator()}`);
+
         return;
     }
     this.startMutedPolicy = policy;
@@ -3625,6 +3629,8 @@ JitsiConference.prototype.enableLobby = function() {
 JitsiConference.prototype.disableLobby = function() {
     if (this.room && this.isModerator()) {
         this.room.getLobby().disable();
+    } else {
+        logger.warn(`Failed to disable lobby, no room or not a moderator:${this.isModerator()}`);
     }
 };
 
@@ -3679,6 +3685,8 @@ JitsiConference.prototype.isAVModerationSupported = function() {
 JitsiConference.prototype.enableAVModeration = function() {
     if (this.room && this.isModerator()) {
         this.room.getAVModeration().enable(true);
+    } else {
+        logger.warn(`Failed to enable AM moderation, no room or not a moderator:${this.isModerator()}`);
     }
 };
 
@@ -3688,6 +3696,8 @@ JitsiConference.prototype.enableAVModeration = function() {
 JitsiConference.prototype.disableAVModeration = function() {
     if (this.room && this.isModerator()) {
         this.room.getAVModeration().enable(false);
+    } else {
+        logger.warn(`Failed to disable AM moderation, no room or not a moderator:${this.isModerator()}`);
     }
 };
 
@@ -3708,5 +3718,7 @@ JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
         }
 
         this.room.getAVModeration().approve(mediaType, participant.getJid());
+    } else {
+        logger.warn(`AV moderation skipped not a moderator:${this.isModerator()} or wrong media type:${mediaType}`);
     }
 };
