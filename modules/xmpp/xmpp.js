@@ -281,6 +281,7 @@ export default class XMPP extends Listenable {
             // once connected or attached we no longer need this handle, drop it if it exist
             if (this._sysMessageHandler) {
                 this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
+                this._sysMessageHandler = null;
             }
 
             this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
