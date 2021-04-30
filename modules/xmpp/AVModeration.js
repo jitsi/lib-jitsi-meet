@@ -1,7 +1,10 @@
+import { getLogger } from 'jitsi-meet-logger';
 import { $msg } from 'strophe.js';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
+const logger = getLogger(__filename);
 
 /**
  * The AVModeration logic.
@@ -39,6 +42,9 @@ export default class AVModeration {
      */
     enable(state) {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
+            logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()}, 
+                moderator:${this.mainRoom.isModerator()}`);
+
             return;
         }
 
@@ -59,6 +65,9 @@ export default class AVModeration {
      */
     approve(mediaType, jid) {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
+            logger.error(`Cannot approve in AV moderation supported:${this.isSupported()}, 
+                moderator:${this.mainRoom.isModerator()}`);
+
             return;
         }
 
