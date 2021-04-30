@@ -138,7 +138,8 @@ describe('ChatRoom', () => {
 
         beforeEach(() => {
             const xmpp = {
-                options: {}
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
