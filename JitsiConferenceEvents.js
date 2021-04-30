@@ -372,6 +372,14 @@ export const LOBBY_USER_UPDATED = 'conference.lobby.userUpdated';
 export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';
 
 /**
+ * The local participant was approved to be able to unmute.
+ * @param {options} event - {
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_APPROVED = 'conference.av_moderation.approved';
+
+/**
  * AV Moderation was enabled/disabled.
  * @param {options} event - {
  *     {boolean} enabled

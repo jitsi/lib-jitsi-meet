@@ -89,13 +89,17 @@ export default class AVModeration {
 
             if (newWhitelists[MediaType.AUDIO]) {
                 fireEventApprovedJids(MediaType.AUDIO, this.whitelistAudio, newWhitelists[MediaType.AUDIO]);
-            } else if (newWhitelists[MediaType.VIDEO]) {
+            }
+
+            if (newWhitelists[MediaType.VIDEO]) {
                 fireEventApprovedJids(MediaType.VIDEO, this.whitelistVideo, newWhitelists[MediaType.VIDEO]);
             }
         } else if (this.enabled !== obj.enabled) {
             this.enabled = obj.enabled;
 
             this.xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, this.enabled);
+        } else if (obj.approved) {
+            this.xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_APPROVED, obj.mediaType);
         }
     }
 }

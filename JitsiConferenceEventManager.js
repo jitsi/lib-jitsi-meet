@@ -713,6 +713,8 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
                 });
             }
         });
+    this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_APPROVED,
+        value => conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_APPROVED, { mediaType: value }));
 };
 
 /**

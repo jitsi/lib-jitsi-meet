@@ -249,9 +249,14 @@ const XMPPEvents = {
     CONFERENCE_TIMESTAMP_RECEIVED: 'xmpp.conference_timestamp_received',
 
     /**
+     * Event fired when we receive a message for AV moderation approved for the local participant.
+     */
+    AV_MODERATION_APPROVED: 'xmpp.av_moderation.approved',
+
+    /**
      * Event fired when we receive a message for AV moderation.
      */
-    AV_MODERATION_RECEIVED: 'xmpp.av_moderation_received',
+    AV_MODERATION_RECEIVED: 'xmpp.av_moderation.received',
 
     /**
      * Event fired when the moderation enable/disable changes.
