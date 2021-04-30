@@ -1,5 +1,10 @@
 /* global $, JitsiMeetJS */
 
+// Use 'config' options loaded from beta jitsi server
+const options = config;
+
+/*
+ * These options are slightly outdated, and result in XMPP connection errors
 const options = {
     hosts: {
         domain: 'jitsi-meet.example.com',
@@ -10,6 +15,7 @@ const options = {
     // The name of client node advertised in XEP-0115 'c' stanza
     clientNode: 'http://jitsi.org/jitsimeet'
 };
+*/
 
 const confOptions = {
     openBridgeChannel: true
