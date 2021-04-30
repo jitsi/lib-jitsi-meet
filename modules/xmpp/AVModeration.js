@@ -67,7 +67,7 @@ export default class AVModeration {
 
         msg.c('av_moderation', {
             mediaType,
-            whitelist: jid }).up();
+            jidToWhitelist: jid }).up();
 
         this.xmpp.connection.send(msg);
     }
