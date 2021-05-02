@@ -1206,6 +1206,31 @@ class RTCUtils extends Listenable {
         }.bind(this);
 
         /**
+         * Creates local audio/video streams from HTML Media elements
+         * Added for Jitsi@scale hackathon project by exergy.connect@gmail.com
+         */
+         const maybeCreateAndAddHTMLMediaStreams = function() {
+             const umDevices = otherOptions.devices || [];
+             const isHTMLMediaRequested
+                 = umDevices.indexOf('htmlmedia') !== -1;
+
+             if (!isHTMLMediaRequested) {
+                 return Promise.resolve();
+             } else if (!otherOptions.htmlMediaElements) {
+                 return Promise.reject(
+                   new Error("'htmlmedia' requested but no htmlMediaElements"));
+             }
+
+             const fps = otherOptions.htmlMediaFrameRate || 10;
+             for (let e of otherOptions.htmlMediaElements) {
+                const htmlMediaStream = e.captureStream(fps);
+                logger.info( `Adding HTML media captureStream at ${fps} fps` );
+                maybeCreateAndAddAVTracks( htmlMediaStream );
+             }
+             return Promise.resolve();
+         }.bind(this);
+
+        /**
          * Creates a meta data object about the passed in desktopStream and
          * pushes the meta data to the internal array mediaStreamsMetaData to be
          * returned later.
@@ -1315,6 +1340,7 @@ class RTCUtils extends Listenable {
         return maybeRequestDesktopDevice()
             .then(maybeCreateAndAddDesktopTrack)
             .then(maybeRequestCaptureDevices)
+            .then(maybeCreateAndAddHTMLMediaStreams)
             .then(maybeCreateAndAddAVTracks)
             .then(() => mediaStreamsMetaData)
             .catch(error => {
