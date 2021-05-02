@@ -19,10 +19,10 @@ import Resolutions from '../../service/RTC/Resolutions';
 import VideoType from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
-import SDPUtil from '../xmpp/SDPUtil';
 
 import screenObtainer from './ScreenObtainer';
 
@@ -38,19 +38,6 @@ if (browser.usesAdapter()) {
 const eventEmitter = new EventEmitter();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
-
-/**
- * Default resolution to obtain for video tracks if no resolution is specified.
- * This default is used for old gum flow only, as new gum flow uses
- * {@link DEFAULT_CONSTRAINTS}.
- */
-const OLD_GUM_DEFAULT_RESOLUTION = 720;
-
-/**
- * Default devices to obtain when no specific devices are specified. This
- * default is used for old gum flow only.
- */
-const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
 
 /**
  * Default MediaStreamConstraints to use for calls to getUserMedia.
