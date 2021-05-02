@@ -1221,7 +1221,8 @@ class RTCUtils extends Listenable {
                    new Error("'htmlmedia' requested but no htmlMediaElements"));
              }
 
-             const fps = otherOptions.htmlMediaFrameRate || 10;
+             const fps = otherOptions.htmlMediaFrameRate
+                         || SS_DEFAULT_FRAME_RATE; // default to screen sharing
              for (let e of otherOptions.htmlMediaElements) {
                 const htmlMediaStream = e.captureStream(fps);
                 logger.info( `Adding HTML media captureStream at ${fps} fps` );
