@@ -105,7 +105,7 @@ const ScreenObtainer = {
             channelCount: 2,
             echoCancellation: false,
             noiseSuppression: false
-        } : true;
+        } : false;
 
         return audio;
     },
@@ -138,11 +138,13 @@ const ScreenObtainer = {
                         let audioConstraints = false;
 
                         if (screenShareAudio) {
-                            audioConstraints = {
-                                optional: {
+                            audioConstraints = { };
+
+                            if (this._getAudioConstraints()) {
+                                audioConstraints.optional = {
                                     ...this._getAudioConstraints()
-                                }
-                            };
+                                };
+                            }
 
                             // Audio screen sharing for electron only works for screen type devices.
                             // i.e. when the user shares the whole desktop.
