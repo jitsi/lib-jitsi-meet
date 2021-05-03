@@ -22,7 +22,7 @@ const logger = getLogger(__filename);
  */
 function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     logger.debug(
-        `Updating mline to associate ${rtxSsrc}`
+        `Updating mline to associate ${rtxSsrc} `
         + `rtx ssrc with primary stream, ${primarySsrcInfo.id}`);
     const primarySsrc = primarySsrcInfo.id;
     const primarySsrcMsid = primarySsrcInfo.msid;
@@ -37,7 +37,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     }
     if (previousRtxSSRC) {
         logger.debug(
-            `${primarySsrc} was previously associated with rtx`
+            `${primarySsrc} was previously associated with rtx `
             + `${previousRtxSSRC}, removing all references to it`);
 
         // Stream already had an rtx ssrc that is different than the one given,
@@ -156,7 +156,7 @@ export default class RtxModifier {
 
             if (correspondingRtxSsrc) {
                 logger.debug(
-                    'Already have an associated rtx ssrc for'
+                    'Already have an associated rtx ssrc for '
                     + `video ssrc ${ssrc}: ${correspondingRtxSsrc}`);
             } else {
                 logger.debug(
