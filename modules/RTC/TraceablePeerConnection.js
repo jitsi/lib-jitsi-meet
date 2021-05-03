@@ -1687,9 +1687,14 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     this.localTracks.set(rtcId, track);
 
-    // For p2p unified case, use addTransceiver API to add the tracks on the peerconnection.
-    if (browser.usesUnifiedPlan() && this.isP2P) {
-        this.tpcUtils.addTrack(track, isInitiator);
+    if (browser.usesUnifiedPlan()) {
+        try {
+            this.tpcUtils.addTrack(track, isInitiator);
+        } catch (error) {
+            logger.error(`Adding ${track} failed on ${this}: ${error?.message}`);
+
+            return Promise.reject(error);
+        }
     } else {
         // In all other cases, i.e., plan-b and unified plan bridge case, use addStream API to
         // add the track to the peerconnection.
@@ -1709,8 +1714,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
         }
 
         // Muted video tracks do not have WebRTC stream
-        if (browser.usesPlanB() && browser.doesVideoMuteByStreamRemove()
-                && track.isVideoTrack() && track.isMuted()) {
+        if (browser.doesVideoMuteByStreamRemove() && track.isVideoTrack() && track.isMuted()) {
             const ssrcInfo = this.generateNewStreamSSRCInfo(track);
 
             this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
@@ -1737,12 +1741,11 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             }
         }
     }
-
     let promiseChain = Promise.resolve();
 
     // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
     if (browser.isFirefox()) {
-        promiseChain = this.tpcUtils.setEncodings(track);
+        promiseChain = promiseChain.then(() => this.tpcUtils.setEncodings(track));
     }
 
     return promiseChain;
