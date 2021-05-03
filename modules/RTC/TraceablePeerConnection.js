@@ -1686,10 +1686,15 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
     }
 
     this.localTracks.set(rtcId, track);
-    let promiseChain = Promise.resolve();
 
     if (browser.usesUnifiedPlan()) {
-        promiseChain = this.tpcUtils.addTrack(track, isInitiator);
+        try {
+            this.tpcUtils.addTrack(track, isInitiator);
+        } catch (error) {
+            logger.error(`Adding ${track} failed on ${this}: ${error?.message}`);
+
+            return Promise.reject(error);
+        }
     } else {
         // In all other cases, i.e., plan-b and unified plan bridge case, use addStream API to
         // add the track to the peerconnection.
@@ -1736,6 +1741,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             }
         }
     }
+    let promiseChain = Promise.resolve();
 
     // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
     if (browser.isFirefox()) {

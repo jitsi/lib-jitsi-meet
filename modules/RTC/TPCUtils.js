@@ -192,11 +192,10 @@ export class TPCUtils {
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
     * @param {boolean} isInitiator - boolean that indicates if the endpoint is offerer in a p2p connection.
-    * @returns {Promise<void>} - resolved when done, rejected otherwise.
+    * @returns {void}
     */
     addTrack(localTrack, isInitiator) {
         const track = localTrack.getTrack();
-        let promise = Promise.resolve();
 
         if (isInitiator) {
             // Use pc.addTransceiver() for the initiator case when local tracks are getting added
@@ -210,25 +209,13 @@ export class TPCUtils {
             if (!browser.isFirefox()) {
                 transceiverInit.sendEncodings = this._getStreamEncodings(localTrack);
             }
-            try {
-                this.pc.peerconnection.addTransceiver(track, transceiverInit);
-            } catch (error) {
-                logger.error(`Adding ${localTrack} failed on ${this.pc}: ${error?.message}`);
-                promise = Promise.reject();
-            }
+            this.pc.peerconnection.addTransceiver(track, transceiverInit);
         } else {
             // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
             // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
             // unused "recv-only" transceiver.
-            try {
-                this.pc.peerconnection.addTrack(track);
-            } catch (error) {
-                logger.error(`Adding ${localTrack} failed on ${this.pc}: ${error?.message}`);
-                promise = Promise.reject();
-            }
+            this.pc.peerconnection.addTrack(track);
         }
-
-        return promise;
     }
 
     /**
