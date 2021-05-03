@@ -37,15 +37,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Check whether or not the current browser support peer to peer connections
-     * @return {boolean} <tt>true</tt> if p2p is supported or <tt>false</tt>
-     * otherwise.
-     */
-    supportsP2P() {
-        return !this.usesUnifiedPlan();
-    }
-
-    /**
      * Checks if the current browser is Chromium based, that is, it's either
      * Chrome / Chromium or uses it as its engine, but doesn't identify as
      * Chrome.
