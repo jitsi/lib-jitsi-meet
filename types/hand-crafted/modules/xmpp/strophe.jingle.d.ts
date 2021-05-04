@@ -10,6 +10,6 @@ declare class JingleConnectionPlugin extends ConnectionPlugin {
   newP2PJingleSession: ( me: string, peer: string ) => JingleSessionPC;
   terminate: ( sid: unknown, reasonCondition: unknown, reasonText: unknown ) => void; // TODO:
   getStunAndTurnCredentials: () => void;
-  onReceiveStunAndTurnCredentials: ( res: unknown ) => void; // TODO:
+  onReceiveStunAndTurnCredentials: ( res: unknown ) => boolean; // TODO:
   getLog: () => unknown; // TODO:
 }

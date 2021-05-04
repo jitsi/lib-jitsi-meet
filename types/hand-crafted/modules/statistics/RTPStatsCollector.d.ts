@@ -9,6 +9,5 @@ export default class StatsCollector {
   processStatsReport: () => void;
   processAudioLevelReport: () => void;
   getNonNegativeValue: ( v: unknown ) => number; // TODO:
-  processNewStatsReport: () => void;
-  processNewAudioLevelReport: () => void;
+  setSpeakerList: ( speakerList: Array<string> ) => void;
 }

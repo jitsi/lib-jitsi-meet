@@ -22,6 +22,7 @@ export const enum RTCEvents {
   DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
   DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
   ENDPOINT_MESSAGE_RECEIVED = 'rtc.endpoint_message_received',
+  ENDPOINT_STATS_RECEIVED = 'rtc.endpoint_stats_received',
   LOCAL_UFRAG_CHANGED = 'rtc.local_ufrag_changed',
   REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed'
 }

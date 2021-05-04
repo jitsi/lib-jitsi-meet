@@ -7,7 +7,7 @@ import SignalingLayer from '../../service/RTC/SignalingLayer';
 
 export default class RTC extends Listenable {
   destroy: () => void;
-  static newCreateLocalTracks: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
+  static createLocalTracks: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
   static obtainAudioAndVideoPermissions: ( options: { devices: unknown[], resolution: string, cameraDeviceId: string, micDeviceId: string } ) => Promise<unknown>; // TODO:
   initializeBridgeChannel: ( perrconnection: RTCPeerConnection, wsUrl: string ) => void;
   onCallEnded: () => void;
@@ -18,16 +18,12 @@ export default class RTC extends Listenable {
   static init: ( options: unknown ) => unknown; // TODO:
   createPeerConnection: ( signalling: SignalingLayer, iceConfig: unknown, isP2P: boolean, options: { enableInsertableStreams: boolean, disableSimulcast: boolean, disableRtx: boolean, disableH264: boolean, preferH264: boolean, startSilent: boolean } ) => TraceablePeerConnection; // TODO:
   addLocalTrack: ( track: unknown ) => void; // TODO:
-  getLastN: () => number;
-  getSenderVideoConstraints: () => unknown; // TODO:
   getLocalVideoTrack: () => JitsiLocalTrack | undefined;
   getLocalAudioTrack: () => JitsiLocalTrack | undefined;
   getLocalTracks: ( mediaType: MediaType ) => JitsiLocalTrack[];
   getRemoteTracks: ( mediaType: MediaType ) => JitsiRemoteTrack[];
   setAudioMute: ( value: unknown ) => Promise<unknown>; // TODO:
   removeLocalTrack: ( track: unknown ) => void; // TODO:
-  removeRemoteTracks: ( owner: string ) => JitsiRemoteTrack[];
-  static getPCConstraints: ( isP2P: boolean ) => unknown; // TODO:
   static attachMediaStream: ( elSelector: unknown, stream: unknown ) => unknown; // TODO:
   static getStreamID: ( stream: MediaStream ) => unknown; // TODO:
   static getTrackID: ( track: MediaStreamTrack ) => unknown; // TODO:
@@ -48,4 +44,9 @@ export default class RTC extends Listenable {
   sendChannelMessage: ( to: string, payload: unknown ) => void; // TODO:
   setLastN: ( value: number ) => void;
   isInLastN: ( id: string ) => boolean;
+  setNewReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
+  setVideoType: ( videoType: string ) => void;
+  setVideoMute: ( value: unknown ) => Promise<unknown>; // TODO:
+  arePermissionsGrantedForAvailableDevices: () => boolean;
+  sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:
 }

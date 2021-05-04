@@ -1,8 +1,8 @@
 import JitsiConference from '../../JitsiConference';
+import RTC from '../RTC/RTC';
 
-export class QualityController {
-  constructor( conference: JitsiConference );
+export class SendVideoController {
+  constructor( conference: JitsiConference, rtc: RTC );
   selectSendMaxFrameHeight: () => number | undefined;
-  setPreferredReceiveMaxFrameHeight: ( maxFrameHeight: number | undefined ) => void;
   setPreferredSendMaxFrameHeight: ( maxFrameHeight: number ) => Promise<void[]>;
 }

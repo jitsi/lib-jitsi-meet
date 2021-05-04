@@ -10,4 +10,5 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
   onPresenceError: ( pres: unknown ) => boolean; // TODO:
   onMessage: ( msg: unknown ) => boolean; // TODO:
   onMute: ( iq: unknown ) => boolean; // TODO:
+  onMuteVideo: ( iq: unknown ) => boolean; // TODO:
 }

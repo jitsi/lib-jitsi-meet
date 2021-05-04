@@ -25,6 +25,7 @@ export default class XmppConnection extends Listenable {
   disconnect: ( ...args: unknown[] ) => void; // TODO:
   flush: ( ...args: unknown[] ) => void;
   getTimeSinceLastSuccess: () => number | null;
+  getLastFailedMessage: () => string | null;
   send: ( stanza: Element | Strophe.Builder ) => void;
   sendIQ: ( elem: unknown, callback: ( params: unknown ) => unknown, errback: ( params: unknown ) => unknown, timeout: ( params: unknown ) => unknown ) => number | undefined; // TODO:
   sendIQ2: ( iq: Element, { timeout: number } ) => Promise<unknown>; // TODO:

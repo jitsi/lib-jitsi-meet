@@ -21,8 +21,11 @@ export default class JitsiParticipant {
   isAudioMuted: () => boolean;
   isVideoMuted: () => boolean;
   getRole: () => string;
+  setRole: ( role: string ) => void;
   supportsDTMF: () => boolean;
-  getFeatures: () => Promise<Set<String> | Error>;
-  queryFeatures: ( timeout: number ) => Promise<Set<String> | Error>;
+  hasFeature: ( feature: string ) => boolean;
+  getFeatures: () => Promise<Set<string> | Error>;
+  setFeatures: ( newFeatures: Set<string> | undefined ) => void;
   getBotType: () => string | undefined;
+  setBotType: ( newBotType: string ) => void;
 }

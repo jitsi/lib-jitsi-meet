@@ -31,6 +31,7 @@ declare class Statistics {
   attachLongTasksStats: ( conference: unknown ) => void; // TODO:
   getLongTasksStats: () => unknown | null; // TODO:
   removeLongTasksStatsListener: ( listener: unknown ) => void; // TODO:
+  setSpeakerList: ( speakerList: Array<string> ) => void;
   dispose: () => void;
   stopLocalStats: ( stream: unknown ) => void;
   stopRemoteStats: ( tpc: TraceablePeerConnection ) => void;

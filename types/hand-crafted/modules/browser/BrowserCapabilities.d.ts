@@ -1,6 +1,6 @@
 export default class BrowserCapabilities {
   doesVideoMuteByStreamRemove: () => boolean;
-  supportsP2P: () => boolean;
+  isWebKitBased: () => boolean;
   isChromiumBased: () => boolean;
   isTwa: () => boolean;
   isSupported: () => boolean;
@@ -16,7 +16,6 @@ export default class BrowserCapabilities {
   usesPlanB: () => boolean;
   usesSdpMungingForSimulcast: () => boolean;
   usesUnifiedPlan: () => boolean;
-  usesNewGumFlow: () => boolean;
   usesAdapter: () => boolean;
   usesRidsForSimulcast: () => boolean;
   supportsGetDisplayMedia: () => boolean;

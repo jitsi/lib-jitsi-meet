@@ -16,6 +16,7 @@ export const enum JitsiConferenceEvents {
   CONFERENCE_CREATED_TIMESTAMP = 'conference.createdTimestamp',
   DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged',
   ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received',
+  ENDPOINT_STATS_RECEIVED = 'conference.endpoint_stats_received',
   JVB121_STATUS = 'conference.jvb121Status',
   KICKED = 'conference.kicked',
   PARTICIPANT_KICKED = 'conference.participant_kicked',

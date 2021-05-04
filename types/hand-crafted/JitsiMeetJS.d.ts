@@ -56,6 +56,8 @@ export type JitsiMeetJSType = {
 
   ProxyConnectionService: unknown; // TODO:
 
+  //USER_MEDIA_SLOW_PROMISE_TIMEOUT: 1000;
+
   constants: {
     participantConnectionStatus: ParticipantConnectionStatus,
     recording: typeof RecordingConstants,

@@ -1,3 +1,5 @@
+import { MediaType } from "../RTC/MediaType";
+
 export const enum AnalyticsEvents {
   TYPE_OPERATIONAL = 'operational',
   TYPE_PAGE = 'page',
@@ -23,3 +25,5 @@ export const enum AnalyticsEvents {
   NO_BYTES_SENT = 'track.no-bytes-sent',
   TRACK_UNMUTED = 'track.unmuted',
 }
+
+export const createRemotelyMutedEvent: ( mediaType: MediaType ) => { type: TYPE_OPERATIONAL, action: string, mediaType: MediaType };

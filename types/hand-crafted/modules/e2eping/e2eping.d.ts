@@ -25,7 +25,7 @@ export default class E2ePing {
   dataChannelOpened: () => void;
   messageReceived: ( participant: unknown, payload: unknown ) => void; // TODO:
   participantJoined: ( id: string, participant: JitsiParticipant ) => void;
-  participantLeft: ( id: String ) => void;
+  participantLeft: ( id: string ) => void;
   handleRequest: ( participantId: string, request: E2eRequest ) => void;
   handleResponse: ( participantId: string, response: unknown ) => void; // TODO:
   stop: () => void;

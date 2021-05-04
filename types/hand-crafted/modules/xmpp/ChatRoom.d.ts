@@ -30,14 +30,14 @@ export default class ChatRoom extends Listenable {
   onMessage: ( msg: unknown, from: unknown ) => void; // TODO:
   onPresenceError: ( pres: unknown, from: unknown ) => void; // TODO:
   setAffiliation: ( jid: string, affiliation: unknown ) => void; // TODO:
-  kick: ( jid: string ) => void; // TODO:
+  kick: ( jid: string, reason?: string ) => void; // TODO:
   lockRoom: ( key: string, onSuccess: unknown, onError: unknown, onNotSupported: unknown ) => void; // TODO:
   setMembersOnly: ( enabled: boolean, onSuccess: unknown, onError: unknown ) => void; // TODO:
-  addToPresence: ( key: unknown, values: unknown ) => void;
-  getFromPresence: ( key: unknown ) => void;
-  removeFromPresence: ( key: unknown ) => void;
-  addPresenceListener: ( name: string, handler: ( params: unknown ) => unknown ) => void;
-  removePresenceListener: ( name: string, handler: ( params: unknown ) => unknown ) => void;
+  addToPresence: ( key: unknown, values: unknown ) => unknown; // TODO:
+  getFromPresence: ( key: unknown ) => void; // TODO:
+  removeFromPresence: ( key: unknown ) => void; // TODO:
+  addPresenceListener: ( name: string, handler: ( params: unknown ) => unknown ) => void; // TODO:
+  removePresenceListener: ( name: string, handler: ( params: unknown ) => unknown ) => void; // TODO:
   isFocus: ( mucJid: string ) => boolean | null;
   isModerator: () => boolean;
   getMemberRole: ( peerJid: string ) => string | null;
@@ -56,8 +56,8 @@ export default class ChatRoom extends Listenable {
   getPhonePin: () => string;
   getMeetingId: () => string;
   muteParticipant: ( jid: string, mute: unknown ) => void; // TODO:
+  onMuteVideo: ( iq: unknown ) => void; // TODO:
   onMute: ( iq: unknown ) => void; // TODO:
   clean: () => void;
   leave: () => Promise<unknown>; // TODO:
 }
-

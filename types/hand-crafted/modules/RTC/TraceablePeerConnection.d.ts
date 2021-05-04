@@ -2,9 +2,9 @@ import RTC from './RTC';
 import JitsiTrack from './JitsiTrack';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import JitsiLocalTrack from './JitsiLocalTrack';
-import LocalSdpMunger from './LocalSdpMunger';
-import SdpConsistency from '../xmpp/SdpConsistency';
-import RtxModifier from '../xmpp/RtxModifier';
+import LocalSdpMunger from '../sdp/LocalSdpMunger';
+import SdpConsistency from '../sdp/SdpConsistency';
+import RtxModifier from '../sdp/RtxModifier';
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 import { MediaType } from '../../service/RTC/MediaType';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
@@ -54,11 +54,13 @@ export default class TraceablePeerConnection {
   ondatachannel: unknown; // TODO:
   getConnectionState: () => string;
   isSimulcastOn: () => boolean;
-  getAudioLevels: () => Map<string, number>;
+  getAudioLevels: ( speakerList?: Array<unknown> ) => Map<string, number>; // TODO:
   getLocalTracks: ( mediaType: MediaType ) => JitsiLocalTrack[];
   getLocalVideoTrack: () => JitsiLocalTrack | undefined;
   hasAnyTracksOfType: ( mediaType: MediaType ) => boolean;
   getRemoteTracks: ( endpointId: string, mediaType: MediaType ) => JitsiRemoteTrack[];
+  getRemoteSourceInfoByParticipant: ( id: string ) => string[]; // TODO:
+  getTargetVideoBitrates: () => unknown; // TODO:
   getTrackBySSRC: ( ssrc: number ) => JitsiTrack | null;
   getSsrcByTrackId: ( id: string ) => number | null;
   removeRemoteTracks: ( owner: string ) => JitsiRemoteTrack[];
@@ -94,7 +96,8 @@ export default class TraceablePeerConnection {
   createAnswer: ( constraints: unknown ) => unknown; // TODO:
   createOffer: ( constraints: unknown ) => unknown; // TODO:
   addIceCandidate: ( candidate: unknown ) => unknown; // TODO:
-  getStats: ( callback: () => unknown, errback: () => unknown ) => void; // TODO:
   generateNewStreamSSRCInfo: ( track: JitsiLocalTrack ) => unknown; // TODO: JSDocs unknown = TPCSSRCInfo which doesn't exist
+  getActiveSimulcastStreams: () => number;
+  getStats: () => unknown; // TODO:
   toString: () => string;
 }

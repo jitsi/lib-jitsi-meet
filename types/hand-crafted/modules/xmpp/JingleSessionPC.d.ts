@@ -2,6 +2,7 @@ import JingleSession from './JingleSession';
 import XmppConnection from './XmppConnection';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 
 export default class JingleSessionPC extends JingleSession {
   static parseVideoSenders: ( jingleContents: JQuery ) => string | null;
@@ -36,6 +37,7 @@ export default class JingleSessionPC extends JingleSession {
   onXmppStatusChanged: ( status: Strophe.Status ) => void;
   addRemoteStream: ( elem: unknown ) => void; // TODO:
   removeRemoteStream: ( elem: unknown ) => void; // TODO:
+  removeRemoteStreamsOnLeave: ( id: string ) => Promise<JitsiRemoteTrack>;
   replaceTrack: ( oldTrack: JitsiLocalTrack | null, newTrack: JitsiLocalTrack | null ) => Promise<unknown>; // TODO:
   addTrackAsUnmute: ( track: JitsiLocalTrack ) => Promise<unknown>; // TODO:
   removeTrackAsMute: ( track: JitsiLocalTrack ) => Promise<unknown>; // TODO:

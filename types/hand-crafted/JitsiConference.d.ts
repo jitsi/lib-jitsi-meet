@@ -75,11 +75,12 @@ export default class JitsiConference {
   getParticipantCount: ( countHidden?: boolean ) => number;
   getParticipantById: ( id: string ) => JitsiParticipant;
   grantOwner: ( id: string ) => void;
-  kickParticipant: ( id: string ) => void;
-  muteParticipant: ( id: string ) => void;
+  revokeOwner: ( id: string ) => void;
+  kickParticipant: ( id: string, reason?: string ) => void;
+  muteParticipant: ( id: string, mediaType?: MediaType ) => void;
   onMemberJoined: ( jid: string, nick: string, role: string, isHidden: boolean, statsID?: unknown, status?: string, identity?: unknown, botType?: unknown, fullJid?: string, features?: unknown ) => void;
   onMemberLeft: ( jid: string ) => void;
-  onMemberKicked: ( isSelfPresence: boolean, actorId: string, kickedParticipantId?: string ) => void;
+  onMemberKicked: ( isSelfPresence: boolean, actorId: string, kickedParticipantId?: string, reason?: string ) => void;
   onLocalRoleChanged: ( role: string ) => void;
   onUserRoleChanged: ( jid: string, role: string ) => void;
   onDisplayNameChanged: ( jid: string, displayName: string ) => void;
@@ -120,6 +121,7 @@ export default class JitsiConference {
   sendApplicationLog: ( message: string ) => void;
   // sendEndpointMessage: (to: string, payload: unknown) => unknown; // TODO: deprecated
   // broadcastEndpointMessage: (payload: unknown) => void; // TODO: deprecated
+  sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:
   sendMessage: ( message: string | unknown, to?: string, sendThroughVideobridge?: boolean ) => void; // TODO: JSDoc is incorrect
   isConnectionInterrupted: () => boolean;
   getProperty: ( key: string ) => unknown; // TODO:
@@ -128,8 +130,10 @@ export default class JitsiConference {
   startP2PSession: () => void;
   stopP2PSession: () => void;
   getSpeakerStats: () => unknown; // TODO:
+  setReceiverConstraints: ( videoConstraints: unknown ) => void; // TODO:
   setReceiverVideoConstraint: ( maxFrameHeight: number ) => void;
-  setSenderVideoConstraint: ( maxFrameHeight: number ) => Promise<unknown>;
+  setSenderVideoConstraint: ( maxFrameHeight: number ) => Promise<unknown>; // TODO:
+  isE2EEEnabled: () => boolean;
   createVideoSIPGWSession: ( sipAddress: string, displayName: string ) => JitsiVideoSIPGWSession | Error;
   toggleE2EE: ( enabled: boolean ) => void;
   isLobbySupported: () => boolean;

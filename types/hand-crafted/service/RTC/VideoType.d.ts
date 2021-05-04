@@ -1,4 +1,5 @@
 export const enum VideoType {
   CAMERA = 'camera',
-  DESKTOP = 'desktop'
+  DESKTOP = 'desktop',
+  NONE = 'none'
 }

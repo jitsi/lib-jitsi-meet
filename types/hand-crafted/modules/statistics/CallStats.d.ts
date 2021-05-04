@@ -13,7 +13,7 @@ declare class CallStats {
     userName: string
   } ) => boolean;
   static isBackendInitialized: () => boolean;
-  static sendActiveDeviceListEvent: ( devicesData: { deviceList: { String: string } }, cs: CallStats ) => void; // TODO: not convinced by this definition
+  static sendActiveDeviceListEvent: ( devicesData: { deviceList: { string: string } }, cs: CallStats ) => void; // TODO: not convinced by this definition
   static sendApplicationLog: ( e: Error, cs: CallStats ) => void;
   static sendFeedback: ( conferenceID: string, overall: 1 | 2 | 3 | 4 | 5, comment: unknown ) => Promise<unknown>; // TODO:
   static sendGetUserMediaFailed: ( e: Error, cs: CallStats ) => void;

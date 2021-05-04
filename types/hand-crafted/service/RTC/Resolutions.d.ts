@@ -1,4 +1,12 @@
 export type Resolutions = {
+  '2160': {
+    width: 3840,
+    height: 2160
+  },
+  '4k': {
+    width: 3840,
+    height: 2160
+  },
   '1080': {
     width: 1920,
     height: 1080,
@@ -19,11 +27,6 @@ export type Resolutions = {
     height: 720,
     order: 7
   },
-  '960': {
-    width: 960,
-    height: 720,
-    order: 6
-  },
   '540': {
     width: 960,
     height: 540,
@@ -34,14 +37,7 @@ export type Resolutions = {
     height: 540,
     order: 5
   },
-
-  // 16:9 resolution first.
-  '360': {
-    width: 640,
-    height: 360,
-    order: 4
-  },
-  '640': {
+  '480': {
     width: 640,
     height: 480,
     order: 3
@@ -51,16 +47,19 @@ export type Resolutions = {
     height: 480,
     order: 3
   },
-
-  // 16:9 resolution first.
+  '360': {
+    width: 640,
+    height: 360,
+    order: 1
+  },
+  '240': {
+    width: 320,
+    height: 240,
+    order: 1
+  },
   '180': {
     width: 320,
     height: 180,
     order: 2
-  },
-  '320': {
-    width: 320,
-    height: 240,
-    order: 1
   }
 }

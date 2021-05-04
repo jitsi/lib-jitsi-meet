@@ -1,4 +1,4 @@
-import TraceablePeerConnection from './TraceablePeerConnection';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 export default class LocalSdpMunger {
   constructor( tpc: TraceablePeerConnection );

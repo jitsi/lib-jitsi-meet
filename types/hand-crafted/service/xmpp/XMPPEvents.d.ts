@@ -1,6 +1,7 @@
-export const enum XMPPEvents {
+ export const enum XMPPEvents {
   ADD_ICE_CANDIDATE_FAILED = 'xmpp.add_ice_candidate_failed',
   AUDIO_MUTED_BY_FOCUS = 'xmpp.audio_muted_by_focus',
+  VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
   AUTHENTICATION_REQUIRED = 'xmpp.authentication_required',
   BRIDGE_DOWN = 'xmpp.bridge_down',
   CALL_ACCEPTED = 'xmpp.callaccepted.jingle',
