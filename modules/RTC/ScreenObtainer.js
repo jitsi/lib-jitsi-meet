@@ -139,10 +139,11 @@ const ScreenObtainer = {
 
                         if (screenShareAudio) {
                             audioConstraints = {};
+                            const optionalConstraints = this._getAudioConstraints();
 
-                            if (typeof this._getAudioConstraints() !== 'boolean') {
+                            if (typeof optionalConstraints !== 'boolean') {
                                 audioConstraints = {
-                                    optional: this._getAudioConstraints()
+                                    optional: optionalConstraints
                                 };
                             }
 
