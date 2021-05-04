@@ -1,6 +1,6 @@
 import JingleSessionPC from './JingleSessionPC';
 import ConnectionPlugin from './ConnectionPlugin';
-import XMPP from '../xmpp/xmpp';
+import XMPP from './xmpp';
 import EventEmitter from '../../EventEmitter';
 
 declare class JingleConnectionPlugin extends ConnectionPlugin {

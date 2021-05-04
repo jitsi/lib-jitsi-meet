@@ -1,5 +1,5 @@
 import JitsiTrack from './JitsiTrack';
-import RTC from '../RTC/RTC';
+import RTC from './RTC';
 import JitsiConference from '../../JitsiConference';
 
 export default class JitsiRemoteTrack extends JitsiTrack {

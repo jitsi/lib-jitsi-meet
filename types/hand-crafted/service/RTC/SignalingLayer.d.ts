@@ -1,5 +1,5 @@
 import Listenable from '../../modules/util/Listenable';
-import { MediaType } from '../../service/RTC/MediaType';
+import { MediaType } from './MediaType';
 
 export type PeerMediaInfo = {
   muted: boolean;

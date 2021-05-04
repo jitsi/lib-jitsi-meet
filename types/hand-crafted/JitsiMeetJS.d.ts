@@ -35,21 +35,21 @@ export type CreateLocalTracksOptions = {
 }
 
 export type InitOptions = {
-  disableAudioLevels: boolean,
-  useIPv6: unknown,
-  disableSimulcast: unknown,
-  enableWindowOnErrorHandler: unknown,
-  disableThirdPartyRequests: unknown,
-  enableAnalyticsLogging: unknown,
-  externalStorage: unknown,
-  callStatsCustomScriptUrl: unknown,
-  disableRtx: unknown,
-  disabledCodec: unknown,
-  preferredCodec: unknown,
-  useTurnUdp: unknown
+  disableAudioLevels?: boolean,
+  useIPv6?: unknown,
+  disableSimulcast?: unknown,
+  enableWindowOnErrorHandler?: unknown,
+  disableThirdPartyRequests?: unknown,
+  enableAnalyticsLogging?: unknown,
+  externalStorage?: unknown,
+  callStatsCustomScriptUrl?: unknown,
+  disableRtx?: unknown,
+  disabledCodec?: unknown,
+  preferredCodec?: unknown,
+  useTurnUdp?: unknown
 }
 
-declare type JitsiMeetJS = {
+export type JitsiMeetJSType = {
   version: string;
 
   JitsiConnection: typeof JitsiConnection;
@@ -137,6 +137,3 @@ declare type JitsiMeetJS = {
     browser: BrowserCapabilities
   }
 }
-
-declare const _default: JitsiMeetJS;
-export default _default;
