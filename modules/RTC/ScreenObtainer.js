@@ -105,7 +105,7 @@ const ScreenObtainer = {
             channelCount: 2,
             echoCancellation: false,
             noiseSuppression: false
-        } : false;
+        } : true;
 
         return audio;
     },
@@ -138,11 +138,11 @@ const ScreenObtainer = {
                         let audioConstraints = false;
 
                         if (screenShareAudio) {
-                            audioConstraints = { };
+                            audioConstraints = {};
 
-                            if (this._getAudioConstraints()) {
-                                audioConstraints.optional = {
-                                    ...this._getAudioConstraints()
+                            if (typeof this._getAudioConstraints() !== 'boolean') {
+                                audioConstraints = {
+                                    optional: this._getAudioConstraints()
                                 };
                             }
 
