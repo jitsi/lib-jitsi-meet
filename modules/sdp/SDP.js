@@ -118,7 +118,7 @@ SDP.prototype.containsSSRC = function(ssrc) {
 };
 
 // add content's to a jingle element
-SDP.prototype.toJingle = function(elem, thecreator) {
+SDP.prototype.toJingle = function(elem, thecreator, localEndpointId) {
     // https://xmpp.org/extensions/xep-0338.html
     SDPUtil.findLines(this.session, 'a=group:').forEach(line => {
         const parts = line.split(' ');
@@ -223,6 +223,18 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                             let v = kv.split(':', 2)[1];
 
                             v = SDPUtil.filterSpecialChars(v);
+
+                            // Handle a case on Firefox when the browser doesn't produce a 'a:ssrc' line
+                            // with the 'msid' attribute. Jicofo needs a unique identifier to be associated
+                            // with a ssrc and uses the msid attribute for that. Generate the identifier using
+                            // the local endpoint id.
+                            if (name === 'msid' && browser.isFirefox()) {
+                                const sourceIds = v.split(' ');
+
+                                if (sourceIds[0].includes('--') && sourceIds.length > 1) {
+                                    v = `${localEndpointId}-${mline.media} ${sourceIds[1]}`;
+                                }
+                            }
                             elem.attrs({ value: v });
                         }
                         elem.up();
