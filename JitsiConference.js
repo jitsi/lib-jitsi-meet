@@ -3681,23 +3681,29 @@ JitsiConference.prototype.isAVModerationSupported = function() {
 
 /**
  * Enables AV Moderation by moderators
+ * @param {MediaType} mediaType "audio" or "video"
  */
-JitsiConference.prototype.enableAVModeration = function() {
-    if (this.room && this.isModerator()) {
-        this.room.getAVModeration().enable(true);
+JitsiConference.prototype.enableAVModeration = function(mediaType) {
+    if (this.room && this.isModerator()
+        && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+        this.room.getAVModeration().enable(true, mediaType);
     } else {
-        logger.warn(`Failed to enable AM moderation, no room or not a moderator:${this.isModerator()}`);
+        logger.warn(`Failed to enable AM moderation, no room or not a moderator:${
+            this.isModerator()}or wrong media type:${mediaType}`);
     }
 };
 
 /**
  * Disabled AV Moderation by moderators
+ * @param {MediaType} mediaType "audio" or "video"
  */
-JitsiConference.prototype.disableAVModeration = function() {
-    if (this.room && this.isModerator()) {
-        this.room.getAVModeration().enable(false);
+JitsiConference.prototype.disableAVModeration = function(mediaType) {
+    if (this.room && this.isModerator()
+        && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+        this.room.getAVModeration().enable(false, mediaType);
     } else {
-        logger.warn(`Failed to disable AM moderation, no room or not a moderator:${this.isModerator()}`);
+        logger.warn(`Failed to disable AM moderation, no room or not a moderator:${
+            this.isModerator()} or wrong media type:${mediaType}`);
     }
 };
 

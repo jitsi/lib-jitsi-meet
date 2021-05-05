@@ -21,7 +21,10 @@ export default class AVModeration {
 
         this.mainRoom = room;
 
-        this.enabled = false;
+        this.momderationEnabledByType = {};
+        this.momderationEnabledByType[MediaType.AUDIO] = false;
+        this.momderationEnabledByType[MediaType.VIDEO] = false;
+
         this.whitelistAudio = [];
         this.whitelistVideo = [];
 
@@ -40,7 +43,7 @@ export default class AVModeration {
     /**
      * Enables or disables AV Moderation by sending a msg with command to the component.
      */
-    enable(state) {
+    enable(state, mediaType) {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
             logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()}, 
                 moderator:${this.mainRoom.isModerator()}`);
@@ -48,14 +51,19 @@ export default class AVModeration {
             return;
         }
 
-        if (state === this.enabled) {
+        if (state === this.momderationEnabledByType[mediaType]) {
+            logger.warn(`Moderation already in state:${state} for mediaType:${mediaType}`);
+
             return;
         }
 
         // send the enable/disable message
         const msg = $msg({ to: this.xmpp.avModerationComponentAddress });
 
-        msg.c('av_moderation', { enable: state }).up();
+        msg.c('av_moderation', {
+            enable: state,
+            mediaType
+        }).up();
 
         this.xmpp.connection.send(msg);
     }
@@ -103,10 +111,10 @@ export default class AVModeration {
             if (newWhitelists[MediaType.VIDEO]) {
                 fireEventApprovedJids(MediaType.VIDEO, this.whitelistVideo, newWhitelists[MediaType.VIDEO]);
             }
-        } else if (this.enabled !== obj.enabled) {
-            this.enabled = obj.enabled;
+        } else if (this.momderationEnabledByType[obj.mediaType] !== obj.enabled) {
+            this.momderationEnabledByType[obj.mediaType] = obj.enabled;
 
-            this.xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, this.enabled);
+            this.xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, obj.enabled, obj.mediaType, obj.actor);
         } else if (obj.approved) {
             this.xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_APPROVED, obj.mediaType);
         }

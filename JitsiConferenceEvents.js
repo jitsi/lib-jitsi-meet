@@ -380,9 +380,13 @@ export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';
 export const AV_MODERATION_APPROVED = 'conference.av_moderation.approved';
 
 /**
- * AV Moderation was enabled/disabled.
+ * AV Moderation was enabled/disabled. The actor is the participant that is currently in the meeting,
+ * or undefined if that participant has left the meeting.
+ *
  * @param {options} event - {
- *     {boolean} enabled
+ *     {boolean} enabled,
+ *     {MediaType} mediaType,
+ *     {JitsiParticipant} actor
  * }.
  */
 export const AV_MODERATION_CHANGED = 'conference.av_moderation.changed';
