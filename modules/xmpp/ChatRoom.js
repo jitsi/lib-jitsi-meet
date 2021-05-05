@@ -836,9 +836,8 @@ export default class ChatRoom extends Listenable {
      * Send text message to the other participants in the conference
      * @param message
      * @param elementName
-     * @param nickname
      */
-    sendMessage(message, elementName, nickname) {
+    sendMessage(message, elementName) {
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
@@ -851,12 +850,7 @@ export default class ChatRoom extends Listenable {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
                 .up();
         }
-        if (nickname) {
-            msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' })
-                .t(nickname)
-                .up()
-                .up();
-        }
+
         this.connection.send(msg);
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
     }
@@ -867,9 +861,8 @@ export default class ChatRoom extends Listenable {
      * @param id id/muc resource of the receiver
      * @param message
      * @param elementName
-     * @param nickname
      */
-    sendPrivateMessage(id, message, elementName, nickname) {
+    sendPrivateMessage(id, message, elementName) {
         const msg = $msg({ to: `${this.roomjid}/${id}`,
             type: 'chat' });
 
@@ -880,12 +873,6 @@ export default class ChatRoom extends Listenable {
             msg.c(elementName, message).up();
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
-                .up();
-        }
-        if (nickname) {
-            msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' })
-                .t(nickname)
-                .up()
                 .up();
         }
 
@@ -1032,11 +1019,6 @@ export default class ChatRoom extends Listenable {
      * @param from
      */
     onMessage(msg, from) {
-        const nick
-            = $(msg).find('>nick[xmlns="http://jabber.org/protocol/nick"]')
-                .text()
-            || Strophe.getResourceFromJid(from);
-
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
@@ -1113,10 +1095,10 @@ export default class ChatRoom extends Listenable {
         if (txt) {
             if (type === 'chat') {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, nick, txt, this.myroomjid, stamp);
+                        from, txt, this.myroomjid, stamp);
             } else if (type === 'groupchat') {
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                        from, nick, txt, this.myroomjid, stamp);
+                        from, txt, this.myroomjid, stamp);
             }
         }
     }
