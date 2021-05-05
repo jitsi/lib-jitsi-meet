@@ -978,7 +978,8 @@ export default class JingleSessionPC extends JingleSession {
 
         new SDP(offerSdp).toJingle(
             init,
-            this.isInitiator ? 'initiator' : 'responder');
+            this.isInitiator ? 'initiator' : 'responder',
+            Strophe.getResourceFromJid(this.localJid));
         init = init.tree();
         logger.info('Session-initiate: ', init);
         this.connection.sendIQ(init,
@@ -1245,7 +1246,7 @@ export default class JingleSessionPC extends JingleSession {
         localSDP.toJingle(
             accept,
             this.initiatorJid === this.localJid ? 'initiator' : 'responder',
-            null);
+            Strophe.getResourceFromJid(this.localJid));
 
         // Calling tree() to print something useful
         accept = accept.tree();
