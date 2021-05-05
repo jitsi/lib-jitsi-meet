@@ -118,7 +118,7 @@ SDP.prototype.containsSSRC = function(ssrc) {
 };
 
 // add content's to a jingle element
-SDP.prototype.toJingle = function(elem, thecreator, localId) {
+SDP.prototype.toJingle = function(elem, thecreator, localEndpointId) {
     // https://xmpp.org/extensions/xep-0338.html
     SDPUtil.findLines(this.session, 'a=group:').forEach(line => {
         const parts = line.split(' ');
@@ -232,7 +232,7 @@ SDP.prototype.toJingle = function(elem, thecreator, localId) {
                                 const sourceIds = v.split(' ');
 
                                 if (sourceIds[0].includes('--') && sourceIds.length > 1) {
-                                    v = `${localId}-${mline.media} ${sourceIds[1]}`;
+                                    v = `${localEndpointId}-${mline.media} ${sourceIds[1]}`;
                                 }
                             }
                             elem.attrs({ value: v });
