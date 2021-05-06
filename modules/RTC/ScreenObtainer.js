@@ -207,7 +207,7 @@ const ScreenObtainer = {
                     return;
                 }
 
-                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
+                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED, error.message));
             });
     },
 

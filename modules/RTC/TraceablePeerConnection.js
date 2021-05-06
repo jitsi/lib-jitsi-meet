@@ -764,26 +764,42 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
         return;
     }
 
-    // Bind 'addtrack'/'removetrack' event handlers
-    if (browser.isChromiumBased()) {
-        stream.onaddtrack = event => {
-            this._remoteTrackAdded(stream, event.track);
-        };
-        stream.onremovetrack = event => {
-            this._remoteTrackRemoved(stream, event.track);
-        };
+    const _addRemoteTracks = (stream, self) => {
+        // Bind 'addtrack'/'removetrack' event handlers
+        if (browser.isChromiumBased()) {
+            stream.onaddtrack = event => {
+                this._remoteTrackAdded(stream, event.track);
+            };
+            stream.onremovetrack = event => {
+                this._remoteTrackRemoved(stream, event.track);
+            };
+        }
+
+        // Call remoteTrackAdded for each track in the stream
+        const streamAudioTracks = stream.getAudioTracks();
+
+        for (const audioTrack of streamAudioTracks) {
+            this._remoteTrackAdded(stream, audioTrack);
+        }
+        const streamVideoTracks = stream.getVideoTracks();
+
+        for (const videoTrack of streamVideoTracks) {
+            this._remoteTrackAdded(stream, videoTrack);
+        }
     }
 
-    // Call remoteTrackAdded for each track in the stream
-    const streamAudioTracks = stream.getAudioTracks();
-
-    for (const audioTrack of streamAudioTracks) {
-        this._remoteTrackAdded(stream, audioTrack);
-    }
-    const streamVideoTracks = stream.getVideoTracks();
-
-    for (const videoTrack of streamVideoTracks) {
-        this._remoteTrackAdded(stream, videoTrack);
+    if (browser.isCordovaiOS()) {
+       // this is actually a bug in jitsi meet lib implementation
+       // and it magically works everywhere but not in Cordova iOS RTC.
+       // A 'this.peerconnection.onaddstream' event is called actually before the 'setRemoteDescription' success is called,
+       // hence a 'this.remoteDescription.sdp' is not available when we access it in '_remoteTrackAdded'
+       // so we need to add this small delay
+       let self = this;
+       setTimeout(function(stream) {
+           _addRemoteTracks(stream, self)
+       }, 300, stream);
+    } else {
+       _addRemoteTracks(stream, this)
     }
 };
 

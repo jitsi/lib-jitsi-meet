@@ -792,7 +792,7 @@ class RTCUtils extends Listenable {
 
             this.getStreamID = ({ id }) => id;
             this.getTrackID = ({ id }) => id;
-        } else if (browser.isReactNative()) {
+        } else if (browser.isReactNative() || browser.isCordovaiOS()) {
             this.RTCPeerConnectionType = RTCPeerConnection;
 
             this.attachMediaStream = undefined; // Unused on React Native.
