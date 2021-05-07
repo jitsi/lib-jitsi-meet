@@ -429,8 +429,9 @@ export default class XmppConnection extends Listenable {
                 }
 
                 const responseShard = response.headers.get('x-jitsi-shard');
+                console.log("[_keepAliveAndCheckShard]responseShard", responseShard);
 
-                if (responseShard !== shard) {
+                if (responseShard && responseShard !== shard) {
                     logger.error(
                         `Detected that shard changed from ${shard} to ${responseShard}`);
                     this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
