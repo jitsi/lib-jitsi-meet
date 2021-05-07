@@ -170,17 +170,25 @@ export class ReceiveVideoController {
         this._conference = conference;
         this._rtc = rtc;
 
-        // Enable new receiver constraints by default unless it is explicitly disabled through config.js.
-        const useNewReceiverConstraints = conference.options?.config?.useNewBandwidthAllocationStrategy ?? true;
-
-        // Translate the legacy bridge channel signaling format to the new format.
-        this._receiverVideoConstraints = useNewReceiverConstraints ? new ReceiverVideoConstraints() : undefined;
+        const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
-        this._lastN = LASTN_UNLIMITED;
+        this._lastN = config?.startLastN ?? (config?.channelLastN || LASTN_UNLIMITED);
 
         // The number representing the maximum video height the local client should receive from the bridge.
         this._maxFrameHeight = MAX_HEIGHT_ONSTAGE;
+
+        // Enable new receiver constraints by default unless it is explicitly disabled through config.js.
+        const useNewReceiverConstraints = config?.useNewBandwidthAllocationStrategy ?? true;
+
+        if (useNewReceiverConstraints) {
+            this._receiverVideoConstraints = new ReceiverVideoConstraints();
+            const lastNUpdated = this._receiverVideoConstraints.updateLastN(this._lastN);
+
+            lastNUpdated && this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+        } else {
+            this._rtc.setLastN(this._lastN);
+        }
 
         // The endpoint IDs of the participants that are currently selected.
         this._selectedEndpoints = [];
