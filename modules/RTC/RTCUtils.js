@@ -735,6 +735,57 @@ function handleLocalStream(streams, resolution) {
     return res;
 }
 
+
+/**
+ * Represents a default implementation of setting a <tt>MediaStream</tt> as the
+ * source of a video element that tries to be browser-agnostic through feature
+ * checking. Note though that it was not completely clear from the predating
+ * browser-specific implementations what &quot;videoSrc&quot; was because one
+ * implementation of {@link RTCUtils#getVideoSrc} would return
+ * <tt>MediaStream</tt> (e.g. Firefox), another a <tt>string</tt> representation
+ * of the <tt>URL</tt> of the <tt>MediaStream</tt> (e.g. Chrome) and the return
+ * value was only used by {@link RTCUIHelper#getVideoId} which itself did not
+ * appear to be used anywhere. Generally, the implementation will try to follow
+ * the related standards i.e. work with the <tt>srcObject</tt> and <tt>src</tt>
+ * properties of the specified <tt>element</tt> taking into account vender
+ * prefixes.
+ *
+ * @param element the element whose video source/src is to be set to the
+ * specified <tt>stream</tt>
+ * @param {MediaStream} stream the <tt>MediaStream</tt> to set as the video
+ * source/src of <tt>element</tt>
+ */
+function defaultSetVideoSrc(element, stream) {
+    // srcObject
+    let srcObjectPropertyName = 'srcObject';
+
+    if (!(srcObjectPropertyName in element)) {
+        srcObjectPropertyName = 'mozSrcObject';
+        if (!(srcObjectPropertyName in element)) {
+            srcObjectPropertyName = null;
+        }
+    }
+    if (srcObjectPropertyName) {
+        element[srcObjectPropertyName] = stream;
+
+        return;
+    }
+
+    // src
+    let src;
+
+    if (stream) {
+        src = stream.jitsiObjectURL;
+
+        // Save the created URL for stream so we can reuse it and not keep
+        // creating URLs.
+        if (!src) {
+            stream.jitsiObjectURL = src = URL.createObjectURL(stream);
+        }
+    }
+    element.src = src || '';
+}
+
 /**
  *
  */
@@ -795,9 +846,25 @@ class RTCUtils extends Listenable {
         } else if (browser.isReactNative() || browser.isCordovaiOS()) {
             this.RTCPeerConnectionType = RTCPeerConnection;
 
-            this.attachMediaStream = undefined; // Unused on React Native.
+            if (browser.isCordovaiOS()) {
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        defaultSetVideoSrc(element, stream);
 
-            this.getStreamID = function({ id }) {
+                        return element;
+                    });
+
+                console.log('[RCTUtils] attachMediaStream', this.attachMediaStream);
+            } else {
+                this.attachMediaStream = undefined; // Unused on React Native.
+                console.log('[RCTUtils] reset attachMediaStream');
+            }
+
+            this.getStreamID = function(params) {
+                console.log('[RCTUtils][getStreamID] params', params);
+                let id = params.id || params._id;
+                console.log('[RCTUtils][getStreamID] id', id);
+
                 // The react-native-webrtc implementation that we use at the
                 // time of this writing returns a number for the id of
                 // MediaStream. Let's just say that a number contains no special
