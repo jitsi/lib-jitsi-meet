@@ -117,7 +117,7 @@ export default class RTC extends Listenable {
          * @private
          * @type {number}
          */
-        this._lastN = -1;
+        this._lastN = undefined;
 
         /**
          * Defines the last N endpoints list. It can be null or an array once
@@ -142,7 +142,7 @@ export default class RTC extends Listenable {
          * @type {Array}
          * @private
          */
-        this._selectedEndpoints = [];
+        this._selectedEndpoints = null;
 
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
@@ -224,37 +224,45 @@ export default class RTC extends Listenable {
         this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter);
 
         this._channelOpenListener = () => {
+            const logError = (error, msgType, value) => {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error(`Cannot send ${msgType}(${JSON.stringify(value)}) endpoint message`, error);
+            };
+
             // When the channel becomes available, tell the bridge about video selections so that it can do adaptive
             // simulcast, we want the notification to trigger even if userJid is undefined, or null.
             if (this._receiverVideoConstraints) {
                 try {
                     this._channel.sendNewReceiverVideoConstraintsMessage(this._receiverVideoConstraints);
                 } catch (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(`Cannot send ReceiverVideoConstraints(
-                        ${JSON.stringify(this._receiverVideoConstraints)}) endpoint message`, error);
-                }
-            } else {
-                try {
-                    this._channel.sendSelectedEndpointsMessage(this._selectedEndpoints);
-                    if (typeof this._maxFrameHeight !== 'undefined') {
-                        this._channel.sendReceiverVideoConstraintMessage(this._maxFrameHeight);
-                    }
-                    if (this._lastN !== -1) {
-                        this._channel.sendSetLastNMessage(this._lastN);
-                    }
-                } catch (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(`Cannot send selected(${this._selectedEndpoint}), lastN(${this._lastN}),`
-                        + ` frameHeight(${this._maxFrameHeight}) endpoint message`, error);
+                    logError(error, 'ReceiverVideoConstraints', this._receiverVideoConstraints);
                 }
             }
-
+            if (this._selectedEndpoints) {
+                try {
+                    this._channel.sendSelectedEndpointsMessage(this._selectedEndpoints);
+                } catch (error) {
+                    logError(error, 'SelectedEndpointsChangedEvent', this._selectedEndpoint);
+                }
+            }
+            if (typeof this._maxFrameHeight !== 'undefined') {
+                try {
+                    this._channel.sendReceiverVideoConstraintMessage(this._maxFrameHeight);
+                } catch (error) {
+                    logError(error, 'ReceiverVideoConstraint', this._maxFrameHeight);
+                }
+            }
+            if (typeof this._lastN !== 'undefined' && this._lastN !== -1) {
+                try {
+                    this._channel.sendSetLastNMessage(this._lastN);
+                } catch (error) {
+                    logError(error, 'LastNChangedEvent', this._lastN);
+                }
+            }
             try {
                 this._channel.sendVideoTypeMessage(this._videoType);
             } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
-                logger.error(`Cannot send VideoTypeMessage ${this._videoType}`, error);
+                logError(error, 'VideoTypeMessage', this._videoType);
             }
 
             this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
