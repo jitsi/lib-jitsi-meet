@@ -3689,7 +3689,7 @@ JitsiConference.prototype.enableAVModeration = function(mediaType) {
         this.room.getAVModeration().enable(true, mediaType);
     } else {
         logger.warn(`Failed to enable AM moderation, no room or not a moderator:${
-            this.isModerator()}or wrong media type:${mediaType}`);
+            this.isModerator()} or wrong media type:${mediaType}`);
     }
 };
 
