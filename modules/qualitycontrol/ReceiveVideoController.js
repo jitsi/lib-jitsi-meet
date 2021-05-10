@@ -312,6 +312,17 @@ export class ReceiveVideoController {
             this._lastN = constraints.lastN ?? this._lastN;
             this._selectedEndpoints = constraints.selectedEndpoints ?? this._selectedEndpoints;
             this._rtc.setNewReceiverVideoConstraints(constraints);
+
+            const p2pSession = this._conference._getMediaSessions().find(session => session.isP2P);
+
+            if (p2pSession) {
+                let maxFrameHeight = Object.values(constraints.constraints)[0]?.maxHeight;
+
+                if (!maxFrameHeight) {
+                    maxFrameHeight = constraints.defaultConstraints?.maxHeight;
+                }
+                maxFrameHeight && p2pSession.setReceiverVideoConstraint(maxFrameHeight);
+            }
         }
     }
 }
