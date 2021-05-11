@@ -557,6 +557,14 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Returns the endpoint id for the local user.
+     * @returns {string}
+     */
+    getLocalEndpointId() {
+        return this.conference.myUserId();
+    }
+
+    /**
      * Returns the local tracks of the given media type, or all local tracks if
      * no specific type is given.
      * @param {MediaType} [mediaType] Optional media type filter.
