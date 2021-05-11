@@ -71,7 +71,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             id: iq.getAttribute('id')
         });
 
-        logger.log(`on jingle ${action} from ${fromJid}`, iq);
+        logger.log(`on jingle ${action} from ${fromJid}`, JSON.stringify(iq));
         let sess = this.sessions[sid];
 
         if (action !== 'session-initiate') {
