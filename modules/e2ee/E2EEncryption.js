@@ -205,9 +205,7 @@ export class E2EEncryption {
      * Advances (using ratcheting) the current key when a new participant joins the conference.
      * @private
      */
-    _onParticipantJoined(id) {
-        logger.debug(`Participant ${id} joined`);
-
+    _onParticipantJoined() {
         if (this._conferenceJoined && this._enabled) {
             this._ratchetKey();
         }
@@ -218,8 +216,6 @@ export class E2EEncryption {
      * @private
      */
     _onParticipantLeft(id) {
-        logger.debug(`Participant ${id} left`);
-
         this._e2eeCtx.cleanup(id);
 
         if (this._enabled) {
