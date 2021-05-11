@@ -929,7 +929,8 @@ JitsiConference.prototype.setSubject = function(subject) {
     if (this.room && this.isModerator()) {
         this.room.setSubject(subject);
     } else {
-        logger.warn(`Failed to set subject, no room or not a moderator:${this.isModerator()}`);
+        logger.warn(`Failed to set subject, room left or not joined, or the participant is not a moderator=${
+            this.isModerator()}`);
     }
 };
 
@@ -2417,7 +2418,8 @@ JitsiConference.prototype.getConnectionState = function() {
  */
 JitsiConference.prototype.setStartMutedPolicy = function(policy) {
     if (!this.isModerator()) {
-        logger.warn(`Failed to set start muted policy, no room or not a moderator:${this.isModerator()}`);
+        logger.warn(`Failed to set start muted policy, room left or not joined, or the participant is not a moderator=${
+            this.isModerator()}`);
 
         return;
     }
@@ -3630,7 +3632,8 @@ JitsiConference.prototype.disableLobby = function() {
     if (this.room && this.isModerator()) {
         this.room.getLobby().disable();
     } else {
-        logger.warn(`Failed to disable lobby, no room or not a moderator:${this.isModerator()}`);
+        logger.warn(`Failed to disable lobby, room left or not joined, or the participant is not a moderator=${
+            this.isModerator()}`);
     }
 };
 
@@ -3680,7 +3683,7 @@ JitsiConference.prototype.isAVModerationSupported = function() {
 };
 
 /**
- * Enables AV Moderation by moderators
+ * Enables AV Moderation.
  * @param {MediaType} mediaType "audio" or "video"
  */
 JitsiConference.prototype.enableAVModeration = function(mediaType) {
@@ -3688,13 +3691,13 @@ JitsiConference.prototype.enableAVModeration = function(mediaType) {
         && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
         this.room.getAVModeration().enable(true, mediaType);
     } else {
-        logger.warn(`Failed to enable AM moderation, no room or not a moderator:${
-            this.isModerator()} or wrong media type:${mediaType}`);
+        logger.warn(`Failed to enable AV moderation, room left or not joined, or the participant is not a moderator=${
+            this.isModerator()}, or wrong media type=${mediaType} passed`);
     }
 };
 
 /**
- * Disabled AV Moderation by moderators
+ * Disables AV Moderation.
  * @param {MediaType} mediaType "audio" or "video"
  */
 JitsiConference.prototype.disableAVModeration = function(mediaType) {
@@ -3702,8 +3705,8 @@ JitsiConference.prototype.disableAVModeration = function(mediaType) {
         && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
         this.room.getAVModeration().enable(false, mediaType);
     } else {
-        logger.warn(`Failed to disable AM moderation, no room or not a moderator:${
-            this.isModerator()} or wrong media type:${mediaType}`);
+        logger.warn(`Failed to disable AV moderation, room left or not joined, or the participant is not a moderator=${
+            this.isModerator()} or wrong media type=${mediaType} passed`);
     }
 };
 
@@ -3725,6 +3728,6 @@ JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
 
         this.room.getAVModeration().approve(mediaType, participant.getJid());
     } else {
-        logger.warn(`AV moderation skipped not a moderator:${this.isModerator()} or wrong media type:${mediaType}`);
+        logger.warn(`AV moderation skipped not a moderator=${this.isModerator()} or wrong media type=${mediaType}`);
     }
 };
