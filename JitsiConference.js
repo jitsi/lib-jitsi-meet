@@ -929,8 +929,8 @@ JitsiConference.prototype.setSubject = function(subject) {
     if (this.room && this.isModerator()) {
         this.room.setSubject(subject);
     } else {
-        logger.warn(`Failed to set subject, room left or not joined, or the participant is not a moderator=${
-            this.isModerator()}`);
+        logger.warn(`Failed to set subject, ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator'}`);
     }
 };
 
@@ -2418,8 +2418,8 @@ JitsiConference.prototype.getConnectionState = function() {
  */
 JitsiConference.prototype.setStartMutedPolicy = function(policy) {
     if (!this.isModerator()) {
-        logger.warn(`Failed to set start muted policy, room left or not joined, or the participant is not a moderator=${
-            this.isModerator()}`);
+        logger.warn(`Failed to set start muted policy, ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator'}`);
 
         return;
     }
@@ -3632,8 +3632,8 @@ JitsiConference.prototype.disableLobby = function() {
     if (this.room && this.isModerator()) {
         this.room.getLobby().disable();
     } else {
-        logger.warn(`Failed to disable lobby, room left or not joined, or the participant is not a moderator=${
-            this.isModerator()}`);
+        logger.warn(`Failed to disable lobby, ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator'}`);
     }
 };
 
@@ -3691,8 +3691,9 @@ JitsiConference.prototype.enableAVModeration = function(mediaType) {
         && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
         this.room.getAVModeration().enable(true, mediaType);
     } else {
-        logger.warn(`Failed to enable AV moderation, room left or not joined, or the participant is not a moderator=${
-            this.isModerator()}, or wrong media type=${mediaType} passed`);
+        logger.warn(`Failed to enable AV moderation, ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator, '}${
+            this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }
 };
 
@@ -3705,8 +3706,9 @@ JitsiConference.prototype.disableAVModeration = function(mediaType) {
         && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
         this.room.getAVModeration().enable(false, mediaType);
     } else {
-        logger.warn(`Failed to disable AV moderation, room left or not joined, or the participant is not a moderator=${
-            this.isModerator()} or wrong media type=${mediaType} passed`);
+        logger.warn(`Failed to disable AV moderation, ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator, '}${
+            this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }
 };
 
@@ -3728,6 +3730,8 @@ JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
 
         this.room.getAVModeration().approve(mediaType, participant.getJid());
     } else {
-        logger.warn(`AV moderation skipped not a moderator=${this.isModerator()} or wrong media type=${mediaType}`);
+        logger.warn(`AV moderation skipped , ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator, '}${
+            this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }
 };
