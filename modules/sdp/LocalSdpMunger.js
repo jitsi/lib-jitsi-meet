@@ -22,9 +22,11 @@ export default class LocalSdpMunger {
      * Creates new <tt>LocalSdpMunger</tt> instance.
      *
      * @param {TraceablePeerConnection} tpc
+     * @param {string} localEndpointId - The endpoint id of the local user.
      */
-    constructor(tpc) {
+    constructor(tpc, localEndpointId) {
         this.tpc = tpc;
+        this.localEndpointId = localEndpointId;
     }
 
     /**
@@ -175,11 +177,17 @@ export default class LocalSdpMunger {
                     const streamAndTrackIDs = ssrcLine.value.split(' ');
 
                     if (streamAndTrackIDs.length === 2) {
-                        const streamId = streamAndTrackIDs[0];
+                        let streamId = streamAndTrackIDs[0];
                         const trackId = streamAndTrackIDs[1];
 
-                        ssrcLine.value
-                            = `${streamId}-${pcId} ${trackId}-${pcId}`;
+                        // Handle a case on Firefox when the browser doesn't produce a 'a:ssrc' line with the 'msid'
+                        // attribute. Jicofo needs an unique identifier to be associated with a ssrc and uses the msid
+                        // for that. Generate the identifier using the local endpoint id.
+                        // eslint-disable-next-line max-depth
+                        if (streamId === '-') {
+                            streamId = `${this.localEndpointId}-${mediaSection.type}`;
+                        }
+                        ssrcLine.value = `${streamId}-${pcId} ${trackId}-${pcId}`;
                     } else {
                         logger.warn(
                             'Unable to munge local MSID'

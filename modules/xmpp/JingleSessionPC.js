@@ -557,7 +557,13 @@ export default class JingleSessionPC extends JingleSession {
                         .then(() => {
                             const newSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-                            this.notifyMySSRCUpdate(oldSdp, newSdp);
+                            // Skip the ssrc update from Firefox when onnegotiationneeded is fired as a result of media
+                            // direction set to 'inactive' for JVB session (i.e., when media is suspended over jvb
+                            // connection). This results in a source-remove/source-add being sent to Jicofo whenever
+                            // the media direction changes which is unnecessary.
+                            const skipUpdate = browser.isFirefox() && !this.isP2P && !this._localVideoActive;
+
+                            !skipUpdate && this.notifyMySSRCUpdate(oldSdp, newSdp);
                             finishedCallback();
                         },
                         finishedCallback /* will be called with en error */);
@@ -970,8 +976,7 @@ export default class JingleSessionPC extends JingleSession {
 
         new SDP(offerSdp).toJingle(
             init,
-            this.isInitiator ? 'initiator' : 'responder',
-            Strophe.getResourceFromJid(this.localJid));
+            this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
         logger.info('Session-initiate: ', init);
         this.connection.sendIQ(init,
@@ -1237,8 +1242,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         localSDP.toJingle(
             accept,
-            this.initiatorJid === this.localJid ? 'initiator' : 'responder',
-            Strophe.getResourceFromJid(this.localJid));
+            this.initiatorJid === this.localJid ? 'initiator' : 'responder');
 
         // Calling tree() to print something useful
         accept = accept.tree();

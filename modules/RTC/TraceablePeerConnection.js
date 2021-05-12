@@ -273,7 +273,7 @@ export default function TraceablePeerConnection(
      * sending SSRC updates on attach/detach and mute/unmute (for video).
      * @type {LocalSdpMunger}
      */
-    this.localSdpMunger = new LocalSdpMunger(this);
+    this.localSdpMunger = new LocalSdpMunger(this, this.rtc.getLocalEndpointId());
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -1836,7 +1836,7 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * video in the local SDP.
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
-    const sdp = this.localDescription.sdp;
+    const sdp = this.peerconnection.localDescription.sdp;
     const defaultCodec = CodecMimeType.VP8;
 
     if (!sdp) {
@@ -2901,9 +2901,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
 
             // eslint-disable-next-line no-negated-condition
             if (newSSRCNum !== oldSSRCNum) {
-                if (!oldSSRCNum) {
-                    logger.error(`Overwriting SSRC for ${track} ${trackMSID} in ${this} with: `, newSSRC);
-                }
+                oldSSRCNum && logger.error(`Overwriting SSRC for ${track} ${trackMSID} in ${this} with: `, newSSRC);
                 this.localSSRCs.set(track.rtcId, newSSRC);
                 this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
             }
