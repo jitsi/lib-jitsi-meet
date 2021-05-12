@@ -304,6 +304,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser supports voice activity detection via the @type {VADAudioAnalyser} service.
+     *
+     * @returns {boolean}
+     */
+    supportsVADDetection() {
+        return this.isChromiumBased();
+    }
+
+    /**
      * Returns the version of a Chromium based browser.
      *
      * @returns {Number}
