@@ -180,9 +180,12 @@ export default class LocalSdpMunger {
                         let streamId = streamAndTrackIDs[0];
                         const trackId = streamAndTrackIDs[1];
 
+                        // Handle a case on Firefox when the browser doesn't produce a 'a:ssrc' line with the 'msid'
+                        // attribute. Jicofo needs an unique identifier to be associated with a ssrc and uses the msid
+                        // for that. Generate the identifier using the local endpoint id.
                         // eslint-disable-next-line max-depth
                         if (streamId === '-') {
-                            streamId = this.localEndpointId;
+                            streamId = `${this.localEndpointId}-${mediaSection.type}`;
                         }
                         ssrcLine.value = `${streamId}-${pcId} ${trackId}-${pcId}`;
                     } else {
