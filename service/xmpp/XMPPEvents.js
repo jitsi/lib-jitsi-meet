@@ -248,6 +248,26 @@ const XMPPEvents = {
      */
     CONFERENCE_TIMESTAMP_RECEIVED: 'xmpp.conference_timestamp_received',
 
+    /**
+     * Event fired when we receive a message for AV moderation approved for the local participant.
+     */
+    AV_MODERATION_APPROVED: 'xmpp.av_moderation.approved',
+
+    /**
+     * Event fired when we receive a message for AV moderation.
+     */
+    AV_MODERATION_RECEIVED: 'xmpp.av_moderation.received',
+
+    /**
+     * Event fired when the moderation enable/disable changes.
+     */
+    AV_MODERATION_CHANGED: 'xmpp.av_moderation.changed',
+
+    /**
+     * Event fired when we receive message that a new jid was approved.
+     */
+    AV_MODERATION_PARTICIPANT_APPROVED: 'xmpp.av_moderation.participant.approved',
+
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
     START_MUTED_FROM_FOCUS: 'xmpp.start_muted_from_focus',

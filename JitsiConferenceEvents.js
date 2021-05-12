@@ -370,3 +370,32 @@ export const LOBBY_USER_UPDATED = 'conference.lobby.userUpdated';
  * A user left the lobby room.
  */
 export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';
+
+/**
+ * The local participant was approved to be able to unmute.
+ * @param {options} event - {
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_APPROVED = 'conference.av_moderation.approved';
+
+/**
+ * AV Moderation was enabled/disabled. The actor is the participant that is currently in the meeting,
+ * or undefined if that participant has left the meeting.
+ *
+ * @param {options} event - {
+ *     {boolean} enabled,
+ *     {MediaType} mediaType,
+ *     {JitsiParticipant} actor
+ * }.
+ */
+export const AV_MODERATION_CHANGED = 'conference.av_moderation.changed';
+
+/**
+ * AV Moderation, report for user being approved to unmute.
+ * @param {options} event - {
+ *     {JitsiParticipant} participant,
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.participant.approved';
