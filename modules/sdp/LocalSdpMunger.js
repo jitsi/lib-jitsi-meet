@@ -185,7 +185,7 @@ export default class LocalSdpMunger {
                         // for that. Generate the identifier using the local endpoint id.
                         // eslint-disable-next-line max-depth
                         if (streamId === '-') {
-                            streamId = `${this.localEndpointId}-${mediaSection.type}`;
+                            streamId = `${this.localEndpointId}-${mediaSection.mLine?.type}`;
                         }
                         ssrcLine.value = `${streamId}-${pcId} ${trackId}-${pcId}`;
                     } else {
