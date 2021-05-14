@@ -155,10 +155,8 @@ export class Context {
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
-            }, e => {
+            }, () => {
                 // TODO: surface this to the app.
-                console.error(e);
-
                 // We are not enqueuing the frame here on purpose.
             });
         }
@@ -178,15 +176,20 @@ export class Context {
      */
     async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
-        const keyIndex = data[encodedFrame.data.byteLength - 1];
 
-        if (this._cryptoKeyRing[keyIndex]) {
+        try {
+            const keyIndex = data[encodedFrame.data.byteLength - 1];
 
-            const decodedFrame = await this._decryptFrame(
-                encodedFrame,
-                keyIndex);
+            if (this._cryptoKeyRing[keyIndex]) {
 
-            return controller.enqueue(decodedFrame);
+                const decodedFrame = await this._decryptFrame(
+                    encodedFrame,
+                    keyIndex);
+
+                return controller.enqueue(decodedFrame);
+            }
+        } catch (error) {
+            // Logging this exception might flood the console
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
@@ -250,8 +253,6 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
-            console.error(error);
-
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 material = await importKey(await ratchet(material));
 
@@ -266,16 +267,6 @@ export class Context {
             }
 
             // TODO: notify the application about error status.
-
-            // TODO: For video we need a better strategy since we do not want to based any
-            // non-error frames on a garbage keyframe.
-            if (encodedFrame.type === undefined) { // audio, replace with silence.
-                const newData = new ArrayBuffer(3);
-                const newUint8 = new Uint8Array(newData);
-
-                newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                encodedFrame.data = newData;
-            }
         }
 
         return encodedFrame;
