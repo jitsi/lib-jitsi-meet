@@ -355,8 +355,9 @@ export default class JingleSessionPC extends JingleSession {
 
             // Disable simulcast for low fps screenshare and enable it for high fps screenshare.
             // testing.capScreenshareBitrate config.js setting has now been deprecated.
-            pcOptions.capScreenshareBitrate = !(typeof options.desktopSharingFrameRate?.max === 'number'
-                && options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
+            pcOptions.capScreenshareBitrate = pcOptions.disableSimulcast
+                || !(typeof options.desktopSharingFrameRate?.max === 'number'
+                    && options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
 
             // add the capScreenshareBitrate to the permanent properties so that it's included with every event that we
             // send to the analytics backend.
