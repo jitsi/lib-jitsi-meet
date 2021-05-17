@@ -315,14 +315,15 @@ export default function TraceablePeerConnection(
         this.peerconnection.onremovestream
             = event => this._remoteStreamRemoved(event.stream);
     } else {
-        this.peerconnection.ontrack = event => {
-            const stream = event.streams[0];
+        this.onTrack = evt => {
+            const stream = evt.streams[0];
 
-            this._remoteTrackAdded(stream, event.track, event.transceiver);
-            stream.onremovetrack = evt => {
-                this._remoteTrackRemoved(stream, evt.track);
-            };
+            this._remoteTrackAdded(stream, evt.track, evt.transceiver);
+            stream.addEventListener('removetrack', e => {
+                this._remoteTrackRemoved(stream, e.track);
+            });
         };
+        this.peerconnection.addEventListener('track', this.onTrack);
     }
     this.onsignalingstatechange = null;
     this.peerconnection.onsignalingstatechange = event => {
@@ -953,13 +954,6 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
     }
 
     const existingTrack = remoteTracksMap.get(mediaType);
-
-    // Delete the existing track and create the new one because of a known bug on Safari.
-    // RTCPeerConnection.ontrack fires when a new remote track is added but MediaStream.onremovetrack doesn't so
-    // it needs to be removed whenever a new track is received for the same endpoint id.
-    if (existingTrack && browser.isWebKitBased()) {
-        this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
-    }
 
     if (existingTrack && existingTrack.getTrack() === track) {
         // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
@@ -2723,10 +2717,9 @@ TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
 
     // Off SignalingEvents
-    this.signalingLayer.off(
-        SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
-    this.signalingLayer.off(
-        SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+    this.signalingLayer.off(SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
+    this.signalingLayer.off(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+    browser.usesUnifiedPlan() && this.peerconnection.removeEventListener('track', this.onTrack);
 
     for (const peerTracks of this.remoteTracks.values()) {
         for (const remoteTrack of peerTracks.values()) {

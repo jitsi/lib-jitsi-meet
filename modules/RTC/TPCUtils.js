@@ -10,6 +10,13 @@ const SIM_LAYER_1_RID = '1';
 const SIM_LAYER_2_RID = '2';
 const SIM_LAYER_3_RID = '3';
 
+const TransceiverDirection = {
+    INACTIVE: 'inactive',
+    RECVONLY: 'recvonly',
+    SENDONLY: 'sendonly',
+    SENDRECV: 'sendrecv'
+};
+
 export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
 
 /**
@@ -64,6 +71,45 @@ export class TPCUtils {
     }
 
     /**
+     * Returns the transceiver associated with a given RTCRtpSender/RTCRtpReceiver.
+     *
+     * @param {string} mediaType - type of track associated with the transceiver 'audio' or 'video'.
+     * @param {JitsiLocalTrack} localTrack - local track to be used for lookup.
+     * @returns {RTCRtpTransceiver}
+     */
+    _findTransceiver(mediaType, localTrack = null) {
+        let transceiver = null;
+
+        if (localTrack) {
+            transceiver = this.pc.peerconnection.getTransceivers()
+                .find(t => t.sender?.track?.id === localTrack.getTrackId());
+        } else if (mediaType) {
+            transceiver = this.pc.peerconnection.getTransceivers()
+                .find(t => t.receiver?.track?.kind === mediaType);
+        }
+
+        return transceiver;
+    }
+
+    /**
+     * Obtains stream encodings that need to be configured on the given track based
+     * on the track media type and the simulcast setting.
+     * @param {JitsiLocalTrack} localTrack
+     */
+    _getStreamEncodings(localTrack) {
+        if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
+            return this.localStreamEncodingsConfig;
+        }
+
+        return localTrack.isVideoTrack()
+            ? [ {
+                active: true,
+                maxBitrate: this.videoBitrates.high
+            } ]
+            : [ { active: true } ];
+    }
+
+    /**
      * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e.,
      * the primary ssrc first and the secondary rtx ssrc later. This is important for unified
      * plan since we have only one FID group per media description.
@@ -75,7 +121,7 @@ export class TPCUtils {
         const parsedSdp = transform.parse(description.sdp);
 
         parsedSdp.media.forEach(mLine => {
-            if (mLine.type === 'audio') {
+            if (mLine.type === MediaType.AUDIO) {
                 return;
             }
             if (!mLine.ssrcGroups || !mLine.ssrcGroups.length) {
@@ -98,24 +144,6 @@ export class TPCUtils {
     }
 
     /**
-     * Obtains stream encodings that need to be configured on the given track based
-     * on the track media type and the simulcast setting.
-     * @param {JitsiLocalTrack} localTrack
-     */
-    _getStreamEncodings(localTrack) {
-        if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
-            return this.localStreamEncodingsConfig;
-        }
-
-        return localTrack.isVideoTrack()
-            ? [ {
-                active: true,
-                maxBitrate: this.videoBitrates.high
-            } ]
-            : [ { active: true } ];
-    }
-
-    /**
      * Takes in a *unified plan* offer and inserts the appropriate
      * parameters for adding simulcast receive support.
      * @param {Object} desc - A session description object
@@ -126,20 +154,19 @@ export class TPCUtils {
      * with its sdp field modified to advertise simulcast receive support
      */
     insertUnifiedPlanSimulcastReceive(desc) {
-        // a=simulcast line is not needed on browsers where
-        // we munge SDP for turning on simulcast. Remove this check
-        // when we move to RID/MID based simulcast on all browsers.
+        // a=simulcast line is not needed on browsers where we SDP munging is used for enabling on simulcast.
+        // Remove this check when the client switches to RID/MID based simulcast on all browsers.
         if (browser.usesSdpMungingForSimulcast()) {
             return desc;
         }
         const sdp = transform.parse(desc.sdp);
-        const idx = sdp.media.findIndex(mline => mline.type === 'video');
+        const idx = sdp.media.findIndex(mline => mline.type === MediaType.VIDEO);
 
         if (sdp.media[idx].rids && (sdp.media[idx].simulcast_03 || sdp.media[idx].simulcast)) {
             // Make sure we don't have the simulcast recv line on video descriptions other than
             // the first video description.
             sdp.media.forEach((mline, i) => {
-                if (mline.type === 'video' && i !== idx) {
+                if (mline.type === MediaType.VIDEO && i !== idx) {
                     sdp.media[i].rids = undefined;
                     sdp.media[i].simulcast = undefined;
 
@@ -201,7 +228,7 @@ export class TPCUtils {
             // Use pc.addTransceiver() for the initiator case when local tracks are getting added
             // to the peerconnection before a session-initiate is sent over to the peer.
             const transceiverInit = {
-                direction: 'sendrecv',
+                direction: TransceiverDirection.SENDRECV,
                 streams: [ localTrack.getOriginalStream() ],
                 sendEncodings: []
             };
@@ -226,38 +253,12 @@ export class TPCUtils {
     addTrackUnmute(localTrack) {
         const mediaType = localTrack.getType();
         const track = localTrack.getTrack();
-
-        // The assumption here is that the first transceiver of the specified
-        // media type is that of the local track.
-        const transceiver = this.pc.peerconnection.getTransceivers()
-            .find(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
+        const transceiver = this._findTransceiver(mediaType);
 
         if (!transceiver) {
             return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
         }
         logger.debug(`Adding ${localTrack} on ${this.pc}`);
-
-        // If the client starts with audio/video muted setting, the transceiver direction will be set to 'recvonly'.
-        if (transceiver.direction === 'recvonly') {
-            const stream = localTrack.getOriginalStream();
-
-            if (stream && track) {
-                try {
-                    this.pc.peerconnection.addTrack(track, stream);
-                } catch (error) {
-                    logger.error(`Adding ${localTrack} failed on ${this.pc}:${error?.message}`);
-
-                    return Promise.reject(error);
-                }
-
-                return this.setEncodings(localTrack).then(() => {
-                    this.pc.localTracks.set(localTrack.rtcId, localTrack);
-                    transceiver.direction = 'sendrecv';
-                });
-            }
-
-            return Promise.resolve();
-        }
 
         return transceiver.sender.replaceTrack(track);
     }
@@ -295,8 +296,7 @@ export class TPCUtils {
      */
     removeTrackMute(localTrack) {
         const mediaType = localTrack.getType();
-        const transceiver = this.pc.peerconnection.getTransceivers()
-            .find(t => t.sender && t.sender.track && t.sender.track.id === localTrack.getTrackId());
+        const transceiver = this._findTransceiver(mediaType, localTrack);
 
         if (!transceiver) {
             return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
@@ -316,7 +316,7 @@ export class TPCUtils {
     replaceTrack(oldTrack, newTrack) {
         if (oldTrack && newTrack) {
             const mediaType = newTrack.getType();
-            const stream = newTrack.getOriginalStream();
+            const stream = newTrack.stream;
 
             // Ignore cases when the track is replaced while the device is in a muted state,like
             // replacing camera when video muted or replacing mic when audio muted. These JitsiLocalTracks
@@ -328,11 +328,11 @@ export class TPCUtils {
 
                 return Promise.resolve();
             }
-            const track = mediaType === MediaType.AUDIO
-                ? stream.getAudioTracks()[0]
-                : stream.getVideoTracks()[0];
-            const transceiver = this.pc.peerconnection.getTransceivers()
-                .find(t => t.receiver.track.kind === mediaType && !t.stopped);
+
+            const transceiver = oldTrack.isVideoTrack() && browser.doesVideoMuteByStreamRemove && oldTrack.isMuted()
+                ? this._findTransceiver(mediaType)
+                : this._findTransceiver(mediaType, oldTrack);
+            const track = mediaType === MediaType.AUDIO ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
 
             if (!transceiver) {
                 return Promise.reject(new Error('replace track failed'));
@@ -357,6 +357,16 @@ export class TPCUtils {
         } else if (oldTrack && !newTrack) {
             return this.removeTrackMute(oldTrack)
                 .then(() => {
+                    const mediaType = oldTrack.getType();
+                    const transceiver = this._findTransceiver(mediaType);
+
+                    // Change the direction on the transceiver to 'recvonly' so that a 'removetrack'
+                    // is fired on the associated media stream on the remote peer.
+                    if (transceiver) {
+                        transceiver.direction = TransceiverDirection.RECVONLY;
+                    }
+
+                    // Remove the old track from the list of local tracks.
                     this.pc.localTracks.delete(oldTrack.rtcId);
                     this.pc.localSSRCs.delete(oldTrack.rtcId);
                 });
@@ -364,7 +374,18 @@ export class TPCUtils {
             const ssrc = this.pc.localSSRCs.get(newTrack.rtcId);
 
             return this.addTrackUnmute(newTrack)
+                .then(() => this.setEncodings(newTrack))
                 .then(() => {
+                    const mediaType = newTrack.getType();
+                    const transceiver = this._findTransceiver(mediaType, newTrack);
+
+                    // Change the direction on the transceiver back to 'sendrecv' so that a 'track'
+                    // event is fired on the remote peer.
+                    if (transceiver) {
+                        transceiver.direction = TransceiverDirection.SENDRECV;
+                    }
+
+                    // Add the new track to the list of local tracks.
                     this.pc.localTracks.set(newTrack.rtcId, newTrack);
                     this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
                 });
@@ -395,9 +416,9 @@ export class TPCUtils {
      * @returns {Promise<void>} - resolved when done.
      */
     setEncodings(track) {
-        const transceiver = this.pc.peerconnection.getTransceivers()
-            .find(t => t.sender && t.sender.track && t.sender.track.kind === track.getType());
-        const parameters = transceiver.sender.getParameters();
+        const mediaType = track.getType();
+        const transceiver = this._findTransceiver(mediaType, track);
+        const parameters = transceiver?.sender?.getParameters();
 
         // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
         // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
@@ -428,12 +449,12 @@ export class TPCUtils {
             if (active) {
                 // The first transceiver is for the local track and only this one can be set to 'sendrecv'
                 if (idx === 0 && localTracks.length) {
-                    transceiver.direction = 'sendrecv';
+                    transceiver.direction = TransceiverDirection.SENDRECV;
                 } else {
-                    transceiver.direction = 'recvonly';
+                    transceiver.direction = TransceiverDirection.RECVONLY;
                 }
             } else {
-                transceiver.direction = 'inactive';
+                transceiver.direction = TransceiverDirection.INACTIVE;
             }
         });
     }

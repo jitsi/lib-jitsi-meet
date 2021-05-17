@@ -403,24 +403,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._setEffectInProgress = true;
 
-        if (browser.usesUnifiedPlan()) {
-            this._switchStreamEffect(effect);
-            if (this.isVideoTrack()) {
-                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
-            }
-
-            return conference.replaceTrack(this, this)
-                .then(() => {
-                    this._setEffectInProgress = false;
-                })
-                .catch(error => {
-                    this._setEffectInProgress = false;
-                    this._switchStreamEffect();
-                    logger.error('Failed to switch to the new stream!', error);
-                    throw error;
-                });
-        }
-
         // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
         return conference.removeTrack(this)
             .then(() => {
