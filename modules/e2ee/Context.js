@@ -155,8 +155,10 @@ export class Context {
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
-            }, () => {
+            }, e => {
                 // TODO: surface this to the app.
+                console.error(e);
+
                 // We are not enqueuing the frame here on purpose.
             });
         }
@@ -176,20 +178,15 @@ export class Context {
      */
     async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
+        const keyIndex = data[encodedFrame.data.byteLength - 1];
 
-        try {
-            const keyIndex = data[encodedFrame.data.byteLength - 1];
+        if (this._cryptoKeyRing[keyIndex]) {
 
-            if (this._cryptoKeyRing[keyIndex]) {
+            const decodedFrame = await this._decryptFrame(
+                encodedFrame,
+                keyIndex);
 
-                const decodedFrame = await this._decryptFrame(
-                    encodedFrame,
-                    keyIndex);
-
-                return controller.enqueue(decodedFrame);
-            }
-        } catch (error) {
-            // Logging this exception might flood the console
+            return controller.enqueue(decodedFrame);
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
