@@ -250,8 +250,6 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
-            console.error(error);
-
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 material = await importKey(await ratchet(material));
 
@@ -266,16 +264,6 @@ export class Context {
             }
 
             // TODO: notify the application about error status.
-
-            // TODO: For video we need a better strategy since we do not want to based any
-            // non-error frames on a garbage keyframe.
-            if (encodedFrame.type === undefined) { // audio, replace with silence.
-                const newData = new ArrayBuffer(3);
-                const newUint8 = new Uint8Array(newData);
-
-                newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                encodedFrame.data = newData;
-            }
         }
 
         return encodedFrame;
