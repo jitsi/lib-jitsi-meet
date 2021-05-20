@@ -558,13 +558,7 @@ export default class JingleSessionPC extends JingleSession {
                         .then(() => {
                             const newSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-                            // Skip the ssrc update from Firefox when onnegotiationneeded is fired as a result of media
-                            // direction set to 'inactive' for JVB session (i.e., when media is suspended over jvb
-                            // connection). This results in a source-remove/source-add being sent to Jicofo whenever
-                            // the media direction changes which is unnecessary.
-                            const skipUpdate = browser.isFirefox() && !this.isP2P && !this._localVideoActive;
-
-                            !skipUpdate && this.notifyMySSRCUpdate(oldSdp, newSdp);
+                            this.notifyMySSRCUpdate(oldSdp, newSdp);
                             finishedCallback();
                         },
                         finishedCallback /* will be called with en error */);
