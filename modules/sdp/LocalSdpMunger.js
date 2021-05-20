@@ -3,6 +3,7 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as MediaType from '../../service/RTC/MediaType';
+import browser from '../browser';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
 
@@ -189,14 +190,21 @@ export default class LocalSdpMunger {
                         }
                         ssrcLine.value = `${streamId}-${pcId} ${trackId}-${pcId}`;
                     } else {
-                        logger.warn(
-                            'Unable to munge local MSID'
-                                + `- weird format detected: ${ssrcLine.value}`);
+                        logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
                     }
                 }
                 break;
             }
             }
+        }
+
+        // If the msid attribute is missing, then remove the ssrc from the transformed description so that a
+        // source-remove is signaled to Jicofo. This happens when the direction of the transceiver (or m-line)
+        // is set to 'inactive' or 'recvonly' on Firefox.
+        const msid = mediaSection.ssrcs.find(s => s.attribute === 'msid');
+
+        if (!msid && browser.isFirefox()) {
+            mediaSection.ssrcs = undefined;
         }
     }
 
