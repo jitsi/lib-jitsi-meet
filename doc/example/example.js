@@ -12,7 +12,6 @@ const options = {
 };
 
 const confOptions = {
-    openBridgeChannel: true
 };
 
 let connection = null;
