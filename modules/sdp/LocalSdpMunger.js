@@ -3,7 +3,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as MediaType from '../../service/RTC/MediaType';
-import browser from '../browser';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
 
@@ -200,11 +199,13 @@ export default class LocalSdpMunger {
 
         // If the msid attribute is missing, then remove the ssrc from the transformed description so that a
         // source-remove is signaled to Jicofo. This happens when the direction of the transceiver (or m-line)
-        // is set to 'inactive' or 'recvonly' on Firefox.
+        // is set to 'inactive' or 'recvonly' on Firefox, Chrome (unified) and Safari.
         const msid = mediaSection.ssrcs.find(s => s.attribute === 'msid');
 
-        if (!msid && browser.isFirefox()) {
+        if (!this.tpc.isP2P
+            && (!msid || mediaSection.direction === 'recvonly' || mediaSection.direction === 'inactive')) {
             mediaSection.ssrcs = undefined;
+            mediaSection.ssrcGroups = undefined;
         }
     }
 
