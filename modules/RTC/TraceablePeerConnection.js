@@ -1037,6 +1037,11 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(
     const streamId = RTC.getStreamID(stream);
     const trackId = track && RTC.getTrackID(track);
 
+    if (!RTC.isUserStreamById(streamId)) {
+        logger.info(`${this} ignored remote 'stream removed' event for non-user stream id: ${streamId}`);
+
+        return;
+    }
     logger.info(`${this} - remote track removed: ${streamId}, ${trackId}`);
 
     if (!streamId) {
@@ -1509,7 +1514,7 @@ const getters = {
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
         // if we're running on FF, transform to Plan B first.
-        if (browser.usesUnifiedPlan()) {
+        if (browser.usesUnifiedPlan() && !this.isP2P) {
             desc = this.interop.toPlanB(desc);
             this.trace('getLocalDescription::postTransform (Plan B)',
                 dumpSDP(desc));
@@ -1517,7 +1522,7 @@ const getters = {
             desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)',
                 dumpSDP(desc));
-        } else {
+        } else if (browser.usesPlanB()) {
             if (browser.doesVideoMuteByStreamRemove()) {
                 desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
                 logger.debug(
@@ -1551,7 +1556,7 @@ const getters = {
         this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
 
         // if we're running on FF, transform to Plan B first.
-        if (browser.usesUnifiedPlan()) {
+        if (browser.usesUnifiedPlan() && !this.isP2P) {
             desc = this.interop.toPlanB(desc);
             this.trace(
                 'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
@@ -2225,7 +2230,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
     if (browser.usesPlanB()) {
         localSdp = this._adjustLocalMediaDirection(localSdp);
         localSdp = this._ensureSimulcastGroupIsLast(localSdp);
-    } else {
+    } else if (!this.isP2P) {
 
         // if we're using unified plan, transform to it first.
         localSdp = this.interop.toUnifiedPlan(localSdp);
@@ -2445,7 +2450,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
         // eslint-disable-next-line no-param-reassign
         description = normalizePlanB(description);
-    } else {
+    } else if (!this.isP2P) {
         const currentDescription = this.peerconnection.remoteDescription;
 
         // eslint-disable-next-line no-param-reassign
