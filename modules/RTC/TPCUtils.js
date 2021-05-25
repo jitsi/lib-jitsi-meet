@@ -2,7 +2,6 @@ import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -316,7 +315,7 @@ export class TPCUtils {
     replaceTrack(oldTrack, newTrack) {
         if (oldTrack && newTrack) {
             const mediaType = newTrack.getType();
-            const stream = newTrack.stream;
+            const stream = newTrack.getOriginalStream();
 
             // Ignore cases when the track is replaced while the device is in a muted state,like
             // replacing camera when video muted or replacing mic when audio muted. These JitsiLocalTracks
@@ -332,7 +331,7 @@ export class TPCUtils {
             const transceiver = oldTrack.isVideoTrack() && browser.doesVideoMuteByStreamRemove && oldTrack.isMuted()
                 ? this._findTransceiver(mediaType)
                 : this._findTransceiver(mediaType, oldTrack);
-            const track = mediaType === MediaType.AUDIO ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
+            const track = newTrack.getTrack();
 
             if (!transceiver) {
                 return Promise.reject(new Error('replace track failed'));
@@ -350,9 +349,6 @@ export class TPCUtils {
 
                     this.pc._addedStreams.push(stream);
                     this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
-                    this.pc.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED,
-                        newTrack,
-                        this.pc._extractPrimarySSRC(ssrc));
                 });
         } else if (oldTrack && !newTrack) {
             return this.removeTrackMute(oldTrack)
@@ -371,8 +367,6 @@ export class TPCUtils {
                     this.pc.localSSRCs.delete(oldTrack.rtcId);
                 });
         } else if (newTrack && !oldTrack) {
-            const ssrc = this.pc.localSSRCs.get(newTrack.rtcId);
-
             return this.addTrackUnmute(newTrack)
                 .then(() => this.setEncodings(newTrack))
                 .then(() => {
@@ -387,7 +381,6 @@ export class TPCUtils {
 
                     // Add the new track to the list of local tracks.
                     this.pc.localTracks.set(newTrack.rtcId, newTrack);
-                    this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
                 });
         }
 
