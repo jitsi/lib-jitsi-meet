@@ -76,5 +76,22 @@ describe('TransformRecvOnly', () => {
                 }
             }
         });
+
+        it('should add msid', () => {
+            // P2P case only.
+            localSdpMunger.tpc.isP2P = true;
+
+            const sdpStr = transform.write(SampleSdpStrings.firefoxP2pSdp);
+            const desc = new RTCSessionDescription({
+                type: 'offer',
+                sdp: sdpStr
+            });
+            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+            const newSdp = transform.parse(transformedDesc.sdp);
+            const videoSsrcs = getSsrcLines(newSdp, 'video');
+            const msidExists = videoSsrcs.find(s => s.attribute === 'msid');
+
+            expect(msidExists).toBeDefined();
+        });
     });
 });
