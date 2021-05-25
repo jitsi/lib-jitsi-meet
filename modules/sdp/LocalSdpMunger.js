@@ -153,6 +153,32 @@ export default class LocalSdpMunger {
     }
 
     /**
+     * Returns a string that can be set as the MSID attribute for a source.
+     *
+     * @param {string} mediaType - Media type of the source.
+     * @param {string} trackId - Id of the MediaStreamTrack associated with the source.
+     * @param {string} streamId - Id of the MediaStream associated with the source.
+     * @returns {string|null}
+     */
+    _generateMsidAttribute(mediaType, trackId, streamId = null) {
+        if (!(mediaType && trackId)) {
+            logger.warn(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
+
+            return null;
+        }
+        const pcId = this.tpc.id;
+
+        // Handle a case on Firefox when the browser doesn't produce a 'a:ssrc' line with the 'msid' attribute or has
+        // '-' for the stream id part of the msid line. Jicofo needs an unique identifier to be associated with a ssrc
+        // and uses the msid for that.
+        if (streamId === '-' || !streamId) {
+            return `${this.localEndpointId}-${mediaType}-${pcId} ${trackId}-${pcId}`;
+        }
+
+        return `${streamId}-${pcId} ${trackId}-${pcId}`;
+    }
+
+    /**
      * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending
      * the id of {@link LocalSdpMunger#tpc} at the end, preceding by a dash
      * sign.
@@ -177,17 +203,11 @@ export default class LocalSdpMunger {
                     const streamAndTrackIDs = ssrcLine.value.split(' ');
 
                     if (streamAndTrackIDs.length === 2) {
-                        let streamId = streamAndTrackIDs[0];
-                        const trackId = streamAndTrackIDs[1];
-
-                        // Handle a case on Firefox when the browser doesn't produce a 'a:ssrc' line with the 'msid'
-                        // attribute. Jicofo needs an unique identifier to be associated with a ssrc and uses the msid
-                        // for that. Generate the identifier using the local endpoint id.
-                        // eslint-disable-next-line max-depth
-                        if (streamId === '-') {
-                            streamId = `${this.localEndpointId}-${mediaSection.mLine?.type}`;
-                        }
-                        ssrcLine.value = `${streamId}-${pcId} ${trackId}-${pcId}`;
+                        ssrcLine.value
+                            = this._generateMsidAttribute(
+                                mediaSection.mLine?.type,
+                                streamAndTrackIDs[1],
+                                streamAndTrackIDs[0]);
                     } else {
                         logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
                     }
@@ -203,9 +223,30 @@ export default class LocalSdpMunger {
         const msid = mediaSection.ssrcs.find(s => s.attribute === 'msid');
 
         if (!this.tpc.isP2P
-            && (!msid || mediaSection.direction === 'recvonly' || mediaSection.direction === 'inactive')) {
+            && (!msid
+                || mediaSection.mLine?.direction === 'recvonly'
+                || mediaSection.mLine?.direction === 'inactive')) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
+
+        // Add the msid attribute if it is missing for p2p sources. Firefox doesn't produce a a=ssrc line
+        // with msid attribute.
+        } else if (this.tpc.isP2P && mediaSection.mLine?.direction === 'sendrecv') {
+            const msidLine = mediaSection.mLine?.msid;
+            const trackId = msidLine && msidLine.split(' ')[1];
+            const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
+
+            for (const source of sources) {
+                const msidExists = mediaSection.ssrcs
+                    .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
+                const generatedMsid = this._generateMsidAttribute(mediaSection.mLine?.type, trackId);
+
+                !msidExists && generatedMsid && mediaSection.ssrcs.push({
+                    id: source,
+                    attribute: 'msid',
+                    value: generatedMsid
+                });
+            }
         }
     }
 
