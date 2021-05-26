@@ -299,7 +299,8 @@ describe('ChatRoom', () => {
 
         beforeEach(() => {
             const xmpp = {
-                options: {}
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
@@ -316,7 +317,6 @@ describe('ChatRoom', () => {
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<body>string message</body>' +
-                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
                 '</message>');
         });
         it('sends a object msg with elementName body correctly', () => {
@@ -324,7 +324,6 @@ describe('ChatRoom', () => {
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<body object="message"/>' +
-                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
                 '</message>');
         });
         it('sends a string msg with elementName json-message correctly', () => {
@@ -332,7 +331,6 @@ describe('ChatRoom', () => {
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<json-message xmlns="http://jitsi.org/jitmeet">string message</json-message>' +
-                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
                 '</message>');
         });
         it('sends a object msg with elementName json-message correctly', () => {
@@ -340,7 +338,6 @@ describe('ChatRoom', () => {
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<json-message object="message" xmlns="http://jitsi.org/jitmeet"/>' +
-                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
                 '</message>');
         });
     });
