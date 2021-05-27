@@ -79,12 +79,19 @@ export class TPCUtils {
     _findTransceiver(mediaType, localTrack = null) {
         let transceiver = null;
 
-        if (localTrack) {
-            transceiver = this.pc.peerconnection.getTransceivers()
-                .find(t => t.sender?.track?.id === localTrack.getTrackId());
-        } else if (mediaType) {
+        // Check if the local track has been removed from the peerconnection already.
+        const trackRemoved = !localTrack
+            || (localTrack
+                && browser.doesVideoMuteByStreamRemove()
+                && localTrack.isVideoTrack()
+                && localTrack.isMuted());
+
+        if (trackRemoved) {
             transceiver = this.pc.peerconnection.getTransceivers()
                 .find(t => t.receiver?.track?.kind === mediaType);
+        } else if (localTrack) {
+            transceiver = this.pc.peerconnection.getTransceivers()
+                .find(t => t.sender?.track?.id === localTrack.getTrackId());
         }
 
         return transceiver;
@@ -328,9 +335,7 @@ export class TPCUtils {
                 return Promise.resolve();
             }
 
-            const transceiver = oldTrack.isVideoTrack() && browser.doesVideoMuteByStreamRemove && oldTrack.isMuted()
-                ? this._findTransceiver(mediaType)
-                : this._findTransceiver(mediaType, oldTrack);
+            const transceiver = this._findTransceiver(mediaType, oldTrack);
             const track = newTrack.getTrack();
 
             if (!transceiver) {
@@ -368,7 +373,6 @@ export class TPCUtils {
                 });
         } else if (newTrack && !oldTrack) {
             return this.addTrackUnmute(newTrack)
-                .then(() => this.setEncodings(newTrack))
                 .then(() => {
                     const mediaType = newTrack.getType();
                     const transceiver = this._findTransceiver(mediaType, newTrack);
@@ -379,8 +383,15 @@ export class TPCUtils {
                         transceiver.direction = TransceiverDirection.SENDRECV;
                     }
 
-                    // Add the new track to the list of local tracks.
-                    this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                    // Avoid configuring the encodings on chromium since the encoding params are read-only
+                    // until the renegotation is done after the track is replaced on the sender.
+                    const promise = browser.isChromiumBased() ? Promise.resolve() : this.setEncodings(newTrack);
+
+                    return promise
+                        .then(() => {
+                            // Add the new track to the list of local tracks.
+                            this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                        });
                 });
         }
 
