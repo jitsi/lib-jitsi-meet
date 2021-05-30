@@ -217,19 +217,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser uses unified plan.
-     *
-     * @returns {boolean}
-     */
-    usesUnifiedPlan() {
-        if (this.isFirefox() || this.isWebKitBased()) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Checks if the browser uses webrtc-adapter. All browsers except React Native do.
      *
      * @returns {boolean}
@@ -294,13 +281,12 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser supports the "sdpSemantics" configuration option.
-     * https://webrtc.org/web-apis/chrome/unified-plan/
+     * Checks if the browser supports unified plan.
      *
      * @returns {boolean}
      */
-    supportsSdpSemantics() {
-        return this.isChromiumBased();
+    supportsUnifiedPlan() {
+        return !this.isReactNative();
     }
 
     /**
