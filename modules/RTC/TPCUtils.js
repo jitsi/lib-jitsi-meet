@@ -383,9 +383,11 @@ export class TPCUtils {
                         transceiver.direction = TransceiverDirection.SENDRECV;
                     }
 
-                    // Avoid configuring the encodings on chromium since the encoding params are read-only
-                    // until the renegotation is done after the track is replaced on the sender.
-                    const promise = browser.isChromiumBased() ? Promise.resolve() : this.setEncodings(newTrack);
+                    // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
+                    // for the newly added track using SDP munging which happens during the renegotiation.
+                    const promise = browser.usesSdpMungingForSimulcast()
+                        ? Promise.resolve()
+                        : this.setEncodings(newTrack);
 
                     return promise
                         .then(() => {
