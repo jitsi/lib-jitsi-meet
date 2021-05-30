@@ -114,20 +114,16 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Creates new <tt>JingleSessionPC</tt>
-     * @param {string} sid the Jingle Session ID - random string which
-     * identifies the session
+     * @param {string} sid the Jingle Session ID - random string which identifies the session
      * @param {string} localJid our JID
      * @param {string} remoteJid remote peer JID
      * @param {XmppConnection} connection - The XMPP connection instance.
-     * @param mediaConstraints the media constraints object passed to
-     * createOffer/Answer, as defined by the WebRTC standard
-     * @param iceConfig the ICE servers config object as defined by the WebRTC
-     * standard.
-     * @param {boolean} isP2P indicates whether this instance is
-     * meant to be used in a direct, peer to peer connection or <tt>false</tt>
-     * if it's a JVB connection.
-     * @param {boolean} isInitiator indicates if it will be the side which
-     * initiates the session.
+     * @param mediaConstraints the media constraints object passed to createOffer/Answer, as defined
+     * by the WebRTC standard
+     * @param iceConfig the ICE servers config object as defined by the WebRTC standard.
+     * @param {boolean} isP2P indicates whether this instance is meant to be used in a direct, peer to
+     * peer connection or <tt>false</tt> if it's a JVB connection.
+     * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
      * @constructor
      *
      * @implements {SignalingLayer}
@@ -337,6 +333,11 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.videoQuality = options.videoQuality;
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
+        pcOptions.usesUnifiedPlan = this.usesUnifiedPlan
+            = browser.supportsUnifiedPlan()
+                && (browser.isFirefox()
+                    || browser.isWebKitBased()
+                    || (browser.isChromiumBased() && options.enableUnifiedOnChrome));
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
@@ -548,7 +549,7 @@ export default class JingleSessionPC extends JingleSession {
             const state = this.peerconnection.signalingState;
             const remoteDescription = this.peerconnection.remoteDescription;
 
-            if (browser.usesUnifiedPlan() && state === 'stable'
+            if (this.usesUnifiedPlan && state === 'stable'
                 && remoteDescription && typeof remoteDescription.sdp === 'string') {
                 logger.debug(`onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
                 const workFunction = finishedCallback => {
@@ -1793,20 +1794,15 @@ export default class JingleSessionPC extends JingleSession {
      *  in removeSsrcInfo
      */
     _processRemoteRemoveSource(removeSsrcInfo) {
-        const remoteSdp = browser.usesPlanB()
-            ? new SDP(this.peerconnection.remoteDescription.sdp)
-            : new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
+        const remoteSdp = this.usesUnifiedPlan
+            ? new SDP(this.peerconnection.peerconnection.remoteDescription.sdp)
+            : new SDP(this.peerconnection.remoteDescription.sdp);
 
         removeSsrcInfo.forEach((lines, idx) => {
             // eslint-disable-next-line no-param-reassign
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
-            if (browser.usesPlanB()) {
-                lines.forEach(line => {
-                    remoteSdp.media[idx]
-                        = remoteSdp.media[idx].replace(`${line}\r\n`, '');
-                });
-            } else {
+            if (this.usesUnifiedPlan) {
                 lines.forEach(line => {
                     const mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
 
@@ -1816,6 +1812,11 @@ export default class JingleSessionPC extends JingleSession {
                         // Change the direction to "inactive".
                         remoteSdp.media[mid] = remoteSdp.media[mid].replace('a=sendonly', 'a=inactive');
                     }
+                });
+            } else {
+                lines.forEach(line => {
+                    remoteSdp.media[idx]
+                        = remoteSdp.media[idx].replace(`${line}\r\n`, '');
                 });
             }
         });
@@ -1946,7 +1947,7 @@ export default class JingleSessionPC extends JingleSession {
 
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
-            if (browser.usesPlanB()) {
+            if (!this.usesUnifiedPlan) {
                 // NOTE the code below assumes that no more than 1 video track
                 // can be added to the peer connection.
                 // Transition from camera to desktop share
