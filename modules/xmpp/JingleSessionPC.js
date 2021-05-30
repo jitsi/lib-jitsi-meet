@@ -551,7 +551,7 @@ export default class JingleSessionPC extends JingleSession {
 
             if (this.usesUnifiedPlan && state === 'stable'
                 && remoteDescription && typeof remoteDescription.sdp === 'string') {
-                logger.debug(`onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
+                logger.debug(`${this} onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
                 const workFunction = finishedCallback => {
                     const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
 
@@ -569,9 +569,9 @@ export default class JingleSessionPC extends JingleSession {
                     workFunction,
                     error => {
                         if (error) {
-                            logger.error(`onnegotiationneeded error on ${this}`, error);
+                            logger.error(`${this} onnegotiationneeded error`, error);
                         } else {
-                            logger.debug(`onnegotiationneeded executed - OK on ${this}`);
+                            logger.debug(`${this} onnegotiationneeded executed - OK`);
                         }
                     });
             }
@@ -631,7 +631,7 @@ export default class JingleSessionPC extends JingleSession {
                 this.sendIceCandidates([ candidate ]);
             }
         } else {
-            logger.log('sendIceCandidate: last candidate.');
+            logger.log(`${this} sendIceCandidate: last candidate`);
 
             // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
@@ -650,7 +650,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.log('sendIceCandidates', candidates);
+        logger.log(`${this} sendIceCandidates ${JSON.stringify(candidates)}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
@@ -761,7 +761,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     addIceCandidates(elem) {
         if (this.peerconnection.signalingState === 'closed') {
-            logger.warn('Ignored add ICE candidate when in closed state');
+            logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 
             return;
         }
@@ -792,7 +792,7 @@ export default class JingleSessionPC extends JingleSession {
             });
 
         if (!iceCandidates.length) {
-            logger.error('No ICE candidates to add ?', elem[0] && elem[0].outerHTML);
+            logger.error(`${this} No ICE candidates to add ?`, elem[0] && elem[0].outerHTML);
 
             return;
         }
@@ -805,15 +805,15 @@ export default class JingleSessionPC extends JingleSession {
             for (const iceCandidate of iceCandidates) {
                 this.peerconnection.addIceCandidate(iceCandidate)
                     .then(
-                        () => logger.debug('addIceCandidate ok!'),
-                        err => logger.error('addIceCandidate failed!', err));
+                        () => logger.debug(`${this} addIceCandidate ok!`),
+                        err => logger.error(`${this} addIceCandidate failed!`, err));
             }
 
             finishedCallback();
-            logger.debug(`ICE candidates task finished on ${this}`);
+            logger.debug(`${this} ICE candidates task finished`);
         };
 
-        logger.debug(`Queued add (${iceCandidates.length}) ICE candidates task...`);
+        logger.debug(`${this} Queued add (${iceCandidates.length}) ICE candidates task`);
         this.modificationQueue.push(workFunction);
     }
 
@@ -842,7 +842,7 @@ export default class JingleSessionPC extends JingleSession {
 
                         if (owner && owner.length) {
                             if (isNaN(ssrc) || ssrc < 0) {
-                                logger.warn(`Invalid SSRC ${ssrc} value received for ${owner}`);
+                                logger.warn(`${this} Invalid SSRC ${ssrc} value received for ${owner}`);
                             } else {
                                 this.signalingLayer.setSSRCOwner(
                                     ssrc,
@@ -863,7 +863,7 @@ export default class JingleSessionPC extends JingleSession {
         if (this.peerconnection) {
             this.peerconnection.generateRecvonlySsrc();
         } else {
-            logger.error('Unable to generate recvonly SSRC - no peerconnection');
+            logger.error(`${this} Unable to generate recvonly SSRC - no peerconnection`);
         }
     }
 
@@ -937,14 +937,14 @@ export default class JingleSessionPC extends JingleSession {
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
-        logger.debug(`Queued invite task on ${this}.`);
+        logger.debug(`${this} Queued invite task`);
         this.modificationQueue.push(
             workFunction,
             error => {
                 if (error) {
-                    logger.error(`invite error on ${this}`, error);
+                    logger.error(`${this} invite error`, error);
                 } else {
-                    logger.debug(`invite executed - OK on ${this}`);
+                    logger.debug(`${this} invite executed - OK`);
                 }
             });
     }
@@ -974,13 +974,13 @@ export default class JingleSessionPC extends JingleSession {
             init,
             this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
-        logger.info('Session-initiate: ', init);
+        logger.info(`${this} Session-initiate: `, init);
         this.connection.sendIQ(init,
             () => {
-                logger.info('Got RESULT for "session-initiate"');
+                logger.info(`${this} Got RESULT for "session-initiate"`);
             },
             error => {
-                logger.error('"session-initiate" error', error);
+                logger.error(`${this} "session-initiate" error`, error);
             },
             IQ_TIMEOUT);
     }
@@ -996,10 +996,10 @@ export default class JingleSessionPC extends JingleSession {
         this.setOfferAnswerCycle(
             jingleAnswer,
             () => {
-                logger.info('setAnswer - succeeded');
+                logger.info(`${this} setAnswer - succeeded`);
             },
             error => {
-                logger.error('setAnswer failed: ', error);
+                logger.error(`${this} setAnswer failed: `, error);
             });
     }
 
@@ -1081,15 +1081,15 @@ export default class JingleSessionPC extends JingleSession {
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
-        logger.debug(`Queued setOfferAnswerCycle task on ${this}`);
+        logger.debug(`${this} Queued setOfferAnswerCycle task`);
         this.modificationQueue.push(
             workFunction,
             error => {
                 if (error) {
-                    logger.error(`setOfferAnswerCycle task on ${this} failed: ${error}`);
+                    logger.error(`${this} setOfferAnswerCycle task failed: ${error}`);
                     failure(error);
                 } else {
-                    logger.debug(`setOfferAnswerCycle task on ${this} done.`);
+                    logger.debug(`${this} setOfferAnswerCycle task done`);
                     success();
                 }
             });
@@ -1113,17 +1113,17 @@ export default class JingleSessionPC extends JingleSession {
             const workFunction = finishedCallback => {
                 this._renegotiate().then(
                     () => {
-                        logger.debug(`setVideoCodecs task on ${this} is done.`);
+                        logger.debug(`${this} setVideoCodecs task is done`);
 
                         return finishedCallback();
                     }, error => {
-                        logger.error(`setVideoCodecs task on ${this} failed: ${error}`);
+                        logger.error(`${this} setVideoCodecs task failed: ${error}`);
 
                         return finishedCallback(error);
                     });
             };
 
-            logger.debug(`Queued setVideoCodecs task on ${this}`);
+            logger.debug(`${this} Queued setVideoCodecs task`);
 
             // Queue and execute
             this.modificationQueue.push(workFunction);
@@ -1242,7 +1242,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         accept = accept.tree();
-        logger.info('Sending session-accept', accept);
+        logger.info(`${this} Sending session-accept`, accept);
         this.connection.sendIQ(accept,
             success,
             this.newJingleErrorHandler(accept, error => {
@@ -1376,7 +1376,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful to the logger
         transportAccept = transportAccept.tree();
-        logger.info('Sending transport-accept: ', transportAccept);
+        logger.info(`${this} Sending transport-accept: `, transportAccept);
 
         this.connection.sendIQ(transportAccept,
             success,
@@ -1408,7 +1408,7 @@ export default class JingleSessionPC extends JingleSession {
             });
 
         transportReject = transportReject.tree();
-        logger.info('Sending \'transport-reject', transportReject);
+        logger.info(`${this} Sending 'transport-reject'`, transportReject);
 
         this.connection.sendIQ(transportReject,
             success,
@@ -1512,14 +1512,14 @@ export default class JingleSessionPC extends JingleSession {
 
             // Calling tree() to print something useful
             sessionTerminate = sessionTerminate.tree();
-            logger.info('Sending session-terminate', sessionTerminate);
+            logger.info(`${this} Sending session-terminate`, sessionTerminate);
             this.connection.sendIQ(
                 sessionTerminate,
                 success,
                 this.newJingleErrorHandler(sessionTerminate, failure),
                 IQ_TIMEOUT);
         } else {
-            logger.info(`Skipped sending session-terminate for ${this}`);
+            logger.info(`${this} Skipped sending session-terminate`);
         }
 
         // this should result in 'onTerminated' being called by strope.jingle.js
@@ -1535,7 +1535,7 @@ export default class JingleSessionPC extends JingleSession {
         // Do something with reason and reasonCondition when we start to care
         // this.reasonCondition = reasonCondition;
         // this.reasonText = reasonText;
-        logger.info(`Session terminated ${this}`, reasonCondition, reasonText);
+        logger.info(`${this} Session terminated`, reasonCondition, reasonText);
 
         this._xmppListeners.forEach(removeListener => removeListener());
         this._xmppListeners = [];
@@ -1554,7 +1554,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     onXmppStatusChanged(status) {
         if (status === XmppConnection.Status.CONNECTED && this._cachedOldLocalSdp) {
-            logger.info('Sending SSRC update on reconnect');
+            logger.info(`${this} Sending SSRC update on reconnect`);
             this.notifyMySSRCUpdate(
                 this._cachedOldLocalSdp,
                 this._cachedNewLocalSdp);
@@ -1609,7 +1609,7 @@ export default class JingleSessionPC extends JingleSession {
                 const ssrc = $(this).attr('ssrc');
 
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
-                    logger.warn(`Source-add request for existing SSRC: ${ssrc}`);
+                    logger.warn(`${this} Source-add request for existing SSRC: ${ssrc}`);
 
                     return;
                 }
@@ -1687,16 +1687,16 @@ export default class JingleSessionPC extends JingleSession {
         };
 
         return new Promise((resolve, reject) => {
-            logger.debug(`Queued removeRemoteStreamsOnLeave task for participant ${id} on ${this}`);
+            logger.debug(`${this} Queued removeRemoteStreamsOnLeave task for participant ${id}`);
 
             this.modificationQueue.push(
                 workFunction,
                 error => {
                     if (error) {
-                        logger.error(`removeRemoteStreamsOnLeave error on ${this}:`, error);
+                        logger.error(`${this} removeRemoteStreamsOnLeave error:`, error);
                         reject(error);
                     } else {
-                        logger.info(`removeRemoteStreamsOnLeave done on ${this}!`);
+                        logger.info(`${this} removeRemoteStreamsOnLeave done!`);
                         resolve(remoteTracks);
                     }
                 });
@@ -1729,7 +1729,7 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
-            logger.log(`Processing ${logPrefix}`);
+            logger.log(`${this} Processing ${logPrefix}`);
 
             const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
@@ -1747,16 +1747,16 @@ export default class JingleSessionPC extends JingleSession {
                     const newLocalSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
 
-                    logger.log(`${logPrefix} - OK`);
+                    logger.log(`${this} ${logPrefix} - OK`);
                     this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
                     finishedCallback();
                 }, error => {
-                    logger.error(`${logPrefix} failed:`, error);
+                    logger.error(`${this} ${logPrefix} failed:`, error);
                     finishedCallback(error);
                 });
         };
 
-        logger.debug(`Queued ${logPrefix} task on ${this}`);
+        logger.debug(`${this} Queued ${logPrefix} task`);
 
         // Queue and execute
         this.modificationQueue.push(workFunction);
@@ -1891,15 +1891,15 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _responderRenegotiate(remoteDescription) {
-        logger.debug('Renegotiate: setting remote description');
+        logger.debug(`${this} Renegotiate: setting remote description`);
 
         return this.peerconnection.setRemoteDescription(remoteDescription)
             .then(() => {
-                logger.debug('Renegotiate: creating answer');
+                logger.debug(`${this} Renegotiate: creating answer`);
 
                 return this.peerconnection.createAnswer(this.mediaConstraints)
                     .then(answer => {
-                        logger.debug('Renegotiate: setting local description');
+                        logger.debug(`${this} Renegotiate: setting local description`);
 
                         return this.peerconnection.setLocalDescription(answer);
                     });
@@ -1913,15 +1913,15 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _initiatorRenegotiate(remoteDescription) {
-        logger.debug('Renegotiate: creating offer');
+        logger.debug(`${this} Renegotiate: creating offer`);
 
         return this.peerconnection.createOffer(this.mediaConstraints)
             .then(offer => {
-                logger.debug('Renegotiate: setting local description');
+                logger.debug(`${this} Renegotiate: setting local description`);
 
                 return this.peerconnection.setLocalDescription(offer)
                     .then(() => {
-                        logger.debug('Renegotiate: setting remote description');
+                        logger.debug(`${this} Renegotiate: setting remote description`);
 
                         // eslint-disable-next-line max-len
                         return this.peerconnection.setRemoteDescription(remoteDescription);
@@ -1943,7 +1943,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     replaceTrack(oldTrack, newTrack) {
         const workFunction = finishedCallback => {
-            logger.debug(`replaceTrack worker started. oldTrack = ${oldTrack}, newTrack = ${newTrack}, ${this}`);
+            logger.debug(`${this} replaceTrack worker started. oldTrack = ${oldTrack}, newTrack = ${newTrack}`);
 
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
@@ -1986,8 +1986,8 @@ export default class JingleSessionPC extends JingleSession {
                 .then(shouldRenegotiate => {
                     let promise = Promise.resolve();
 
-                    logger.debug(`TPC.replaceTrack finished. shouldRenegotiate = ${
-                        shouldRenegotiate}, JingleSessionState = ${this.state}, ${this}`);
+                    logger.debug(`${this} TPC.replaceTrack finished. shouldRenegotiate = ${
+                        shouldRenegotiate}, JingleSessionState = ${this.state}`);
 
                     if (shouldRenegotiate
                         && (oldTrack || newTrack)
@@ -2001,23 +2001,13 @@ export default class JingleSessionPC extends JingleSession {
 
                     return promise.then(() => {
                         if (newTrack && newTrack.isVideoTrack()) {
-                            logger.debug(`replaceTrack worker: setSenderVideoDegradationPreference(), ${this}`);
+                            logger.debug(`${this} replaceTrack worker: configuring video stream`);
 
                             // FIXME set all sender parameters in one go?
                             // Set the degradation preference on the new video sender.
                             return this.peerconnection.setSenderVideoDegradationPreference()
-
-                                // Apply the cached video constraints on the new video sender.
-                                .then(() => {
-                                    logger.debug(`replaceTrack worker: setSenderVideoConstraint(), ${this}`);
-
-                                    return this.peerconnection.setSenderVideoConstraint();
-                                })
-                                .then(() => {
-                                    logger.debug(`replaceTrack worker: setMaxBitRate(), ${this}`);
-
-                                    return this.peerconnection.setMaxBitRate();
-                                });
+                                .then(() => this.peerconnection.setSenderVideoConstraint())
+                                .then(() => this.peerconnection.setMaxBitRate());
                         }
                     });
                 })
@@ -2025,17 +2015,16 @@ export default class JingleSessionPC extends JingleSession {
         };
 
         return new Promise((resolve, reject) => {
-            logger.debug(`Queued replaceTrack task. Old track = ${
-                oldTrack}, new track = ${newTrack}, ${this}`);
+            logger.debug(`${this} Queued replaceTrack task. Old track = ${oldTrack}, new track = ${newTrack}`);
 
             this.modificationQueue.push(
                 workFunction,
                 error => {
                     if (error) {
-                        logger.error(`Replace track error on ${this}:`, error);
+                        logger.error(`${this} Replace track error:`, error);
                         reject(error);
                     } else {
-                        logger.info(`Replace track done on ${this}!`);
+                        logger.info(`${this}  Replace track done!`);
                         resolve();
                     }
                 });
@@ -2233,21 +2222,17 @@ export default class JingleSessionPC extends JingleSession {
                 finishedCallback /* will be called with an error */);
         };
 
-        logger.debug(`Queued _addRemoveTrackAsMuteUnmute task on ${this}. Operation - ${operationName}`);
+        logger.debug(`${this} Queued ${operationName} task`);
 
         return new Promise((resolve, reject) => {
             this.modificationQueue.push(
                 workFunction,
                 error => {
                     if (error) {
-                        logger.error(`_addRemoveTrackAsMuteUnmute failed. Operation - ${
-                            operationName}, peerconnection = ${this}`);
-
+                        logger.error(`${this} ${operationName} failed`);
                         reject(error);
                     } else {
-                        logger.debug(`_addRemoveTrackAsMuteUnmute done. Operation - ${
-                            operationName}, peerconnection = ${this}`);
-
+                        logger.debug(`${this} ${operationName} done`);
                         resolve();
                     }
                 });
@@ -2274,7 +2259,7 @@ export default class JingleSessionPC extends JingleSession {
         const logAudioStr = audioActive ? 'audio active' : 'audio inactive';
         const logVideoStr = videoActive ? 'video active' : 'video inactive';
 
-        logger.info(`Queued make ${logVideoStr}, ${logAudioStr} task...`);
+        logger.info(`${this} Queued make ${logVideoStr}, ${logAudioStr} task`);
 
         const workFunction = finishedCallback => {
             const isSessionActive = this.state === JingleSessionState.ACTIVE;
@@ -2324,10 +2309,10 @@ export default class JingleSessionPC extends JingleSession {
                 workFunction,
                 error => {
                     if (error) {
-                        logger.error(`Make ${logVideoStr}, ${logAudioStr} task failed!`);
+                        logger.error(`${this} Make ${logVideoStr}, ${logAudioStr} task failed!`);
                         reject(error);
                     } else {
-                        logger.debug(`Make ${logVideoStr}, ${logAudioStr} task done!`);
+                        logger.debug(`${this} Make ${logVideoStr}, ${logAudioStr} task done!`);
                         resolve();
                     }
                 });
@@ -2384,9 +2369,9 @@ export default class JingleSessionPC extends JingleSession {
             workFunction,
             error => {
                 if (error) {
-                    logger.error(`"content-modify" failed on PC - ${this}`, error);
+                    logger.error(`${this} "content-modify" failed`, error);
                 } else {
-                    logger.debug(`"content-modify" task(video senders="${newVideoSenders}") done. PC = ${this}`);
+                    logger.debug(`${this} "content-modify" task(video senders="${newVideoSenders}") done`);
                 }
             });
     }
@@ -2424,7 +2409,7 @@ export default class JingleSessionPC extends JingleSession {
     notifyMySSRCUpdate(oldSDP, newSDP) {
 
         if (this.state !== JingleSessionState.ACTIVE) {
-            logger.warn(`Skipping SSRC update in '${this.state} ' state.`);
+            logger.warn(`${this} Skipping SSRC update in '${this.state} ' state.`);
 
             return;
         }
@@ -2435,7 +2420,7 @@ export default class JingleSessionPC extends JingleSession {
                 this._cachedOldLocalSdp = oldSDP;
             }
             this._cachedNewLocalSdp = newSDP;
-            logger.warn('Not sending SSRC update while the signaling is disconnected');
+            logger.warn(`${this} Not sending SSRC update while the signaling is disconnected`);
 
             return;
         }
@@ -2457,12 +2442,10 @@ export default class JingleSessionPC extends JingleSession {
         const removedAnySSRCs = sdpDiffer.toJingle(remove);
 
         if (removedAnySSRCs) {
-            logger.info('Sending source-remove', remove.tree());
+            logger.info(`${this} Sending source-remove`, remove.tree());
             this.connection.sendIQ(
                 remove, null,
                 this.newJingleErrorHandler(remove), IQ_TIMEOUT);
-        } else {
-            logger.log('removal not necessary');
         }
 
         // send source-add IQ.
@@ -2480,11 +2463,9 @@ export default class JingleSessionPC extends JingleSession {
         const containsNewSSRCs = sdpDiffer.toJingle(add);
 
         if (containsNewSSRCs) {
-            logger.info('Sending source-add', add.tree());
+            logger.info(`${this} Sending source-add`, add.tree());
             this.connection.sendIQ(
                 add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
-        } else {
-            logger.log('addition not necessary');
         }
     }
 
@@ -2544,7 +2525,7 @@ export default class JingleSessionPC extends JingleSession {
                 // it will first send us 'session-terminate' (we enter ENDED)
                 // and then follow with 'item-not-found' for the queued requests
                 // We don't want to have that logged on error level.
-                logger.debug(`Jingle error: ${JSON.stringify(error)}`);
+                logger.debug(`${this} Jingle error: ${JSON.stringify(error)}`);
             } else {
                 GlobalOnErrorHandler.callErrorHandler(
                     new Error(
@@ -2575,12 +2556,12 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection.onsignalingstatechange = null;
         }
 
-        logger.debug(`Clearing modificationQueue on ${this}...`);
+        logger.debug(`${this} Clearing modificationQueue`);
 
         // Remove any pending tasks from the queue
         this.modificationQueue.clear();
 
-        logger.debug(`Queued PC close task on ${this}...`);
+        logger.debug(`${this} Queued PC close task`);
         this.modificationQueue.push(finishCallback => {
             // The signaling layer will remove it's listeners
             this.signalingLayer.setChatRoom(null);
@@ -2588,10 +2569,10 @@ export default class JingleSessionPC extends JingleSession {
             // do not try to close if already closed.
             this.peerconnection && this.peerconnection.close();
             finishCallback();
-            logger.debug(`PC close task on ${this} done!`);
+            logger.debug(`${this} PC close task done!`);
         });
 
-        logger.debug(`Shutdown modificationQueue on ${this}!`);
+        logger.debug(`${this} Shutdown modificationQueue!`);
 
         // No more tasks can go in after the close task
         this.modificationQueue.shutdown();
@@ -2602,7 +2583,7 @@ export default class JingleSessionPC extends JingleSession {
      * @return {string}
      */
     toString() {
-        return `JingleSessionPC[${this.isP2P ? 'P2P' : 'JVB'},initiator=${this.isInitiator},sid=${this.sid}]`;
+        return `JingleSessionPC[session=${this.isP2P ? 'P2P' : 'JVB'},initiator=${this.isInitiator},sid=${this.sid}]`;
     }
 
     /**
