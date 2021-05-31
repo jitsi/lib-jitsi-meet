@@ -449,6 +449,7 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.peerconnection.oniceconnectionstatechange = () => {
             const now = window.performance.now();
+            let isStable = false;
 
             if (!this.isP2P) {
                 this.room.connectionTimes[
@@ -479,6 +480,7 @@ export default class JingleSessionPC extends JingleSession {
                 // Informs interested parties that the connection has been restored. This includes the case when
                 // media connection to the bridge has been restored after an ICE failure by using session-terminate.
                 if (this.peerconnection.signalingState === 'stable') {
+                    isStable = true;
                     const usesTerminateForRestart = !this.options.enableIceRestart
                         && this.room.supportsRestartByTerminate();
 
@@ -488,7 +490,17 @@ export default class JingleSessionPC extends JingleSession {
                     }
                 }
 
-                if (!this.wasConnected && this.wasstable) {
+                // Add a workaround for an issue on chrome in Unified plan when the local endpoint is the offerer.
+                // The 'signalingstatechange' event for 'stable' is handled after the 'iceconnectionstatechange' event
+                // for 'completed' is handled by the client. This prevents the client from firing a
+                // CONNECTION_ESTABLISHED event for the p2p session. As a result, the offerer continues to stay on the
+                // jvb connection while the remote peer switches to the p2p connection breaking the media flow between
+                // the endpoints.
+                // TODO - file a chromium bug and add the information here.
+                if (!this.wasConnected
+                    && (this.wasstable
+                        || isStable
+                        || (this.usesUnifiedPlan && this.isInitiator && browser.isChromiumBased()))) {
 
                     Statistics.sendAnalytics(
                         ICE_DURATION,
