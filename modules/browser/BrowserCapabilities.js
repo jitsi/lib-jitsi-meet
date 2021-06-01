@@ -130,11 +130,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsCodecPreferences() {
-        return this.usesUnifiedPlan()
-            && Boolean(window.RTCRtpTransceiver
-            && window.RTCRtpTransceiver.setCodecPreferences
+        return Boolean(window.RTCRtpTransceiver
+            && typeof window.RTCRtpTransceiver.setCodecPreferences !== 'undefined'
             && window.RTCRtpReceiver
-            && window.RTCRtpReceiver.getCapabilities)
+            && typeof window.RTCRtpReceiver.getCapabilities !== 'undefined')
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
@@ -196,15 +195,6 @@ export default class BrowserCapabilities extends BrowserDetection {
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
         // For Chrome and others we rely on 'googRtt'.
         return !this.isFirefox();
-    }
-
-    /**
-     * Checks if the browser uses plan B.
-     *
-     * @returns {boolean}
-     */
-    usesPlanB() {
-        return !this.usesUnifiedPlan();
     }
 
     /**
