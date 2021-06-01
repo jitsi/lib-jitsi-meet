@@ -28,6 +28,8 @@ describe('TransformRecvOnly', () => {
     describe('stripSsrcs', () => {
         beforeEach(() => { }); // eslint-disable-line no-empty-function
         it('should strip ssrcs from an sdp with no msid', () => {
+            localSdpMunger.tpc.isP2P = false;
+
             const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
             const desc = new RTCSessionDescription({
                 type: 'offer',
