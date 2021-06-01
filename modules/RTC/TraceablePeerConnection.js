@@ -248,6 +248,14 @@ export default function TraceablePeerConnection(
     this._usesUnifiedPlan = options.usesUnifiedPlan;
 
     /**
+     * Flag used to indicate if RTCRtpTransceiver#setCodecPreferences is to be used instead of SDP
+     * munging for codec selection.
+     */
+    this._usesTransceiverCodecPreferences = browser.supportsCodecPreferences() && this._usesUnifiedPlan;
+    this._usesTransceiverCodecPreferences
+        && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
+
+    /**
      * @type {number} The max number of stats to keep in this.stats. Limit to
      * 300 values, i.e. 5 minutes; set to 0 to disable
      */
@@ -1573,7 +1581,7 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
-    if (!this.codecPreference || browser.supportsCodecPreferences()) {
+    if (!this.codecPreference || this._usesTransceiverCodecPreferences) {
         return description;
     }
 
@@ -1847,32 +1855,6 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec = nul
     } else {
         logger.warn(`${this} Invalid codec settings[preferred=${preferredCodec},disabled=${disabledCodec}],
             atleast one value is needed`);
-    }
-
-    if (browser.supportsCodecPreferences()) {
-        const transceiver = this.peerconnection.getTransceivers()
-            .find(t => t.receiver && t.receiver?.track?.kind === MediaType.VIDEO);
-
-        if (!transceiver) {
-            return;
-        }
-        let capabilities = RTCRtpReceiver.getCapabilities('video').codecs;
-
-        if (enable) {
-            // Move the desired codec (all variations of it as well) to the beginning of the list.
-            /* eslint-disable-next-line arrow-body-style */
-            capabilities.sort(caps => {
-                return caps.mimeType.toLowerCase() === `video/${mimeType}` ? -1 : 1;
-            });
-        } else {
-            capabilities = capabilities.filter(caps => caps.mimeType.toLowerCase() !== `video/${mimeType}`);
-        }
-
-        try {
-            transceiver.setCodecPreferences(capabilities);
-        } catch (err) {
-            logger.warn(`${this} Setting ${mimeType} as ${enable ? 'preferred' : 'disabled'} codec failed`, err);
-        }
     }
 };
 
@@ -2809,6 +2791,36 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
         rejectFn(err);
     };
+
+    // Set the codec preference before creating an offer or answer so that the generated SDP will have
+    // the correct preference order.
+    if (this._usesTransceiverCodecPreferences) {
+        const transceiver = this.peerconnection.getTransceivers()
+            .find(t => t.receiver && t.receiver?.track?.kind === MediaType.VIDEO);
+
+        if (transceiver) {
+            let capabilities = RTCRtpReceiver.getCapabilities(MediaType.VIDEO)?.codecs;
+            const mimeType = this.codecPreference?.mimeType;
+            const enable = this.codecPreference?.enable;
+
+            if (capabilities && mimeType && enable) {
+                // Move the desired codec (all variations of it as well) to the beginning of the list.
+                /* eslint-disable-next-line arrow-body-style */
+                capabilities.sort(caps => {
+                    return caps.mimeType.toLowerCase() === `${MediaType.VIDEO}/${mimeType}` ? -1 : 1;
+                });
+            } else if (capabilities && mimeType) {
+                capabilities = capabilities
+                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${mimeType}`);
+            }
+
+            try {
+                transceiver.setCodecPreferences(capabilities);
+            } catch (err) {
+                logger.warn(`${this} Setting codec[preference=${mimeType},enable=${enable}] failed`, err);
+            }
+        }
+    }
 
     return new Promise((resolve, reject) => {
         let oaPromise;
