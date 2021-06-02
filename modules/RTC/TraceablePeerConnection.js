@@ -2140,7 +2140,7 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
             }
 
             if (audioQuality?.opusMaxAverageBitrate) {
-                fmtpConfig.opusMaxAverageBitrate = audioQuality.opusMaxAverageBitrate;
+                fmtpConfig.maxaveragebitrate = audioQuality.opusMaxAverageBitrate;
                 sdpChanged = true;
             }
 
