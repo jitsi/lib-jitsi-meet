@@ -112,7 +112,7 @@ export default class AVModeration {
             if (newWhitelists[MediaType.VIDEO]) {
                 fireEventApprovedJids(MediaType.VIDEO, this._whitelistVideo, newWhitelists[MediaType.VIDEO]);
             }
-        } else if (this._momderationEnabledByType[obj.mediaType] !== obj.enabled) {
+        } else if (obj.enabled !== undefined && this._momderationEnabledByType[obj.mediaType] !== obj.enabled) {
             this._momderationEnabledByType[obj.mediaType] = obj.enabled;
 
             this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, obj.enabled, obj.mediaType, obj.actor);
