@@ -2,6 +2,7 @@ import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import CodecMimeType from '../../service/RTC/CodecMimeType';
+import MediaDirection from '../../service/RTC/MediaDirection';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
@@ -657,7 +658,7 @@ const SDPUtil = {
             if (keepPts.length === 0) {
                 // There are no other codecs, disable the stream.
                 mLine.port = 0;
-                mLine.direction = 'inactive';
+                mLine.direction = MediaDirection.INACTIVE;
                 mLine.payloads = '*';
             } else {
                 mLine.payloads = keepPts.join(' ');

@@ -2,6 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 
+import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
@@ -101,7 +102,7 @@ export default class LocalSdpMunger {
             // NOTE the SDP produced here goes only to Jicofo and is never set
             // as localDescription. That's why
             // TraceablePeerConnection.mediaTransferActive is ignored here.
-            videoMLine.direction = 'sendrecv';
+            videoMLine.direction = MediaDirection.SENDRECV;
 
             // Check if the recvonly has MSID
             const primarySSRC = requiredSSRCs[0];
@@ -224,14 +225,14 @@ export default class LocalSdpMunger {
 
         if (!this.tpc.isP2P
             && (!msid
-                || mediaSection.mLine?.direction === 'recvonly'
-                || mediaSection.mLine?.direction === 'inactive')) {
+                || mediaSection.mLine?.direction === MediaDirection.RECVONLY
+                || mediaSection.mLine?.direction === MediaDirection.INACTIVE)) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
 
         // Add the msid attribute if it is missing for p2p sources. Firefox doesn't produce a a=ssrc line
         // with msid attribute.
-        } else if (this.tpc.isP2P && mediaSection.mLine?.direction === 'sendrecv') {
+        } else if (this.tpc.isP2P && mediaSection.mLine?.direction === MediaDirection.SENDRECV) {
             const msidLine = mediaSection.mLine?.msid;
             const trackId = msidLine && msidLine.split(' ')[1];
             const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
