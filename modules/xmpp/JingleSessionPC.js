@@ -337,7 +337,7 @@ export default class JingleSessionPC extends JingleSession {
             = browser.supportsUnifiedPlan()
                 && (browser.isFirefox()
                     || browser.isWebKitBased()
-                    || (browser.isChromiumBased() && options.enableUnifiedOnChrome));
+                    || (!this.isP2P && browser.isChromiumBased() && options.enableUnifiedOnChrome));
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls

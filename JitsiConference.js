@@ -1929,7 +1929,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(
 
     let rejectReason;
 
-    if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) {
+    if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled() && (browser.isFirefox() || browser.isWebKitBased())) {
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',
@@ -3193,7 +3193,7 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!this.isP2PEnabled() || this.isP2PTestModeEnabled()) {
+    if (!this.isP2PEnabled() || this.isP2PTestModeEnabled() || browser.isFirefox() || browser.isWebKitBased()) {
         logger.info('Auto P2P disabled');
 
         return;
