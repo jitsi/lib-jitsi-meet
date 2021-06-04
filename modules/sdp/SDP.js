@@ -1,5 +1,6 @@
 /* global $ */
 
+import MediaDirection from '../../service/RTC/MediaDirection';
 import browser from '../browser';
 
 import SDPUtil from './SDPUtil';
@@ -304,16 +305,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                     // eslint-disable-next-line max-depth
                     switch (extmap.direction) {
-                    case 'sendonly':
+                    case MediaDirection.SENDONLY:
                         elem.attrs({ senders: 'responder' });
                         break;
-                    case 'recvonly':
+                    case MediaDirection.RECVONLY:
                         elem.attrs({ senders: 'initiator' });
                         break;
-                    case 'sendrecv':
+                    case MediaDirection.SENDRECV:
                         elem.attrs({ senders: 'both' });
                         break;
-                    case 'inactive':
+                    case MediaDirection.INACTIVE:
                         elem.attrs({ senders: 'none' });
                         break;
                     }
@@ -330,13 +331,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
         const m = this.media[i];
 
-        if (SDPUtil.findLine(m, 'a=sendrecv', this.session)) {
+        if (SDPUtil.findLine(m, `a=${MediaDirection.SENDRECV}`, this.session)) {
             elem.attrs({ senders: 'both' });
-        } else if (SDPUtil.findLine(m, 'a=sendonly', this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.SENDONLY}`, this.session)) {
             elem.attrs({ senders: 'initiator' });
-        } else if (SDPUtil.findLine(m, 'a=recvonly', this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.RECVONLY}`, this.session)) {
             elem.attrs({ senders: 'responder' });
-        } else if (SDPUtil.findLine(m, 'a=inactive', this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.INACTIVE}`, this.session)) {
             elem.attrs({ senders: 'none' });
         }
 
@@ -631,16 +632,16 @@ SDP.prototype.jingle2media = function(content) {
 
     switch (content.attr('senders')) {
     case 'initiator':
-        sdp += 'a=sendonly\r\n';
+        sdp += `a=${MediaDirection.SENDONLY}\r\n`;
         break;
     case 'responder':
-        sdp += 'a=recvonly\r\n';
+        sdp += `a=${MediaDirection.RECVONLY}\r\n`;
         break;
     case 'none':
-        sdp += 'a=inactive\r\n';
+        sdp += `a=${MediaDirection.INACTIVE}\r\n`;
         break;
     case 'both':
-        sdp += 'a=sendrecv\r\n';
+        sdp += `a=${MediaDirection.SENDRECV}\r\n`;
         break;
     }
     sdp += `a=mid:${content.attr('name')}\r\n`;
