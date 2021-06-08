@@ -1929,7 +1929,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(
 
     let rejectReason;
 
-    if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled() && (browser.isFirefox() || browser.isWebKitBased())) {
+    if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) || browser.isFirefox() || browser.isWebKitBased()) {
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',
