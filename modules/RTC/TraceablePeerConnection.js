@@ -5,6 +5,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
+import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
@@ -446,25 +447,28 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
  * into account whether or not there are any local tracks for media and
  * the {@link audioTransferActive} and {@link videoTransferActive} flags.
  * @param {MediaType} mediaType
+ * @param {boolean} isAddOperation whether the direction is to be calculated after a source-add action.
  * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly'
  * etc.) which should be used when setting local description on the peer
  * connection.
  * @private
  */
-TraceablePeerConnection.prototype._getDesiredMediaDirection = function(
-        mediaType) {
-    let mediaTransferActive = true;
+TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType, isAddOperation = false) {
+    const hasLocalSource = this.hasAnyTracksOfType(mediaType);
 
-    if (mediaType === MediaType.AUDIO) {
-        mediaTransferActive = this.audioTransferActive;
-    } else if (mediaType === MediaType.VIDEO) {
-        mediaTransferActive = this.videoTransferActive;
+    if (this._usesUnifiedPlan) {
+        return isAddOperation
+            ? hasLocalSource ? MediaDirection.SENDRECV : MediaDirection.SENDONLY
+            : hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
     }
+
+    const mediaTransferActive = mediaType === MediaType.AUDIO ? this.audioTransferActive : this.videoTransferActive;
+
     if (mediaTransferActive) {
-        return this.hasAnyTracksOfType(mediaType) ? 'sendrecv' : 'recvonly';
+        return hasLocalSource ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
     }
 
-    return 'inactive';
+    return MediaDirection.INACTIVE;
 };
 
 /**
@@ -1357,7 +1361,7 @@ function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
         const cnameLine = filteredLines.find(line =>
             line.id === ssrcId && line.attribute === 'cname');
 
-        cnameLine.value = `recvonly-${ssrcId}`;
+        cnameLine.value = `${MediaDirection.RECVONLY}-${ssrcId}`;
 
         // Remove all of lines for the ssrc.
         filteredLines
@@ -1382,23 +1386,23 @@ const enforceSendRecv = function(localDescription, options) {
     }
 
     const transformer = new SdpTransformWrap(localDescription.sdp);
-    const audioMedia = transformer.selectMedia('audio');
+    const audioMedia = transformer.selectMedia(MediaType.AUDIO);
     let changed = false;
 
-    if (audioMedia && audioMedia.direction !== 'sendrecv') {
+    if (audioMedia && audioMedia.direction !== MediaDirection.SENDRECV) {
         if (options.startSilent) {
-            audioMedia.direction = 'inactive';
+            audioMedia.direction = MediaDirection.INACTIVE;
         } else {
-            audioMedia.direction = 'sendrecv';
+            audioMedia.direction = MediaDirection.SENDRECV;
         }
 
         changed = true;
     }
 
-    const videoMedia = transformer.selectMedia('video');
+    const videoMedia = transformer.selectMedia(MediaType.VIDEO);
 
-    if (videoMedia && videoMedia.direction !== 'sendrecv') {
-        videoMedia.direction = 'sendrecv';
+    if (videoMedia && videoMedia.direction !== MediaDirection.SENDRECV) {
+        videoMedia.direction = MediaDirection.SENDRECV;
         changed = true;
     }
 
@@ -1534,12 +1538,15 @@ const getters = {
         }
         this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
 
-        // If the browser is running in unified plan mode and this is a jvb connection,
-        // transform the SDP to Plan B first.
-        if (this._usesUnifiedPlan && !this.isP2P) {
-            desc = this.interop.toPlanB(desc);
-            this.trace(
-                'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
+        if (this._usesUnifiedPlan) {
+            if (this.isP2P) {
+                // Adjust the media direction for p2p based on whether a local source has been added.
+                desc = this._adjustRemoteMediaDirection(desc);
+            } else {
+                // If this is a jvb connection, transform the SDP to Plan B first.
+                desc = this.interop.toPlanB(desc);
+                this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
+            }
         }
 
         return desc;
@@ -2048,19 +2055,17 @@ TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast = function(
  * Will adjust audio and video media direction in the given SDP object to
  * reflect the current status of the {@link audioTransferActive} and
  * {@link videoTransferActive} flags.
- * @param {Object} localDescription the WebRTC session description instance for
+ * @param {RTCSessionDescription} localDescription the WebRTC session description instance for
  * the local description.
  * @private
  */
-TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
-        localDescription) {
+TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(localDescription) {
     const transformer = new SdpTransformWrap(localDescription.sdp);
     let modifiedDirection = false;
-    const audioMedia = transformer.selectMedia('audio');
+    const audioMedia = transformer.selectMedia(MediaType.AUDIO);
 
     if (audioMedia) {
-        const desiredAudioDirection
-            = this._getDesiredMediaDirection(MediaType.AUDIO);
+        const desiredAudioDirection = this.getDesiredMediaDirection(MediaType.AUDIO);
 
         if (audioMedia.direction !== desiredAudioDirection) {
             audioMedia.direction = desiredAudioDirection;
@@ -2071,11 +2076,10 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
         logger.warn(`${this} No "audio" media found in the local description`);
     }
 
-    const videoMedia = transformer.selectMedia('video');
+    const videoMedia = transformer.selectMedia(MediaType.VIDEO);
 
     if (videoMedia) {
-        const desiredVideoDirection
-            = this._getDesiredMediaDirection(MediaType.VIDEO);
+        const desiredVideoDirection = this.getDesiredMediaDirection(MediaType.VIDEO);
 
         if (videoMedia.direction !== desiredVideoDirection) {
             videoMedia.direction = desiredVideoDirection;
@@ -2094,6 +2098,33 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(
     }
 
     return localDescription;
+};
+
+/**
+ * Adjusts the media direction on the remote description based on availability of local and remote sources in a p2p
+ * media connection.
+ *
+ * @param {RTCSessionDescription} remoteDescription the WebRTC session description instance for the remote description.
+ * @returns the transformed remoteDescription.
+ * @private
+ */
+TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteDescription) {
+    const transformer = new SdpTransformWrap(remoteDescription.sdp);
+
+    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+        const media = transformer.selectMedia(mediaType);
+        const hasLocalSource = this.hasAnyTracksOfType(mediaType);
+        const hasRemoteSource = this.getRemoteTracks(null, mediaType).length > 0;
+
+        media.direction = hasLocalSource && hasRemoteSource
+            ? MediaDirection.SENDRECV
+            : hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
+    });
+
+    return new RTCSessionDescription({
+        type: remoteDescription.type,
+        sdp: transformer.toRawSDP()
+    });
 };
 
 /**
@@ -2417,10 +2448,12 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             this.trace(
                 'setRemoteDescription::postTransform (sim receive)',
                 dumpSDP(description));
-
-            // eslint-disable-next-line no-param-reassign
-            description = this.tpcUtils.ensureCorrectOrderOfSsrcs(description);
         }
+    }
+
+    if (this._usesUnifiedPlan) {
+        // eslint-disable-next-line no-param-reassign
+        description = this.tpcUtils.ensureCorrectOrderOfSsrcs(description);
     }
 
     return new Promise((resolve, reject) => {
