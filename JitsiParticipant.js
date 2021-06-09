@@ -26,8 +26,10 @@ export default class JitsiParticipant {
      * @param {string} statsID - optional participant statsID
      * @param {string} status - the initial status if any.
      * @param {object} identity - the xmpp identity
+     * @param {boolean?} isReplacing - whether this is a participant replacing another into the meeting.
+     * @param {boolean?} isReplaced - whether this is a participant to be kicked and replaced into the meeting.
      */
-    constructor(jid, conference, displayName, hidden, statsID, status, identity) {
+    constructor(jid, conference, displayName, hidden, statsID, status, identity, isReplacing, isReplaced) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -41,6 +43,8 @@ export default class JitsiParticipant {
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
         this._identity = identity;
+        this._isReplacing = isReplacing;
+        this._isReplaced = isReplaced;
         this._features = new Set();
     }
 
@@ -187,6 +191,22 @@ export default class JitsiParticipant {
     }
 
     /**
+     * @returns {Boolean} Wheter this participants replaces another participant
+     * from the meeting.
+     */
+    isReplacing() {
+        return this._isReplacing;
+    }
+
+    /**
+     * @returns {Boolean} Wheter this participants will be replaced by another
+     * participant in the meeting.
+     */
+    isReplaced() {
+        return this._isReplaced;
+    }
+
+    /**
      * @returns {Boolean} Whether this participant has muted their audio.
      */
     isAudioMuted() {
@@ -231,6 +251,22 @@ export default class JitsiParticipant {
      */
     setRole(newRole) {
         this._role = newRole;
+    }
+
+    /**
+     * Sets whether participant is replacing another based on jwt.
+     * @param {String} newIsReplacing - whether is replacing.
+     */
+    setIsReplacing(newIsReplacing) {
+        this._isReplacing = newIsReplacing;
+    }
+
+    /**
+     * Sets whether participant is being replaced by another based on jwt.
+     * @param {String} newIsReplacing - whether is being replaced.
+     */
+    setIsReplaced(newIsReplaced) {
+        this._isReplaced = newIsReplaced;
     }
 
     /**
