@@ -115,17 +115,18 @@ export default class JibriSession {
     }
 
     /**
-     * Sets the creator's jid of the session.
-     * @param {JitsiParticipant} participant - The creator of the session.
+     * Sets the participant that started the session.
+     * @param {Object | string} participant - The participant or resource id
+     * if local participant.
      */
     setInitiator(participant) {
         this._initiator = participant;
     }
 
     /**
-     * Sets the jid of the participant that stopped the session.
-     * @param {JitsiParticipant} participant  - The participant's jid,
-     * that stopped the session.
+     * Sets the participant that stopped the session.
+     * @param {Object | string} participant - The participant or the resource id
+     * if local participant.
      */
     setTerminator(participant) {
         this._terminator = participant;
