@@ -707,18 +707,24 @@ export default class ParticipantConnectionStatusHandler {
     _onLastNChanged(leavingLastN = [], enteringLastN = []) {
         const now = Date.now();
 
-        logger.debug(
-            'leaving/entering lastN', leavingLastN, enteringLastN, now);
+        logger.debug(`LastN endpoints changed leaving=${leavingLastN}, entering=${enteringLastN} at ${now}`);
+
+        // If the browser doesn't fire the mute/onmute events when the remote peer stops/starts sending media,
+        // calculate the connection status for all the endpoints since it won't get triggered automatically on
+        // the endpoint that has started/stopped receiving media.
+        if (!browser.supportsVideoMuteOnConnInterrupted()) {
+            this.refreshConnectionStatusForAll();
+        }
 
         for (const id of leavingLastN) {
             this.enteredLastNTimestamp.delete(id);
             this._clearRestoringTimer(id);
-            this.figureOutConnectionStatus(id);
+            browser.supportsVideoMuteOnConnInterrupted() && this.figureOutConnectionStatus(id);
         }
         for (const id of enteringLastN) {
             // store the timestamp this id is entering lastN
             this.enteredLastNTimestamp.set(id, now);
-            this.figureOutConnectionStatus(id);
+            browser.supportsVideoMuteOnConnInterrupted() && this.figureOutConnectionStatus(id);
         }
     }
 

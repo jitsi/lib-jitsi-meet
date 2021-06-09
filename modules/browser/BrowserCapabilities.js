@@ -111,7 +111,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
+        return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
