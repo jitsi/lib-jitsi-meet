@@ -1156,23 +1156,13 @@ TraceablePeerConnection.prototype._removeRemoteTrackById = function(
 };
 
 /**
- * @typedef {Object} SSRCGroupInfo
- * @property {Array<number>} ssrcs group's SSRCs
- * @property {string} semantics
- */
-/**
- * @typedef {Object} TrackSSRCInfo
- * @property {Array<number>} ssrcs track's SSRCs
- * @property {Array<SSRCGroupInfo>} groups track's SSRC groups
- */
-/**
- * Returns map with keys msid and <tt>TrackSSRCInfo</tt> values.
- * @param {Object} desc the WebRTC SDP instance.
+ * Returns a map with keys msid/mediaType and <tt>TrackSSRCInfo</tt> values.
+ * @param {RTCSessionDescription} desc the local description.
  * @return {Map<string,TrackSSRCInfo>}
  */
-function extractSSRCMap(desc) {
+TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
     /**
-     * Track SSRC infos mapped by stream ID (msid)
+     * Track SSRC infos mapped by stream ID (msid) or mediaType (unfied-plan)
      * @type {Map<string,TrackSSRCInfo>}
      */
     const ssrcMap = new Map();
@@ -1196,7 +1186,18 @@ function extractSSRCMap(desc) {
         return ssrcMap;
     }
 
-    for (const mLine of session.media) {
+    let media = session.media;
+
+    // For unified plan clients, only the first audio and video mlines will have ssrcs for the local sources.
+    // The rest of the m-lines are for the recv-only sources, one for each remote source.
+    if (this._usesUnifiedPlan) {
+        media = [];
+        [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+            media.push(session.media.find(m => m.type === mediaType));
+        });
+    }
+
+    for (const mLine of media) {
         if (!Array.isArray(mLine.ssrcs)) {
             continue; // eslint-disable-line no-continue
         }
@@ -1206,13 +1207,10 @@ function extractSSRCMap(desc) {
                 if (typeof group.semantics !== 'undefined'
                     && typeof group.ssrcs !== 'undefined') {
                     // Parse SSRCs and store as numbers
-                    const groupSSRCs
-                        = group.ssrcs.split(' ').map(
-                            ssrcStr => parseInt(ssrcStr, 10));
+                    const groupSSRCs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
                     const primarySSRC = groupSSRCs[0];
 
                     // Note that group.semantics is already present
-
                     group.ssrcs = groupSSRCs;
 
                     // eslint-disable-next-line max-depth
@@ -1224,25 +1222,31 @@ function extractSSRCMap(desc) {
             }
         }
         for (const ssrc of mLine.ssrcs) {
-            if (ssrc.attribute !== 'msid') {
+            if (!this._usesUnifiedPlan && ssrc.attribute !== 'msid') {
                 continue; // eslint-disable-line no-continue
             }
 
-            const msid = ssrc.value;
-            let ssrcInfo = ssrcMap.get(msid);
+            // Use the mediaType as key for the source map for unified plan clients since msids are not part of
+            // the standard and the unified plan SDPs do not have a proper msid attribute for the sources.
+            // Also the ssrcs for sources do not change for Unified plan clients since RTCRtpSender#replaceTrack is
+            // used for switching the tracks so it is safe to use the mediaType as the key for the TrackSSRCInfo map.
+            const key = this._usesUnifiedPlan ? mLine.type : ssrc.value;
+            const ssrcNumber = ssrc.id;
+            let ssrcInfo = ssrcMap.get(key);
 
             if (!ssrcInfo) {
                 ssrcInfo = {
                     ssrcs: [],
                     groups: [],
-                    msid
+                    msid: key
                 };
-                ssrcMap.set(msid, ssrcInfo);
+                ssrcMap.set(key, ssrcInfo);
             }
 
-            const ssrcNumber = ssrc.id;
-
-            ssrcInfo.ssrcs.push(ssrcNumber);
+            // Avoid duplicates.
+            if (!ssrcInfo.ssrcs.find(s => s === ssrcNumber)) {
+                ssrcInfo.ssrcs.push(ssrcNumber);
+            }
 
             if (groupsMap.has(ssrcNumber)) {
                 const ssrcGroups = groupsMap.get(ssrcNumber);
@@ -1255,7 +1259,7 @@ function extractSSRCMap(desc) {
     }
 
     return ssrcMap;
-}
+};
 
 /**
  * Takes a SessionDescription object and returns a "normalized" version.
@@ -2798,9 +2802,8 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            const ssrcMap = extractSSRCMap(resultSdp);
+            const ssrcMap = this._extractSSRCMap(resultSdp);
 
-            logger.debug('Got local SSRCs MAP: ', ssrcMap);
             this._processLocalSSRCsMap(ssrcMap);
 
             resolveFn(resultSdp);
@@ -2895,13 +2898,13 @@ TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
  */
 TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
     for (const track of this.localTracks.values()) {
-        const trackMSID = track.storedMSID;
+        const sourceIdentifier = this._usesUnifiedPlan ? track.getType() : track.storedMSID;
 
-        if (ssrcMap.has(trackMSID)) {
-            const newSSRC = ssrcMap.get(trackMSID);
+        if (ssrcMap.has(sourceIdentifier)) {
+            const newSSRC = ssrcMap.get(sourceIdentifier);
 
             if (!newSSRC) {
-                logger.error(`${this} No SSRC found for stream=${trackMSID}`);
+                logger.error(`${this} No SSRC found for stream=${sourceIdentifier}`);
 
                 return;
             }
@@ -2911,8 +2914,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
 
             // eslint-disable-next-line no-negated-condition
             if (newSSRCNum !== oldSSRCNum) {
-                oldSSRCNum && logger.error(`${this} Overwriting SSRC for [track=${track},id=${trackMSID}]`
-                    + ` with ssrc=${newSSRC}`);
+                oldSSRCNum && logger.error(`${this} Overwriting SSRC for track=${track}] with ssrc=${newSSRC}`);
                 this.localSSRCs.set(track.rtcId, newSSRC);
                 this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
             }
@@ -2920,7 +2922,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             // It is normal to find no SSRCs for a muted video track in
             // the local SDP as the recv-only SSRC is no longer munged in.
             // So log the warning only if it's not a muted video track.
-            logger.warn(`${this} No SSRCs found in the local SDP for track[track=${track},id=${trackMSID}]`);
+            logger.warn(`${this} No SSRCs found in the local SDP for track=${track}`);
         }
     }
 };
