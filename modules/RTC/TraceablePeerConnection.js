@@ -1221,11 +1221,15 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
                 }
             }
         }
-        for (const ssrc of mLine.ssrcs) {
-            if (!this._usesUnifiedPlan && ssrc.attribute !== 'msid') {
-                continue; // eslint-disable-line no-continue
-            }
 
+        let ssrcs = mLine.ssrcs;
+
+        // Filter the ssrcs with 'msid' attribute for plan-b clients and 'cname' for unified-plan clients.
+        ssrcs = this._usesUnifiedPlan
+            ? ssrcs.filter(s => s.attribute === 'cname')
+            : ssrcs.filter(s => s.attribute === 'msid');
+
+        for (const ssrc of ssrcs) {
             // Use the mediaType as key for the source map for unified plan clients since msids are not part of
             // the standard and the unified plan SDPs do not have a proper msid attribute for the sources.
             // Also the ssrcs for sources do not change for Unified plan clients since RTCRtpSender#replaceTrack is
@@ -1242,11 +1246,7 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
                 };
                 ssrcMap.set(key, ssrcInfo);
             }
-
-            // Avoid duplicates.
-            if (!ssrcInfo.ssrcs.find(s => s === ssrcNumber)) {
-                ssrcInfo.ssrcs.push(ssrcNumber);
-            }
+            ssrcInfo.ssrcs.push(ssrcNumber);
 
             if (groupsMap.has(ssrcNumber)) {
                 const ssrcGroups = groupsMap.get(ssrcNumber);
@@ -2922,7 +2922,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             // It is normal to find no SSRCs for a muted video track in
             // the local SDP as the recv-only SSRC is no longer munged in.
             // So log the warning only if it's not a muted video track.
-            logger.warn(`${this} No SSRCs found in the local SDP for track=${track}`);
+            logger.warn(`${this} No SSRCs found in the local SDP for track=${track}, stream=${sourceIdentifier}`);
         }
     }
 };
