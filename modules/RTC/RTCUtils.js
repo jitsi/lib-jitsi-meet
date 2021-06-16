@@ -833,6 +833,16 @@ class RTCUtils extends Listenable {
     }
 
     /**
+     * Sets the capture frame rate for desktop tracks.
+     *
+     * @param {number} maxFps - max fps to be used as the capture frame rate.
+     * @returns {void}
+     */
+    setDesktopSharingFrameRate(maxFps) {
+        screenObtainer.setDesktopSharingFrameRate(maxFps);
+    }
+
+    /**
      * Returns currently used audio output device id, '' stands for default
      * device
      * @returns {string}

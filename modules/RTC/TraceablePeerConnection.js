@@ -10,6 +10,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import * as VideoType from '../../service/RTC/VideoType';
+import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
 import RtxModifier from '../sdp/RtxModifier';
@@ -242,6 +243,11 @@ export default function TraceablePeerConnection(
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
+
+    /**
+     * Flag used to indicate if simulcast is turned off and a cap of 500 Kbps is applied on screensharing.
+     */
+    this._capScreenshareBitrate = this.options.capScreenshareBitrate;
 
     /**
     * Flag used to indicate if the browser is running in unified  plan mode.
@@ -1842,6 +1848,17 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
 };
 
 /**
+ * Enables or disables simulcast for screenshare based on the frame rate requested for desktop track capture.
+ *
+ * @param {number} maxFps framerate to be used for desktop track capture.
+ */
+TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) {
+    const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
+
+    this._capScreenshareBitrate = this.isSimulcastOn() && lowFps && !this._usesUnifiedPlan;
+};
+
+/**
  * Sets the codec preference on the peerconnection. The codec preference goes into effect when
  * the next renegotiation happens.
  *
@@ -2296,7 +2313,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
     const parameters = videoSender.getParameters();
     const preference = localVideoTrack.videoType === VideoType.CAMERA
         ? DEGRADATION_PREFERENCE_CAMERA
-        : this.options.capScreenshareBitrate && !this._usesUnifiedPlan
+        : this._capScreenshareBitrate && !this._usesUnifiedPlan
 
             // Prefer resolution for low fps share.
             ? DEGRADATION_PREFERENCE_DESKTOP
@@ -2340,7 +2357,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
     // 3. The client is running in Unified plan mode.
     if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
-        || (planBScreenSharing && this.options.capScreenshareBitrate)
+        || (planBScreenSharing && this._capScreenshareBitrate)
         || this._usesUnifiedPlan)) {
         return Promise.resolve();
     }
@@ -2368,7 +2385,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
                     // is enabled through config.js and presenter is not turned on.
                     // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
                     // if capScreenshareBitrate option is enabled then the simulcast is turned off
-                    bitrate = this.options.capScreenshareBitrate
+                    bitrate = this._capScreenshareBitrate
                         ? presenterEnabled ? HD_BITRATE : DESKTOP_SHARE_RATE
 
                         // Remove the bitrate config if not capScreenshareBitrate:
@@ -2779,8 +2796,8 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
             // Configure simulcast for camera tracks always and for desktop tracks only when
             // the "capScreenshareBitrate" flag in config.js is disabled.
             if (this.isSimulcastOn() && browser.usesSdpMungingForSimulcast()
-                && (!this.options.capScreenshareBitrate
-                || (this.options.capScreenshareBitrate && !this._isSharingScreen()))) {
+                && (!this._capScreenshareBitrate
+                || (this._capScreenshareBitrate && !this._isSharingScreen()))) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
                 this.trace(
@@ -2983,8 +3000,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     // Configure simulcast for camera tracks always and for desktop tracks only when
     // the "capScreenshareBitrate" flag in config.js is disabled.
     if (this.isSimulcastOn()
-        && (!this.options.capScreenshareBitrate
-        || (this.options.capScreenshareBitrate && !this._isSharingScreen()))) {
+        && (!this._capScreenshareBitrate
+        || (this._capScreenshareBitrate && !this._isSharingScreen()))) {
         ssrcInfo = {
             ssrcs: [],
             groups: []

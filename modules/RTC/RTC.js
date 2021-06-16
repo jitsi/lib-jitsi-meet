@@ -209,7 +209,6 @@ export default class RTC extends Listenable {
     static obtainAudioAndVideoPermissions(options) {
         return RTCUtils.obtainAudioAndVideoPermissions(options)
             .then(tracksInfo => _createLocalTracks(tracksInfo));
-
     }
 
     /**
@@ -328,6 +327,15 @@ export default class RTC extends Listenable {
 
             this._channel = null;
         }
+    }
+
+    /**
+     * Sets the capture frame rate to be used for desktop tracks.
+     *
+     * @param {number} maxFps framerate to be used for desktop track capture.
+     */
+    setDesktopSharingFrameRate(maxFps) {
+        RTCUtils.setDesktopSharingFrameRate(maxFps);
     }
 
     /**
