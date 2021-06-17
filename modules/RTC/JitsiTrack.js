@@ -4,7 +4,6 @@ import { getLogger } from 'jitsi-meet-logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 import RTCUtils from './RTCUtils';
@@ -179,7 +178,7 @@ export default class JitsiTrack extends EventEmitter {
      * Returns the video type (camera or desktop) of this track.
      */
     getVideoType() {
-        return this.isVideoTrack() && !this.isMuted() ? this.videoType : VideoType.NONE;
+        return this.videoType;
     }
 
     /**

@@ -1047,7 +1047,9 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     // Send the video type message to the bridge if the track is not removed/added to the pc as part of
     // the mute/unmute operation. This currently happens only on Firefox.
     if (track.isVideoTrack() && !browser.doesVideoMuteByStreamRemove()) {
-        this.rtc.setVideoType(track.getVideoType());
+        const videoType = track.isMuted() ? VideoType.NONE : track.getVideoType();
+
+        this.rtc.setVideoType(videoType);
     }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
