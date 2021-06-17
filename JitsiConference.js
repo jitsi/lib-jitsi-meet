@@ -1044,6 +1044,12 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         actorParticipant = this.participants[actorId];
     }
 
+    // Send the video type message to the bridge if the track is not removed/added to the pc as part of
+    // the mute/unmute operation. This currently happens only on Firefox.
+    if (track.isVideoTrack() && !browser.doesVideoMuteByStreamRemove()) {
+        this.rtc.setVideoType(track.getVideoType());
+    }
+
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
@@ -1127,7 +1133,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             if (newTrack) {
                 // Now handle the addition of the newTrack at the JitsiConference level
                 this._setupNewTrack(newTrack);
-                newTrack.isVideoTrack() && this.rtc.setVideoType(newTrack.videoType);
+                newTrack.isVideoTrack() && this.rtc.setVideoType(newTrack.getVideoType());
             } else {
                 oldTrack && oldTrack.isVideoTrack() && this.rtc.setVideoType(VideoType.NONE);
             }
@@ -1251,7 +1257,7 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     return Promise.allSettled(addAsUnmutePromises)
         .then(() => {
             // Signal the video type to the bridge.
-            track.isVideoTrack() && this.rtc.setVideoType(track.videoType);
+            track.isVideoTrack() && this.rtc.setVideoType(track.getVideoType());
         });
 };
 
