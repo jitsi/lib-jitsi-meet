@@ -2081,6 +2081,10 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             localTracks
         );
 
+        // Enable or disable simulcast for plan-b screensharing based on the capture fps if it is set through the UI.
+        this._desktopSharingFrameRate
+            && jingleSession.peerconnection.setDesktopSharingFrameRate(this._desktopSharingFrameRate);
+
         // Start callstats as soon as peerconnection is initialized,
         // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
         // happen in case if user doesn't have or denied permission to
@@ -3410,6 +3414,8 @@ JitsiConference.prototype.setDesktopSharingFrameRate = function(maxFps) {
 
         return false;
     }
+
+    this._desktopSharingFrameRate = maxFps;
 
     // Enable or disable simulcast for plan-b screensharing based on the capture fps.
     this.jvbJingleSession && this.jvbJingleSession.peerconnection.setDesktopSharingFrameRate(maxFps);
