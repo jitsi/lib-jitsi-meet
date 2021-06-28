@@ -285,7 +285,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsVADDetection() {
-        return this.isChromiumBased();
+        // Chrome on iOS does not support VAD.
+        return this.isChromiumBased() && !this.isWebKitBased();
     }
 
     /**
