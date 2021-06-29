@@ -216,12 +216,22 @@ export default class BrowserCapabilities extends BrowserDetection {
         return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
     }
 
+    isCordovaiOS() {
+      var isCord = !!(window.cordova && window.cordova.platformId && window.cordova.platformId.toLowerCase() === "ios");
+      // console.log("isCordovaiOS", isCord);
+      return isCord
+    }
+
     /**
      * Checks if the browser uses unified plan.
      *
      * @returns {boolean}
      */
     usesUnifiedPlan() {
+        if (this.isCordovaiOS()) {
+            return false;
+        }
+
         if (this.isFirefox() || this.isWebKitBased()) {
             return true;
         }
@@ -230,7 +240,28 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser uses webrtc-adapter. All browsers except React Native do.
+     * Returns whether or not the current browser should be using the new
+     * getUserMedia flow, which utilizes the adapter shim. This method should
+     * be temporary and used while migrating all browsers to use adapter and
+     * the new getUserMedia.
+     *
+     * @returns {boolean}
+     */
+    usesNewGumFlow() {
+        if (this.isCordovaiOS()) {
+            return false;
+        }
+
+        if (this.isChromiumBased() || this.isFirefox() || this.isWebKitBased()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if the browser uses webrtc-adapter. All browsers using the new
+     * getUserMedia flow.
      *
      * @returns {boolean}
      */
@@ -300,7 +331,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSdpSemantics() {
-        return this.isChromiumBased();
+        return this.isCordovaiOS() || this.isChromiumBased();
     }
 
     /**

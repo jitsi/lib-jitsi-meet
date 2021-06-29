@@ -310,6 +310,143 @@ function onMediaDevicesListChanged(devicesReceived) {
 }
 
 /**
+ * Handles the newly created Media Streams.
+ * @param streams the new Media Streams
+ * @param resolution the resolution of the video streams
+ * @returns {*[]} object that describes the new streams
+ */
+function handleLocalStream(streams, resolution) {
+    let audioStream, desktopStream, videoStream;
+    const res = [];
+
+    // XXX The function obtainAudioAndVideoPermissions has examined the type of
+    // the browser, its capabilities, etc. and has taken the decision whether to
+    // invoke getUserMedia per device (e.g. Firefox) or once for both audio and
+    // video (e.g. Chrome). In order to not duplicate the logic here, examine
+    // the specified streams and figure out what we've received based on
+    // obtainAudioAndVideoPermissions' decision.
+    if (streams) {
+        // As mentioned above, certian types of browser (e.g. Chrome) support
+        // (with a result which meets our requirements expressed bellow) calling
+        // getUserMedia once for both audio and video.
+        const audioVideo = streams.audioVideo;
+
+        if (audioVideo) {
+            const audioTracks = audioVideo.getAudioTracks();
+
+            if (audioTracks.length) {
+                audioStream = new MediaStream();
+                for (let i = 0; i < audioTracks.length; i++) {
+                    audioStream.addTrack(audioTracks[i]);
+                }
+            }
+
+            const videoTracks = audioVideo.getVideoTracks();
+
+            if (videoTracks.length) {
+                videoStream = new MediaStream();
+                for (let j = 0; j < videoTracks.length; j++) {
+                    videoStream.addTrack(videoTracks[j]);
+                }
+            }
+
+            audioVideo.release && audioVideo.release(false);
+        } else {
+            // On other types of browser (e.g. Firefox) we choose (namely,
+            // obtainAudioAndVideoPermissions) to call getUserMedia per device
+            // (type).
+            audioStream = streams.audio;
+            videoStream = streams.video;
+        }
+
+        desktopStream = streams.desktop;
+    }
+
+    if (desktopStream) {
+        const { stream, sourceId, sourceType } = desktopStream;
+
+        res.push({
+            stream,
+            sourceId,
+            sourceType,
+            track: stream.getVideoTracks()[0],
+            mediaType: MediaType.VIDEO,
+            videoType: VideoType.DESKTOP
+        });
+    }
+    if (audioStream) {
+        res.push({
+            stream: audioStream,
+            track: audioStream.getAudioTracks()[0],
+            mediaType: MediaType.AUDIO,
+            videoType: null
+        });
+    }
+    if (videoStream) {
+        res.push({
+            stream: videoStream,
+            track: videoStream.getVideoTracks()[0],
+            mediaType: MediaType.VIDEO,
+            videoType: VideoType.CAMERA,
+            resolution
+        });
+    }
+
+    return res;
+}
+
+
+/**
+ * Represents a default implementation of setting a <tt>MediaStream</tt> as the
+ * source of a video element that tries to be browser-agnostic through feature
+ * checking. Note though that it was not completely clear from the predating
+ * browser-specific implementations what &quot;videoSrc&quot; was because one
+ * implementation of {@link RTCUtils#getVideoSrc} would return
+ * <tt>MediaStream</tt> (e.g. Firefox), another a <tt>string</tt> representation
+ * of the <tt>URL</tt> of the <tt>MediaStream</tt> (e.g. Chrome) and the return
+ * value was only used by {@link RTCUIHelper#getVideoId} which itself did not
+ * appear to be used anywhere. Generally, the implementation will try to follow
+ * the related standards i.e. work with the <tt>srcObject</tt> and <tt>src</tt>
+ * properties of the specified <tt>element</tt> taking into account vender
+ * prefixes.
+ *
+ * @param element the element whose video source/src is to be set to the
+ * specified <tt>stream</tt>
+ * @param {MediaStream} stream the <tt>MediaStream</tt> to set as the video
+ * source/src of <tt>element</tt>
+ */
+function defaultSetVideoSrc(element, stream) {
+    // srcObject
+    let srcObjectPropertyName = 'srcObject';
+
+    if (!(srcObjectPropertyName in element)) {
+        srcObjectPropertyName = 'mozSrcObject';
+        if (!(srcObjectPropertyName in element)) {
+            srcObjectPropertyName = null;
+        }
+    }
+    if (srcObjectPropertyName) {
+        element[srcObjectPropertyName] = stream;
+
+        return;
+    }
+
+    // src
+    let src;
+
+    if (stream) {
+        src = stream.jitsiObjectURL;
+
+        // Save the created URL for stream so we can reuse it and not keep
+        // creating URLs.
+        if (!src) {
+            stream.jitsiObjectURL = src = URL.createObjectURL(stream);
+        }
+    }
+    element.src = src || '';
+}
+
+/**
  *
  */
 class RTCUtils extends Listenable {
@@ -354,12 +491,40 @@ class RTCUtils extends Listenable {
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
-        if (browser.isReactNative()) {
+        if (browser.usesNewGumFlow()) {
             this.RTCPeerConnectionType = RTCPeerConnection;
 
-            this.attachMediaStream = undefined; // Unused on React Native.
+            this.attachMediaStream
+                = wrapAttachMediaStream((element, stream) => {
+                    if (element) {
+                        element.srcObject = stream;
+                    }
+                });
 
-            this.getStreamID = function({ id }) {
+            this.getStreamID = ({ id }) => id;
+            this.getTrackID = ({ id }) => id;
+        } else if (browser.isReactNative() || browser.isCordovaiOS()) {
+            this.RTCPeerConnectionType = RTCPeerConnection;
+
+            if (browser.isCordovaiOS()) {
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        defaultSetVideoSrc(element, stream);
+
+                        return element;
+                    });
+
+                console.log('[RCTUtils] attachMediaStream', this.attachMediaStream);
+            } else {
+                this.attachMediaStream = undefined; // Unused on React Native.
+                console.log('[RCTUtils] reset attachMediaStream');
+            }
+
+            this.getStreamID = function(params) {
+                console.log('[RCTUtils][getStreamID] params', params);
+                let id = params.id || params._id;
+                console.log('[RCTUtils][getStreamID] id', id);
+
                 // The react-native-webrtc implementation that we use at the
                 // time of this writing returns a number for the id of
                 // MediaStream. Let's just say that a number contains no special
