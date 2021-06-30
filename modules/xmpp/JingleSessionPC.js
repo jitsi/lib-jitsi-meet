@@ -338,7 +338,10 @@ export default class JingleSessionPC extends JingleSession {
             = browser.supportsUnifiedPlan()
                 && (browser.isFirefox()
                     || browser.isWebKitBased()
-                    || (!this.isP2P && browser.isChromiumBased() && options.enableUnifiedOnChrome));
+                    || (browser.isChromiumBased()
+
+                        // Provide a way to control the behavior for jvb and p2p connections independently.
+                        && this.isP2P ? options.p2p?.enableUnifiedOnChrome : options.enableUnifiedOnChrome));
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
@@ -1586,6 +1589,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
+        const self = this;
 
         $(sourceAddElem).each((i1, content) => {
             const name = $(content).attr('name');
@@ -1605,10 +1609,8 @@ export default class JingleSessionPC extends JingleSession {
                             })
                             .get();
 
-                    if (ssrcs.length) {
-                        lines
-                            += `a=ssrc-group:${semantics} ${
-                                ssrcs.join(' ')}\r\n`;
+                    if (ssrcs.length && !currentRemoteSdp.containsSSRC(ssrcs[0])) {
+                        lines += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
                     }
                 });
 
@@ -1622,7 +1624,10 @@ export default class JingleSessionPC extends JingleSession {
                 const ssrc = $(this).attr('ssrc');
 
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
-                    logger.warn(`${this} Source-add request for existing SSRC: ${ssrc}`);
+
+                    // Do not print the warning for unified plan p2p case since ssrcs are never removed from the SDP.
+                    !(self.usesUnifiedPlan && self.isP2P)
+                        && logger.warn(`${self} Source-add request for existing SSRC: ${ssrc}`);
 
                     return;
                 }
@@ -1820,7 +1825,17 @@ export default class JingleSessionPC extends JingleSession {
                     const mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
 
                     if (mid > -1) {
-                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
+                        // Remove the ssrcs from the m-line in
+                        // 1. Plan-b mode always.
+                        // 2. Unified mode but only for jvb connection. In p2p mode if the ssrc is removed and added
+                        // back to the same m-line, Chrome/Safari do not render the media even if it being received
+                        // and decoded from the remote peer. The webrtc spec is not clear about m-line re-use and
+                        // the browser vendors have implemented this differently. Currently workaround this by changing
+                        // the media direction, that should be enough for the browser to fire the "removetrack" event
+                        // on the associated MediaStream.
+                        if (!this.usesUnifiedPlan || (this.usesUnifiedPlan && !this.isP2P)) {
+                            remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
+                        }
 
                         // The current direction of the transceiver for p2p will depend on whether a local sources is
                         // added or not. It will be 'sendrecv' if the local source is present, 'sendonly' otherwise.
@@ -1866,8 +1881,8 @@ export default class JingleSessionPC extends JingleSession {
         addSsrcInfo.forEach((lines, idx) => {
             remoteSdp.media[idx] += lines;
 
-            // Make sure to change the direction to 'sendrecv' only for p2p connections. For jvb connections, a new
-            // m-line is added for the new remote sources.
+            // Make sure to change the direction to 'sendrecv/sendonly' only for p2p connections. For jvb connections,
+            // a new m-line is added for the new remote sources.
             if (this.isP2P && this.usesUnifiedPlan) {
                 const mediaType = SDPUtil.parseMLine(remoteSdp.media[idx].split('\r\n')[0])?.media;
                 const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, true);

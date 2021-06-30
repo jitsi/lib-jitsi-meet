@@ -4,6 +4,18 @@
  * Mock {@link TraceablePeerConnection} - add things as needed, but only things useful for all tests.
  */
 export class MockPeerConnection {
+
+    /**
+     * Constructor.
+     *
+     * @param {string} id RTC id
+     * @param {boolean} usesUnifiedPlan
+     */
+    constructor(id, usesUnifiedPlan) {
+        this.id = id;
+        this._usesUnifiedPlan = usesUnifiedPlan;
+    }
+
     /**
      * {@link TraceablePeerConnection.localDescription}.
      *
@@ -64,6 +76,13 @@ export class MockPeerConnection {
      */
     setVideoTransferActive() {
         return false;
+    }
+
+    /**
+     * {@link TraceablePeerConnection.usesUnifiedPlan}.
+     */
+    usesUnifiedPlan() {
+        return this._usesUnifiedPlan;
     }
 }
 
