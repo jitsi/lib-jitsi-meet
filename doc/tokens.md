@@ -124,15 +124,9 @@ apt-get install jitsi-meet-tokens
 
 Proceed to "Patching Prosody" section to finish configuration.
 
-### Patching Prosody
+### Prosody Version
 
-JWT token authentication requires prosody-trunk version at least 747.  JWT tokens with websockets requires prosody 0.11.6 or higher.
-
-You can download latest prosody-trunk packages from [here]. Then install it with the following command:
-
-```
-sudo dpkg -i prosody-trunk_1nightly747-1~trusty_amd64.deb
-```
+JWT tokens requires prosody 0.11.6 or higher.
 
 Make sure that */etc/prosody/prosody.cfg.lua* contains the line below at the end to include meet host config. That's because Prosody nightly may come with slightly different default config:
 
@@ -145,7 +139,7 @@ Also check if client to server encryption is not enforced. Otherwise token authe
 c2s_require_encryption=false
 ```
 
-[here]: http://packages.prosody.im/debian/pool/main/p/prosody-trunk/
+[here]: https://prosody.im/download/package_repository
 
 ### Manual plugin configuration
 
