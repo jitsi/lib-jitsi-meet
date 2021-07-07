@@ -100,9 +100,11 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @returns {void}
      */
     _startVADEmitter() {
-        this._vadEmitter.on(VAD_SCORE_PUBLISHED, this._processVADScore);
-        this._vadEmitter.start();
-        this._isVADEmitterRunning = true;
+        if (this._vadEmitter) {
+            this._vadEmitter.on(VAD_SCORE_PUBLISHED, this._processVADScore);
+            this._vadEmitter.start();
+            this._isVADEmitterRunning = true;
+        }
     }
 
     /**
@@ -110,8 +112,10 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @returns {void}
      */
     _stopVADEmitter() {
-        this._vadEmitter.removeListener(VAD_SCORE_PUBLISHED, this._processVADScore);
-        this._vadEmitter.stop();
+        if (this._vadEmitter) {
+            this._vadEmitter.removeListener(VAD_SCORE_PUBLISHED, this._processVADScore);
+            this._vadEmitter.stop();
+        }
         this._isVADEmitterRunning = false;
     }
 
