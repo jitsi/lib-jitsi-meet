@@ -122,7 +122,7 @@ jitsi-meet is required which comes with special Prosody config template.
 apt-get install jitsi-meet-tokens
 ```
 
-Proceed to "Patching Prosody" section to finish configuration.
+Check the "Prosody Version" that is used in the deployment.
 
 ### Prosody Version
 
