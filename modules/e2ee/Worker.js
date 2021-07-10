@@ -4,7 +4,6 @@
 // Worker for E2EE/Insertable streams.
 
 import { Context } from './Context';
-import { polyFillEncodedFrameMetadata } from './utils';
 
 const contexts = new Map(); // Map participant id => context
 
@@ -23,9 +22,6 @@ onmessage = async event => {
         });
 
         readableStream
-            .pipeThrough(new TransformStream({
-                transform: polyFillEncodedFrameMetadata // M83 polyfill.
-            }))
             .pipeThrough(transformStream)
             .pipeTo(writableStream);
     } else if (operation === 'decode') {
@@ -40,9 +36,6 @@ onmessage = async event => {
         });
 
         readableStream
-            .pipeThrough(new TransformStream({
-                transform: polyFillEncodedFrameMetadata // M83 polyfill.
-            }))
             .pipeThrough(transformStream)
             .pipeTo(writableStream);
     } else if (operation === 'setKey') {

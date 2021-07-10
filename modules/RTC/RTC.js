@@ -473,8 +473,6 @@ export default class RTC extends Listenable {
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
             iceConfig.encodedInsertableStreams = true;
-            iceConfig.forceEncodedAudioInsertableStreams = true; // legacy, to be removed in M88.
-            iceConfig.forceEncodedVideoInsertableStreams = true; // legacy, to be removed in M88.
         }
 
         const supportsSdpSemantics = browser.isReactNative()
