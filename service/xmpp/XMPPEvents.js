@@ -281,6 +281,21 @@ const XMPPEvents = {
      */
     AV_MODERATION_PARTICIPANT_REJECTED: 'xmpp.av_moderation.participant.rejected',
 
+    /**
+     * Event fired when a participant is requested to join a given (breakout) room.
+     */
+    BREAKOUT_ROOMS_MOVE_TO_ROOM: 'xmpp.breakout-rooms.move-to-room',
+
+    /**
+     * Event fired when we receive a message for breakout rooms.
+     */
+    BREAKOUT_ROOMS_EVENT: 'xmpp.breakout-rooms.event',
+
+    /**
+     * Event fired when the breakout rooms data was updated.
+     */
+    BREAKOUT_ROOMS_UPDATED: 'xmpp.breakout-rooms.updated',
+
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
     START_MUTED_FROM_FOCUS: 'xmpp.start_muted_from_focus',

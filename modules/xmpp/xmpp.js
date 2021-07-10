@@ -453,6 +453,10 @@ export default class XMPP extends Listenable {
             if (identity.type === 'region') {
                 this.options.deploymentInfo.region = this.connection.region = identity.name;
             }
+
+            if (identity.type === 'breakout_rooms') {
+                this.breakoutRoomsComponentAddress = identity.name;
+            }
         });
 
         this._maybeSendDeploymentInfoStat(true);
@@ -645,9 +649,11 @@ export default class XMPP extends Listenable {
      * @returns {Promise} Resolves with an instance of a strophe muc.
      */
     createRoom(roomName, options, onCreateResource) {
-        // There are cases (when using subdomain) where muc can hold an uppercase part
-        let roomjid = `${this.getRoomJid(roomName, options.customDomain)}/`;
+        // Support passing the domain in a String object as part of the room name.
+        const domain = roomName.domain || options.customDomain;
 
+        // There are cases (when using subdomain) where muc can hold an uppercase part
+        let roomjid = `${this.getRoomJid(roomName, domain)}/`;
         const mucNickname = onCreateResource
             ? onCreateResource(this.connection.jid, this.authenticatedUser)
             : RandomUtil.randomHexString(8).toLowerCase();
@@ -979,7 +985,8 @@ export default class XMPP extends Listenable {
 
         if (!(from === this.speakerStatsComponentAddress
             || from === this.conferenceDurationComponentAddress
-            || from === this.avModerationComponentAddress)) {
+            || from === this.avModerationComponentAddress
+            || from === this.breakoutRoomsComponentAddress)) {
             return true;
         }
 
@@ -997,6 +1004,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, parsedJson.created_timestamp);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'av_moderation') {
             this.eventEmitter.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'breakout_rooms') {
+            this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
         }
 
         return true;

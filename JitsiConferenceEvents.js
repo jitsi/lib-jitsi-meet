@@ -432,3 +432,13 @@ export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.part
  * A new facial expression is added with its duration for a participant
  */
 export const FACIAL_EXPRESSION_ADDED = 'conference.facial_expression.added';
+
+/**
+ * Event fired when a participant is requested to join a given (breakout) room.
+ */
+export const BREAKOUT_ROOMS_MOVE_TO_ROOM = 'conference.breakout-rooms.move-to-room';
+
+/**
+ * Event fired when the breakout rooms data was updated.
+ */
+export const BREAKOUT_ROOMS_UPDATED = 'conference.breakout-rooms.updated';

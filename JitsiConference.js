@@ -122,7 +122,7 @@ const JINGLE_SI_TIMEOUT = 5000;
  *       and so on...
  */
 export default function JitsiConference(options) {
-    if (!options.name || options.name.toLowerCase() !== options.name) {
+    if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
         const errmsg
             = 'Invalid conference name (no conference name passed or it '
                 + 'contains invalid characters like capital letters)!';
@@ -765,7 +765,7 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
  * Returns name of this conference.
  */
 JitsiConference.prototype.getName = function() {
-    return this.options.name;
+    return this.options.name.toString();
 };
 
 /**
@@ -4003,4 +4003,13 @@ JitsiConference.prototype.avModerationReject = function(mediaType, id) {
             this.isModerator() ? '' : 'participant is not a moderator, '}${
             this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }
+};
+
+/**
+ * Returns the breakout rooms manager object.
+ *
+ * @returns {Object} the breakout rooms manager.
+ */
+JitsiConference.prototype.getBreakoutRooms = function() {
+    return this.room?.getBreakoutRooms();
 };
