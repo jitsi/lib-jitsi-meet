@@ -482,6 +482,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 conference.statistics.sendAddIceCandidateFailed(e, pc);
             });
     }
+
+    // Breakout rooms.
+    this.chatRoomForwarder.forward(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM,
+        JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM);
+    this.chatRoomForwarder.forward(XMPPEvents.BREAKOUT_ROOMS_UPDATED,
+        JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED);
 };
 
 /**

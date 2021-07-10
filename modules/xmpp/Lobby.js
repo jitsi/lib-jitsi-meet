@@ -84,17 +84,21 @@ export default class Lobby {
 
     /**
      * Leaves the lobby room.
-     * @private
+     *
+     * @returns {Promise}
      */
-    _leaveLobbyRoom() {
+    leave() {
         if (this.lobbyRoom) {
-            this.lobbyRoom.leave()
+            return this.lobbyRoom.leave()
                 .then(() => {
                     this.lobbyRoom = undefined;
                     logger.info('Lobby room left!');
                 })
                 .catch(() => {}); // eslint-disable-line no-empty-function
         }
+
+        return Promise.reject(
+                new Error('The lobby has already been left'));
     }
 
     /**
@@ -172,6 +176,13 @@ export default class Lobby {
                         return;
                     }
 
+                    // Check if the user is a member if any breakout room.
+                    for (const room of Object.values(this.mainRoom.getBreakoutRooms()._rooms)) {
+                        if (Object.values(room.participants).find(p => p.jid === jid)) {
+                            return;
+                        }
+                    }
+
                     // we emit the new event on the main room so we can propagate
                     // events to the conference
                     this.mainRoom.eventEmitter.emit(
@@ -223,10 +234,8 @@ export default class Lobby {
                 (roomJid, from, txt, invitePassword) => {
                     logger.debug(`Received approval to join ${roomJid} ${from} ${txt}`);
                     if (roomJid === this.mainRoom.roomjid) {
-                        // we are now allowed let's join and leave lobby
+                        // we are now allowed, so let's join
                         this.mainRoom.join(invitePassword);
-
-                        this._leaveLobbyRoom();
                     }
                 });
             this.lobbyRoom.addEventListener(
@@ -250,7 +259,7 @@ export default class Lobby {
             this.mainRoom.addEventListener(
                 XMPPEvents.MUC_JOINED,
                 () => {
-                    this._leaveLobbyRoom();
+                    this.leave();
                 });
         }
 
@@ -301,13 +310,21 @@ export default class Lobby {
             return;
         }
 
+        // Get the main room JID. If we are in a breakout room we'll use the main
+        // room's lobby.
+        let mainRoomJid = this.mainRoom.roomjid;
+
+        if (this.mainRoom.getBreakoutRooms().isBreakoutRoom()) {
+            mainRoomJid = this.mainRoom.getBreakoutRooms().getMainRoomJid();
+        }
+
         const memberRoomJid = Object.keys(this.lobbyRoom.members)
             .find(j => Strophe.getResourceFromJid(j) === id);
 
         if (memberRoomJid) {
             const jid = this.lobbyRoom.members[memberRoomJid].jid;
             const msgToSend
-                = $msg({ to: this.mainRoom.roomjid })
+                = $msg({ to: mainRoomJid })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
                     .c('invite', { to: jid });
 
