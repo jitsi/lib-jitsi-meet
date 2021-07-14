@@ -126,17 +126,22 @@ export class CodecSelection {
      */
     _selectPreferredCodec(mediaSession = null, preferredCodec = null, disabledCodec = null) {
         const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
-        const codec = preferredCodec ? preferredCodec : this.jvbPreferredCodec;
-        let selectedCodec = codec;
+        const currentCodec = preferredCodec ? preferredCodec : this.jvbPreferredCodec;
+        let selectedCodec = currentCodec;
 
         if (session && !session.isP2P && !this.options.enforcePreferredCodec) {
             const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
 
             for (const remote of remoteParticipants) {
                 const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
+                const peerCodec = peerMediaInfo?.codecType;
 
-                if (peerMediaInfo && peerMediaInfo.codecType && peerMediaInfo.codecType !== codec) {
-                    selectedCodec = peerMediaInfo.codecType;
+                // We do not want Firefox to switch to VP9 because of the following bug.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1492500.
+                if (peerCodec
+                    && peerCodec !== currentCodec
+                    && !(browser.isFirefox() && peerCodec === CodecMimeType.VP9)) {
+                    selectedCodec = peerCodec;
                 }
             }
         }

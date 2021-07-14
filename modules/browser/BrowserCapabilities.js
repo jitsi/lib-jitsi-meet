@@ -132,7 +132,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsCodecPreferences() {
         return Boolean(window.RTCRtpTransceiver
-            && typeof window.RTCRtpTransceiver.setCodecPreferences !== 'undefined'
+            && 'setCodecPreferences' in window.RTCRtpTransceiver.prototype
             && window.RTCRtpReceiver
             && typeof window.RTCRtpReceiver.getCapabilities !== 'undefined')
 
