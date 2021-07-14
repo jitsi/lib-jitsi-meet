@@ -1608,48 +1608,54 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
-    if (!this.codecPreference || this._usesTransceiverCodecPreferences) {
+    if (!this.codecPreference) {
         return description;
     }
 
     const parsedSdp = transform.parse(description.sdp);
 
-    for (const mLine of parsedSdp.media) {
-        if (this.codecPreference.enable && mLine.type === this.codecPreference.mediaType) {
-            SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+    // Only the m-line that defines the source the browser will be sending should need to change.
+    // This is typically the first m-line with the matching media type.
+    const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
 
-            // Strip the high profile H264 codecs on mobile clients for p2p connection.
-            // High profile codecs give better quality at the expense of higher load which
-            // we do not want on mobile clients.
-            // Jicofo offers only the baseline code for the jvb connection.
-            // TODO - add check for mobile browsers once js-utils provides that check.
-            if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-                SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
-            }
+    if (!mLine) {
+        return description;
+    }
 
-            // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
-            // as soon as the browser switches to VP9.
-            if (this.codecPreference.mimeType === CodecMimeType.VP9) {
-                const bitrates = this.videoBitrates.VP9 || this.videoBitrates;
-                const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
-                const limit = Math.floor((this._isSharingScreen() ? HD_BITRATE : hdBitrate) / 1000);
+    if (this.codecPreference.enable) {
+        SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
-                // Use only the HD bitrate for now as there is no API available yet for configuring
-                // the bitrates on the individual SVC layers.
-                mLine.bandwidth = [ {
-                    type: 'AS',
-                    limit
-                } ];
-            } else {
-                // Clear the bandwidth limit in SDP when VP9 is no longer the preferred codec.
-                // This is needed on react native clients as react-native-webrtc returns the
-                // SDP that the application passed instead of returning the SDP off the native side.
-                // This line automatically gets cleared on web on every renegotiation.
-                mLine.bandwidth = undefined;
-            }
-        } else if (mLine.type === this.codecPreference.mediaType) {
-            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
+        // Strip the high profile H264 codecs on mobile clients for p2p connection.
+        // High profile codecs give better quality at the expense of higher load which
+        // we do not want on mobile clients.
+        // Jicofo offers only the baseline code for the jvb connection.
+        // TODO - add check for mobile browsers once js-utils provides that check.
+        if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
         }
+
+        // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
+        // as soon as the browser switches to VP9.
+        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
+            const bitrates = this.videoBitrates.VP9 || this.videoBitrates;
+            const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
+            const limit = Math.floor((this._isSharingScreen() ? HD_BITRATE : hdBitrate) / 1000);
+
+            // Use only the HD bitrate for now as there is no API available yet for configuring
+            // the bitrates on the individual SVC layers.
+            mLine.bandwidth = [ {
+                type: 'AS',
+                limit
+            } ];
+        } else {
+            // Clear the bandwidth limit in SDP when VP9 is no longer the preferred codec.
+            // This is needed on react native clients as react-native-webrtc returns the
+            // SDP that the application passed instead of returning the SDP off the native side.
+            // This line automatically gets cleared on web on every renegotiation.
+            mLine.bandwidth = undefined;
+        }
+    } else {
+        SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
 
     return new RTCSessionDescription({
@@ -2228,9 +2234,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
-    // Munge the order of the codecs based on the preferences set through config.js
-    localSdp = this._mungeCodecOrder(localSdp);
-
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
     localSdp = this._mungeOpus(localSdp);
 
@@ -2244,6 +2247,11 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
         this.trace(
             'setLocalDescription::postTransform (Unified Plan)',
             dumpSDP(localSdp));
+    }
+
+    // Munge the order of the codecs based on the preferences set through config.js if we are using SDP munging.
+    if (!this._usesTransceiverCodecPreferences) {
+        localSdp = this._mungeCodecOrder(localSdp);
     }
 
     return new Promise((resolve, reject) => {
@@ -2426,10 +2434,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
 
     /* eslint-disable no-param-reassign */
-
-    // Munge the order of the codecs based on the preferences set through config.js
-    description = this._mungeCodecOrder(description);
-
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
     description = this._mungeOpus(description);
 
@@ -2467,6 +2471,10 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 dumpSDP(description));
         }
     }
+
+    // Munge the order of the codecs based on the preferences set through config.js.
+    // eslint-disable-next-line no-param-reassign
+    description = this._mungeCodecOrder(description);
 
     if (this._usesUnifiedPlan) {
         // eslint-disable-next-line no-param-reassign
