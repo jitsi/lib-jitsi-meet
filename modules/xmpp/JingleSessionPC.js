@@ -1611,7 +1611,7 @@ export default class JingleSessionPC extends JingleSession {
                             })
                             .get();
 
-                    if (ssrcs.length && !currentRemoteSdp.containsSSRC(ssrcs[0])) {
+                    if (ssrcs.length) {
                         lines += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
                     }
                 });
