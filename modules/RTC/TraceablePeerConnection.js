@@ -1577,6 +1577,16 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
 };
 
 /**
+ * Checks if low fps screensharing is in progress.
+ *
+ * @private
+ * @returns {boolean} Returns true if 5 fps screensharing is in progress, false otherwise.
+ */
+TraceablePeerConnection.prototype._isSharingLowFpsScreen = function() {
+    return this._isSharingScreen() && this._capScreenshareBitrate;
+};
+
+/**
  * Checks if screensharing is in progress.
  *
  * @returns {boolean}  Returns true if a desktop track has been added to the
@@ -1692,11 +1702,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             return Promise.reject(error);
         }
     } else {
-        // In all other cases, i.e., plan-b and unified plan bridge case, use addStream API to
-        // add the track to the peerconnection.
-        // TODO - addTransceiver doesn't generate a MSID for the stream, which is needed for signaling
-        // the ssrc to Jicofo. Switch to using UUID as MSID when addTransceiver is used in Unified plan
-        // JVB connection case as well.
+        // Use addStream API for the plan-b case.
         const webrtcStream = track.getOriginalStream();
 
         if (webrtcStream) {
@@ -1855,7 +1861,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
 TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) {
     const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
 
-    this._capScreenshareBitrate = this.isSimulcastOn() && lowFps && !this._usesUnifiedPlan;
+    this._capScreenshareBitrate = this.isSimulcastOn() && lowFps;
 };
 
 /**
@@ -2311,15 +2317,13 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
         return Promise.resolve();
     }
     const parameters = videoSender.getParameters();
-    const preference = localVideoTrack.videoType === VideoType.CAMERA
-        ? DEGRADATION_PREFERENCE_CAMERA
-        : this._capScreenshareBitrate && !this._usesUnifiedPlan
+    const preference = this._isSharingLowFpsScreen()
 
-            // Prefer resolution for low fps share.
-            ? DEGRADATION_PREFERENCE_DESKTOP
+        // Prefer resolution for low fps share.
+        ? DEGRADATION_PREFERENCE_DESKTOP
 
-            // Prefer frame-rate for high fps share.
-            : DEGRADATION_PREFERENCE_CAMERA;
+        // Prefer frame-rate for high fps share and camera.
+        : DEGRADATION_PREFERENCE_CAMERA;
 
     logger.info(`${this} Setting a degradation preference [preference=${preference},track=${localVideoTrack}`);
     parameters.degradationPreference = preference;
@@ -2349,16 +2353,14 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
         return Promise.resolve();
     }
 
-    const videoType = localVideoTrack.videoType;
-    const planBScreenSharing = !this._usesUnifiedPlan && videoType === VideoType.DESKTOP;
+    const videoType = localVideoTrack.getVideoType();
 
     // Apply the maxbitrates on the video track when one of the conditions is met.
     // 1. Max. bitrates for video are specified through videoQuality settings in config.js
-    // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
-    // 3. The client is running in Unified plan mode.
-    if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
-        || (planBScreenSharing && this._capScreenshareBitrate)
-        || this._usesUnifiedPlan)) {
+    // 2. Track is a low fps desktop track.
+    // 3. The client is running in Unified plan mode (the same sender is re-used for different types
+    // of tracks so bitrates have to be configured whenever the local tracks are replaced).
+    if (!(this.options?.videoQuality?.maxBitratesVideo || this._isSharingLowFpsScreen() || this._usesUnifiedPlan)) {
         return Promise.resolve();
     }
 
@@ -2371,31 +2373,25 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     }
     const parameters = videoSender.getParameters();
 
-    if (!(parameters.encodings && parameters.encodings.length)) {
+    if (!parameters.encodings?.length) {
         return Promise.resolve();
     }
 
     if (this.isSimulcastOn()) {
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
-                let bitrate;
+                const bitrate = this._isSharingLowFpsScreen()
 
-                if (planBScreenSharing) {
-                    // On chromium, set a max bitrate of 500 Kbps for screenshare when capScreenshareBitrate
-                    // is enabled through config.js and presenter is not turned on.
+                    // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on.
                     // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
-                    // if capScreenshareBitrate option is enabled then the simulcast is turned off
-                    bitrate = this._capScreenshareBitrate
-                        ? presenterEnabled ? HD_BITRATE : DESKTOP_SHARE_RATE
+                    // if capScreenshareBitrate option is enabled then simulcast is turned off for the stream.
+                    ? presenterEnabled ? HD_BITRATE : DESKTOP_SHARE_RATE
 
-                        // Remove the bitrate config if not capScreenshareBitrate:
-                        // When switching from camera to desktop and videoQuality.maxBitratesVideo were set,
-                        // then the 'maxBitrate' setting must be cleared, because if simulcast is enabled for screen
-                        // and maxBitrates are set then Chrome will not send the screen stream (plan B).
-                        : undefined;
-                } else {
-                    bitrate = this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
-                }
+                    // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome, because if simulcast is
+                    // enabled for screen and maxBitrates are set then Chrome will not send the desktop stream.
+                    : videoType === VideoType.DESKTOP && browser.isChromiumBased()
+                        ? undefined
+                        : this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
 
                 logger.info(`${this} Setting a max bitrate of ${bitrate} bps on layer `
                     + `${this.tpcUtils.localStreamEncodingsConfig[encoding].rid}`);
@@ -2546,7 +2542,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     }
     const parameters = videoSender.getParameters();
 
-    if (!parameters || !parameters.encodings || !parameters.encodings.length) {
+    if (!parameters?.encodings?.length) {
         return Promise.resolve();
     }
 
@@ -2565,6 +2561,18 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
         if (newHeight > 0 && ldStreamIndex !== -1) {
             this.encodingsEnabledState[ldStreamIndex] = true;
         }
+
+        // Disable the lower spatial layers for screensharing in Unified plan when low fps screensharing is in progress
+        // There is no way to enable or disable simulcast during the call since we are re-using the same sender.
+        // Safari is an exception here since it does not send the desktop stream at all if only the high resolution
+        // stream is enabled.
+        if (this._isSharingLowFpsScreen() && this._usesUnifiedPlan && !browser.isWebKitBased()) {
+            const highResolutionEncoding = browser.isFirefox() ? 0 : this.encodingsEnabledState.length - 1;
+
+            this.encodingsEnabledState = this.encodingsEnabledState
+                .map((encoding, idx) => idx === highResolutionEncoding);
+        }
+
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
                 parameters.encodings[encoding].active = this.encodingsEnabledState[encoding];
@@ -2572,9 +2580,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
         }
         this.tpcUtils.updateEncodingsResolution(parameters);
     } else if (newHeight > 0) {
-        // Do not scale down the desktop tracks until SendVideoController is able to propagate the sender constraints
-        // only on the active media connection. Right now, the sender constraints received on the bridge channel
-        // are propagated on both the jvb and p2p connections in cases where they both are active at the same time.
+        // Do not scale down encodings for desktop tracks for non-simulcast case.
         parameters.encodings[0].scaleResolutionDownBy
             = localVideoTrack.videoType === VideoType.DESKTOP || localVideoTrack.resolution <= newHeight
                 ? 1
@@ -2793,11 +2799,11 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            // Configure simulcast for camera tracks always and for desktop tracks only when
-            // the "capScreenshareBitrate" flag in config.js is disabled.
+            const localVideoTrack = this.getLocalVideoTrack();
+
+            // Configure simulcast for camera tracks and for desktop tracks that need simulcast.
             if (this.isSimulcastOn() && browser.usesSdpMungingForSimulcast()
-                && (!this._capScreenshareBitrate
-                || (this._capScreenshareBitrate && !this._isSharingScreen()))) {
+                && (localVideoTrack?.getVideoType() === VideoType.CAMERA || !this._isSharingLowFpsScreen())) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
                 this.trace(
@@ -2997,11 +3003,9 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
         logger.error(`${this} Overwriting local SSRCs for track id=${rtcId}`);
     }
 
-    // Configure simulcast for camera tracks always and for desktop tracks only when
-    // the "capScreenshareBitrate" flag in config.js is disabled.
+    // Configure simulcast for camera tracks and desktop tracks that need simulcast.
     if (this.isSimulcastOn()
-        && (!this._capScreenshareBitrate
-        || (this._capScreenshareBitrate && !this._isSharingScreen()))) {
+        && (track.getVideoType() === VideoType.CAMERA || !this._isSharingLowFpsScreen())) {
         ssrcInfo = {
             ssrcs: [],
             groups: []
