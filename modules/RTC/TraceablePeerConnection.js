@@ -2151,7 +2151,9 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
 
         media.direction = hasLocalSource && hasRemoteSource
             ? MediaDirection.SENDRECV
-            : hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
+            : hasLocalSource
+                ? MediaDirection.RECVONLY
+                : hasRemoteSource ? MediaDirection.SENDONLY : MediaDirection.INACTIVE;
     });
 
     return new RTCSessionDescription({

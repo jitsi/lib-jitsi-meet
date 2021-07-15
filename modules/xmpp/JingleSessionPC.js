@@ -342,7 +342,7 @@ export default class JingleSessionPC extends JingleSession {
 
                         // Provide a way to control the behavior for jvb and p2p connections independently.
                         && this.isP2P
-                        ? options.p2p?.enableUnifiedOnChrome ?? true
+                        ? options.p2p?.enableUnifiedOnChrome
                         : options.enableUnifiedOnChrome ?? true));
 
         if (this.isP2P) {
