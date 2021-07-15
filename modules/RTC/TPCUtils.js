@@ -129,7 +129,16 @@ export class TPCUtils {
             }
             let reorderedSsrcs = [];
 
-            mLine.ssrcGroups[0].ssrcs.split(' ').forEach(ssrc => {
+            const ssrcs = new Set();
+
+            mLine.ssrcGroups.map(group =>
+                group.ssrcs
+                    .split(' ')
+                    .filter(Boolean)
+                    .forEach(ssrc => ssrcs.add(ssrc)),
+            );
+
+            ssrcs.forEach(ssrc => {
                 const sources = mLine.ssrcs.filter(source => source.id.toString() === ssrc);
 
                 reorderedSsrcs = reorderedSsrcs.concat(sources);
