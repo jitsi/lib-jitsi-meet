@@ -2813,7 +2813,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
             // Configure simulcast for camera tracks and for desktop tracks that need simulcast.
             if (this.isSimulcastOn() && browser.usesSdpMungingForSimulcast()
-                && (localVideoTrack?.getVideoType() === VideoType.CAMERA || !this._isSharingLowFpsScreen())) {
+                && (localVideoTrack?.getVideoType() === VideoType.CAMERA
+                || this._usesUnifiedPlan
+                || !this._isSharingLowFpsScreen())) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
                 this.trace(
