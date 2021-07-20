@@ -638,6 +638,7 @@ JitsiConference.prototype.leave = function() {
         this.eventManager.removeXMPPListeners();
 
         this.room = null;
+        this.destroyed = true;
 
         return room.leave()
             .then(() => {
