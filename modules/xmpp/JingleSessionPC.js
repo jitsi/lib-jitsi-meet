@@ -1015,6 +1015,17 @@ export default class JingleSessionPC extends JingleSession {
             jingleAnswer,
             () => {
                 logger.info(`${this} setAnswer - succeeded`);
+                if (this.usesUnifiedPlan && browser.isChromiumBased()) {
+                    // This hack is needed for Chrome to create a decoder for the ssrcs in the remote SDP when
+                    // the local endpoint is the offerer and starts muted.
+                    const remoteSdp = this.peerconnection.remoteDescription.sdp;
+                    const remoteDescription = new RTCSessionDescription({
+                        type: 'offer',
+                        sdp: remoteSdp
+                    });
+
+                    this._responderRenegotiate(remoteDescription);
+                }
             },
             error => {
                 logger.error(`${this} setAnswer failed: `, error);
@@ -1762,18 +1773,29 @@ export default class JingleSessionPC extends JingleSession {
                     ? this._processRemoteAddSource(addOrRemoveSsrcInfo)
                     : this._processRemoteRemoveSource(addOrRemoveSsrcInfo);
 
-            this._renegotiate(newRemoteSdp.raw)
-                .then(() => {
-                    const newLocalSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
+            // Add a workaround for a bug in Chrome (unified plan) for p2p connection. When the media direction on
+            // the transceiver goes from "inactive" (both users join muted) to "recvonly" (peer unmutes), the browser
+            // doesn't seem to create a decoder if the signaling state changes from "have-local-offer" to "stable".
+            // Therefore, initiate a responder renegotiate even if the endpoint is the offerer to workaround this issue.
+            // TODO - open a chrome bug and update the comments.
+            const remoteDescription = new RTCSessionDescription({
+                type: 'offer',
+                sdp: newRemoteSdp.raw
+            });
+            const promise = isAdd && this.usesUnifiedPlan && this.isP2P && browser.isChromiumBased()
+                ? this._responderRenegotiate(remoteDescription)
+                : this._renegotiate(newRemoteSdp.raw);
 
-                    logger.log(`${this} ${logPrefix} - OK`);
-                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
-                    finishedCallback();
-                }, error => {
-                    logger.error(`${this} ${logPrefix} failed:`, error);
-                    finishedCallback(error);
-                });
+            promise.then(() => {
+                const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+
+                logger.log(`${this} ${logPrefix} - OK`);
+                this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
+                finishedCallback();
+            }, error => {
+                logger.error(`${this} ${logPrefix} failed:`, error);
+                finishedCallback(error);
+            });
         };
 
         logger.debug(`${this} Queued ${logPrefix} task`);
