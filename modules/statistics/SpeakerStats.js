@@ -81,15 +81,20 @@ class SpeakerStats {
      * @returns {void}
      */
     setDominantSpeaker(isNowDominantSpeaker) {
+        var tsEntry;
         if (!this.isDominantSpeaker() && isNowDominantSpeaker) {
             this._dominantSpeakerStart = Date.now();
         } else if (this.isDominantSpeaker() && !isNowDominantSpeaker) {
             const now = Date.now();
             const timeElapsed = now - this._dominantSpeakerStart;
 
+            // JvB: Track history of dominant speaker changes for the conference
+            tsEntry = { start: this._dominantSpeakerStart, end: now };
+            
             this.totalDominantSpeakerTime += timeElapsed;
             this._dominantSpeakerStart = 0;
         }
+        return tsEntry;
     }
 
     /**
