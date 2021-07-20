@@ -1,0 +1,54 @@
+/**
+ * Status that video SIP GW service is available.
+ * @type {string}
+ */
+export const STATUS_AVAILABLE: string;
+/**
+ * Status that video SIP GW service is not available.
+ * @type {string}
+ */
+export const STATUS_UNDEFINED: string;
+/**
+ * Status that video SIP GW service is available but there are no free nodes
+ * at the moment to serve new requests.
+ * @type {string}
+ */
+export const STATUS_BUSY: string;
+/**
+ * Video SIP GW session state, currently running.
+ * @type {string}
+ */
+export const STATE_ON: string;
+/**
+ * Video SIP GW session state, currently stopped and not running.
+ * @type {string}
+ */
+export const STATE_OFF: string;
+/**
+ * Video SIP GW session state, currently is starting.
+ * @type {string}
+ */
+export const STATE_PENDING: string;
+/**
+ * Video SIP GW session state, has observed some issues and is retrying at the
+ * moment.
+ * @type {string}
+ */
+export const STATE_RETRYING: string;
+/**
+ * Video SIP GW session state, tried to start but it failed.
+ * @type {string}
+ */
+export const STATE_FAILED: string;
+/**
+ * Error on trying to create video SIP GW session in conference where
+ * there is no room connection (hasn't joined or has left the room).
+ * @type {string}
+ */
+export const ERROR_NO_CONNECTION: string;
+/**
+ * Error on trying to create video SIP GW session with address for which
+ * there is an already created session.
+ * @type {string}
+ */
+export const ERROR_SESSION_EXISTS: string;
