@@ -363,6 +363,7 @@ export default class CallStats {
 
             let configParams;
 
+            configParams.additionalIDs = {};
             if (options.applicationName) {
                 configParams = {
                     applicationVersion:
@@ -377,6 +378,7 @@ export default class CallStats {
 
                 // if there is no tenant, we will just set '/'
                 configParams.siteID = options.siteID || (match && match[1]) || '/';
+                configParams.additionalIDs.tenantID = (match && match[1]) || '/';
             }
 
             // userID is generated or given by the origin server
