@@ -74,22 +74,14 @@ export default class E2EEcontext {
         }
         receiver[kJitsiE2EE] = true;
 
-        let receiverStreams;
-
-        if (receiver.createEncodedStreams) {
-            receiverStreams = receiver.createEncodedStreams();
-        } else {
-            receiverStreams = kind === 'video' ? receiver.createEncodedVideoStreams()
-                : receiver.createEncodedAudioStreams();
-        }
+        const receiverStreams = receiver.createEncodedStreams();
 
         this._worker.postMessage({
             operation: 'decode',
-            readableStream: receiverStreams.readable || receiverStreams.readableStream,
-            writableStream: receiverStreams.writable || receiverStreams.writableStream,
+            readableStream: receiverStreams.readable,
+            writableStream: receiverStreams.writable,
             participantId
-        }, [ receiverStreams.readable || receiverStreams.readableStream,
-            receiverStreams.writable || receiverStreams.writableStream ]);
+        }, [ receiverStreams.readable, receiverStreams.writable ]);
     }
 
     /**
@@ -106,22 +98,14 @@ export default class E2EEcontext {
         }
         sender[kJitsiE2EE] = true;
 
-        let senderStreams;
-
-        if (sender.createEncodedStreams) {
-            senderStreams = sender.createEncodedStreams();
-        } else {
-            senderStreams = kind === 'video' ? sender.createEncodedVideoStreams()
-                : sender.createEncodedAudioStreams();
-        }
+        const senderStreams = sender.createEncodedStreams();
 
         this._worker.postMessage({
             operation: 'encode',
-            readableStream: senderStreams.readable || senderStreams.readableStream,
-            writableStream: senderStreams.writable || senderStreams.writableStream,
+            readableStream: senderStreams.readable,
+            writableStream: senderStreams.writable,
             participantId
-        }, [ senderStreams.readable || senderStreams.readableStream,
-            senderStreams.writable || senderStreams.writableStream ]);
+        }, [ senderStreams.readable, senderStreams.writable ]);
     }
 
     /**
