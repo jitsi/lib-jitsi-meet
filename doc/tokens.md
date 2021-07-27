@@ -151,10 +151,10 @@ Modify your Prosody config with these three steps:
 plugin_paths = { "/usr/share/jitsi-meet/prosody-plugins/" }
 ```
 
-Also optionally set the global settings for key authorization.  Both these options default to the '*' parameter which means accept any issuer or audience string in incoming tokens
+Also you need to set the global settings for key authorization.  Both these options used to default to the '*' parameter which means accept any issuer or audience string in incoming tokens, but that is no longer the case.
 ```lua
-asap_accepted_issuers = { "jitsi", "some-other-issuer" }
-asap_accepted_audiences = { "jitsi", "some-other-audience" }
+asap_accepted_issuers = { "*" }
+asap_accepted_audiences = { "*" }
 ```
 
 \2. Under you domain config change authentication to "token" and provide application ID, secret and optionally token lifetime:
