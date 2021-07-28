@@ -992,7 +992,7 @@ export default class JingleSessionPC extends JingleSession {
             init,
             this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
-        logger.info(`${this} Session-initiate: `, init);
+        logger.debug(`${this} Session-initiate: `, init);
         this.connection.sendIQ(init,
             () => {
                 logger.info(`${this} Got RESULT for "session-initiate"`);
@@ -1271,7 +1271,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         accept = accept.tree();
-        logger.info(`${this} Sending session-accept`, accept);
+        logger.debug(`${this} Sending session-accept`, accept);
         this.connection.sendIQ(accept,
             success,
             this.newJingleErrorHandler(accept, error => {

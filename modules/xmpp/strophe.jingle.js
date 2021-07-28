@@ -71,7 +71,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             id: iq.getAttribute('id')
         });
 
-        logger.log(`on jingle ${action} from ${fromJid}`, iq);
+        logger.debug(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
 
         if (action !== 'session-initiate') {
@@ -85,7 +85,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     .c('unknown-session', {
                         xmlns: 'urn:xmpp:jingle:errors:1'
                     });
-                logger.warn('invalid session id', iq);
+                logger.warn(`invalid session id: ${sid}`);
+                logger.debug(iq);
                 this.connection.send(ack);
 
                 return true;
