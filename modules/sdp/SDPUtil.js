@@ -184,7 +184,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log(
+                logger.debug(
                     `parseICECandidate not translating "${
                         elems[i]}" = "${elems[i + 1]}"`);
             }
@@ -341,10 +341,10 @@ const SDPUtil = {
             // eslint-disable-next-line no-param-reassign
             line = `a=${line}`;
         } else if (line.substring(0, 12) !== 'a=candidate:') {
-            logger.log(
+            logger.warn(
                 'parseCandidate called with a line that is not a candidate'
                     + ' line');
-            logger.log(line);
+            logger.warn(line);
 
             return null;
         }
@@ -356,8 +356,8 @@ const SDPUtil = {
         const elems = line.split(' ');
 
         if (elems[6] !== 'typ') {
-            logger.log('did not find typ in the right place');
-            logger.log(line);
+            logger.warn('did not find typ in the right place');
+            logger.warn(line);
 
             return null;
         }
@@ -387,7 +387,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
+                logger.debug(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';
