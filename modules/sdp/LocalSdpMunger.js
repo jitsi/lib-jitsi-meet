@@ -4,6 +4,7 @@ import { getLogger } from 'jitsi-meet-logger';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
 
@@ -72,13 +73,14 @@ export default class LocalSdpMunger {
         for (const videoTrack of localVideos) {
             const muted = videoTrack.isMuted();
             const mediaStream = videoTrack.getOriginalStream();
+            const isCamera = videoTrack.videoType === VideoType.CAMERA;
 
             // During the mute/unmute operation there are periods of time when
             // the track's underlying MediaStream is not added yet to
             // the PeerConnection. The SDP needs to be munged in such case.
             const isInPeerConnection
                 = mediaStream && this.tpc.isMediaStreamInPc(mediaStream);
-            const shouldFakeSdp = muted || !isInPeerConnection;
+            const shouldFakeSdp = isCamera && (muted || !isInPeerConnection);
 
             if (!shouldFakeSdp) {
                 continue; // eslint-disable-line no-continue
