@@ -40,6 +40,8 @@ import XMPP from './modules/xmpp/xmpp';
  * @param {string} options.id - XMPP user's ID to log in. For example,
  * user@xmpp-server.com.
  * @param {string} options.password - XMPP user's password to log in with.
+ * @param {string} options.token - The JWT token used to authenticate with
+ * the server(optional).
  * @param {string} [options.roomPassword] - The password to join the MUC with.
  * @param {Function} [options.onLoginSuccessful] - Callback called when logging
  * into the XMPP server was successful. The next step will be to obtain a new
@@ -61,6 +63,7 @@ export default function authenticateAndUpgradeRole({
     // 1. Log the specified XMPP user in.
     id,
     password,
+    token,
     onCreateResource,
 
     // 2. Let the API client/consumer know as soon as the XMPP user has been
@@ -72,7 +75,7 @@ export default function authenticateAndUpgradeRole({
 }) {
     let canceled = false;
     let rejectPromise;
-    let xmpp = new XMPP(this.connection.options);
+    let xmpp = new XMPP(this.connection.options, token);
 
     const process = new Promise((resolve, reject) => {
         // The process is represented by a Thenable with a cancel method. The
