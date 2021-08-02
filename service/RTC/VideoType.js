@@ -1,7 +1,7 @@
 /* global module */
 /**
  * Enumeration of the video types
- * @type {{CAMERA: string, DESKTOP: string, NONE: string}}
+ * @type {{CAMERA: string, DESKTOP: string}}
  */
 const VideoType = {
     /**
@@ -12,12 +12,7 @@ const VideoType = {
     /**
      * The desktop video type.
      */
-    DESKTOP: 'desktop',
-
-    /**
-     * No local video source.
-     */
-    NONE: 'none'
+    DESKTOP: 'desktop'
 };
 
 module.exports = VideoType;
