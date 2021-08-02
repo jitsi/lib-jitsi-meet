@@ -84,17 +84,21 @@ export default class Lobby {
 
     /**
      * Leaves the lobby room.
-     * @private
+     *
+     * @returns {Promise}
      */
-    _leaveLobbyRoom() {
+    leave() {
         if (this.lobbyRoom) {
-            this.lobbyRoom.leave()
+            return this.lobbyRoom.leave()
                 .then(() => {
                     this.lobbyRoom = undefined;
                     logger.info('Lobby room left!');
                 })
                 .catch(() => {}); // eslint-disable-line no-empty-function
         }
+
+        return Promise.reject(
+                new Error('The lobby has already been left'));
     }
 
     /**
@@ -226,7 +230,7 @@ export default class Lobby {
                         // we are now allowed let's join and leave lobby
                         this.mainRoom.join(invitePassword);
 
-                        this._leaveLobbyRoom();
+                        this.leave();
                     }
                 });
             this.lobbyRoom.addEventListener(
@@ -250,7 +254,7 @@ export default class Lobby {
             this.mainRoom.addEventListener(
                 XMPPEvents.MUC_JOINED,
                 () => {
-                    this._leaveLobbyRoom();
+                    this.leave();
                 });
         }
 
@@ -306,8 +310,10 @@ export default class Lobby {
 
         if (memberRoomJid) {
             const jid = this.lobbyRoom.members[memberRoomJid].jid;
+            const mainRoomJid = this.mainRoom.roomjid;
+            const node = mainRoomJid.substr(0, mainRoomJid.substr(0, mainRoomJid.lastIndexOf('@')).lastIndexOf('_'))
             const msgToSend
-                = $msg({ to: this.mainRoom.roomjid })
+                = $msg({ to: `${node}@${this.mainRoom.options.hosts.muc}` })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
                     .c('invite', { to: jid });
 
