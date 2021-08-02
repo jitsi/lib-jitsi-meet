@@ -15,6 +15,7 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import { CodecSelection } from './modules/RTC/CodecSelection';
 import RTC from './modules/RTC/RTC';
+import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedHandling
@@ -49,6 +50,7 @@ import {
     FEATURE_JIGASI,
     JITSI_MEET_MUC_TYPE
 } from './modules/xmpp/xmpp';
+import BridgeVideoType from './service/RTC/BridgeVideoType';
 import CodecMimeType from './service/RTC/CodecMimeType';
 import * as MediaType from './service/RTC/MediaType';
 import VideoType from './service/RTC/VideoType';
@@ -687,6 +689,24 @@ JitsiConference.prototype._getMediaSessions = function() {
 };
 
 /**
+ * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
+ * decisions based on the video type of the local source.
+ *
+ * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
+ * @returns {void}
+ * @private
+ */
+JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
+    let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
+
+    if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
+        videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
+    }
+
+    this.rtc.setVideoType(videoType);
+};
+
+/**
  * Returns name of this conference.
  */
 JitsiConference.prototype.getName = function() {
@@ -1047,9 +1067,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     // Send the video type message to the bridge if the track is not removed/added to the pc as part of
     // the mute/unmute operation. This currently happens only on Firefox.
     if (track.isVideoTrack() && !browser.doesVideoMuteByStreamRemove()) {
-        const videoType = track.isMuted() ? VideoType.NONE : track.getVideoType();
-
-        this.rtc.setVideoType(videoType);
+        this._sendBridgeVideoTypeMessage(track);
     }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
@@ -1127,17 +1145,12 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     // Now replace the stream at the lower levels
     return this._doReplaceTrack(oldTrack, newTrack)
         .then(() => {
-            if (oldTrack) {
-                this.onLocalTrackRemoved(oldTrack);
-            }
+            oldTrack && this.onLocalTrackRemoved(oldTrack);
+            newTrack && this._setupNewTrack(newTrack);
 
-            // Send 'VideoTypeMessage' on the bridge channel for the new track.
-            if (newTrack) {
-                // Now handle the addition of the newTrack at the JitsiConference level
-                this._setupNewTrack(newTrack);
-                newTrack.isVideoTrack() && this.rtc.setVideoType(newTrack.getVideoType());
-            } else {
-                oldTrack && oldTrack.isVideoTrack() && this.rtc.setVideoType(VideoType.NONE);
+            // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
+            if (oldTrack?.isVideoTrack() || newTrack?.isVideoTrack()) {
+                this._sendBridgeVideoTypeMessage(newTrack);
             }
 
             if (this.isMutedByFocus || this.isVideoMutedByFocus) {
@@ -1259,7 +1272,7 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     return Promise.allSettled(addAsUnmutePromises)
         .then(() => {
             // Signal the video type to the bridge.
-            track.isVideoTrack() && this.rtc.setVideoType(track.getVideoType());
+            track.isVideoTrack() && this._sendBridgeVideoTypeMessage(track);
         });
 };
 
@@ -1287,7 +1300,7 @@ JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
     return Promise.allSettled(removeAsMutePromises)
         .then(() => {
             // Signal the video type to the bridge.
-            track.isVideoTrack() && this.rtc.setVideoType(VideoType.NONE);
+            track.isVideoTrack() && this._sendBridgeVideoTypeMessage();
         });
 };
 
