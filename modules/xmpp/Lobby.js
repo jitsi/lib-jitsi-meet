@@ -248,14 +248,6 @@ export default class Lobby {
 
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });
-
-            // If participant retries joining shared password while waiting in the lobby
-            // and succeeds make sure we leave lobby
-            this.mainRoom.addEventListener(
-                XMPPEvents.MUC_JOINED,
-                () => {
-                    this.leave();
-                });
         }
 
         return new Promise((resolve, reject) => {
@@ -297,6 +289,18 @@ export default class Lobby {
     }
 
     /**
+     * Build main room jid from a breakout room jid.
+     * @param jid - Jid for a main or breakout room.
+     */
+    getMainRoomJidFromRoomJid(jid) {
+        const mainMucDomain = this.mainRoom.options.hosts.muc;
+        const isInBreakoutRoom = mainMucDomain !== Strophe.getDomainFromJid(jid);
+        const node = Strophe.getNodeFromJid(jid);
+
+        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('_'))}@${mainMucDomain}` : jid;
+    }
+
+    /**
      * Should be possible only for moderators.
      * @param id
      */
@@ -311,9 +315,8 @@ export default class Lobby {
         if (memberRoomJid) {
             const jid = this.lobbyRoom.members[memberRoomJid].jid;
             const mainRoomJid = this.mainRoom.roomjid;
-            const node = mainRoomJid.substr(0, mainRoomJid.substr(0, mainRoomJid.lastIndexOf('@')).lastIndexOf('_'))
             const msgToSend
-                = $msg({ to: `${node}@${this.mainRoom.options.hosts.muc}` })
+                = $msg({ to: this.getMainRoomJidFromRoomJid(mainRoomJid) })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
                     .c('invite', { to: jid });
 

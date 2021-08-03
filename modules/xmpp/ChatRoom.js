@@ -1816,7 +1816,7 @@ export default class ChatRoom extends Listenable {
     leave() {
         const promises = [];
 
-        this.lobby && promises.push(this.lobby.leave());
+        this.lobby?.lobbyRoom && promises.push(this.lobby.leave());
 
         promises.push(new Promise((resolve, reject) => {
             const timeout = setTimeout(() => onMucLeft(true), 5000);
