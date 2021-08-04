@@ -386,7 +386,7 @@ export default class CallStats {
                 CallStats.userID,
                 CallStats._initCallback,
                 undefined,
-                configParams);
+                { ...(configParams || {}), collectIP: options.collectIP });
 
             const getWiFiStatsMethod = options.getWiFiStatsMethod;
 
