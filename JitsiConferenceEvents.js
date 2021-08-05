@@ -191,6 +191,12 @@ export const NO_AUDIO_INPUT = 'conference.no_audio_input';
 export const NOISY_MIC = 'conference.noisy_mic';
 
 /**
+ * Indicates that a message from the local user or from the Prosody backend
+ * was received on the data channel.
+ */
+export const NON_PARTICIPANT_MESSAGE_RECEIVED = 'conference.non_participant_message_received';
+
+/**
  * New private text message was received.
  */
 export const PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived';
