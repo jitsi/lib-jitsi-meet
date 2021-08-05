@@ -361,14 +361,10 @@ export default class CallStats {
             CallStats.callStatsID = options.callStatsID;
             CallStats.callStatsSecret = options.callStatsSecret;
 
-            let configParams;
+            const configParams = {...options.configParams};
 
             if (options.applicationName) {
-                configParams = {
-                    applicationVersion:
-                        `${options.applicationName} (${
-                            browser.getName()})`
-                };
+                configParams.applicationVersion =`${options.applicationName} (${browser.getName()})`
             }
 
             if (options.confID) {
