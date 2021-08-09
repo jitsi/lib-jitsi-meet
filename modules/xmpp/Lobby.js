@@ -293,11 +293,11 @@ export default class Lobby {
      * @param jid - Jid for a main or breakout room.
      */
     getMainRoomJidFromRoomJid(jid) {
-        const mainMucDomain = this.mainRoom.options.hosts.muc;
-        const isInBreakoutRoom = mainMucDomain !== Strophe.getDomainFromJid(jid);
         const node = Strophe.getNodeFromJid(jid);
+        const domain = Strophe.getDomainFromJid(jid);
+        const isInBreakoutRoom = node.includes('#breakout_');
 
-        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('_'))}@${mainMucDomain}` : jid;
+        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('#'))}@${domain}` : jid;
     }
 
     /**
