@@ -518,7 +518,7 @@ JitsiConference.prototype._init = function(options = {}) {
     // In case the language config is undefined or has the default value that the transcriber uses
     // (in our case Jigasi uses 'en-US'), don't set the participant property in order to avoid
     // needlessly polluting the presence stanza.
-    if (config && config.transcriptionLanguage && config.transcriptionLanguage !== 'en-US')) {
+    if (config && config.transcriptionLanguage && config.transcriptionLanguage !== 'en-US') {
         this.setLocalParticipantProperty('transcription_language', config.transcriptionLanguage);
     }
 };
