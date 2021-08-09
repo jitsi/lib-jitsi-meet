@@ -513,6 +513,9 @@ JitsiConference.prototype._init = function(options = {}) {
 
     // Publish the codec type to presence.
     this.setLocalParticipantProperty('codecType', this.codecSelection.getPreferredCodec());
+
+    // Set transcription language presence extension.
+    this.setLocalParticipantProperty('transcription_language', config.transcriptionLanguage);
 };
 
 /**
