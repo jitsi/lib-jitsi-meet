@@ -515,7 +515,12 @@ JitsiConference.prototype._init = function(options = {}) {
     this.setLocalParticipantProperty('codecType', this.codecSelection.getPreferredCodec());
 
     // Set transcription language presence extension.
-    this.setLocalParticipantProperty('transcription_language', config.transcriptionLanguage);
+    // In case the language config is undefined or has the default value that the transcriber uses
+    // (in our case Jigasi uses 'en-US'), don't set the participant property in order to avoid
+    // needlessly polluting the presence stanza.
+    if (config && config.transcriptionLanguage && config.transcriptionLanguage !== 'en-US')) {
+        this.setLocalParticipantProperty('transcription_language', config.transcriptionLanguage);
+    }
 };
 
 /**
