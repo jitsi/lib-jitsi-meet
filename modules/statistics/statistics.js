@@ -73,7 +73,7 @@ function _initCallStatsBackend(options) {
         getWiFiStatsMethod: options.getWiFiStatsMethod,
         confID: options.confID,
         siteID: options.siteID,
-        
+
         // This configParams refers to the configParams described in
         // https://docs.callstats.io/docs/javascript#callstatsinitialize-with-app-secret
         configParams: options.configParams
