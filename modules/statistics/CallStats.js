@@ -361,7 +361,8 @@ export default class CallStats {
             CallStats.callStatsID = options.callStatsID;
             CallStats.callStatsSecret = options.callStatsSecret;
 
-            // This configParams refers to the configParams described in https://docs.callstats.io/docs/javascript#callstatsinitialize-with-app-secret
+            // This configParams refers to the configParams described in
+            // https://docs.callstats.io/docs/javascript#callstatsinitialize-with-app-secret
             const configParams = {...options.configParams};
 
             if (options.applicationName) {
