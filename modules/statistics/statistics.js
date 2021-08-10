@@ -72,7 +72,8 @@ function _initCallStatsBackend(options) {
         applicationName: options.applicationName,
         getWiFiStatsMethod: options.getWiFiStatsMethod,
         confID: options.confID,
-        siteID: options.siteID
+        siteID: options.siteID,
+        additionalIDs: options.additionalIDs
     })) {
         logger.error('CallStats Backend initialization failed bad');
     }

@@ -421,7 +421,8 @@ JitsiConference.prototype._init = function(options = {}) {
             enableCallStats,
             roomName: this.options.name,
             applicationName: config.applicationName,
-            getWiFiStatsMethod: config.getWiFiStatsMethod
+            getWiFiStatsMethod: config.getWiFiStatsMethod,
+            additionalIDs: config.callStatsAdditionalIDs
         });
         Statistics.analytics.addPermanentProperties({
             'callstats_name': this._statsCurrentId

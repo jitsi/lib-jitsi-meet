@@ -379,6 +379,10 @@ export default class CallStats {
                 configParams.siteID = options.siteID || (match && match[1]) || '/';
             }
 
+            if (options.additionalIDs) {
+                configParams.additionalIDs = options.additionalIDs;
+            }
+
             // userID is generated or given by the origin server
             CallStats.backend.initialize(
                 CallStats.callStatsID,
