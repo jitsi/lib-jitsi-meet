@@ -1199,7 +1199,9 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
     if (this._usesUnifiedPlan) {
         media = [];
         [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-            media.push(session.media.find(m => m.type === mediaType));
+            const mLine = session.media.find(m => m.type === mediaType);
+
+            mLine && media.push(mLine);
         });
     }
 
