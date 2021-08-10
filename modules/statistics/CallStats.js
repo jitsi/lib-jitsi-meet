@@ -363,10 +363,10 @@ export default class CallStats {
 
             // This configParams refers to the configParams described in
             // https://docs.callstats.io/docs/javascript#callstatsinitialize-with-app-secret
-            const configParams = {...options.configParams};
+            const configParams = { ...options.configParams };
 
             if (options.applicationName) {
-                configParams.applicationVersion =`${options.applicationName} (${browser.getName()})`
+                configParams.applicationVersion = `${options.applicationName} (${browser.getName()})`;
             }
 
             if (options.confID) {
