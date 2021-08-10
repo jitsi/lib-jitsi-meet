@@ -228,14 +228,17 @@ export default class ProxyConnectionPC {
 
                 return {};
             },
-            removePresenceListener: () => { /** no-op */ }
+            removePresenceListener: () => { /** no-op */ },
+            supportsRestartByTerminate: () => false
         };
 
         /**
          * A {@code JitsiConference} stub passed to the {@link RTC} module.
          * @type {Object}
          */
-        const conferenceStub = {};
+        const conferenceStub = {
+            myUserId: () => ''
+        };
 
         /**
          * Create an instance of {@code RTC} as it is required for peer
