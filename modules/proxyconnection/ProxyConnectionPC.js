@@ -41,8 +41,8 @@ export default class ProxyConnectionPC {
         this._options = {
             iceConfig: {},
             isInitiator: false,
-            receiveAudio: false,
-            receiveVideo: false,
+            receiveAudio: true,
+            receiveVideo: true,
             ...options
         };
 
