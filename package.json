@@ -52,15 +52,16 @@
     "karma-chrome-launcher": "3.1.0",
     "karma-jasmine": "3.1.1",
     "karma-sourcemap-loader": "0.3.7",
-    "karma-webpack": "4.0.2",
-    "string-replace-loader": "2.1.1",
-    "webpack": "4.43.0",
-    "webpack-bundle-analyzer": "3.4.1",
-    "webpack-cli": "3.3.11"
+    "karma-webpack": "5.0.0",
+    "process": "0.11.10",
+    "string-replace-loader": "3.0.3",
+    "webpack": "5.57.1",
+    "webpack-bundle-analyzer": "4.4.2",
+    "webpack-cli": "4.9.0"
   },
   "scripts": {
     "lint": "eslint .",
-    "postinstall": "webpack -p",
+    "postinstall": "webpack",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls",
