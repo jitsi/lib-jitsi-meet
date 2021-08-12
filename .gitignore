@@ -13,3 +13,4 @@ npm-*.log
 .DS_Store
 stats.json
 .vscode
+dist

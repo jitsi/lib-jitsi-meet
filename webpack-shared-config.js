@@ -52,7 +52,11 @@ module.exports = (minimize, analyzeBundle) => {
                         ]
                     ]
                 },
-                test: /\.js$/
+                test: /\.(js|ts)$/
+            }, {
+                exclude: /node_modules/,
+                test: /\.ts$/,
+                use: 'ts-loader'
             } ]
         },
         node: {

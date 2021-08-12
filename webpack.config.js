@@ -1,3 +1,4 @@
+const path = require('path');
 const process = require('process');
 
 const sharedConfig = require('./webpack-shared-config');
@@ -16,7 +17,7 @@ module.exports = (_env, argv) => {
             output: Object.assign({}, config.output, {
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
-                path: process.cwd()
+                path: path.join(process.cwd(), 'dist', 'umd')
             })
         }),
         {
@@ -26,7 +27,7 @@ module.exports = (_env, argv) => {
             mode,
             output: {
                 filename: 'lib-jitsi-meet.e2ee-worker.js',
-                path: process.cwd()
+                path: path.join(process.cwd(), 'dist', 'umd')
             },
             optimization: {
                 minimize: false
