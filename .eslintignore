@@ -1,5 +1,6 @@
 # The build artifacts of the lib-jiti-meet project.
 lib-jitsi-meet.*
+dist/
 
 # Third-party source code which we (1) do not want to modify or (2) try to
 # modify as little as possible.
