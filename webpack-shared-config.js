@@ -28,9 +28,6 @@ module.exports = {
         }, {
             // Transpile ES2015 (aka ES6) to ES5.
 
-            exclude: [
-                new RegExp(`${__dirname}/node_modules/(?!@jitsi/js-utils)`)
-            ],
             loader: 'babel-loader',
             options: {
                 presets: [
