@@ -559,6 +559,28 @@ export default class JingleSessionPC extends JingleSession {
             }
         };
 
+
+        /**
+	 * The connection state event is fired whenever the aggregate of underlying
+	 * transports change their state.
+	 */
+        this.peerconnection.onconnectionstatechange = () => {
+            const icestate = this.peerconnection.iceConnectionState;
+
+            switch (this.peerconnection.connectionState) {
+            case 'failed':
+                // Since version 76 Chrome no longer switches ICE connection
+                // state to failed (see
+                // https://bugs.chromium.org/p/chromium/issues/detail?id=982793
+                // for details) we use this workaround to recover from lost connections
+                if (icestate === 'disconnected') {
+                    this.room.eventEmitter.emit(
+                        XMPPEvents.CONNECTION_ICE_FAILED, this);
+                }
+                break;
+            }
+        };
+
         /**
          * The negotiationneeded event is fired whenever we shake the media on the
          * RTCPeerConnection object.
