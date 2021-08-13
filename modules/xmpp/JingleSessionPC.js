@@ -561,9 +561,9 @@ export default class JingleSessionPC extends JingleSession {
 
 
         /**
-	 * The connection state event is fired whenever the aggregate of underlying
-	 * transports change their state.
-	 */
+         * The connection state event is fired whenever the aggregate of underlying
+         * transports change their state.
+         */
         this.peerconnection.onconnectionstatechange = () => {
             const icestate = this.peerconnection.iceConnectionState;
 
