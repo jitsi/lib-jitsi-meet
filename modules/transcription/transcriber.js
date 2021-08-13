@@ -1,6 +1,5 @@
-const AudioRecorder = require('./audioRecorder');
-const SphinxService = require(
-    './transcriptionServices/SphinxTranscriptionService');
+import AudioRecorder from './audioRecorder';
+import SphinxService from './transcriptionServices/SphinxTranscriptionService';
 
 const BEFORE_STATE = 'before';
 const RECORDING_STATE = 'recording';
@@ -357,4 +356,4 @@ Transcriber.prototype.reset = function() {
     this.lineLength = 0;
 };
 
-module.exports = Transcriber;
+export default Transcriber;
