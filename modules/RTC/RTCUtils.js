@@ -76,6 +76,9 @@ let disableNS = false;
 // Disables Automatic Gain Control
 let disableAGC = false;
 
+// Enabled DSCP marking
+let enableDSCP = false;
+
 // Enables stereo.
 let stereo = null;
 
@@ -335,6 +338,10 @@ class RTCUtils extends Listenable {
             disableAGC = options.disableAGC;
             logger.info(`Disable AGC: ${disableAGC}`);
         }
+        if (typeof options.enableDSCP === 'boolean') {
+            enableDSCP = options.enableDSCP;
+            logger.info(`Enable DSCP: ${enableDSCP}`);
+        }
         if (typeof options.audioQuality?.stereo === 'boolean') {
             stereo = options.audioQuality.stereo;
             logger.info(`Stereo: ${stereo}`);
@@ -377,7 +384,9 @@ class RTCUtils extends Listenable {
             ? { optional: [
                 { googScreencastMinBitrate: 100 },
                 { googCpuOveruseDetection: true }
-            ] }
+            ].concat(enableDSCP ? [
+                { googDscp: enableDSCP }
+            ] : []) }
             : {};
 
         screenObtainer.init(options);
