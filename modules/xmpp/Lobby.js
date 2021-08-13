@@ -295,9 +295,9 @@ export default class Lobby {
     getMainRoomJidFromRoomJid(jid) {
         const node = Strophe.getNodeFromJid(jid);
         const domain = Strophe.getDomainFromJid(jid);
-        const isInBreakoutRoom = node.includes('#breakout_');
+        const isInBreakoutRoom = node.includes('_breakout-');
 
-        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('#'))}@${domain}` : jid;
+        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('_'))}@${domain}` : jid;
     }
 
     /**
