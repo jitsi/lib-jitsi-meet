@@ -241,7 +241,7 @@ export default class RTC extends Listenable {
                 try {
                     this._channel.sendSelectedEndpointsMessage(this._selectedEndpoints);
                 } catch (error) {
-                    logError(error, 'SelectedEndpointsChangedEvent', this._selectedEndpoint);
+                    logError(error, 'SelectedEndpointsChangedEvent', this._selectedEndpoints);
                 }
             }
             if (typeof this._maxFrameHeight !== 'undefined') {
