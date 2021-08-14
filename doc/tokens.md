@@ -139,6 +139,11 @@ Also check if client to server encryption is not enforced. Otherwise token authe
 c2s_require_encryption=false
 ```
 
+Restart the service to take the changes into account
+```
+sudo /etc/init.d/prosody restart
+```
+
 [here]: https://prosody.im/download/package_repository
 
 ### Manual plugin configuration
