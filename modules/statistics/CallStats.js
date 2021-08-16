@@ -343,6 +343,8 @@ export default class CallStats {
      * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
      * @param {string} options.userName the <tt>userName</tt> part of
      * the <tt>userID</tt> aka display name, see CallStats docs for more info.
+     * @param {String} options.configParams the set of parameters
+     * to enable/disable certain features in the library. See CallStats docs for more info.
      *
      */
     static initBackend(options) {
@@ -361,14 +363,10 @@ export default class CallStats {
             CallStats.callStatsID = options.callStatsID;
             CallStats.callStatsSecret = options.callStatsSecret;
 
-            let configParams;
+            const configParams = { ...options.configParams };
 
             if (options.applicationName) {
-                configParams = {
-                    applicationVersion:
-                        `${options.applicationName} (${
-                            browser.getName()})`
-                };
+                configParams.applicationVersion = `${options.applicationName} (${browser.getName()})`;
             }
 
             if (options.confID) {
