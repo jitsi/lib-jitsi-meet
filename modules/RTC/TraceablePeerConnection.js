@@ -355,6 +355,13 @@ export default function TraceablePeerConnection(
             this.onnegotiationneeded(event);
         }
     };
+    this.onconnectionstatechange = null;
+    this.peerconnection.onconnectionstatechange = event => {
+        this.trace('onconnectionstatechange', this.connectionState);
+        if (this.onconnectionstatechange !== null) {
+            this.onconnectionstatechange(event);
+        }
+    };
     this.ondatachannel = null;
     this.peerconnection.ondatachannel = event => {
         this.trace('ondatachannel');
@@ -1495,6 +1502,9 @@ const getters = {
     },
     iceConnectionState() {
         return this.peerconnection.iceConnectionState;
+    },
+    connectionState() {
+        return this.peerconnection.connectionState;
     },
     localDescription() {
         let desc = this.peerconnection.localDescription;
