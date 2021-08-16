@@ -413,13 +413,13 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.JSON_MESSAGE_RECEIVED,
         (from, payload) => {
-            const _id = Strophe.getResourceFromJid(from);
-            const participant = conference.getParticipantById(_id);
+            const id = Strophe.getResourceFromJid(from);
+            const participant = conference.getParticipantById(id);
 
-            if (participant || _id === 'focus') {
+            if (participant) {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-                    participant || { _id }, payload);
+                    participant, payload);
             } else {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED,
