@@ -314,9 +314,8 @@ export default class Lobby {
 
         if (memberRoomJid) {
             const jid = this.lobbyRoom.members[memberRoomJid].jid;
-            const mainRoomJid = this.mainRoom.roomjid;
             const msgToSend
-                = $msg({ to: this.getMainRoomJidFromRoomJid(mainRoomJid) })
+                = $msg({ to: this.getMainRoomJidFromRoomJid(this.mainRoom.roomjid) })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
                     .c('invite', { to: jid });
 
