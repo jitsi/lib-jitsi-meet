@@ -194,6 +194,10 @@ export default class LocalSdpMunger {
     _transformMediaIdentifiers(mediaSection) {
         const pcId = this.tpc.id;
 
+        // TODO fix and remove quick and dirty hack
+        const trackToMsid = new Map();
+        let counter = 100;
+
         for (const ssrcLine of mediaSection.ssrcs) {
             switch (ssrcLine.attribute) {
             case 'cname':
@@ -206,6 +210,28 @@ export default class LocalSdpMunger {
                     const streamAndTrackIDs = ssrcLine.value.split(' ');
 
                     if (streamAndTrackIDs.length === 2) {
+                        // FIXME
+                        // The problem here is that Chrome in unified gives `-` as the stream ID.
+                        // This code generates different stream IDs for each track. This is needed because when a video
+                        // is rendered stream ID is used to bind specific video. Without this change both camera and
+                        // desktop shared the same stream ID created by `this._generateMsidAttribute` which assumes only
+                        // one track per media type.
+                        const streamId = streamAndTrackIDs[0];
+                        const trackId = streamAndTrackIDs[1];
+                        const mediaType = mediaSection.mLine?.type;
+
+                        // eslint-disable-next-line max-depth
+                        if (streamId === '-' || !streamId) {
+                            // eslint-disable-next-line max-depth
+                            if (!trackToMsid.has(trackId)) {
+                                // eslint-disable-next-line max-len
+                                trackToMsid.set(trackId, `${this.localEndpointId}-${mediaType}-${counter} ${trackId}-${pcId}`);
+                                counter += 1;
+                            }
+                            ssrcLine.value = trackToMsid.get(trackId);
+                            break;
+                        }
+
                         ssrcLine.value
                             = this._generateMsidAttribute(
                                 mediaSection.mLine?.type,
