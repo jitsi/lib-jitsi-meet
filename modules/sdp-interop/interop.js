@@ -432,6 +432,13 @@ export class Interop {
             token: '*'
         };
 
+        session.media.forEach(mLine => {
+            // eslint-disable-next-line eqeqeq
+            if (mLine.mid == '2') {
+                mLine.direction = 'sendrecv';
+            }
+        });
+
         // Increment the session version every time.
         session.origin.sessionVersion++;
         const resultSdp = transform.write(session);

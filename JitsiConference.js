@@ -1087,19 +1087,6 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
  * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function(track) {
-    const mediaType = track.getType();
-    const localTracks = this.rtc.getLocalTracks(mediaType);
-
-    // Ensure there's exactly 1 local track of each media type in the conference.
-    if (localTracks.length > 0) {
-        // Don't be excessively harsh and severe if the API client happens to attempt to add the same local track twice.
-        if (track === localTracks[0]) {
-            return Promise.resolve(track);
-        }
-
-        return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
-    }
-
     return this.replaceTrack(null, track);
 };
 

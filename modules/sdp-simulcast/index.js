@@ -492,7 +492,7 @@ Simulcast.prototype.mungeLocalDescription = function (desc) {
 
     var self = this;
     processVideo(session, function (mLine) {
-        if (mLine.direction == 'recvonly' || mLine.direction == 'inactive')
+        if (mLine.direction == 'recvonly' || mLine.direction == 'inactive' || mLine.mid == '2')
         {
             return;
         }

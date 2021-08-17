@@ -353,6 +353,20 @@ export class TPCUtils {
         }
         logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
+        // FIXME a hack to send DESKTOP on the 2nd video transceiver
+        if (newTrack.getVideoType() === VideoType.DESKTOP) {
+            const transceiver = this.pc.peerconnection
+                .getTransceivers()
+                .filter(t => t.receiver?.track?.kind === MediaType.VIDEO)[1];
+
+            transceiver.direction = MediaDirection.SENDRECV;
+
+            return transceiver.sender.replaceTrack(newTrack.getTrack())
+                .then(() => {
+                    this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                });
+        }
+
         return transceiver.sender.replaceTrack(track);
     }
 
