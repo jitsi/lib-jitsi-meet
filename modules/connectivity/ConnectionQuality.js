@@ -513,11 +513,7 @@ export default class ConnectionQuality {
      * @param facialExpression the facial expression received
      */
     _updateFacialExpression(id, facialExpression) {
-<<<<<<< HEAD
         this._conference.sendFacialExpression(facialExpression);
-=======
-        console.log('iddd', id, facialExpression);
->>>>>>> 310905de (feat: facial expression in speaker stats)
 
         this.eventEmitter.emit(
             ConferenceEvents.FACIAL_EXPRESSION_CHANGED,
