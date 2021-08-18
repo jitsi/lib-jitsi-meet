@@ -17,6 +17,7 @@ const logger = getLogger(__filename);
  * over the data channel.
  */
 const STATS_MESSAGE_TYPE = 'stats';
+const FACIAL_EXPRESSION_MESSAGE_TYPE = 'facial_expression';
 
 const kSimulcastFormats = [
     { width: 1920,
@@ -221,6 +222,14 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
             (participant, payload) => {
                 this._updateRemoteStats(participant.getId(), payload);
+            });
+
+        conference.on(
+            ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+            (participant, payload) => {
+                if (payload.type === FACIAL_EXPRESSION_MESSAGE_TYPE) {
+                    this._updateFacialExpression(participant.getId(), payload.value);
+                }
             });
 
         // Listen to local statistics events originating from the RTC module and update the _localStats field.
@@ -496,6 +505,20 @@ export default class ConnectionQuality {
             ConnectionQualityEvents.REMOTE_STATS_UPDATED,
             id,
             this._remoteStats[id]);
+    }
+
+    /**
+     * Updates facial expression
+     * @param id the id of the remote participant
+     * @param facialExpression the facial expression received
+     */
+    _updateFacialExpression(id, facialExpression) {
+        console.log('iddd', id, facialExpression);
+
+        this.eventEmitter.emit(
+            ConferenceEvents.FACIAL_EXPRESSION_CHANGED,
+            id,
+            facialExpression);
     }
 
     /**

@@ -24,6 +24,7 @@ class SpeakerStats {
         this.totalDominantSpeakerTime = 0;
         this._dominantSpeakerStart = 0;
         this._hasLeft = false;
+        this._lastExpression = null;
     }
 
     /**
@@ -124,6 +125,25 @@ class SpeakerStats {
     markAsHasLeft() {
         this._hasLeft = true;
         this.setDominantSpeaker(false);
+    }
+
+    /**
+     * Gets the last expression of the user.
+     *
+     * @returns {void}
+     */
+    getLastExpression() {
+        return this._lastExpression;
+    }
+
+    /**
+     * Sets the last expression of the user.
+     *
+     * @param  {string} lastExpression - The last expression of the user.
+     * @returns {void}
+     */
+    setLastExpression(lastExpression) {
+        this._lastExpression = lastExpression;
     }
 }
 
