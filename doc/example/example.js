@@ -3,12 +3,9 @@
 const options = {
     hosts: {
         domain: 'jitsi-meet.example.com',
-        muc: 'conference.jitsi-meet.example.com' // FIXME: use XEP-0030
+        muc: 'conference.jitsi-meet.example.com'
     },
-    bosh: '//jitsi-meet.example.com/http-bind', // FIXME: use xep-0156 for that
-
-    // The name of client node advertised in XEP-0115 'c' stanza
-    clientNode: 'http://jitsi.org/jitsimeet'
+    bosh: '//jitsi-meet.example.com/http-bind'
 };
 
 const confOptions = {
