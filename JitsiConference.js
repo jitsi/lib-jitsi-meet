@@ -186,7 +186,9 @@ export default function JitsiConference(options) {
      * Detects issues with the audio of remote participants.
      * @type {AudioOutputProblemDetector}
      */
-    this._audioOutputProblemDetector = new AudioOutputProblemDetector(this);
+    if (!options.config.disableAudioLevels) {
+        this._audioOutputProblemDetector = new AudioOutputProblemDetector(this);
+    }
 
     /**
      * Indicates whether the connection is interrupted or not.
