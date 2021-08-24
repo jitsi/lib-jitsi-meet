@@ -96,9 +96,10 @@ export class E2EEncryption {
      * @returns {boolean}
      */
     static isSupported(config) {
-        return browser.supportsInsertableStreams()
-            && OlmAdapter.isSupported()
-            && !(config.testing && config.testing.disableE2EE);
+        return !(config.testing && config.testing.disableE2EE)
+            && (browser.supportsInsertableStreams()
+                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()))
+            && OlmAdapter.isSupported();
     }
 
     /**
