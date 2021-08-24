@@ -236,6 +236,19 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser supports WebRTC Encoded Transform, an alternative
+     * to insertable streams.
+     *
+     * NOTE: At the time of this writing the only browser supporting this is
+     * Safari / WebKit, behind a flag.
+     *
+     * @returns {boolean} {@code true} if the browser supports it.
+     */
+    supportsEncodedTransform() {
+        return Boolean(window.RTCRtpScriptTransform);
+    }
+
+    /**
      * Checks if the browser supports insertable streams, needed for E2EE.
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
