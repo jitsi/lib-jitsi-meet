@@ -3645,6 +3645,10 @@ JitsiConference.prototype.getSpeakerStats = function() {
     return this.speakerStatsCollector.getStats();
 };
 
+JitsiConference.prototype.sendFacialExpression = function(facialExpression) {
+    this.xmpp.sendFacialExpressionEvent(this.room.roomjid, facialExpression);
+};
+
 /**
  * Sets the constraints for the video that is requested from the bridge.
  *

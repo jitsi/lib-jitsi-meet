@@ -513,7 +513,7 @@ export default class ConnectionQuality {
      * @param facialExpression the facial expression received
      */
     _updateFacialExpression(id, facialExpression) {
-        console.log('iddd', id, facialExpression);
+        this._conference.sendFacialExpression(facialExpression);
 
         this.eventEmitter.emit(
             ConferenceEvents.FACIAL_EXPRESSION_CHANGED,

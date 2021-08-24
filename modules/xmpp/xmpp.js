@@ -901,6 +901,28 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Sends facial expression to speaker stats component.
+     * @param {String} roomJid - The room jid where the speaker event occurred.
+     * @param {String} facialExpression - The expression to be sent to the speaker stats.
+     */
+    sendFacialExpressionEvent(roomJid, facialExpression) {
+        // no speaker stats component advertised
+        if (!this.speakerStatsComponentAddress || !roomJid) {
+            return;
+        }
+
+        const msg = $msg({ to: this.speakerStatsComponentAddress });
+
+        msg.c('facialExpression', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            room: roomJid,
+            expression: facialExpression })
+            .up();
+
+        this.connection.send(msg);
+    }
+
+    /**
      * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
      * parsing it and checking if it has a field called 'type'.
      *
