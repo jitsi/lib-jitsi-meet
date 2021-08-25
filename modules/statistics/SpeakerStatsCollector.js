@@ -153,6 +153,7 @@ export default class SpeakerStatsCollector {
      * @private
      */
     _updateStats(newStats) {
+        console.log('NEW STATS', newStats);
         for (const userId in newStats) { // eslint-disable-line guard-for-in
             let speakerStatsToUpdate;
             const newParticipant = this.conference.getParticipantById(userId);
@@ -176,6 +177,9 @@ export default class SpeakerStatsCollector {
 
             speakerStatsToUpdate.totalDominantSpeakerTime
                 = newStats[userId].totalDominantSpeakerTime;
+
+            speakerStatsToUpdate._lastExpression
+                = newStats[userId].lastExpression;
         }
     }
 }
