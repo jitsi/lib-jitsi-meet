@@ -108,12 +108,6 @@ function createSourceExtension(owner, sourceCompactJson) {
             value: sourceCompactJson.m
         }).up();
     }
-    if (sourceCompactJson.c) {
-        node.c('parameter', {
-            name: 'cname',
-            value: sourceCompactJson.c
-        }).up();
-    }
     node.c('ssrc-info', {
         xmlns: 'http://jitsi.org/jitmeet',
         owner
