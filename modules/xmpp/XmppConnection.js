@@ -201,6 +201,17 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
+     * Sets new value for shard.
+     * @param value the new shard value.
+     */
+    set shard(value) {
+        this._options.shard = value;
+
+        // shard setting changed so let's schedule a new keep-alive check
+        this._maybeStartWSKeepAlive();
+    }
+
+    /**
      * Returns the current connection status.
      *
      * @returns {Strophe.Status}
