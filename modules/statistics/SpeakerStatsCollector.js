@@ -131,7 +131,7 @@ export default class SpeakerStatsCollector {
         const savedUser = this.stats.users[userId];
 
         if (savedUser) {
-            savedUser.setLastExpression(facialExpression);
+            savedUser.addFacialExpression(facialExpression);
         }
     }
 
@@ -178,8 +178,7 @@ export default class SpeakerStatsCollector {
             speakerStatsToUpdate.totalDominantSpeakerTime
                 = newStats[userId].totalDominantSpeakerTime;
 
-            speakerStatsToUpdate._lastExpression
-                = newStats[userId].lastExpression;
+            speakerStatsToUpdate.facialExpressions = newStats[userId].facialExpressions;
         }
     }
 }

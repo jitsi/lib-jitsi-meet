@@ -916,7 +916,9 @@ export default class XMPP extends Listenable {
         msg.c('facialExpression', {
             xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
-            expression: facialExpression })
+            expression: facialExpression.expression,
+            time: facialExpression.time
+        })
             .up();
 
         this.connection.send(msg);
