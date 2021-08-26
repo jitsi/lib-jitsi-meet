@@ -124,7 +124,7 @@ function createSourceExtension(owner, sourceCompactJson) {
 function createSsrcGroupExtension(ssrcGroupCompactJson) {
     const node = $build('ssrc-group', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-        semantics: getSementics(ssrcGroupCompactJson[0])
+        semantics: getSemantics(ssrcGroupCompactJson[0])
     });
 
     for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
@@ -143,7 +143,7 @@ function createSsrcGroupExtension(ssrcGroupCompactJson) {
  * @param {*} str the compact JSON format representation of an SSRC group's semantics.
  * @returns the SSRC group semantics corresponding to [str].
  */
-function getSementics(str) {
+function getSemantics(str) {
     if (str === 'f') {
         return 'FID';
     } else if (str === 's') {
