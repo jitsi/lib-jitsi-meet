@@ -170,9 +170,7 @@ function getOrCreateRtpDescription(iq, mediaType) {
     } else {
         // I'm not suree if "creator" and "senders" are required.
         content = $build('content', {
-            name: mediaType,
-            creator: 'initiator',
-            senders: 'both'
+            name: mediaType
         }).node;
         jingle.appendChild(content);
     }
