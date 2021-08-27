@@ -227,10 +227,8 @@ export default class Lobby {
                 (roomJid, from, txt, invitePassword) => {
                     logger.debug(`Received approval to join ${roomJid} ${from} ${txt}`);
                     if (roomJid === this.mainRoom.roomjid) {
-                        // we are now allowed let's join and leave lobby
+                        // we are now allowed, so let's join
                         this.mainRoom.join(invitePassword);
-
-                        this.leave();
                     }
                 });
             this.lobbyRoom.addEventListener(
@@ -247,6 +245,14 @@ export default class Lobby {
                     this.lobbyRoom.clean();
 
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
+                });
+
+            // If participant retries joining shared password while waiting in the lobby
+            // and succeeds make sure we leave lobby
+            this.mainRoom.addEventListener(
+                XMPPEvents.MUC_JOINED,
+                () => {
+                    this.leave();
                 });
         }
 
