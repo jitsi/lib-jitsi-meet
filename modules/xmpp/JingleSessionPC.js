@@ -48,6 +48,16 @@ const DEFAULT_MAX_STATS = 300;
 const ICE_CAND_GATHERING_TIMEOUT = 150;
 
 /**
+ * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
+ * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
+ * endpoint/participant.
+ * @returns The endpoint ID associated with 'jidOrEndpointId'.
+ */
+function getEndpointId(jidOrEndpointId) {
+    return Strophe.getResourceFromJid(jidOrEndpointId) || jidOrEndpointId;
+}
+
+/**
  * @typedef {Object} JingleSessionPCOptions
  * @property {Object} abTesting - A/B testing related options (ask George).
  * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
@@ -886,7 +896,7 @@ export default class JingleSessionPC extends JingleSession {
                             } else {
                                 this.signalingLayer.setSSRCOwner(
                                     ssrc,
-                                    Strophe.getResourceFromJid(owner));
+                                    getEndpointId(owner));
                             }
                         }
                     });

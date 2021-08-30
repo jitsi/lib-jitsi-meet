@@ -1,4 +1,4 @@
-/* global $, __filename */
+/* global $, $build, __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
@@ -21,6 +21,174 @@ const logger = getLogger(__filename);
 // XXX Strophe is build around the idea of chaining function calls so allow long
 // function call chains.
 /* eslint-disable newline-per-chained-call */
+
+/**
+ * Reads a JSON-encoded message (from a "json-message" element) and extracts source descriptions. Adds the extracted
+ * source descriptions to the given Jingle IQ in the standard Jingle format.
+ *
+ * Encoding sources in this compact JSON format instead of standard Jingle was introduced in order to reduce the
+ * network traffic and load on the XMPP server. The format is described in Jicofo [TODO: insert link].
+ *
+ * @param {*} iq the IQ to which source descriptions will be added.
+ * @param {*} jsonMessageXml The XML node for the "json-message" element.
+ * @returns nothing.
+ */
+function expandSourcesFromJson(iq, jsonMessageXml) {
+
+    let json;
+
+    try {
+        json = JSON.parse(jsonMessageXml.textContent);
+    } catch (error) {
+        logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
+
+        return;
+    }
+
+    if (!json || !json.sources) {
+        // It might be a message of a different type, no need to log.
+        return;
+    }
+
+    // This is where we'll add "source" and "ssrc-group" elements. Create them elements if they don't exist.
+    const videoRtpDescription = getOrCreateRtpDescription(iq, 'video');
+    const audioRtpDescription = getOrCreateRtpDescription(iq, 'audio');
+
+    for (const owner in json.sources) {
+        if (json.sources.hasOwnProperty(owner)) {
+
+            const ownerSources = json.sources[owner];
+
+            // The video sources, video ssrc-groups, audio sources and audio ssrc-groups are encoded in that order in
+            // the elements of the array.
+            const videoSources = ownerSources && ownerSources.length > 0 && ownerSources[0];
+            const videoSsrcGroups = ownerSources && ownerSources.length > 1 && ownerSources[1];
+            const audioSources = ownerSources && ownerSources.length > 2 && ownerSources[2];
+            const audioSsrcGroups = ownerSources && ownerSources.length > 3 && ownerSources[3];
+
+            if (videoSources && videoSources.length > 0) {
+                for (let i = 0; i < videoSources.length; i++) {
+                    videoRtpDescription.appendChild(createSourceExtension(owner, videoSources[i]));
+                }
+            }
+            if (videoSsrcGroups && videoSsrcGroups.length > 0) {
+                for (let i = 0; i < videoSsrcGroups.length; i++) {
+                    videoRtpDescription.appendChild(createSsrcGroupExtension(videoSsrcGroups[i]));
+                }
+            }
+            if (audioSources && audioSources.length > 0) {
+                for (let i = 0; i < audioSources.length; i++) {
+                    audioRtpDescription.appendChild(createSourceExtension(owner, audioSources[i]));
+                }
+            }
+            if (audioSsrcGroups && audioSsrcGroups.length > 0) {
+                for (let i = 0; i < audioSsrcGroups.length; i++) {
+                    audioRtpDescription.appendChild(createSsrcGroupExtension(audioSsrcGroups[i]));
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].
+ * @param {*} owner the endpoint ID of the owner of the source.
+ * @param {*} sourceCompactJson the compact JSON representation of the source.
+ * @returns the created "source" XML element.
+ */
+function createSourceExtension(owner, sourceCompactJson) {
+    const node = $build('source', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        ssrc: sourceCompactJson.s
+    });
+
+    if (sourceCompactJson.m) {
+        node.c('parameter', {
+            name: 'msid',
+            value: sourceCompactJson.m
+        }).up();
+    }
+    node.c('ssrc-info', {
+        xmlns: 'http://jitsi.org/jitmeet',
+        owner
+    }).up();
+
+    return node.node;
+}
+
+/**
+ * Creates an "ssrc-group" XML element for the SSRC group described in compact JSON format in [ssrcGroupCompactJson].
+ * @param {*} ssrcGroupCompactJson the compact JSON representation of the SSRC group.
+ * @returns the created "ssrc-group" element.
+ */
+function createSsrcGroupExtension(ssrcGroupCompactJson) {
+    const node = $build('ssrc-group', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        semantics: getSemantics(ssrcGroupCompactJson[0])
+    });
+
+    for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
+        node.c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: ssrcGroupCompactJson[i]
+        }).up();
+    }
+
+    return node.node;
+}
+
+/**
+ * Convert the short string representing SSRC group semantics in compact JSON format to the standard representation
+ * (i.e. convert "f" to "FID" and "s" to "SIM").
+ * @param {*} str the compact JSON format representation of an SSRC group's semantics.
+ * @returns the SSRC group semantics corresponding to [str].
+ */
+function getSemantics(str) {
+    if (str === 'f') {
+        return 'FID';
+    } else if (str === 's') {
+        return 'SIM';
+    }
+
+    return null;
+}
+
+/**
+ * Finds in a Jingle IQ the RTP description element with the given media type. If one does not exists, create it (as
+ *  well as the required  "content" parent element) and adds it to the IQ.
+ * @param {*} iq
+ * @param {*} mediaType The media type, "audio" or "video".
+ * @returns the RTP description element with the given media type.
+ */
+function getOrCreateRtpDescription(iq, mediaType) {
+    const jingle = $(iq).find('jingle')[0];
+    let content = $(jingle).find(`content[name="${mediaType}"]`);
+    let description;
+
+    if (content.length) {
+        content = content[0];
+    } else {
+        // I'm not suree if "creator" and "senders" are required.
+        content = $build('content', {
+            name: mediaType
+        }).node;
+        jingle.appendChild(content);
+    }
+
+    description = $(content).find('description');
+
+    if (description.length) {
+        description = description[0];
+    } else {
+        description = $build('description', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+            media: mediaType
+        }).node;
+        content.appendChild(description);
+    }
+
+    return description;
+}
 
 /**
  *
@@ -131,6 +299,18 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
 
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
+
+        const jsonMessages = $(iq).find('jingle>json-message');
+
+        if (jsonMessages && jsonMessages.length > 0) {
+            logger.info(`Found a JSON-encoded element in ${action}, translating to standard Jingle.`);
+            for (let i = 0; i < jsonMessages.length; i++) {
+                expandSourcesFromJson(iq, jsonMessages[i]);
+            }
+
+            // TODO: is there a way to remove the json-message elements once we've extracted the information?
+            // removeChild doesn't seem to work.
+        }
 
         switch (action) {
         case 'session-initiate': {
