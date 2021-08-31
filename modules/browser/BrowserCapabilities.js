@@ -57,6 +57,18 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current platform is iOS.
+     *
+     * @returns {boolean}
+     */
+    isIosBrowser() {
+        const { userAgent, maxTouchPoints, platform } = navigator;
+
+        return userAgent.match(/iP(ad|hone|od)/i
+            || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform)));
+    }
+
+    /**
      * Checks if the current browser is WebKit based. It's either
      * Safari or uses WebKit as its engine.
      *
