@@ -1089,8 +1089,10 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
  */
 JitsiConference.prototype._getInitialLocalTracks = function() {
+    // Always add the audio track on mobile Safari because of a known issue where audio playout doesn't happen
+    // if the user joins audio and video muted.
     return this.getLocalTracks()
-        .filter(track => (track.getType() === MediaType.AUDIO && !this.isStartAudioMuted())
+        .filter(track => (track.getType() === MediaType.AUDIO && (!this.isStartAudioMuted() || browser.isIosBrowser()))
         || (track.getType() === MediaType.VIDEO && !this.isStartVideoMuted()));
 };
 
