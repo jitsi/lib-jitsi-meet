@@ -24,7 +24,14 @@ class SpeakerStats {
         this.totalDominantSpeakerTime = 0;
         this._dominantSpeakerStart = 0;
         this._hasLeft = false;
-        this.facialExpressions = [];
+        this.facialExpressions = {
+            happy: 0,
+            neutral: 0,
+            surprised: 0,
+            angry: 0,
+            fearful: 0,
+            sad: 0
+        };
     }
 
     /**
@@ -128,25 +135,21 @@ class SpeakerStats {
     }
 
     /**
-     * Gets the last facial expression of the user.
+     * Gets the facial expressions of the user.
      *
-     * @returns {string | null}
+     * @returns {Object}
      */
-    getLastFacialExpression() {
-        if (this.facialExpressions.length <= 0) {
-            return null;
-        }
-
-        return this.facialExpressions[this.facialExpressions.length - 1].expression;
+    getFacialExpressions() {
+        return this.facialExpressions;
     }
 
     /**
      * Adds a new facial expression to speaker stats.
      *
-     * @param  {Object} facialExpression
+     * @param  {string} facialExpression
      */
     addFacialExpression(facialExpression) {
-        this.facialExpressions.push(facialExpression);
+        this.facialExpressions[facialExpression]++;
     }
 }
 
