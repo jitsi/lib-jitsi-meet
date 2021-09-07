@@ -617,6 +617,8 @@ JitsiConference.prototype.leave = function() {
 
     this._delayedIceFailed && this._delayedIceFailed.cancel();
 
+    this._maybeClearSITimeout();
+
     // Close both JVb and P2P JingleSessions
     if (this.jvbJingleSession) {
         this.jvbJingleSession.close();
@@ -1761,8 +1763,10 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
                 this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
             }
 
-            this._maybeStartOrStopP2P(true /* triggered by user left event */);
-            this._maybeClearSITimeout();
+            if (this.room !== null) { // Skip if we have left the room already.
+                this._maybeStartOrStopP2P(true /* triggered by user left event */);
+                this._maybeClearSITimeout();
+            }
         });
 };
 
