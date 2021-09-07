@@ -60,6 +60,9 @@ export class Context {
     async setKey(keyBytes, keyIndex) {
         let newKey;
 
+        console.log("XXX setKey1", keyIndex)
+        console.log("XXX setKey2", this._cryptoKeyRing.length)
+
         if (keyBytes) {
             const material = await importKey(keyBytes);
 
@@ -111,6 +114,9 @@ export class Context {
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
+
+        console.log("XXX encodeFunction1", this._cryptoKeyRing[keyIndex]);
+        console.log("XXX encodeFunction2", keyIndex);
 
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
@@ -179,6 +185,9 @@ export class Context {
     async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1];
+
+        console.log("XXX decodeFunction1", this._cryptoKeyRing[keyIndex]);
+        console.log("XXX decodeFunction2", keyIndex);
 
         if (this._cryptoKeyRing[keyIndex]) {
 

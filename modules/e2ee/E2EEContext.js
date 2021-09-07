@@ -141,4 +141,12 @@ export default class E2EEcontext {
             keyIndex
         });
     }
+
+    setKeyForAllParticipants(key, keyIndex) {
+        this._worker.postMessage({
+            operation: 'setKeyForAllParticipants',
+            key,
+            keyIndex
+        });
+    }
 }

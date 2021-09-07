@@ -61,6 +61,17 @@ onmessage = async event => {
         } else {
             context.setKey(false, keyIndex);
         }
+    } else if (operation === 'setKeyForAllParticipants') {
+        const { key, keyIndex } = event.data;
+
+        console.log("XXX onMessage", contexts);
+        for (const context of contexts) {
+            if (key) {
+                context.setKey(key, keyIndex);
+            } else {
+                context.setKey(false, keyIndex);
+            }
+        }
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 

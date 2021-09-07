@@ -9,6 +9,7 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
+import { E2EEncryption } from './E2EEncryption';
 
 const logger = getLogger(__filename);
 
@@ -23,12 +24,6 @@ const OLM_MESSAGE_TYPES = {
 };
 
 const kOlmData = Symbol('OlmData');
-
-const OlmAdapterEvents = {
-    OLM_ID_KEY_READY: 'olm.id_key_ready',
-    PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
-    PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated'
-};
 
 /**
  * This class implements an End-to-End Encrypted communication channel between every two peers
@@ -230,12 +225,31 @@ export class OlmAdapter extends Listenable {
 
             logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
-            this.eventEmitter.emit(OlmAdapterEvents.OLM_ID_KEY_READY, this._idKey);
+            this._onIdKeyReady(this._idKey);
         } catch (e) {
             logger.error('Failed to initialize Olm', e);
             this._init.reject(e);
         }
 
+    }
+
+    /**
+     * Publishes our own Olmn id key in presence.
+     * @private
+     */
+    _onIdKeyReady(idKey) {
+        logger.debug(`Olm id key ready: ${idKey}`);
+
+        // Publish it in presence.
+        this._conf.setLocalParticipantProperty('e2ee.idKey', idKey);
+    }
+
+    /**
+     * Event posted when the E2EE signalling channel has been established with the given participant.
+     * @private
+     */
+    _onParticipantE2EEChannelReady(id) {
+        logger.debug(`E2EE channel with participant ${id} is ready`);
     }
 
     /**
@@ -339,7 +353,7 @@ export class OlmAdapter extends Listenable {
                 };
 
                 this._sendMessage(ack, pId);
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
+                this._onParticipantE2EEChannelReady(pId);
             }
             break;
         }
@@ -364,7 +378,7 @@ export class OlmAdapter extends Listenable {
                 olmData.session = session;
                 olmData.pendingSessionUuid = undefined;
 
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
+                this._onParticipantE2EEChannelReady(pId);
 
                 this._reqs.delete(msg.data.uuid);
                 d.resolve();
@@ -376,7 +390,7 @@ export class OlmAdapter extends Listenable {
                     const keyIndex = json.keyIndex;
 
                     olmData.lastKey = key;
-                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                    this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                 }
             } else {
                 logger.warn('Received ACK with the wrong UUID');
@@ -402,7 +416,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
                     // Send ACK.
@@ -438,7 +452,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
                 }
 
@@ -610,8 +624,6 @@ export class OlmAdapter extends Listenable {
         return d;
     }
 }
-
-OlmAdapter.events = OlmAdapterEvents;
 
 /**
  * Helper to ensure JSON parsing always returns an object.
