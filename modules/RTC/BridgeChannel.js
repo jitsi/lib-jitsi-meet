@@ -2,6 +2,7 @@ import { getLogger } from 'jitsi-meet-logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
+import perfMetrics from '../perf-metrics/perfMetrics';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
@@ -276,10 +277,16 @@ export default class BridgeChannel {
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
     _handleChannel(channel) {
+        // This handler gets called right after the channel is created, so we can mark the
+        // start here.
+        perfMetrics.markStart(perfMetrics.MEASURES.BRIDGE_CHANNEL_OPEN);
+
         const emitter = this._eventEmitter;
 
         channel.onopen = () => {
             logger.info(`${this._mode} channel opened`);
+
+            perfMetrics.markEnd(perfMetrics.MEASURES.BRIDGE_CHANNEL_OPEN);
 
             // Code sample for sending string and/or binary data.
             // Sends string message to the bridge:

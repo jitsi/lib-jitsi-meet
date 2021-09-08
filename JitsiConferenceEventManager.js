@@ -16,7 +16,6 @@ import AuthenticationEvents
 import {
     ACTION_JINGLE_SA_TIMEOUT,
     createBridgeDownEvent,
-    createConnectionStageReachedEvent,
     createFocusLeftEvent,
     createJingleEvent,
     createRemotelyMutedEvent
@@ -160,26 +159,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             this.conference._onMucJoined();
 
             this.conference.isJvbConnectionInterrupted = false;
-
-            // TODO: Move all of the 'connectionTimes' logic to its own module.
-            Object.keys(chatRoom.connectionTimes).forEach(key => {
-                const event
-                    = createConnectionStageReachedEvent(
-                        `conference_${key}`,
-                        { value: chatRoom.connectionTimes[key] });
-
-                Statistics.sendAnalytics(event);
-            });
-
-            // TODO: Move all of the 'connectionTimes' logic to its own module.
-            Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
-                const event
-                    = createConnectionStageReachedEvent(
-                        `xmpp_${key}`,
-                        { value: chatRoom.xmpp.connectionTimes[key] });
-
-                Statistics.sendAnalytics(event);
-            });
         });
 
     chatRoom.addListener(XMPPEvents.RENEGOTIATION_FAILED, (e, session) => {
@@ -527,15 +506,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         });
 
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
-        const now = window.performance.now();
-        const key = 'data.channel.opened';
-
-        // TODO: Move all of the 'connectionTimes' logic to its own module.
-        logger.log(`(TIME) ${key}:\t`, now);
-        conference.room.connectionTimes[key] = now;
-        Statistics.sendAnalytics(
-            createConnectionStageReachedEvent(key, { value: now }));
-
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 

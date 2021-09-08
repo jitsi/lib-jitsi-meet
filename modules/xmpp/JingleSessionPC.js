@@ -11,6 +11,7 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import perfMetrics from '../perf-metrics/perfMetrics';
 import SDP from '../sdp/SDP';
 import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
@@ -464,15 +465,15 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            const now = window.performance.now();
             let isStable = false;
 
             if (!this.isP2P) {
-                this.room.connectionTimes[
-                    `ice.state.${this.peerconnection.iceConnectionState}`]
-                    = now;
+                window.performance.mark(`jitsi.ice.state.${this.peerconnection.iceConnectionState}`);
             }
-            logger.log(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
+
+            logger.log(`ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}`);
+
+            const now = window.performance.now();
 
             Statistics.sendAnalytics(
                 ICE_STATE_CHANGED,
@@ -1143,9 +1144,13 @@ export default class JingleSessionPC extends JingleSession {
         };
 
         logger.debug(`${this} Queued setOfferAnswerCycle task`);
+
+        perfMetrics.markStart(perfMetrics.MEASURES.SRD_SLD_CYCLE);
+
         this.modificationQueue.push(
             workFunction,
             error => {
+                perfMetrics.markEnd(perfMetrics.MEASURES.SRD_SLD_CYCLE);
                 if (error) {
                     logger.error(`${this} setOfferAnswerCycle task failed: ${error}`);
                     failure(error);

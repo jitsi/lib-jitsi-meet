@@ -9,6 +9,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import perfMetrics from '../perf-metrics/perfMetrics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -131,7 +132,6 @@ export default class XMPP extends Listenable {
         super();
         this.connection = null;
         this.disconnectInProgress = false;
-        this.connectionTimes = {};
         this.options = options;
         this.token = token;
         this.authenticatedUser = false;
@@ -271,13 +271,11 @@ export default class XMPP extends Listenable {
      * @param {string} [msg] - The connection error message provided by Strophe.
      */
     connectionHandler(credentials = {}, status, msg) {
-        const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
-        this.connectionTimes[statusStr] = now;
-        logger.log(
-            `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
-            now);
+        window.performance.mark(`jitsi.xmpp.strophe.${statusStr}`);
+
+        logger.debug(`Strophe ${statusStr}${msg ? `[${msg}]` : ''}`);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
@@ -286,6 +284,9 @@ export default class XMPP extends Listenable {
                 this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
                 this._sysMessageHandler = null;
             }
+
+            perfMetrics.markEnd(
+                status === Strophe.Status.ATTACHED ? perfMetrics.MEASURES.ATTACH : perfMetrics.MEASURES.CONNECT);
 
             this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
@@ -569,9 +570,10 @@ export default class XMPP extends Listenable {
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
 
-        const now = this.connectionTimes.attaching = window.performance.now();
+        perfMetrics.markStart(perfMetrics.MEASURES.ATTACH);
 
-        logger.log('(TIME) Strophe Attaching:\t', now);
+        logger.debug('Strophe attaching');
+
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid, 10) + 1,
             this.connectionHandler.bind(this, {
@@ -622,6 +624,8 @@ export default class XMPP extends Listenable {
             // eslint-disable-next-line no-param-reassign
             jid = configDomain || (location && location.hostname);
         }
+
+        perfMetrics.markStart(perfMetrics.MEASURES.CONNECT);
 
         return this._connect(jid, password);
     }
