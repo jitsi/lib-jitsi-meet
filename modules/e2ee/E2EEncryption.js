@@ -10,14 +10,10 @@ import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
-import { importKey, ratchet } from './crypto-utils';
 import { ManualKeyAdapter } from './ManualKeyAdapter';
+import { AutomaticKeyHandler } from './AutomaticKeyHandler';
 
 const logger = getLogger(__filename);
-
-// Period which we'll wait before updating / rotating our keys when a participant
-// joins or leaves.
-const DEBOUNCE_PERIOD = 5000;
 
 const KeyAdapterEvents = {
     PARTICIPANT_KEY_UPDATED: 'partitipant_key_updated',
@@ -35,36 +31,12 @@ export class E2EEncryption {
     constructor(conference) {
         this.conference = conference;
 
-        this._conferenceJoined = false;
         this._enabled = false;
-        this._key = undefined;
         this._enabling = undefined;
 
         this._e2eeCtx = new E2EEContext();
-       // this._olmAdapter = new OlmAdapter(conference);
-        this._olmAdapter = new ManualKeyAdapter(conference);
-
-        // Debounce key rotation / ratcheting to avoid a storm of messages.
-        this._ratchetKey = debounce(this._ratchetKeyImpl, DEBOUNCE_PERIOD);
-        this._rotateKey = debounce(this._rotateKeyImpl, DEBOUNCE_PERIOD);
-
-        // Participant join / leave operations. Used for key advancement / rotation.
-        //
-
-        this.conference.on(
-            JitsiConferenceEvents.CONFERENCE_JOINED,
-            () => {
-                this._conferenceJoined = true;
-            });
-        this.conference.on(
-            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
-            this._onParticipantPropertyChanged.bind(this));
-        this.conference.on(
-            JitsiConferenceEvents.USER_JOINED,
-            this._onParticipantJoined.bind(this));
-        this.conference.on(
-            JitsiConferenceEvents.USER_LEFT,
-            this._onParticipantLeft.bind(this));
+        this._olmAdapter = new AutomaticKeyHandler(this._e2eeCtx, conference);
+       //  this._olmAdapter = new ManualKeyAdapter(conference);
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -83,14 +55,6 @@ export class E2EEncryption {
         this.conference.on(
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
             this._trackMuteChanged.bind(this));
-
-        // Olm signalling events.
-        this._olmAdapter && this._olmAdapter.on(
-            KeyAdapterEvents.PARTICIPANT_KEY_UPDATED,
-            this._onParticipantKeyUpdated.bind(this));
-        this._olmAdapter && this._olmAdapter.on(
-                KeyAdapterEvents.GENERAL_KEY_UPDATED,
-                this._onGeneralKeyUpdated.bind(this));
     }
 
     /**
@@ -102,8 +66,7 @@ export class E2EEncryption {
     static isSupported(config) {
         return !(config.testing && config.testing.disableE2EE)
             && (browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()))
-            && OlmAdapter.isSupported();
+                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()));
     }
 
     /**
@@ -132,40 +95,19 @@ export class E2EEncryption {
 
         this._enabled = enabled;
 
-        if (enabled) {
-            this._olmAdapter && await this._olmAdapter.initSessions();
-        } else {
+        if (!enabled) {
             for (const participant of this.conference.getParticipants()) {
                 this._e2eeCtx.cleanup(participant.getId());
             }
-            this._olmAdapter && this._olmAdapter.clearAllParticipantsSessions();
         }
+
+        await this._olmAdapter.setEnabled(enabled);
 
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
         this.conference._restartMediaSessions();
 
-        // Generate a random key in case we are enabling.
-        this._key = enabled ? this._generateKey() : false;
-
-        // Send it to others using the E2EE olm channel.
-        const index = this._olmAdapter && await this._olmAdapter.updateKey(this._key);
-    
-        // Set our key so we begin encrypting.
-        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index ?? 0);
-
         this._enabling.resolve();
-    }
-
-    /**
-     * Generates a new 256 bit random key.
-     *
-     * @returns {Uint8Array}
-     * @private
-     */
-    _generateKey() {
-        return new Uint8Array( 
-            [97, 145, 133, 203, 63, 197, 49, 232, 87, 159, 169, 200, 59, 195, 77, 75, 150, 173, 189, 232, 44, 39, 8, 149, 250, 6, 238, 170, 255, 17, 110, 107]); 
     }
 
     /**
@@ -190,113 +132,6 @@ export class E2EEncryption {
         for (const track of localTracks) {
             this._setupSenderE2EEForTrack(session, track);
         }
-    }
-
-    /**
-     * Advances (using ratcheting) the current key when a new participant joins the conference.
-     * @private
-     */
-    _onParticipantJoined() {
-        if (this._conferenceJoined && this._enabled) {
-            //this._ratchetKey();
-        }
-    }
-
-    /**
-     * Rotates the current key when a participant leaves the conference.
-     * @private
-     */
-    _onParticipantLeft(id) {
-        this._e2eeCtx.cleanup(id);
-
-        if (this._enabled) {
-            this._rotateKey();
-        }
-    }
-
-    /**
-     * Handles an update in a participant's key.
-     *
-     * @param {string} id - The participant ID.
-     * @param {Uint8Array | boolean} key - The new key for the participant.
-     * @param {Number} index - The new key's index.
-     * @private
-     */
-    _onParticipantKeyUpdated(id, key, index) {
-        logger.debug(`Participant ${id} updated their key`);
-
-        this._e2eeCtx.setKey(id, key, index);
-    }
-
-    /**
-     * Handles an update in a participant's key.
-     *
-     * @param {string} id - The participant ID.
-     * @param {Uint8Array | boolean} key - The new key for the participant.
-     * @param {Number} index - The new key's index.
-     * @private
-     */
-    _onGeneralKeyUpdated(id, key, index) {
-        logger.debug(`Participant ${id} updated their key`);
-
-        this._e2eeCtx.setKeyForAllParticipants(key, index);
-    }
-
-    /**
-     * Handles an update in a participant's presence property.
-     *
-     * @param {JitsiParticipant} participant - The participant.
-     * @param {string} name - The name of the property that changed.
-     * @param {*} oldValue - The property's previous value.
-     * @param {*} newValue - The property's new value.
-     * @private
-     */
-    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
-        switch (name) {
-        case 'e2ee.idKey':
-            logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
-            break;
-        case 'e2ee.enabled':
-            if (!newValue && this._enabled) {
-                this._olmAdapter && this._olmAdapter.clearParticipantSession(participant);
-
-                this._rotateKey();
-            }
-            break;
-        }
-    }
-
-    /**
-     * Advances the current key by using ratcheting.
-     *
-     * @private
-     */
-    async _ratchetKeyImpl() {
-        logger.debug('Ratchetting key');
-
-        const material = await importKey(this._key);
-        const newKey = await ratchet(material);
-
-        this._key = new Uint8Array(newKey);
-
-        const index = this._olmAdapter && this._olmAdapter.updateCurrentKey(this._key);
-
-        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
-    }
-
-    /**
-     * Rotates the local key. Rotating the key implies creating a new one, then distributing it
-     * to all participants and once they all received it, start using it.
-     *
-     * @private
-     */
-    async _rotateKeyImpl() {
-        logger.debug('Rotating key');
-
-        this._key = this._generateKey();
-        const index = this._olmAdapter && await this._olmAdapter.updateKey(this._key);
-
-        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**

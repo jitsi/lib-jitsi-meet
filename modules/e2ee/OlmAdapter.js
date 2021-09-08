@@ -9,7 +9,6 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
-import { E2EEncryption } from './E2EEncryption';
 
 const logger = getLogger(__filename);
 
@@ -24,6 +23,12 @@ const OLM_MESSAGE_TYPES = {
 };
 
 const kOlmData = Symbol('OlmData');
+
+const OlmAdapterEvents = {
+    OLM_ID_KEY_READY: 'olm.id_key_ready',
+    PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
+    PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated'
+};
 
 /**
  * This class implements an End-to-End Encrypted communication channel between every two peers
@@ -390,7 +395,7 @@ export class OlmAdapter extends Listenable {
                     const keyIndex = json.keyIndex;
 
                     olmData.lastKey = key;
-                    this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                 }
             } else {
                 logger.warn('Received ACK with the wrong UUID');
@@ -416,7 +421,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
                     // Send ACK.
@@ -452,7 +457,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(E2EEncryption.keyAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
                 }
 
@@ -638,3 +643,5 @@ function safeJsonParse(data) {
         return {};
     }
 }
+
+OlmAdapter.events = OlmAdapterEvents;

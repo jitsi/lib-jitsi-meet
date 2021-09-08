@@ -60,9 +60,6 @@ export class Context {
     async setKey(keyBytes, keyIndex) {
         let newKey;
 
-        console.log("XXX setKey1", keyIndex)
-        console.log("XXX setKey2", this._cryptoKeyRing.length)
-
         if (keyBytes) {
             const material = await importKey(keyBytes);
 
@@ -116,6 +113,7 @@ export class Context {
         const keyIndex = this._currentKeyIndex;
 
         if (this._cryptoKeyRing[keyIndex]) {
+
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
@@ -184,7 +182,6 @@ export class Context {
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
-
             const decodedFrame = await this._decryptFrame(
                 encodedFrame,
                 keyIndex);
