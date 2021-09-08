@@ -19,7 +19,7 @@ export class SendVideoController {
      */
     constructor(conference, rtc) {
         this.conference = conference;
-        this.layerSuspensionEnabled = conference.options?.config?.enableLayerSuspension;
+        this.layerSuspensionEnabled = conference.options?.config?.enableLayerSuspension ?? true;
         this.rtc = rtc;
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
