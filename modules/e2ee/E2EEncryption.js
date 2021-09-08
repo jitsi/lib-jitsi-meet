@@ -198,7 +198,7 @@ export class E2EEncryption {
      */
     _onParticipantJoined() {
         if (this._conferenceJoined && this._enabled) {
-            this._ratchetKey();
+            //this._ratchetKey();
         }
     }
 
