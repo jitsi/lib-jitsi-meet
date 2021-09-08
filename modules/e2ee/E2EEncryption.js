@@ -1,7 +1,6 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
-import debounce from 'lodash.debounce';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -10,7 +9,6 @@ import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
-import { ManualKeyAdapter } from './ManualKeyAdapter';
 import { AutomaticKeyHandler } from './AutomaticKeyHandler';
 
 const logger = getLogger(__filename);
@@ -35,8 +33,7 @@ export class E2EEncryption {
         this._enabling = undefined;
 
         this._e2eeCtx = new E2EEContext();
-        this._olmAdapter = new AutomaticKeyHandler(this._e2eeCtx, conference);
-       //  this._olmAdapter = new ManualKeyAdapter(conference);
+        this._keyHandler = new AutomaticKeyHandler(this._e2eeCtx, conference);
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -66,7 +63,8 @@ export class E2EEncryption {
     static isSupported(config) {
         return !(config.testing && config.testing.disableE2EE)
             && (browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()));
+                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()))
+            && OlmAdapter.isSupported();
     }
 
     /**
@@ -101,7 +99,7 @@ export class E2EEncryption {
             }
         }
 
-        await this._olmAdapter.setEnabled(enabled);
+        await this._keyHandler.setEnabled(enabled);
 
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 

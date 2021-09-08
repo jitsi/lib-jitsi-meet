@@ -1,15 +1,9 @@
 import Listenable from '../util/Listenable';
-import { E2EEncryption } from './E2EEncryption';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 import { getLogger } from 'jitsi-meet-logger';
 import debounce from 'lodash.debounce';
 
-import RTCEvents from '../../service/RTC/RTCEvents';
-import browser from '../browser';
-import Deferred from '../util/Deferred';
-
-import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
