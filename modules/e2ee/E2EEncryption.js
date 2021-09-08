@@ -7,9 +7,9 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import Deferred from '../util/Deferred';
 
+import { AutomaticKeyHandler } from './AutomaticKeyHandler';
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
-import { AutomaticKeyHandler } from './AutomaticKeyHandler';
 
 const logger = getLogger(__filename);
 

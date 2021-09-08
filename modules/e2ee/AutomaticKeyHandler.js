@@ -1,8 +1,8 @@
-import Listenable from '../util/Listenable';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-
 import { getLogger } from 'jitsi-meet-logger';
 import debounce from 'lodash.debounce';
+
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import Listenable from '../util/Listenable';
 
 import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
@@ -13,7 +13,13 @@ const logger = getLogger(__filename);
 // joins or leaves.
 const DEBOUNCE_PERIOD = 5000;
 
+/**
+ * This module integrates {@link E2EEncryption} with {@link OlmAdapter} in order to distribute the keys for encryption.
+ */
 export class AutomaticKeyHandler extends Listenable {
+    /**
+     * Build a new AutomaticKeyHandler instance, which will be used in a given conference.
+     */
     constructor(e2eeCtx, conference) {
         super();
 
@@ -31,7 +37,7 @@ export class AutomaticKeyHandler extends Listenable {
         this._olmAdapter && this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
-    
+
         this._conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
             this._onParticipantPropertyChanged.bind(this));
@@ -45,10 +51,10 @@ export class AutomaticKeyHandler extends Listenable {
                 JitsiConferenceEvents.CONFERENCE_JOINED,
                 () => {
                     this._conferenceJoined = true;
-                });   
+                });
     }
 
-     /**
+    /**
      * Enables / disables End-To-End encryption.
      *
      * @param {boolean} enabled - whether E2EE should be enabled or not.
@@ -66,7 +72,7 @@ export class AutomaticKeyHandler extends Listenable {
 
         // Send it to others using the E2EE olm channel.
         const index = await this._olmAdapter.updateKey(this._key);
-    
+
         // Set our key so we begin encrypting.
         this._e2eeCtx.setKey(this._conference.myUserId(), this._key, index ?? 0);
     }
