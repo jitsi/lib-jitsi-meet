@@ -257,13 +257,12 @@ class JitsiMediaDevices {
     }
 
     /**
-     * Returns true if it is possible to be simultaneously capturing audio
-     * from more than one device.
+     * Returns true if it is possible to be simultaneously capturing audio from more than one device.
      *
      * @returns {boolean}
      */
     isMultipleAudioInputSupported() {
-        return !browser.isFirefox();
+        return !(browser.isFirefox() || browser.isIosBrowser());
     }
 
     /**
