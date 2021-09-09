@@ -429,3 +429,5 @@ export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.part
 export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected';
 
 export const FACIAL_EXPRESSION_CHANGED = 'conference.facial_expression_changed';
+
+export const CAMERA_TIME_TRACKER_UPDATED = 'conference.camera_time_tracker_updated';

@@ -18,6 +18,7 @@ const logger = getLogger(__filename);
  */
 const STATS_MESSAGE_TYPE = 'stats';
 const FACIAL_EXPRESSION_MESSAGE_TYPE = 'facial_expression';
+const CAMERA_TIME_TRACKER_MESSAGE_TYPE = 'camera_time_tracker';
 
 const kSimulcastFormats = [
     { width: 1920,
@@ -229,6 +230,14 @@ export default class ConnectionQuality {
             (participant, payload) => {
                 if (payload.type === FACIAL_EXPRESSION_MESSAGE_TYPE) {
                     this._updateFacialExpression(participant.getId(), payload.value);
+                }
+            });
+
+        conference.on(
+            ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+            (participant, payload) => {
+                if (payload.type === CAMERA_TIME_TRACKER_MESSAGE_TYPE) {
+                    this._updateCameraTimeTracker(participant.getId(), payload);
                 }
             });
 
@@ -519,6 +528,18 @@ export default class ConnectionQuality {
             ConferenceEvents.FACIAL_EXPRESSION_CHANGED,
             id,
             facialExpression);
+    }
+
+    /**
+     * Updates the camera time tracker
+     * @param id the id of the remote participant
+     * @param data the updates received
+     */
+    _updateCameraTimeTracker(id, data) {
+        this.eventEmitter.emit(
+            ConferenceEvents.CAMERA_TIME_TRACKER_UPDATED,
+            id,
+            data);
     }
 
     /**

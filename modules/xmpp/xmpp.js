@@ -917,8 +917,30 @@ export default class XMPP extends Listenable {
             xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
             expression: facialExpression
-        })
-            .up();
+        }).up();
+
+        this.connection.send(msg);
+    }
+
+    /**
+     * Sends updates of the camera time tracker to the speaker stats component.
+     * @param {String} roomJid - The room jid where the speaker event occurred.
+     * @param {Object} payload - The object containing the updates.
+     */
+    sendCameraTimeTrackerUpdateEvent(roomJid, payload) {
+        // no speaker stats component advertised
+        if (!this.speakerStatsComponentAddress || !roomJid) {
+            return;
+        }
+
+        const msg = $msg({ to: this.speakerStatsComponentAddress });
+
+        msg.c('cameraTimeTracker', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            room: roomJid,
+            muted: payload.muted,
+            lastCameraUpdate: payload.lastCameraUpdate
+        }).up();
 
         this.connection.send(msg);
     }

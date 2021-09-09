@@ -44,6 +44,9 @@ export default class SpeakerStatsCollector {
         conference.addEventListener(
             JitsiConferenceEvents.FACIAL_EXPRESSION_CHANGED,
             this._onFacialExpressionChange.bind(this));
+        conference.addEventListener(
+            JitsiConferenceEvents.CAMERA_TIME_TRACKER_UPDATED,
+            this._onCameraTimeTrackerUpdate.bind(this));
         if (conference.xmpp) {
             conference.xmpp.addListener(
                 XMPPEvents.SPEAKER_STATS_RECEIVED,
@@ -136,6 +139,22 @@ export default class SpeakerStatsCollector {
     }
 
     /**
+     * Updates the camera time tracker.
+     *
+     * @param {string} userId - The user id of the user that left.
+     * @param {string} payload - The payload received from the event.
+     * @returns {void}
+     * @private
+     */
+    _onCameraTimeTrackerUpdate(userId, payload) {
+        const savedUser = this.stats.users[userId];
+
+        if (savedUser) {
+            savedUser.updateCameraTimeTracker(payload.muted, payload.lastCameraUpdate);
+        }
+    }
+
+    /**
      * Return a copy of the tracked SpeakerStats models.
      *
      * @returns {Object} The keys are the user ids and the values are the
@@ -153,7 +172,6 @@ export default class SpeakerStatsCollector {
      * @private
      */
     _updateStats(newStats) {
-        console.log('NEW STATS', newStats);
         for (const userId in newStats) { // eslint-disable-line guard-for-in
             let speakerStatsToUpdate;
             const newParticipant = this.conference.getParticipantById(userId);
@@ -178,7 +196,8 @@ export default class SpeakerStatsCollector {
             speakerStatsToUpdate.totalDominantSpeakerTime
                 = newStats[userId].totalDominantSpeakerTime;
 
-            speakerStatsToUpdate.facialExpressions = newStats[userId].facialExpressions;
+            speakerStatsToUpdate.setFacialExpressions(newStats[userId].facialExpressions);
+            speakerStatsToUpdate.setCameraTimeTracker(newStats[userId].cameraTimeTracker);
         }
     }
 }
