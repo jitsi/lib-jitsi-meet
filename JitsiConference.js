@@ -1180,7 +1180,11 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
             return Promise.resolve();
         })
-        .catch(error => Promise.reject(new Error(error)));
+        .catch(error => {
+            logger.error(`replaceTrack failed: ${error?.stack}`);
+
+            return Promise.reject(error);
+        });
 };
 
 /**
