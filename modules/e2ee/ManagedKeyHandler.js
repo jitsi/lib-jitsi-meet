@@ -71,11 +71,12 @@ export class ManagedKeyHandler extends KeyHandler {
         // Generate a random key in case we are enabling.
         this._key = enabled ? this._generateKey() : false;
 
-        // Send it to others using the E2EE olm channel.
-        const index = await this._olmAdapter.updateKey(this._key);
-
         // Set our key so we begin encrypting.
+        const index = this._olmAdapter.updateKey(this._key);
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index ?? 0);
+
+        // Send it to others using the E2EE olm channel.
+        await this._olmAdapter.distributeCurrentKey();
     }
 
     /**
@@ -136,9 +137,10 @@ export class ManagedKeyHandler extends KeyHandler {
         logger.debug('Rotating key');
 
         this._key = this._generateKey();
-        const index = this._olmAdapter && await this._olmAdapter.updateKey(this._key);
 
+        const index = this._olmAdapter.updateKey(this._key);
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+        await this._olmAdapter.distributeCurrentKey();
     }
 
     /**

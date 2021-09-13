@@ -250,7 +250,7 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
-           /* if (ratchetCount < RATCHET_WINDOW_SIZE) {
+            if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 material = await importKey(await ratchet(material));
 
                 const newKey = await deriveKeys(material);
@@ -261,7 +261,7 @@ export class Context {
                     encodedFrame,
                     keyIndex,
                     ratchetCount + 1);
-            }*/
+            }
 
             // TODO: notify the application about error status.
         }

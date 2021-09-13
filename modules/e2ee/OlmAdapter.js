@@ -94,9 +94,7 @@ export class OlmAdapter extends Listenable {
             for (const participant of this._conf.getParticipants()) {
                 const participantFeatures = await participant.getFeatures();
 
-                console.log("XXX initSessions1", participant.getId());
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getDisplayName()) {
-                    console.log("XXX initSessions1");
+                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getId()) {
                     promises.push(this._sendSessionInit(participant));
                 }
             }
@@ -120,22 +118,29 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Updates the current participant key and distributes it to all participants in the conference
-     * by sending a key-info message.
+     * Updates the current participant key.
      *
      * @param {Uint8Array|boolean} key - The new key.
-     * @retrns {Promise<Number>}
+     * @retrns {Number}
      */
-    async updateKey(key) {
+    updateKey(key) {
         // Store it locally for new sessions.
         this._key = key;
         this._keyIndex++;
 
+        return this._keyIndex;
+    }
+
+    /**
+     * Distributes the current participant key to all participants in the conference
+     * by sending a key-info message.
+     * @retrns {void}
+     */
+    async distributeCurrentKey() {
         // Broadcast it.
         const promises = [];
 
         for (const participant of this._conf.getParticipants()) {
-            console.log("XXX update key1", participant.getDisplayName())
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
 
@@ -174,8 +179,6 @@ export class OlmAdapter extends Listenable {
         await Promise.allSettled(promises);
 
         // TODO: retry failed ones?
-
-        return this._keyIndex;
     }
 
     /**
@@ -418,7 +421,6 @@ export class OlmAdapter extends Listenable {
                 const { ciphertext } = msg.data;
                 const data = olmData.session.decrypt(ciphertext.type, ciphertext.body);
                 const json = safeJsonParse(data);
-                console.log("XXX KEY_INFO", data);
 
                 if (json.key !== undefined && json.keyIndex !== undefined) {
                     const key = json.key ? base64js.toByteArray(json.key) : false;
@@ -508,9 +510,7 @@ export class OlmAdapter extends Listenable {
                 const participantId = participant.getId();
                 const participantFeatures = await participant.getFeatures();
 
-                console.log("XXX _onParticipantPropertyChanged1", participantId);
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getDisplayName()) {
-                    console.log("XXX _onParticipantPropertyChanged2");
+                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
                     if (this._sessionInitialization) {
                         await this._sessionInitialization;
                     }
