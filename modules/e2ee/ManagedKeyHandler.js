@@ -1,9 +1,11 @@
+/* global __filename */
+
 import { getLogger } from 'jitsi-meet-logger';
 import debounce from 'lodash.debounce';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import Listenable from '../util/Listenable';
 
+import { KeyHandler } from './KeyHandler';
 import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
@@ -14,17 +16,15 @@ const logger = getLogger(__filename);
 const DEBOUNCE_PERIOD = 5000;
 
 /**
- * This module integrates {@link E2EEncryption} with {@link OlmAdapter} in order to distribute the keys for encryption.
+ * This module integrates {@link E2EEContext} with {@link OlmAdapter} in order to distribute the keys for encryption.
  */
-export class AutomaticKeyHandler extends Listenable {
+export class ManagedKeyHandler extends KeyHandler {
     /**
      * Build a new AutomaticKeyHandler instance, which will be used in a given conference.
      */
-    constructor(e2eeCtx, conference) {
-        super();
+    constructor(conference) {
+        super(conference);
 
-        this._e2eeCtx = e2eeCtx;
-        this._conference = conference;
         this._key = undefined;
         this._conferenceJoined = false;
 
@@ -38,16 +38,16 @@ export class AutomaticKeyHandler extends Listenable {
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
 
-        this._conference.on(
+        this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
             this._onParticipantPropertyChanged.bind(this));
-        this._conference.on(
+        this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
             this._onParticipantJoined.bind(this));
-        this._conference.on(
+        this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             this._onParticipantLeft.bind(this));
-        this._conference.on(
+        this.conference.on(
                 JitsiConferenceEvents.CONFERENCE_JOINED,
                 () => {
                     this._conferenceJoined = true;
@@ -55,12 +55,13 @@ export class AutomaticKeyHandler extends Listenable {
     }
 
     /**
-     * Enables / disables End-To-End encryption.
-     *
+     * When E2EE is enabled it initializes sessions and sets the key.
+     * Cleans up the sessions when disabled.
+     * 
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
-    async setEnabled(enabled) {
+    async setEnabledExtras(enabled) {
         if (enabled) {
             await this._olmAdapter.initSessions();
         } else {
@@ -74,17 +75,7 @@ export class AutomaticKeyHandler extends Listenable {
         const index = await this._olmAdapter.updateKey(this._key);
 
         // Set our key so we begin encrypting.
-        this._e2eeCtx.setKey(this._conference.myUserId(), this._key, index ?? 0);
-    }
-
-    /**
-     * Indicates if E2EE is supported in the current platform.
-     *
-     * @param {object} config - Global configuration.
-     * @returns {boolean}
-     */
-    isSupported() {
-        return OlmAdapter.isSupported();
+        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index ?? 0);
     }
 
     /**
@@ -102,7 +93,7 @@ export class AutomaticKeyHandler extends Listenable {
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
             break;
         case 'e2ee.enabled':
-            if (!newValue && this._enabled) {
+            if (!newValue && this.enabled) {
                 this._olmAdapter && this._olmAdapter.clearParticipantSession(participant);
 
                 this._rotateKey();
@@ -116,7 +107,9 @@ export class AutomaticKeyHandler extends Listenable {
      * @private
      */
     _onParticipantJoined() {
-        if (this._conferenceJoined && this._enabled) {
+        console.log("XXX _onParticipantJoined1")
+        if (this._conferenceJoined && this.enabled) {
+            console.log("XXX _onParticipantJoined2")
             this._ratchetKey();
         }
     }
@@ -126,9 +119,9 @@ export class AutomaticKeyHandler extends Listenable {
      * @private
      */
     _onParticipantLeft(id) {
-        this._e2eeCtx.cleanup(id);
+        this.e2eeCtx.cleanup(id);
 
-        if (this._enabled) {
+        if (this.enabled) {
             this._rotateKey();
         }
     }
@@ -145,7 +138,7 @@ export class AutomaticKeyHandler extends Listenable {
         this._key = this._generateKey();
         const index = this._olmAdapter && await this._olmAdapter.updateKey(this._key);
 
-        this._e2eeCtx.setKey(this._conference.myUserId(), this._key, index);
+        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
@@ -163,7 +156,7 @@ export class AutomaticKeyHandler extends Listenable {
 
         const index = this._olmAdapter && this._olmAdapter.updateCurrentKey(this._key);
 
-        this._e2eeCtx.setKey(this._conference.myUserId(), this._key, index);
+        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
@@ -177,7 +170,7 @@ export class AutomaticKeyHandler extends Listenable {
     _onParticipantKeyUpdated(id, key, index) {
         logger.debug(`Participant ${id} updated their key`);
 
-        this._e2eeCtx.setKey(id, key, index);
+        this.e2eeCtx.setKey(id, key, index);
     }
 
     /**

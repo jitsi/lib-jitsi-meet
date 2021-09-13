@@ -94,7 +94,9 @@ export class OlmAdapter extends Listenable {
             for (const participant of this._conf.getParticipants()) {
                 const participantFeatures = await participant.getFeatures();
 
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getId()) {
+                console.log("XXX initSessions1", participant.getId());
+                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getDisplayName()) {
+                    console.log("XXX initSessions1");
                     promises.push(this._sendSessionInit(participant));
                 }
             }
@@ -133,9 +135,11 @@ export class OlmAdapter extends Listenable {
         const promises = [];
 
         for (const participant of this._conf.getParticipants()) {
+            console.log("XXX update key1", participant.getDisplayName())
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
 
+            console.log("XXX update key2", olmData.session)
             // TODO: skip those who don't support E2EE.
             if (!olmData.session) {
                 logger.warn(`Tried to send key to participant ${pId} but we have no session`);
@@ -414,6 +418,7 @@ export class OlmAdapter extends Listenable {
                 const { ciphertext } = msg.data;
                 const data = olmData.session.decrypt(ciphertext.type, ciphertext.body);
                 const json = safeJsonParse(data);
+                console.log("XXX KEY_INFO", data);
 
                 if (json.key !== undefined && json.keyIndex !== undefined) {
                     const key = json.key ? base64js.toByteArray(json.key) : false;
@@ -503,7 +508,9 @@ export class OlmAdapter extends Listenable {
                 const participantId = participant.getId();
                 const participantFeatures = await participant.getFeatures();
 
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
+                console.log("XXX _onParticipantPropertyChanged1", participantId);
+                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getDisplayName()) {
+                    console.log("XXX _onParticipantPropertyChanged2");
                     if (this._sessionInitialization) {
                         await this._sessionInitialization;
                     }
@@ -626,6 +633,7 @@ export class OlmAdapter extends Listenable {
         // Store the UUID for matching with the ACK.
         olmData.pendingSessionUuid = uuid;
 
+        console.log("XXX success");
         return d;
     }
 }
