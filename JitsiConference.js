@@ -1159,6 +1159,10 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
         }
     }
 
+    if (oldTrack && !oldTrackBelongsToConference) {
+        logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
+    }
+
     // Now replace the stream at the lower levels
     return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
         .then(() => {
