@@ -130,11 +130,11 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onFacialExpressionChange(userId, facialExpression) {
+    _onFacialExpressionChange(userId, data) {
         const savedUser = this.stats.users[userId];
 
         if (savedUser) {
-            savedUser.addFacialExpression(facialExpression);
+            savedUser.addFacialExpression(data.facialExpression, data.duration);
         }
     }
 

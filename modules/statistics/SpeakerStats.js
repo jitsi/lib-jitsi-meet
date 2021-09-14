@@ -162,9 +162,10 @@ class SpeakerStats {
      * Adds a new facial expression to speaker stats.
      *
      * @param  {string} facialExpression
+     * @param {number} duration
      */
-    addFacialExpression(facialExpression) {
-        this._facialExpressions[facialExpression]++;
+    addFacialExpression(facialExpression, duration) {
+        this._facialExpressions[facialExpression] += duration;
     }
 
     /**
@@ -174,7 +175,7 @@ class SpeakerStats {
      * @param  {number} lastCameraUpdate
      */
     updateCameraTimeTracker(muted, lastCameraUpdate) {
-        if (muted) {
+        if (muted && this._cameraTimeTracker.lastCameraUpdate !== 0) {
             this._cameraTimeTracker.cameraTime += lastCameraUpdate - this._cameraTimeTracker.lastCameraUpdate;
         }
 

@@ -229,7 +229,7 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
                 if (payload.type === FACIAL_EXPRESSION_MESSAGE_TYPE) {
-                    this._updateFacialExpression(participant.getId(), payload.value);
+                    this._updateFacialExpression(participant.getId(), payload);
                 }
             });
 
@@ -521,13 +521,11 @@ export default class ConnectionQuality {
      * @param id the id of the remote participant
      * @param facialExpression the facial expression received
      */
-    _updateFacialExpression(id, facialExpression) {
-        this._conference.sendFacialExpression(facialExpression);
-
+    _updateFacialExpression(id, data) {
         this.eventEmitter.emit(
             ConferenceEvents.FACIAL_EXPRESSION_CHANGED,
             id,
-            facialExpression);
+            data);
     }
 
     /**
