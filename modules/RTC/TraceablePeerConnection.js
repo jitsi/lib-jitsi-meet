@@ -43,7 +43,7 @@ const SD_BITRATE = 700000;
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
  * @param {number} id the peer connection id assigned by the parent RTC module.
  * @param {SignalingLayer} signalingLayer the signaling layer instance
- * @param {object} iceConfig WebRTC 'PeerConnection' ICE config
+ * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
@@ -66,7 +66,7 @@ export default function TraceablePeerConnection(
         rtc,
         id,
         signalingLayer,
-        iceConfig,
+        pcConfig,
         constraints,
         isP2P,
         options) {
@@ -222,8 +222,7 @@ export default function TraceablePeerConnection(
         logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
     }
 
-    this.peerconnection
-        = new RTCUtils.RTCPeerConnectionType(iceConfig, safeConstraints);
+    this.peerconnection = new RTCUtils.RTCPeerConnectionType(pcConfig, safeConstraints);
 
     // The standard video bitrates are used in Unified plan when switching
     // between camera/desktop tracks on the same sender.

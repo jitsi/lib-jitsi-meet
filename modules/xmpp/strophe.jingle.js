@@ -331,7 +331,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 `Marking session from ${fromJid
                 } as ${isP2P ? '' : '*not*'} P2P`);
 
-            const iceConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
+            const pcConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
 
             sess
                 = new JingleSessionPC(
@@ -343,7 +343,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
                     // Makes a copy in order to prevent exception thrown on RN when either this.p2pIceConfig or
                     // this.jvbIceConfig is modified and there's a PeerConnection instance holding a reference
-                    JSON.parse(JSON.stringify(iceConfig)),
+                    JSON.parse(JSON.stringify(pcConfig)),
                     isP2P,
                     /* initiator */ false);
 

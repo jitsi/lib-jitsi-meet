@@ -22,24 +22,20 @@ export default class ProxyConnectionPC {
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
      * @param {Object} options - Values to initialize the instance with.
-     * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
-     * for the peer connection.
-     * @param {boolean} [options.isInitiator] - If true, the local client should
-     * send offers. If false, the local client should send answers. Defaults to
-     * false.
-     * @param {Function} options.onRemoteStream - Callback to invoke when a
-     * remote media stream has been received through the peer connection.
-     * @param {string} options.peerJid - The jid of the remote client with which
-     * the peer connection is being establish and which should receive direct
-     * messages regarding peer connection updates.
-     * @param {boolean} [options.receiveVideo] - Whether or not the peer
-     * connection should accept incoming video streams. Defaults to false.
-     * @param {Function} options.onSendMessage - Callback to invoke when a
-     * message has to be sent (signaled) out.
+     * @param {Object} [options.pcConfig] - The {@code RTCConfiguration} to use for the WebRTC peer connection.
+     * @param {boolean} [options.isInitiator] - If true, the local client should send offers. If false, the local
+     * client should send answers. Defaults to false.
+     * @param {Function} options.onRemoteStream - Callback to invoke when a remote media stream has been received
+     * through the peer connection.
+     * @param {string} options.peerJid - The jid of the remote client with which the peer connection is being establish
+     * and which should receive direct messages regarding peer connection updates.
+     * @param {boolean} [options.receiveVideo] - Whether or not the peer connection should accept incoming video
+     * streams. Defaults to false.
+     * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out.
      */
     constructor(options = {}) {
         this._options = {
-            iceConfig: {},
+            pcConfig: {},
             isInitiator: false,
             receiveAudio: false,
             receiveVideo: false,
@@ -185,9 +181,9 @@ export default class ProxyConnectionPC {
          *
          * @type {Object}
          */
-        const iceConfigStub = {
+        const pcConfigStub = {
             iceServers: DEFAULT_STUN_SERVERS,
-            ...this._options.iceConfig
+            ...this._options.pcConfig
         };
 
         /**
@@ -267,7 +263,7 @@ export default class ProxyConnectionPC {
                 offerToReceiveAudio: this._options.receiveAudio,
                 offerToReceiveVideo: this._options.receiveVideo
             }, // mediaConstraints
-            iceConfigStub, // iceConfig
+            pcConfigStub, // pcConfig
             true, // isP2P
             this._options.isInitiator // isInitiator
         );

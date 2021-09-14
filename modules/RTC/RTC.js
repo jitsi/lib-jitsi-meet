@@ -437,28 +437,19 @@ export default class RTC extends Listenable {
 
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
-     * @param {SignalingLayer} signaling The signaling layer that will
-     *      provide information about the media or participants which is not
-     *      carried over SDP.
-     * @param {object} iceConfig An object describing the ICE config like
-     *      defined in the WebRTC specification.
-     * @param {boolean} isP2P Indicates whether or not the new TPC will be used
-     *      in a peer to peer type of session.
+     * @param {SignalingLayer} signaling The signaling layer that will provide information about the media or
+     * participants which is not carried over SDP.
+     * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
+     * @param {boolean} isP2P Indicates whether or not the new TPC will be used in a peer to peer type of session.
      * @param {object} options The config options.
      * @param {boolean} options.enableInsertableStreams - Set to true when the insertable streams constraints is to be
      * enabled on the PeerConnection.
-     * @param {boolean} options.disableSimulcast If set to 'true' will disable
-     *      the simulcast.
-     * @param {boolean} options.disableRtx If set to 'true' will disable the
-     *      RTX.
-     * @param {boolean} options.disableH264 If set to 'true' H264 will be
-     *      disabled by removing it from the SDP.
-     * @param {boolean} options.preferH264 If set to 'true' H264 will be
-     *      preferred over other video codecs.
+     * @param {boolean} options.disableSimulcast If set to 'true' will disable the simulcast.
+     * @param {boolean} options.disableRtx If set to 'true' will disable the RTX.
      * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling, iceConfig, isP2P, options) {
+    createPeerConnection(signaling, pcConfig, isP2P, options) {
         const pcConstraints = JSON.parse(JSON.stringify(RTCUtils.pcConstraints));
 
         if (typeof options.abtestSuspendVideo !== 'undefined') {
@@ -468,28 +459,27 @@ export default class RTC extends Listenable {
                 { abtestSuspendVideo: options.abtestSuspendVideo });
         }
 
-        // FIXME: We should rename iceConfig to pcConfig.
-
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
-            iceConfig.encodedInsertableStreams = true;
+            pcConfig.encodedInsertableStreams = true;
         }
 
         const supportsSdpSemantics = browser.isReactNative()
             || (browser.isChromiumBased() && !options.usesUnifiedPlan);
 
         if (supportsSdpSemantics) {
-            iceConfig.sdpSemantics = 'plan-b';
+            logger.debug('WebRTC application is running in plan-b mode');
+            pcConfig.sdpSemantics = 'plan-b';
         }
 
         if (options.forceTurnRelay) {
-            iceConfig.iceTransportPolicy = 'relay';
+            pcConfig.iceTransportPolicy = 'relay';
         }
 
         // Set the RTCBundlePolicy to max-bundle so that only one set of ice candidates is generated.
         // The default policy generates separate ice candidates for audio and video connections.
         // This change is necessary for Unified plan to work properly on Chrome and Safari.
-        iceConfig.bundlePolicy = 'max-bundle';
+        pcConfig.bundlePolicy = 'max-bundle';
 
         peerConnectionIdCounter = safeCounterIncrement(peerConnectionIdCounter);
 
@@ -498,7 +488,7 @@ export default class RTC extends Listenable {
                 this,
                 peerConnectionIdCounter,
                 signaling,
-                iceConfig, pcConstraints,
+                pcConfig, pcConstraints,
                 isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
