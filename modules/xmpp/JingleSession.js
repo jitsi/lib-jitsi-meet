@@ -22,12 +22,9 @@ export default class JingleSession extends Listenable {
      * @param {string} localJid our JID
      * @param {string} remoteJid the JID of the remote peer
      * @param {XmppConnection} connection the XMPP connection
-     * @param {Object} mediaConstraints the media constraints object passed to
-     * the PeerConnection onCreateAnswer/Offer as defined by the WebRTC.
-     * @param {Object} iceConfig the ICE servers config object as defined by
-     * the WebRTC. Passed to the PeerConnection's constructor.
-     * @param {boolean} isInitiator indicates if it will be the side which
-     * initiates the session.
+     * @param {Object} mediaConstraints the media constraints object passed to the PeerConnection onCreateAnswer/Offer.
+     * @param {Object} pcConfig The {@code RTCConfiguration} object passed to the PeerConnection's constructor.
+     * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
      */
     constructor(
             sid,
@@ -35,7 +32,7 @@ export default class JingleSession extends Listenable {
             remoteJid,
             connection,
             mediaConstraints,
-            iceConfig,
+            pcConfig,
             isInitiator) {
         super();
         this.sid = sid;
@@ -43,7 +40,7 @@ export default class JingleSession extends Listenable {
         this.remoteJid = remoteJid;
         this.connection = connection;
         this.mediaConstraints = mediaConstraints;
-        this.iceConfig = iceConfig;
+        this.pcConfig = pcConfig;
 
         /**
          * Indicates whether this instance is an initiator or an answerer of

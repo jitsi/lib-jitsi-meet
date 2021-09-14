@@ -131,7 +131,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {XmppConnection} connection - The XMPP connection instance.
      * @param mediaConstraints the media constraints object passed to createOffer/Answer, as defined
      * by the WebRTC standard
-     * @param iceConfig the ICE servers config object as defined by the WebRTC standard.
+     * @param pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
      * @param {boolean} isP2P indicates whether this instance is meant to be used in a direct, peer to
      * peer connection or <tt>false</tt> if it's a JVB connection.
      * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
@@ -145,13 +145,13 @@ export default class JingleSessionPC extends JingleSession {
             remoteJid,
             connection,
             mediaConstraints,
-            iceConfig,
+            pcConfig,
             isP2P,
             isInitiator) {
         super(
             sid,
             localJid,
-            remoteJid, connection, mediaConstraints, iceConfig, isInitiator);
+            remoteJid, connection, mediaConstraints, pcConfig, isInitiator);
 
         /**
          * The bridge session's identifier. One Jingle session can during
@@ -388,7 +388,7 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection
             = this.rtc.createPeerConnection(
                     this.signalingLayer,
-                    this.iceConfig,
+                    this.pcConfig,
                     this.isP2P,
                     pcOptions);
 
