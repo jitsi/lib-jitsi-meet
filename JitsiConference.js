@@ -3649,10 +3649,6 @@ JitsiConference.prototype.sendFacialExpression = function(facialExpression) {
     this.xmpp.sendFacialExpressionEvent(this.room.roomjid, facialExpression);
 };
 
-JitsiConference.prototype.sendCameraTimeTrackerUpdate = function(payload) {
-    this.xmpp.sendCameraTimeTrackerUpdateEvent(this.room.roomjid, payload);
-};
-
 /**
  * Sets the constraints for the video that is requested from the bridge.
  *

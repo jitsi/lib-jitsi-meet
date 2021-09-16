@@ -924,31 +924,6 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Sends updates of the camera time tracker to the speaker stats component.
-     * @param {String} roomJid - The room jid where the speaker event occurred.
-     * @param {Object} payload - The object containing the updates.
-     */
-    sendCameraTimeTrackerUpdateEvent(roomJid, payload) {
-        // no speaker stats component advertised
-        if (!this.speakerStatsComponentAddress || !roomJid) {
-            return;
-        }
-
-        const msg = $msg({ to: this.speakerStatsComponentAddress });
-
-        console.log('PAYLOAD', payload);
-
-        msg.c('cameraTimeTracker', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            room: roomJid,
-            muted: payload.muted,
-            lastCameraUpdate: payload.lastCameraUpdate
-        }).up();
-
-        this.connection.send(msg);
-    }
-
-    /**
      * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
      * parsing it and checking if it has a field called 'type'.
      *

@@ -33,11 +33,6 @@ class SpeakerStats {
             disgusted: 0,
             sad: 0
         };
-        this._cameraTimeTracker = {
-            muted: true,
-            cameraTime: 0,
-            lastCameraUpdate: 0
-        };
     }
 
     /**
@@ -167,40 +162,6 @@ class SpeakerStats {
      */
     addFacialExpression(facialExpression, duration) {
         this._facialExpressions[facialExpression] += duration;
-    }
-
-    /**
-     * Updates the camera time tracker with new muted state and last camera update
-     *
-     * @param  {boolean} muted
-     * @param  {number} lastCameraUpdate
-     */
-    updateCameraTimeTracker(muted, lastCameraUpdate) {
-        if (muted && this._cameraTimeTracker.lastCameraUpdate !== 0) {
-            this._cameraTimeTracker.cameraTime += lastCameraUpdate - this._cameraTimeTracker.lastCameraUpdate;
-        }
-
-        this._cameraTimeTracker.muted = muted;
-        this._cameraTimeTracker.lastCameraUpdate = lastCameraUpdate;
-    }
-
-    /**
-     * Gets the current camera time tracker.
-     *
-     * returns {Object}
-     */
-    getCameraTimeTracker() {
-        return this._cameraTimeTracker;
-    }
-
-    /**
-     * Sets the current camera time tracker.
-     *
-     * @param {Object} cameraTimeTracker - object with the state time and last update of the camera.
-     * @returns {void}
-     */
-    setCameraTimeTracker(cameraTimeTracker) {
-        this._cameraTimeTracker = cameraTimeTracker;
     }
 }
 
