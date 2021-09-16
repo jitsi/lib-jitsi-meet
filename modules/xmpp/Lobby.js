@@ -295,18 +295,6 @@ export default class Lobby {
     }
 
     /**
-     * Build main room jid from a breakout room jid.
-     * @param jid - Jid for a main or breakout room.
-     */
-    getMainRoomJidFromRoomJid(jid) {
-        const mainMucDomain = this.mainRoom.options.hosts.muc;
-        const isInBreakoutRoom = mainMucDomain !== Strophe.getDomainFromJid(jid);
-        const node = Strophe.getNodeFromJid(jid);
-
-        return isInBreakoutRoom ? `${node.substr(0, node.lastIndexOf('_'))}@${mainMucDomain}` : jid;
-    }
-
-    /**
      * Should be possible only for moderators.
      * @param id
      */
@@ -315,13 +303,21 @@ export default class Lobby {
             return;
         }
 
+        // Get the main room JID. If we are in a breakout room we'll use the main
+        // room's lobby.
+        let mainRoomJid = this.mainRoom.roomjid;
+
+        if (this.mainRoom.getBreakoutRoomsHelper().isBreakoutRoom()) {
+            mainRoomJid = this.mainRoom.getBreakoutRoomsHelper().getMainRoomJid();
+        }
+
         const memberRoomJid = Object.keys(this.lobbyRoom.members)
             .find(j => Strophe.getResourceFromJid(j) === id);
 
         if (memberRoomJid) {
             const jid = this.lobbyRoom.members[memberRoomJid].jid;
             const msgToSend
-                = $msg({ to: this.getMainRoomJidFromRoomJid(this.mainRoom.roomjid) })
+                = $msg({ to: mainRoomJid })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
                     .c('invite', { to: jid });
 

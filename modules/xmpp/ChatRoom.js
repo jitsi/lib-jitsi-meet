@@ -11,6 +11,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
 import AVModeration from './AVModeration';
+import BreakoutRoomsHelper from './BreakoutRoomsHelper';
 import Lobby from './Lobby';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
@@ -136,6 +137,7 @@ export default class ChatRoom extends Listenable {
             this.lobby = new Lobby(this);
         }
         this.avModeration = new AVModeration(this);
+        this.breakoutRooms = new BreakoutRoomsHelper(this);
         this.initPresenceMap(options);
         this.lastPresences = {};
         this.phoneNumber = null;
@@ -328,6 +330,19 @@ export default class ChatRoom extends Listenable {
 
             if (this.lobby) {
                 this.lobby.setLobbyRoomJid(lobbyRoomField && lobbyRoomField.length ? lobbyRoomField.text() : undefined);
+            }
+
+            const isBreakoutField
+                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_isbreakout"]>value');
+            const isBreakoutRoom = Boolean(isBreakoutField?.text());
+
+            this.breakoutRooms.setIsBreakoutRoom(isBreakoutRoom);
+
+            const breakoutMainRoomField
+                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_breakout_main_room"]>value');
+
+            if (breakoutMainRoomField?.length) {
+                this.breakoutRooms.setMainRoomJid(breakoutMainRoomField.text());
             }
 
             if (membersOnly !== this.membersOnlyEnabled) {
@@ -1699,6 +1714,12 @@ export default class ChatRoom extends Listenable {
         return this.avModeration;
     }
 
+    /**
+     * @returns {BreakoutRoomsHelper}
+     */
+    getBreakoutRoomsHelper() {
+        return this.breakoutRooms;
+    }
 
     /**
      * Returns the phone number for joining the conference.

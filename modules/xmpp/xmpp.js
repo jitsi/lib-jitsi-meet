@@ -441,6 +441,10 @@ export default class XMPP extends Listenable {
                         .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
                 }
             }
+
+            if (identity.type === 'breakout_rooms') {
+                this.breakoutRoomsComponentAddress = identity.name;
+            }
         });
 
         if (this.avModerationComponentAddress
@@ -638,9 +642,8 @@ export default class XMPP extends Listenable {
      */
     createRoom(roomName, options, onCreateResource) {
         // There are cases (when using subdomain) where muc can hold an uppercase part
-        const domain = options.customDomain
-            || (/_[-\da-f]{36}$/.test(roomName) ? `breakout.${this.options.hosts.domain}` : this.options.hosts.muc);
-        let roomjid = `${roomName}@${domain.toLowerCase()}/`;
+        let roomjid = `${roomName}@${options.customDomain
+            ? options.customDomain : this.options.hosts.muc.toLowerCase()}/`;
 
         const mucNickname = onCreateResource
             ? onCreateResource(this.connection.jid, this.authenticatedUser)
