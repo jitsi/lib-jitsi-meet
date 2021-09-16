@@ -30,6 +30,7 @@ class SpeakerStats {
             surprised: 0,
             angry: 0,
             fearful: 0,
+            disgusted: 0,
             sad: 0
         };
         this._cameraTimeTracker = {
