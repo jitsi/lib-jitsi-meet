@@ -49,6 +49,10 @@ export class Context {
         this._sendCounts = new Map();
 
         this._id = id;
+
+        this._initialKey = undefined;
+
+        this.removeThis = Math.random();
     }
 
     /**
@@ -57,7 +61,7 @@ export class Context {
      * @param {Uint8Array|false} key bytes. Pass false to disable.
      * @param {Number} keyIndex
      */
-    async setKey(keyBytes, keyIndex) {
+    async setKeyBytes(keyBytes, keyIndex) {
         let newKey;
 
         if (keyBytes) {
@@ -79,11 +83,15 @@ export class Context {
      * @private
      */
     _setKeys(keys, keyIndex = -1) {
+        console.log("XXX setKeys1", keys);
+        console.log("XXX setKeys2", keyIndex);
         if (keyIndex >= 0) {
-            this._cryptoKeyRing[keyIndex] = keys;
-        } else {
-            this._cryptoKeyRing[this._currentKeyIndex] = keys;
+            this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
+            console.log("XXX setKeys3" + this.removeThis, this._currentKeyIndex);
         }
+
+        this._cryptoKeyRing[this._currentKeyIndex] = keys;
+
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
     }
 
@@ -111,7 +119,8 @@ export class Context {
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
-
+        console.log("XXX encrypting1", this._cryptoKeyRing[keyIndex])
+        console.log("XXX encrypting2" + this.removeThis, keyIndex)
         if (this._cryptoKeyRing[keyIndex]) {
 
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
@@ -132,6 +141,7 @@ export class Context {
             // ---------+-------------------------+-+---------+----
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
+            console.log("XXX encrypting2")
 
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
@@ -219,7 +229,7 @@ export class Context {
         // ---------+-------------------------+-+---------+----
         // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
         // ---------+-------------------------+-+---------+----
-
+        console.log("XXX decrypting")
         try {
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
@@ -250,6 +260,11 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
+            console.log("XXX decrypting error");
+           /* if (ratchetCount === 0) {
+                this._initialKey = this._cryptoKeyRing[this._currentKeyIndex];
+            }
+
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 material = await importKey(await ratchet(material));
 
@@ -261,7 +276,9 @@ export class Context {
                     encodedFrame,
                     keyIndex,
                     ratchetCount + 1);
-            }
+            } else {
+                this._setKeys(this._initialKey);
+            }*/
 
             // TODO: notify the application about error status.
         }

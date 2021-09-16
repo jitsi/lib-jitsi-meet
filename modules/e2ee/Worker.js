@@ -52,15 +52,20 @@ onmessage = async event => {
         const context = getParticipantContext(participantId);
 
         handleTransform(context, operation, readableStream, writableStream);
-    } else if (operation === 'setKey') {
+    } else if (operation === 'setKeyBytes') {
         const { participantId, key, keyIndex } = event.data;
         const context = getParticipantContext(participantId);
 
         if (key) {
-            context.setKey(key, keyIndex);
+            context.setKeyBytes(key, keyIndex);
         } else {
-            context.setKey(false, keyIndex);
+            context.setKeyBytes((false, keyIndex));
         }
+    } else if (operation === 'setKey') {
+        const { participantId, key, keyIndex } = event.data;
+        const context = getParticipantContext(participantId);
+
+        context._setKeys(key, keyIndex);
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 

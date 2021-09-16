@@ -1,6 +1,7 @@
 /* global __filename */
 
 import browser from '../browser';
+import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
@@ -14,7 +15,7 @@ export class E2EEncryption {
      * @param {JitsiConference} conference - The conference instance for which E2E encryption is to be enabled.
      */
     constructor(conference) {
-        this._keyHandler = new ManagedKeyHandler(conference);
+        this._keyHandler = new ExternallyManagedKeyHandler(conference);
     }
 
     /**
@@ -37,7 +38,7 @@ export class E2EEncryption {
      */
     isEnabled() {
         return this._keyHandler.isEnabled();
-    }
+    } 
 
     /**
      * Enables / disables End-To-End encryption.

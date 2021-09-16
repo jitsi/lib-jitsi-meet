@@ -133,10 +133,16 @@ export default class E2EEcontext {
      * @param {Uint8Array | boolean} key - they key for the given participant.
      * @param {Number} keyIndex - the key index.
      */
+    setKeyBytes(participantId, key, keyIndex) {
+        this._worker.postMessage({
+            operation: 'setKeyBytes',
+            participantId,
+            key,
+            keyIndex
+        });
+    }
+
     setKey(participantId, key, keyIndex) {
-        console.log("XXX setekye1", participantId)
-        console.log("XXX setekye2", key)
-        console.log("XXX setekye3", keyIndex)
         this._worker.postMessage({
             operation: 'setKey',
             participantId,
