@@ -441,6 +441,10 @@ export default class XMPP extends Listenable {
                         .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
                 }
             }
+
+            if (identity.type === 'shard') {
+                this.options.deploymentInfo.shard = this.connection.shard = identity.name;
+            }
         });
 
         if (this.avModerationComponentAddress
@@ -542,13 +546,6 @@ export default class XMPP extends Listenable {
         const { features, identities } = parseDiscoInfo(msg);
 
         this._processDiscoInfoIdentities(identities, features);
-
-        // check for shard name in identities
-        identities.forEach(i => {
-            if (i.type === 'shard') {
-                this.options.deploymentInfo.shard = this.connection.shard = i.name;
-            }
-        });
 
         if (foundIceServers || identities.size > 0 || features.size > 0) {
             this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
