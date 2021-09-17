@@ -24,13 +24,7 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
     }
 
     setKey(key, keyIndex) {
-        this.e2eeCtx.setKey(this.conference.myUserId(), { encryptionKey: key }, keyIndex);
-
-        const participants = this.conference.getParticipants();
-
-        for (const participant of participants) {
-            this.e2eeCtx.setKey(participant.getId(), { encryptionKey: key }, keyIndex);
-        }
+        this.e2eeCtx.setKey(undefined, { encryptionKey: key }, keyIndex, true);
     }
 
     async importKey() {

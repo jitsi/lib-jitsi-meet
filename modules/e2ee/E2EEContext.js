@@ -142,12 +142,20 @@ export default class E2EEcontext {
         });
     }
 
-    setKey(participantId, key, keyIndex) {
+    setKey(participantId, key, keyIndex, unique = false) {
         this._worker.postMessage({
             operation: 'setKey',
-            participantId,
             key,
-            keyIndex
+            keyIndex,
+            participantId,
+            unique
+        });
+    }
+
+    setKeyManagementMode(externallyManaged) {
+        this._worker.postMessage({
+            operation: 'setKeyManagementMode',
+            externallyManaged
         });
     }
 }

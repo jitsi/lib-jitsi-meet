@@ -7,6 +7,9 @@ import { Context } from './Context';
 
 const contexts = new Map(); // Map participant id => context
 
+let singleKey = false;
+let singleContext = undefined;
+
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
  *
@@ -14,11 +17,19 @@ const contexts = new Map(); // Map participant id => context
  * @returns {Object} The context.
  */
 function getParticipantContext(participantId) {
-    if (!contexts.has(participantId)) {
-        contexts.set(participantId, new Context(participantId));
-    }
+   if (singleKey) {
+       if (!singleContext) {
+          singleContext = new Context();
+        }
+        
+        return singleContext;
+    } else {
+        if (!contexts.has(participantId)) {
+            contexts.set(participantId, new Context());
+        }
 
-    return contexts.get(participantId);
+        return contexts.get(participantId);
+    }
 }
 
 /**
@@ -62,7 +73,9 @@ onmessage = async event => {
             context.setKeyBytes((false, keyIndex));
         }
     } else if (operation === 'setKey') {
-        const { participantId, key, keyIndex } = event.data;
+        const { unique, participantId, key, keyIndex } = event.data;
+        singleKey = unique;
+
         const context = getParticipantContext(participantId);
 
         context._setKeys(key, keyIndex);

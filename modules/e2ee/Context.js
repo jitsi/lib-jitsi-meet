@@ -39,7 +39,7 @@ export class Context {
     /**
      * @param {string} id - local muc resourcepart
      */
-    constructor(id) {
+    constructor(externallyManaged = false) {
         // An array (ring) of keys that we use for sending and receiving.
         this._cryptoKeyRing = new Array(KEYRING_SIZE);
 
@@ -48,11 +48,9 @@ export class Context {
 
         this._sendCounts = new Map();
 
-        this._id = id;
-
         this._initialKey = undefined;
 
-        this.removeThis = Math.random();
+        this._externallyManaged = externallyManaged;
     }
 
     /**
@@ -83,11 +81,8 @@ export class Context {
      * @private
      */
     _setKeys(keys, keyIndex = -1) {
-        console.log("XXX setKeys1", keys);
-        console.log("XXX setKeys2", keyIndex);
         if (keyIndex >= 0) {
             this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
-            console.log("XXX setKeys3" + this.removeThis, this._currentKeyIndex);
         }
 
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
@@ -119,8 +114,6 @@ export class Context {
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
-        console.log("XXX encrypting1", this._cryptoKeyRing[keyIndex])
-        console.log("XXX encrypting2" + this.removeThis, keyIndex)
         if (this._cryptoKeyRing[keyIndex]) {
 
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
@@ -141,8 +134,6 @@ export class Context {
             // ---------+-------------------------+-+---------+----
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
-            console.log("XXX encrypting2")
-
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
                 iv,
@@ -229,7 +220,6 @@ export class Context {
         // ---------+-------------------------+-+---------+----
         // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
         // ---------+-------------------------+-+---------+----
-        console.log("XXX decrypting")
         try {
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
@@ -260,25 +250,26 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
-            console.log("XXX decrypting error");
-           /* if (ratchetCount === 0) {
-                this._initialKey = this._cryptoKeyRing[this._currentKeyIndex];
+            if (!this._externallyManaged) {
+                if (ratchetCount === 0) {
+                    this._initialKey = this._cryptoKeyRing[this._currentKeyIndex];
+                }
+
+                if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                    material = await importKey(await ratchet(material));
+
+                    const newKey = await deriveKeys(material);
+
+                    this._setKeys(newKey);
+
+                    return await this._decryptFrame(
+                        encodedFrame,
+                        keyIndex,
+                        ratchetCount + 1);
+                } else {
+                    this._setKeys(this._initialKey);
+                }
             }
-
-            if (ratchetCount < RATCHET_WINDOW_SIZE) {
-                material = await importKey(await ratchet(material));
-
-                const newKey = await deriveKeys(material);
-
-                this._setKeys(newKey);
-
-                return await this._decryptFrame(
-                    encodedFrame,
-                    keyIndex,
-                    ratchetCount + 1);
-            } else {
-                this._setKeys(this._initialKey);
-            }*/
 
             // TODO: notify the application about error status.
         }
