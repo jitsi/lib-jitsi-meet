@@ -1648,7 +1648,8 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
 
         // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
         // as soon as the browser switches to VP9.
-        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
+        if (this.codecPreference.mimeType === CodecMimeType.VP9
+            && this.getConfiguredVideoCodec() === CodecMimeType.VP9) {
             const bitrates = this.videoBitrates.VP9 || this.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const limit = Math.floor((this._isSharingScreen() ? HD_BITRATE : hdBitrate) / 1000);
