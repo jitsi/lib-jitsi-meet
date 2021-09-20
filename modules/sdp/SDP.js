@@ -143,10 +143,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         }
 
         let ssrc;
+        const simGroup = SDPUtil.findLine(this.media[i], 'a=ssrc-group:SIM');
         const assrcline = SDPUtil.findLine(this.media[i], 'a=ssrc:');
 
         if (assrcline) {
-            ssrc = assrcline.substring(7).split(' ')[0]; // take the first
+            if (browser.isFirefox() && simGroup) {
+                // Use the first ssrc from the SIM group since the order of the SSRCs need to be reversed for Firefox.
+                ssrc = simGroup.substring(17).split(' ')[0];
+            } else {
+                ssrc = assrcline.substring(7).split(' ')[0]; // take the first
+            }
         } else {
             ssrc = false;
         }
