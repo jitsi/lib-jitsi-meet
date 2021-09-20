@@ -1460,8 +1460,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
-        // Check if the browser supports RTX, add only the primary ssrcs to the
-        // SIM group if that is the case.
+        // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
         video.ssrcGroups = video.ssrcGroups || [];
         const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
 
@@ -1483,6 +1482,12 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
                 // Group already exists, no need to do anything
                 return desc;
             }
+
+            // Reverse the order of the SSRCs when signaling them to the bridge. On Firefox, the first SSRC corresponds
+            // to the highest resolution stream whereas the bridge assumes it to be that of the lowest resolution
+            // stream as is the case with the other browsers.
+            browser.isFirefox() && ssrcs.reverse();
+
             video.ssrcGroups.push({
                 semantics: 'SIM',
                 ssrcs: ssrcs.join(' ')
