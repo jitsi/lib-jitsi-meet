@@ -9,11 +9,10 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
     }
 
     /**
-
      * 
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
-     */
+     *
     async setEnabledExtras(enabled) {
         if (enabled) {
             // Generate a random key in case we are enabling.
@@ -21,10 +20,11 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
 
             this.setKey(this._key, 0);
         }
-    }
+    }*/
 
-    setKey(key, keyIndex) {
-        this.e2eeCtx.setKey(undefined, { encryptionKey: key }, keyIndex, true);
+    setKey(keyInfo) {
+        console.log("XXX LJM set key", keyInfo);
+        this.e2eeCtx.setKey(undefined, { encryptionKey: keyInfo.encryptionKey }, keyInfo.index, true);
     }
 
     async importKey() {

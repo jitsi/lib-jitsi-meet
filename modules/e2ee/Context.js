@@ -127,6 +127,8 @@ export class Context {
             frameTrailer[0] = IV_LENGTH;
             frameTrailer[1] = keyIndex;
 
+            console.log("XXX encoding");
+
             // Construct frame trailer. Similar to the frame header described in
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
             // but we put it at the end.
@@ -213,6 +215,7 @@ export class Context {
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
         let { material } = this._cryptoKeyRing[keyIndex];
 
+        console.log("XXX decrypting");
         // Construct frame trailer. Similar to the frame header described in
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
         // but we put it at the end.

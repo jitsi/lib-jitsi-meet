@@ -32,10 +32,13 @@ export class E2EEncryption {
      * @returns {boolean}
      */
     static isSupported(config) {
+        if (!config.externallyManagede2ee && !OlmAdapter.isSupported()) {
+            return false;
+        }
+
         return !(config.testing && config.testing.disableE2EE)
             && (browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()))
-            && OlmAdapter.isSupported();
+                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()));
     }
 
     /**
@@ -55,5 +58,9 @@ export class E2EEncryption {
      */
     async setEnabled(enabled) {
         await this._keyHandler.setEnabled(enabled);
+    }
+
+    setEncryptionKey(keyInfo) {
+        this._keyHandler.setKey && this._keyHandler.setKey(keyInfo);
     }
 }
