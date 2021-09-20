@@ -21,7 +21,7 @@ export default function ComponentsVersions(conference) {
 
 ComponentsVersions.prototype.processVersions
     = function(versions, mucResource, mucJid) {
-        if (!this.conference._isFocus(mucJid)) {
+        if (!this.conference.isFocus(mucJid)) {
             logger.warn(
                 `Received versions not from the focus user: ${versions}`,
                 mucJid);
