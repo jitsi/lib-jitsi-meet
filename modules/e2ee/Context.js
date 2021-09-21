@@ -207,6 +207,7 @@ export class Context {
     async _decryptFrame(
             encodedFrame,
             keyIndex,
+            initialKey = undefined,
             ratchetCount = 0) {
 
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
@@ -260,8 +261,17 @@ export class Context {
                 return await this._decryptFrame(
                     encodedFrame,
                     keyIndex,
+                    initialKey ?? this._cryptoKeyRing[this._currentKeyIndex],
                     ratchetCount + 1);
             }
+
+            /*
+               Since the key it is first send and only afterwards actually used for encrypting, there were
+               situations when the decrypting failed due to the fact that the received frame was not encrypted
+               yet and ratcheting, of course, did not solve the problem. So if we fail RATCHET_WINDOW_SIZE times,
+               we come back to the initial key.
+            */
+            this._setKeys(initialKey);
 
             // TODO: notify the application about error status.
         }
