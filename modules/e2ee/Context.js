@@ -261,7 +261,7 @@ export class Context {
                 return await this._decryptFrame(
                     encodedFrame,
                     keyIndex,
-                    initialKey ?? this._cryptoKeyRing[this._currentKeyIndex],
+                    initialKey || this._cryptoKeyRing[this._currentKeyIndex],
                     ratchetCount + 1);
             }
 
