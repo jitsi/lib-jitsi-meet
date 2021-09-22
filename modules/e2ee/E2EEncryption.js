@@ -15,7 +15,8 @@ export class E2EEncryption {
      * @param {JitsiConference} conference - The conference instance for which E2E encryption is to be enabled.
      */
     constructor(conference) {
-        this._externallyManaged = conference.options.config.externallyManagede2ee;
+        const { e2ee = {} } = conference.options.config;
+        this._externallyManaged = e2ee.externallyManagedKey;
 
         if (this._externallyManaged) {
             this._keyHandler = new ExternallyManagedKeyHandler(conference);
@@ -31,7 +32,8 @@ export class E2EEncryption {
      * @returns {boolean}
      */
     static isSupported(config) {
-        if (!config.externallyManagede2ee && !OlmAdapter.isSupported()) {
+        const { e2ee = {} } = config;
+        if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {
             return false;
         }
 

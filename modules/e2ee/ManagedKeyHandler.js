@@ -61,7 +61,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
-    async setEnabledExtras(enabled) {
+    async _setEnabled(enabled) {
         if (enabled) {
             await this._olmAdapter.initSessions();
         } else {
@@ -75,7 +75,7 @@ export class ManagedKeyHandler extends KeyHandler {
         const index = await this._olmAdapter.updateKey(this._key);
 
         // Set our key so we begin encrypting.
-        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index ?? 0);
+        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
@@ -107,9 +107,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantJoined() {
-        console.log("XXX _onParticipantJoined1")
         if (this._conferenceJoined && this.enabled) {
-            console.log("XXX _onParticipantJoined2")
             this._ratchetKey();
         }
     }

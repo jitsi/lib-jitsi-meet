@@ -77,7 +77,7 @@ export class KeyHandler extends Listenable {
             }
         }
 
-        await this.setEnabledExtras(enabled);
+        await this._setEnabled(enabled);
 
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
@@ -92,7 +92,7 @@ export class KeyHandler extends Listenable {
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
-    async setEnabledExtras(enabled) {}
+    async _setEnabled(enabled) {}
 
     /**
      * Setup E2EE on the new track that has been added to the conference, apply it on all the open peerconnections.
