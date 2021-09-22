@@ -7,8 +7,7 @@ import { Context } from './Context';
 
 const contexts = new Map(); // Map participant id => context
 
-let singleKey = false;
-let singleContext = undefined;
+let sharedContext = undefined;
 
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
@@ -17,19 +16,15 @@ let singleContext = undefined;
  * @returns {Object} The context.
  */
 function getParticipantContext(participantId) {
-   if (singleKey) {
-       if (!singleContext) {
-          singleContext = new Context();
-        }
-        
-        return singleContext;
-    } else {
-        if (!contexts.has(participantId)) {
-            contexts.set(participantId, new Context());
-        }
+   if (sharedContext) {
+        return sharedContext;
+    } 
 
-        return contexts.get(participantId);
+    if (!contexts.has(participantId)) {
+        contexts.set(participantId, new Context());
     }
+
+    return contexts.get(participantId);
 }
 
 /**
@@ -58,27 +53,26 @@ function handleTransform(context, operation, readableStream, writableStream) {
 onmessage = async event => {
     const { operation } = event.data;
 
-    if (operation === 'encode' || operation === 'decode') {
+    if (operation === 'initialize') {
+        console.log("XXX worker initialize", event.data);
+        const { shareKey } = event.data;
+        if (shareKey) {
+            sharedContext = new Context({shareKey});
+        }
+    } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
         const context = getParticipantContext(participantId);
 
         handleTransform(context, operation, readableStream, writableStream);
-    } else if (operation === 'setKeyBytes') {
+    } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
         const context = getParticipantContext(participantId);
 
         if (key) {
-            context.setKeyBytes(key, keyIndex);
+            context.setKey(key, keyIndex);
         } else {
-            context.setKeyBytes((false, keyIndex));
+            context.setKey((false, keyIndex));
         }
-    } else if (operation === 'setKey') {
-        const { unique, participantId, key, keyIndex } = event.data;
-        singleKey = unique;
-
-        const context = getParticipantContext(participantId);
-
-        context._setKeys(key, keyIndex);
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 

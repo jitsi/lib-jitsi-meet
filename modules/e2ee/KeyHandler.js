@@ -16,11 +16,12 @@ export class KeyHandler extends Listenable {
     /**
      * Build a new AutomaticKeyHandler instance, which will be used in a given conference.
      */
-    constructor(conference) {
+    constructor(conference, options = {}) {
         super();
 
+        console.log("XXX keyHander context", options)
         this.conference = conference;
-        this.e2eeCtx = new E2EEContext();
+        this.e2eeCtx = new E2EEContext(options);
 
         this.enabled = false;
         this._enabling = undefined;

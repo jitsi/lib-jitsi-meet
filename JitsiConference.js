@@ -260,7 +260,7 @@ export default function JitsiConference(options) {
     if (this.isE2EESupported()) {
         logger.info('End-to-End Encryprtion is supported');
 
-        this._e2eEncryption = new E2EEncryption(this, this.options.config.externallyManagede2ee);
+        this._e2eEncryption = new E2EEncryption(this);
     }
 }
 

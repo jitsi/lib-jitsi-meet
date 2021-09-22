@@ -14,11 +14,10 @@ export class E2EEncryption {
      * A constructor.
      * @param {JitsiConference} conference - The conference instance for which E2E encryption is to be enabled.
      */
-    constructor(conference, externallyManaged) {
-        this._externallyManaged = externallyManaged;
+    constructor(conference) {
+        this._externallyManaged = conference.options.config.externallyManagede2ee;
 
-        console.log("XXX externally managed", this._externallyManaged);
-        if (externallyManaged) {
+        if (this._externallyManaged) {
             this._keyHandler = new ExternallyManagedKeyHandler(conference);
         } else {
             this._keyHandler = new ManagedKeyHandler(conference);
@@ -61,6 +60,6 @@ export class E2EEncryption {
     }
 
     setEncryptionKey(keyInfo) {
-        this._keyHandler.setKey && this._keyHandler.setKey(keyInfo);
+        this._keyHandler?.setKey(keyInfo);
     }
 }
