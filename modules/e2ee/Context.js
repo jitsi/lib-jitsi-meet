@@ -66,9 +66,8 @@ export class Context {
                 newKey = key;
                 newKeyIndex = keyIndex;
             } else {
-                console.log("XXX setting proper key1", key);
-                console.log("XXX setting proper key2", keyIndex);
                 const material = await importKey(key);
+
                 newKey = await deriveKeys(material);
                 newKeyIndex = keyIndex;
             }
@@ -118,6 +117,7 @@ export class Context {
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
+
         if (this._cryptoKeyRing[keyIndex]) {
 
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
@@ -130,8 +130,6 @@ export class Context {
 
             frameTrailer[0] = IV_LENGTH;
             frameTrailer[1] = keyIndex;
-
-            console.log("XXX encoding");
 
             // Construct frame trailer. Similar to the frame header described in
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
@@ -220,7 +218,6 @@ export class Context {
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
         let { material } = this._cryptoKeyRing[keyIndex];
 
-        console.log("XXX decrypting");
         // Construct frame trailer. Similar to the frame header described in
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
         // but we put it at the end.

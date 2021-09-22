@@ -12,14 +12,16 @@ import E2EEContext from './E2EEContext';
 
 const logger = getLogger(__filename);
 
+/**
+ * Abstract class that integrates {@link E2EEContext} with a key management system.
+ */
 export class KeyHandler extends Listenable {
     /**
-     * Build a new AutomaticKeyHandler instance, which will be used in a given conference.
+     * Build a new KeyHandler instance, which will be used in a given conference.
      */
     constructor(conference, options = {}) {
         super();
 
-        console.log("XXX keyHander context", options)
         this.conference = conference;
         this.e2eeCtx = new E2EEContext(options);
 
@@ -77,7 +79,7 @@ export class KeyHandler extends Listenable {
             }
         }
 
-        await this._setEnabled(enabled);
+        this._setEnabled && await this._setEnabled(enabled);
 
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
@@ -85,14 +87,6 @@ export class KeyHandler extends Listenable {
 
         this._enabling.resolve();
     }
-
-    /**
-     * Abstract method for extra operations that need to be done while enabling/disabling E2EE
-     *
-     * @param {boolean} enabled - whether E2EE should be enabled or not.
-     * @returns {void}
-     */
-    async _setEnabled(enabled) {}
 
     /**
      * Setup E2EE on the new track that has been added to the conference, apply it on all the open peerconnections.

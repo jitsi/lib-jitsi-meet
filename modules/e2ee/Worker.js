@@ -7,7 +7,7 @@ import { Context } from './Context';
 
 const contexts = new Map(); // Map participant id => context
 
-let sharedContext = undefined;
+let sharedContext;
 
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
@@ -16,9 +16,9 @@ let sharedContext = undefined;
  * @returns {Object} The context.
  */
 function getParticipantContext(participantId) {
-   if (sharedContext) {
+    if (sharedContext) {
         return sharedContext;
-    } 
+    }
 
     if (!contexts.has(participantId)) {
         contexts.set(participantId, new Context());
@@ -54,10 +54,10 @@ onmessage = async event => {
     const { operation } = event.data;
 
     if (operation === 'initialize') {
-        console.log("XXX worker initialize", event.data);
         const { shareKey } = event.data;
+
         if (shareKey) {
-            sharedContext = new Context({shareKey});
+            sharedContext = new Context({ shareKey });
         }
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;

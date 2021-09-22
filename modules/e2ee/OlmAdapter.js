@@ -133,11 +133,9 @@ export class OlmAdapter extends Listenable {
         const promises = [];
 
         for (const participant of this._conf.getParticipants()) {
-            console.log("XXX update key1", participant.getDisplayName())
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
 
-            console.log("XXX update key2", olmData.session)
             // TODO: skip those who don't support E2EE.
             if (!olmData.session) {
                 logger.warn(`Tried to send key to participant ${pId} but we have no session`);
@@ -466,7 +464,7 @@ export class OlmAdapter extends Listenable {
                 const d = this._reqs.get(msg.data.uuid);
 
                 this._reqs.delete(msg.data.uuid);
-                d?.resolve();
+                d.resolve();
             } else {
                 logger.debug(`Received key info ack message from ${pId} but we have no session for them!`);
 
@@ -628,7 +626,6 @@ export class OlmAdapter extends Listenable {
         // Store the UUID for matching with the ACK.
         olmData.pendingSessionUuid = uuid;
 
-        console.log("XXX success");
         return d;
     }
 }

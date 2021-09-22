@@ -46,8 +46,8 @@ export default class E2EEcontext {
         this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
         this._worker.onerror = e => logger.onerror(e);
 
-        console.log("XXX E2ee context", options)
         const { shareKey } = options;
+
         this._worker.postMessage({
             operation: 'initialize',
             shareKey

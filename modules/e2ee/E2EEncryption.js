@@ -1,8 +1,8 @@
 /* global __filename */
 
 import browser from '../browser';
-import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 
+import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
 
@@ -16,6 +16,7 @@ export class E2EEncryption {
      */
     constructor(conference) {
         const { e2ee = {} } = conference.options.config;
+
         this._externallyManaged = e2ee.externallyManagedKey;
 
         if (this._externallyManaged) {
@@ -33,6 +34,7 @@ export class E2EEncryption {
      */
     static isSupported(config) {
         const { e2ee = {} } = config;
+
         if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {
             return false;
         }
@@ -49,7 +51,7 @@ export class E2EEncryption {
      */
     isEnabled() {
         return this._keyHandler.isEnabled();
-    } 
+    }
 
     /**
      * Enables / disables End-To-End encryption.
@@ -61,7 +63,13 @@ export class E2EEncryption {
         await this._keyHandler.setEnabled(enabled);
     }
 
+    /**
+     * Sets the key for End-to-End encryption.
+     *
+     * @param {Object} keyInfo whether to enable E2EE or not.
+     * @returns {void}
+    */
     setEncryptionKey(keyInfo) {
-        this._keyHandler?.setKey(keyInfo);
+        this._keyHandler.setKey && this._keyHandler.setKey(keyInfo);
     }
 }

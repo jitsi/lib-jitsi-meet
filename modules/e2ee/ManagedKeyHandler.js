@@ -57,7 +57,7 @@ export class ManagedKeyHandler extends KeyHandler {
     /**
      * When E2EE is enabled it initializes sessions and sets the key.
      * Cleans up the sessions when disabled.
-     * 
+     *
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
