@@ -209,31 +209,23 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 const ssrcMap = SDPUtil.parseSSRC(this.media[i]);
 
                 for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
+                    const sourceName = SDPUtil.parseSourceNameLine(ssrcParameters);
+
                     elem.c('source', {
                         ssrc: availableSsrc,
+                        name: sourceName,
                         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                     });
 
-                    ssrcParameters.forEach(ssrcSdpLine => {
-                        // get everything after first space
-                        const idx = ssrcSdpLine.indexOf(' ');
-                        const kv = ssrcSdpLine.substr(idx + 1);
+                    const msid = SDPUtil.parseMSIDAttribute(ssrcParameters);
 
+                    // eslint-disable-next-line max-depth
+                    if (msid) {
                         elem.c('parameter');
-                        if (kv.indexOf(':') === -1) {
-                            elem.attrs({ name: kv });
-                        } else {
-                            const name = kv.split(':', 2)[0];
-
-                            elem.attrs({ name });
-
-                            let v = kv.split(':', 2)[1];
-
-                            v = SDPUtil.filterSpecialChars(v);
-                            elem.attrs({ value: v });
-                        }
+                        elem.attrs({ name: 'msid' });
+                        elem.attrs({ value: msid });
                         elem.up();
-                    });
+                    }
 
                     elem.up();
                 }

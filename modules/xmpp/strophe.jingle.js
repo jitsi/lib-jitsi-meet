@@ -99,7 +99,8 @@ function expandSourcesFromJson(iq, jsonMessageXml) {
 function createSourceExtension(owner, sourceCompactJson) {
     const node = $build('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-        ssrc: sourceCompactJson.s
+        ssrc: sourceCompactJson.s,
+        name: sourceCompactJson.n
     });
 
     if (sourceCompactJson.m) {

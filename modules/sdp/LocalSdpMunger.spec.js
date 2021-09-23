@@ -57,8 +57,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(4);
-            expect(videoSsrcs.length).toEqual(6);
+            expect(audioSsrcs.length).toEqual(4 + 1 /* injected source name */);
+            expect(videoSsrcs.length).toEqual(6 + 3 /* injected source name into each ssrc */);
         });
     });
 
@@ -125,8 +125,8 @@ describe('DoNotTransformSdpForPlanB', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(1);
-            expect(videoSsrcs.length).toEqual(1);
+            expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
+            expect(videoSsrcs.length).toEqual(1 + 1 /* injected source name */);
         });
     });
 });
