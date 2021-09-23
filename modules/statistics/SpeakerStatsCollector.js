@@ -42,8 +42,8 @@ export default class SpeakerStatsCollector {
             JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
             this._onDisplayNameChange.bind(this));
         conference.addEventListener(
-            JitsiConferenceEvents.FACIAL_EXPRESSION_CHANGED,
-            this._onFacialExpressionChange.bind(this));
+            JitsiConferenceEvents.FACIAL_EXPRESSION_ADDED,
+            this._onFacialExpressionAdd.bind(this));
         if (conference.xmpp) {
             conference.xmpp.addListener(
                 XMPPEvents.SPEAKER_STATS_RECEIVED,
@@ -121,13 +121,14 @@ export default class SpeakerStatsCollector {
     }
 
     /**
-     * Changes the last facialExpression.
+     * Adds a new facial expression with its duration of a remote user.
      *
      * @param {string} userId - The user id of the user that left.
+     * @param {Object} data - The facial expression with its duration.
      * @returns {void}
      * @private
      */
-    _onFacialExpressionChange(userId, data) {
+    _onFacialExpressionAdd(userId, data) {
         const savedUser = this.stats.users[userId];
 
         if (savedUser) {

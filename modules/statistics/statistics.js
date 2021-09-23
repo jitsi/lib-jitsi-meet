@@ -28,6 +28,12 @@ let _instances;
 let isCallstatsLoaded = false;
 
 /**
+ * The value to use for the "type" field for messages sent
+ * over the data channel that contain facial expression.
+ */
+const FACIAL_EXPRESSION_MESSAGE_TYPE = 'facial_expression';
+
+/**
  * Since callstats.io is a third party, we cannot guarantee the quality of their
  * service. More specifically, their server may take noticeably long time to
  * respond. Consequently, it is in our best interest (in the sense that the
@@ -324,6 +330,16 @@ Statistics.prototype.attachLongTasksStats = function(conference) {
     conference.on(
         JitsiConferenceEvents.CONFERENCE_LEFT,
         () => this.performanceObserverStats.stopObserver());
+    conference.on(
+        JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+        (participant, payload) => {
+            if (payload.type === FACIAL_EXPRESSION_MESSAGE_TYPE) {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.FACIAL_EXPRESSION_ADDED,
+                    participant.getId(),
+                    payload);
+            }
+        });
 };
 
 /**
