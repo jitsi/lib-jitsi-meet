@@ -2529,6 +2529,12 @@ JitsiConference.prototype.getConnectionTimes = function() {
  * Sets a property for the local participant.
  */
 JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
+    if (name === 'raisedHand') {
+        const e = new Error();
+
+        logger.info(`Will send raised(${value}) hand from lib ${e.stack}`);
+    }
+
     this.sendCommand(`jitsi_participant_${name}`, { value });
 };
 
