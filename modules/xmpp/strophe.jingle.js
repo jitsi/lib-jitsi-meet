@@ -202,6 +202,30 @@ function _getSemantics(str) {
 }
 
 /**
+ * Parses the transport XML element and returns the list of ICE candidates formatted as text.
+ *
+ * @param {*} transport Transport XML element extracted from the IQ.
+ * @returns {Array<string>}
+ */
+function _parseIceCandidates(transport) {
+    const candidates = $(transport).find('>candidate');
+    const parseCandidates = [];
+
+    // Extract the candidate information from the IQ.
+    for (const candidate of candidates) {
+        const attributes = candidate.attributes;
+        const candidateAttrs = [];
+
+        for (const attr of attributes) {
+            candidateAttrs.push(`${attr.name}: ${attr.value}`);
+        }
+        parseCandidates.push(candidateAttrs.join(' '));
+    }
+
+    return parseCandidates;
+}
+
+/**
  *
  */
 export default class JingleConnectionPlugin extends ConnectionPlugin {
@@ -327,7 +351,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 for (const endpoint of audioVideoSsrcs.keys()) {
                     logMessage.push(`${endpoint}:[${audioVideoSsrcs.get(endpoint)}]`);
                 }
-                logger.debug(`Received ${action} from ${fromJid} with source information ${logMessage.join(', ')}`);
+                logger.debug(`Received ${action} from ${fromJid} with sources=${logMessage.join(', ')}`);
             }
 
             // TODO: is there a way to remove the json-message elements once we've extracted the information?
@@ -337,13 +361,12 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         switch (action) {
         case 'session-initiate': {
             logger.log('(TIME) received session-initiate:\t', now);
-            isP2P && logger.debug(`Received ${action} from ${fromJid}`, iq);
-
             const startMuted = $(iq).find('jingle>startmuted');
 
-            if (startMuted && startMuted.length > 0) {
-                const audioMuted = startMuted.attr('audio');
-                const videoMuted = startMuted.attr('video');
+            isP2P && logger.debug(`Received ${action} from ${fromJid}`);
+            if (startMuted?.length) {
+                const audioMuted = startMuted.attr(MediaType.AUDIO);
+                const videoMuted = startMuted.attr(MediaType.VIDEO);
 
                 this.eventEmitter.emit(
                     XMPPEvents.START_MUTED_FROM_FOCUS,
@@ -367,30 +390,38 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     /* initiator */ false);
 
             this.sessions[sess.sid] = sess;
-
-            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
-                sess, $(iq).find('>jingle'), now);
+            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, $(iq).find('>jingle'), now);
             break;
         }
         case 'session-accept': {
-            logger.debug(`Received ${action} from ${fromJid}`, iq);
-            this.eventEmitter.emit(
-                XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            const ssrcs = [];
+            const contents = $(iq).find('jingle>content');
+
+            // Extract the SSRCs from the session-accept received from a p2p peer.
+            for (const content of contents) {
+                const ssrc = $(content).find('description').attr('ssrc');
+
+                ssrc && ssrcs.push(ssrc);
+            }
+            logger.debug(`Received ${action} from ${fromJid} with ssrcs=${ssrcs}`);
+            this.eventEmitter.emit(XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
             break;
         }
         case 'content-modify': {
-            logger.debug(`Received ${action} from ${fromJid}`, iq);
+            const height = $(iq).find('jingle>content[name="video"]>max-frame-height');
+
+            logger.debug(`Received ${action} from ${fromJid} with a max-frame-height=${height?.text()}`);
             sess.modifyContents($(iq).find('>jingle'));
             break;
         }
         case 'transport-info': {
-            logger.debug(`Received ${action} from ${fromJid}`, iq);
-            this.eventEmitter.emit(
-                XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
+            const candidates = _parseIceCandidates($(iq).find('jingle>content>transport'));
+
+            logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
+            this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
             break;
         }
         case 'session-terminate': {
-            logger.debug(`Received ${action} from ${fromJid}`, iq);
             logger.log('terminating...', sess.sid);
             let reasonCondition = null;
             let reasonText = null;
@@ -400,14 +431,22 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
+            logger.debug(`Received ${action} from ${fromJid} disconnect reason=${reasonText}`);
             this.terminate(sess.sid, reasonCondition, reasonText);
-            this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
-                sess, reasonCondition, reasonText);
+            this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
             break;
         }
-        case 'transport-replace':
+        case 'transport-replace': {
             logger.info('(TIME) Start transport replace:\t', now);
-            logger.debug(`Received ${action} from ${fromJid}`, iq);
+            const transport = $(iq).find('jingle>content>transport');
+            const candidates = _parseIceCandidates(transport);
+            const iceUfrag = $(transport).attr('ufrag');
+            const icePwd = $(transport).attr('pwd');
+            const dtlsFingerprint = $(transport).find('>fingerprint')?.text();
+
+            logger.debug(`Received ${action} from ${fromJid} with iceUfrag=${iceUfrag},`
+            + ` icePwd=${icePwd}, DTLS fingerprint=${dtlsFingerprint}, candidates=${candidates.join(', ')}`);
+
             Statistics.sendAnalytics(createJingleEvent(
                 ACTION_JINGLE_TR_RECEIVED,
                 {
@@ -431,6 +470,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 sess.sendTransportReject();
             });
             break;
+        }
         case 'source-add':
             sess.addRemoteStream($(iq).find('>jingle>content'));
             break;
