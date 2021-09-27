@@ -565,3 +565,17 @@ export const createBridgeChannelClosedEvent = function(code, reason) {
 export const createTtfmEvent = function(attributes) {
     return createConnectionStageReachedEvent('ttfm', attributes);
 };
+
+/**
+ * Creates an event with performance metrics information. Each element in the metrics
+ * array will have a name and duration.
+ *
+ * @param {Array<object>} metrics - Array of metrics objects.
+ */
+export const createPerfMetricsEvent = function(metrics) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'perf-metrics',
+        metrics
+    };
+};

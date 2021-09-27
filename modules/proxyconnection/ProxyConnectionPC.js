@@ -221,7 +221,6 @@ export default class ProxyConnectionPC {
          */
         const roomStub = {
             addPresenceListener: () => { /** no-op */ },
-            connectionTimes: [],
             eventEmitter: { emit: emitter },
             getMediaPresenceInfo: () => {
                 // Errors occur if this function does not return an object

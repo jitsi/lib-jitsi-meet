@@ -136,13 +136,6 @@ JitsiConnection.prototype.removeEventListener = function(event, listener) {
 };
 
 /**
- * Returns measured connectionTimes.
- */
-JitsiConnection.prototype.getConnectionTimes = function() {
-    return this.xmpp.connectionTimes;
-};
-
-/**
  * Adds new feature to the list of supported features for the local
  * participant.
  * @param {String} feature the name of the feature.

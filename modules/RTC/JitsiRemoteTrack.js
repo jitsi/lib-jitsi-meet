@@ -209,36 +209,22 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _playCallback() {
         const type = this.isVideoTrack() ? 'video' : 'audio';
 
-        const now = window.performance.now();
+        window.performance.mark(`jitsi.rtc.${type}.render`);
 
-        console.log(`(TIME) Render ${type}:\t`, now);
-        this.conference.getConnectionTimes()[`${type}.render`] = now;
+        const ttfmMarkName = `jitsi.rtc.ttfm.${type}`;
 
-        // The conference can be started without calling GUM
-        // FIXME if there would be a module for connection times this kind
-        // of logic (gumDuration or ttfm) should end up there
-        const gumStart = window.connectionTimes['obtainPermissions.start'];
-        const gumEnd = window.connectionTimes['obtainPermissions.end'];
-        const gumDuration
-            = !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
+        // TTFM: calculated as the time from the session-initiate sent by the
+        // bridge until first remote render.
+        window.performance.measure(ttfmMarkName, 'jitsi.xmpp.session-initiate');
 
-        // Subtract the muc.joined-to-session-initiate duration because jicofo
-        // waits until there are 2 participants to start Jingle sessions.
-        const ttfm = now
-            - (this.conference.getConnectionTimes()['session.initiate']
-                - this.conference.getConnectionTimes()['muc.joined'])
-            - gumDuration;
-
-        this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
-        console.log(`(TIME) TTFM ${type}:\t`, ttfm);
+        const [ ttfmEntry ] = window.performance.getEntriesByName(ttfmMarkName).slice(-1);
 
         Statistics.sendAnalytics(createTtfmEvent(
             {
                 'media_type': type,
                 muted: this.hasBeenMuted,
-                value: ttfm
+                value: ttfmEntry.duration
             }));
-
     }
 
     /**

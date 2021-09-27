@@ -21,8 +21,8 @@ import { ParticipantConnectionStatus }
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import ProxyConnectionService
-    from './modules/proxyconnection/ProxyConnectionService';
+import perfMetrics from './modules/perf-metrics/perfMetrics';
+import ProxyConnectionService from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
@@ -142,15 +142,11 @@ export default _mergeNamespaceAndModule({
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     analytics: Statistics.analytics,
+    perfMetrics,
     init(options = {}) {
         Settings.init(options.externalStorage);
         Statistics.init(options);
-
-        // Initialize global window.connectionTimes
-        // FIXME do not use 'window'
-        if (!window.connectionTimes) {
-            window.connectionTimes = {};
-        }
+        perfMetrics.init();
 
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
@@ -316,18 +312,13 @@ export default _mergeNamespaceAndModule({
             }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }
 
-        if (!window.connectionTimes) {
-            window.connectionTimes = {};
-        }
-        window.connectionTimes['obtainPermissions.start']
-            = window.performance.now();
+        perfMetrics.markStart(perfMetrics.MEASURES.OBTAIN_PERMISSIONS);
 
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
                 promiseFulfilled = true;
 
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
+                perfMetrics.markEnd(perfMetrics.MEASURES.OBTAIN_PERMISSIONS);
 
                 Statistics.sendAnalytics(
                     createGetUserMediaEvent(
@@ -378,6 +369,8 @@ export default _mergeNamespaceAndModule({
             .catch(error => {
                 promiseFulfilled = true;
 
+                perfMetrics.markEnd(perfMetrics.MEASURES.OBTAIN_PERMISSIONS);
+
                 if (error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
@@ -422,9 +415,6 @@ export default _mergeNamespaceAndModule({
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent('error', attributes));
                 }
-
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
 
                 return Promise.reject(error);
             });

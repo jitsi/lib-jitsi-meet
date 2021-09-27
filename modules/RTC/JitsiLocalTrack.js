@@ -22,6 +22,7 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import perfMetrics from '../perf-metrics/perfMetrics';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -454,9 +455,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     _queueSetMuted(muted) {
+        const mark = perfMetrics.MEASURES[`${this.getType().toUpperCase()}_${muted ? 'MUTE' : 'UNMUTE'}`];
+
+        perfMetrics.markStart(mark);
+
         const setMuted = this._setMuted.bind(this, muted);
 
         this._prevSetMuted = this._prevSetMuted.then(setMuted, setMuted);
+
+        this._prevSetMuted.then(() => {
+            perfMetrics.markEnd(mark);
+        });
 
         return this._prevSetMuted;
     }

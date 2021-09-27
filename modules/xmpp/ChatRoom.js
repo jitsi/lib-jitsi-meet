@@ -7,6 +7,7 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import perfMetrics from '../perf-metrics/perfMetrics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
@@ -140,7 +141,6 @@ export default class ChatRoom extends Listenable {
         this.lastPresences = {};
         this.phoneNumber = null;
         this.phonePin = null;
-        this.connectionTimes = {};
         this.participantPropertyListener = null;
 
         this.locked = false;
@@ -186,6 +186,8 @@ export default class ChatRoom extends Listenable {
     join(password, replaceParticipant) {
         this.password = password;
         this.replaceParticipant = replaceParticipant;
+
+        perfMetrics.markStart(perfMetrics.MEASURES.MUC_JOIN);
 
         return new Promise(resolve => {
             this.options.disableFocus
@@ -558,10 +560,8 @@ export default class ChatRoom extends Listenable {
             }
             if (!this.joined) {
                 this.joined = true;
-                const now = this.connectionTimes['muc.joined']
-                    = window.performance.now();
 
-                logger.log('(TIME) MUC joined:\t', now);
+                perfMetrics.markEnd(perfMetrics.MEASURES.MUC_JOIN);
 
                 // set correct initial state of locked
                 if (this.password) {

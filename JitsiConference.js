@@ -2025,10 +2025,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(
 /**
  * Handles an incoming call event.
  */
-JitsiConference.prototype.onIncomingCall = function(
-        jingleSession,
-        jingleOffer,
-        now) {
+JitsiConference.prototype.onIncomingCall = function(jingleSession, jingleOffer) {
     // Handle incoming P2P call
     if (jingleSession.isP2P) {
         this._onIncomingCallP2P(jingleSession, jingleOffer);
@@ -2045,21 +2042,19 @@ JitsiConference.prototype.onIncomingCall = function(
 
             return;
         }
-        this._acceptJvbIncomingCall(jingleSession, jingleOffer, now);
+        this._acceptJvbIncomingCall(jingleSession, jingleOffer);
     }
 };
 
 /**
  * Accepts an incoming call event for the JVB jingle session.
  */
-JitsiConference.prototype._acceptJvbIncomingCall = function(
-        jingleSession,
-        jingleOffer,
-        now) {
-
+JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingleOffer) {
     // Accept incoming call
     this.jvbJingleSession = jingleSession;
-    this.room.connectionTimes['session.initiate'] = now;
+
+    window.performance.mark('jitsi.xmpp.session-initiate');
+
     this._sendConferenceJoinAnalyticsEvent();
 
     if (this.wasStopped) {
@@ -2077,12 +2072,8 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
         serverRegion);
 
     this._maybeClearSITimeout();
-    Statistics.sendAnalytics(createJingleEvent(
-        ACTION_JINGLE_SI_RECEIVED,
-        {
-            p2p: false,
-            value: now
-        }));
+
+    Statistics.sendAnalytics(createJingleEvent(ACTION_JINGLE_SI_RECEIVED, { p2p: false }));
 
     try {
         jingleSession.initialize(this.room, this.rtc, {
@@ -2516,13 +2507,6 @@ JitsiConference.prototype.isStartAudioMuted = function() {
  */
 JitsiConference.prototype.isStartVideoMuted = function() {
     return this.startVideoMuted;
-};
-
-/**
- * Returns measured connectionTimes.
- */
-JitsiConference.prototype.getConnectionTimes = function() {
-    return this.room.connectionTimes;
 };
 
 /**

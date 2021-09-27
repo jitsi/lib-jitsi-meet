@@ -35,13 +35,11 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
 
     xhttp.onreadystatechange = function() {
         if (xhttp.readyState == xhttp.DONE) {
-            var now = window.connectionTimes['external_connect.done']
-                = window.performance.now();
-            console.log('(TIME) external connect XHR done:\t', now);
             if (xhttp.status == HTTP_STATUS_OK) {
                 try {
                     var data = JSON.parse(xhttp.responseText);
                     successCallback(data);
+                    window.performance.measure('jitsi.xmpp.external_connect', 'jitsi.xmpp.external_connect.start');
                 } catch (e) {
                     error_callback(e);
                 }
@@ -49,6 +47,7 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
                 error_callback(new Error('XMLHttpRequest error. Status: '
                     + xhttp.status + '. Error message: ' + xhttp.statusText));
             }
+            window.performance.clearMarks('jitsi.xmpp.external_connect.start');
         }
     };
 
@@ -59,9 +58,8 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
     // and before calling the send() method.
     xhttp.timeout = 3000;
 
-    window.connectionTimes = {};
-    var now = window.connectionTimes['external_connect.sending']
-        = window.performance.now();
-    console.log('(TIME) Sending external connect XHR:\t', now);
+    // Mimic what perf-metrics does.
+    window.performance.mark('jitsi.xmpp.external_connect.start');
+
     xhttp.send();
 }
