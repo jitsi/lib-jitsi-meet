@@ -101,7 +101,7 @@ export default class AVModeration {
             return;
         }
 
-        // send a message to whitelist the jid and approve it to unmute
+        // send a message to remove from whitelist the jid and reject it to unmute
         const msg = $msg({ to: this._xmpp.avModerationComponentAddress });
 
         msg.c('av_moderation', {
