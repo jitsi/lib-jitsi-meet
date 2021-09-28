@@ -635,8 +635,7 @@ export default class XMPP extends Listenable {
      */
     createRoom(roomName, options, onCreateResource) {
         // There are cases (when using subdomain) where muc can hold an uppercase part
-        let roomjid = `${roomName}@${options.customDomain
-            ? options.customDomain : this.options.hosts.muc.toLowerCase()}/`;
+        let roomjid = `${this.getRoomJid(roomName, options.customDomain)}/`;
 
         const mucNickname = onCreateResource
             ? onCreateResource(this.connection.jid, this.authenticatedUser)
@@ -646,6 +645,27 @@ export default class XMPP extends Listenable {
         roomjid += mucNickname;
 
         return this.connection.emuc.createRoom(roomjid, null, options);
+    }
+
+    /**
+     * Returns the room JID based on the passed room name and domain.
+     *
+     * @param {string} roomName - The room name.
+     * @param {string} domain - The domain.
+     * @returns {string} - The room JID.
+     */
+    getRoomJid(roomName, domain) {
+        return `${roomName}@${domain ? domain : this.options.hosts.muc.toLowerCase()}`;
+    }
+
+    /**
+     * Check if a room with the passed JID is already created.
+     *
+     * @param {string} roomJid - The JID of the room.
+     * @returns {boolean}
+     */
+    isRoomCreated(roomName, domain) {
+        return this.connection.emuc.isRoomCreated(this.getRoomJid(roomName, domain));
     }
 
     /**
