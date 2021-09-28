@@ -565,8 +565,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         return promise
-            .then(() => this._sendMuteStatus(muted))
-            .then(() => this.emit(TRACK_MUTE_CHANGED, this));
+            .then(() => {
+                this._sendMuteStatus(muted);
+                this.emit(TRACK_MUTE_CHANGED, this);
+            });
     }
 
     /**
@@ -619,19 +621,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @param {boolean} mute - If track is muted.
      * @private
-     * @returns {Promise}
+     * @returns {void}
      */
     _sendMuteStatus(mute) {
-        if (!this.conference || !this.conference.room) {
-            return Promise.resolve();
-        }
-
-        return new Promise(resolve => {
+        if (this.conference && this.conference.room) {
             this.conference.room[
                 this.isAudioTrack()
                     ? 'setAudioMute'
-                    : 'setVideoMute'](mute, resolve);
-        });
+                    : 'setVideoMute'](mute);
+        }
     }
 
     /**
