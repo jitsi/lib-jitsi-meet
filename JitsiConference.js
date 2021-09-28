@@ -126,6 +126,17 @@ export default function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
+    this.connection = options.connection;
+    this.xmpp = this.connection?.xmpp;
+
+    if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
+        const errmsg = 'A coference with the same name has already been created!';
+
+        delete this.connection;
+        delete this.xmpp;
+        logger.error(errmsg);
+        throw new Error(errmsg);
+    }
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
@@ -310,15 +321,7 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * @param options.connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function(options = {}) {
-    // Override connection and xmpp properties (Useful if the connection
-    // reloaded)
-    if (options.connection) {
-        this.connection = options.connection;
-        this.xmpp = this.connection.xmpp;
-
-        // Setup XMPP events only if we have new connection object.
-        this.eventManager.setupXMPPListeners();
-    }
+    this.eventManager.setupXMPPListeners();
 
     const { config } = this.options;
 
