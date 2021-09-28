@@ -3813,7 +3813,31 @@ JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
 
         this.room.getAVModeration().approve(mediaType, participant.getJid());
     } else {
-        logger.warn(`AV moderation skipped , ${this.room ? '' : 'not in a room, '}${
+        logger.warn(`AV moderation approve skipped , ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator, '}${
+            this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
+    }
+};
+
+/**
+ * Reject participant access to certain media, blocks unmuting audio or video.
+ *
+ * @param {MediaType} mediaType "audio" or "video"
+ * @param id the id of the participant.
+ */
+JitsiConference.prototype.avModerationReject = function(mediaType, id) {
+    if (this.room && this.isModerator()
+        && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.getAVModeration().reject(mediaType, participant.getJid());
+    } else {
+        logger.warn(`AV moderation reject skipped , ${this.room ? '' : 'not in a room, '}${
             this.isModerator() ? '' : 'participant is not a moderator, '}${
             this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }

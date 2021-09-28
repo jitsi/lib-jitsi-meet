@@ -720,8 +720,23 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
                 });
             }
         });
+    this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_PARTICIPANT_REJECTED,
+        (mediaType, jid) => {
+            const participant = conference.getParticipantById(Strophe.getResourceFromJid(jid));
+
+            if (participant) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_REJECTED, {
+                    participant,
+                    mediaType
+                });
+            }
+        });
     this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_APPROVED,
         value => conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_APPROVED, { mediaType: value }));
+    this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_REJECTED,
+        value => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_REJECTED, { mediaType: value });
+        });
 };
 
 /**
