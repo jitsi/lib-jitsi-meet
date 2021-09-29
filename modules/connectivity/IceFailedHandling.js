@@ -7,6 +7,11 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 const logger = getLogger(__filename);
 
 /**
+ *  Maximum number of consecutive failed restart attempts before trying a reload instead.
+ */
+const MAXIMUM_ICE_RESTART_ATTEMPTS = 3;
+
+/**
  * This class deals with shenanigans around JVB media session's ICE failed status handling.
  *
  * If ICE restarts are NOT explicitly enabled by the {@code enableIceRestart} config option, then the conference will
@@ -55,31 +60,41 @@ export default class IceFailedHandling {
         }
 
         const jvbConnection = this._conference.jvbJingleSession;
-        const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
 
         if (!jvbConnection) {
             logger.warn('Not sending ICE failed - no JVB connection');
-        } else if (jvbConnIceState === 'connected') {
-            logger.info('ICE connection restored - not sending ICE failed');
         } else {
-            logger.info('Sending ICE failed - the connection did not recover, '
-                + `ICE state: ${jvbConnIceState}, `
-                + `use 'session-terminate': ${useTerminateForRestart}`);
-            if (useTerminateForRestart) {
-                this._conference.jvbJingleSession.terminate(
-                    () => {
-                        logger.info('session-terminate for ice restart - done');
-                    },
-                    error => {
-                        logger.error(`session-terminate for ice restart - error: ${error.message}`);
-                    }, {
-                        reason: 'connectivity-error',
-                        reasonDescription: 'ICE FAILED',
-                        requestRestart: true,
-                        sendSessionTerminate: true
-                    });
+            const jvbConnIceState = jvbConnection.getIceConnectionState();
+            if (jvbConnIceState === 'connected') {
+                logger.info('ICE connection restored - not sending ICE failed');
             } else {
-                this._conference.jvbJingleSession.sendIceFailedNotification();
+                const numAttempts = jvbConnection.iceRestartAttempts;
+                if(numAttempts >= MAXIMUM_ICE_RESTART_ATTEMPTS) {
+                    logger.info('ICE failed, but maximum number of ICE restart attempts has been reached.');
+                    this._conference.eventEmitter.emit(
+                        JitsiConferenceEvents.CONFERENCE_FAILED,
+                        JitsiConferenceErrors.ICE_FAILED);
+                } else {
+                    logger.info('Sending ICE failed - the connection did not recover, '
+                        + `ICE state: ${jvbConnIceState}, `
+                        + `use 'session-terminate': ${useTerminateForRestart}`);
+                    if (useTerminateForRestart) {
+                        this._conference.jvbJingleSession.terminate(
+                            () => {
+                                logger.info('session-terminate for ice restart - done');
+                            },
+                            error => {
+                                logger.error(`session-terminate for ice restart - error: ${error.message}`);
+                            }, {
+                                reason: 'connectivity-error',
+                                reasonDescription: 'ICE FAILED',
+                                requestRestart: true,
+                                sendSessionTerminate: true
+                            });
+                    } else {
+                        this._conference.jvbJingleSession.sendIceFailedNotification();
+                    }
+                }
             }
         }
     }
