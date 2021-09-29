@@ -214,9 +214,10 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        const { desktopSharingFrameRate } = this.options;
+        const { desktopSharingFrameRate, desktopSharingAudio } = this.options;
         const video = typeof desktopSharingFrameRate === 'object' ? { frameRate: desktopSharingFrameRate } : true;
-        const audio = this._getAudioConstraints();
+        // eslint-disable-next-line no-negated-condition
+        const audio = typeof desktopSharingAudio !== 'undefined' ? desktopSharingAudio : this._getAudioConstraints();
 
         // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
         video.frameRate && delete video.frameRate.min;
