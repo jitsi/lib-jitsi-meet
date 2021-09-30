@@ -428,8 +428,6 @@ export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.part
  */
 export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected';
 
-export const FACIAL_EXPRESSION_CHANGED = 'conference.facial_expression_changed';
-
 /**
  * A new facial expression is added with its duration for a participant
  */
