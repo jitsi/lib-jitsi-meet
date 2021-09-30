@@ -210,7 +210,7 @@ export default class XMPP extends Listenable {
 
         // Disable RTX on Firefox 83 and older versions because of
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1668028
-        if (!(this.options.disableRtx || (browser.isFirefox() && browser.isVersionLessThan(84)))) {
+        if (!(this.options.disableRtx || (browser.isFirefox() && browser.isVersionLessThan(94)))) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
         if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
