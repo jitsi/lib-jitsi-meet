@@ -64,8 +64,8 @@ export default class BrowserCapabilities extends BrowserDetection {
     isIosBrowser() {
         const { userAgent, maxTouchPoints, platform } = navigator;
 
-        return userAgent.match(/iP(ad|hone|od)/i
-            || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform)));
+        return Boolean(userAgent.match(/iP(ad|hone|od)/i))
+            || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform));
     }
 
     /**
