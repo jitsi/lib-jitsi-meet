@@ -419,7 +419,6 @@ export const AV_MODERATION_CHANGED = 'conference.av_moderation.changed';
  */
 export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.participant.approved';
 
-<<<<<<< HEAD
 /**
  * AV Moderation, report for user being blocked to unmute.
  * @param {options} event - {
@@ -428,6 +427,4 @@ export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.part
  * }.
  */
 export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected';
-=======
 export const FACIAL_EXPRESSION_CHANGED = 'conference.facial_expression_changed';
->>>>>>> 74ecaa4f (feat: facial expression in speaker stats)
