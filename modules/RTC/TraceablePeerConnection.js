@@ -1482,11 +1482,6 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
                 return desc;
             }
 
-            // Reverse the order of the SSRCs when signaling them to the bridge. On Firefox, the first SSRC corresponds
-            // to the highest resolution stream whereas the bridge assumes it to be that of the lowest resolution
-            // stream as is the case with the other browsers.
-            browser.isFirefox() && ssrcs.reverse();
-
             video.ssrcGroups.push({
                 semantics: 'SIM',
                 ssrcs: ssrcs.join(' ')
