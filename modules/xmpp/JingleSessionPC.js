@@ -51,9 +51,9 @@ const ICE_CAND_GATHERING_TIMEOUT = 150;
  * The amount of time to wait in the ice disconnected state before giving up and triggering a restart.
  * @type {number} timeout in ms.
  */
- const ICE_DISCONNECT_TIMEOUT = 5000;
- 
- /**
+const ICE_DISCONNECT_TIMEOUT = 5000;
+
+/**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
  * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
  * endpoint/participant.
@@ -497,7 +497,7 @@ export default class JingleSessionPC extends JingleSession {
                 this,
                 this.peerconnection.iceConnectionState);
 
-            if(this.disconnectTimerId > 0) {
+            if (this.disconnectTimerId > 0) {
                 clearTimeout(this.disconnectTimerId);
                 this.disconnectTimerId = 0;
             }
@@ -581,7 +581,7 @@ export default class JingleSessionPC extends JingleSession {
                 this.disconnectTimerId = setTimeout(() => {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this);
-                        
+
                 }, ICE_DISCONNECT_TIMEOUT);
 
                 this.lasticecandidate = false;
