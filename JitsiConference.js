@@ -949,7 +949,14 @@ JitsiConference.prototype.removeCommand = function(name) {
  */
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
-        this.room.addOrReplaceInPresence('nick', {
+        const nickKey = 'nick';
+
+        // if there is no display name already set, avoid setting an empty one
+        if (!name && !this.room.getFromPresence(nickKey)) {
+            return;
+        }
+
+        this.room.addOrReplaceInPresence(nickKey, {
             attributes: { xmlns: 'http://jabber.org/protocol/nick' },
             value: name
         }) && this.room.sendPresence();
