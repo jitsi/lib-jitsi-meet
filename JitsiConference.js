@@ -3648,7 +3648,7 @@ JitsiConference.prototype._restartMediaSessions = function() {
  * @returns {boolean}
  */
 JitsiConference.prototype.isE2EEEnabled = function() {
-    return this._e2eEncryption && this._e2eEncryption.isEnabled();
+    return Boolean(this._e2eEncryption && this._e2eEncryption.isEnabled());
 };
 
 /**
