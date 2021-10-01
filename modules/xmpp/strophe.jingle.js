@@ -212,15 +212,17 @@ function _parseIceCandidates(transport) {
     const parseCandidates = [];
 
     // Extract the candidate information from the IQ.
-    for (const candidate of candidates) {
+    candidates.each((_, candidate) => {
         const attributes = candidate.attributes;
         const candidateAttrs = [];
 
-        for (const attr of attributes) {
+        for (let i = 0; i < attributes.length; i++) {
+            const attr = attributes[i];
+
             candidateAttrs.push(`${attr.name}: ${attr.value}`);
         }
         parseCandidates.push(candidateAttrs.join(' '));
-    }
+    });
 
     return parseCandidates;
 }
