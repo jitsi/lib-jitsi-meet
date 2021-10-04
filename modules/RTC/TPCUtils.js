@@ -3,6 +3,7 @@ import transform from 'sdp-transform';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -273,29 +274,48 @@ export class TPCUtils {
     }
 
     /**
-     * Obtains the current local video track's height constraints based on the
-     * initial stream encodings configuration on the sender and the resolution
-     * of the current local track added to the peerconnection.
-     * @param {MediaStreamTrack} localTrack local video track
-     * @returns {Array[number]} an array containing the resolution heights of
-     * simulcast streams configured on the video sender.
+     * Returns the calculated active state of the simulcast encodings based on the frame height requested for the send
+     * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {number} newHeight The resolution requested for the video track.
+     * @returns {Array<boolean>}
      */
-    getLocalStreamHeightConstraints(localTrack) {
-        // React-native hasn't implemented MediaStreamTrack getSettings yet.
-        if (browser.isReactNative()) {
-            return null;
-        }
+    calculateEncodingsActiveState(localVideoTrack, newHeight) {
+        const localTrack = localVideoTrack.getTrack();
+        const { height } = localTrack.getSettings();
 
-        const localVideoHeightConstraints = [];
+        const encodingsState = this.localStreamEncodingsConfig
+        .map(encoding => height / encoding.scaleResolutionDownBy)
+        .map((frameHeight, idx) => {
+            let active = localVideoTrack.getVideoType() === VideoType.CAMERA
 
-        // Firefox doesn't return the height of the desktop track, assume a min. height of 720.
-        const { height = 720 } = localTrack.getSettings();
+                // Keep the LD stream enabled even when the LD stream's resolution is higher than of the requested
+                // resolution. This can happen when camera is captured at resolutions higher than 720p but the
+                // requested resolution is 180. Since getParameters doesn't give us information about the resolutions
+                // of the simulcast encodings, we have to rely on our initial config for the simulcast streams.
+                ? newHeight > 0 && this.localStreamEncodingsConfig[idx]?.scaleResolutionDownBy === 4.0
+                    ? true
+                    : frameHeight <= newHeight
 
-        for (const encoding of this.localStreamEncodingsConfig) {
-            localVideoHeightConstraints.push(height / encoding.scaleResolutionDownBy);
-        }
+                // Keep all the encodings for desktop track active.
+                : true;
 
-        return localVideoHeightConstraints;
+            // Disable the lower spatial layers for screensharing in Unified plan when low fps screensharing is in
+            // progress. There is no way to enable or disable simulcast during the call since we are re-using the same
+            // sender. Safari is an exception here since it does not send the desktop stream at all if only the high
+            // resolution stream is enabled.
+            if (this.pc.isSharingLowFpsScreen()
+                && this.pc.usesUnifiedPlan()
+                && !browser.isWebKitBased()
+                && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== 1.0) {
+                active = false;
+            }
+
+            return active;
+        });
+
+        return encodingsState;
     }
 
     /**

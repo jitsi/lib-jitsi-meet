@@ -1477,20 +1477,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Sets the maximum bitrates on the local video track. Bitrate values from
-     * videoQuality settings in config.js will be used for configuring the sender.
-     * @returns {Promise<void>} promise that will be resolved when the operation is
-     * successful and rejected otherwise.
-     */
-    setSenderMaxBitrates() {
-        if (this._assertNotEnded()) {
-            return this.peerconnection.setMaxBitRate();
-        }
-
-        return Promise.resolve();
-    }
-
-    /**
      * Sets the resolution constraint on the local camera track.
      * @param {number} maxFrameHeight - The user preferred max frame height.
      * @returns {Promise} promise that will be resolved when the operation is
@@ -1508,21 +1494,7 @@ export default class JingleSessionPC extends JingleSession {
                 return this.setMediaTransferActive(true, videoActive);
             }
 
-            return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
-        }
-
-        return Promise.resolve();
-    }
-
-    /**
-     * Sets the degradation preference on the video sender. This setting determines if
-     * resolution or framerate will be preferred when bandwidth or cpu is constrained.
-     * @returns {Promise<void>} promise that will be resolved when the operation is
-     * successful and rejected otherwise.
-     */
-    setSenderVideoDegradationPreference() {
-        if (this._assertNotEnded()) {
-            return this.peerconnection.setSenderVideoDegradationPreference();
+            return this.peerconnection.setSenderVideoConstraints(maxFrameHeight);
         }
 
         return Promise.resolve();
@@ -2110,14 +2082,12 @@ export default class JingleSessionPC extends JingleSession {
                     }
 
                     return promise.then(() => {
-                        if (newTrack && newTrack.isVideoTrack()) {
+                        if (newTrack?.isVideoTrack()) {
                             logger.debug(`${this} replaceTrack worker: configuring video stream`);
 
-                            // FIXME set all sender parameters in one go?
-                            // Set the degradation preference on the new video sender.
-                            return this.peerconnection.setSenderVideoDegradationPreference()
-                                .then(() => this.peerconnection.setSenderVideoConstraint())
-                                .then(() => this.peerconnection.setMaxBitRate());
+                            // Configure the video encodings and set the active state, max bitrate and degradation
+                            // preference on them.
+                            return this.setSenderVideoConstraint();
                         }
                     });
                 })
@@ -2262,12 +2232,10 @@ export default class JingleSessionPC extends JingleSession {
         return this._addRemoveTrackAsMuteUnmute(
             false /* add as unmute */, track)
             .then(() => {
-                // Apply the video constraints, max bitrates and degradation preference on
-                // the video sender if needed.
-                if (track.isVideoTrack() && browser.doesVideoMuteByStreamRemove()) {
-                    return this.setSenderMaxBitrates()
-                        .then(() => this.setSenderVideoDegradationPreference())
-                        .then(() => this.setSenderVideoConstraint());
+                // Configure the video encodings and set the active state, max bitrate and degradation
+                // preference on them..
+                if (track.isVideoTrack()) {
+                    return this.setSenderVideoConstraint();
                 }
             });
     }
