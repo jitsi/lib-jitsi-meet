@@ -1,3 +1,7 @@
+import { getLogger } from 'jitsi-meet-logger';
+
+const logger = getLogger('FeatureFlags');
+
 /**
  * A global module for accessing information about different feature flags state.
  */
@@ -9,6 +13,8 @@ class FeatureFlags {
      */
     init(flags) {
         this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
+
+        logger.info(`Source name signaling: ${this._sourceNameSignaling}`);
     }
 
     /**
