@@ -10,6 +10,7 @@ import {
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
@@ -32,7 +33,8 @@ const logger = getLogger(__filename);
 function _createSourceExtension(owner, sourceCompactJson) {
     const node = $build('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-        ssrc: sourceCompactJson.s
+        ssrc: sourceCompactJson.s,
+        name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceCompactJson.n : undefined
     });
 
     if (sourceCompactJson.m) {

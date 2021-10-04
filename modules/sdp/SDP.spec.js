@@ -1,6 +1,8 @@
 /* globals $ */
 import { $iq } from 'strophe.js';
 
+import FeatureFlags from '../flags/FeatureFlags';
+
 import SDP from './SDP';
 
 /**
@@ -11,6 +13,9 @@ function createStanzaElement(xml) {
 }
 
 describe('SDP', () => {
+    afterEach(() => {
+        FeatureFlags.init({ });
+    });
     describe('toJingle', () => {
         /* eslint-disable max-len*/
         const testSdp = [
@@ -35,6 +40,7 @@ describe('SDP', () => {
             'a=fingerprint:sha-256 A9:00:CC:F9:81:33:EA:E9:E3:B4:01:E9:9E:18:B3:9B:F8:49:25:A0:5D:12:20:70:D5:6F:34:5A:2A:39:19:0A\r\n',
             'a=ssrc:2002 msid:26D16D51-503A-420B-8274-3DD1174E498F 8205D1FC-50B4-407C-87D5-9C45F1B779F0\r\n',
             'a=ssrc:2002 cname:juejgy8a01\r\n',
+            'a=ssrc:2002 name:a8f7g30-a0\r\n',
             'a=rtcp-mux\r\n',
             'm=video 9 UDP/TLS/RTP/SAVPF 107 100 99 96\r\n',
             'c=IN IP4 0.0.0.0\r\n',
@@ -65,6 +71,8 @@ describe('SDP', () => {
             'a=ssrc:4005 msid:7C0035E5-2DA1-4AEA-804A-9E75BF9B3768 225E9CDA-0384-4C92-92DD-E74C1153EC68\r\n',
             'a=ssrc:4004 cname:juejgy8a01\r\n',
             'a=ssrc:4005 cname:juejgy8a01\r\n',
+            'a=ssrc:4004 name:a8f7g30-v0\r\n',
+            'a=ssrc:4005 name:a8f7g30-v0\r\n',
             'a=ssrc-group:FID 4004 4005\r\n',
             'a=rtcp-mux\r\n'
         ].join('');
@@ -87,19 +95,40 @@ describe('SDP', () => {
             sdp.toJingle(accept, false);
 
             const { nodeTree } = accept;
-            const descriptions
-                = Array.from(nodeTree.getElementsByTagName('description'));
-            const videoDescriptions = descriptions.filter(description =>
-                description.getAttribute('media') === 'video');
-            const count = videoDescriptions.reduce((iterator, description) => {
-                const childNodes = Array.from(description.childNodes);
-                const childNodesSources = childNodes.filter(child =>
-                    child.nodeName === 'source');
+            const videoSources = nodeTree.querySelectorAll('description[media=\'video\']>source');
 
-                return iterator + childNodesSources.length;
-            }, 0);
+            expect(videoSources.length).toBe(2);
+        });
+        it('put source names as source element attributes', () => {
+            FeatureFlags.init({ sourceNameSignaling: true });
 
-            expect(count).toBe(2);
+            const sdp = new SDP(testSdp);
+            const accept = $iq({
+                to: 'peerjid',
+                type: 'set'
+            })
+                .c('jingle', {
+                    xmlns: 'urn:xmpp:jingle:1',
+                    action: 'session-accept',
+                    initiator: false,
+                    responder: true,
+                    sid: 'temp-sid'
+                });
+
+            sdp.toJingle(accept, false);
+
+            const { nodeTree } = accept;
+
+            const audioSources = nodeTree.querySelectorAll('description[media=\'audio\']>source');
+            const videoSources = nodeTree.querySelectorAll('description[media=\'video\']>source');
+
+            for (const source of audioSources) {
+                expect(source.getAttribute('name')).toBe('a8f7g30-a0');
+            }
+
+            for (const source of videoSources) {
+                expect(source.getAttribute('name')).toBe('a8f7g30-v0');
+            }
         });
     });
 
