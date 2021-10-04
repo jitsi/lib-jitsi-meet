@@ -9,6 +9,7 @@ import {
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
@@ -100,7 +101,7 @@ function createSourceExtension(owner, sourceCompactJson) {
     const node = $build('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
         ssrc: sourceCompactJson.s,
-        name: sourceCompactJson.n
+        name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceCompactJson.n : undefined
     });
 
     if (sourceCompactJson.m) {

@@ -1,3 +1,5 @@
+import FeatureFlags from '../flags/FeatureFlags';
+
 import SDPUtil from './SDPUtil';
 
 // this could be useful in Array.prototype.
@@ -172,7 +174,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({
-                name: sourceName,
+                name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceName : undefined,
                 ssrc: mediaSsrc.ssrc
             });
 

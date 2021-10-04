@@ -2,6 +2,7 @@
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 
 import SDPUtil from './SDPUtil';
 
@@ -213,7 +214,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                     elem.c('source', {
                         ssrc: availableSsrc,
-                        name: sourceName,
+                        name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceName : undefined,
                         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                     });
 

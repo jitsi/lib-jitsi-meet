@@ -1,6 +1,8 @@
 /* globals $ */
 import { $iq } from 'strophe.js';
 
+import FeatureFlags from '../flags/FeatureFlags';
+
 import SDP from './SDP';
 
 /**
@@ -11,6 +13,9 @@ function createStanzaElement(xml) {
 }
 
 describe('SDP', () => {
+    afterEach(() => {
+        FeatureFlags.init({ });
+    });
     describe('toJingle', () => {
         /* eslint-disable max-len*/
         const testSdp = [
@@ -95,6 +100,8 @@ describe('SDP', () => {
             expect(videoSources.length).toBe(2);
         });
         it('put source names as source element attributes', () => {
+            FeatureFlags.init({ sourceNameSignaling: true });
+
             const sdp = new SDP(testSdp);
             const accept = $iq({
                 to: 'peerjid',

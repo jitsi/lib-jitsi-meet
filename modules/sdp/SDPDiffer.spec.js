@@ -1,9 +1,14 @@
 import { $iq } from 'strophe.js';
 
+import FeatureFlags from '../flags/FeatureFlags';
+
 import SDP from './SDP';
 import SDPDiffer from './SDPDiffer';
 
 describe('SDPDiffer', () => {
+    beforeEach(() => {
+        FeatureFlags.init({ });
+    });
     describe('toJingle', () => {
         /* eslint-disable max-len*/
         const testSdpOld = [
@@ -36,6 +41,8 @@ describe('SDPDiffer', () => {
         /* eslint-enable max-len*/
 
         it('should include source names in added/removed sources', () => {
+            FeatureFlags.init({ sourceNameSignaling: true });
+
             const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
             const sourceRemoveIq = $iq({})
                 .c('jingle', { action: 'source-remove' });
