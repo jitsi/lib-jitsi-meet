@@ -184,6 +184,7 @@ export class Context {
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
+
             const decodedFrame = await this._decryptFrame(
                 encodedFrame,
                 keyIndex);

@@ -70,7 +70,6 @@ export default class E2EEcontext {
     /**
      * Cleans up all state associated with all participants in the conference. This is needed when disabling e2ee.
      *
-     * @param {string} participantId - The participant that just left.
      */
     cleanupAll() {
         this._worker.postMessage({
