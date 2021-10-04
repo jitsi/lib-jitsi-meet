@@ -1,5 +1,3 @@
-/* global __filename */
-
 import browser from '../browser';
 
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
@@ -66,7 +64,10 @@ export class E2EEncryption {
     /**
      * Sets the key for End-to-End encryption.
      *
-     * @param {Object} keyInfo whether to enable E2EE or not.
+     * @param keyInfo: {Object {
+                encryptionKey: CryptoKey
+                index: Number
+        }}
      * @returns {void}
     */
     setEncryptionKey(keyInfo) {

@@ -39,7 +39,7 @@ export class Context {
     /**
      * @param {Object} options
      */
-    constructor({ shareKey = false } = {}) {
+    constructor({ sharedKey = false } = {}) {
         // An array (ring) of keys that we use for sending and receiving.
         this._cryptoKeyRing = new Array(KEYRING_SIZE);
 
@@ -48,7 +48,7 @@ export class Context {
 
         this._sendCounts = new Map();
 
-        this._shareKey = shareKey;
+        this._sharedKey = sharedKey;
     }
 
     /**
@@ -57,23 +57,20 @@ export class Context {
      * @param {Uint8Array|false} key bytes. Pass false to disable.
      * @param {Number} keyIndex
      */
-    async setKey(key, keyIndex) {
+    async setKey(key, keyIndex = -1) {
         let newKey = false;
-        let newKeyIndex = -1;
 
         if (key) {
-            if (this._shareKey) {
+            if (this._sharedKey) {
                 newKey = key;
-                newKeyIndex = keyIndex;
             } else {
                 const material = await importKey(key);
 
                 newKey = await deriveKeys(material);
-                newKeyIndex = keyIndex;
             }
         }
 
-        this._setKeys(newKey, newKeyIndex);
+        this._setKeys(newKey, keyIndex);
     }
 
     /**
@@ -119,7 +116,6 @@ export class Context {
         const keyIndex = this._currentKeyIndex;
 
         if (this._cryptoKeyRing[keyIndex]) {
-
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
@@ -138,6 +134,7 @@ export class Context {
             // ---------+-------------------------+-+---------+----
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
+
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
                 iv,
@@ -225,6 +222,7 @@ export class Context {
         // ---------+-------------------------+-+---------+----
         // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
         // ---------+-------------------------+-+---------+----
+
         try {
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
@@ -255,7 +253,7 @@ export class Context {
 
             encodedFrame.data = newData;
         } catch (error) {
-            if (this._shareKey) {
+            if (this._sharedKey) {
                 return encodedFrame;
             }
 

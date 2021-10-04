@@ -74,9 +74,7 @@ export class KeyHandler extends Listenable {
         this.enabled = enabled;
 
         if (!enabled) {
-            for (const participant of this.conference.getParticipants()) {
-                this.e2eeCtx.cleanup(participant.getId());
-            }
+            this.e2eeCtx.cleanupAll();
         }
 
         this._setEnabled && await this._setEnabled(enabled);

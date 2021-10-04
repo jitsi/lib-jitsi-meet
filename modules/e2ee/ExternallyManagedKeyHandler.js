@@ -8,13 +8,16 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * Build a new ExternallyManagedKeyHandler instance, which will be used in a given conference.
      */
     constructor(conference) {
-        super(conference, { shareKey: true });
+        super(conference, { sharedKey: true });
     }
 
     /**
      * Sets the key for End-to-End encryption.
      *
-     * @param {Object} keyInfo whether to enable E2EE or not.
+     * @param keyInfo: {Object {
+                encryptionKey: CryptoKey
+                index: Number
+        }}
      * @returns {void}
     */
     setKey(keyInfo) {

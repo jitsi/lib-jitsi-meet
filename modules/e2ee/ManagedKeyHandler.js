@@ -34,7 +34,7 @@ export class ManagedKeyHandler extends KeyHandler {
         this._ratchetKey = debounce(this._ratchetKeyImpl, DEBOUNCE_PERIOD);
 
         // Olm signalling events.
-        this._olmAdapter && this._olmAdapter.on(
+        this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
 
@@ -94,9 +94,7 @@ export class ManagedKeyHandler extends KeyHandler {
             break;
         case 'e2ee.enabled':
             if (!newValue && this.enabled) {
-                this._olmAdapter && this._olmAdapter.clearParticipantSession(participant);
-
-                this._rotateKey();
+                this._olmAdapter.clearParticipantSession(participant);
             }
             break;
         }
@@ -134,7 +132,7 @@ export class ManagedKeyHandler extends KeyHandler {
         logger.debug('Rotating key');
 
         this._key = this._generateKey();
-        const index = this._olmAdapter && await this._olmAdapter.updateKey(this._key);
+        const index = await this._olmAdapter.updateKey(this._key);
 
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
@@ -152,7 +150,7 @@ export class ManagedKeyHandler extends KeyHandler {
 
         this._key = new Uint8Array(newKey);
 
-        const index = this._olmAdapter && this._olmAdapter.updateCurrentKey(this._key);
+        const index = this._olmAdapter.updateCurrentKey(this._key);
 
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }

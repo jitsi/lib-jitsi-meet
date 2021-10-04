@@ -24,7 +24,7 @@ export default class E2EEcontext {
     /**
      * Build a new E2EE context instance, which will be used in a given conference.
      */
-    constructor(options) {
+    constructor(options = {}) {
         // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
@@ -46,11 +46,11 @@ export default class E2EEcontext {
         this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
         this._worker.onerror = e => logger.onerror(e);
 
-        const { shareKey } = options;
+        const { sharedKey } = options;
 
         this._worker.postMessage({
             operation: 'initialize',
-            shareKey
+            sharedKey
         });
     }
 
@@ -64,6 +64,17 @@ export default class E2EEcontext {
         this._worker.postMessage({
             operation: 'cleanup',
             participantId
+        });
+    }
+
+    /**
+     * Cleans up all state associated with all participants in the conference. This is needed when disabling e2ee.
+     *
+     * @param {string} participantId - The participant that just left.
+     */
+    cleanupAll() {
+        this._worker.postMessage({
+            operation: 'cleanupAll'
         });
     }
 

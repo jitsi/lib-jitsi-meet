@@ -54,10 +54,10 @@ onmessage = async event => {
     const { operation } = event.data;
 
     if (operation === 'initialize') {
-        const { shareKey } = event.data;
+        const { sharedKey } = event.data;
 
-        if (shareKey) {
-            sharedContext = new Context({ shareKey });
+        if (sharedKey) {
+            sharedContext = new Context({ sharedKey });
         }
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
@@ -71,12 +71,14 @@ onmessage = async event => {
         if (key) {
             context.setKey(key, keyIndex);
         } else {
-            context.setKey((false, keyIndex));
+            context.setKey(false, keyIndex);
         }
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 
         contexts.delete(participantId);
+    } else if (operation === 'cleanupAll') {
+        contexts.clear();
     } else {
         console.error('e2ee worker', operation);
     }
