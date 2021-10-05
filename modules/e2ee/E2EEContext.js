@@ -45,7 +45,8 @@ export default class E2EEcontext {
         const blobUrl = window.URL.createObjectURL(workerBlob);
 
         this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
-        this._worker.onerror = e => logger.onerror(e);
+
+        this._worker.onerror = e => logger.error(e);
 
         this._worker.postMessage({
             operation: 'initialize',
