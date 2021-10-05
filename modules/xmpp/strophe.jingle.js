@@ -3,12 +3,14 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
+import * as MediaType from '../../service/RTC/MediaType';
 import {
     ACTION_JINGLE_TR_RECEIVED,
     ACTION_JINGLE_TR_SUCCESS,
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
@@ -23,83 +25,16 @@ const logger = getLogger(__filename);
 /* eslint-disable newline-per-chained-call */
 
 /**
- * Reads a JSON-encoded message (from a "json-message" element) and extracts source descriptions. Adds the extracted
- * source descriptions to the given Jingle IQ in the standard Jingle format.
- *
- * Encoding sources in this compact JSON format instead of standard Jingle was introduced in order to reduce the
- * network traffic and load on the XMPP server. The format is described in Jicofo [TODO: insert link].
- *
- * @param {*} iq the IQ to which source descriptions will be added.
- * @param {*} jsonMessageXml The XML node for the "json-message" element.
- * @returns nothing.
- */
-function expandSourcesFromJson(iq, jsonMessageXml) {
-
-    let json;
-
-    try {
-        json = JSON.parse(jsonMessageXml.textContent);
-    } catch (error) {
-        logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
-
-        return;
-    }
-
-    if (!json || !json.sources) {
-        // It might be a message of a different type, no need to log.
-        return;
-    }
-
-    // This is where we'll add "source" and "ssrc-group" elements. Create them elements if they don't exist.
-    const videoRtpDescription = getOrCreateRtpDescription(iq, 'video');
-    const audioRtpDescription = getOrCreateRtpDescription(iq, 'audio');
-
-    for (const owner in json.sources) {
-        if (json.sources.hasOwnProperty(owner)) {
-
-            const ownerSources = json.sources[owner];
-
-            // The video sources, video ssrc-groups, audio sources and audio ssrc-groups are encoded in that order in
-            // the elements of the array.
-            const videoSources = ownerSources && ownerSources.length > 0 && ownerSources[0];
-            const videoSsrcGroups = ownerSources && ownerSources.length > 1 && ownerSources[1];
-            const audioSources = ownerSources && ownerSources.length > 2 && ownerSources[2];
-            const audioSsrcGroups = ownerSources && ownerSources.length > 3 && ownerSources[3];
-
-            if (videoSources && videoSources.length > 0) {
-                for (let i = 0; i < videoSources.length; i++) {
-                    videoRtpDescription.appendChild(createSourceExtension(owner, videoSources[i]));
-                }
-            }
-            if (videoSsrcGroups && videoSsrcGroups.length > 0) {
-                for (let i = 0; i < videoSsrcGroups.length; i++) {
-                    videoRtpDescription.appendChild(createSsrcGroupExtension(videoSsrcGroups[i]));
-                }
-            }
-            if (audioSources && audioSources.length > 0) {
-                for (let i = 0; i < audioSources.length; i++) {
-                    audioRtpDescription.appendChild(createSourceExtension(owner, audioSources[i]));
-                }
-            }
-            if (audioSsrcGroups && audioSsrcGroups.length > 0) {
-                for (let i = 0; i < audioSsrcGroups.length; i++) {
-                    audioRtpDescription.appendChild(createSsrcGroupExtension(audioSsrcGroups[i]));
-                }
-            }
-        }
-    }
-}
-
-/**
  * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].
  * @param {*} owner the endpoint ID of the owner of the source.
  * @param {*} sourceCompactJson the compact JSON representation of the source.
  * @returns the created "source" XML element.
  */
-function createSourceExtension(owner, sourceCompactJson) {
+function _createSourceExtension(owner, sourceCompactJson) {
     const node = $build('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-        ssrc: sourceCompactJson.s
+        ssrc: sourceCompactJson.s,
+        name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceCompactJson.n : undefined
     });
 
     if (sourceCompactJson.m) {
@@ -121,10 +56,10 @@ function createSourceExtension(owner, sourceCompactJson) {
  * @param {*} ssrcGroupCompactJson the compact JSON representation of the SSRC group.
  * @returns the created "ssrc-group" element.
  */
-function createSsrcGroupExtension(ssrcGroupCompactJson) {
+function _createSsrcGroupExtension(ssrcGroupCompactJson) {
     const node = $build('ssrc-group', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-        semantics: getSemantics(ssrcGroupCompactJson[0])
+        semantics: _getSemantics(ssrcGroupCompactJson[0])
     });
 
     for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
@@ -138,19 +73,81 @@ function createSsrcGroupExtension(ssrcGroupCompactJson) {
 }
 
 /**
- * Convert the short string representing SSRC group semantics in compact JSON format to the standard representation
- * (i.e. convert "f" to "FID" and "s" to "SIM").
- * @param {*} str the compact JSON format representation of an SSRC group's semantics.
- * @returns the SSRC group semantics corresponding to [str].
+ * Reads a JSON-encoded message (from a "json-message" element) and extracts source descriptions. Adds the extracted
+ * source descriptions to the given Jingle IQ in the standard Jingle format.
+ *
+ * Encoding sources in this compact JSON format instead of standard Jingle was introduced in order to reduce the
+ * network traffic and load on the XMPP server. The format is described in Jicofo [TODO: insert link].
+ *
+ * @param {*} iq the IQ to which source descriptions will be added.
+ * @param {*} jsonMessageXml The XML node for the "json-message" element.
+ * @returns {Map<string, Array<string>} The audio and video ssrcs extracted from the JSON-encoded message with remote
+ * endpoint id as the key.
  */
-function getSemantics(str) {
-    if (str === 'f') {
-        return 'FID';
-    } else if (str === 's') {
-        return 'SIM';
+function _expandSourcesFromJson(iq, jsonMessageXml) {
+    let json;
+
+    try {
+        json = JSON.parse(jsonMessageXml.textContent);
+    } catch (error) {
+        logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
+
+        return null;
     }
 
-    return null;
+    if (!json?.sources) {
+        // It might be a message of a different type, no need to log.
+        return null;
+    }
+
+    // This is where we'll add "source" and "ssrc-group" elements. Create them elements if they don't exist.
+    const audioRtpDescription = _getOrCreateRtpDescription(iq, MediaType.AUDIO);
+    const videoRtpDescription = _getOrCreateRtpDescription(iq, MediaType.VIDEO);
+    const ssrcMap = new Map();
+
+    for (const owner in json.sources) {
+        if (json.sources.hasOwnProperty(owner)) {
+            const ssrcs = [];
+            const ownerSources = json.sources[owner];
+
+            // The video sources, video ssrc-groups, audio sources and audio ssrc-groups are encoded in that order in
+            // the elements of the array.
+            const videoSources = ownerSources?.length && ownerSources[0];
+            const videoSsrcGroups = ownerSources?.length > 1 && ownerSources[1];
+            const audioSources = ownerSources?.length > 2 && ownerSources[2];
+            const audioSsrcGroups = ownerSources?.length > 3 && ownerSources[3];
+
+            if (videoSources?.length) {
+                for (let i = 0; i < videoSources.length; i++) {
+                    videoRtpDescription.appendChild(_createSourceExtension(owner, videoSources[i]));
+                }
+
+                // Log only the first video ssrc per endpoint.
+                ssrcs.push(videoSources[0]?.s);
+            }
+
+            if (videoSsrcGroups?.length) {
+                for (let i = 0; i < videoSsrcGroups.length; i++) {
+                    videoRtpDescription.appendChild(_createSsrcGroupExtension(videoSsrcGroups[i]));
+                }
+            }
+            if (audioSources?.length) {
+                for (let i = 0; i < audioSources.length; i++) {
+                    audioRtpDescription.appendChild(_createSourceExtension(owner, audioSources[i]));
+                }
+                ssrcs.push(audioSources[0]?.s);
+            }
+
+            if (audioSsrcGroups?.length) {
+                for (let i = 0; i < audioSsrcGroups.length; i++) {
+                    audioRtpDescription.appendChild(_createSsrcGroupExtension(audioSsrcGroups[i]));
+                }
+            }
+            ssrcMap.set(owner, ssrcs);
+        }
+    }
+
+    return ssrcMap;
 }
 
 /**
@@ -160,7 +157,7 @@ function getSemantics(str) {
  * @param {*} mediaType The media type, "audio" or "video".
  * @returns the RTP description element with the given media type.
  */
-function getOrCreateRtpDescription(iq, mediaType) {
+function _getOrCreateRtpDescription(iq, mediaType) {
     const jingle = $(iq).find('jingle')[0];
     let content = $(jingle).find(`content[name="${mediaType}"]`);
     let description;
@@ -188,6 +185,48 @@ function getOrCreateRtpDescription(iq, mediaType) {
     }
 
     return description;
+}
+
+/**
+ * Converts the short string representing SSRC group semantics in compact JSON format to the standard representation
+ * (i.e. convert "f" to "FID" and "s" to "SIM").
+ * @param {*} str the compact JSON format representation of an SSRC group's semantics.
+ * @returns the SSRC group semantics corresponding to [str].
+ */
+function _getSemantics(str) {
+    if (str === 'f') {
+        return 'FID';
+    } else if (str === 's') {
+        return 'SIM';
+    }
+
+    return null;
+}
+
+/**
+ * Parses the transport XML element and returns the list of ICE candidates formatted as text.
+ *
+ * @param {*} transport Transport XML element extracted from the IQ.
+ * @returns {Array<string>}
+ */
+function _parseIceCandidates(transport) {
+    const candidates = $(transport).find('>candidate');
+    const parseCandidates = [];
+
+    // Extract the candidate information from the IQ.
+    candidates.each((_, candidate) => {
+        const attributes = candidate.attributes;
+        const candidateAttrs = [];
+
+        for (let i = 0; i < attributes.length; i++) {
+            const attr = attributes[i];
+
+            candidateAttrs.push(`${attr.name}: ${attr.value}`);
+        }
+        parseCandidates.push(candidateAttrs.join(' '));
+    });
+
+    return parseCandidates;
 }
 
 /**
@@ -239,7 +278,6 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             id: iq.getAttribute('id')
         });
 
-        logger.debug(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
 
         if (action !== 'session-initiate') {
@@ -302,10 +340,22 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         const jsonMessages = $(iq).find('jingle>json-message');
 
-        if (jsonMessages && jsonMessages.length > 0) {
+        if (jsonMessages?.length) {
+            let audioVideoSsrcs;
+
             logger.info(`Found a JSON-encoded element in ${action}, translating to standard Jingle.`);
             for (let i = 0; i < jsonMessages.length; i++) {
-                expandSourcesFromJson(iq, jsonMessages[i]);
+                // Currently there is always a single json-message in the IQ with the source information.
+                audioVideoSsrcs = _expandSourcesFromJson(iq, jsonMessages[i]);
+            }
+
+            if (audioVideoSsrcs?.size) {
+                const logMessage = [];
+
+                for (const endpoint of audioVideoSsrcs.keys()) {
+                    logMessage.push(`${endpoint}:[${audioVideoSsrcs.get(endpoint)}]`);
+                }
+                logger.debug(`Received ${action} from ${fromJid} with sources=${logMessage.join(', ')}`);
             }
 
             // TODO: is there a way to remove the json-message elements once we've extracted the information?
@@ -317,21 +367,17 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             logger.log('(TIME) received session-initiate:\t', now);
             const startMuted = $(iq).find('jingle>startmuted');
 
-            if (startMuted && startMuted.length > 0) {
-                const audioMuted = startMuted.attr('audio');
-                const videoMuted = startMuted.attr('video');
+            isP2P && logger.debug(`Received ${action} from ${fromJid}`);
+            if (startMuted?.length) {
+                const audioMuted = startMuted.attr(MediaType.AUDIO);
+                const videoMuted = startMuted.attr(MediaType.VIDEO);
 
                 this.eventEmitter.emit(
                     XMPPEvents.START_MUTED_FROM_FOCUS,
                     audioMuted === 'true',
                     videoMuted === 'true');
             }
-
-            logger.info(
-                `Marking session from ${fromJid
-                } as ${isP2P ? '' : '*not*'} P2P`);
-
-            const iceConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
+            const pcConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
 
             sess
                 = new JingleSessionPC(
@@ -343,28 +389,40 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
                     // Makes a copy in order to prevent exception thrown on RN when either this.p2pIceConfig or
                     // this.jvbIceConfig is modified and there's a PeerConnection instance holding a reference
-                    JSON.parse(JSON.stringify(iceConfig)),
+                    JSON.parse(JSON.stringify(pcConfig)),
                     isP2P,
                     /* initiator */ false);
 
             this.sessions[sess.sid] = sess;
-
-            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
-                sess, $(iq).find('>jingle'), now);
+            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, $(iq).find('>jingle'), now);
             break;
         }
         case 'session-accept': {
-            this.eventEmitter.emit(
-                XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            const ssrcs = [];
+            const contents = $(iq).find('jingle>content');
+
+            // Extract the SSRCs from the session-accept received from a p2p peer.
+            for (const content of contents) {
+                const ssrc = $(content).find('description').attr('ssrc');
+
+                ssrc && ssrcs.push(ssrc);
+            }
+            logger.debug(`Received ${action} from ${fromJid} with ssrcs=${ssrcs}`);
+            this.eventEmitter.emit(XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
             break;
         }
         case 'content-modify': {
+            const height = $(iq).find('jingle>content[name="video"]>max-frame-height');
+
+            logger.debug(`Received ${action} from ${fromJid} with a max-frame-height=${height?.text()}`);
             sess.modifyContents($(iq).find('>jingle'));
             break;
         }
         case 'transport-info': {
-            this.eventEmitter.emit(
-                XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
+            const candidates = _parseIceCandidates($(iq).find('jingle>content>transport'));
+
+            logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
+            this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
             break;
         }
         case 'session-terminate': {
@@ -377,13 +435,22 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
+            logger.debug(`Received ${action} from ${fromJid} disconnect reason=${reasonText}`);
             this.terminate(sess.sid, reasonCondition, reasonText);
-            this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
-                sess, reasonCondition, reasonText);
+            this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
             break;
         }
-        case 'transport-replace':
+        case 'transport-replace': {
             logger.info('(TIME) Start transport replace:\t', now);
+            const transport = $(iq).find('jingle>content>transport');
+            const candidates = _parseIceCandidates(transport);
+            const iceUfrag = $(transport).attr('ufrag');
+            const icePwd = $(transport).attr('pwd');
+            const dtlsFingerprint = $(transport).find('>fingerprint')?.text();
+
+            logger.debug(`Received ${action} from ${fromJid} with iceUfrag=${iceUfrag},`
+            + ` icePwd=${icePwd}, DTLS fingerprint=${dtlsFingerprint}, candidates=${candidates.join(', ')}`);
+
             Statistics.sendAnalytics(createJingleEvent(
                 ACTION_JINGLE_TR_RECEIVED,
                 {
@@ -407,12 +474,11 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 sess.sendTransportReject();
             });
             break;
-        case 'addsource': // FIXME: proprietary, un-jingleish
-        case 'source-add': // FIXME: proprietary
+        }
+        case 'source-add':
             sess.addRemoteStream($(iq).find('>jingle>content'));
             break;
-        case 'removesource': // FIXME: proprietary, un-jingleish
-        case 'source-remove': // FIXME: proprietary
+        case 'source-remove':
             sess.removeRemoteStream($(iq).find('>jingle>content'));
             break;
         default:

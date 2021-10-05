@@ -126,6 +126,17 @@ export default function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
+    this.connection = options.connection;
+    this.xmpp = this.connection?.xmpp;
+
+    if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
+        const errmsg = 'A coference with the same name has already been created!';
+
+        delete this.connection;
+        delete this.xmpp;
+        logger.error(errmsg);
+        throw new Error(errmsg);
+    }
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
@@ -258,7 +269,7 @@ export default function JitsiConference(options) {
      * End-to-End Encryption. Make it available if supported.
      */
     if (this.isE2EESupported()) {
-        logger.info('End-to-End Encryprtion is supported');
+        logger.info('End-to-End Encryption is supported');
 
         this._e2eEncryption = new E2EEncryption(this);
     }
@@ -310,15 +321,7 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * @param options.connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function(options = {}) {
-    // Override connection and xmpp properties (Useful if the connection
-    // reloaded)
-    if (options.connection) {
-        this.connection = options.connection;
-        this.xmpp = this.connection.xmpp;
-
-        // Setup XMPP events only if we have new connection object.
-        this.eventManager.setupXMPPListeners();
-    }
+    this.eventManager.setupXMPPListeners();
 
     const { config } = this.options;
 
@@ -616,6 +619,8 @@ JitsiConference.prototype.leave = function() {
     }
 
     this._delayedIceFailed && this._delayedIceFailed.cancel();
+
+    this._maybeClearSITimeout();
 
     // Close both JVb and P2P JingleSessions
     if (this.jvbJingleSession) {
@@ -944,7 +949,14 @@ JitsiConference.prototype.removeCommand = function(name) {
  */
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
-        this.room.addOrReplaceInPresence('nick', {
+        const nickKey = 'nick';
+
+        // if there is no display name already set, avoid setting an empty one
+        if (!name && !this.room.getFromPresence(nickKey)) {
+            return;
+        }
+
+        this.room.addOrReplaceInPresence(nickKey, {
             attributes: { xmlns: 'http://jabber.org/protocol/nick' },
             value: name
         }) && this.room.sendPresence();
@@ -1141,8 +1153,10 @@ JitsiConference.prototype.removeTrack = function(track) {
  * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
+    const oldTrackBelongsToConference = this === oldTrack?.conference;
+
     // First do the removal of the oldTrack at the JitsiConference level
-    if (oldTrack) {
+    if (oldTrackBelongsToConference) {
         if (oldTrack.disposed) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
@@ -1155,14 +1169,18 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
         }
     }
 
+    if (oldTrack && !oldTrackBelongsToConference) {
+        logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
+    }
+
     // Now replace the stream at the lower levels
-    return this._doReplaceTrack(oldTrack, newTrack)
+    return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
         .then(() => {
-            oldTrack && this.onLocalTrackRemoved(oldTrack);
+            oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
             newTrack && this._setupNewTrack(newTrack);
 
             // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
-            if (oldTrack?.isVideoTrack() || newTrack?.isVideoTrack()) {
+            if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
                 this._sendBridgeVideoTypeMessage(newTrack);
             }
 
@@ -1172,7 +1190,11 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
             return Promise.resolve();
         })
-        .catch(error => Promise.reject(new Error(error)));
+        .catch(error => {
+            logger.error(`replaceTrack failed: ${error?.stack}`);
+
+            return Promise.reject(error);
+        });
 };
 
 /**
@@ -1761,8 +1783,10 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
                 this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
             }
 
-            this._maybeStartOrStopP2P(true /* triggered by user left event */);
-            this._maybeClearSITimeout();
+            if (this.room !== null) { // Skip if we have left the room already.
+                this._maybeStartOrStopP2P(true /* triggered by user left event */);
+                this._maybeClearSITimeout();
+            }
         });
 };
 
@@ -2019,7 +2043,7 @@ JitsiConference.prototype.onIncomingCall = function(
     if (jingleSession.isP2P) {
         this._onIncomingCallP2P(jingleSession, jingleOffer);
     } else {
-        if (!this.room.isFocus(jingleSession.remoteJid)) {
+        if (!this.isFocus(jingleSession.remoteJid)) {
             const description = 'Rejecting session-initiate from non-focus.';
 
             this._rejectIncomingCall(
@@ -2624,14 +2648,13 @@ JitsiConference.prototype.sendApplicationLog = function(message) {
 };
 
 /**
- * Checks if the user identified by given <tt>mucJid</tt> is the conference
- * focus.
+ * Checks if the user identified by given <tt>mucJid</tt> is the conference focus.
  * @param mucJid the full MUC address of the user to be checked.
  * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus,
  * <tt>false</tt> when is not. <tt>null</tt> if we're not in the MUC anymore and
  * are unable to figure out the status or if given <tt>mucJid</tt> is invalid.
  */
-JitsiConference.prototype._isFocus = function(mucJid) {
+JitsiConference.prototype.isFocus = function(mucJid) {
     return this.room ? this.room.isFocus(mucJid) : null;
 };
 
@@ -3632,7 +3655,7 @@ JitsiConference.prototype._restartMediaSessions = function() {
  * @returns {boolean}
  */
 JitsiConference.prototype.isE2EEEnabled = function() {
-    return this._e2eEncryption && this._e2eEncryption.isEnabled();
+    return Boolean(this._e2eEncryption && this._e2eEncryption.isEnabled());
 };
 
 /**
@@ -3811,7 +3834,31 @@ JitsiConference.prototype.avModerationApprove = function(mediaType, id) {
 
         this.room.getAVModeration().approve(mediaType, participant.getJid());
     } else {
-        logger.warn(`AV moderation skipped , ${this.room ? '' : 'not in a room, '}${
+        logger.warn(`AV moderation approve skipped , ${this.room ? '' : 'not in a room, '}${
+            this.isModerator() ? '' : 'participant is not a moderator, '}${
+            this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
+    }
+};
+
+/**
+ * Reject participant access to certain media, blocks unmuting audio or video.
+ *
+ * @param {MediaType} mediaType "audio" or "video"
+ * @param id the id of the participant.
+ */
+JitsiConference.prototype.avModerationReject = function(mediaType, id) {
+    if (this.room && this.isModerator()
+        && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.getAVModeration().reject(mediaType, participant.getJid());
+    } else {
+        logger.warn(`AV moderation reject skipped , ${this.room ? '' : 'not in a room, '}${
             this.isModerator() ? '' : 'participant is not a moderator, '}${
             this.room && this.isModerator() ? 'wrong media type passed' : ''}`);
     }

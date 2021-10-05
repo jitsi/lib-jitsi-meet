@@ -386,6 +386,14 @@ export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';
 export const AV_MODERATION_APPROVED = 'conference.av_moderation.approved';
 
 /**
+ * The local participant was blocked to be able to unmute.
+ * @param {options} event - {
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_REJECTED = 'conference.av_moderation.rejected';
+
+/**
  * AV Moderation was enabled/disabled. The actor is the participant that is currently in the meeting,
  * or undefined if that participant has left the meeting.
  *
@@ -405,3 +413,12 @@ export const AV_MODERATION_CHANGED = 'conference.av_moderation.changed';
  * }.
  */
 export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.participant.approved';
+
+/**
+ * AV Moderation, report for user being blocked to unmute.
+ * @param {options} event - {
+ *     {JitsiParticipant} participant,
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected';

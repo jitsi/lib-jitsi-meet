@@ -1,3 +1,5 @@
+import FeatureFlags from '../flags/FeatureFlags';
+
 import SDPUtil from './SDPUtil';
 
 // this could be useful in Array.prototype.
@@ -167,28 +169,25 @@ SDPDiffer.prototype.toJingle = function(modify) {
         // generate sources from lines
         Object.keys(media.ssrcs).forEach(ssrcNum => {
             const mediaSsrc = media.ssrcs[ssrcNum];
+            const ssrcLines = mediaSsrc.lines;
+            const sourceName = SDPUtil.parseSourceNameLine(ssrcLines);
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-            modify.attrs({ ssrc: mediaSsrc.ssrc });
-
-            // iterate over ssrc lines
-            mediaSsrc.lines.forEach(line => {
-                const idx = line.indexOf(' ');
-                const kv = line.substr(idx + 1);
-
-                modify.c('parameter');
-                if (kv.indexOf(':') === -1) {
-                    modify.attrs({ name: kv });
-                } else {
-                    const nv = kv.split(':', 2);
-                    const name = nv[0];
-                    const value = SDPUtil.filterSpecialChars(nv[1]);
-
-                    modify.attrs({ name });
-                    modify.attrs({ value });
-                }
-                modify.up(); // end of parameter
+            modify.attrs({
+                name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceName : undefined,
+                ssrc: mediaSsrc.ssrc
             });
+
+            // Only MSID attribute is sent
+            const msid = SDPUtil.parseMSIDAttribute(ssrcLines);
+
+            if (msid) {
+                modify.c('parameter');
+                modify.attrs({ name: 'msid' });
+                modify.attrs({ value: msid });
+                modify.up();
+            }
+
             modify.up(); // end of source
         });
 
