@@ -3662,12 +3662,10 @@ JitsiConference.prototype.toggleE2EE = function(enabled) {
 };
 
 /**
- * Sets the key for End-to-End encryption.
+ * Sets the key and index for End-to-End encryption.
  *
- * @param keyInfo: {Object {
-                encryptionKey: CryptoKey
-                index: Number
-    }}.
+ * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
+ * @param {Number} [keyInfo.index] - the index of the encryption key.
  * @returns {void}
  */
 JitsiConference.prototype.setMediaEncryptionKey = function(keyInfo) {

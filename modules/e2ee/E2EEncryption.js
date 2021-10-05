@@ -62,15 +62,13 @@ export class E2EEncryption {
     }
 
     /**
-     * Sets the key for End-to-End encryption.
+     * Sets the key and index for End-to-End encryption.
      *
-     * @param keyInfo: {Object {
-                encryptionKey: CryptoKey
-                index: Number
-        }}
+     * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
+     * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
-    */
+     */
     setEncryptionKey(keyInfo) {
-        this._keyHandler.setKey && this._keyHandler.setKey(keyInfo);
+        this._keyHandler.setKey(keyInfo);
     }
 }

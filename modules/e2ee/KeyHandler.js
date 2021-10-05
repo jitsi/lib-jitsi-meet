@@ -18,6 +18,8 @@ const logger = getLogger(__filename);
 export class KeyHandler extends Listenable {
     /**
      * Build a new KeyHandler instance, which will be used in a given conference.
+     * @param {JitsiConference} conference - the current conference.
+     * @param {object} options - the options passed to {E2EEContext}, see implemention.
      */
     constructor(conference, options = {}) {
         super();
@@ -84,6 +86,15 @@ export class KeyHandler extends Listenable {
         this.conference._restartMediaSessions();
 
         this._enabling.resolve();
+    }
+
+    /**
+     * Sets the key for End-to-End encryption.
+     *
+     * @returns {void}
+     */
+    setEncryptionKey() {
+        throw new Error('Not implemented by subclass');
     }
 
     /**

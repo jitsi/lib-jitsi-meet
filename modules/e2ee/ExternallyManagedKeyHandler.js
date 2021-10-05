@@ -6,20 +6,19 @@ import { KeyHandler } from './KeyHandler';
 export class ExternallyManagedKeyHandler extends KeyHandler {
     /**
      * Build a new ExternallyManagedKeyHandler instance, which will be used in a given conference.
+     * @param conference - the current conference.
      */
     constructor(conference) {
         super(conference, { sharedKey: true });
     }
 
     /**
-     * Sets the key for End-to-End encryption.
+     * Sets the key and index for End-to-End encryption.
      *
-     * @param keyInfo: {Object {
-                encryptionKey: CryptoKey
-                index: Number
-        }}
+     * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
+     * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
-    */
+     */
     setKey(keyInfo) {
         this.e2eeCtx.setKey(undefined, { encryptionKey: keyInfo.encryptionKey }, keyInfo.index);
     }
