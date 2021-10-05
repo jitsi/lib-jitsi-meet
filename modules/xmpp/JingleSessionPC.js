@@ -578,15 +578,17 @@ export default class JingleSessionPC extends JingleSession {
                         XMPPEvents.CONNECTION_INTERRUPTED, this);
                 }
 
+                this.lasticecandidate = false;
+
                 this.disconnectTimerId = setTimeout(() => {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this);
 
                 }, ICE_DISCONNECT_TIMEOUT);
-
-                this.lasticecandidate = false;
                 break;
             case 'failed':
+                this.lasticecandidate = false;
+
                 this.room.eventEmitter.emit(
                     XMPPEvents.CONNECTION_ICE_FAILED, this);
                 break;
@@ -707,7 +709,6 @@ export default class JingleSessionPC extends JingleSession {
         } else {
             logger.log(`${this} sendIceCandidate: last candidate`);
 
-            // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
         }
     }
