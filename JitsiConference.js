@@ -1113,7 +1113,7 @@ JitsiConference.prototype._getInitialLocalTracks = function() {
             const trackType = track.getType();
 
             if (trackType === MediaType.AUDIO
-                    && (!this.isStartAudioMuted() || browser.isIosBrowser() || browser.isReactNative())) {
+                    && (!this.isStartAudioMuted() || browser.isWebKitBased() || browser.isReactNative())) {
                 return true;
             } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted()) {
                 return true;
