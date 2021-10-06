@@ -1105,7 +1105,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  */
 JitsiConference.prototype._getInitialLocalTracks = function() {
     // Always add the audio track on certain platforms:
-    //  * Mobile Safari: because of a known issue where audio playout doesn't happen
+    //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
     //    if the user joins audio and video muted.
     //  * React Native: after iOS 15, if a user joins muted they won't be able to unmute.
     return this.getLocalTracks()
