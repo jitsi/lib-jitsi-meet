@@ -2788,7 +2788,6 @@ JitsiConference.prototype.isConnectionInterrupted = function() {
  */
 JitsiConference.prototype._onConferenceRestarted = function(session) {
     if (!session.isP2P && this.options.config.enableForcedReload) {
-        this.restartInProgress = true;
         this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONFERENCE_RESTARTED);
     }
 };
