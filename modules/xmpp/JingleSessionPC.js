@@ -1244,6 +1244,13 @@ export default class JingleSessionPC extends JingleSession {
         newFingerprint.attr('hash', 'sha-1');
         newFingerprint.text('00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00');
 
+        // To avoid the DTLS handshake with the above fake certificate value to succeed and then getting rejected
+        // by the endpoint, we provide fake ICE credentials as well to get into an ICE failure instead.
+        const newIceCredentials = jingleOfferElem.find('>content>transport');
+
+        newIceCredentials.attr('ufrag', 'fakeufrag');
+        newIceCredentials.attr('pwd', 'thisfakepwdneedstobe22charslong');
+
         // First set an offer with a rejected 'data' section
         this.setOfferAnswerCycle(
             jingleOfferElem,
