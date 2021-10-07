@@ -9,7 +9,8 @@ module.exports = [
         },
         output: Object.assign({}, config.output, {
             library: 'JitsiMeetJS',
-            libraryTarget: 'umd'
+            libraryTarget: 'umd',
+            hashFunction: 'sha256'
         })
     }),
     {
@@ -19,7 +20,8 @@ module.exports = [
         mode: 'production',
         output: {
             filename: 'lib-jitsi-meet.e2ee-worker.js',
-            path: process.cwd()
+            path: process.cwd(),
+            hashFunction: 'sha256'
         },
         optimization: {
             minimize: false
