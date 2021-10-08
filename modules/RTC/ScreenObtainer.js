@@ -23,6 +23,10 @@ const ScreenObtainer = {
 
     obtainStream: null,
 
+    // Value that indicates if the desktop share is used as a virtual background.
+    // If this value is true, the audio option will be disabled on desktop share.
+    virtualBackgroundSharing: false,
+
     /**
      * Initializes the function used to obtain a screen capture
      * (this.obtainStream).
@@ -214,10 +218,9 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        const { desktopSharingFrameRate, desktopSharingAudio } = this.options;
+        const { desktopSharingFrameRate } = this.options;
         const video = typeof desktopSharingFrameRate === 'object' ? { frameRate: desktopSharingFrameRate } : true;
-        // eslint-disable-next-line no-negated-condition
-        const audio = typeof desktopSharingAudio !== 'undefined' ? desktopSharingAudio : this._getAudioConstraints();
+        const audio = this.virtualBackgroundSharing ? false : this._getAudioConstraints();
 
         // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
         video.frameRate && delete video.frameRate.min;

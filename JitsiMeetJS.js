@@ -276,7 +276,7 @@ export default _mergeNamespaceAndModule({
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
-     * @param {boolean} options.desktopSharingAudio
+     * @param {boolean} options.virtualBackgroundSharing
      * @param {intiger} interval - the interval (in ms) for
      * checking whether the desktop sharing extension is installed or not
      * @param {Function} checkAgain - returns boolean. While checkAgain()==true
@@ -303,11 +303,18 @@ export default _mergeNamespaceAndModule({
     createLocalTracks(options = {}, oldfirePermissionPromptIsShownEvent) {
         let promiseFulfilled = false;
 
-        const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, desktopSharingAudio, ...restOptions } = options;
+        const {
+            firePermissionPromptIsShownEvent,
+            fireSlowPromiseEvent,
+            virtualBackgroundSharing,
+            ...restOptions
+        } = options;
         const firePermissionPrompt = firePermissionPromptIsShownEvent || oldfirePermissionPromptIsShownEvent;
 
-        if (typeof desktopSharingAudio !== undefined) {
-            screenObtainer.init(options);
+        if (virtualBackgroundSharing) {
+            screenObtainer.virtualBackgroundSharing = true;
+        } else {
+            screenObtainer.virtualBackgroundSharing = false;
         }
         if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
             JitsiMediaDevices.emitEvent(
