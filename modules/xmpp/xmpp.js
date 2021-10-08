@@ -445,6 +445,10 @@ export default class XMPP extends Listenable {
             if (identity.type === 'shard') {
                 this.options.deploymentInfo.shard = this.connection.shard = identity.name;
             }
+
+            if (identity.type === 'region') {
+                this.options.deploymentInfo.region = this.connection.region = identity.name;
+            }
         });
 
         if (this.avModerationComponentAddress

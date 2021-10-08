@@ -1104,11 +1104,23 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
  */
 JitsiConference.prototype._getInitialLocalTracks = function() {
-    // Always add the audio track on mobile Safari because of a known issue where audio playout doesn't happen
-    // if the user joins audio and video muted.
+    // Always add the audio track on certain platforms:
+    //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
+    //    if the user joins audio and video muted.
+    //  * React Native: after iOS 15, if a user joins muted they won't be able to unmute.
     return this.getLocalTracks()
-        .filter(track => (track.getType() === MediaType.AUDIO && (!this.isStartAudioMuted() || browser.isIosBrowser()))
-        || (track.getType() === MediaType.VIDEO && !this.isStartVideoMuted()));
+        .filter(track => {
+            const trackType = track.getType();
+
+            if (trackType === MediaType.AUDIO
+                    && (!this.isStartAudioMuted() || browser.isWebKitBased() || browser.isReactNative())) {
+                return true;
+            } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted()) {
+                return true;
+            }
+
+            return false;
+        });
 };
 
 /**
@@ -2776,7 +2788,6 @@ JitsiConference.prototype.isConnectionInterrupted = function() {
  */
 JitsiConference.prototype._onConferenceRestarted = function(session) {
     if (!session.isP2P && this.options.config.enableForcedReload) {
-        this.restartInProgress = true;
         this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONFERENCE_RESTARTED);
     }
 };
