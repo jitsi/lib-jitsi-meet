@@ -45,6 +45,7 @@ import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import {
     FEATURE_E2EE,
     FEATURE_JIGASI,
@@ -141,6 +142,14 @@ export default function JitsiConference(options) {
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
     this.participants = {};
+
+    /**
+     * The signaling layer instance.
+     * @type {SignalingLayerImpl}
+     * @private
+     */
+    this._signalingLayer = new SignalingLayerImpl();
+
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
 
@@ -349,6 +358,8 @@ JitsiConference.prototype._init = function(options = {}) {
         },
         JitsiConference.resourceCreator
     );
+
+    this._signalingLayer.setChatRoom(this.room);
 
     // Connection interrupted/restored listeners
     this._onIceConnectionInterrupted
@@ -653,6 +664,8 @@ JitsiConference.prototype.leave = function() {
         room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
         this.eventManager.removeXMPPListeners();
+
+        this._signalingLayer.setChatRoom(null);
 
         this.room = null;
 
@@ -2097,10 +2110,14 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
         }));
 
     try {
-        jingleSession.initialize(this.room, this.rtc, {
-            ...this.options.config,
-            enableInsertableStreams: this.isE2EEEnabled()
-        });
+        jingleSession.initialize(
+            this.room,
+            this.rtc,
+            this._signalingLayer,
+            {
+                ...this.options.config,
+                enableInsertableStreams: this.isE2EEEnabled()
+            });
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
         logger.error(error);
@@ -2862,7 +2879,9 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
 
     this.p2pJingleSession.initialize(
         this.room,
-        this.rtc, {
+        this.rtc,
+        this._signalingLayer,
+        {
             ...this.options.config,
             enableInsertableStreams: this.isE2EEEnabled()
         });
@@ -3222,7 +3241,9 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
 
     this.p2pJingleSession.initialize(
         this.room,
-        this.rtc, {
+        this.rtc,
+        this._signalingLayer,
+        {
             ...this.options.config,
             enableInsertableStreams: this.isE2EEEnabled()
         });

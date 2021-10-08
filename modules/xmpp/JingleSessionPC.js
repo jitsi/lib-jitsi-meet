@@ -23,7 +23,6 @@ import browser from './../browser';
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
-import SignalingLayerImpl from './SignalingLayerImpl';
 import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);
@@ -263,12 +262,6 @@ export default class JingleSessionPC extends JingleSession {
         this.remoteRecvMaxFrameHeight = undefined;
 
         /**
-         * The signaling layer implementation.
-         * @type {SignalingLayerImpl}
-         */
-        this.signalingLayer = new SignalingLayerImpl();
-
-        /**
          * The queue used to serialize operations done on the peerconnection.
          *
          * @type {AsyncQueue}
@@ -387,7 +380,7 @@ export default class JingleSessionPC extends JingleSession {
 
         this.peerconnection
             = this.rtc.createPeerConnection(
-                    this.signalingLayer,
+                    this._signalingLayer,
                     this.pcConfig,
                     this.isP2P,
                     pcOptions);
@@ -630,9 +623,6 @@ export default class JingleSessionPC extends JingleSession {
                     });
             }
         };
-
-        // The signaling layer will bind it's listeners at this point
-        this.signalingLayer.setChatRoom(this.room);
     }
 
     /**
@@ -886,7 +876,7 @@ export default class JingleSessionPC extends JingleSession {
 
             if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
-                this.signalingLayer.setSSRCOwner(
+                this._signalingLayer.setSSRCOwner(
                     ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
                 $(ssrcElement)
@@ -898,7 +888,7 @@ export default class JingleSessionPC extends JingleSession {
                             if (isNaN(ssrc) || ssrc < 0) {
                                 logger.warn(`${this} Invalid SSRC ${ssrc} value received for ${owner}`);
                             } else {
-                                this.signalingLayer.setSSRCOwner(
+                                this._signalingLayer.setSSRCOwner(
                                     ssrc,
                                     getEndpointId(owner));
                             }
@@ -2637,9 +2627,6 @@ export default class JingleSessionPC extends JingleSession {
 
         logger.debug(`${this} Queued PC close task`);
         this.modificationQueue.push(finishCallback => {
-            // The signaling layer will remove it's listeners
-            this.signalingLayer.setChatRoom(null);
-
             // do not try to close if already closed.
             this.peerconnection && this.peerconnection.close();
             finishCallback();
