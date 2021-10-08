@@ -12,16 +12,19 @@ import Statistics from '../statistics/statistics';
 const logger = getLogger(__filename);
 
 /**
- * Default value of 500 milliseconds for
- * {@link ParticipantConnectionStatus.outOfLastNTimeout}.
+ * Default value of 500 milliseconds for {@link ParticipantConnectionStatus.outOfLastNTimeout}.
  *
  * @type {number}
  */
 const DEFAULT_NOT_IN_LAST_N_TIMEOUT = 500;
 
 /**
- * Default value of 2000 milliseconds for
- * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
+ * Default value of 2500 milliseconds for {@link ParticipantConnectionStatus.p2pRtcMuteTimeout}.
+ */
+const DEFAULT_P2P_RTC_MUTE_TIMEOUT = 2500;
+
+/**
+ * Default value of 10000 milliseconds for {@link ParticipantConnectionStatus.rtcMuteTimeout}.
  *
  * @type {number}
  */
@@ -170,6 +173,8 @@ export default class ParticipantConnectionStatusHandler {
      * @param {RTC} rtc the RTC service instance
      * @param {JitsiConference} conference parent conference instance
      * @param {Object} options
+     * @param {number} [options.p2pRtcMuteTimeout=2500] custom value for
+     * {@link ParticipantConnectionStatus.p2pRtcMuteTimeout}.
      * @param {number} [options.rtcMuteTimeout=2000] custom value for
      * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
      * @param {number} [options.outOfLastNTimeout=500] custom value for
@@ -209,6 +214,16 @@ export default class ParticipantConnectionStatusHandler {
         this.outOfLastNTimeout
             = typeof options.outOfLastNTimeout === 'number'
                 ? options.outOfLastNTimeout : DEFAULT_NOT_IN_LAST_N_TIMEOUT;
+
+        /**
+         * How long we are going to wait for the corresponding signaling mute event after the RTC video track muted
+         * event is fired on the Media stream, before the connection interrupted is fired. The default value is
+         * {@link DEFAULT_P2P_RTC_MUTE_TIMEOUT}.
+         *
+         * @type {number} amount of time in milliseconds.
+         */
+        this.p2pRtcMuteTimeout = typeof options.p2pRtcMuteTimeout === 'number'
+            ? options.p2pRtcMuteTimeout : DEFAULT_P2P_RTC_MUTE_TIMEOUT;
 
         /**
          * How long we're going to wait after the RTC video track muted event
@@ -285,7 +300,8 @@ export default class ParticipantConnectionStatusHandler {
      */
     _getVideoFrozenTimeout(id) {
         return this.rtc.isInLastN(id)
-            ? this.rtcMuteTimeout : this.outOfLastNTimeout;
+            ? this.rtcMuteTimeout
+            : this.conference.isP2PActive() ? this.p2pRtcMuteTimeout : this.outOfLastNTimeout;
     }
 
     /**

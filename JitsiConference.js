@@ -397,10 +397,9 @@ JitsiConference.prototype._init = function(options = {}) {
             this.rtc,
             this,
             {
-                // Both these options are not public API, leaving it here only
-                // as an entry point through config for tuning up purposes.
-                // Default values should be adjusted as soon as optimal values
-                // are discovered.
+                // These options are not public API, leaving it here only as an entry point through config for tuning
+                // up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
                 rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
                 outOfLastNTimeout: config._peerConnStatusOutOfLastNTimeout
             });
