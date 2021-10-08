@@ -67,6 +67,13 @@ export default class JingleSession extends Listenable {
         this.room = null;
 
         /**
+         * The signaling layer.
+         * @type {SignalingLayerImpl | null}
+         * @private
+         */
+        this._signalingLayer = null;
+
+        /**
          * Jingle session state - uninitialized until {@link initialize} is
          * called @type {JingleSessionState}
          */
@@ -102,10 +109,11 @@ export default class JingleSession extends Listenable {
      * @param {ChatRoom} room the chat room for the conference associated with
      * this session
      * @param {RTC} rtc the RTC service instance
+     * @param {SignalingLayerImpl} signalingLayer - The signaling layer instance.
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.
      */
-    initialize(room, rtc, options) {
+    initialize(room, rtc, signalingLayer, options) {
         if (this.state !== null) {
             const errmsg
                 = `attempt to initiate on session ${this.sid}
@@ -114,8 +122,11 @@ export default class JingleSession extends Listenable {
             logger.error(errmsg);
             throw new Error(errmsg);
         }
+
+        // TODO decouple from room
         this.room = room;
         this.rtc = rtc;
+        this._signalingLayer = signalingLayer;
         this.state = JingleSessionState.PENDING;
         this.doInitialize(options);
     }

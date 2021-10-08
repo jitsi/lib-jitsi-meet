@@ -131,7 +131,7 @@ export class CodecSelection {
             const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
 
             for (const remote of remoteParticipants) {
-                const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
+                const peerMediaInfo = session._signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
                 const peerCodec = peerMediaInfo?.codecType;
 
                 if (peerCodec

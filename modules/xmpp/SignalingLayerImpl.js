@@ -104,6 +104,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
+
+        // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
+        // an SSRC conflict could potentially occur. Log a message to make debugging easier.
+        if (this.ssrcOwners.has(ssrc)) {
+            logger.error(`SSRC owner re-assigned from ${this.ssrcOwners.get(ssrc)} to ${endpointId}`);
+        }
         this.ssrcOwners.set(ssrc, endpointId);
     }
 }
