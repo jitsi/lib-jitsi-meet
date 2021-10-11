@@ -7,6 +7,8 @@ import { Context } from './Context';
 
 const contexts = new Map(); // Map participant id => context
 
+let sharedContext;
+
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
  *
@@ -14,8 +16,12 @@ const contexts = new Map(); // Map participant id => context
  * @returns {Object} The context.
  */
 function getParticipantContext(participantId) {
+    if (sharedContext) {
+        return sharedContext;
+    }
+
     if (!contexts.has(participantId)) {
-        contexts.set(participantId, new Context(participantId));
+        contexts.set(participantId, new Context());
     }
 
     return contexts.get(participantId);
@@ -47,7 +53,13 @@ function handleTransform(context, operation, readableStream, writableStream) {
 onmessage = async event => {
     const { operation } = event.data;
 
-    if (operation === 'encode' || operation === 'decode') {
+    if (operation === 'initialize') {
+        const { sharedKey } = event.data;
+
+        if (sharedKey) {
+            sharedContext = new Context({ sharedKey });
+        }
+    } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
         const context = getParticipantContext(participantId);
 
@@ -65,6 +77,8 @@ onmessage = async event => {
         const { participantId } = event.data;
 
         contexts.delete(participantId);
+    } else if (operation === 'cleanupAll') {
+        contexts.clear();
     } else {
         console.error('e2ee worker', operation);
     }

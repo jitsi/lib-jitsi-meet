@@ -3695,6 +3695,17 @@ JitsiConference.prototype.toggleE2EE = function(enabled) {
 };
 
 /**
+ * Sets the key and index for End-to-End encryption.
+ *
+ * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
+ * @param {Number} [keyInfo.index] - the index of the encryption key.
+ * @returns {void}
+ */
+JitsiConference.prototype.setMediaEncryptionKey = function(keyInfo) {
+    this._e2eEncryption.setEncryptionKey(keyInfo);
+};
+
+/**
  * Returns <tt>true</tt> if lobby support is enabled in the backend.
  *
  * @returns {boolean} whether lobby is supported in the backend.
