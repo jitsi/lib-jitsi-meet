@@ -47,9 +47,11 @@ export class CodecSelection {
         logger.debug(`Codec preferences for the conference are JVB: ${this.jvbPreferredCodec},
             P2P: ${this.p2pPreferredCodec}`);
 
-        // Do not prefer VP9 on Firefox because of the following bug.
+        // Do not prefer VP9 on Firefox and Safari because of the following bugs.
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1633876
-        if (browser.isFirefox() && this.jvbPreferredCodec === CodecMimeType.VP9) {
+        // https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074.
+        if ((browser.isFirefox() || browser.isWebKitBased())
+            && this.jvbPreferredCodec === CodecMimeType.VP9) {
             this.jvbPreferredCodec = CodecMimeType.VP8;
         }
 
@@ -136,11 +138,10 @@ export class CodecSelection {
                 const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
                 const peerCodec = peerMediaInfo?.codecType;
 
-                // We do not want Firefox to switch to VP9 because of the following bug.
+                // We do not want Firefox and Safari to switch to VP9 because of the following bugs.
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1492500.
-                if (peerCodec
-                    && peerCodec !== currentCodec
-                    && !(browser.isFirefox() && peerCodec === CodecMimeType.VP9)) {
+                // https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074.
+                if (peerCodec && peerCodec !== currentCodec && browser.isChromiumBased()) {
                     selectedCodec = peerCodec;
                 }
             }
