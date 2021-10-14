@@ -7,10 +7,17 @@ import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
+const DESKTOP_SHARE_RATE = 500000;
+const LD_BITRATE = 200000;
+const SD_BITRATE = 700000;
 const SIM_LAYER_1_RID = '1';
 const SIM_LAYER_2_RID = '2';
 const SIM_LAYER_3_RID = '3';
 
+export const HD_BITRATE = 2500000;
+export const HD_SCALE_FACTOR = 1;
+export const LD_SCALE_FACTOR = 4;
+export const SD_SCALE_FACTOR = 2;
 export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
 
 /**
@@ -22,12 +29,21 @@ export class TPCUtils {
      * Creates a new instance for a given TraceablePeerConnection
      *
      * @param peerconnection - the tpc instance for which we have utility functions.
-     * @param videoBitrates - the bitrates to be configured on the video senders for
-     * different resolutions both in unicast and simulcast mode.
      */
-    constructor(peerconnection, videoBitrates) {
+    constructor(peerconnection) {
         this.pc = peerconnection;
-        this.videoBitrates = videoBitrates.VP8 || videoBitrates;
+        const bitrateSettings = this.pc.options?.videoQuality?.maxBitratesVideo;
+        const standardBitrates = {
+            low: LD_BITRATE,
+            standard: SD_BITRATE,
+            high: HD_BITRATE
+        };
+
+        // Check if the max. bitrates for video are specified through config.js videoQuality settings.
+        // Right now only VP8 bitrates are configured on the simulcast encodings, VP9 bitrates have to be
+        // configured on the SDP using b:AS line.
+        this.videoBitrates = bitrateSettings ?? standardBitrates;
+        const encodingBitrates = this.videoBitrates.VP8 ?? this.videoBitrates;
 
         /**
          * The startup configuration for the stream encodings that are applicable to
@@ -45,21 +61,21 @@ export class TPCUtils {
         this.localStreamEncodingsConfig = [
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
+                maxBitrate: browser.isFirefox() ? encodingBitrates.high : encodingBitrates.low,
                 rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? 1.0 : 4.0
+                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
             },
             {
                 active: true,
-                maxBitrate: this.videoBitrates.standard,
+                maxBitrate: encodingBitrates.standard,
                 rid: SIM_LAYER_2_RID,
-                scaleResolutionDownBy: 2.0
+                scaleResolutionDownBy: SD_SCALE_FACTOR
             },
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? this.videoBitrates.low : this.videoBitrates.high,
+                maxBitrate: browser.isFirefox() ? encodingBitrates.low : encodingBitrates.high,
                 rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
+                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
             }
         ];
     }
@@ -284,7 +300,6 @@ export class TPCUtils {
     calculateEncodingsActiveState(localVideoTrack, newHeight) {
         const localTrack = localVideoTrack.getTrack();
         const { height } = localTrack.getSettings();
-
         const encodingsState = this.localStreamEncodingsConfig
         .map(encoding => height / encoding.scaleResolutionDownBy)
         .map((frameHeight, idx) => {
@@ -294,7 +309,7 @@ export class TPCUtils {
                 // resolution. This can happen when camera is captured at resolutions higher than 720p but the
                 // requested resolution is 180. Since getParameters doesn't give us information about the resolutions
                 // of the simulcast encodings, we have to rely on our initial config for the simulcast streams.
-                ? newHeight > 0 && this.localStreamEncodingsConfig[idx]?.scaleResolutionDownBy === 4.0
+                ? newHeight > 0 && this.localStreamEncodingsConfig[idx]?.scaleResolutionDownBy === LD_SCALE_FACTOR
                     ? true
                     : frameHeight <= newHeight
 
@@ -302,13 +317,14 @@ export class TPCUtils {
                 : true;
 
             // Disable the lower spatial layers for screensharing in Unified plan when low fps screensharing is in
-            // progress. There is no way to enable or disable simulcast during the call since we are re-using the same
-            // sender. Safari is an exception here since it does not send the desktop stream at all if only the high
-            // resolution stream is enabled.
+            // progress. Sending all three streams often results in the browser suspending the high resolution in low
+            // b/w and cpu cases, especially on the low end machines. Suspending the low resolution streams ensures
+            // that the highest resolution stream is available always. Safari is an exception here since it does not
+            // send the desktop stream at all if only the high resolution stream is enabled.
             if (this.pc.isSharingLowFpsScreen()
                 && this.pc.usesUnifiedPlan()
                 && !browser.isWebKitBased()
-                && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== 1.0) {
+                && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
                 active = false;
             }
 
@@ -316,6 +332,41 @@ export class TPCUtils {
         });
 
         return encodingsState;
+    }
+
+    /**
+     * Returns the calculates max bitrates that need to be configured on the simulcast encodings based on the video
+     * type and other considerations associated with screenshare.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack The local video track.
+     * @returns {Array<number>}
+     */
+    calculateEncodingsBitrates(localVideoTrack) {
+        const videoType = localVideoTrack.getVideoType();
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
+        const presenterEnabled = localVideoTrack._originalStream
+            && localVideoTrack._originalStream.id !== localVideoTrack.getStreamId();
+
+        const encodingsBitrates = this.localStreamEncodingsConfig
+        .map(encoding => {
+            const bitrate = this.pc.isSharingLowFpsScreen() && !browser.isWebKitBased()
+
+                // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on.
+                // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
+                // if capScreenshareBitrate option is enabled then simulcast is turned off for the stream.
+                ? presenterEnabled ? HD_BITRATE : desktopShareBitrate
+
+                // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
+                // if simulcast is enabled for screen and maxBitrates are set then Chrome will not send the
+                // desktop stream.
+                : videoType === VideoType.DESKTOP && browser.isChromiumBased() && !this.pc.usesUnifiedPlan()
+                    ? undefined
+                    : encoding.maxBitrate;
+
+            return bitrate;
+        });
+
+        return encodingsBitrates;
     }
 
     /**

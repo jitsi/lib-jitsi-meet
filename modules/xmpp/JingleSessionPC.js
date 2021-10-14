@@ -1494,7 +1494,11 @@ export default class JingleSessionPC extends JingleSession {
                 return this.setMediaTransferActive(true, videoActive);
             }
 
-            return this.peerconnection.setSenderVideoConstraints(maxFrameHeight);
+            const promise = maxFrameHeight
+                ? this.peerconnection.setSenderVideoConstraints(maxFrameHeight)
+                : this.peerconnection.configureSenderVideoEncodings();
+
+            return promise;
         }
 
         return Promise.resolve();
@@ -2085,9 +2089,8 @@ export default class JingleSessionPC extends JingleSession {
                         if (newTrack?.isVideoTrack()) {
                             logger.debug(`${this} replaceTrack worker: configuring video stream`);
 
-                            // Configure the video encodings and set the active state, max bitrate and degradation
-                            // preference on them.
-                            return this.setSenderVideoConstraint();
+                            // Configure the video encodings after the track is replaced.
+                            return this.peerconnection.configureSenderVideoEncodings();
                         }
                     });
                 })
@@ -2232,10 +2235,10 @@ export default class JingleSessionPC extends JingleSession {
         return this._addRemoveTrackAsMuteUnmute(
             false /* add as unmute */, track)
             .then(() => {
-                // Configure the video encodings and set the active state, max bitrate and degradation
-                // preference on them..
+                // Configure the video encodings after the track is unmuted. If the user joins the call muted and
+                // unmutes it the first time, all the parameters need to be configured.
                 if (track.isVideoTrack()) {
-                    return this.setSenderVideoConstraint();
+                    return this.peerconnection.configureSenderVideoEncodings();
                 }
             });
     }
