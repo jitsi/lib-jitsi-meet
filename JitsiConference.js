@@ -31,6 +31,7 @@ import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
 import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
+import FeatureFlags from './modules/flags/FeatureFlags';
 import { ReceiveVideoController } from './modules/qualitycontrol/ReceiveVideoController';
 import { SendVideoController } from './modules/qualitycontrol/SendVideoController';
 import RecordingManager from './modules/recording/RecordingManager';
@@ -54,6 +55,7 @@ import {
 import BridgeVideoType from './service/RTC/BridgeVideoType';
 import CodecMimeType from './service/RTC/CodecMimeType';
 import * as MediaType from './service/RTC/MediaType';
+import { getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import VideoType from './service/RTC/VideoType';
 import {
     ACTION_JINGLE_RESTART,
@@ -1274,21 +1276,12 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         }
     }
     if (newTrack.isVideoTrack()) {
-        const videoTypeTagName = 'videoType';
-
-        // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
-        if (newTrack.videoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
-            this.sendCommand(videoTypeTagName, { value: newTrack.videoType });
-        }
+        this._sendNewVideoType(newTrack);
     }
     this.rtc.addLocalTrack(newTrack);
 
     // ensure that we're sharing proper "is muted" state
-    if (newTrack.isAudioTrack()) {
-        this.room.setAudioMute(newTrack.isMuted());
-    } else {
-        this.room.setVideoMute(newTrack.isMuted());
-    }
+    this._setTrackMuteStatus(newTrack, newTrack.isMuted());
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
     newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
@@ -1302,6 +1295,44 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     newTrack._setConference(this);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
+};
+
+JitsiConference.prototype._sendNewVideoType = function(track) {
+    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
+        // to send the presence (not just modify it).
+        this._signalingLayer.setTrackVideoType(
+            getSourceNameForJitsiTrack(
+                this.myUserId(),
+                track.getType(),
+                0
+            ),
+            track.videoType);
+    }
+
+    const videoTypeTagName = 'videoType';
+
+    // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
+    if (track.videoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
+        this.sendCommand(videoTypeTagName, { value: track.videoType });
+    }
+};
+
+JitsiConference.prototype._setTrackMuteStatus = function(localTrack, isMuted) {
+    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
+        // it triggers sending the presence (it only updates it for now, because the legacy code below sends).
+        this._signalingLayer.setTrackMuteStatus(
+            getSourceNameForJitsiTrack(this.myUserId(), localTrack.getType(), 0),
+            isMuted
+        );
+    }
+
+    if (localTrack.isAudioTrack()) {
+        this.room && this.room.setAudioMute(isMuted);
+    } else {
+        this.room && this.room.setVideoMute(isMuted);
+    }
 };
 
 /**

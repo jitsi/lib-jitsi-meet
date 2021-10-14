@@ -67,7 +67,7 @@ export const parser = {
  * @param pres the presence JSON
  * @param nodeName the name of the node (videomuted, audiomuted, etc)
  */
-function filterNodeFromPresenceJSON(pres, nodeName) {
+export function filterNodeFromPresenceJSON(pres, nodeName) {
     const res = [];
 
     for (let i = 0; i < pres.length; i++) {
@@ -1655,6 +1655,15 @@ export default class ChatRoom extends Listenable {
         }
 
         return data;
+    }
+
+    /**
+     * Returns the last presence advertised by a MUC member.
+     * @param {string} mucNick
+     * @returns {*}
+     */
+    getLastPresence(mucNick) {
+        return this.lastPresences[`${this.roomjid}/${mucNick}`];
     }
 
     /**
