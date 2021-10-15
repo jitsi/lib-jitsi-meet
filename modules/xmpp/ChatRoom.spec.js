@@ -161,12 +161,15 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.count()).toEqual(3);
             expect(emitterSpy.calls.argsFor(0)).toEqual([
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
             expect(emitterSpy.calls.argsFor(1)).toEqual([
+                XMPPEvents.MUC_JOIN_IN_PROGRESS
+            ]);
+            expect(emitterSpy.calls.argsFor(2)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick
@@ -192,11 +195,15 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.count()).toEqual(3);
             expect(emitterSpy.calls.argsFor(0)).toEqual([
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
+            expect(emitterSpy.calls.argsFor(1)).toEqual([
+                XMPPEvents.MUC_JOIN_IN_PROGRESS
+            ]);
+
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -223,10 +230,13 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.count()).toEqual(3);
             expect(emitterSpy.calls.argsFor(0)).toEqual([
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
+            ]);
+            expect(emitterSpy.calls.argsFor(1)).toEqual([
+                XMPPEvents.MUC_JOIN_IN_PROGRESS
             ]);
             expect(emitterSpy).toHaveBeenCalledWith(
               XMPPEvents.MUC_MEMBER_JOINED,
@@ -271,12 +281,15 @@ describe('ChatRoom', () => {
             };
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.count()).toEqual(3);
             expect(emitterSpy.calls.argsFor(0)).toEqual([
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
             expect(emitterSpy.calls.argsFor(1)).toEqual([
+                XMPPEvents.MUC_JOIN_IN_PROGRESS
+            ]);
+            expect(emitterSpy.calls.argsFor(2)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick
@@ -305,12 +318,15 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.count()).toEqual(3);
             expect(emitterSpy.calls.argsFor(0)).toEqual([
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
             expect(emitterSpy.calls.argsFor(1)).toEqual([
+                XMPPEvents.MUC_JOIN_IN_PROGRESS
+            ]);
+            expect(emitterSpy.calls.argsFor(2)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick

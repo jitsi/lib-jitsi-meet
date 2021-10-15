@@ -31,6 +31,11 @@ export const CONFERENCE_ERROR = 'conference.error';
 export const CONFERENCE_FAILED = 'conference.failed';
 
 /**
+ * Indicates that conference is in progress of joining.
+ */
+export const CONFERENCE_JOIN_IN_PROGRESS = 'conference.join_in_progress';
+
+/**
  * Indicates that conference has been joined. The event does NOT provide any
  * parameters to its listeners.
  */
