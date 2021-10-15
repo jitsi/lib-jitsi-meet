@@ -66,9 +66,9 @@ export class MockPeerConnection {
     }
 
     /**
-     * {@link TraceablePeerConnection.setSenderVideoConstraint}.
+     * {@link TraceablePeerConnection.setSenderVideoConstraints}.
      */
-    setSenderVideoConstraint() {
+    setSenderVideoConstraints() {
     }
 
     /**
