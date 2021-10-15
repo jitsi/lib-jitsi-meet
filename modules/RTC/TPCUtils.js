@@ -351,9 +351,8 @@ export class TPCUtils {
         .map(encoding => {
             const bitrate = this.pc.isSharingLowFpsScreen() && !browser.isWebKitBased()
 
-                // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on.
-                // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
-                // if capScreenshareBitrate option is enabled then simulcast is turned off for the stream.
+                // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on, 2500 Kbps
+                // otherwise.
                 ? presenterEnabled ? HD_BITRATE : desktopShareBitrate
 
                 // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
