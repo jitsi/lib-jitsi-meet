@@ -599,20 +599,24 @@ export default class JingleSessionPC extends JingleSession {
             const state = this.peerconnection.signalingState;
             const remoteDescription = this.peerconnection.remoteDescription;
 
-            if (this.usesUnifiedPlan && state === 'stable'
-                && remoteDescription && typeof remoteDescription.sdp === 'string') {
-                logger.debug(`${this} onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
+            if (this.usesUnifiedPlan
+                && !this.isP2P
+                && state === 'stable'
+                && remoteDescription
+                && typeof remoteDescription.sdp === 'string') {
+                logger.info(`${this} onnegotiationneeded fired on ${this.peerconnection}`);
+
                 const workFunction = finishedCallback => {
                     const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
 
                     this._renegotiate()
+                        .then(() => this.peerconnection.configureSenderVideoEncodings())
                         .then(() => {
                             const newSdp = new SDP(this.peerconnection.localDescription.sdp);
 
                             this.notifyMySSRCUpdate(oldSdp, newSdp);
-                            finishedCallback();
-                        },
-                        finishedCallback /* will be called with en error */);
+                        })
+                        .then(() => finishedCallback(), error => finishedCallback(error));
                 };
 
                 this.modificationQueue.push(

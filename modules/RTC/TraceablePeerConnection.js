@@ -1972,20 +1972,18 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
  * <tt>oldTrack</tt>
  *
- * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be
- * replaced
- * @param {JitsiLocalTrack|null} newTrack - The new track to use
- * @returns {Promise<boolean>} - If the promise resolves with true,
- * renegotiation will be needed. Otherwise no renegotiation is needed.
+ * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be replaced on the pc.
+ * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
+ *
+ * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
+ * Otherwise no renegotiation is needed.
  */
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
 
-        return this.tpcUtils.replaceTrack(oldTrack, newTrack)
-
-            // Renegotiate when SDP is used for simulcast munging or when in p2p mode.
-            .then(() => (this.isSimulcastOn() && browser.usesSdpMungingForSimulcast()) || this.isP2P);
+        // Renegotiate only in the case of P2P. We rely on 'negotiationeeded' to be fired for JVB.
+        return this.tpcUtils.replaceTrack(oldTrack, newTrack).then(() => this.isP2P);
     }
 
     logger.debug(`${this} TPC.replaceTrack using plan B`);
