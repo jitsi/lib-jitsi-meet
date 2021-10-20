@@ -1498,9 +1498,9 @@ export default class JingleSessionPC extends JingleSession {
                 return this.setMediaTransferActive(true, videoActive);
             }
 
-            const promise = maxFrameHeight
-                ? this.peerconnection.setSenderVideoConstraints(maxFrameHeight)
-                : this.peerconnection.configureSenderVideoEncodings();
+            const promise = typeof maxFrameHeight === 'undefined'
+                ? this.peerconnection.configureSenderVideoEncodings()
+                : this.peerconnection.setSenderVideoConstraints(maxFrameHeight);
 
             return promise;
         }
