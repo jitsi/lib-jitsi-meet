@@ -1761,19 +1761,21 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
 /**
  * Adds local track as part of the unmute operation.
- * @param {JitsiLocalTrack} track the track to be added as part of the unmute
- * operation
+ * @param {JitsiLocalTrack} track the track to be added as part of the unmute operation.
+ *
  * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's
  * state has changed and renegotiation is required, false if no renegotiation is needed or
  * Promise is rejected when something goes wrong.
  */
 TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
+    logger.info(`${this} Adding track=${track} as unmute`);
+
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
-        // Abort
-        return Promise.reject('Track not found on the peerconnection');
+        // This can happen when the user has created a track but muted it before the peerconnection is created and
+        // unmutes it after the peerconnection is created.
+        return this.replaceTrack(null, track).then(() => this.isP2P || !this._usesUnifiedPlan);
     }
 
-    logger.info(`${this} Adding track=${track} as unmute`);
     const webRtcStream = track.getOriginalStream();
 
     if (!webRtcStream) {
@@ -1783,7 +1785,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.addTrackUnmute(track);
+        return this.tpcUtils.addTrackUnmute(track).then(() => this.isP2P);
     }
 
     this._addStream(webRtcStream);
@@ -1825,7 +1827,7 @@ TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
 TraceablePeerConnection.prototype._assertTrackBelongs = function(
         methodName,
         localTrack) {
-    const doesBelong = this.localTracks.has(localTrack.rtcId);
+    const doesBelong = this.localTracks.has(localTrack?.rtcId);
 
     if (!doesBelong) {
         logger.error(`${this} ${methodName}: track=${localTrack} does not belong to pc`);
@@ -1982,8 +1984,12 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
 
+        const oldJitsiTrack = oldTrack && this._assertTrackBelongs('replaceTrack', oldTrack)
+            ? oldTrack
+            : null;
+
         // Renegotiate only in the case of P2P. We rely on 'negotiationeeded' to be fired for JVB.
-        return this.tpcUtils.replaceTrack(oldTrack, newTrack).then(() => this.isP2P);
+        return this.tpcUtils.replaceTrack(oldJitsiTrack, newTrack).then(() => this.isP2P);
     }
 
     logger.debug(`${this} TPC.replaceTrack using plan B`);

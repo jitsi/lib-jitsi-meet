@@ -2293,11 +2293,13 @@ export default class JingleSessionPC extends JingleSession {
                     if (shouldRenegotiate && oldLocalSDP && tpc.remoteDescription.sdp) {
                         this._renegotiate()
                             .then(() => {
-                                // The results are ignored, as this check failure is not
-                                // enough to fail the whole operation. It will log
-                                // an error inside.
-                                this._verifyNoSSRCChanged(
-                                    operationName, new SDP(oldLocalSDP));
+                                // The results are ignored, as this check failure is not enough to fail the whole
+                                // operation. It will log an error inside for plan-b.
+                                !this.usesUnifiedPlan && this._verifyNoSSRCChanged(operationName, new SDP(oldLocalSDP));
+                                const newLocalSdp = tpc.localDescription.sdp;
+
+                                // Signal the ssrc if an unmute operation results in a new ssrc being generated.
+                                this.notifyMySSRCUpdate(new SDP(oldLocalSDP), new SDP(newLocalSdp));
                                 finishedCallback();
                             });
                     } else {
