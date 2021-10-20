@@ -434,7 +434,7 @@ export class Interop {
 
         session.media.forEach(mLine => {
             // eslint-disable-next-line eqeqeq
-            if (mLine.mid == '2') {
+            if (mLine.mid == '3') { // Screen is added on mid=3 with 2 participants
                 mLine.direction = 'sendrecv';
             }
         });
