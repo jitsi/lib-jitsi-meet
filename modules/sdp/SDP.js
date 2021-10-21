@@ -205,6 +205,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                 for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
                     const sourceName = SDPUtil.parseSourceNameLine(ssrcParameters);
+                    const { msid, cname } = SDPUtil.parseSsrcAttributes(ssrcParameters);
 
                     elem.c('source', {
                         ssrc: availableSsrc,
@@ -212,13 +213,19 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                     });
 
-                    const msid = SDPUtil.parseMSIDAttribute(ssrcParameters);
-
                     // eslint-disable-next-line max-depth
                     if (msid) {
                         elem.c('parameter');
                         elem.attrs({ name: 'msid' });
                         elem.attrs({ value: msid });
+                        elem.up();
+                    }
+
+                    // eslint-disable-next-line max-depth
+                    if (cname) {
+                        elem.c('parameter');
+                        elem.attrs({ name: 'cname' });
+                        elem.attrs({ value: cname });
                         elem.up();
                     }
 
