@@ -145,10 +145,10 @@ export default class AVModeration {
             this._moderationEnabledByType[media] = enabled;
 
             this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, enabled, media, actor);
+        } else if (removed) {
+            this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_REJECTED, media);
         } else if (approved) {
-            const event = removed ? XMPPEvents.AV_MODERATION_REJECTED : XMPPEvents.AV_MODERATION_APPROVED;
-
-            this._xmpp.eventEmitter.emit(event, media);
+            this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_APPROVED, media);
         }
     }
 }
