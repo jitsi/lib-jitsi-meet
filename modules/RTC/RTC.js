@@ -5,6 +5,7 @@ import BridgeVideoType from '../../service/RTC/BridgeVideoType';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -149,7 +150,12 @@ export default class RTC extends Listenable {
         this._updateAudioOutputForAudioTracks
             = this._updateAudioOutputForAudioTracks.bind(this);
 
-        // The default video type assumed by the bridge.
+        /**
+         * The default video type assumed by the bridge.
+         * @deprecated this will go away with multiple streams support
+         * @type {BridgeVideoType}
+         * @private
+         */
         this._videoType = BridgeVideoType.NONE;
 
         // Switch audio output device on all remote audio tracks. Local audio
@@ -256,10 +262,12 @@ export default class RTC extends Listenable {
                     logError(error, 'LastNChangedEvent', this._lastN);
                 }
             }
-            try {
-                this._channel.sendVideoTypeMessage(this._videoType);
-            } catch (error) {
-                logError(error, 'VideoTypeMessage', this._videoType);
+            if (!FeatureFlags.isSourceNameSignalingEnabled()) {
+                try {
+                    this._channel.sendVideoTypeMessage(this._videoType);
+                } catch (error) {
+                    logError(error, 'VideoTypeMessage', this._videoType);
+                }
             }
 
             this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
@@ -381,6 +389,17 @@ export default class RTC extends Listenable {
             if (this._channel && this._channel.isOpen()) {
                 this._channel.sendVideoTypeMessage(videoType);
             }
+        }
+    }
+
+    /**
+     * Sends the track's  video type to the JVB.
+     * @param {SourceName} sourceName - the track's source name.
+     * @param {BridgeVideoType} videoType - the track's video type.
+     */
+    sendSourceVideoType(sourceName, videoType) {
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendSourceVideoTypeMessage(sourceName, videoType);
         }
     }
 
