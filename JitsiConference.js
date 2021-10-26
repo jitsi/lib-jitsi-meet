@@ -55,6 +55,7 @@ import {
 import BridgeVideoType from './service/RTC/BridgeVideoType';
 import CodecMimeType from './service/RTC/CodecMimeType';
 import * as MediaType from './service/RTC/MediaType';
+import RTCEvents from './service/RTC/RTCEvents';
 import { getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import VideoType from './service/RTC/VideoType';
 import {
@@ -400,6 +401,9 @@ JitsiConference.prototype._init = function(options = {}) {
     if (!this.rtc) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            this._registerRtcListeners(this.rtc);
+        }
     }
 
     this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
@@ -719,6 +723,20 @@ JitsiConference.prototype._getMediaSessions = function() {
 };
 
 /**
+ * Registers event listeners on the RTC instance.
+ * @param {RTC} rtc - the RTC module instance used by this conference.
+ * @private
+ * @returns {void}
+ */
+JitsiConference.prototype._registerRtcListeners = function(rtc) {
+    rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
+        for (const localTrack of this.rtc.localTracks) {
+            localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
+        }
+    });
+};
+
+/**
  * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
  * decisions based on the video type of the local source.
  *
@@ -733,7 +751,14 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
         videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
     }
 
-    this.rtc.setVideoType(videoType);
+    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        this.rtc.sendSourceVideoType(
+            getSourceNameForJitsiTrack(this.myUserId(), MediaType.VIDEO, 0),
+            videoType
+        );
+    } else {
+        this.rtc.setVideoType(videoType);
+    }
 };
 
 /**
