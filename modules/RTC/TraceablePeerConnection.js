@@ -1698,19 +1698,21 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
     }
 
     this.localTracks.set(rtcId, track);
+    const webrtcStream = track.getOriginalStream();
 
     if (this._usesUnifiedPlan) {
-        try {
-            this.tpcUtils.addTrack(track, isInitiator);
-        } catch (error) {
-            logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
+        logger.debug(`${this} TPC.addTrack using unified plan`);
+        if (webrtcStream) {
+            try {
+                this.tpcUtils.addTrack(track, isInitiator);
+            } catch (error) {
+                logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
 
-            return Promise.reject(error);
+                return Promise.reject(error);
+            }
         }
     } else {
         // Use addStream API for the plan-b case.
-        const webrtcStream = track.getOriginalStream();
-
         if (webrtcStream) {
             this._addStream(webrtcStream);
 
@@ -1753,7 +1755,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
     if (browser.isFirefox()) {
-        promiseChain = promiseChain.then(() => this.tpcUtils.setEncodings(track));
+        promiseChain = promiseChain.then(() => webrtcStream && this.tpcUtils.setEncodings(track));
     }
 
     return promiseChain;
@@ -1771,9 +1773,9 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     logger.info(`${this} Adding track=${track} as unmute`);
 
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
-        // This can happen when the user has created a track but muted it before the peerconnection is created and
-        // unmutes it after the peerconnection is created.
-        return this.replaceTrack(null, track).then(() => this.isP2P || !this._usesUnifiedPlan);
+        // Abort
+
+        return Promise.reject('Track not found on the peerconnection');
     }
 
     const webRtcStream = track.getOriginalStream();
@@ -1785,7 +1787,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.addTrackUnmute(track).then(() => this.isP2P);
+        return this.tpcUtils.replaceTrack(null, track).then(() => this.isP2P);
     }
 
     this._addStream(webRtcStream);
@@ -1981,15 +1983,44 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  * Otherwise no renegotiation is needed.
  */
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
+    if (!(oldTrack || newTrack)) {
+        logger.info(`${this} replaceTrack called with no new track and no old track`);
+
+        return Promise.resolve();
+    }
+
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
+        const stream = newTrack?.getOriginalStream();
+        const promise = newTrack && !stream
 
-        const oldJitsiTrack = oldTrack && this._assertTrackBelongs('replaceTrack', oldTrack)
-            ? oldTrack
-            : null;
+            // Ignore cases when the track is replaced while the device is in a muted state.
+            // The track will be replaced again on the peerconnection when the user unmutes.
+            ? Promise.resolve()
+            : this.tpcUtils.replaceTrack(oldTrack, newTrack);
 
-        // Renegotiate only in the case of P2P. We rely on 'negotiationeeded' to be fired for JVB.
-        return this.tpcUtils.replaceTrack(oldJitsiTrack, newTrack).then(() => this.isP2P);
+        return promise
+            .then(() => {
+                oldTrack && this.localTracks.delete(oldTrack.rtcId);
+                newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
+
+                const mediaType = newTrack?.getType() ?? oldTrack?.getType();
+                const transceiver = this.tpcUtils.findTransceiver(mediaType, oldTrack);
+
+                if (transceiver) {
+                    // Set the transceiver direction.
+                    transceiver.direction = newTrack ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+                }
+
+                // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
+                // for the newly added track using SDP munging which happens during the renegotiation.
+                const configureEncodingsPromise = browser.usesSdpMungingForSimulcast() || !newTrack
+                    ? Promise.resolve()
+                    : this.tpcUtils.setEncodings(newTrack);
+
+                // Renegotiate only in the case of P2P. We rely on 'negotiationeeded' to be fired for JVB.
+                return configureEncodingsPromise.then(() => this.isP2P);
+            });
     }
 
     logger.debug(`${this} TPC.replaceTrack using plan B`);
@@ -2027,7 +2058,7 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.removeTrackMute(localTrack);
+        return this.tpcUtils.replaceTrack(localTrack, null);
     }
 
     if (webRtcStream) {

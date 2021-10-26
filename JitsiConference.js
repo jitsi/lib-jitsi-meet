@@ -2890,8 +2890,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    // Ignore muted tracks.
-    const localTracks = this.getLocalTracks().filter(track => !track.isMuted());
+    const localTracks = this.getLocalTracks();
 
     this.p2pJingleSession.acceptOffer(
         jingleOffer,
@@ -3251,8 +3250,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    // Ignore muted tracks.
-    const localTracks = this.getLocalTracks().filter(track => !track.isMuted());
+    const localTracks = this.getLocalTracks();
 
     this.p2pJingleSession.invite(localTracks);
 };

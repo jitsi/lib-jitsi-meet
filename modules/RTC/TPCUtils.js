@@ -81,34 +81,6 @@ export class TPCUtils {
     }
 
     /**
-     * Returns the transceiver associated with a given RTCRtpSender/RTCRtpReceiver.
-     *
-     * @param {string} mediaType - type of track associated with the transceiver 'audio' or 'video'.
-     * @param {JitsiLocalTrack} localTrack - local track to be used for lookup.
-     * @returns {RTCRtpTransceiver}
-     */
-    _findTransceiver(mediaType, localTrack = null) {
-        let transceiver = null;
-
-        // Check if the local track has been removed from the peerconnection already.
-        const trackRemoved = !localTrack
-            || (localTrack
-                && browser.doesVideoMuteByStreamRemove()
-                && localTrack.isVideoTrack()
-                && localTrack.isMuted());
-
-        if (trackRemoved) {
-            transceiver = this.pc.peerconnection.getTransceivers()
-                .find(t => t.receiver?.track?.kind === mediaType);
-        } else if (localTrack) {
-            transceiver = this.pc.peerconnection.getTransceivers()
-                .find(t => t.sender?.track?.id === localTrack.getTrackId());
-        }
-
-        return transceiver;
-    }
-
-    /**
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
@@ -167,6 +139,21 @@ export class TPCUtils {
             type: description.type,
             sdp: transform.write(parsedSdp)
         });
+    }
+
+    /**
+     * Returns the transceiver associated with a given RTCRtpSender/RTCRtpReceiver.
+     *
+     * @param {string} mediaType - type of track associated with the transceiver 'audio' or 'video'.
+     * @param {JitsiLocalTrack} localTrack - local track to be used for lookup.
+     * @returns {RTCRtpTransceiver}
+     */
+    findTransceiver(mediaType, localTrack = null) {
+        const transceiver = localTrack?.track && localTrack.getOriginalStream()
+            ? this.pc.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
+            : this.pc.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
+
+        return transceiver;
     }
 
     /**
@@ -272,24 +259,6 @@ export class TPCUtils {
     }
 
     /**
-     * Adds a track on the RTCRtpSender as part of the unmute operation.
-     * @param {JitsiLocalTrack} localTrack - track to be unmuted.
-     * @returns {Promise<void>} - resolved when done.
-     */
-    addTrackUnmute(localTrack) {
-        const mediaType = localTrack.getType();
-        const track = localTrack.getTrack();
-        const transceiver = this._findTransceiver(mediaType);
-
-        if (!transceiver) {
-            return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
-        }
-        logger.debug(`${this.pc} Adding ${localTrack}`);
-
-        return transceiver.sender.replaceTrack(track);
-    }
-
-    /**
      * Returns the calculated active state of the simulcast encodings based on the frame height requested for the send
      * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
      *
@@ -369,110 +338,22 @@ export class TPCUtils {
     }
 
     /**
-     * Removes the track from the RTCRtpSender as part of the mute operation.
-     * @param {JitsiLocalTrack} localTrack - track to be removed.
-     * @returns {Promise<void>} - resolved when done.
-     */
-    removeTrackMute(localTrack) {
-        const mediaType = localTrack.getType();
-        const transceiver = this._findTransceiver(mediaType, localTrack);
-
-        if (!transceiver) {
-            return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
-        }
-
-        logger.debug(`${this.pc} Removing ${localTrack}`);
-
-        return transceiver.sender.replaceTrack(null);
-    }
-
-    /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
      * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
      * @returns {Promise<void>} - resolved when done.
      */
     replaceTrack(oldTrack, newTrack) {
-        if (oldTrack && newTrack) {
-            const mediaType = newTrack.getType();
-            const stream = newTrack.getOriginalStream();
+        const mediaType = newTrack?.getType() ?? oldTrack?.getType();
+        const transceiver = this.findTransceiver(mediaType, oldTrack);
+        const track = newTrack?.getTrack() ?? null;
 
-            // Ignore cases when the track is replaced while the device is in a muted state,like
-            // replacing camera when video muted or replacing mic when audio muted. These JitsiLocalTracks
-            // do not have a mediastream attached. Replace track will be called again when the device is
-            // unmuted and the track will be replaced on the peerconnection then.
-            if (!stream) {
-                this.pc.localTracks.delete(oldTrack.rtcId);
-                this.pc.localTracks.set(newTrack.rtcId, newTrack);
-
-                return Promise.resolve();
-            }
-
-            const transceiver = this._findTransceiver(mediaType, oldTrack);
-            const track = newTrack.getTrack();
-
-            if (!transceiver) {
-                return Promise.reject(new Error('replace track failed'));
-            }
-            logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
-
-            return transceiver.sender.replaceTrack(track)
-                .then(() => {
-                    const ssrc = this.pc.localSSRCs.get(oldTrack.rtcId);
-
-                    this.pc.localTracks.delete(oldTrack.rtcId);
-                    this.pc.localSSRCs.delete(oldTrack.rtcId);
-                    this.pc._addedStreams = this.pc._addedStreams.filter(s => s !== stream);
-                    this.pc.localTracks.set(newTrack.rtcId, newTrack);
-
-                    this.pc._addedStreams.push(stream);
-                    this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
-                });
-        } else if (oldTrack && !newTrack) {
-            return this.removeTrackMute(oldTrack)
-                .then(() => {
-                    const mediaType = oldTrack.getType();
-                    const transceiver = this._findTransceiver(mediaType);
-
-                    // Change the direction on the transceiver to 'recvonly' so that a 'removetrack'
-                    // is fired on the associated media stream on the remote peer.
-                    if (transceiver) {
-                        transceiver.direction = MediaDirection.RECVONLY;
-                    }
-
-                    // Remove the old track from the list of local tracks.
-                    this.pc.localTracks.delete(oldTrack.rtcId);
-                    this.pc.localSSRCs.delete(oldTrack.rtcId);
-                });
-        } else if (newTrack && !oldTrack) {
-            return this.addTrackUnmute(newTrack)
-                .then(() => {
-                    const mediaType = newTrack.getType();
-                    const transceiver = this._findTransceiver(mediaType, newTrack);
-
-                    // Change the direction on the transceiver back to 'sendrecv' so that a 'track'
-                    // event is fired on the remote peer.
-                    if (transceiver) {
-                        transceiver.direction = MediaDirection.SENDRECV;
-                    }
-
-                    // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
-                    // for the newly added track using SDP munging which happens during the renegotiation.
-                    const promise = browser.usesSdpMungingForSimulcast()
-                        ? Promise.resolve()
-                        : this.setEncodings(newTrack);
-
-                    return promise
-                        .then(() => {
-                            // Add the new track to the list of local tracks.
-                            this.pc.localTracks.set(newTrack.rtcId, newTrack);
-                        });
-                });
+        if (!transceiver) {
+            return Promise.reject(new Error('replace track failed'));
         }
+        logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
-        logger.info(`${this.pc} TPCUtils.replaceTrack called with no new track and no old track`);
-
-        return Promise.resolve();
+        return transceiver.sender.replaceTrack(track);
     }
 
     /**
@@ -496,7 +377,7 @@ export class TPCUtils {
      */
     setEncodings(track) {
         const mediaType = track.getType();
-        const transceiver = this._findTransceiver(mediaType, track);
+        const transceiver = this.findTransceiver(mediaType, track);
         const parameters = transceiver?.sender?.getParameters();
 
         // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
