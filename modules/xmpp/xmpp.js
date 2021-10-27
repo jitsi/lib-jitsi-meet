@@ -9,6 +9,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -280,6 +281,7 @@ export default class XMPP extends Listenable {
             now);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
+        this._maybeSendDeploymentInfoStat();
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             // once connected or attached we no longer need this handle, drop it if it exist
             if (this._sysMessageHandler) {
@@ -294,6 +296,8 @@ export default class XMPP extends Listenable {
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
 
+            // make sure we will send the info after the features request succeeds or fails
+            this.sendDeploymentInfo = false;
             this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
@@ -310,6 +314,8 @@ export default class XMPP extends Listenable {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error(`${errmsg}: ${error}`));
                     logger.error(errmsg, error);
+
+                    this._maybeSendDeploymentInfoStat(true);
                 });
 
             // make sure we don't query again
@@ -451,6 +457,8 @@ export default class XMPP extends Listenable {
             }
         });
 
+        this._maybeSendDeploymentInfoStat(true);
+
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
             || this.conferenceDurationComponentAddress) {
@@ -511,6 +519,7 @@ export default class XMPP extends Listenable {
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
+        this.sendDeploymentInfo = true;
 
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
             this._sysMessageHandler = this.connection._stropheConn._addSysHandler(
@@ -970,5 +979,46 @@ export default class XMPP extends Listenable {
         }
 
         return true;
+    }
+
+    /**
+     * Sends deployment info to stats if not sent already.
+     * We want to try sending it on failure to connect
+     * or when we get a sys message(from jiconop2)
+     * or after success or failure of disco-info
+     * @param force Whether to force sending without checking anything.
+     * @private
+     */
+    _maybeSendDeploymentInfoStat(force) {
+        const acceptedStatuses = [
+            Strophe.Status.ERROR,
+            Strophe.Status.CONNFAIL,
+            Strophe.Status.AUTHFAIL,
+            Strophe.Status.DISCONNECTED,
+            Strophe.Status.CONNTIMEOUT
+        ];
+
+        if (!force && !(acceptedStatuses.includes(this.connection.status) && this.sendDeploymentInfo)) {
+            return;
+        }
+
+        // Log deployment-specific information, if available. Defined outside
+        // the application by individual deployments
+        const aprops = this.options.deploymentInfo;
+
+        if (aprops && Object.keys(aprops).length > 0) {
+            const logObject = {};
+
+            logObject.id = 'deployment_info';
+            for (const attr in aprops) {
+                if (aprops.hasOwnProperty(attr)) {
+                    logObject[attr] = aprops[attr];
+                }
+            }
+
+            Statistics.sendLog(JSON.stringify(logObject));
+        }
+
+        this.sendDeploymentInfo = false;
     }
 }
