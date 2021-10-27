@@ -1275,13 +1275,18 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
                 RTC.getEventDataForActiveDevice(device));
         }
     }
+
+    let videoTypeChanged = false;
+
     if (newTrack.isVideoTrack()) {
-        this._sendNewVideoType(newTrack);
+        videoTypeChanged = this._setNewVideoType(newTrack);
     }
     this.rtc.addLocalTrack(newTrack);
 
     // ensure that we're sharing proper "is muted" state
-    this._setTrackMuteStatus(newTrack, newTrack.isMuted());
+    if (!this._setTrackMuteStatus(newTrack, newTrack.isMuted()) && videoTypeChanged) {
+        this.room.sendPresence();
+    }
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
     newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
@@ -1297,7 +1302,13 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
-JitsiConference.prototype._sendNewVideoType = function(track) {
+/**
+ * Sets the video type.
+ * @param track
+ * @return <tt>true</tt> if video type was changed in presence.
+ * @private
+ */
+JitsiConference.prototype._setNewVideoType = function(track) {
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
         // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
         // to send the presence (not just modify it).
@@ -1314,10 +1325,21 @@ JitsiConference.prototype._sendNewVideoType = function(track) {
 
     // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
     if (track.videoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
-        this.sendCommand(videoTypeTagName, { value: track.videoType });
+        // we will not use this.sendCommand here to avoid sending the presence immediately, as later we may also set
+        // and the mute status
+        return this.room.addOrReplaceInPresence(videoTypeTagName, { value: track.videoType });
     }
+
+    return false;
 };
 
+/**
+ * Sets mute status.
+ * @param localTrack
+ * @param isMuted
+ * @param <tt>true</tt> when presence was sent due to the change.
+ * @private
+ */
 JitsiConference.prototype._setTrackMuteStatus = function(localTrack, isMuted) {
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
         // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
@@ -1328,11 +1350,15 @@ JitsiConference.prototype._setTrackMuteStatus = function(localTrack, isMuted) {
         );
     }
 
-    if (localTrack.isAudioTrack()) {
-        this.room && this.room.setAudioMute(isMuted);
-    } else {
-        this.room && this.room.setVideoMute(isMuted);
+    if (!this.room) {
+        return false;
     }
+
+    if (localTrack.isAudioTrack()) {
+        return this.room.setAudioMute(isMuted);
+    }
+
+    return this.room.setVideoMute(isMuted);
 };
 
 /**
