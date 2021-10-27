@@ -168,23 +168,6 @@ export default _mergeNamespaceAndModule({
                 this.getGlobalOnErrorHandler.bind(this));
         }
 
-        // Log deployment-specific information, if available. Defined outside
-        // the application by individual deployments
-        const aprops = options.deploymentInfo;
-
-        if (aprops && Object.keys(aprops).length > 0) {
-            const logObject = {};
-
-            for (const attr in aprops) {
-                if (aprops.hasOwnProperty(attr)) {
-                    logObject[attr] = aprops[attr];
-                }
-            }
-
-            logObject.id = 'deployment_info';
-            Statistics.sendLog(JSON.stringify(logObject));
-        }
-
         if (this.version) {
             const logObject = {
                 id: 'component_version',

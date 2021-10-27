@@ -9,6 +9,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -280,6 +281,7 @@ export default class XMPP extends Listenable {
             now);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
+        this._maybeSendDeploymentInfoStat();
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             // once connected or attached we no longer need this handle, drop it if it exist
             if (this._sysMessageHandler) {
@@ -409,6 +411,8 @@ export default class XMPP extends Listenable {
      * @private
      */
     _processDiscoInfoIdentities(identities, features) {
+        let deploymentInfoChanged = false;
+
         // check for speakerstats
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
@@ -444,12 +448,19 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'shard') {
                 this.options.deploymentInfo.shard = this.connection.shard = identity.name;
+                deploymentInfoChanged = true;
             }
 
             if (identity.type === 'region') {
                 this.options.deploymentInfo.region = this.connection.region = identity.name;
+                deploymentInfoChanged = true;
             }
+
+
         });
+
+        // deployment info updated
+        deploymentInfoChanged && this._maybeSendDeploymentInfoStat();
 
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
@@ -511,6 +522,7 @@ export default class XMPP extends Listenable {
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
+        this.sendDeploymentInfo = true;
 
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
             this._sysMessageHandler = this.connection._stropheConn._addSysHandler(
@@ -970,5 +982,48 @@ export default class XMPP extends Listenable {
         }
 
         return true;
+    }
+
+    /**
+     * Sends deployment info to stats if not sent already.
+     *
+     * @private
+     */
+    _maybeSendDeploymentInfoStat() {
+        // we want to try sending it on successful connecting or failure
+        const acceptedStatuses = [
+            Strophe.Status.ERROR,
+            Strophe.Status.CONNFAIL,
+            Strophe.Status.AUTHFAIL,
+            Strophe.Status.CONNECTED,
+            Strophe.Status.DISCONNECTED,
+            Strophe.Status.ATTACHED,
+            Strophe.Status.CONNTIMEOUT
+        ];
+
+        if (!acceptedStatuses.includes(this.connection.status)) {
+            return;
+        }
+
+        if (this.sendDeploymentInfo) {
+            // Log deployment-specific information, if available. Defined outside
+            // the application by individual deployments
+            const aprops = this.options.deploymentInfo;
+
+            if (aprops && Object.keys(aprops).length > 0) {
+                const logObject = {};
+
+                logObject.id = 'deployment_info';
+                for (const attr in aprops) {
+                    if (aprops.hasOwnProperty(attr)) {
+                        logObject[attr] = aprops[attr];
+                    }
+                }
+
+                Statistics.sendLog(JSON.stringify(logObject));
+            }
+
+            this.sendDeploymentInfo = false;
+        }
     }
 }
