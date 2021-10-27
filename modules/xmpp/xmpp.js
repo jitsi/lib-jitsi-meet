@@ -296,6 +296,8 @@ export default class XMPP extends Listenable {
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
 
+            // make sure we will send the info after the features request succeeds or fails
+            this.sendDeploymentInfo = false;
             this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
@@ -312,6 +314,8 @@ export default class XMPP extends Listenable {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error(`${errmsg}: ${error}`));
                     logger.error(errmsg, error);
+
+                    this._maybeSendDeploymentInfoStat(true);
                 });
 
             // make sure we don't query again
@@ -411,8 +415,6 @@ export default class XMPP extends Listenable {
      * @private
      */
     _processDiscoInfoIdentities(identities, features) {
-        let deploymentInfoChanged = false;
-
         // check for speakerstats
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
@@ -448,19 +450,14 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'shard') {
                 this.options.deploymentInfo.shard = this.connection.shard = identity.name;
-                deploymentInfoChanged = true;
             }
 
             if (identity.type === 'region') {
                 this.options.deploymentInfo.region = this.connection.region = identity.name;
-                deploymentInfoChanged = true;
             }
-
-
         });
 
-        // deployment info updated
-        deploymentInfoChanged && this._maybeSendDeploymentInfoStat();
+        this._maybeSendDeploymentInfoStat(true);
 
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
@@ -986,44 +983,42 @@ export default class XMPP extends Listenable {
 
     /**
      * Sends deployment info to stats if not sent already.
-     *
+     * We want to try sending it on failure to connect
+     * or when we get a sys message(from jiconop2)
+     * or after success or failure of disco-info
+     * @param force Whether to force sending without checking anything.
      * @private
      */
-    _maybeSendDeploymentInfoStat() {
-        // we want to try sending it on successful connecting or failure
+    _maybeSendDeploymentInfoStat(force) {
         const acceptedStatuses = [
             Strophe.Status.ERROR,
             Strophe.Status.CONNFAIL,
             Strophe.Status.AUTHFAIL,
-            Strophe.Status.CONNECTED,
             Strophe.Status.DISCONNECTED,
-            Strophe.Status.ATTACHED,
             Strophe.Status.CONNTIMEOUT
         ];
 
-        if (!acceptedStatuses.includes(this.connection.status)) {
+        if (!force && !(acceptedStatuses.includes(this.connection.status) && this.sendDeploymentInfo)) {
             return;
         }
 
-        if (this.sendDeploymentInfo) {
-            // Log deployment-specific information, if available. Defined outside
-            // the application by individual deployments
-            const aprops = this.options.deploymentInfo;
+        // Log deployment-specific information, if available. Defined outside
+        // the application by individual deployments
+        const aprops = this.options.deploymentInfo;
 
-            if (aprops && Object.keys(aprops).length > 0) {
-                const logObject = {};
+        if (aprops && Object.keys(aprops).length > 0) {
+            const logObject = {};
 
-                logObject.id = 'deployment_info';
-                for (const attr in aprops) {
-                    if (aprops.hasOwnProperty(attr)) {
-                        logObject[attr] = aprops[attr];
-                    }
+            logObject.id = 'deployment_info';
+            for (const attr in aprops) {
+                if (aprops.hasOwnProperty(attr)) {
+                    logObject[attr] = aprops[attr];
                 }
-
-                Statistics.sendLog(JSON.stringify(logObject));
             }
 
-            this.sendDeploymentInfo = false;
+            Statistics.sendLog(JSON.stringify(logObject));
         }
+
+        this.sendDeploymentInfo = false;
     }
 }
