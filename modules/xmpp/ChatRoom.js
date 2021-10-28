@@ -1536,19 +1536,19 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     *
      * @param mute
-     * @return <tt>true</tt> if the presence was sent, false otherwise.
      */
     setVideoMute(mute) {
-        return this.sendVideoInfoPresence(mute);
+        this.sendVideoInfoPresence(mute);
     }
 
     /**
+     *
      * @param mute
-     * @return <tt>true</tt> if the presence was sent, false otherwise.
      */
     setAudioMute(mute) {
-        return this.sendAudioInfoPresence(mute);
+        this.sendAudioInfoPresence(mute);
     }
 
     /**
@@ -1571,18 +1571,12 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     *
      * @param mute
-     * @return <tt>true</tt> if the presence was sent, false otherwise.
      */
     sendAudioInfoPresence(mute) {
         // FIXME resend presence on CONNECTED
-        if (this.addAudioInfoToPresence(mute)) {
-            this.sendPresence();
-
-            return true;
-        }
-
-        return false;
+        this.addAudioInfoToPresence(mute) && this.sendPresence();
     }
 
     /**
@@ -1605,17 +1599,11 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     *
      * @param mute
-     * @return <tt>true</tt> if the presence was sent, false otherwise.
      */
     sendVideoInfoPresence(mute) {
-        if (this.addVideoInfoToPresence(mute)) {
-            this.sendPresence();
-
-            return true;
-        }
-
-        return false;
+        this.addVideoInfoToPresence(mute) && this.sendPresence();
     }
 
     /**

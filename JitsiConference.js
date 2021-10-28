@@ -1284,7 +1284,8 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.rtc.addLocalTrack(newTrack);
 
     // ensure that we're sharing proper "is muted" state
-    if (!this._setTrackMuteStatus(newTrack, newTrack.isMuted()) && videoTypeChanged) {
+    if (this._setTrackMuteStatus(newTrack, newTrack.isMuted()) || videoTypeChanged) {
+        // send presence if it was changed with vide type or mute status
         this.room.sendPresence();
     }
 
@@ -1337,7 +1338,7 @@ JitsiConference.prototype._setNewVideoType = function(track) {
  * Sets mute status.
  * @param localTrack
  * @param isMuted
- * @param <tt>true</tt> when presence was sent due to the change.
+ * @param <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
  * @private
  */
 JitsiConference.prototype._setTrackMuteStatus = function(localTrack, isMuted) {
@@ -1355,10 +1356,10 @@ JitsiConference.prototype._setTrackMuteStatus = function(localTrack, isMuted) {
     }
 
     if (localTrack.isAudioTrack()) {
-        return this.room.setAudioMute(isMuted);
+        return this.room.addAudioInfoToPresence(isMuted);
     }
 
-    return this.room.setVideoMute(isMuted);
+    return this.room.addVideoInfoToPresence(isMuted);
 };
 
 /**
