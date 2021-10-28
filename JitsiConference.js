@@ -1320,6 +1320,9 @@ JitsiConference.prototype._setNewVideoType = function(track) {
                 0
             ),
             track.videoType);
+
+        // TODO: Optimize to detect whether presence was changed, for now always report changed to send presence
+        return true;
     }
 
     const videoTypeTagName = 'videoType';
