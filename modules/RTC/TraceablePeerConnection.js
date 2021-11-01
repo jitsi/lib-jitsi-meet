@@ -1991,6 +1991,7 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
+        const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const stream = newTrack?.getOriginalStream();
         const promise = newTrack && !stream
 
@@ -1998,14 +1999,12 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
             // The track will be replaced again on the peerconnection when the user unmutes.
             ? Promise.resolve()
             : this.tpcUtils.replaceTrack(oldTrack, newTrack);
+        const transceiver = this.tpcUtils.findTransceiver(mediaType, oldTrack);
 
         return promise
             .then(() => {
                 oldTrack && this.localTracks.delete(oldTrack.rtcId);
                 newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
-
-                const mediaType = newTrack?.getType() ?? oldTrack?.getType();
-                const transceiver = this.tpcUtils.findTransceiver(mediaType, oldTrack);
 
                 if (transceiver) {
                     // Set the transceiver direction.
