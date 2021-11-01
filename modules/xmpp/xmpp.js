@@ -211,7 +211,7 @@ export default class XMPP extends Listenable {
 
         // Disable RTX on Firefox because we prefer simulcast over RTX
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1738504
-        if (!(this.options.disableRtx || (browser.isFirefox()))) {
+        if (!(this.options.disableRtx || browser.isFirefox())) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
         if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
