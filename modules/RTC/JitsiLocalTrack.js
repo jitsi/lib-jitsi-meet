@@ -625,7 +625,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _sendMuteStatus(mute) {
         if (this.conference) {
-            this.conference._setTrackMuteStatus(this, mute);
+            this.conference._setTrackMuteStatus(this, mute) && this.conference.room.sendPresence();
         }
     }
 
