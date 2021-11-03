@@ -38,7 +38,7 @@ export default class E2EEcontext {
         }
 
         const workerUrl = `${baseUrl}lib-jitsi-meet.e2ee-worker.js`;
-        
+
         if (baseUrl && baseUrl.length > 0) {
             // Initialize the E2EE worker. In order to avoid CORS issues, start the worker and have it
             // synchronously load the JS.
