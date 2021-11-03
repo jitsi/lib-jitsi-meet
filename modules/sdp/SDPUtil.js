@@ -112,6 +112,9 @@ const SDPUtil = {
 
         return [ sctpPort, protocol, streamCount ];// SCTP port
     },
+    parseSCTPPort(line) {
+        return line.substring(12);
+    },
     buildRTPMap(el) {
         let line
             = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
