@@ -81,6 +81,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._startStreamEffect(effect);
         }
 
+        const displaySurface = videoType === VideoType.DESKTOP
+            ? track.getSettings().displaySurface
+            : null;
+
+        /**
+         * Track metadata.
+         */
+        this.metadata = {
+            timestamp: Date.now(),
+            ...displaySurface ? { displaySurface } : {}
+        };
+
+
         /**
          * The ID assigned by the RTC module on instance creation.
          *
@@ -194,6 +207,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
         RTCUtils.addListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListWillChange);
 
         this._initNoDataFromSourceHandlers();
+    }
+
+    /**
+     * Get the duration of the track.
+     *
+     * @returns {Number} the duration of the track in seconds
+     */
+    getDuration() {
+        return (Date.now() / 1000) - (this.metadata.timestamp / 1000);
     }
 
     /**
