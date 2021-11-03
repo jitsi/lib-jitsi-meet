@@ -42,7 +42,7 @@ export default class E2EEcontext {
         // If there is no baseUrl then we create the worker in a normal way
         // as you cant load scripts inside blobs from relative paths.
         // See: https://www.html5rocks.com/en/tutorials/workers/basics/#toc-inlineworkers-loadingscripts
-        if (baseUrl && baseUrl.length > 0) {
+        if (baseUrl && baseUrl !== '/') {
             // Initialize the E2EE worker. In order to avoid CORS issues, start the worker and have it
             // synchronously load the JS.
             const workerBlob
