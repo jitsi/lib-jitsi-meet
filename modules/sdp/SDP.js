@@ -550,15 +550,15 @@ SDP.prototype.jingle2media = function(content) {
 
     const media = { media: desc.attr('media') };
 
-    media.port = '1';
+    media.port = '9';
     if (content.attr('senders') === 'rejected') {
         // estos hack to reject an m-line.
         media.port = '0';
     }
     if (transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
-        media.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
+        media.proto = sctp.length ? 'DTLS/SCTP' : 'UDP/TLS/RTP/SAVPF';
     } else {
-        media.proto = 'RTP/AVPF';
+        media.proto = 'UDP/TLS/RTP/SAVPF';
     }
     if (sctp.length) {
         sdp += `m=application ${media.port} DTLS/SCTP ${
