@@ -47,6 +47,7 @@ export default class E2EEcontext {
             // synchronously load the JS.
             const workerBlob
                 = new Blob([ `importScripts("${workerUrl}");` ], { type: 'application/javascript' });
+
             workerUrl = window.URL.createObjectURL(workerBlob);
         }
 
