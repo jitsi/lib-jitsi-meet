@@ -323,6 +323,17 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Check if the browser supports the RTP RTX feature (and it is usable).
+     *
+     * @returns {boolean}
+     */
+    supportsRTX() {
+        // Disable RTX on Firefox up to 96 because we prefer simulcast over RTX
+        // see https://bugzilla.mozilla.org/show_bug.cgi?id=1738504
+        return !(this.isFirefox() && this.isVersionLessThan('96'));
+    }
+
+    /**
      * Returns the version of a Chromium based browser.
      *
      * @returns {Number}

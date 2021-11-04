@@ -209,9 +209,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
         this.caps.addFeature('http://jitsi.org/json-encoded-sources');
 
-        // Disable RTX on Firefox 83 and older versions because of
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1668028
-        if (!(this.options.disableRtx || (browser.isFirefox() && browser.isVersionLessThan(94)))) {
+        if (!(this.options.disableRtx || !browser.supportsRTX())) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
         if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
