@@ -364,6 +364,9 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
             number: sctpAttrs, /* SCTP port */
             protocol: 'webrtc-datachannel' /* protocol */
         });
+
+        // The parser currently requires streams to be present
+        elem.attrs({ streams: 0 });
         elem.up();
     } else if (sctpmap) {
         const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
@@ -377,6 +380,8 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         // Optional stream count attribute
         if (sctpAttrs.length > 2) {
             elem.attrs({ streams: sctpAttrs[2] });
+        } else {
+            elem.attrs({ streams: 0 });
         }
         elem.up();
     }
