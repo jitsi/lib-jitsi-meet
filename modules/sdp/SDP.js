@@ -364,6 +364,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
             number: sctpAttrs, /* SCTP port */
             protocol: 'webrtc-datachannel' /* protocol */
         });
+
         // The parser currently requires streams to be present
         elem.attrs({ streams: 0 });
         elem.up();
