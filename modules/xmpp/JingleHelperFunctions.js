@@ -1,6 +1,7 @@
-/* global $, $build, __filename */
+/* global $ */
 
 import { getLogger } from '@jitsi/logger';
+import { $build } from 'strophe.js';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import FeatureFlags from '../flags/FeatureFlags';

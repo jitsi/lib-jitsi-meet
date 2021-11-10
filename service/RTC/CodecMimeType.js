@@ -1,4 +1,3 @@
-/* global module */
 /**
  * Enumeration of the codec mime types
  * @type {{H264: string, OPUS: string, VP8: string, VP9: string}}

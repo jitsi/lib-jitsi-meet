@@ -1,4 +1,3 @@
-/* global __filename */
 /**
  * Strophe logger implementation. Logs from level WARN and above.
  */

@@ -132,7 +132,7 @@ function JitsiTrackError(error, options, devices) {
         throw new Error('Invalid arguments');
     }
 
-    this.stack = error.stack || (new Error()).stack;
+    this.stack = error.stack || new Error().stack;
 }
 
 JitsiTrackError.prototype = Object.create(Error.prototype);

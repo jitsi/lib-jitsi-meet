@@ -1,5 +1,3 @@
-/* global __filename, RTCSessionDescription */
-
 import { getLogger } from '@jitsi/logger';
 import { Interop } from '@jitsi/sdp-interop';
 import transform from 'sdp-transform';

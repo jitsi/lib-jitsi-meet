@@ -1,4 +1,4 @@
-/* global $, Promise */
+/* global $ */
 
 import { getLogger } from '@jitsi/logger';
 import { $iq, Strophe } from 'strophe.js';

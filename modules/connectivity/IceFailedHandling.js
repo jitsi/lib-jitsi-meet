@@ -1,4 +1,3 @@
-/* global __filename */
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';

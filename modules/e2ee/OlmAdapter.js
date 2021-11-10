@@ -1,4 +1,4 @@
-/* global __filename, Olm */
+/* global Olm */
 
 import { getLogger } from '@jitsi/logger';
 import base64js from 'base64-js';

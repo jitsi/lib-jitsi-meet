@@ -1,4 +1,3 @@
-/* global __filename, module */
 import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';
 
