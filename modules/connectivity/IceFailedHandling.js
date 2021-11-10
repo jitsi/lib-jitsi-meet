@@ -1,5 +1,5 @@
 /* global __filename */
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';

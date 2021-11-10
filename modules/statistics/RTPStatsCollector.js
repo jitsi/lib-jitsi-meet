@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';

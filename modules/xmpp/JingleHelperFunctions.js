@@ -1,6 +1,6 @@
 /* global $, $build, __filename */
 
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import FeatureFlags from '../flags/FeatureFlags';

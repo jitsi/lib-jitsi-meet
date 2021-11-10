@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import isEqual from 'lodash.isequal';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';

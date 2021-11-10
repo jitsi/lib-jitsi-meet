@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import { $msg, Strophe } from 'strophe.js';
 
 import XMPPEvents from '../../service/xmpp/XMPPEvents';

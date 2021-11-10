@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';

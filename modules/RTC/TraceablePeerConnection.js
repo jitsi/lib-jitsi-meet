@@ -1,7 +1,7 @@
 /* global __filename, RTCSessionDescription */
 
+import { getLogger } from '@jitsi/logger';
 import { Interop } from '@jitsi/sdp-interop';
-import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';

@@ -1,6 +1,6 @@
 /* global __filename, module */
+import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';
-import { getLogger } from 'jitsi-meet-logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';

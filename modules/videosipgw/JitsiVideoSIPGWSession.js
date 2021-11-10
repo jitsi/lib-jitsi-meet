@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
 import Listenable from '../util/Listenable';

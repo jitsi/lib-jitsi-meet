@@ -1,6 +1,6 @@
 /* global __filename, RTCRtpScriptTransform */
 
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 const logger = getLogger(__filename);
 

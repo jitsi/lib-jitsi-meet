@@ -14,7 +14,7 @@ import { PerformanceObserverStats } from './PerformanceObserverStats';
 import RTPStats from './RTPStatsCollector';
 import { CALLSTATS_SCRIPT_URL } from './constants';
 
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+const logger = require('@jitsi/logger').getLogger(__filename);
 
 /**
  * Stores all active {@link Statistics} instances.

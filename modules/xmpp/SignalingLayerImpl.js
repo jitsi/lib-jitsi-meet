@@ -1,6 +1,6 @@
 /* global __filename */
 
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
 import * as MediaType from '../../service/RTC/MediaType';
