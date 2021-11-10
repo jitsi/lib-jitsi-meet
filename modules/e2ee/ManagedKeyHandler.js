@@ -1,6 +1,6 @@
 /* global __filename */
 
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import debounce from 'lodash.debounce';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';

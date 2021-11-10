@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import { $iq, Strophe } from 'strophe.js';
 
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';

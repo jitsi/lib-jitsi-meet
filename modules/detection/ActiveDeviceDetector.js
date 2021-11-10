@@ -1,4 +1,4 @@
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTC from '../RTC/RTC';

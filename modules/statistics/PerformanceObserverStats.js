@@ -1,5 +1,5 @@
 
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 
 import * as StatisticsEvents from '../../service/statistics/Events';
 import { RunningAverage } from '../util/MathUtil';

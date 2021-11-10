@@ -1,7 +1,7 @@
 /* global __filename, Olm */
 
+import { getLogger } from '@jitsi/logger';
 import base64js from 'base64-js';
-import { getLogger } from 'jitsi-meet-logger';
 import isEqual from 'lodash.isequal';
 import { v4 as uuidv4 } from 'uuid';
 
