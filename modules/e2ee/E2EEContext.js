@@ -1,4 +1,4 @@
-/* global __filename, RTCRtpScriptTransform */
+/* global RTCRtpScriptTransform */
 
 import { getLogger } from '@jitsi/logger';
 

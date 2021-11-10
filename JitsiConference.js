@@ -1,4 +1,4 @@
-/* global __filename, $, Promise */
+/* global $ */
 
 import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';

@@ -1,4 +1,3 @@
-/* global __filename */
 import { getLogger } from '@jitsi/logger';
 import isEqual from 'lodash.isequal';
 

@@ -124,7 +124,7 @@ export class TPCUtils {
                 group.ssrcs
                     .split(' ')
                     .filter(Boolean)
-                    .forEach(ssrc => ssrcs.add(ssrc)),
+                    .forEach(ssrc => ssrcs.add(ssrc))
             );
 
             ssrcs.forEach(ssrc => {
