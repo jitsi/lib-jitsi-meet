@@ -199,6 +199,13 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.startVideoMuted
             }).up();
     }
+    if (this.options.conference.rtcstatsEnabled !== undefined) {
+        elem.c(
+            'property', {
+                name: 'rtcstatsEnabled',
+                value: this.options.conference.rtcstatsEnabled
+            }).up();
+    }
     elem.up();
 
     return elem;
