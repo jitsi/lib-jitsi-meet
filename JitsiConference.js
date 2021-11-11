@@ -2970,7 +2970,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
 
             this.eventEmitter.emit(
                 JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-                this.p2pJingleSession);
+                jingleSession);
         },
         error => {
             logger.error(
