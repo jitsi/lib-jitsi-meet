@@ -92,9 +92,7 @@ export class OlmAdapter extends Listenable {
             const localParticipantId = this._conf.myUserId();
 
             for (const participant of this._conf.getParticipants()) {
-                const participantFeatures = await participant.getFeatures();
-
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participant.getId()) {
+                if (participant.hasFeature(FEATURE_E2EE) && localParticipantId < participant.getId()) {
                     promises.push(this._sendSessionInit(participant));
                 }
             }
