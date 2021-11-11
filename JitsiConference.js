@@ -3390,7 +3390,11 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!this.isP2PEnabled() || this.isP2PTestModeEnabled() || browser.isFirefox() || browser.isWebKitBased()) {
+    if (!this.isP2PEnabled()
+            || this.isP2PTestModeEnabled()
+            || browser.isFirefox()
+            || browser.isWebKitBased()
+            || this.isE2EEEnabled()) {
         logger.info('Auto P2P disabled');
 
         return;
