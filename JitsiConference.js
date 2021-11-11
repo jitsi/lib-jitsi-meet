@@ -2338,6 +2338,8 @@ JitsiConference.prototype.onCallEnded = function(
         // Let the RTC service do any cleanups
         this.rtc.onCallEnded();
     } else if (jingleSession === this.p2pJingleSession) {
+        const stopOptions = {};
+
         // It's the responder who decides to enforce JVB mode, so that both
         // initiator and responder are aware if it was intentional.
         if (reasonCondition === 'decline' && reasonText === 'force JVB121') {
@@ -2349,8 +2351,12 @@ JitsiConference.prototype.onCallEnded = function(
             // terminates the session, before we get the event on our side.
             // But we are able to parse the reason and mark it here.
             Statistics.analytics.addPermanentProperties({ p2pFailed: true });
+        } else if (reasonCondition === 'success' && reasonText === 'restart') {
+            // When we are restarting media sessions we don't want to switch the tracks
+            // to the JVB just yet.
+            stopOptions.requestRestart = true;
         }
-        this._stopP2PSession();
+        this._stopP2PSession(stopOptions);
     } else {
         logger.error(
             'Received onCallEnded for invalid session',
@@ -2898,7 +2904,10 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
                     }));
 
         }
-        this._stopP2PSession('connectivity-error', 'ICE FAILED');
+        this._stopP2PSession({
+            reason: 'connectivity-error',
+            reasonDescription: 'ICE FAILED'
+        });
     } else if (session && this.jvbJingleSession === session) {
         this._delayedIceFailed = new IceFailedHandling(this);
         this._delayedIceFailed.start(session);
@@ -3048,7 +3057,10 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
         && Math.random() < forceJVB121Ratio) {
         logger.info(`Forcing JVB 121 mode (ratio=${forceJVB121Ratio})...`);
         Statistics.analytics.addPermanentProperties({ forceJvb121: true });
-        this._stopP2PSession('decline', 'force JVB121');
+        this._stopP2PSession({
+            reason: 'decline',
+            reasonDescription: 'force JVB121'
+        });
 
         done = true;
     }
@@ -3438,15 +3450,22 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
 
 /**
  * Stops the current P2P session.
- * @param {string} [reason="success"] one of the Jingle "reason" element
+ * @param {Object} options - Options for stopping P2P.
+ * @param {string} options.reason - One of the Jingle "reason" element
  * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
- * @param {string} [reasonDescription="Turing off P2P session"] text
+ * @param {string} options.reasonDescription - Text
  * description that will be included in the session terminate message
+ * @param {boolean} requestRestart - Whether this is due to a session restart, in which case
+ * media will not be resumed on the JVB.
  * @private
  */
-JitsiConference.prototype._stopP2PSession = function(
-        reason,
-        reasonDescription) {
+JitsiConference.prototype._stopP2PSession = function(options = {}) {
+    const {
+        reason = 'success',
+        reasonDescription = 'Turning off P2P session',
+        requestRestart = false
+    } = options;
+
     if (!this.p2pJingleSession) {
         logger.error('No P2P session to be stopped!');
 
@@ -3457,7 +3476,7 @@ JitsiConference.prototype._stopP2PSession = function(
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
-        if (this.jvbJingleSession) {
+        if (this.jvbJingleSession && !requestRestart) {
             this._resumeMediaTransferForJvbConnection();
         }
 
@@ -3495,9 +3514,8 @@ JitsiConference.prototype._stopP2PSession = function(
                         + ' P2P Jingle session', error);
             }
         }, {
-            reason: reason ? reason : 'success',
-            reasonDescription: reasonDescription
-                ? reasonDescription : 'Turing off P2P session',
+            reason,
+            reasonDescription,
             sendSessionTerminate: this.room
                 && this.getParticipantById(
                     Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid))
@@ -3510,7 +3528,7 @@ JitsiConference.prototype._stopP2PSession = function(
 
     if (wasP2PEstablished) {
         // Add back remote JVB tracks
-        if (this.jvbJingleSession) {
+        if (this.jvbJingleSession && !requestRestart) {
             this._addRemoteJVBTracks();
         } else {
             logger.info('Not adding remote JVB tracks - no session yet');
@@ -3584,10 +3602,10 @@ JitsiConference.prototype.startP2PSession = function() {
 };
 
 /**
- * Manually stops the current P2P session (should be used only in the tests)
+ * Manually stops the current P2P session (should be used only in the tests).
  */
-JitsiConference.prototype.stopP2PSession = function() {
-    this._stopP2PSession();
+JitsiConference.prototype.stopP2PSession = function(options) {
+    this._stopP2PSession(options);
 };
 
 /**
@@ -3713,7 +3731,10 @@ JitsiConference.prototype._sendConferenceLeftAnalyticsEvent = function() {
  */
 JitsiConference.prototype._restartMediaSessions = function() {
     if (this.p2pJingleSession) {
-        this.stopP2PSession();
+        this._stopP2PSession({
+            reasonDescription: 'restart',
+            requestRestart: true
+        });
     }
 
     if (this.jvbJingleSession) {
