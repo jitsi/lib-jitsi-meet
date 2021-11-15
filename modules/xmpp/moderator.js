@@ -199,13 +199,19 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.startVideoMuted
             }).up();
     }
-    if (this.options.conference.rtcstatsEnabled !== undefined) {
-        elem.c(
-            'property', {
-                name: 'rtcstatsEnabled',
-                value: this.options.conference.rtcstatsEnabled
-            }).up();
+    let rtcstatsEnabled = this.options.conference.rtcstatsEnabled;
+    if (rtcstasEnabled === undefined) {
+        // this flag determines whether the bridge will include this call in
+        // its rtcstats reporting or not. If the site admin hasn't set the
+        // flag, then we default to true which is the currently assumed value
+        // in order to maintain backwards compatibility.
+        rtcstatsEnabled = true;
     }
+    elem.c(
+        'property', {
+            name: 'rtcstatsEnabled',
+            value: rtcstatsEnabled
+        }).up();
     elem.up();
 
     return elem;
