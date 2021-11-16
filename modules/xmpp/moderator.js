@@ -214,6 +214,20 @@ Moderator.prototype.createConferenceIq = function() {
         }).up();
     elem.up();
 
+    const callstatsEnabled
+        = this.options.callStatsID && this.options.callStatsSecret && this.options.enableCallStats
+
+            // Even though AppID and AppSecret may be specified, the integration
+            // of callstats.io may be disabled because of globally-disallowed
+            // requests to any third parties.
+            && (this.options.disableThirdPartyRequests !== true);
+    elem.c(
+        'property', {
+            name: 'callstatsEnabled',
+            value: callstatsEnabled
+        }).up();
+    elem.up();
+
     return elem;
 };
 
