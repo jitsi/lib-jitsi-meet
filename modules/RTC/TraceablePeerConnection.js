@@ -17,6 +17,7 @@ import SDPUtil from '../sdp/SDPUtil';
 import SdpConsistency from '../sdp/SdpConsistency';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
@@ -896,7 +897,16 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},type=${mediaType}]`);
+    let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+
+    // If source name was not signaled, we'll generate one which allows testing signaling 
+    // when mixing legacy(mobile) with new clients.
+    if (!sourceName) {
+        sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
+    }
+
+    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`
+        + `type=${mediaType},sourceName=${sourceName}]`);
 
     const peerMediaInfo
         = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
@@ -912,7 +922,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const videoType = peerMediaInfo.videoType; // can be undefined
 
     this._createRemoteTrack(
-        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted);
+        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
 
 // FIXME cleanup params
@@ -929,6 +939,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
  * @param {VideoType} [videoType] the track's type of the video (if applicable)
  * @param {number} ssrc the track's main SSRC number
  * @param {boolean} muted the initial muted status
+ * @param {String} sourceName the track's source name
  */
 TraceablePeerConnection.prototype._createRemoteTrack = function(
         ownerEndpointId,
@@ -937,7 +948,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         mediaType,
         videoType,
         ssrc,
-        muted) {
+        muted,
+        sourceName) {
     let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
     if (!remoteTracksMap) {
@@ -977,7 +989,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 videoType,
                 ssrc,
                 muted,
-                this.isP2P);
+                this.isP2P,
+                sourceName);
 
     remoteTracksMap.set(mediaType, remoteTrack);
 

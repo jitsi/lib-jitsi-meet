@@ -52,6 +52,16 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * @private
          */
         this._remoteSourceState = { };
+
+        /**
+         * A map that stores the source name of a track identified by it's ssrc.
+         * We store the mapping when jingle is received, and later is used
+         * onaddstream webrtc event where we have only the ssrc
+         * FIXME: This map got filled and never cleaned and can grow during long
+         * conference
+         * @type {Map<number, string>} maps SSRC number to source name
+         */
+         this.sourceNames = new Map();        
     }
 
     /**
@@ -391,4 +401,33 @@ export default class SignalingLayerImpl extends SignalingLayer {
             this._addLocalSourceInfoToPresence();
         }
     }
+
+    /**
+     * @inheritDoc
+     */
+    getTrackSourceName(ssrc) {
+        return this.sourceNames.get(ssrc);
+    }    
+    
+    /**
+     * Saves the source name for a track identified by it's ssrc.
+     * @param {number} ssrc the ssrc of the target track.
+     * @param {SourceName} sourceName the track's source name to save.
+     * @throws TypeError if <tt>ssrc</tt> is not a number
+     */
+    setTrackSourceName(ssrc, sourceName) {
+        if (typeof ssrc !== 'number') {
+            throw new TypeError(`SSRC(${ssrc}) must be a number`);
+        }
+        
+        // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
+        // an SSRC conflict could potentially occur. Log a message to make debugging easier.
+        if (this.sourceNames.has(ssrc)) {
+            logger.warn(`possible ssrc collision detected. changing source name for `
+                + `SSRC(${ssrc}) from ${this.sourceNames.get(ssrc)} to ${sourceName}`);
+        }
+
+        this.sourceNames.set(ssrc, sourceName);
+    }
+
 }
