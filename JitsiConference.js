@@ -3646,6 +3646,14 @@ JitsiConference.prototype.getSpeakerStats = function() {
 };
 
 /**
+ * Sends a facial expression with its duration to the xmpp server.
+ * @param {Object} payload
+ */
+JitsiConference.prototype.sendFacialExpression = function(payload) {
+    this.xmpp.sendFacialExpressionEvent(this.room.roomjid, payload);
+};
+
+/**
  * Sets the constraints for the video that is requested from the bridge.
  *
  * @param {Object} videoConstraints The constraints which are specified in the
