@@ -343,8 +343,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
         // an SSRC conflict could potentially occur. Log a message to make debugging easier.
-        if (this.ssrcOwners.has(ssrc)) {
-            logger.error(`SSRC owner re-assigned from ${this.ssrcOwners.get(ssrc)} to ${endpointId}`);
+        const existingOwner = this.ssrcOwners.get(ssrc);
+
+        if (existingOwner && existingOwner !== endpointId) {
+            logger.error(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
         }
         this.ssrcOwners.set(ssrc, endpointId);
     }
