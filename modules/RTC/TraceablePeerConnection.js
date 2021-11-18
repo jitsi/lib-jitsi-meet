@@ -1988,7 +1988,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     }
 
     // If a track is being added to the peerconnection for the first time, we want the source signaling to be sent to
-    // Jicofo before the mute state is sent over presence. Therefore, trigger a renegotiation in this case.
+    // Jicofo before the mute state is sent over presence. Therefore, trigger a renegotiation in this case. If we
+    // rely on "negotiationneeded" fired by the browser to signal new ssrcs, the mute state in presence will be sent
+    // before the source signaling which is undesirable.
     const negotiationNeeded = Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
 
     if (this._usesUnifiedPlan) {
