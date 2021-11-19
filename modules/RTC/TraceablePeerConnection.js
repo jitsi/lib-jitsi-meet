@@ -2498,10 +2498,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
 
     // For p2p and cases and where simulcast is explicitly disabled.
     } else if (frameHeight > 0) {
+        let scaleFactor = HD_SCALE_FACTOR;
+
         // Do not scale down encodings for desktop tracks for non-simulcast case.
-        const scaleFactor = videoType === VideoType.DESKTOP || localVideoTrack.resolution <= frameHeight
-            ? HD_SCALE_FACTOR
-            : Math.floor(localVideoTrack.resolution / frameHeight);
+        if (videoType === VideoType.CAMERA && localVideoTrack.resolution > frameHeight) {
+            scaleFactor = Math.floor(localVideoTrack.resolution / frameHeight);
+        }
 
         parameters.encodings[0].active = true;
         parameters.encodings[0].scaleResolutionDownBy = scaleFactor;
