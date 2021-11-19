@@ -667,8 +667,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
             promise = this.setEffect();
         }
 
+        let removeTrackPromise = Promise.resolve();
+
         if (this.conference) {
-            promise = promise.then(() => this.conference.removeTrack(this));
+            removeTrackPromise = this.conference.removeTrack(this);
         }
 
         if (this.stream) {
@@ -683,7 +685,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._onAudioOutputDeviceChanged);
         }
 
-        return promise.then(() => super.dispose());
+        return Promise.all([ promise, removeTrackPromise ]).then(() => super.dispose());
     }
 
     /**
