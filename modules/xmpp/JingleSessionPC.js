@@ -24,6 +24,7 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 
@@ -879,10 +880,12 @@ export default class JingleSessionPC extends JingleSession {
                 this._signalingLayer.setSSRCOwner(
                     ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
-                // Only set sourceName for non-P2P case
-                if (ssrcElement.hasAttribute('name')) {
-                    const sourceName = ssrcElement.getAttribute('name');
-                    this._signalingLayer.setTrackSourceName(ssrc, sourceName);
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // Only set sourceName for non-P2P case
+                    if (ssrcElement.hasAttribute('name')) {
+                        const sourceName = ssrcElement.getAttribute('name');
+                        this._signalingLayer.setTrackSourceName(ssrc, sourceName);
+                    }
                 }
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')

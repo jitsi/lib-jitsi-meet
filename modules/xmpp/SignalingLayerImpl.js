@@ -61,7 +61,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * conference
          * @type {Map<number, string>} maps SSRC number to source name
          */
-         this.sourceNames = new Map();        
+         this._sourceNames = new Map();
     }
 
     /**
@@ -244,6 +244,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
             const endpointId = Strophe.getResourceFromJid(jid);
 
             delete this._remoteSourceState[endpointId];
+
+            if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                for (const [key, value] of this.ssrcOwners.entries()) {
+                    if (value === endpointId) {
+                        delete this._sourceNames[key];
+                    }
+                }
+            }
         };
 
         room.addEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
@@ -406,7 +414,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     getTrackSourceName(ssrc) {
-        return this.sourceNames.get(ssrc);
+        return this._sourceNames.get(ssrc);
     }    
     
     /**
@@ -422,12 +430,13 @@ export default class SignalingLayerImpl extends SignalingLayer {
         
         // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
         // an SSRC conflict could potentially occur. Log a message to make debugging easier.
-        if (this.sourceNames.has(ssrc)) {
-            logger.warn(`possible ssrc collision detected. changing source name for `
-                + `SSRC(${ssrc}) from ${this.sourceNames.get(ssrc)} to ${sourceName}`);
+        const existingName = this._sourceNames.get(ssrc);
+
+        if (existingName && existingName !== sourceName) {
+            logger.error(`SSRC(${ssrc}) sourceName re-assigned from ${existingName} to ${sourceName}`);
         }
 
-        this.sourceNames.set(ssrc, sourceName);
+        this._sourceNames.set(ssrc, sourceName);
     }
 
 }

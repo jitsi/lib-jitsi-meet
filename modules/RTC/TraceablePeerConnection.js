@@ -18,6 +18,7 @@ import SdpConsistency from '../sdp/SdpConsistency';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
+import FeatureFlags from '../flags/FeatureFlags';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
@@ -897,12 +898,14 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
 
-    // If source name was not signaled, we'll generate one which allows testing signaling 
-    // when mixing legacy(mobile) with new clients.
-    if (!sourceName) {
-        sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
+        // If source name was not signaled, we'll generate one which allows testing signaling
+        // when mixing legacy(mobile) with new clients.
+        if (!sourceName) {
+            sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
+        }
     }
 
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`

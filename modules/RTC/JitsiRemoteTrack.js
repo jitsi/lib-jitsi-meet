@@ -73,7 +73,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.ownerEndpointId = ownerEndpointId;
         this.muted = muted;
         this.isP2P = isP2P;
-        this.sourceName = sourceName;
+        this._sourceName = sourceName;
 
         logger.debug(`New remote track added: ${this}`);
 
@@ -197,7 +197,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {string} the track's source name
      */
      getSourceName() {
-        return this.sourceName;
+        return this._sourceName;
     }
 
     /**
@@ -324,6 +324,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this.sourceName}, status: ${this._getStatus()}]`;
+            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: ${this._getStatus()}]`;
     }
 }
