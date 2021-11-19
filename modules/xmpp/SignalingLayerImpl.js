@@ -61,7 +61,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * conference
          * @type {Map<number, string>} maps SSRC number to source name
          */
-         this._sourceNames = new Map();
+        this._sourceNames = new Map();
     }
 
     /**
@@ -246,7 +246,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
             delete this._remoteSourceState[endpointId];
 
             if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                for (const [key, value] of this.ssrcOwners.entries()) {
+                for (const [ key, value ] of this.ssrcOwners.entries()) {
                     if (value === endpointId) {
                         delete this._sourceNames[key];
                     }
@@ -415,8 +415,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     getTrackSourceName(ssrc) {
         return this._sourceNames.get(ssrc);
-    }    
-    
+    }
+
     /**
      * Saves the source name for a track identified by it's ssrc.
      * @param {number} ssrc the ssrc of the target track.
@@ -427,7 +427,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
-        
+
         // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
         // an SSRC conflict could potentially occur. Log a message to make debugging easier.
         const existingName = this._sourceNames.get(ssrc);

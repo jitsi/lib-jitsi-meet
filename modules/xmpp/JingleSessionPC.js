@@ -11,6 +11,7 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
 import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
@@ -24,7 +25,6 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
-import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 
@@ -884,6 +884,7 @@ export default class JingleSessionPC extends JingleSession {
                     // Only set sourceName for non-P2P case
                     if (ssrcElement.hasAttribute('name')) {
                         const sourceName = ssrcElement.getAttribute('name');
+                        
                         this._signalingLayer.setTrackSourceName(ssrc, sourceName);
                     }
                 }

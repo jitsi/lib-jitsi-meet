@@ -190,13 +190,13 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         return this.ssrc;
     }
 
-    
+
     /**
      * Returns the tracks source name
      *
      * @returns {string} the track's source name
      */
-     getSourceName() {
+    getSourceName() {
         return this._sourceName;
     }
 

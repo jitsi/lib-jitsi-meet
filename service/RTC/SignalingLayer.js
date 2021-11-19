@@ -112,7 +112,7 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
      */
-     getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
-    }    
+    }
 }

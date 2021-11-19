@@ -7,9 +7,11 @@ import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import * as VideoType from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
 import RtxModifier from '../sdp/RtxModifier';
 import SDP from '../sdp/SDP';
@@ -17,8 +19,6 @@ import SDPUtil from '../sdp/SDPUtil';
 import SdpConsistency from '../sdp/SdpConsistency';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import FeatureFlags from '../flags/FeatureFlags';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
@@ -898,8 +898,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
+    let sourceName = undefined;
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+        sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
 
         // If source name was not signaled, we'll generate one which allows testing signaling
         // when mixing legacy(mobile) with new clients.
