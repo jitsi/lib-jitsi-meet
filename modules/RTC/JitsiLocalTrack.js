@@ -685,7 +685,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._onAudioOutputDeviceChanged);
         }
 
-        return Promise.all([ promise, removeTrackPromise ]).then(() => super.dispose());
+        return Promise.allSettled([ promise, removeTrackPromise ]).then(() => super.dispose());
     }
 
     /**
