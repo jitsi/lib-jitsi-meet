@@ -884,7 +884,7 @@ export default class JingleSessionPC extends JingleSession {
                     // Only set sourceName for non-P2P case
                     if (ssrcElement.hasAttribute('name')) {
                         const sourceName = ssrcElement.getAttribute('name');
-                        
+
                         this._signalingLayer.setTrackSourceName(ssrc, sourceName);
                     }
                 }

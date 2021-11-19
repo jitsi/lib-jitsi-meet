@@ -898,9 +898,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    let sourceName = undefined;
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+        let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
 
         // If source name was not signaled, we'll generate one which allows testing signaling
         // when mixing legacy(mobile) with new clients.
@@ -909,6 +908,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         }
     }
 
+    // eslint-disable-next-line no-undef
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`
         + `type=${mediaType},sourceName=${sourceName}]`);
 
@@ -925,6 +925,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const muted = peerMediaInfo.muted;
     const videoType = peerMediaInfo.videoType; // can be undefined
 
+    // eslint-disable-next-line no-undef
     this._createRemoteTrack(
         ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
