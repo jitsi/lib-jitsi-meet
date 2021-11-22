@@ -898,8 +898,11 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
+
+    let sourceName;
+
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+        sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
 
         // If source name was not signaled, we'll generate one which allows testing signaling
         // when mixing legacy(mobile) with new clients.
