@@ -199,8 +199,9 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.startVideoMuted
             }).up();
     }
-    let rtcstatsEnabled = this.options.conference.rtcstatsEnabled;
-    if (rtcstasEnabled === undefined) {
+    let rtcstatsEnabled = this.options.conference.analytics.rtcstatsEnabled;
+
+    if (rtcstatsEnabled === undefined) {
         // this flag determines whether the bridge will include this call in
         // its rtcstats reporting or not. If the site admin hasn't set the
         // flag, then we default to true which is the currently assumed value
@@ -212,19 +213,19 @@ Moderator.prototype.createConferenceIq = function() {
             name: 'rtcstatsEnabled',
             value: rtcstatsEnabled
         }).up();
-    elem.up();
 
-    const callstatsEnabled
-        = this.options.callStatsID && this.options.callStatsSecret && this.options.enableCallStats
+    const callstatsDisabled
+        = !this.options.callStatsID || !this.options.callStatsSecret || !this.options.enableCallStats
 
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
             // requests to any third parties.
-            && (this.options.disableThirdPartyRequests !== true);
+            || (this.options.disableThirdPartyRequests === true);
+
     elem.c(
         'property', {
             name: 'callstatsEnabled',
-            value: callstatsEnabled
+            value: !callstatsDisabled
         }).up();
     elem.up();
 
