@@ -199,20 +199,21 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.startVideoMuted
             }).up();
     }
-    let rtcstatsEnabled = this.options.conference.analytics.rtcstatsEnabled;
 
-    if (rtcstatsEnabled === undefined) {
-        // this flag determines whether the bridge will include this call in
-        // its rtcstats reporting or not. If the site admin hasn't set the
-        // flag, then we default to true which is the currently assumed value
-        // in order to maintain backwards compatibility.
-        rtcstatsEnabled = true;
+    // this flag determines whether the bridge will include this call in
+    // its rtcstats reporting or not. If the site admin hasn't set the
+    // flag, then we default to true which is the currently assumed value
+    // in order to maintain backwards compatibility.
+    const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? true;
+
+    // since the default is true across all our components, only signal if false.
+    if (!rtcstatsEnabled) {
+        elem.c(
+            'property', {
+                name: 'rtcstatsEnabled',
+                value: rtcstatsEnabled
+            }).up();
     }
-    elem.c(
-        'property', {
-            name: 'rtcstatsEnabled',
-            value: rtcstatsEnabled
-        }).up();
 
     const callstatsDisabled
         = !this.options.callStatsID || !this.options.callStatsSecret || !this.options.enableCallStats
@@ -222,11 +223,14 @@ Moderator.prototype.createConferenceIq = function() {
             // requests to any third parties.
             || (this.options.disableThirdPartyRequests === true);
 
-    elem.c(
-        'property', {
-            name: 'callstatsEnabled',
-            value: !callstatsDisabled
-        }).up();
+    // since the default is true across all our components, only signal if false.
+    if (callstatsDisabled) {
+        elem.c(
+            'property', {
+                name: 'callstatsEnabled',
+                value: !callstatsDisabled
+            }).up();
+    }
     elem.up();
 
     return elem;
