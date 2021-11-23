@@ -200,13 +200,13 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
 
-    // this flag determines whether the bridge will include this call in
-    // its rtcstats reporting or not. If the site admin hasn't set the
-    // flag, then we default to true which is the currently assumed value
-    // in order to maintain backwards compatibility.
-    const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? true;
-
-    // since the default is true across all our components, only signal if false.
+    // this flag determines whether the bridge will include this call in its
+    // rtcstats reporting or not. If the site admin hasn't set the flag in
+    // config.js, then the client defaults to false (see
+    // react/features/rtcstats/functions.js in jitsi-meet). The server-side
+    // components default to true to match the pre-existing behavior so we only
+    // signal if false.
+    const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? false;
     if (!rtcstatsEnabled) {
         elem.c(
             'property', {
@@ -223,7 +223,7 @@ Moderator.prototype.createConferenceIq = function() {
             // requests to any third parties.
             || (this.options.disableThirdPartyRequests === true);
 
-    // since the default is true across all our components, only signal if false.
+    // since the default is true across all the server-side components, only signal if false.
     if (callstatsDisabled) {
         elem.c(
             'property', {
