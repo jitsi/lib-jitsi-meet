@@ -38,6 +38,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {boolean} muted the initial muted state
      * @param {boolean} isP2P indicates whether or not this track belongs to a
      * P2P session
+     * @param {String} sourceName the source name signaled for the track
      * @throws {TypeError} if <tt>ssrc</tt> is not a number.
      * @constructor
      */
@@ -51,7 +52,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             videoType,
             ssrc,
             muted,
-            isP2P) {
+            isP2P,
+            sourceName) {
         super(
             conference,
             stream,
@@ -71,6 +73,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.ownerEndpointId = ownerEndpointId;
         this.muted = muted;
         this.isP2P = isP2P;
+        this._sourceName = sourceName;
 
         logger.debug(`New remote track added: ${this}`);
 
@@ -185,6 +188,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     getSSRC() {
         return this.ssrc;
+    }
+
+
+    /**
+     * Returns the tracks source name
+     *
+     * @returns {string} the track's source name
+     */
+    getSourceName() {
+        return this._sourceName;
     }
 
     /**
@@ -311,6 +324,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, status: ${this._getStatus()}]`;
+            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: ${this._getStatus()}]`;
     }
 }

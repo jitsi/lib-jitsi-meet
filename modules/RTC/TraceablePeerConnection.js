@@ -7,9 +7,11 @@ import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import * as VideoType from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
 import RtxModifier from '../sdp/RtxModifier';
 import SDP from '../sdp/SDP';
@@ -896,7 +898,22 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},type=${mediaType}]`);
+
+    let sourceName;
+
+    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
+
+        // If source name was not signaled, we'll generate one which allows testing signaling
+        // when mixing legacy(mobile) with new clients.
+        if (!sourceName) {
+            sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
+        }
+    }
+
+    // eslint-disable-next-line no-undef
+    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`
+        + `type=${mediaType},sourceName=${sourceName}]`);
 
     const peerMediaInfo
         = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
@@ -911,8 +928,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const muted = peerMediaInfo.muted;
     const videoType = peerMediaInfo.videoType; // can be undefined
 
+    // eslint-disable-next-line no-undef
     this._createRemoteTrack(
-        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted);
+        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
 
 // FIXME cleanup params
@@ -929,6 +947,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
  * @param {VideoType} [videoType] the track's type of the video (if applicable)
  * @param {number} ssrc the track's main SSRC number
  * @param {boolean} muted the initial muted status
+ * @param {String} sourceName the track's source name
  */
 TraceablePeerConnection.prototype._createRemoteTrack = function(
         ownerEndpointId,
@@ -937,7 +956,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         mediaType,
         videoType,
         ssrc,
-        muted) {
+        muted,
+        sourceName) {
     let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
     if (!remoteTracksMap) {
@@ -977,7 +997,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 videoType,
                 ssrc,
                 muted,
-                this.isP2P);
+                this.isP2P,
+                sourceName);
 
     remoteTracksMap.set(mediaType, remoteTrack);
 

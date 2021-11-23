@@ -11,6 +11,7 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
 import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
@@ -879,6 +880,14 @@ export default class JingleSessionPC extends JingleSession {
                 this._signalingLayer.setSSRCOwner(
                     ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // Only set sourceName for non-P2P case
+                    if (ssrcElement.hasAttribute('name')) {
+                        const sourceName = ssrcElement.getAttribute('name');
+
+                        this._signalingLayer.setTrackSourceName(ssrc, sourceName);
+                    }
+                }
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
                     .each((i3, ssrcInfoElement) => {
