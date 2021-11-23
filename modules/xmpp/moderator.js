@@ -207,6 +207,7 @@ Moderator.prototype.createConferenceIq = function() {
     // components default to true to match the pre-existing behavior so we only
     // signal if false.
     const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? false;
+
     if (!rtcstatsEnabled) {
         elem.c(
             'property', {
