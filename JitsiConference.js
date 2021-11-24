@@ -3898,6 +3898,55 @@ JitsiConference.prototype.joinLobby = function(displayName, email) {
 };
 
 /**
+ * Gets the local id for a participant in a lobby room.
+ * This is used for lobby room private chat messages.
+ *
+ * @returns {string}
+ */
+JitsiConference.prototype.getLobbyLocalId = function() {
+    if (this.room) {
+        return this.room.getLobby().getLocalId();
+    }
+};
+
+/**
+ * Broadcast a message to all participants in a lobby room
+ * @param {message} Object The message to send
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.sendLobbyMessage = function(message) {
+    if (this.room) {
+        this.room.getLobby().sendMessage(message);
+    }
+};
+
+/**
+ * Sends a private message to a participant in a lobby room.
+ * @param {string} id The participant id.
+ * @param {Object} message The message to send
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.sendPrivateLobbyMessage = function(id, message) {
+    if (this.room) {
+        this.room.getLobby().sendPrivateMessage(id, message);
+    }
+};
+
+/**
+ * Set message listener for the lobby room
+ * @param {Function} listener The function to be called when a new message arrives
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.setLobbyMessageListener = function(listener) {
+    if (this.room) {
+        this.room.getLobby().setMessageListener(listener);
+    }
+};
+
+/**
  * Denies an occupant in the lobby room access to the conference.
  * @param {string} id The participant id.
  */

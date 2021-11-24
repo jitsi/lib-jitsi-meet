@@ -83,6 +83,57 @@ export default class Lobby {
     }
 
     /**
+     * Broadcast a message to all participants in the lobby room
+     * @param {Object} message The message to send
+     *
+     * @returns {void}
+     */
+    sendMessage(message) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.sendMessage(JSON.stringify(message), 'json-message');
+        }
+    }
+
+    /**
+     * Sends a private message to a participant in a lobby room.
+     * @param {string} id The message to send
+     * @param {Object} message The message to send
+     *
+     * @returns {void}
+     */
+    sendPrivateMessage(id, message) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.sendPrivateMessage(id, JSON.stringify(message), 'json-message');
+        }
+    }
+
+    /**
+     * Gets the local id for a participant in a lobby room.
+     * This is used for lobby room private chat messages.
+     *
+     * @returns {string}
+     */
+    getLocalId() {
+        if (this.lobbyRoom) {
+            return Strophe.getResourceFromJid(this.lobbyRoom.myroomjid);
+        }
+    }
+
+    /**
+     * Set message listener for the lobby room
+     * @param {Function} listener The listener function
+     *
+     * @returns {void}
+     */
+    setMessageListener(listener) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.on(XMPPEvents.JSON_MESSAGE_RECEIVED, (participantId, message) => {
+                listener(message, Strophe.getResourceFromJid(participantId));
+            });
+        }
+    }
+
+    /**
      * Leaves the lobby room.
      *
      * @returns {Promise}
