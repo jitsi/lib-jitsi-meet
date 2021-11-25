@@ -164,7 +164,7 @@ export default class BreakoutRooms {
             break;
         case BREAKOUT_ROOM_EVENTS.UPDATE: {
             this._rooms = payload.rooms;
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, payload.rooms);
+            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, payload);
             break;
         }
         }
