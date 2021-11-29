@@ -285,6 +285,20 @@ export default function JitsiConference(options) {
 
         this._e2eEncryption = new E2EEncryption(this);
     }
+
+    /**
+     * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max audio sender limit has
+     * been reached for the call. Once this is set, unmuting audio will be disabled from the client until it gets reset
+     * again by Jicofo.
+     */
+    this._audioSenderLimitReached = undefined;
+
+    /**
+     * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max video sender limit has
+     * been reached for the call. Once this is set, unmuting video will be disabled from the client until it gets reset
+     * again by Jicofo.
+     */
+    this._videoSenderLimitReached = undefined;
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -3151,9 +3165,22 @@ JitsiConference.prototype._updateProperties = function(properties = {}) {
 
     this.properties = properties;
     if (changed) {
-        this.eventEmitter.emit(
-            JitsiConferenceEvents.PROPERTIES_CHANGED,
-            this.properties);
+        this.eventEmitter.emit(JitsiConferenceEvents.PROPERTIES_CHANGED, this.properties);
+
+        const audioLimitReached = this.properties['audio-limit-reached'] === 'true';
+        const videoLimitReached = this.properties['video-limit-reached'] === 'true';
+
+        if (this._audioSenderLimitReached !== audioLimitReached) {
+            this._audioSenderLimitReached = audioLimitReached;
+            this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED, audioLimitReached);
+            logger.info(`Audio unmute permissions set by Jicofo to ${audioLimitReached}`);
+        }
+
+        if (this._videoSenderLimitReached !== videoLimitReached) {
+            this._videoSenderLimitReached = videoLimitReached;
+            this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_UNMUTE_PERMISSIONS_CHANGED, videoLimitReached);
+            logger.info(`Video unmute permissions set by Jicofo to ${videoLimitReached}`);
+        }
 
         // Some of the properties need to be added to analytics events.
         const analyticsKeys = [
