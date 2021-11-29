@@ -24,16 +24,6 @@ class MockJingleSessionPC extends Listenable {
         return this._remoteRecvMaxFrameHeight;
     }
 
-    // eslint-disable-next-line no-empty-function
-    setSenderVideoDegradationPreference() {
-
-    }
-
-    // eslint-disable-next-line no-empty-function
-    setSenderMaxBitrates() {
-
-    }
-
     setSenderVideoConstraint(senderVideoConstraint) {
         this.senderVideoConstraint = senderVideoConstraint;
     }

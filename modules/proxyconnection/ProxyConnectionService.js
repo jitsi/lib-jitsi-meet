@@ -22,19 +22,15 @@ export default class ProxyConnectionService {
      * Initializes a new {@code ProxyConnectionService} instance.
      *
      * @param {Object} options - Values to initialize the instance with.
-     * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied
-     * video should be returned as a desktop stream. Defaults to false.
-     * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
-     * for the peer connection.
-     * @param {JitsiConnection} [options.jitsiConnection] - The
-     * {@code JitsiConnection} which will be used to fetch TURN credentials for
-     * the P2P connection.
-     * @param {Function} options.onRemoteStream - Callback to invoke when a
-     * remote video stream has been received and converted to a
-     * {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
-     * @param {Function} options.onSendMessage - Callback to invoke when a
-     * message has to be sent (signaled) out. The arguments passed in are the
-     * jid to send the message to and the message
+     * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied video should be returned as a desktop
+     * stream. Defaults to false.
+     * @param {Object} [options.pcConfig] - The {@code RTCConfiguration} to use for the WebRTC peer connection.
+     * @param {JitsiConnection} [options.jitsiConnection] - The {@code JitsiConnection} which will be used to fetch
+     * TURN credentials for the P2P connection.
+     * @param {Function} options.onRemoteStream - Callback to invoke when a remote video stream has been received and
+     * converted to a {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
+     * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out. The
+     * arguments passed in are the jid to send the message to and the message.
      */
     constructor(options = {}) {
         const {
@@ -48,8 +44,7 @@ export default class ProxyConnectionService {
          * @type {Object}
          */
         this._options = {
-            iceConfig: jitsiConnection
-                && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
+            pcConfig: jitsiConnection && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
             ...otherOptions
         };
 
@@ -197,7 +192,7 @@ export default class ProxyConnectionService {
         }
 
         const pcOptions = {
-            iceConfig: this._options.iceConfig,
+            pcConfig: this._options.pcConfig,
             onError: this._onFatalError,
             onRemoteStream: this._onRemoteStream,
             onSendMessage: this._onSendMessage,

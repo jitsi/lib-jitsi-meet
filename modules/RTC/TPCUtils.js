@@ -1,21 +1,23 @@
 import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
+import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
+const DESKTOP_SHARE_RATE = 500000;
+const LD_BITRATE = 200000;
+const SD_BITRATE = 700000;
 const SIM_LAYER_1_RID = '1';
 const SIM_LAYER_2_RID = '2';
 const SIM_LAYER_3_RID = '3';
 
-const TransceiverDirection = {
-    INACTIVE: 'inactive',
-    RECVONLY: 'recvonly',
-    SENDONLY: 'sendonly',
-    SENDRECV: 'sendrecv'
-};
-
+export const HD_BITRATE = 2500000;
+export const HD_SCALE_FACTOR = 1;
+export const LD_SCALE_FACTOR = 4;
+export const SD_SCALE_FACTOR = 2;
 export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
 
 /**
@@ -27,12 +29,21 @@ export class TPCUtils {
      * Creates a new instance for a given TraceablePeerConnection
      *
      * @param peerconnection - the tpc instance for which we have utility functions.
-     * @param videoBitrates - the bitrates to be configured on the video senders for
-     * different resolutions both in unicast and simulcast mode.
      */
-    constructor(peerconnection, videoBitrates) {
+    constructor(peerconnection) {
         this.pc = peerconnection;
-        this.videoBitrates = videoBitrates.VP8 || videoBitrates;
+        const bitrateSettings = this.pc.options?.videoQuality?.maxBitratesVideo;
+        const standardBitrates = {
+            low: LD_BITRATE,
+            standard: SD_BITRATE,
+            high: HD_BITRATE
+        };
+
+        // Check if the max. bitrates for video are specified through config.js videoQuality settings.
+        // Right now only VP8 bitrates are configured on the simulcast encodings, VP9 bitrates have to be
+        // configured on the SDP using b:AS line.
+        this.videoBitrates = bitrateSettings ?? standardBitrates;
+        const encodingBitrates = this.videoBitrates.VP8 ?? this.videoBitrates;
 
         /**
          * The startup configuration for the stream encodings that are applicable to
@@ -50,21 +61,21 @@ export class TPCUtils {
         this.localStreamEncodingsConfig = [
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
+                maxBitrate: browser.isFirefox() ? encodingBitrates.high : encodingBitrates.low,
                 rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? 1.0 : 4.0
+                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
             },
             {
                 active: true,
-                maxBitrate: this.videoBitrates.standard,
+                maxBitrate: encodingBitrates.standard,
                 rid: SIM_LAYER_2_RID,
-                scaleResolutionDownBy: 2.0
+                scaleResolutionDownBy: SD_SCALE_FACTOR
             },
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? this.videoBitrates.low : this.videoBitrates.high,
+                maxBitrate: browser.isFirefox() ? encodingBitrates.low : encodingBitrates.high,
                 rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
+                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
             }
         ];
     }
@@ -79,12 +90,19 @@ export class TPCUtils {
     _findTransceiver(mediaType, localTrack = null) {
         let transceiver = null;
 
-        if (localTrack) {
-            transceiver = this.pc.peerconnection.getTransceivers()
-                .find(t => t.sender?.track?.id === localTrack.getTrackId());
-        } else if (mediaType) {
+        // Check if the local track has been removed from the peerconnection already.
+        const trackRemoved = !localTrack
+            || (localTrack
+                && browser.doesVideoMuteByStreamRemove()
+                && localTrack.isVideoTrack()
+                && localTrack.isMuted());
+
+        if (trackRemoved) {
             transceiver = this.pc.peerconnection.getTransceivers()
                 .find(t => t.receiver?.track?.kind === mediaType);
+        } else if (localTrack) {
+            transceiver = this.pc.peerconnection.getTransceivers()
+                .find(t => t.sender?.track?.id === localTrack.getTrackId());
         }
 
         return transceiver;
@@ -128,7 +146,16 @@ export class TPCUtils {
             }
             let reorderedSsrcs = [];
 
-            mLine.ssrcGroups[0].ssrcs.split(' ').forEach(ssrc => {
+            const ssrcs = new Set();
+
+            mLine.ssrcGroups.map(group =>
+                group.ssrcs
+                    .split(' ')
+                    .filter(Boolean)
+                    .forEach(ssrc => ssrcs.add(ssrc)),
+            );
+
+            ssrcs.forEach(ssrc => {
                 const sources = mLine.ssrcs.filter(source => source.id.toString() === ssrc);
 
                 reorderedSsrcs = reorderedSsrcs.concat(sources);
@@ -227,7 +254,7 @@ export class TPCUtils {
             // Use pc.addTransceiver() for the initiator case when local tracks are getting added
             // to the peerconnection before a session-initiate is sent over to the peer.
             const transceiverInit = {
-                direction: TransceiverDirection.SENDRECV,
+                direction: MediaDirection.SENDRECV,
                 streams: [ localTrack.getOriginalStream() ],
                 sendEncodings: []
             };
@@ -257,35 +284,88 @@ export class TPCUtils {
         if (!transceiver) {
             return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
         }
-        logger.debug(`Adding ${localTrack} on ${this.pc}`);
+        logger.debug(`${this.pc} Adding ${localTrack}`);
 
         return transceiver.sender.replaceTrack(track);
     }
 
     /**
-     * Obtains the current local video track's height constraints based on the
-     * initial stream encodings configuration on the sender and the resolution
-     * of the current local track added to the peerconnection.
-     * @param {MediaStreamTrack} localTrack local video track
-     * @returns {Array[number]} an array containing the resolution heights of
-     * simulcast streams configured on the video sender.
+     * Returns the calculated active state of the simulcast encodings based on the frame height requested for the send
+     * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {number} newHeight The resolution requested for the video track.
+     * @returns {Array<boolean>}
      */
-    getLocalStreamHeightConstraints(localTrack) {
-        // React-native hasn't implemented MediaStreamTrack getSettings yet.
-        if (browser.isReactNative()) {
-            return null;
-        }
+    calculateEncodingsActiveState(localVideoTrack, newHeight) {
+        const localTrack = localVideoTrack.getTrack();
+        const { height } = localTrack.getSettings();
+        const encodingsState = this.localStreamEncodingsConfig
+        .map(encoding => height / encoding.scaleResolutionDownBy)
+        .map((frameHeight, idx) => {
+            let active = localVideoTrack.getVideoType() === VideoType.CAMERA
 
-        const localVideoHeightConstraints = [];
+                // Keep the LD stream enabled even when the LD stream's resolution is higher than of the requested
+                // resolution. This can happen when camera is captured at resolutions higher than 720p but the
+                // requested resolution is 180. Since getParameters doesn't give us information about the resolutions
+                // of the simulcast encodings, we have to rely on our initial config for the simulcast streams.
+                ? newHeight > 0 && this.localStreamEncodingsConfig[idx]?.scaleResolutionDownBy === LD_SCALE_FACTOR
+                    ? true
+                    : frameHeight <= newHeight
 
-        // Firefox doesn't return the height of the desktop track, assume a min. height of 720.
-        const { height = 720 } = localTrack.getSettings();
+                // Keep all the encodings for desktop track active.
+                : true;
 
-        for (const encoding of this.localStreamEncodingsConfig) {
-            localVideoHeightConstraints.push(height / encoding.scaleResolutionDownBy);
-        }
+            // Disable the lower spatial layers for screensharing in Unified plan when low fps screensharing is in
+            // progress. Sending all three streams often results in the browser suspending the high resolution in low
+            // b/w and cpu cases, especially on the low end machines. Suspending the low resolution streams ensures
+            // that the highest resolution stream is available always. Safari is an exception here since it does not
+            // send the desktop stream at all if only the high resolution stream is enabled.
+            if (this.pc.isSharingLowFpsScreen()
+                && this.pc.usesUnifiedPlan()
+                && !browser.isWebKitBased()
+                && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
+                active = false;
+            }
 
-        return localVideoHeightConstraints;
+            return active;
+        });
+
+        return encodingsState;
+    }
+
+    /**
+     * Returns the calculates max bitrates that need to be configured on the simulcast encodings based on the video
+     * type and other considerations associated with screenshare.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack The local video track.
+     * @returns {Array<number>}
+     */
+    calculateEncodingsBitrates(localVideoTrack) {
+        const videoType = localVideoTrack.getVideoType();
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
+        const presenterEnabled = localVideoTrack._originalStream
+            && localVideoTrack._originalStream.id !== localVideoTrack.getStreamId();
+
+        const encodingsBitrates = this.localStreamEncodingsConfig
+        .map(encoding => {
+            const bitrate = this.pc.isSharingLowFpsScreen() && !browser.isWebKitBased()
+
+                // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on, 2500 Kbps
+                // otherwise.
+                ? presenterEnabled ? HD_BITRATE : desktopShareBitrate
+
+                // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
+                // if simulcast is enabled for screen and maxBitrates are set then Chrome will not send the
+                // desktop stream.
+                : videoType === VideoType.DESKTOP && browser.isChromiumBased() && !this.pc.usesUnifiedPlan()
+                    ? undefined
+                    : encoding.maxBitrate;
+
+            return bitrate;
+        });
+
+        return encodingsBitrates;
     }
 
     /**
@@ -301,7 +381,7 @@ export class TPCUtils {
             return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
         }
 
-        logger.debug(`Removing ${localTrack} on ${this.pc}`);
+        logger.debug(`${this.pc} Removing ${localTrack}`);
 
         return transceiver.sender.replaceTrack(null);
     }
@@ -328,15 +408,13 @@ export class TPCUtils {
                 return Promise.resolve();
             }
 
-            const transceiver = oldTrack.isVideoTrack() && browser.doesVideoMuteByStreamRemove && oldTrack.isMuted()
-                ? this._findTransceiver(mediaType)
-                : this._findTransceiver(mediaType, oldTrack);
+            const transceiver = this._findTransceiver(mediaType, oldTrack);
             const track = newTrack.getTrack();
 
             if (!transceiver) {
                 return Promise.reject(new Error('replace track failed'));
             }
-            logger.debug(`Replacing ${oldTrack} with ${newTrack} on ${this.pc}`);
+            logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
             return transceiver.sender.replaceTrack(track)
                 .then(() => {
@@ -359,7 +437,7 @@ export class TPCUtils {
                     // Change the direction on the transceiver to 'recvonly' so that a 'removetrack'
                     // is fired on the associated media stream on the remote peer.
                     if (transceiver) {
-                        transceiver.direction = TransceiverDirection.RECVONLY;
+                        transceiver.direction = MediaDirection.RECVONLY;
                     }
 
                     // Remove the old track from the list of local tracks.
@@ -368,7 +446,6 @@ export class TPCUtils {
                 });
         } else if (newTrack && !oldTrack) {
             return this.addTrackUnmute(newTrack)
-                .then(() => this.setEncodings(newTrack))
                 .then(() => {
                     const mediaType = newTrack.getType();
                     const transceiver = this._findTransceiver(mediaType, newTrack);
@@ -376,15 +453,24 @@ export class TPCUtils {
                     // Change the direction on the transceiver back to 'sendrecv' so that a 'track'
                     // event is fired on the remote peer.
                     if (transceiver) {
-                        transceiver.direction = TransceiverDirection.SENDRECV;
+                        transceiver.direction = MediaDirection.SENDRECV;
                     }
 
-                    // Add the new track to the list of local tracks.
-                    this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                    // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
+                    // for the newly added track using SDP munging which happens during the renegotiation.
+                    const promise = browser.usesSdpMungingForSimulcast()
+                        ? Promise.resolve()
+                        : this.setEncodings(newTrack);
+
+                    return promise
+                        .then(() => {
+                            // Add the new track to the list of local tracks.
+                            this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                        });
                 });
         }
 
-        logger.info('TPCUtils.replaceTrack called with no new track and no old track');
+        logger.info(`${this.pc} TPCUtils.replaceTrack called with no new track and no old track`);
 
         return Promise.resolve();
     }
@@ -437,17 +523,17 @@ export class TPCUtils {
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
         const localTracks = this.pc.getLocalTracks(mediaType);
 
-        logger.info(`${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer on ${this.pc}`);
+        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
         transceivers.forEach((transceiver, idx) => {
             if (active) {
                 // The first transceiver is for the local track and only this one can be set to 'sendrecv'
                 if (idx === 0 && localTracks.length) {
-                    transceiver.direction = TransceiverDirection.SENDRECV;
+                    transceiver.direction = MediaDirection.SENDRECV;
                 } else {
-                    transceiver.direction = TransceiverDirection.RECVONLY;
+                    transceiver.direction = MediaDirection.RECVONLY;
                 }
             } else {
-                transceiver.direction = TransceiverDirection.INACTIVE;
+                transceiver.direction = MediaDirection.INACTIVE;
             }
         });
     }

@@ -2,7 +2,10 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 
+import MediaDirection from '../../service/RTC/MediaDirection';
 import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
+import FeatureFlags from '../flags/FeatureFlags';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
 
@@ -71,13 +74,14 @@ export default class LocalSdpMunger {
         for (const videoTrack of localVideos) {
             const muted = videoTrack.isMuted();
             const mediaStream = videoTrack.getOriginalStream();
+            const isCamera = videoTrack.videoType === VideoType.CAMERA;
 
             // During the mute/unmute operation there are periods of time when
             // the track's underlying MediaStream is not added yet to
             // the PeerConnection. The SDP needs to be munged in such case.
             const isInPeerConnection
                 = mediaStream && this.tpc.isMediaStreamInPc(mediaStream);
-            const shouldFakeSdp = muted || !isInPeerConnection;
+            const shouldFakeSdp = isCamera && (muted || !isInPeerConnection);
 
             if (!shouldFakeSdp) {
                 continue; // eslint-disable-line no-continue
@@ -101,7 +105,7 @@ export default class LocalSdpMunger {
             // NOTE the SDP produced here goes only to Jicofo and is never set
             // as localDescription. That's why
             // TraceablePeerConnection.mediaTransferActive is ignored here.
-            videoMLine.direction = 'sendrecv';
+            videoMLine.direction = MediaDirection.SENDRECV;
 
             // Check if the recvonly has MSID
             const primarySSRC = requiredSSRCs[0];
@@ -217,21 +221,23 @@ export default class LocalSdpMunger {
             }
         }
 
+        // Additional transformations related to MSID are applicable to Unified-plan implementation only.
+        if (!this.tpc.usesUnifiedPlan()) {
+            return;
+        }
+
         // If the msid attribute is missing, then remove the ssrc from the transformed description so that a
         // source-remove is signaled to Jicofo. This happens when the direction of the transceiver (or m-line)
         // is set to 'inactive' or 'recvonly' on Firefox, Chrome (unified) and Safari.
-        const msid = mediaSection.ssrcs.find(s => s.attribute === 'msid');
+        const mediaDirection = mediaSection.mLine?.direction;
 
-        if (!this.tpc.isP2P
-            && (!msid
-                || mediaSection.mLine?.direction === 'recvonly'
-                || mediaSection.mLine?.direction === 'inactive')) {
+        if (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
 
-        // Add the msid attribute if it is missing for p2p sources. Firefox doesn't produce a a=ssrc line
-        // with msid attribute.
-        } else if (this.tpc.isP2P && mediaSection.mLine?.direction === 'sendrecv') {
+        // Add the msid attribute if it is missing when the direction is sendrecv/sendonly. Firefox doesn't produce a
+        // a=ssrc line with msid attribute for p2p connection.
+        } else {
             const msidLine = mediaSection.mLine?.msid;
             const trackId = msidLine && msidLine.split(' ')[1];
             const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
@@ -239,13 +245,16 @@ export default class LocalSdpMunger {
             for (const source of sources) {
                 const msidExists = mediaSection.ssrcs
                     .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
-                const generatedMsid = this._generateMsidAttribute(mediaSection.mLine?.type, trackId);
 
-                !msidExists && generatedMsid && mediaSection.ssrcs.push({
-                    id: source,
-                    attribute: 'msid',
-                    value: generatedMsid
-                });
+                if (!msidExists) {
+                    const generatedMsid = this._generateMsidAttribute(mediaSection.mLine?.type, trackId);
+
+                    mediaSection.ssrcs.push({
+                        id: source,
+                        attribute: 'msid',
+                        value: generatedMsid
+                    });
+                }
             }
         }
     }
@@ -301,17 +310,57 @@ export default class LocalSdpMunger {
 
         if (audioMLine) {
             this._transformMediaIdentifiers(audioMLine);
+            this._injectSourceNames(audioMLine);
         }
 
         const videoMLine = transformer.selectMedia('video');
 
         if (videoMLine) {
             this._transformMediaIdentifiers(videoMLine);
+            this._injectSourceNames(videoMLine);
         }
 
         return new RTCSessionDescription({
             type: sessionDesc.type,
             sdp: transformer.toRawSDP()
         });
+    }
+
+    /**
+     * Injects source names. Source names are need to for multiple streams per endpoint support. The final plan is to
+     * use the "mid" attribute for source names, but because the SDP to Jingle conversion still operates in the Plan-B
+     * semantics (one source name per media), a custom "name" attribute is injected into SSRC lines..
+     *
+     * @param {MLineWrap} mediaSection - The media part (audio or video) of the session description which will be
+     * modified in place.
+     * @returns {void}
+     * @private
+     */
+    _injectSourceNames(mediaSection) {
+        if (!FeatureFlags.isSourceNameSignalingEnabled()) {
+            return;
+        }
+
+        const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
+        const mediaType = mediaSection.mLine?.type;
+
+        if (!mediaType) {
+            throw new Error('_transformMediaIdentifiers - no media type in mediaSection');
+        }
+
+        for (const source of sources) {
+            const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
+
+            if (!nameExists) {
+                const firstLetterOfMediaType = mediaType.substring(0, 1);
+
+                // Inject source names as a=ssrc:3124985624 name:endpointA-v0
+                mediaSection.ssrcs.push({
+                    id: source,
+                    attribute: 'name',
+                    value: `${this.localEndpointId}-${firstLetterOfMediaType}0`
+                });
+            }
+        }
     }
 }

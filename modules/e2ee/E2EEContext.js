@@ -1,4 +1,4 @@
-/* global __filename */
+/* global __filename, RTCRtpScriptTransform */
 
 import { getLogger } from 'jitsi-meet-logger';
 
@@ -23,8 +23,9 @@ const kJitsiE2EE = Symbol('kJitsiE2EE');
 export default class E2EEcontext {
     /**
      * Build a new E2EE context instance, which will be used in a given conference.
+     * @param {boolean} [options.sharedKey] - whether there is a uniques key shared amoung all participants.
      */
-    constructor() {
+    constructor({ sharedKey } = {}) {
         // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
@@ -44,7 +45,13 @@ export default class E2EEcontext {
         const blobUrl = window.URL.createObjectURL(workerBlob);
 
         this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
-        this._worker.onerror = e => logger.onerror(e);
+
+        this._worker.onerror = e => logger.error(e);
+
+        this._worker.postMessage({
+            operation: 'initialize',
+            sharedKey
+        });
     }
 
     /**
@@ -57,6 +64,16 @@ export default class E2EEcontext {
         this._worker.postMessage({
             operation: 'cleanup',
             participantId
+        });
+    }
+
+    /**
+     * Cleans up all state associated with all participants in the conference. This is needed when disabling e2ee.
+     *
+     */
+    cleanupAll() {
+        this._worker.postMessage({
+            operation: 'cleanupAll'
         });
     }
 
@@ -74,22 +91,23 @@ export default class E2EEcontext {
         }
         receiver[kJitsiE2EE] = true;
 
-        let receiverStreams;
+        if (window.RTCRtpScriptTransform) {
+            const options = {
+                operation: 'decode',
+                participantId
+            };
 
-        if (receiver.createEncodedStreams) {
-            receiverStreams = receiver.createEncodedStreams();
+            receiver.transform = new RTCRtpScriptTransform(this._worker, options);
         } else {
-            receiverStreams = kind === 'video' ? receiver.createEncodedVideoStreams()
-                : receiver.createEncodedAudioStreams();
-        }
+            const receiverStreams = receiver.createEncodedStreams();
 
-        this._worker.postMessage({
-            operation: 'decode',
-            readableStream: receiverStreams.readable || receiverStreams.readableStream,
-            writableStream: receiverStreams.writable || receiverStreams.writableStream,
-            participantId
-        }, [ receiverStreams.readable || receiverStreams.readableStream,
-            receiverStreams.writable || receiverStreams.writableStream ]);
+            this._worker.postMessage({
+                operation: 'decode',
+                readableStream: receiverStreams.readable,
+                writableStream: receiverStreams.writable,
+                participantId
+            }, [ receiverStreams.readable, receiverStreams.writable ]);
+        }
     }
 
     /**
@@ -106,22 +124,23 @@ export default class E2EEcontext {
         }
         sender[kJitsiE2EE] = true;
 
-        let senderStreams;
+        if (window.RTCRtpScriptTransform) {
+            const options = {
+                operation: 'encode',
+                participantId
+            };
 
-        if (sender.createEncodedStreams) {
-            senderStreams = sender.createEncodedStreams();
+            sender.transform = new RTCRtpScriptTransform(this._worker, options);
         } else {
-            senderStreams = kind === 'video' ? sender.createEncodedVideoStreams()
-                : sender.createEncodedAudioStreams();
-        }
+            const senderStreams = sender.createEncodedStreams();
 
-        this._worker.postMessage({
-            operation: 'encode',
-            readableStream: senderStreams.readable || senderStreams.readableStream,
-            writableStream: senderStreams.writable || senderStreams.writableStream,
-            participantId
-        }, [ senderStreams.readable || senderStreams.readableStream,
-            senderStreams.writable || senderStreams.writableStream ]);
+            this._worker.postMessage({
+                operation: 'encode',
+                readableStream: senderStreams.readable,
+                writableStream: senderStreams.writable,
+                participantId
+            }, [ senderStreams.readable, senderStreams.writable ]);
+        }
     }
 
     /**
@@ -134,9 +153,9 @@ export default class E2EEcontext {
     setKey(participantId, key, keyIndex) {
         this._worker.postMessage({
             operation: 'setKey',
-            participantId,
             key,
-            keyIndex
+            keyIndex,
+            participantId
         });
     }
 }

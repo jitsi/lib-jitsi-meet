@@ -16,14 +16,14 @@ let api = null;
  *
  * @returns {Promise<void>}
  */
-function _loadScript() {
+function _loadScript(options) {
     if (browser.isReactNative()) {
         return;
     }
 
     return new Promise(resolve => {
         ScriptUtil.loadScript(
-            CALLSTATS_SCRIPT_URL,
+            options.callStatsCustomScriptUrl || CALLSTATS_SCRIPT_URL,
             /* async */ true,
             /* prepend */ true,
             /* relativeURL */ undefined,
@@ -85,7 +85,7 @@ export async function init(options) {
         throw new Error('Callstats is disabled');
     }
 
-    await _loadScript();
+    await _loadScript(options);
     // eslint-disable-next-line new-cap
     api = new window.callstats();
 

@@ -26,33 +26,46 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Tells whether or not the <tt>MediaStream/tt> is removed from
-     * the <tt>PeerConnection</tt> and disposed on video mute (in order to turn
-     * off the camera device).
-     * @return {boolean} <tt>true</tt> if the current browser supports this
-     * strategy or <tt>false</tt> otherwise.
+     * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
+     * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=1735951
+     *
+     * @return {boolean} <tt>true</tt> if the current browser supports this strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return this.isChromiumBased() || this.isWebKitBased();
+        return this.isChromiumBased() || this.isWebKitBased() || this.isFirefox();
     }
 
     /**
-     * Checks if the current browser is Chromium based, that is, it's either
-     * Chrome / Chromium or uses it as its engine, but doesn't identify as
-     * Chrome.
+     * Checks if the current browser is Chromium based, i.e., it's either Chrome / Chromium or uses it as its engine,
+     * but doesn't identify as Chrome.
      *
      * This includes the following browsers:
-     * - Chrome and Chromium
-     * - Other browsers which use the Chrome engine, but are detected as Chrome,
-     *   such as Brave and Vivaldi
-     * - Browsers which are NOT Chrome but use it as their engine, and have
-     *   custom detection code: Opera, Electron and NW.JS
+     * - Chrome and Chromium.
+     * - Other browsers which use the Chrome engine, but are detected as Chrome, such as Brave and Vivaldi.
+     * - Browsers which are NOT Chrome but use it as their engine, and have custom detection code: Opera, Electron
+     *   and NW.JS.
+     * This excludes
+     * - Chrome on iOS since it uses WKWebView.
      */
     isChromiumBased() {
-        return this.isChrome()
+        return (this.isChrome()
             || this.isElectron()
             || this.isNWJS()
-            || this.isOpera();
+            || this.isOpera())
+            && !this.isWebKitBased();
+    }
+
+    /**
+     * Checks if the current platform is iOS.
+     *
+     * @returns {boolean}
+     */
+    isIosBrowser() {
+        const { userAgent, maxTouchPoints, platform } = navigator;
+
+        return Boolean(userAgent.match(/iP(ad|hone|od)/i))
+            || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform));
     }
 
     /**
@@ -111,7 +124,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
+        return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
@@ -130,11 +143,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsCodecPreferences() {
-        return this.usesUnifiedPlan()
-            && Boolean(window.RTCRtpTransceiver
-            && window.RTCRtpTransceiver.setCodecPreferences
+        return Boolean(window.RTCRtpTransceiver
+            && 'setCodecPreferences' in window.RTCRtpTransceiver.prototype
             && window.RTCRtpReceiver
-            && window.RTCRtpReceiver.getCapabilities)
+            && typeof window.RTCRtpReceiver.getCapabilities !== 'undefined')
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
@@ -199,12 +211,12 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser uses plan B.
-     *
-     * @returns {boolean}
+     * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Firefox and Safari
+     * because of issues with rendering. Please check https://bugzilla.mozilla.org/show_bug.cgi?id=1492500,
+     * https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074 for details.
      */
-    usesPlanB() {
-        return !this.usesUnifiedPlan();
+    supportsVP9() {
+        return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
@@ -229,7 +241,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     usesUnifiedPlan() {
         if (this.isCordovaiOS()) {
-            return false;
+            return true;
         }
 
         if (this.isFirefox() || this.isWebKitBased()) {
@@ -249,7 +261,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     usesNewGumFlow() {
         if (this.isCordovaiOS()) {
-            return false;
+            return true;
         }
 
         if (this.isChromiumBased() || this.isFirefox() || this.isWebKitBased()) {
@@ -266,6 +278,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesAdapter() {
+        if (this.isCordovaiOS()) {
+            console.log("iosrtc set adapter to false");
+            return false;
+        }
         return !this.isReactNative();
     }
 
@@ -289,13 +305,25 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser supports WebRTC Encoded Transform, an alternative
+     * to insertable streams.
+     *
+     * NOTE: At the time of this writing the only browser supporting this is
+     * Safari / WebKit, behind a flag.
+     *
+     * @returns {boolean} {@code true} if the browser supports it.
+     */
+    supportsEncodedTransform() {
+        return Boolean(window.RTCRtpScriptTransform);
+    }
+
+    /**
      * Checks if the browser supports insertable streams, needed for E2EE.
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
     supportsInsertableStreams() {
         if (!(typeof window.RTCRtpSender !== 'undefined'
-            && (window.RTCRtpSender.prototype.createEncodedStreams
-                || window.RTCRtpSender.prototype.createEncodedVideoStreams))) {
+            && window.RTCRtpSender.prototype.createEncodedStreams)) {
             return false;
         }
 
@@ -325,13 +353,17 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser supports the "sdpSemantics" configuration option.
-     * https://webrtc.org/web-apis/chrome/unified-plan/
+     * Checks if the browser supports unified plan.
      *
      * @returns {boolean}
      */
     supportsSdpSemantics() {
         return this.isCordovaiOS() || this.isChromiumBased();
+    }
+
+    supportsUnifiedPlan() {
+        // return !this.isReactNative() || !this.isCordovaiOS();
+        return !this.isReactNative();
     }
 
     /**

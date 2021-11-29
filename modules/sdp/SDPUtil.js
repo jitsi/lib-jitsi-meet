@@ -2,6 +2,7 @@ import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import CodecMimeType from '../../service/RTC/CodecMimeType';
+import MediaDirection from '../../service/RTC/MediaDirection';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
@@ -44,6 +45,24 @@ const SDPUtil = {
     },
     parseMID(line) {
         return line.substring(6);
+    },
+
+    /**
+     * Finds the MSID attribute in the given array of SSRC attribute lines and returns the value.
+     *
+     * @param {string[]} ssrcLines - an array of lines similar to 'a:213123 msid:stream-id track-id'.
+     * @returns {undefined|string}
+     */
+    parseMSIDAttribute(ssrcLines) {
+        const msidLine = ssrcLines.find(line => line.indexOf(' msid:') > 0);
+
+        if (!msidLine) {
+            return undefined;
+        }
+
+        const v = msidLine.substring(msidLine.indexOf(' msid:') + 6 /* the length of ' msid:' */);
+
+        return SDPUtil.filterSpecialChars(v);
     },
     parseMLine(line) {
         const data = {};
@@ -183,7 +202,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log(
+                logger.debug(
                     `parseICECandidate not translating "${
                         elems[i]}" = "${elems[i + 1]}"`);
             }
@@ -259,6 +278,19 @@ const SDPUtil = {
         }
 
         return data;
+    },
+
+    /**
+     * Gets the source name out of the name attribute "a=ssrc:254321 name:name1".
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
+     */
+    parseSourceNameLine(ssrcLines) {
+        const sourceNameLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(' name:') > 0);
+
+        // Everything past the "name:" part
+        return sourceNameLine?.substring(sourceNameLine.indexOf(' name:') + 6);
     },
     parseRTCPFB(line) {
         const parts = line.substr(10).split(' ');
@@ -340,10 +372,10 @@ const SDPUtil = {
             // eslint-disable-next-line no-param-reassign
             line = `a=${line}`;
         } else if (line.substring(0, 12) !== 'a=candidate:') {
-            logger.log(
+            logger.warn(
                 'parseCandidate called with a line that is not a candidate'
                     + ' line');
-            logger.log(line);
+            logger.warn(line);
 
             return null;
         }
@@ -355,8 +387,8 @@ const SDPUtil = {
         const elems = line.split(' ');
 
         if (elems[6] !== 'typ') {
-            logger.log('did not find typ in the right place');
-            logger.log(line);
+            logger.warn('did not find typ in the right place');
+            logger.warn(line);
 
             return null;
         }
@@ -386,7 +418,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
+                logger.debug(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';
@@ -657,7 +689,7 @@ const SDPUtil = {
             if (keepPts.length === 0) {
                 // There are no other codecs, disable the stream.
                 mLine.port = 0;
-                mLine.direction = 'inactive';
+                mLine.direction = MediaDirection.INACTIVE;
                 mLine.payloads = '*';
             } else {
                 mLine.payloads = keepPts.join(' ');

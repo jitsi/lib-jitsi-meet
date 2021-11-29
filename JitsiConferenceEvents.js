@@ -31,6 +31,11 @@ export const CONFERENCE_ERROR = 'conference.error';
 export const CONFERENCE_FAILED = 'conference.failed';
 
 /**
+ * Indicates that conference is in progress of joining.
+ */
+export const CONFERENCE_JOIN_IN_PROGRESS = 'conference.join_in_progress';
+
+/**
  * Indicates that conference has been joined. The event does NOT provide any
  * parameters to its listeners.
  */
@@ -189,6 +194,12 @@ export const NO_AUDIO_INPUT = 'conference.no_audio_input';
  * Event indicates that the current microphone used by the conference is noisy.
  */
 export const NOISY_MIC = 'conference.noisy_mic';
+
+/**
+ * Indicates that a message from the local user or from the Prosody backend
+ * was received on the data channel.
+ */
+export const NON_PARTICIPANT_MESSAGE_RECEIVED = 'conference.non_participant_message_received';
 
 /**
  * New private text message was received.
@@ -380,6 +391,14 @@ export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';
 export const AV_MODERATION_APPROVED = 'conference.av_moderation.approved';
 
 /**
+ * The local participant was blocked to be able to unmute.
+ * @param {options} event - {
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_REJECTED = 'conference.av_moderation.rejected';
+
+/**
  * AV Moderation was enabled/disabled. The actor is the participant that is currently in the meeting,
  * or undefined if that participant has left the meeting.
  *
@@ -399,3 +418,12 @@ export const AV_MODERATION_CHANGED = 'conference.av_moderation.changed';
  * }.
  */
 export const AV_MODERATION_PARTICIPANT_APPROVED = 'conference.av_moderation.participant.approved';
+
+/**
+ * AV Moderation, report for user being blocked to unmute.
+ * @param {options} event - {
+ *     {JitsiParticipant} participant,
+ *     {MediaType} mediaType
+ * }.
+ */
+export const AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected';

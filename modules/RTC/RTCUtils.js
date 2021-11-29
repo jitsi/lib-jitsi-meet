@@ -96,22 +96,13 @@ function emptyFuncton() {
 /**
  * Creates a constraints object to be passed into a call to getUserMedia.
  *
- * @param {Array} um - An array of user media types to get. The accepted
- * types are "video", "audio", and "desktop."
+ * @param {Array} um - An array of user media types to get. The accepted types are "video", "audio", and "desktop."
  * @param {Object} options - Various values to be added to the constraints.
- * @param {string} options.cameraDeviceId - The device id for the video
- * capture device to get video from.
- * @param {Object} options.constraints - Default constraints object to use
- * as a base for the returned constraints.
- * @param {Object} options.desktopStream - The desktop source id from which
- * to capture a desktop sharing video.
- * @param {string} options.facingMode - Which direction the camera is
- * pointing to.
- * @param {string} options.micDeviceId - The device id for the audio capture
- * device to get audio from.
- * @param {Object} options.frameRate - used only for dekstop sharing.
- * @param {Object} options.frameRate.min - Minimum fps
- * @param {Object} options.frameRate.max - Maximum fps
+ * @param {string} options.cameraDeviceId - The device id for the video capture device to get video from.
+ * @param {Object} options.constraints - Default constraints object to use as a base for the returned constraints.
+ * @param {Object} options.desktopStream - The desktop source id from which to capture a desktop sharing video.
+ * @param {string} options.facingMode - Which direction the camera is pointing to (applicable on mobile)
+ * @param {string} options.micDeviceId - The device id for the audio capture device to get audio from.
  * @private
  * @returns {Object}
  */
@@ -125,10 +116,8 @@ function getConstraints(um = [], options = {}) {
         if (Resolutions[options.resolution]) {
             const r = Resolutions[options.resolution];
 
-            constraints.video = {
-                height: { ideal: r.height },
-                width: { ideal: r.width }
-            };
+            constraints.video.height = { ideal: r.height };
+            constraints.video.width = { ideal: r.width };
         }
 
         if (!constraints.video) {
@@ -940,9 +929,18 @@ class RTCUtils extends Listenable {
      * @returns {boolean} true if available, false otherwise.
      */
     isDeviceChangeAvailable(deviceType) {
-        return deviceType === 'output' || deviceType === 'audiooutput'
-            ? isAudioOutputDeviceChangeAvailable
-            : true;
+        if (deviceType === 'output' || deviceType === 'audiooutput') {
+            return isAudioOutputDeviceChangeAvailable;
+        }
+
+        // Calling getUserMedia again (for preview) kills the track returned by the first getUserMedia call because of
+        // https://bugs.webkit.org/show_bug.cgi?id=179363. Therefore, do not show microphone/camera options on mobile
+        // Safari.
+        if ((deviceType === 'audioinput' || deviceType === 'input') && browser.isIosBrowser()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1006,6 +1004,16 @@ class RTCUtils extends Listenable {
                 eventEmitter.emit(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                     deviceId);
             });
+    }
+
+    /**
+     * Sets the capture frame rate for desktop tracks.
+     *
+     * @param {number} maxFps - max fps to be used as the capture frame rate.
+     * @returns {void}
+     */
+    setDesktopSharingFrameRate(maxFps) {
+        screenObtainer.setDesktopSharingFrameRate(maxFps);
     }
 
     /**

@@ -19,7 +19,7 @@ export class SendVideoController {
      */
     constructor(conference, rtc) {
         this.conference = conference;
-        this.layerSuspensionEnabled = conference.options?.config?.enableLayerSuspension;
+        this.layerSuspensionEnabled = conference.options?.config?.enableLayerSuspension ?? true;
         this.rtc = rtc;
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
@@ -54,12 +54,6 @@ export class SendVideoController {
                     this._propagateSendMaxFrameHeight();
                 }
             });
-
-        // Set the degradation preference on the local video track.
-        mediaSession.setSenderVideoDegradationPreference();
-
-        // Set the max bitrates on video sender if they are specified in config.js videoQuality settings.
-        mediaSession.setSenderMaxBitrates();
     }
 
     /**

@@ -71,13 +71,6 @@ let startBitrate = 800;
  * @param videoQualitySettings {Object} the bitrate and codec settings for the local video source.
  */
 function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings) {
-    // Completely ignore the bitrate in the first 5 seconds, as the first
-    // event seems to fire very early and the value is suspicious and causes
-    // false positives.
-    if (millisSinceStart < 15000) {
-        return 1;
-    }
-
     let target = 0;
     let height = Math.min(resolution.height, resolution.width);
 
@@ -164,6 +157,11 @@ export default class ConnectionQuality {
         this._lastConnectionQualityUpdate = -1;
 
         /**
+         * Conference options.
+         */
+        this._options = options;
+
+        /**
          * Maps a participant ID to an object holding connection quality
          * statistics received from this participant.
          */
@@ -182,8 +180,8 @@ export default class ConnectionQuality {
         this._timeVideoUnmuted = -1;
 
         // We assume a global startBitrate value for the sake of simplicity.
-        if (options.config.startBitrate && options.config.startBitrate > 0) {
-            startBitrate = options.config.startBitrate;
+        if (this._options.config?.startBitrate > 0) {
+            startBitrate = this._options.config.startBitrate;
         }
 
         // TODO: consider ignoring these events and letting the user of
@@ -354,12 +352,17 @@ export default class ConnectionQuality {
                 // Time since sending of video was enabled.
                 const millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
+                const statsInterval = this._options.config?.pcStatsInterval ?? 10000;
 
                 // Expected sending bitrate in perfect conditions.
                 let target = getTarget(isSimulcastOn, resolution, millisSinceStart, videoQualitySettings);
 
                 target = Math.min(target, MAX_TARGET_BITRATE);
-                quality = 100 * this._localStats.bitrate.upload / target;
+
+                // Calculate the quality only after the stats are available (after video was enabled).
+                if (millisSinceStart > statsInterval) {
+                    quality = 100 * this._localStats.bitrate.upload / target;
+                }
             }
 
             // Whatever the bitrate, drop early if there is significant loss
