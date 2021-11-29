@@ -9,6 +9,12 @@
 export const AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed';
 
 /**
+ * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the call
+ * and the audio sender limit configured in Jicofo.
+ */
+export const AUDIO_UNMUTE_PERMISSIONS_CHANGED = 'conference.audio_unmute_permissions_changed';
+
+/**
  * Indicates that authentication status changed.
  */
 export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
@@ -361,6 +367,12 @@ export const USER_ROLE_CHANGED = 'conference.roleChanged';
  * User status changed.
  */
 export const USER_STATUS_CHANGED = 'conference.statusChanged';
+
+/**
+ * Event indicates that the permission for unmuting video has changed based on the number of video senders in the call
+ * and the video sender limit configured in Jicofo.
+ */
+export const VIDEO_UNMUTE_PERMISSIONS_CHANGED = 'conference.video_unmute_permissions_changed';
 
 /**
  * Event indicates that the bot participant type changed.
