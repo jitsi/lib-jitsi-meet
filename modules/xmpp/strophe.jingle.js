@@ -377,15 +377,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 to: this.xmpp.options.hosts.domain })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
             v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
-            v2Err => {
-                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1', v2Err);
+            () => {
+                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1');
                 this.connection.sendIQ(
                     $iq({ type: 'get',
                         to: this.xmpp.options.hosts.domain })
                         .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
                     v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
-                    v1Err => {
-                        logger.warn('getting turn credentials failed', v1Err);
+                    () => {
+                        logger.warn('getting turn credentials failed');
                         logger.warn('is mod_turncredentials or similar installed and configured?');
                     }
                 );
