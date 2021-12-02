@@ -690,11 +690,6 @@ JitsiConference.prototype.leave = function() {
         this.room = null;
 
         return room.leave()
-            .then(() => {
-                if (this.rtc) {
-                    this.rtc.destroy();
-                }
-            })
             .catch(error => {
                 // remove all participants because currently the conference
                 // won't be usable anyway. This is done on success automatically
@@ -703,6 +698,11 @@ JitsiConference.prototype.leave = function() {
                     participant => this.onMemberLeft(participant.getJid()));
 
                 throw error;
+            })
+            .then(() => {
+                if (this.rtc) {
+                    this.rtc.destroy();
+                }
             });
     }
 
