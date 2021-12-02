@@ -29,7 +29,15 @@ export default class AVModeration {
         this._whitelistAudio = [];
         this._whitelistVideo = [];
 
-        this._xmpp.addListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage.bind(this));
+        this._onMessage = this._onMessage.bind(this);
+        this._xmpp.addListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage);
+    }
+
+    /**
+     * Stops listening for events.
+     */
+    dispose() {
+        this._xmpp.removeListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage);
     }
 
     /**
