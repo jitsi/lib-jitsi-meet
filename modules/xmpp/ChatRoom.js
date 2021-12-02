@@ -1875,7 +1875,7 @@ export default class ChatRoom extends Listenable {
             this.doLeave();
         }));
 
-        return Promise.all(promises);
+        return Promise.allSettled(promises);
     }
 }
 
