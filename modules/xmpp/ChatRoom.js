@@ -1857,27 +1857,24 @@ export default class ChatRoom extends Listenable {
         this.lobby?.lobbyRoom && promises.push(this.lobby.leave());
 
         promises.push(new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => onMucLeft(true), 5000);
-            const eventEmitter = this.eventEmitter;
+            let timeout = -1;
 
-            this.clean();
-
-            /**
-             *
-             * @param doReject
-             */
-            function onMucLeft(doReject = false) {
-                eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
+            const onMucLeft = (doReject = false) => {
+                this.eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
                 clearTimeout(timeout);
                 if (doReject) {
-                    // the timeout expired
-                    reject(new Error('The timeout for the confirmation about '
-                        + 'leaving the room expired.'));
+                    // The timeout expired. Make sure we clean the EMUC state.
+                    this.connection.emuc.doLeave(this.roomjid);
+                    reject(new Error('The timeout for the confirmation about leaving the room expired.'));
                 } else {
                     resolve();
                 }
-            }
-            eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
+            };
+
+            timeout = setTimeout(() => onMucLeft(true), 5000);
+
+            this.clean();
+            this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
             this.doLeave();
         }));
 
