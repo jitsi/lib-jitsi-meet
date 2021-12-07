@@ -1350,27 +1350,31 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 
 /**
  * Sets the video type.
- * @param trackVideoType
+ * @param track
  * @return <tt>true</tt> if video type was changed in presence.
  * @private
  */
-JitsiConference.prototype._setNewVideoType = function(trackVideoType) {
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+JitsiConference.prototype._setNewVideoType = function(track) {
+    if (FeatureFlags.isSourceNameSignalingEnabled() && track) {
         // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
         // to send the presence (not just modify it).
         this._signalingLayer.setTrackVideoType(
             getSourceNameForJitsiTrack(
                 this.myUserId(),
-                MediaType.VIDEO,
+                track.getType(),
                 0
             ),
-            trackVideoType);
+            track.videoType);
 
         // TODO: Optimize to detect whether presence was changed, for now always report changed to send presence
         return true;
     }
 
     const videoTypeTagName = 'videoType';
+
+    // if track is missing we revert to default type Camera, the case where we screenshare and
+    // we return to be video muted
+    const trackVideoType = track ? track.videoType : VideoType.CAMERA;
 
     // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
     if (trackVideoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
@@ -1385,11 +1389,12 @@ JitsiConference.prototype._setNewVideoType = function(trackVideoType) {
 /**
  * Sets mute status.
  * @param mediaType
+ * @param localTrack
  * @param isMuted
  * @param <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
  * @private
  */
-JitsiConference.prototype._setTrackMuteStatus = function(mediaType, isMuted) {
+JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
         // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
         // it triggers sending the presence (it only updates it for now, because the legacy code below sends).
@@ -3616,19 +3621,19 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
     let presenceChanged = false;
 
     if (localAudioTracks && localAudioTracks.length) {
-        presenceChanged = this._setTrackMuteStatus(MediaType.AUDIO, localAudioTracks[0].isMuted());
-    } else if (this._setTrackMuteStatus(MediaType.AUDIO, true)) {
+        presenceChanged = this._setTrackMuteStatus(MediaType.AUDIO, localAudioTracks[0], localAudioTracks[0].isMuted());
+    } else if (this._setTrackMuteStatus(MediaType.AUDIO, undefined, true)) {
         presenceChanged = true;
     }
 
     if (localVideoTracks && localVideoTracks.length) {
-        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, localVideoTracks[0].isMuted());
-        const videoTypeChanged = this._setNewVideoType(localVideoTracks[0].getVideoType());
+        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, localVideoTracks[0], localVideoTracks[0].isMuted());
+        const videoTypeChanged = this._setNewVideoType(localVideoTracks[0]);
 
         presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
     } else {
-        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, true);
-        const videoTypeChanged = this._setNewVideoType(VideoType.CAMERA); // set back to default video type
+        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
+        const videoTypeChanged = this._setNewVideoType(); // set back to default video type
 
         presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
     }
