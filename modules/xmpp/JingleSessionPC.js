@@ -954,7 +954,15 @@ export default class JingleSessionPC extends JingleSession {
                 // FIXME we may not care about RESULT packet for session-accept
                 // then we should either call 'success' here immediately or
                 // modify sendSessionAccept method to do that
-                this.sendSessionAccept(success, failure);
+                this.sendSessionAccept(() => {
+                    success();
+
+                    this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT, this);
+                }, () => {
+                    failure();
+
+                    this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this);
+                });
             },
             failure,
             localTracks);
@@ -2512,12 +2520,24 @@ export default class JingleSessionPC extends JingleSession {
             );
         const removedAnySSRCs = sdpDiffer.toJingle(remove);
 
+        // context a common object for one run of ssrc update (source-add and source-remove) so we can match them if we
+        // need to
+        const ctx = {};
+
         if (removedAnySSRCs) {
             logger.info(`${this} Sending source-remove`);
             logger.debug(remove.tree());
             this.connection.sendIQ(
-                remove, null,
-                this.newJingleErrorHandler(remove), IQ_TIMEOUT);
+                remove,
+                () => {
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE, this, ctx);
+                },
+                () => {
+                    this.newJingleErrorHandler(remove);
+
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE_ERROR, this, ctx);
+                },
+                IQ_TIMEOUT);
         }
 
         // send source-add IQ.
@@ -2538,7 +2558,16 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} Sending source-add`);
             logger.debug(add.tree());
             this.connection.sendIQ(
-                add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
+                add,
+                () => {
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
+                },
+                () => {
+                    this.newJingleErrorHandler(add);
+
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, ctx);
+                },
+                IQ_TIMEOUT);
         }
     }
 
