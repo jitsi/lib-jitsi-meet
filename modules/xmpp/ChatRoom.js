@@ -1557,22 +1557,6 @@ export default class ChatRoom extends Listenable {
      *
      * @param mute
      */
-    setVideoMute(mute) {
-        this.sendVideoInfoPresence(mute);
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    setAudioMute(mute) {
-        this.sendAudioInfoPresence(mute);
-    }
-
-    /**
-     *
-     * @param mute
-     */
     addAudioInfoToPresence(mute) {
         const audioMutedTagName = 'audiomuted';
 
@@ -1592,15 +1576,6 @@ export default class ChatRoom extends Listenable {
      *
      * @param mute
      */
-    sendAudioInfoPresence(mute) {
-        // FIXME resend presence on CONNECTED
-        this.addAudioInfoToPresence(mute) && this.sendPresence();
-    }
-
-    /**
-     *
-     * @param mute
-     */
     addVideoInfoToPresence(mute) {
         const videoMutedTagName = 'videomuted';
 
@@ -1614,14 +1589,6 @@ export default class ChatRoom extends Listenable {
             {
                 value: mute.toString()
             });
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    sendVideoInfoPresence(mute) {
-        this.addVideoInfoToPresence(mute) && this.sendPresence();
     }
 
     /**

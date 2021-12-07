@@ -5,6 +5,9 @@ import { $iq, Strophe } from 'strophe.js';
 
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import MediaDirection from '../../service/RTC/MediaDirection';
+import * as MediaType from '../../service/RTC/MediaType';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
+import VideoType from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
@@ -954,7 +957,11 @@ export default class JingleSessionPC extends JingleSession {
                 // FIXME we may not care about RESULT packet for session-accept
                 // then we should either call 'success' here immediately or
                 // modify sendSessionAccept method to do that
-                this.sendSessionAccept(success, failure);
+                this.sendSessionAccept(() => {
+                    success();
+
+                    this.updateRoomPresence();
+                }, failure);
             },
             failure,
             localTracks);
@@ -2511,12 +2518,17 @@ export default class JingleSessionPC extends JingleSession {
             }
             );
         const removedAnySSRCs = sdpDiffer.toJingle(remove);
+        let presenceSent = false;
 
         if (removedAnySSRCs) {
             logger.info(`${this} Sending source-remove`);
             logger.debug(remove.tree());
             this.connection.sendIQ(
-                remove, null,
+                remove, () => {
+                    if (!presenceSent) {
+                        presenceSent = this.updateRoomPresence();
+                    }
+                },
                 this.newJingleErrorHandler(remove), IQ_TIMEOUT);
         }
 
@@ -2538,7 +2550,11 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} Sending source-add`);
             logger.debug(add.tree());
             this.connection.sendIQ(
-                add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
+                add, () => {
+                    if (!presenceSent) {
+                        presenceSent = this.updateRoomPresence();
+                    }
+                }, this.newJingleErrorHandler(add), IQ_TIMEOUT);
         }
     }
 
@@ -2613,6 +2629,109 @@ export default class JingleSessionPC extends JingleSession {
      */
     getIceConnectionState() {
         return this.peerconnection.getConnectionState();
+    }
+
+    /**
+     * Returns the local user's ID.
+     * @return {string} local user's ID.
+     * @private
+     */
+    _myUserId() {
+        return this.room && this.room.myroomjid ? Strophe.getResourceFromJid(this.room.myroomjid) : null;
+    }
+
+    /**
+     * Sets the video type.
+     * @param track
+     * @return <tt>true</tt> if video type was changed in presence.
+     * @private
+     */
+    _setNewVideoType(trackVideoType) {
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            // FIXME once legacy signaling using presence is removed, signalingLayer.setTrackVideoType must be adjusted
+            // to send the presence (not just modify it).
+            this._signalingLayer.setTrackVideoType(
+                getSourceNameForJitsiTrack(
+                    this._myUserId(),
+                    MediaType.VIDEO,
+                    0
+                ),
+                trackVideoType);
+
+            // TODO: Optimize to detect whether presence was changed, for now always report changed to send presence
+            return true;
+        }
+
+        const videoTypeTagName = 'videoType';
+
+        // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
+        if (trackVideoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
+            // we will not use this.sendCommand here to avoid sending the presence immediately, as later we may also set
+            // and the mute status
+            return this.room.addOrReplaceInPresence(videoTypeTagName, { value: trackVideoType });
+        }
+
+        return false;
+    }
+
+    /**
+     * Sets mute status.
+     * @param localTrack
+     * @param isMuted
+     * @param <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
+     * @private
+     */
+    _setTrackMuteStatus(mediaType, isMuted) {
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
+            // it triggers sending the presence (it only updates it for now, because the legacy code below sends).
+            this._signalingLayer.setTrackMuteStatus(
+                getSourceNameForJitsiTrack(this._myUserId(), mediaType, 0),
+                isMuted
+            );
+        }
+
+        if (!this.room) {
+            return false;
+        }
+
+        if (mediaType === MediaType.AUDIO) {
+            return this.room.addAudioInfoToPresence(isMuted);
+        }
+
+        return this.room.addVideoInfoToPresence(isMuted);
+    }
+
+    /**
+     * Updates room presence if needed and send the packet in case of a modification.
+     * @returns {boolean|null} <tt>true</tt> if the presence has been sent or <tt>false</tt> otherwise.
+     */
+    updateRoomPresence() {
+        const localAudioTracks = this.peerconnection.getLocalTracks(MediaType.AUDIO);
+        const localVideoTracks = this.peerconnection.getLocalTracks(MediaType.VIDEO);
+        let presenceChanged = false;
+
+        if (localAudioTracks && localAudioTracks.length) {
+            presenceChanged = this._setTrackMuteStatus(MediaType.AUDIO, localAudioTracks[0].isMuted());
+        } else if (this._setTrackMuteStatus(MediaType.AUDIO, true)) {
+            presenceChanged = true;
+        }
+
+        if (localVideoTracks && localVideoTracks.length) {
+            const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, localVideoTracks[0].isMuted());
+            const videoTypeChanged = this._setNewVideoType(localVideoTracks[0].getVideoType());
+
+            presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
+        } else {
+            const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, true);
+            const videoTypeChanged = this._setNewVideoType(VideoType.CAMERA); // set back to default video type
+
+            presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
+        }
+
+        presenceChanged && this.room.sendPresence();
+
+        return presenceChanged;
     }
 
     /**
