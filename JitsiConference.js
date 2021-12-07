@@ -3627,7 +3627,8 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
     }
 
     if (localVideoTracks && localVideoTracks.length) {
-        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, localVideoTracks[0], localVideoTracks[0].isMuted());
+        const muteStatusChanged = this._setTrackMuteStatus(
+            MediaType.VIDEO, localVideoTracks[0], localVideoTracks[0].isMuted());
         const videoTypeChanged = this._setNewVideoType(localVideoTracks[0]);
 
         presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
