@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import isEqual from 'lodash.isequal';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 const MAX_HEIGHT_ONSTAGE = 2160;
@@ -304,6 +305,19 @@ export class ReceiveVideoController {
     setReceiverConstraints(constraints) {
         if (!this._receiverVideoConstraints) {
             this._receiverVideoConstraints = new ReceiverVideoConstraints();
+        }
+
+        const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
+        const isSourceNamesFormat = Object.keys(constraints).includes('prioritizedSources', 'selectedSources');
+
+        if (!FeatureFlags.isSourceNameSignalingEnabled() && isSourceNamesFormat) {
+            throw new Error(
+                '"prioritizedSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
+            );
+        }
+
+        if (isEndpointsFormat && isSourceNamesFormat) {
+            throw new Error('Cannot mix constraints format.');
         }
 
         const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
