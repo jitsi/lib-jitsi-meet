@@ -3610,10 +3610,12 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
  * @param {Object|null} ctx a context object we can distinguish multiple calls of the same pass of updating tracks.
  */
 JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
-    if (ctx && ctx.skip) {
+    // skips sending presence twice for the same pass of updating ssrcs
+    if (ctx) {
+        if (ctx.skip) {
+            return;
+        }
         ctx.skip = true;
-
-        return;
     }
 
     const localAudioTracks = jingleSession.peerconnection.getLocalTracks(MediaType.AUDIO);
