@@ -316,10 +316,11 @@ export class ReceiveVideoController {
             );
         }
 
-        if (isEndpointsFormat && isSourceNamesFormat) {
-            throw new Error('Cannot mix constraints format.');
+        if (FeatureFlags.isSourceNameSignalingEnabled() && isEndpointsFormat) {
+            throw new Error(
+                '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
+            );
         }
-
         const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
 
         if (constraintsChanged) {
