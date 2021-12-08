@@ -6,6 +6,7 @@ const logger = getLogger(__filename);
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
 const MIN_REQUIRED_SAFARI_VERSION = 14;
+const MIN_REQUIRED_IOS_SAFARI_VERSION = 14;
 
 // TODO: Move this code to js-utils.
 
@@ -110,6 +111,26 @@ export default class BrowserCapabilities extends BrowserDetection {
             || this.isFirefox()
             || this.isReactNative()
             || this.isWebKitBased();
+    }
+
+    /**
+     * Returns whether the browser is supported for Android
+     * @returns {boolean} true if the browser is supported for Android devices
+     */
+    isSupportedAndroidBrowser() {
+        return this.isChromiumBased() || this.isFirefox();
+    }
+
+    /**
+     * Returns whether the browser is supported for iOS
+     * @returns {boolean} true if the browser is supported for iOS devices
+     */
+    isSupportedIOSBrowser() {
+        if (this.isSafari() && this._getSafariVersion() < MIN_REQUIRED_IOS_SAFARI_VERSION) {
+            return false;
+        }
+
+        return this.isWebKitBased();
     }
 
     /**
