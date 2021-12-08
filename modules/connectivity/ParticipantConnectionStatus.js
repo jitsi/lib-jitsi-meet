@@ -174,7 +174,7 @@ export default class ParticipantConnectionStatusHandler {
      * @param {Object} options
      * @param {number} [options.p2pRtcMuteTimeout=2500] custom value for
      * {@link ParticipantConnectionStatus.p2pRtcMuteTimeout}.
-     * @param {number} [options.rtcMuteTimeout=2000] custom value for
+     * @param {number} [options.rtcMuteTimeout=10000] custom value for
      * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
      * @param {number} [options.outOfLastNTimeout=500] custom value for
      * {@link ParticipantConnectionStatus.outOfLastNTimeout}.
