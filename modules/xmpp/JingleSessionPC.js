@@ -2533,11 +2533,9 @@ export default class JingleSessionPC extends JingleSession {
                 () => {
                     this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE, this, ctx);
                 },
-                () => {
-                    this.newJingleErrorHandler(remove);
-
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE_ERROR, this, ctx);
-                },
+                this.newJingleErrorHandler(remove, error => {
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE_ERROR, this, error, ctx);
+                }),
                 IQ_TIMEOUT);
         }
 
@@ -2563,11 +2561,9 @@ export default class JingleSessionPC extends JingleSession {
                 () => {
                     this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
                 },
-                () => {
-                    this.newJingleErrorHandler(add);
-
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, ctx);
-                },
+                this.newJingleErrorHandler(add, error => {
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, ctx);
+                }),
                 IQ_TIMEOUT);
         }
     }
