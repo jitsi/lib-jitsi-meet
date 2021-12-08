@@ -2824,6 +2824,11 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${mimeType}`);
             }
 
+            if (browser.isChromiumBased() && browser.isVersionEqualTo('96')) {
+                capabilities = capabilities
+                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}`);
+            }
+
             try {
                 transceiver.setCodecPreferences(capabilities);
             } catch (err) {
