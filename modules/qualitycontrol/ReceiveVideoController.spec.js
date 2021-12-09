@@ -65,7 +65,7 @@ describe('ReceiveVideoController', () => {
         it('should call setNewReceiverVideoConstraints with the source names format.', () => {
             const rtcSpy = spyOn(rtc, 'setNewReceiverVideoConstraints');
             const constraints = {
-                prioritizedSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
+                onStageSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
                 selectedSources: [ 'A_camera_1' ]
             };
 
@@ -108,7 +108,7 @@ describe('ReceiveVideoController', () => {
 
         it('should not allow the source names format.', () => {
             const constraints = {
-                prioritizedSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
+                onStageSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
                 selectedSources: [ 'A_camera_1' ]
             };
 
@@ -117,7 +117,7 @@ describe('ReceiveVideoController', () => {
                 fail();
             } catch (error) {
                 expect(error).toEqual(new Error(
-                    '"prioritizedSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
+                    '"onStageSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
                 ));
             }
         });

@@ -308,11 +308,11 @@ export class ReceiveVideoController {
         }
 
         const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
-        const isSourceNamesFormat = Object.keys(constraints).includes('prioritizedSources', 'selectedSources');
+        const isSourcesFormat = Object.keys(constraints).includes('onStageSources', 'selectedSources');
 
-        if (!FeatureFlags.isSourceNameSignalingEnabled() && isSourceNamesFormat) {
+        if (!FeatureFlags.isSourceNameSignalingEnabled() && isSourcesFormat) {
             throw new Error(
-                '"prioritizedSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
+                '"onStageSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
             );
         }
 
