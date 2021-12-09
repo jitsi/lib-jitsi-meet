@@ -400,9 +400,11 @@ JitsiConference.prototype._init = function(options = {}) {
     this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
     this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
+    this._removeLocalSourceOnReject = this._removeLocalSourceOnReject.bind(this);
     this._updateRoomPresence = this._updateRoomPresence.bind(this);
     this.room.addListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
     this.room.addListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
+    this.room.addListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
     this.room.addListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
     this.e2eping = new E2ePing(
@@ -692,6 +694,7 @@ JitsiConference.prototype.leave = async function() {
     room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
     room.removeListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
     room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
+    room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
     room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
     this.eventManager.removeXMPPListeners();
@@ -1309,6 +1312,24 @@ JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
     }
 
     return Promise.all(replaceTrackPromises);
+};
+
+/**
+ * Handler for when a source-add for a local source is rejected by Jicofo.
+ *
+ * @param {JingleSessionPC} jingleSession - The media session.
+ * @param {Error} error - The error message.
+ * @param {MediaType} mediaType - The media type of the track associated with the source that was rejected.
+ * @returns {void}
+ */
+JitsiConference.prototype._removeLocalSourceOnReject = function(jingleSession, error, mediaType) {
+    if (!jingleSession) {
+        return;
+    }
+    logger.warn(`Source-add rejected on ${jingleSession}, reason="${error?.reason}", message="${error?.msg}"`);
+    const track = this.getLocalTracks(mediaType)[0];
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track);
 };
 
 /**

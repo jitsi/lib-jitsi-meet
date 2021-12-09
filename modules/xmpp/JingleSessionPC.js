@@ -2487,7 +2487,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param newSDP SDP object for new description.
      */
     notifyMySSRCUpdate(oldSDP, newSDP) {
-
         if (this.state !== JingleSessionState.ACTIVE) {
             logger.warn(`${this} Skipping SSRC update in '${this.state} ' state.`);
 
@@ -2508,6 +2507,27 @@ export default class JingleSessionPC extends JingleSession {
         this._cachedOldLocalSdp = undefined;
         this._cachedNewLocalSdp = undefined;
 
+        const getSignaledSourceInfo = sdpDiffer => {
+            const newMedia = sdpDiffer.getNewMedia();
+            let ssrcs = [];
+            let mediaType = null;
+
+            // It is assumed that sources are signaled one at a time.
+            Object.keys(newMedia).forEach(mediaIndex => {
+                const signaledSsrcs = Object.keys(newMedia[mediaIndex].ssrcs);
+
+                mediaType = newMedia[mediaIndex].mid;
+                if (signaledSsrcs?.length) {
+                    ssrcs = ssrcs.concat(signaledSsrcs);
+                }
+            });
+
+            return {
+                mediaType,
+                ssrcs
+            };
+        };
+
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
         const remove = $iq({ to: this.remoteJid,
@@ -2526,8 +2546,10 @@ export default class JingleSessionPC extends JingleSession {
         const ctx = {};
 
         if (removedAnySSRCs) {
-            logger.info(`${this} Sending source-remove`);
-            logger.debug(remove.tree());
+            const sourceInfo = getSignaledSourceInfo(sdpDiffer);
+
+            // Log only the SSRCs instead of the full IQ.
+            logger.info(`${this} Sending source-remove for ${sourceInfo.mediaType} ssrcs=${sourceInfo.ssrcs}`);
             this.connection.sendIQ(
                 remove,
                 () => {
@@ -2554,15 +2576,17 @@ export default class JingleSessionPC extends JingleSession {
         const containsNewSSRCs = sdpDiffer.toJingle(add);
 
         if (containsNewSSRCs) {
-            logger.info(`${this} Sending source-add`);
-            logger.debug(add.tree());
+            const sourceInfo = getSignaledSourceInfo(sdpDiffer);
+
+            // Log only the SSRCs instead of the full IQ.
+            logger.info(`${this} Sending source-add for ${sourceInfo.mediaType} ssrcs=${sourceInfo.ssrcs}`);
             this.connection.sendIQ(
                 add,
                 () => {
                     this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
                 },
                 this.newJingleErrorHandler(add, error => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, ctx);
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, sourceInfo.mediaType, ctx);
                 }),
                 IQ_TIMEOUT);
         }
