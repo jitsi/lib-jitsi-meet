@@ -3593,13 +3593,12 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
             // crash the responder would stay in P2P mode until ICE fails which
             // could take up to 20 seconds.
             //
-            // NOTE lack of 'reason' is considered as graceful session terminate
+            // NOTE: whilst this is an error callback,  'success' as a reason is
+            // considered as graceful session terminate
             // where both initiator and responder terminate their sessions
             // simultaneously.
-            if (reason) {
-                logger.error(
-                    'An error occurred while trying to terminate'
-                        + ' P2P Jingle session', error);
+            if (reason !== 'success') {
+                logger.error('An error occurred while trying to terminate P2P Jingle session', error);
             }
         }, {
             reason,
