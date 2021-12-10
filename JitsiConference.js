@@ -1266,7 +1266,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
             // updates presence when we replace the video tracks desktop with screen and screen with desktop
             if (oldTrackBelongsToConference && oldTrack?.isVideoTrack()) {
-                this._updateRoomPresence(this.p2pJingleSession ? this.p2pJingleSession : this.jvbJingleSession);
+                this._updateRoomPresence(this._getActiveMediaSession());
             }
 
             if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
@@ -3630,6 +3630,10 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
  * @param {Object|null} ctx a context object we can distinguish multiple calls of the same pass of updating tracks.
  */
 JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
+    if (!jingleSession) {
+        return;
+    }
+
     // skips sending presence twice for the same pass of updating ssrcs
     if (ctx) {
         if (ctx.skip) {
