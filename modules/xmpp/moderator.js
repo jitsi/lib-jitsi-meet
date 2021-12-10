@@ -216,13 +216,13 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
 
-    const callstatsDisabled
-        = !this.options.callStatsID || !this.options.callStatsSecret || !this.options.enableCallStats
+    const { callStatsID, callStatsSecret, disableThirdPartyRequests, enableCallStats } = this.options.conference;
+    const callstatsDisabled = !callStatsID || !callStatsSecret || !enableCallStats
 
-            // Even though AppID and AppSecret may be specified, the integration
-            // of callstats.io may be disabled because of globally-disallowed
-            // requests to any third parties.
-            || (this.options.disableThirdPartyRequests === true);
+        // Even though AppID and AppSecret may be specified, the integration
+        // of callstats.io may be disabled because of globally-disallowed
+        // requests to any third parties.
+        || disableThirdPartyRequests === true;
 
     // since the default is true across all the server-side components, only signal if false.
     if (callstatsDisabled) {
