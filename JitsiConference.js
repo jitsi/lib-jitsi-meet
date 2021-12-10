@@ -1265,7 +1265,10 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             }
 
             // updates presence when we replace the video tracks desktop with screen and screen with desktop
-            if (oldTrackBelongsToConference && oldTrack?.isVideoTrack()) {
+            if (oldTrackBelongsToConference && oldTrack?.isVideoTrack()
+
+                // we do not want to send presence update during setEffect switching, which does remove and then add
+                && !(oldTrack?._setEffectInProgress || newTrack?._setEffectInProgress)) {
                 this._updateRoomPresence(this._getActiveMediaSession());
             }
 
