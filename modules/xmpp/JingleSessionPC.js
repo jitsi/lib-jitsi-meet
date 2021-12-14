@@ -1078,9 +1078,9 @@ export default class JingleSessionPC extends JingleSession {
                         workFunction,
                         error => {
                             if (error) {
-                                logger.error(`${this} failed to renegotiate a decoder for muted ednpoint ${error}`);
+                                logger.error(`${this} failed to renegotiate a decoder for muted endpoint ${error}`);
                             } else {
-                                logger.debug(`${this} renegotiate a decoder for muted ednpoint`);
+                                logger.debug(`${this} renegotiate a decoder for muted endpoint`);
                             }
                         });
                 }
