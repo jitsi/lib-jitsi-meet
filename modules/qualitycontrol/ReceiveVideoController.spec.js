@@ -57,9 +57,9 @@ describe('ReceiveVideoController', () => {
         receiveVideoController = new ReceiveVideoController(conference, rtc);
     });
 
-    describe('when isSourceNameSignalingEnabled is enabled', () => {
+    describe('when sourceNameSignaling is enabled', () => {
         beforeEach(() => {
-            spyOn(FeatureFlags, 'isSourceNameSignalingEnabled').and.returnValue(true);
+            FeatureFlags.init({ sourceNameSignaling: true });
         });
 
         it('should call setNewReceiverVideoConstraints with the source names format.', () => {
@@ -90,9 +90,9 @@ describe('ReceiveVideoController', () => {
         });
     });
 
-    describe('when isSourceNameSignalingEnabled is disabled', () => {
+    describe('when sourceNameSignaling is disabled', () => {
         beforeEach(() => {
-            spyOn(FeatureFlags, 'isSourceNameSignalingEnabled').and.returnValue(false);
+            FeatureFlags.init({ sourceNameSignaling: false });
         });
 
         it('should call setNewReceiverVideoConstraints with the endpoints format.', () => {
