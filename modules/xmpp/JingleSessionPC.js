@@ -1060,15 +1060,29 @@ export default class JingleSessionPC extends JingleSession {
             () => {
                 logger.info(`${this} setAnswer - succeeded`);
                 if (this.usesUnifiedPlan && browser.isChromiumBased()) {
-                    // This hack is needed for Chrome to create a decoder for the ssrcs in the remote SDP when
-                    // the local endpoint is the offerer and starts muted.
-                    const remoteSdp = this.peerconnection.remoteDescription.sdp;
-                    const remoteDescription = new RTCSessionDescription({
-                        type: 'offer',
-                        sdp: remoteSdp
-                    });
+                    const workFunction = finishedCallback => {
+                        // This hack is needed for Chrome to create a decoder for the ssrcs in the remote SDP when
+                        // the local endpoint is the offerer and starts muted.
+                        const remoteSdp = this.peerconnection.remoteDescription.sdp;
+                        const remoteDescription = new RTCSessionDescription({
+                            type: 'offer',
+                            sdp: remoteSdp
+                        });
 
-                    this._responderRenegotiate(remoteDescription);
+                        return this._responderRenegotiate(remoteDescription)
+                        .then(() => finishedCallback(), error => finishedCallback(error));
+                    };
+
+                    logger.debug(`${this} Queued responderRenegotiate task`);
+                    this.modificationQueue.push(
+                        workFunction,
+                        error => {
+                            if (error) {
+                                logger.error(`${this} failed to renegotiate a decoder for muted endpoint ${error}`);
+                            } else {
+                                logger.debug(`${this} renegotiate a decoder for muted endpoint`);
+                            }
+                        });
                 }
             },
             error => {

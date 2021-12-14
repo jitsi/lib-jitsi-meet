@@ -59,7 +59,7 @@ export class CodecSelection {
             () => this._selectPreferredCodec());
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-            session => this._onMediaSessionStared(session));
+            session => this._onMediaSessionStarted(session));
     }
 
     /**
@@ -105,7 +105,7 @@ export class CodecSelection {
      * @returns {void}
      * @private
      */
-    _onMediaSessionStared(mediaSession) {
+    _onMediaSessionStarted(mediaSession) {
         const preferredCodec = mediaSession.isP2P ? this.p2pPreferredCodec : this.jvbPreferredCodec;
         const disabledCodec = this.disabledCodec && this._isCodecSupported(this.disabledCodec)
             ? this.disabledCodec
