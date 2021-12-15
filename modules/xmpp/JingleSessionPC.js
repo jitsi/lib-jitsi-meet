@@ -1965,7 +1965,7 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
         const removeSsrcInfo = [];
 
-        $$_(sourceRemoveElem).forEach(content => {
+        sourceRemoveElem.forEach(content => {
             const name = content.getAttribute('name');
             let lines = '';
 
