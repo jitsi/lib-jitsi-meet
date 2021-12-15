@@ -195,7 +195,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             if ($_(iq, '>jingle>reason')) {
                 reasonCondition
                     = $_(iq, '>jingle>reason>:first').tagName;
-                reasonText = $_(iq, '>jingle>reason>text').textContent();
+                reasonText = $_(iq, '>jingle>reason>text').textContent;
             }
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
