@@ -1552,7 +1552,7 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
 
-        $$_(sourceAddElem).forEach(content => {
+        sourceAddElem.forEach(content => {
             const name = content.getAttribute('name');
             let lines = '';
 
