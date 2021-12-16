@@ -146,9 +146,7 @@ export default _mergeNamespaceAndModule({
         Statistics.init(options);
 
         // Configure the feature flags.
-        FeatureFlags.init({
-            sourceNameSignaling: options.sourceNameSignaling
-        });
+        FeatureFlags.init(options.flags || { });
 
         // Initialize global window.connectionTimes
         // FIXME do not use 'window'
