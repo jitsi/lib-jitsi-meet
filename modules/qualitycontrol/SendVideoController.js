@@ -1,5 +1,6 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 /**
@@ -27,15 +28,28 @@ export class SendVideoController {
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
             () => this._propagateSendMaxFrameHeight());
-        this.rtc.on(
-            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            videoConstraints => {
-                // Propagate the sender constraint only if it has changed.
-                if (this._senderVideoConstraints?.idealHeight !== videoConstraints.idealHeight) {
-                    this._senderVideoConstraints = videoConstraints;
-                    this._propagateSendMaxFrameHeight();
-                }
-            });
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            this.rtc.on(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                ({ /* sourceName, (uncomment when used) */ idealHeight }) => {
+                    // Propagate the sender constraint only if it has changed.
+                    if (this._senderVideoConstraints?.idealHeight !== idealHeight) {
+                        this._senderVideoConstraints = { idealHeight };
+                        this._propagateSendMaxFrameHeight();
+                    }
+                });
+        } else {
+            this.rtc.on(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                videoConstraints => {
+                    // Propagate the sender constraint only if it has changed.
+                    if (this._senderVideoConstraints?.idealHeight !== videoConstraints.idealHeight) {
+                        this._senderVideoConstraints = videoConstraints;
+                        this._propagateSendMaxFrameHeight();
+                    }
+                });
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
@@ -369,9 +370,28 @@ export default class BridgeChannel {
             case 'SenderVideoConstraints': {
                 const videoConstraints = obj.videoConstraints;
 
-                if (videoConstraints) {
+                if (!FeatureFlags.isSourceNameSignalingEnabled() && videoConstraints) {
                     logger.info(`SenderVideoConstraints: ${JSON.stringify(videoConstraints)}`);
                     emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, videoConstraints);
+                }
+                break;
+            }
+            case 'SenderVideoConstraintsV2': {
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    const { sourceName, idealHeight } = obj;
+
+                    if (typeof sourceName === 'string' && typeof idealHeight === 'number') {
+                        // eslint-disable-next-line object-property-newline
+                        logger.info(`SenderVideoConstraintsV2: ${JSON.stringify({ sourceName, idealHeight })}`);
+                        emitter.emit(
+                            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, {
+                                sourceName,
+                                idealHeight
+                            }
+                        );
+                    } else {
+                        logger.error(`Invalid SenderVideoConstraintsV2: ${JSON.stringify(obj)}`);
+                    }
                 }
                 break;
             }
