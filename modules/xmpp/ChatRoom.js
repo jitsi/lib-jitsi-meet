@@ -1194,7 +1194,7 @@ export default class ChatRoom extends Listenable {
             if (lobbyRoomNode.length) {
                 lobbyRoomJid = lobbyRoomNode.text();
             } else {
-                // let's fallback to old location of lobbyroom node, can be removed in the future once
+                // let's fallback to old location of lobbyroom node, TODO: to be removed in the future once
                 // everything is updated
                 const lobbyRoomOldNode = $(pres).find('>lobbyroom');
 
