@@ -167,16 +167,6 @@ export default class ChatRoom extends Listenable {
             });
         }
 
-        if (options.deploymentInfo && options.deploymentInfo.userRegion) {
-            this.presMap.nodes.push({
-                'tagName': 'region',
-                'attributes': {
-                    id: options.deploymentInfo.userRegion,
-                    xmlns: 'http://jitsi.org/jitsi-meet'
-                }
-            });
-        }
-
         this.presenceUpdateTime = Date.now();
     }
 
