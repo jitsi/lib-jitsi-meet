@@ -408,8 +408,8 @@ export default class XMPP extends Listenable {
     /**
      * Process received identities.
      * @param {Set<String>} identities The identities to process.
-     * @param {Set<String>} features The features to process, optional. If missing lobby component will be queried
-     * for more features.
+     * @param {Set<String>} features The features to process, optional. If missing lobby and breakout rooms
+     * components will be queried for more features.
      * @private
      */
     _processDiscoInfoIdentities(identities, features) {
@@ -456,6 +456,24 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'breakout_rooms') {
                 this.breakoutRoomsComponentAddress = identity.name;
+
+                const processBreakoutRoomsFeatures = f => {
+                    this.breakoutRoomsFeatures = {};
+
+                    f.forEach(fr => {
+                        if (fr.endsWith('#publish')) {
+                            this.breakoutRoomsFeatures.publish = true;
+                        }
+                    });
+                };
+
+                if (features) {
+                    processBreakoutRoomsFeatures(features);
+                } else {
+                    identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                        .then(({ features: f }) => processBreakoutRoomsFeatures(f))
+                        .catch(e => logger.warn('Error getting features for breakout rooms.', e && e.message));
+                }
             }
         });
 

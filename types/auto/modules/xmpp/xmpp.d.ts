@@ -99,8 +99,8 @@ export default class XMPP extends Listenable {
     /**
      * Process received identities.
      * @param {Set<String>} identities The identities to process.
-     * @param {Set<String>} features The features to process, optional. If missing lobby component will be queried
-     * for more features.
+     * @param {Set<String>} features The features to process, optional. If missing lobby and breakout rooms
+     * components will be queried for more features.
      * @private
      */
     private _processDiscoInfoIdentities;
@@ -109,6 +109,7 @@ export default class XMPP extends Listenable {
     conferenceDurationComponentAddress: any;
     lobbySupported: boolean;
     breakoutRoomsComponentAddress: any;
+    breakoutRoomsFeatures: {};
     /**
     * Parses a raw failure xmpp xml message received on auth failed.
     *
