@@ -2826,7 +2826,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
             // Disable ulpfec on Google Chrome 96 or higher because
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1276427
-            if (browser.isChromiumBased() && (browser.isVersionEqualTo('96') || browser.isVersionGreaterThan('96'))) {
+            if (browser.isChromiumBased() && browser.isVersionGreaterThan('95')) {
                 capabilities = capabilities
                     .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}`);
             }
