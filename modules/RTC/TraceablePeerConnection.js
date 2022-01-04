@@ -2824,9 +2824,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${mimeType}`);
             }
 
-            // Disable ulpfec on Google Chrome 96 or higher because
+            // Disable ulpfec on Google Chrome and derivatives because
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1276427
-            if (browser.isChromiumBased() && browser.isVersionGreaterThan('95')) {
+            if (browser.isChromiumBased()) {
                 capabilities = capabilities
                     .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}`);
             }
