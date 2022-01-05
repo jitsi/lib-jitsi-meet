@@ -1052,6 +1052,13 @@ export default class ChatRoom extends Listenable {
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
+            const settingsErrorMsg = $(msg).find('>settings-error>text').text();
+
+            if (settingsErrorMsg.length) {
+                this.eventEmitter.emit(XMPPEvents.SETTINGS_ERROR_RECEIVED, settingsErrorMsg);
+
+                return true;
+            }
             const errorMsg = $(msg).find('>error>text').text();
 
             this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
