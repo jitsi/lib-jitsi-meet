@@ -2111,8 +2111,7 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
  * the local description.
  * @private
  */
-TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast = function(
-        localSdp) {
+TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast = function(localSdp) {
     let sdpStr = localSdp.sdp;
 
     const videoStartIndex = sdpStr.indexOf('m=video');
@@ -2300,47 +2299,39 @@ TraceablePeerConnection.prototype.configureSenderVideoEncodings = function() {
 };
 
 TraceablePeerConnection.prototype.setLocalDescription = function(description) {
-    let localSdp = description;
+    let localDescription = description;
 
-    this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
+    this.trace('setLocalDescription::preTransform', dumpSDP(localDescription));
 
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
-    localSdp = this._mungeOpus(localSdp);
+    localDescription = this._mungeOpus(localDescription);
 
     if (!this._usesUnifiedPlan) {
-        localSdp = this._adjustLocalMediaDirection(localSdp);
-        localSdp = this._ensureSimulcastGroupIsLast(localSdp);
-    } else if (!this.isP2P) {
-
-        // if we're using unified plan, transform to it first.
-        localSdp = this.interop.toUnifiedPlan(localSdp);
-        this.trace(
-            'setLocalDescription::postTransform (Unified Plan)',
-            dumpSDP(localSdp));
+        localDescription = this._adjustLocalMediaDirection(localDescription);
+        localDescription = this._ensureSimulcastGroupIsLast(localDescription);
     }
 
     // Munge the order of the codecs based on the preferences set through config.js if we are using SDP munging.
     if (!this._usesTransceiverCodecPreferences) {
-        localSdp = this._mungeCodecOrder(localSdp);
+        localDescription = this._mungeCodecOrder(localDescription);
     }
 
+    this.trace('setLocalDescription::postTransform', dumpSDP(localDescription));
+
     return new Promise((resolve, reject) => {
-        this.peerconnection.setLocalDescription(localSdp)
+        this.peerconnection.setLocalDescription(localDescription)
             .then(() => {
                 this.trace('setLocalDescriptionOnSuccess');
-                const localUfrag = SDPUtil.getUfrag(localSdp.sdp);
+                const localUfrag = SDPUtil.getUfrag(localDescription.sdp);
 
                 if (localUfrag !== this.localUfrag) {
                     this.localUfrag = localUfrag;
-                    this.eventEmitter.emit(
-                        RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
+                    this.eventEmitter.emit(RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
                 }
                 resolve();
             }, err => {
                 this.trace('setLocalDescriptionOnFailure', err);
-                this.eventEmitter.emit(
-                    RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-                    err, this);
+                this.eventEmitter.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
