@@ -326,14 +326,14 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
         // We try to use the first part of the node (which for anonymous users
         // on prosody is a UUID) to match the previous behavior (and maybe make
         // debugging easier).
-        mucNickname = Strophe.getNodeFromJid(jid).substr(0, 8)
+        mucNickname = Strophe.getNodeFromJid(jid)?.substr(0, 8)
             .toLowerCase();
 
         // But if this doesn't have the required format we just generate a new
         // random nickname.
         const re = /[0-9a-f]{8}/g;
 
-        if (!re.test(mucNickname)) {
+        if (!mucNickname || !re.test(mucNickname)) {
             mucNickname = RandomUtil.randomHexString(8).toLowerCase();
         }
     }
