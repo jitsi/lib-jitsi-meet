@@ -372,6 +372,23 @@ export const createParticipantConnectionStatusEvent = function(attributes = {}) 
 };
 
 /**
+ * Creates an event related to remote track streaming status changes.
+ *
+ * @param attributes the attributes to attach to the event.
+ * @returns {{type: string, source: string, name: string}}
+ */
+export const createTrackStreamingStatusEvent = function(attributes = {}) {
+    const action = 'duration';
+
+    return {
+        type: TYPE_OPERATIONAL,
+        source: 'track.streaming.status',
+        action,
+        attributes
+    };
+};
+
+/**
  * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.

@@ -12,6 +12,7 @@ const RTCEvents = {
     ENDPOINT_CONN_STATUS_CHANGED: 'rtc.endpoint_conn_status_changed',
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',
     LASTN_ENDPOINT_CHANGED: 'rtc.lastn_endpoint_changed',
+    FORWARDED_SOURCES_CHANGED: 'rtc.forwarded_sources_changed',
 
     /**
      * Event emitted when the user granted/blocked a permission for the camera / mic.

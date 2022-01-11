@@ -185,6 +185,14 @@ export default class RTC extends Listenable {
      */
     private _lastNEndpoints;
     /**
+     * Defines the forwarded sources list. It can be null or an array once initialised with a channel forwarded
+     * sources event.
+     *
+     * @type {Array<string>|null}
+     * @private
+     */
+    private _forwardedSources;
+    /**
      * The number representing the maximum video height the local client
      * should receive from the bridge.
      *
@@ -200,6 +208,7 @@ export default class RTC extends Listenable {
      */
     private _selectedEndpoints;
     _lastNChangeListener: any;
+    _forwardedSourcesChangeListener: any;
     /**
      * Callback invoked when the list of known audio and video devices has
      * been updated. Attempts to update the known available audio output
@@ -247,6 +256,13 @@ export default class RTC extends Listenable {
      * @private
      */
     private _onLastNChanged;
+    /**
+     * Receives events when forwarded sources had changed.
+     *
+     * @param {array} forwardedSources The new forwarded sources.
+     * @private
+     */
+    private _onForwardedSourcesChanged;
     /**
      * Should be called when current media session ends and after the
      * PeerConnection has been closed using PeerConnection.close() method.
@@ -432,6 +448,14 @@ export default class RTC extends Listenable {
      * don't have bridge channel support, otherwise we return false.
      */
     isInLastN(id: string): boolean;
+    /**
+     * Indicates if the source name is currently included in the forwarded sources.
+     *
+     * @param {string} sourceName The source name that we check for forwarded sources.
+     * @returns {boolean} true if the source name is in the forwarded sources or if we don't have bridge channel
+     * support, otherwise we return false.
+     */
+    isInForwardedSources(sourceName: string): boolean;
 }
 import Listenable from "../util/Listenable";
 import TraceablePeerConnection from "./TraceablePeerConnection";

@@ -2136,8 +2136,7 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
                 // considered equal the result of splice can be ignored.
                 participant._tracks.splice(i, 1);
 
-                this.eventEmitter.emit(
-                    JitsiConferenceEvents.TRACK_REMOVED, removedTrack);
+                this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, removedTrack);
 
                 if (this.transcriber) {
                     this.transcriber.removeTrack(removedTrack);

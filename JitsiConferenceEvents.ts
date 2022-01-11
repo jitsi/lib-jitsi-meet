@@ -154,6 +154,16 @@ export enum JitsiConferenceEvents {
     LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged',
 
     /**
+     * The forwarded sources set is changed.
+     *
+     * @param {Array<string>|null} leavingForwardedSources the sourceNames of all the tracks which are leaving forwarded
+     * sources
+     * @param {Array<string>|null} enteringForwardedSources the sourceNames of all the tracks which are entering forwarded
+     * sources
+     */
+    FORWARDED_SOURCES_CHANGED = 'conference.forwardedSourcesChanged',
+
+    /**
      * Indicates that the room has been locked or unlocked.
      */
     LOCK_STATE_CHANGED = 'conference.lock_state_changed',

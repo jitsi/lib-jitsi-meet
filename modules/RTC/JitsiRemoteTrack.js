@@ -1,5 +1,7 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
+import TrackStreamingStatusImpl, { TrackStreamingStatusMap } from '../connectivity/TrackStreamingStatus';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -74,6 +76,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.muted = muted;
         this.isP2P = isP2P;
         this._sourceName = sourceName;
+        this._trackStreamingStatus = null;
+        this._trackStreamingStatusImpl = null;
+
+        /**
+         * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
+         * forwardedSources will have streaming status restoring and when we start receiving video will become active,
+         * but if video is not received for certain time {@link DEFAULT_RESTORING_TIMEOUT} that track streaming status
+         * will become interrupted.
+         */
+        this._enteredForwardedSourcesTimestamp = null;
+
+        this.addEventListener = this.on = this._addEventListener.bind(this);
+        this.removeEventListener = this.off = this._removeEventListener.bind(this);
 
         logger.debug(`New remote track added: ${this}`);
 
@@ -107,6 +122,60 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
+     * Overrides addEventListener method to init TrackStreamingStatus instance when there are listeners for the
+     * {@link JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED} event.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _addEventListener(event, handler) {
+        super.addListener(event, handler);
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()
+            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+            && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
+            && !this._trackStreamingStatusImpl
+        ) {
+            const config = this.conference.options.config;
+
+            this._trackStreamingStatus = TrackStreamingStatusMap.ACTIVE;
+
+            this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
+                this.rtc,
+                this.conference,
+                this,
+                {
+                    // These options are not public API, leaving it here only as an entry point through config for
+                    // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                    p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
+                    rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
+                    outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
+                });
+
+            this._trackStreamingStatusImpl.init();
+            logger.debug(`Initializing track streaming status: ${this._sourceName}`);
+        }
+    }
+
+    /**
+     * Overrides removeEventListener method to dispose TrackStreamingStatus instance.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _removeEventListener(event, handler) {
+        super.removeListener(event, handler);
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()
+            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+            && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
+        ) {
+            this.disposeTrackStreamingStatus();
+            logger.debug(`Disposing track streaming status: ${this._sourceName}`);
+        }
+    }
+
+    /**
      * Callback invoked when the track is muted. Emits an event notifying
      * listeners of the mute event.
      *
@@ -130,6 +199,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+    }
+
+    /**
+     * Removes attached event listeners and dispose TrackStreamingStatus .
+     *
+     * @returns {Promise}
+     */
+    dispose() {
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            this.disposeTrackStreamingStatus();
+        }
+
+        return super.dispose();
     }
 
     /**
@@ -161,6 +243,13 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     isMuted() {
         return this.muted;
+    }
+
+    /**
+     * @returns {Boolean} Whether this is a muted video track.
+     */
+    isVideoMuted() {
+        return this.isMuted() && this.isVideoTrack();
     }
 
     /**
@@ -316,6 +405,63 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         const { enabled, muted, readyState } = this.track;
 
         return `readyState: ${readyState}, muted: ${muted}, enabled: ${enabled}`;
+    }
+
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus
+     */
+    disposeTrackStreamingStatus() {
+        if (this._trackStreamingStatusImpl) {
+            this._trackStreamingStatusImpl.dispose();
+            this._trackStreamingStatusImpl = null;
+            this._trackStreamingStatus = null;
+        }
+    }
+
+    /**
+     * Updates track's streaming status.
+     *
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatusMap}.
+     */
+    setTrackStreamingStatus(status) {
+        this._trackStreamingStatus = status;
+    }
+
+    /**
+     * Returns track's streaming status.
+     *
+     * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
+     * if trackStreamingStatusImpl hasn't been initialized.
+     *
+     * {@link TrackStreamingStatusMap}.
+     */
+    getTrackStreamingStatus() {
+        return this._trackStreamingStatus;
+    }
+
+    /**
+     * Clears the timestamp of when the track entered forwarded sources.
+     */
+    clearEnteredForwardedSourcesTimestamp() {
+        this._enteredForwardedSourcesTimestamp = null;
+    }
+
+    /**
+     * Updates the timestamp of when the track entered forwarded sources.
+     *
+     * @param {number} timestamp the time in millis
+     */
+    setEnteredForwardedSourcesTimestamp(timestamp) {
+        this._enteredForwardedSourcesTimestamp = timestamp;
+    }
+
+    /**
+     * Returns the timestamp of when the track entered forwarded sources.
+     *
+     * @returns {number} the time in millis
+     */
+    getEnteredForwardedSourcesTimestamp() {
+        return this._enteredForwardedSourcesTimestamp;
     }
 
     /**

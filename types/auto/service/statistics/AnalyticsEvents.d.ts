@@ -275,6 +275,11 @@ export function createParticipantConnectionStatusEvent(attributes?: {}): {
     source: string;
     name: string;
 };
+export function createTrackStreamingStatusEvent(attributes?: {}): {
+    type: string;
+    source: string;
+    name: string;
+};
 export function createJingleEvent(action: any, attributes?: {}): {
     type: string;
     action: any;
