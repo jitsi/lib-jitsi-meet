@@ -1196,7 +1196,7 @@ JitsiConference.prototype._getInitialLocalTracks = function() {
  * @param track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.onLocalTrackRemoved = function(track) {
-    track._setConference(null);
+    track.setConference(null);
     this.rtc.removeLocalTrack(track);
     track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
         track.muteHandler);
@@ -1367,7 +1367,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         newTrack.audioLevelHandler);
 
-    newTrack._setConference(this);
+    newTrack.setConference(this);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
