@@ -1684,23 +1684,6 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
 };
 
 /**
- * Checks if given track belongs to this peerconnection instance.
- *
- * @param {JitsiLocalTrack|JitsiRemoteTrack} track - The track to be checked.
- * @returns {boolean}
- */
-TraceablePeerConnection.prototype.containsTrack = function(track) {
-    if (track.isLocal()) {
-        return this.localTracks.has(track.rtcId);
-    }
-
-    const participantId = track.getParticipantId();
-    const remoteTracksMap = this.remoteTracks.get(participantId);
-
-    return Boolean(remoteTracksMap && remoteTracksMap.get(track.getType()) === track);
-};
-
-/**
  * Add {@link JitsiLocalTrack} to this TPC.
  * @param {JitsiLocalTrack} track
  * @param {boolean} isInitiator indicates if the endpoint is the offerer.
