@@ -33,23 +33,21 @@ const logger = getLogger(__filename);
  */
 export default class JitsiLocalTrack extends JitsiTrack {
     /**
-     * Constructs new JitsiLocalTrack instance.
+     * Constructs a new JitsiLocalTrack instance.
      *
      * @constructor
      * @param {Object} trackInfo
-     * @param {number} trackInfo.rtcId the ID assigned by the RTC module
-     * @param trackInfo.stream WebRTC MediaStream, parent of the track
-     * @param trackInfo.track underlying WebRTC MediaStreamTrack for new
-     * JitsiRemoteTrack
-     * @param trackInfo.mediaType the MediaType of the JitsiRemoteTrack
-     * @param trackInfo.videoType the VideoType of the JitsiRemoteTrack
-     * @param trackInfo.effects the effects array contains the effect instance to use
-     * @param trackInfo.resolution the video resolution if it's a video track
-     * @param trackInfo.deviceId the ID of the local device for this track
-     * @param trackInfo.facingMode the camera facing mode used in getUserMedia
-     * call
-     * @param {sourceId} trackInfo.sourceId - The id of the desktop sharing
-     * source. NOTE: defined for desktop sharing tracks only.
+     * @param {number} trackInfo.rtcId - The ID assigned by the RTC module.
+     * @param {Object} trackInfo.stream - The WebRTC MediaStream, parent of the track.
+     * @param {Object} trackInfo.track - The underlying WebRTC MediaStreamTrack for new JitsiLocalTrack.
+     * @param {string} trackInfo.mediaType - The MediaType of the JitsiLocalTrack.
+     * @param {string} trackInfo.videoType - The VideoType of the JitsiLocalTrack.
+     * @param {Array<Object>} trackInfo.effects - The effects to be applied to the JitsiLocalTrack.
+     * @param {number} trackInfo.resolution - The the video resolution if it's a video track
+     * @param {string} trackInfo.deviceId - The ID of the local device for this track.
+     * @param {string} trackInfo.facingMode - Thehe camera facing mode used in getUserMedia call (for mobile only).
+     * @param {sourceId} trackInfo.sourceId - The id of the desktop sharing source. NOTE: defined for desktop sharing
+     * tracks only.
      */
     constructor({
         deviceId,
@@ -208,32 +206,52 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Get the duration of the track.
+     * Adds stream to conference and marks it as "unmute" operation.
      *
-     * @returns {Number} the duration of the track in seconds
+     * @private
+     * @returns {Promise}
      */
-    getDuration() {
-        return (Date.now() / 1000) - (this.metadata.timestamp / 1000);
-    }
-
-    /**
-     * Returns if associated MediaStreamTrack is in the 'ended' state
-     *
-     * @returns {boolean}
-     */
-    isEnded() {
-        if (this.isVideoTrack() && this.isMuted()) {
-            // If a video track is muted the readyState will be ended, that's why we need to rely only on the
-            // _trackEnded flag.
-            return this._trackEnded;
+    _addStreamToConferenceAsUnmute() {
+        if (!this.conference) {
+            return Promise.resolve();
         }
 
-        return this.getTrack().readyState === 'ended' || this._trackEnded;
+        // FIXME it would be good to not included conference as part of this process. Only TraceablePeerConnections to
+        // which the track is attached should care about this action. The TPCs to which the track is not attached can
+        // sync up when track is re-attached. A problem with that is that the "modify sources" queue is part of the
+        // JingleSessionPC and it would be excluded from the process. One solution would be to extract class between
+        // TPC and JingleSessionPC which would contain the queue and would notify the signaling layer when local SSRCs
+        // are changed. This would help to separate XMPP from the RTC module.
+        return new Promise((resolve, reject) => {
+            this.conference._addLocalTrackAsUnmute(this)
+                .then(resolve, error => reject(new Error(error)));
+        });
     }
 
     /**
-     * Sets handlers to the MediaStreamTrack object that will detect camera
-     * issues.
+     * Fires NO_DATA_FROM_SOURCE event and logs it to analytics and callstats.
+     *
+     * @private
+     * @returns {void}
+     */
+    _fireNoDataFromSourceEvent() {
+        const value = !this.isReceivingData();
+
+        this.emit(NO_DATA_FROM_SOURCE, value);
+
+        // FIXME: Should we report all of those events
+        Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
+        Statistics.sendLog(JSON.stringify({
+            name: NO_DATA_FROM_SOURCE,
+            log: value
+        }));
+    }
+
+    /**
+     * Sets handlers to the MediaStreamTrack object that will detect camera issues.
+     *
+     * @private
+     * @returns {void}
      */
     _initNoDataFromSourceHandlers() {
         if (!this._isNoDataFromSourceEventsEnabled()) {
@@ -268,6 +286,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Returns true if no data from source events are enabled for this JitsiLocalTrack and false otherwise.
      *
+     * @private
      * @returns {boolean} - True if no data from source events are enabled for this JitsiLocalTrack and false otherwise.
      */
     _isNoDataFromSourceEventsEnabled() {
@@ -276,201 +295,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Fires NO_DATA_FROM_SOURCE event and logs it to analytics and callstats.
-     */
-    _fireNoDataFromSourceEvent() {
-        const value = !this.isReceivingData();
-
-        this.emit(NO_DATA_FROM_SOURCE, value);
-
-        // FIXME: Should we report all of those events
-        Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
-        Statistics.sendLog(JSON.stringify({
-            name: NO_DATA_FROM_SOURCE,
-            log: value
-        }));
-    }
-
-    /**
-     * Sets real device ID by comparing track information with device
-     * information. This is temporary solution until getConstraints() method
-     * will be implemented in browsers.
-     *
-     * @param {MediaDeviceInfo[]} devices - list of devices obtained from
-     * enumerateDevices() call
-     */
-    _setRealDeviceIdFromDeviceList(devices) {
-        const track = this.getTrack();
-        const kind = `${track.kind}input`;
-        let device = devices.find(d => d.kind === kind && d.label === track.label);
-
-        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
-            // If the default device was 'A' and the default device is changed to 'B' the label for the track will
-            // remain 'Default - A' but the label for the device in the device list will be updated to 'A'. That's
-            // why in order to match it we need to remove the 'Default - ' part.
-            const label = (track.label || '').replace('Default - ', '');
-
-            device = devices.find(d => d.kind === kind && d.label === label);
-        }
-
-        if (device) {
-            this._realDeviceId = device.deviceId;
-        } else {
-            this._realDeviceId = undefined;
-        }
-    }
-
-    /**
-     * Sets the stream property of JitsiLocalTrack object and sets all stored
-     * handlers to it.
-     *
-     * @param {MediaStream} stream the new stream.
-     * @protected
-     */
-    _setStream(stream) {
-        super._setStream(stream);
-
-        if (stream) {
-            // Store the MSID for video mute/unmute purposes.
-            this.storedMSID = this.getMSID();
-            logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
-        } else {
-            logger.debug(`Setting 'null' stream on ${this}`);
-        }
-    }
-
-    /**
-     * Starts the effect process and returns the modified stream.
-     *
-     * @private
-     * @param {*} effect - Represents effect instance
-     * @returns {void}
-     */
-    _startStreamEffect(effect) {
-        this._streamEffect = effect;
-        this._originalStream = this.stream;
-        this._setStream(this._streamEffect.startEffect(this._originalStream));
-        this.track = this.stream.getTracks()[0];
-    }
-
-    /**
-     * Stops the effect process and returns the original stream.
-     *
-     * @private
-     * @returns {void}
-     */
-    _stopStreamEffect() {
-        if (this._streamEffect) {
-            this._streamEffect.stopEffect();
-            this._setStream(this._originalStream);
-            this._originalStream = null;
-            this.track = this.stream ? this.stream.getTracks()[0] : null;
-        }
-    }
-
-    /**
-     * Stops the currently used effect (if there is one) and starts the passed effect (if there is one).
-     *
-     * @param {Object|undefined} effect - The new effect to be set.
-     */
-    _switchStreamEffect(effect) {
-        if (this._streamEffect) {
-            this._stopStreamEffect();
-            this._streamEffect = undefined;
-        }
-        if (effect) {
-            this._startStreamEffect(effect);
-        }
-    }
-
-    /**
-     * Sets the effect and switches between the modified stream and original one.
-     *
-     * @param {Object} effect - Represents the effect instance to be used.
-     * @returns {Promise}
-     */
-    setEffect(effect) {
-        if (typeof this._streamEffect === 'undefined' && typeof effect === 'undefined') {
-            return Promise.resolve();
-        }
-
-        if (typeof effect !== 'undefined' && !effect.isEnabled(this)) {
-            return Promise.reject(new Error('Incompatible effect instance!'));
-        }
-
-        if (this._setEffectInProgress === true) {
-            return Promise.reject(new Error('setEffect already in progress!'));
-        }
-
-        // In case we have an audio track that is being enhanced with an effect, we still want it to be applied,
-        // even if the track is muted. Where as for video the actual track doesn't exists if it's muted.
-        if (this.isMuted() && !this.isAudioTrack()) {
-            this._streamEffect = effect;
-
-            return Promise.resolve();
-        }
-
-        const conference = this.conference;
-
-        if (!conference) {
-            this._switchStreamEffect(effect);
-            if (this.isVideoTrack()) {
-                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
-            }
-
-            return Promise.resolve();
-        }
-
-        this._setEffectInProgress = true;
-
-        // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
-        return conference.removeTrack(this)
-            .then(() => {
-                this._switchStreamEffect(effect);
-                if (this.isVideoTrack()) {
-                    this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
-                }
-
-                return conference.addTrack(this);
-            })
-            .then(() => {
-                this._setEffectInProgress = false;
-            })
-            .catch(error => {
-                // Any error will be not recovarable and will trigger CONFERENCE_FAILED event. But let's try to cleanup
-                // everyhting related to the effect functionality.
-                this._setEffectInProgress = false;
-                this._switchStreamEffect();
-                logger.error('Failed to switch to the new stream!', error);
-                throw error;
-            });
-    }
-
-    /**
-     * Asynchronously mutes this track.
-     *
-     * @returns {Promise}
-     */
-    mute() {
-        return this._queueSetMuted(true);
-    }
-
-    /**
-     * Asynchronously unmutes this track.
-     *
-     * @returns {Promise}
-     */
-    unmute() {
-        return this._queueSetMuted(false);
-    }
-
-    /**
-     * Initializes a new Promise to execute {@link #_setMuted}. May be called
-     * multiple times in a row and the invocations of {@link #_setMuted} and,
-     * consequently, {@link #mute} and/or {@link #unmute} will be resolved in a
+     * Initializes a new Promise to execute {@link #_setMuted}. May be called multiple times in a row and the
+     * invocations of {@link #_setMuted} and, consequently, {@link #mute} and/or {@link #unmute} will be resolved in a
      * serialized fashion.
      *
      * @param {boolean} muted - The value to invoke <tt>_setMuted</tt> with.
+     * @private
      * @returns {Promise}
      */
     _queueSetMuted(muted) {
@@ -482,10 +312,41 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Removes stream from conference and marks it as "mute" operation.
+     *
+     * @param {Function} successCallback - Callback that will be called when the operation is successful.
+     * @param {Function} errorCallback - Callback that will be called when the operation fails.
+     * @private
+     * @returns {Promise}
+     */
+    _removeStreamFromConferenceAsMute(successCallback, errorCallback) {
+        if (!this.conference) {
+            successCallback();
+
+            return;
+        }
+        this.conference._removeLocalTrackAsMute(this).then(
+            successCallback,
+            error => errorCallback(new Error(error)));
+    }
+
+    /**
+     * Sends mute status for a track to conference if any.
+     *
+     * @param {boolean} mute - If track is muted.
+     * @private
+     * @returns {void}
+     */
+    _sendMuteStatus(mute) {
+        if (this.conference) {
+            this.conference._setTrackMuteStatus(this.getType(), this, mute) && this.conference.room.sendPresence();
+        }
+    }
+
+    /**
      * Mutes / unmutes this track.
      *
-     * @param {boolean} muted - If <tt>true</tt>, this track will be muted;
-     * otherwise, this track will be unmuted.
+     * @param {boolean} muted - If <tt>true</tt>, this track will be muted; otherwise, this track will be unmuted.
      * @private
      * @returns {Promise}
      */
@@ -592,68 +453,127 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Adds stream to conference and marks it as "unmute" operation.
+     * Sets real device ID by comparing track information with device information. This is temporary solution until
+     * getConstraints() method will be implemented in browsers.
      *
-     * @private
-     * @returns {Promise}
-     */
-    _addStreamToConferenceAsUnmute() {
-        if (!this.conference) {
-            return Promise.resolve();
-        }
-
-        // FIXME it would be good to not included conference as part of this
-        // process. Only TraceablePeerConnections to which the track is attached
-        // should care about this action. The TPCs to which the track is not
-        // attached can sync up when track is re-attached.
-        // A problem with that is that the "modify sources" queue is part of
-        // the JingleSessionPC and it would be excluded from the process. One
-        // solution would be to extract class between TPC and JingleSessionPC
-        // which would contain the queue and would notify the signaling layer
-        // when local SSRCs are changed. This would help to separate XMPP from
-        // the RTC module.
-        return new Promise((resolve, reject) => {
-            this.conference._addLocalTrackAsUnmute(this)
-                .then(resolve, error => reject(new Error(error)));
-        });
-    }
-
-    /**
-     * Removes stream from conference and marks it as "mute" operation.
-     *
-     * @param {Function} successCallback will be called on success
-     * @param {Function} errorCallback will be called on error
-     * @private
-     */
-    _removeStreamFromConferenceAsMute(successCallback, errorCallback) {
-        if (!this.conference) {
-            successCallback();
-
-            return;
-        }
-        this.conference._removeLocalTrackAsMute(this).then(
-            successCallback,
-            error => errorCallback(new Error(error)));
-    }
-
-    /**
-     * Sends mute status for a track to conference if any.
-     *
-     * @param {boolean} mute - If track is muted.
+     * @param {MediaDeviceInfo[]} devices - The list of devices obtained from enumerateDevices() call.
      * @private
      * @returns {void}
      */
-    _sendMuteStatus(mute) {
-        if (this.conference) {
-            this.conference._setTrackMuteStatus(this.getType(), this, mute) && this.conference.room.sendPresence();
+    _setRealDeviceIdFromDeviceList(devices) {
+        const track = this.getTrack();
+        const kind = `${track.kind}input`;
+        let device = devices.find(d => d.kind === kind && d.label === track.label);
+
+        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
+            // If the default device was 'A' and the default device is changed to 'B' the label for the track will
+            // remain 'Default - A' but the label for the device in the device list will be updated to 'A'. That's
+            // why in order to match it we need to remove the 'Default - ' part.
+            const label = (track.label || '').replace('Default - ', '');
+
+            device = devices.find(d => d.kind === kind && d.label === label);
+        }
+
+        if (device) {
+            this._realDeviceId = device.deviceId;
+        } else {
+            this._realDeviceId = undefined;
+        }
+    }
+
+    /**
+     * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
+     *
+     * @param {MediaStream} stream - The new MediaStream.
+     * @private
+     * @returns {void}
+     */
+    _setStream(stream) {
+        super._setStream(stream);
+
+        if (stream) {
+            // Store the MSID for video mute/unmute purposes.
+            this.storedMSID = this.getMSID();
+            logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
+        } else {
+            logger.debug(`Setting 'null' stream on ${this}`);
+        }
+    }
+
+    /**
+     * Starts the effect process and returns the modified stream.
+     *
+     * @param {Object} effect - Represents effect instance
+     * @private
+     * @returns {void}
+     */
+    _startStreamEffect(effect) {
+        this._streamEffect = effect;
+        this._originalStream = this.stream;
+        this._setStream(this._streamEffect.startEffect(this._originalStream));
+        this.track = this.stream.getTracks()[0];
+    }
+
+    /**
+     * Stops the effect process and returns the original stream.
+     *
+     * @private
+     * @returns {void}
+     */
+    _stopStreamEffect() {
+        if (this._streamEffect) {
+            this._streamEffect.stopEffect();
+            this._setStream(this._originalStream);
+            this._originalStream = null;
+            this.track = this.stream ? this.stream.getTracks()[0] : null;
+        }
+    }
+
+    /**
+     * Switches the camera facing mode if the WebRTC implementation supports the custom MediaStreamTrack._switchCamera
+     * method. Currently, the method in question is implemented in react-native-webrtc only. When such a WebRTC
+     * implementation is executing, the method is the preferred way to switch between the front/user-facing and the
+     * back/environment-facing cameras because it will likely be (as is the case of react-native-webrtc) noticeably
+     * faster that creating a new MediaStreamTrack via a new getUserMedia call with the switched facingMode constraint
+     * value. Moreover, the approach with a new getUserMedia call may not even work: WebRTC on Android and iOS is
+     * either very slow to open the camera a second time or plainly freezes attempting to do that.
+     *
+     * @returns {void}
+     */
+    _switchCamera() {
+        if (this.isVideoTrack()
+                && this.videoType === VideoType.CAMERA
+                && typeof this.track._switchCamera === 'function') {
+            this.track._switchCamera();
+
+            this._facingMode
+                = this._facingMode === CameraFacingMode.ENVIRONMENT
+                    ? CameraFacingMode.USER
+                    : CameraFacingMode.ENVIRONMENT;
+        }
+    }
+
+    /**
+     * Stops the currently used effect (if there is one) and starts the passed effect (if there is one).
+     *
+     * @param {Object|undefined} effect - The new effect to be set.
+     * @private
+     * @returns {void}
+     */
+    _switchStreamEffect(effect) {
+        if (this._streamEffect) {
+            this._stopStreamEffect();
+            this._streamEffect = undefined;
+        }
+        if (effect) {
+            this._startStreamEffect(effect);
         }
     }
 
     /**
      * @inheritdoc
      *
-     * Stops sending the media track. And removes it from the HTML.
-     * NOTE: Works for local tracks only.
+     * Stops sending the media track. And removes it from the HTML. NOTE: Works for local tracks only.
      *
      * @extends JitsiTrack#dispose
      * @returns {Promise}
@@ -687,104 +607,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Returns <tt>true</tt> - if the stream is muted and <tt>false</tt>
-     * otherwise.
-     *
-     * @returns {boolean} <tt>true</tt> - if the stream is muted and
-     * <tt>false</tt> otherwise.
-     */
-    isMuted() {
-        // this.stream will be null when we mute local video on Chrome
-        if (!this.stream) {
-            return true;
-        }
-        if (this.isVideoTrack() && !this.isActive()) {
-            return true;
-        }
-
-        // If currently used stream effect has its own muted state, use that.
-        if (this._streamEffect && this._streamEffect.isMuted) {
-            return this._streamEffect.isMuted();
-        }
-
-        return !this.track || !this.track.enabled;
-    }
-
-    /**
-     * Sets the JitsiConference object associated with the track. This is temp
-     * solution.
-     *
-     * @param conference the JitsiConference object
-     */
-    _setConference(conference) {
-        this.conference = conference;
-
-        // We want to keep up with postponed events which should have been fired
-        // on "attach" call, but for local track we not always have the
-        // conference before attaching. However this may result in duplicated
-        // events if they have been triggered on "attach" already.
-        for (let i = 0; i < this.containers.length; i++) {
-            this._maybeFireTrackAttached(this.containers[i]);
-        }
-    }
-
-    /**
-     * Returns <tt>true</tt>.
-     *
-     * @returns {boolean} <tt>true</tt>
-     */
-    isLocal() {
-        return true;
-    }
-
-    /**
-     * Returns device id associated with track.
-     *
-     * @returns {string}
-     */
-    getDeviceId() {
-        return this._realDeviceId || this.deviceId;
-    }
-
-    /**
-     * Returns the participant id which owns the track.
-     *
-     * @returns {string} the id of the participants. It corresponds to the
-     * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
-     */
-    getParticipantId() {
-        return this.conference && this.conference.myUserId();
-    }
-
-    /**
-     * Handles bytes sent statistics.
-     *
-     * @param {TraceablePeerConnection} tpc the source of the "bytes sent" stat
-     * @param {number} bytesSent the new value
-     * NOTE: used only for audio tracks to detect audio issues.
-     */
-    _onByteSentStatsReceived(tpc, bytesSent) {
-        if (bytesSent > 0) {
-            this._hasSentData = true;
-        }
-        const iceConnectionState = tpc.getConnectionState();
-
-        if (this._testDataSent && iceConnectionState === 'connected') {
-            setTimeout(() => {
-                if (!this._hasSentData) {
-                    logger.warn(`${this} 'bytes sent' <= 0: \
-                        ${bytesSent}`);
-
-                    Statistics.analytics.sendEvent(NO_BYTES_SENT, { 'media_type': this.getType() });
-                }
-            }, 3000);
-            this._testDataSent = false;
-        }
-    }
-
-    /**
-     * Returns facing mode for video track from camera. For other cases (e.g.
-     * audio track or 'desktop' video track) returns undefined.
+     * Returns facing mode for video track from camera. For other cases (e.g. audio track or 'desktop' video track)
+     * returns undefined.
      *
      * @returns {CameraFacingMode|undefined}
      */
@@ -817,7 +641,230 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns device id associated with track.
+     *
+     * @returns {string}
+     */
+    getDeviceId() {
+        return this._realDeviceId || this.deviceId;
+    }
+
+    /**
+     * Get the duration of the track.
+     *
+     * @returns {Number} the duration of the track in seconds
+     */
+    getDuration() {
+        return (Date.now() / 1000) - (this.metadata.timestamp / 1000);
+    }
+
+    /**
+     * Returns the participant id which owns the track.
+     *
+     * @returns {string} the id of the participants. It corresponds to the
+     * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
+     */
+    getParticipantId() {
+        return this.conference && this.conference.myUserId();
+    }
+
+    /**
+     * Returns if associated MediaStreamTrack is in the 'ended' state
+     *
+     * @returns {boolean}
+     */
+    isEnded() {
+        if (this.isVideoTrack() && this.isMuted()) {
+            // If a video track is muted the readyState will be ended, that's why we need to rely only on the
+            // _trackEnded flag.
+            return this._trackEnded;
+        }
+
+        return this.getTrack().readyState === 'ended' || this._trackEnded;
+    }
+
+    /**
+     * Returns <tt>true</tt>.
+     *
+     * @returns {boolean} <tt>true</tt>
+     */
+    isLocal() {
+        return true;
+    }
+
+    /**
+     * Returns <tt>true</tt> - if the stream is muted and <tt>false</tt> otherwise.
+     *
+     * @returns {boolean} <tt>true</tt> - if the stream is muted and <tt>false</tt> otherwise.
+     */
+    isMuted() {
+        // this.stream will be null when we mute local video on Chrome
+        if (!this.stream) {
+            return true;
+        }
+        if (this.isVideoTrack() && !this.isActive()) {
+            return true;
+        }
+
+        // If currently used stream effect has its own muted state, use that.
+        if (this._streamEffect && this._streamEffect.isMuted) {
+            return this._streamEffect.isMuted();
+        }
+
+        return !this.track || !this.track.enabled;
+    }
+
+    /**
+     * Checks whether the attached MediaStream is receiving data from source or not. If the stream property is null
+     * (because of mute or another reason) this method will return false.
+     * NOTE: This method doesn't indicate problem with the streams directly. For example in case of video mute the
+     * method will return false or if the user has disposed the track.
+     *
+     * @returns {boolean} true if the stream is receiving data and false this otherwise.
+     */
+    isReceivingData() {
+        if (this.isVideoTrack()
+            && (this.isMuted() || this._stopStreamInProgress || this.videoType === VideoType.DESKTOP)) {
+            return true;
+        }
+
+        if (!this.stream) {
+            return false;
+        }
+
+        // In older version of the spec there is no muted property and readyState can have value muted. In the latest
+        // versions readyState can have values "live" and "ended" and there is muted boolean property. If the stream is
+        // muted that means that we aren't receiving any data from the source. We want to notify the users for error if
+        // the stream is muted or ended on it's creation.
+
+        // For video blur enabled use the original video stream
+        const stream = this._effectEnabled ? this._originalStream : this.stream;
+
+        return stream.getTracks().some(track =>
+            (!('readyState' in track) || track.readyState === 'live')
+                && (!('muted' in track) || track.muted !== true));
+    }
+
+    /**
+     * Asynchronously mutes this track.
+     *
+     * @returns {Promise}
+     */
+    mute() {
+        return this._queueSetMuted(true);
+    }
+
+    /**
+     * Handles bytes sent statistics. NOTE: used only for audio tracks to detect audio issues.
+     *
+     * @param {TraceablePeerConnection} tpc - The peerconnection that is reporting the bytes sent stat.
+     * @param {number} bytesSent - The new value.
+     * @returns {void}
+     */
+    onByteSentStatsReceived(tpc, bytesSent) {
+        if (bytesSent > 0) {
+            this._hasSentData = true;
+        }
+        const iceConnectionState = tpc.getConnectionState();
+
+        if (this._testDataSent && iceConnectionState === 'connected') {
+            setTimeout(() => {
+                if (!this._hasSentData) {
+                    logger.warn(`${this} 'bytes sent' <= 0: \
+                        ${bytesSent}`);
+
+                    Statistics.analytics.sendEvent(NO_BYTES_SENT, { 'media_type': this.getType() });
+                }
+            }, 3000);
+            this._testDataSent = false;
+        }
+    }
+
+    /**
+     * Sets the JitsiConference object associated with the track. This is temp solution.
+     *
+     * @param conference - JitsiConference object.
+     * @returns {void}
+     */
+    setConference(conference) {
+        this.conference = conference;
+
+        // We want to keep up with postponed events which should have been fired
+        // on "attach" call, but for local track we not always have the
+        // conference before attaching. However this may result in duplicated
+        // events if they have been triggered on "attach" already.
+        for (let i = 0; i < this.containers.length; i++) {
+            this._maybeFireTrackAttached(this.containers[i]);
+        }
+    }
+
+    /**
+     * Sets the effect and switches between the modified stream and original one.
+     *
+     * @param {Object} effect - Represents the effect instance to be used.
+     * @returns {Promise}
+     */
+    setEffect(effect) {
+        if (typeof this._streamEffect === 'undefined' && typeof effect === 'undefined') {
+            return Promise.resolve();
+        }
+
+        if (typeof effect !== 'undefined' && !effect.isEnabled(this)) {
+            return Promise.reject(new Error('Incompatible effect instance!'));
+        }
+
+        if (this._setEffectInProgress === true) {
+            return Promise.reject(new Error('setEffect already in progress!'));
+        }
+
+        // In case we have an audio track that is being enhanced with an effect, we still want it to be applied,
+        // even if the track is muted. Where as for video the actual track doesn't exists if it's muted.
+        if (this.isMuted() && !this.isAudioTrack()) {
+            this._streamEffect = effect;
+
+            return Promise.resolve();
+        }
+
+        const conference = this.conference;
+
+        if (!conference) {
+            this._switchStreamEffect(effect);
+            if (this.isVideoTrack()) {
+                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+            }
+
+            return Promise.resolve();
+        }
+
+        this._setEffectInProgress = true;
+
+        // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
+        return conference.removeTrack(this)
+            .then(() => {
+                this._switchStreamEffect(effect);
+                if (this.isVideoTrack()) {
+                    this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+                }
+
+                return conference.addTrack(this);
+            })
+            .then(() => {
+                this._setEffectInProgress = false;
+            })
+            .catch(error => {
+                // Any error will be not recovarable and will trigger CONFERENCE_FAILED event. But let's try to cleanup
+                // everyhting related to the effect functionality.
+                this._setEffectInProgress = false;
+                this._switchStreamEffect();
+                logger.error('Failed to switch to the new stream!', error);
+                throw error;
+            });
+    }
+
+    /**
      * Stops the associated MediaStream.
+     *
+     * @returns {void}
      */
     stopStream() {
         /**
@@ -838,74 +885,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Switches the camera facing mode if the WebRTC implementation supports the
-     * custom MediaStreamTrack._switchCamera method. Currently, the method in
-     * question is implemented in react-native-webrtc only. When such a WebRTC
-     * implementation is executing, the method is the preferred way to switch
-     * between the front/user-facing and the back/environment-facing cameras
-     * because it will likely be (as is the case of react-native-webrtc)
-     * noticeably faster that creating a new MediaStreamTrack via a new
-     * getUserMedia call with the switched facingMode constraint value.
-     * Moreover, the approach with a new getUserMedia call may not even work:
-     * WebRTC on Android and iOS is either very slow to open the camera a second
-     * time or plainly freezes attempting to do that.
-     */
-    _switchCamera() {
-        if (this.isVideoTrack()
-                && this.videoType === VideoType.CAMERA
-                && typeof this.track._switchCamera === 'function') {
-            this.track._switchCamera();
-
-            this._facingMode
-                = this._facingMode === CameraFacingMode.ENVIRONMENT
-                    ? CameraFacingMode.USER
-                    : CameraFacingMode.ENVIRONMENT;
-        }
-    }
-
-    /**
-     * Checks whether the attached MediaStream is receiving data from source or
-     * not. If the stream property is null(because of mute or another reason)
-     * this method will return false.
-     * NOTE: This method doesn't indicate problem with the streams directly.
-     * For example in case of video mute the method will return false or if the
-     * user has disposed the track.
-     *
-     * @returns {boolean} true if the stream is receiving data and false
-     * this otherwise.
-     */
-    isReceivingData() {
-        if (this.isVideoTrack()
-            && (this.isMuted() || this._stopStreamInProgress || this.videoType === VideoType.DESKTOP)) {
-            return true;
-        }
-
-        if (!this.stream) {
-            return false;
-        }
-
-        // In older version of the spec there is no muted property and
-        // readyState can have value muted. In the latest versions
-        // readyState can have values "live" and "ended" and there is
-        // muted boolean property. If the stream is muted that means that
-        // we aren't receiving any data from the source. We want to notify
-        // the users for error if the stream is muted or ended on it's
-        // creation.
-
-        // For video blur enabled use the original video stream
-        const stream = this._effectEnabled ? this._originalStream : this.stream;
-
-        return stream.getTracks().some(track =>
-            (!('readyState' in track) || track.readyState === 'live')
-                && (!('muted' in track) || track.muted !== true));
-    }
-
-    /**
      * Creates a text representation of this local track instance.
      *
      * @return {string}
      */
     toString() {
         return `LocalTrack[${this.rtcId},${this.getType()}]`;
+    }
+
+    /**
+     * Asynchronously unmutes this track.
+     *
+     * @returns {Promise}
+     */
+    unmute() {
+        return this._queueSetMuted(false);
     }
 }

@@ -788,7 +788,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
                     return;
                 }
 
-                track._onByteSentStatsReceived(tpc, stats[ssrc]);
+                track.onByteSentStatsReceived(tpc, stats[ssrc]);
             });
         });
     }
