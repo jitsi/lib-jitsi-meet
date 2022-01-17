@@ -665,6 +665,16 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Removes room from emuc cache, to be used in the event that the ChatRoom
+     * creation failed.
+     *
+     * @param {string} roomJid - The JID of the room.
+     */
+    expungeRoom(roomJid) {
+        this.connection.emuc.expungeRoom(roomJid);
+    }
+
+    /**
      * Returns the room JID based on the passed room name and domain.
      *
      * @param {string} roomName - The room name.

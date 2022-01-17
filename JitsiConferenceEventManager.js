@@ -232,6 +232,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.RESERVATION_ERROR);
 
+    chatRoom.addListener(XMPPEvents.RESERVATION_ERROR,
+        () => {
+            conference._onReservationFailure(chatRoom.roomjid);
+        });
+
     this.chatRoomForwarder.forward(XMPPEvents.GRACEFUL_SHUTDOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.GRACEFUL_SHUTDOWN);

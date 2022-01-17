@@ -3007,6 +3007,19 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
 };
 
 /**
+ * Handles {@link XMPPEvents.RESERVATION_ERROR} event. This happens when focus
+ * returns error due to reservation rejection.
+ *
+ * @private
+ */
+JitsiConference.prototype._onReservationFailure = function(roomJid) {
+    // on reservation error, room creation by focus would have failed
+    // but emuc still caches chatRoom object and isRoomCreated checks
+    // would be wrong. Expunge chatRoom from cache.
+    this.xmpp.expungeRoom(roomJid);
+};
+
+/**
  * Accept incoming P2P Jingle call.
  * @param {JingleSessionPC} jingleSession the session instance
  * @param {jQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element

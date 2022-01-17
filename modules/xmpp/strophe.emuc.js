@@ -70,6 +70,18 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
     }
 
     /**
+     * Removes room from cache, to be used in the event that the ChatRoom
+     * creation failed and should no longer return true for isRoomCreated check.
+     *
+     * @param {string} roomJid - The JID of the room.
+     */
+    expungeRoom(roomJid) {
+        if (roomJid && roomJid in this.rooms) {
+            delete this.rooms[roomJid];
+        }
+    }
+
+    /**
      *  Check if a room with the passed JID is already created.
      *
      * @param {string} roomJid - The JID of the room.
