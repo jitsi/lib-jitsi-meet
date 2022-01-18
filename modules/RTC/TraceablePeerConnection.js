@@ -2013,9 +2013,14 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
             .then(() => {
                 oldTrack && this.localTracks.delete(oldTrack.rtcId);
                 newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
+                const mediaActive = mediaType === MediaType.AUDIO
+                    ? this.audioTransferActive
+                    : this.videoTransferActive;
 
-                if (transceiver) {
-                    // Set the transceiver direction.
+                // Set the transceiver direction only if media is not suspended on the connection. This happens when
+                // the client is using the p2p connection. Transceiver direction is updated when media is resumed on
+                // this connection again.
+                if (transceiver && mediaActive) {
                     transceiver.direction = newTrack ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
                 }
 
