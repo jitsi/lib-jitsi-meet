@@ -2289,7 +2289,7 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
  */
 TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
     // We are assuming here that we only have one bundled transport here
-    if (this._dtlsTransport) {
+    if (!this.peerconnection.getSenders || this._dtlsTransport) {
         return;
     }
 
