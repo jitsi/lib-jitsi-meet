@@ -1954,7 +1954,9 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
  * was found.
  */
 TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
-    return this.peerconnection.getSenders().find(s => s.track && s.track.kind === mediaType);
+    if (this.peerconnection.getSenders) {
+        return this.peerconnection.getSenders().find(s => s.track && s.track.kind === mediaType);
+    }
 };
 
 /**
@@ -1976,7 +1978,9 @@ TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
  * was found.
  */
 TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
-    return this.peerconnection.getSenders().find(s => s.track === track);
+    if (this.peerconnection.getSenders) {
+        return this.peerconnection.getSenders().find(s => s.track === track);
+    }
 };
 
 /**
