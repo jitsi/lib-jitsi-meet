@@ -1645,7 +1645,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.addTrack using unified plan`);
-        if (webrtcStream) {
+        if (webrtcStream || !this.isP2P) {
             try {
                 this.tpcUtils.addTrack(track, isInitiator);
             } catch (error) {
