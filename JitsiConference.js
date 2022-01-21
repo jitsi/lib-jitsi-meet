@@ -3942,6 +3942,63 @@ JitsiConference.prototype.joinLobby = function(displayName, email) {
 };
 
 /**
+ * Gets the local id for a participant in a lobby room.
+ * Returns undefined when current participant is not in the lobby room.
+ * This is used for lobby room private chat messages.
+ *
+ * @returns {string}
+ */
+JitsiConference.prototype.myLobbyUserId = function() {
+    if (this.room) {
+        return this.room.getLobby().getLocalId();
+    }
+};
+
+/**
+ * Sends a message to a lobby room.
+ * When id is specified it sends a private message.
+ * Otherwise it sends the message to all moderators.
+ * @param {message} Object The message to send
+ * @param {string} id The participant id.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.sendLobbyMessage = function(message, id) {
+    if (this.room) {
+        if (id) {
+            return this.room.getLobby().sendPrivateMessage(id, message);
+        }
+
+        return this.room.getLobby().sendMessage(message);
+    }
+};
+
+/**
+ * Adds a message listener to the lobby room
+ * @param {Function} listener The listener function,
+ * called when a new message is received in the lobby room.
+ *
+ * @returns {Function} Handler returned to be able to remove it later.
+ */
+JitsiConference.prototype.addLobbyMessageListener = function(listener) {
+    if (this.room) {
+        return this.room.getLobby().addMessageListener(listener);
+    }
+};
+
+/**
+ * Removes a message handler from the lobby room
+ * @param {Function} handler The handler function  to remove.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.removeLobbyMessageHandler = function(handler) {
+    if (this.room) {
+        return this.room.getLobby().removeMessageHandler(handler);
+    }
+};
+
+/**
  * Denies an occupant in the lobby room access to the conference.
  * @param {string} id The participant id.
  */
