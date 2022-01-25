@@ -436,6 +436,10 @@ export default class XMPP extends Listenable {
                 this.avModerationComponentAddress = identity.name;
             }
 
+            if (identity.type === 'end_conference') {
+                this.endConferenceComponentAddress = identity.name;
+            }
+
             if (identity.type === 'speakerstats') {
                 this.speakerStatsComponentAddress = identity.name;
             }

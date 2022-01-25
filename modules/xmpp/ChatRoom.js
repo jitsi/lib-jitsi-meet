@@ -1875,6 +1875,18 @@ export default class ChatRoom extends Listenable {
 
         return Promise.allSettled(promises);
     }
+
+    /**
+     * Ends the conference.
+     */
+    end() {
+        // Send the end conference message.
+        const msg = $msg({ to: this.xmpp.endConferenceComponentAddress });
+
+        msg.c('end_conference').up();
+
+        this.xmpp.connection.send(msg);
+    }
 }
 
 /* eslint-enable newline-per-chained-call */

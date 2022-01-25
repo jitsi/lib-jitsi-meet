@@ -732,6 +732,31 @@ JitsiConference.prototype.leave = async function(reason) {
 };
 
 /**
+ * Returns <tt>true</tt> if end conference support is enabled in the backend.
+ *
+ * @returns {boolean} whether end conference is supported in the backend.
+ */
+JitsiConference.prototype.isEndConferenceSupported = function() {
+    return Boolean(this.room && this.room.xmpp.endConferenceComponentAddress);
+};
+
+/**
+ * Ends the conference.
+ */
+JitsiConference.prototype.end = async function() {
+    if (!this.isEndConferenceSupported()) {
+        logger.warn('Cannot end conference: is not supported.');
+
+        return;
+    }
+    if (!this.room) {
+        throw new Error('The conference has been already left');
+    }
+
+    this.room.end();
+};
+
+/**
  * Returns the currently active media session if any.
  *
  * @returns {JingleSessionPC|undefined}
