@@ -627,11 +627,9 @@ declare class JitsiConference {
     onUserRoleChanged(jid: any, role: any): void;
     onDisplayNameChanged(jid: any, displayName: any): void;
     /**
-     * Notifies this JitsiConference that a JitsiRemoteTrack was added into
-     * the conference.
+     * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
      *
-     * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this
-     * JitsiConference
+     * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
      */
     onRemoteTrackAdded(track: any): void;
     /**

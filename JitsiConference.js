@@ -2006,11 +2006,9 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 };
 
 /**
- * Notifies this JitsiConference that a JitsiRemoteTrack was added into
- * the conference.
+ * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
  *
- * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this
- * JitsiConference
+ * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     if (track.isP2P && !this.isP2PActive()) {
@@ -2044,16 +2042,13 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
         () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-    track.addEventListener(
+    track.isAudioTrack() && track.addEventListener(
         JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         (audioLevel, tpc) => {
             const activeTPC = this.getActivePeerConnection();
 
             if (activeTPC === tpc) {
-                emitter.emit(
-                    JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                    id,
-                    audioLevel);
+                emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
             }
         }
     );
@@ -3016,8 +3011,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
  * @private
  */
 JitsiConference.prototype._addRemoteJVBTracks = function() {
-    this._addRemoteTracks(
-        'JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
+    this._addRemoteTracks('JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
@@ -3025,8 +3019,7 @@ JitsiConference.prototype._addRemoteJVBTracks = function() {
  * @private
  */
 JitsiConference.prototype._addRemoteP2PTracks = function() {
-    this._addRemoteTracks(
-        'P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
+    this._addRemoteTracks('P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
