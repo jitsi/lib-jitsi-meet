@@ -69,5 +69,6 @@
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
+  "files": [ "dist" ],
   "license": "Apache-2.0"
 }
