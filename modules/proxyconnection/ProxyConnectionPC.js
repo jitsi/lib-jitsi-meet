@@ -277,7 +277,7 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, this._rtc, configStub);
+        peerConnection.initialize(roomStub, this._rtc, signalingLayer, configStub);
 
         return peerConnection;
     }
