@@ -125,12 +125,11 @@ export default class TraceablePeerConnection {
      */
     isP2P: boolean;
     /**
-     * The map holds remote tracks associated with this peer connection.
-     * It maps user's JID to media type and remote track
-     * (one track per media type per user's JID).
-     * @type {Map<string, Map<MediaType, JitsiRemoteTrack>>}
+     * The map holds remote tracks associated with this peer connection. It maps user's JID to media type and a set of
+     * remote tracks.
+     * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
      */
-    remoteTracks: Map<string, Map<typeof MediaType, JitsiRemoteTrack>>;
+    remoteTracks: Map<string, Map<typeof MediaType, Set<JitsiRemoteTrack>>>;
     /**
      * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
      * @type {Map<number, JitsiLocalTrack>}
@@ -303,23 +302,25 @@ export default class TraceablePeerConnection {
      */
     getLocalTracks(mediaType?: typeof MediaType): Array<any>;
     /**
-     * Retrieves the local video track.
+     * Retrieves the local video tracks.
      *
-     * @returns {JitsiLocalTrack|undefined} - local video track.
+     * @returns {JitsiLocalTrack|undefined} - local video tracks.
      */
-    getLocalVideoTrack(): any | undefined;
+    getLocalVideoTracks(): any | undefined;
     /**
-     * Checks whether or not this {@link TraceablePeerConnection} instance contains
-     * any local tracks for given <tt>mediaType</tt>.
-     * @param {MediaType} mediaType
+     * Checks whether or not this {@link TraceablePeerConnection} instance contains any local tracks for given
+     * <tt>mediaType</tt>.
+     *
+     * @param {MediaType} mediaType - The media type.
      * @return {boolean}
      */
     hasAnyTracksOfType(mediaType: typeof MediaType): boolean;
     /**
      * Obtains all remote tracks currently known to this PeerConnection instance.
-     * @param {string} [endpointId] the track owner's identifier (MUC nickname)
-     * @param {MediaType} [mediaType] the remote tracks will be filtered
-     * by their media type if this argument is specified.
+     *
+     * @param {string} [endpointId] - The track owner's identifier (MUC nickname)
+     * @param {MediaType} [mediaType] - The remote tracks will be filtered by their media type if this argument is
+     * specified.
      * @return {Array<JitsiRemoteTrack>}
      */
     getRemoteTracks(endpointId?: string, mediaType?: typeof MediaType): Array<JitsiRemoteTrack>;
@@ -392,38 +393,26 @@ export default class TraceablePeerConnection {
     _remoteStreamRemoved(stream: any): void;
     /**
      * Handles remote media track removal.
-     * @param {MediaStream} stream WebRTC MediaStream instance which is the parent
-     * of the track.
-     * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack which has been
-     * removed from the PeerConnection.
+     *
+     * @param {MediaStream} stream - WebRTC MediaStream instance which is the parent of the track.
+     * @param {MediaStreamTrack} track - WebRTC MediaStreamTrack which has been removed from the PeerConnection.
+     * @returns {void}
      */
     _remoteTrackRemoved(stream: MediaStream, track: MediaStreamTrack): void;
-    private _getRemoteTrackById;
     /**
-     * Removes all JitsiRemoteTracks associated with given MUC nickname
-     * (resource part of the JID). Returns array of removed tracks.
+     * Removes all JitsiRemoteTracks associated with given MUC nickname (resource part of the JID).
      *
      * @param {string} owner - The resource part of the MUC JID.
-     * @returns {JitsiRemoteTrack[]}
+     * @returns {JitsiRemoteTrack[]} - The array of removed tracks.
      */
     removeRemoteTracks(owner: string): JitsiRemoteTrack[];
     /**
-     * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits
-     * {@link RTCEvents.REMOTE_TRACK_REMOVED}.
-     * @param {JitsiRemoteTrack} toBeRemoved
+     * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits {@link RTCEvents.REMOTE_TRACK_REMOVED}.
+     *
+     * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
+     * @returns {void}
      */
     _removeRemoteTrack(toBeRemoved: JitsiRemoteTrack): void;
-    /**
-     * Removes and disposes <tt>JitsiRemoteTrack</tt> identified by given stream and
-     * track ids.
-     *
-     * @param {string} streamId the media stream id as defined by the WebRTC
-     * @param {string} trackId the media track id as defined by the WebRTC
-     * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
-     * <tt>undefined</tt> if no track matching given stream and track ids was
-     * found.
-     */
-    _removeRemoteTrackById(streamId: string, trackId: string): JitsiRemoteTrack | undefined;
     /**
      * Returns a map with keys msid/mediaType and <tt>TrackSSRCInfo</tt> values.
      * @param {RTCSessionDescription} desc the local description.
@@ -472,8 +461,7 @@ export default class TraceablePeerConnection {
     /**
      * Checks if screensharing is in progress.
      *
-     * @returns {boolean}  Returns true if a desktop track has been added to the
-     * peerconnection, false otherwise.
+     * @returns {boolean}  Returns true if a desktop track has been added to the peerconnection, false otherwise.
      */
     _isSharingScreen(): boolean;
     /**
