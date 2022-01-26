@@ -20,7 +20,7 @@ export default class SdpConsistency {
      *  makeVideoPrimarySsrcsConsistent
      */
     clearVideoSsrcCache(): void;
-    cachedPrimarySsrc: number;
+    cachedPrimarySsrc: any;
     injectRecvOnly: boolean;
     /**
      * Explicitly set the primary ssrc to be used in

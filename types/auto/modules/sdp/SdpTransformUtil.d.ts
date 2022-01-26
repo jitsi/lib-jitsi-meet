@@ -35,13 +35,12 @@ export class SdpTransformWrap {
     constructor(rawSDP: string);
     parsedSDP: any;
     /**
-     * Selects the first media SDP of given name.
-     * @param {string} mediaType the name of the media e.g. 'audio', 'video',
-     * 'data'.
-     * @return {MLineWrap|null} return {@link MLineWrap} instance for the media
-     * line or <tt>null</tt> if not found. The object returned references
-     * the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance
-     * (it's not a copy).
+     * Selects all the m-lines from the SDP for a given media type.
+     *
+     * @param {string} mediaType the name of the media e.g. 'audio', 'video', 'data'.
+     * @return {MLineWrap|null} return {@link MLineWrap} instance for the media line or <tt>null</tt> if not found. The
+     * object returned references the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance (it's not a
+     * copy).
      */
     selectMedia(mediaType: string): MLineWrap | null;
     /**

@@ -1346,7 +1346,7 @@ const enforceSendRecv = function(localDescription, options) {
     }
 
     const transformer = new SdpTransformWrap(localDescription.sdp);
-    const audioMedia = transformer.selectMedia(MediaType.AUDIO);
+    const audioMedia = transformer.selectMedia(MediaType.AUDIO)?.[0];
     let changed = false;
 
     if (audioMedia && audioMedia.direction !== MediaDirection.SENDRECV) {
@@ -1359,7 +1359,7 @@ const enforceSendRecv = function(localDescription, options) {
         changed = true;
     }
 
-    const videoMedia = transformer.selectMedia(MediaType.VIDEO);
+    const videoMedia = transformer.selectMedia(MediaType.VIDEO)?.[0];
 
     if (videoMedia && videoMedia.direction !== MediaDirection.SENDRECV) {
         videoMedia.direction = MediaDirection.SENDRECV;
@@ -2079,7 +2079,7 @@ TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast = function(localSd
 TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(localDescription) {
     const transformer = new SdpTransformWrap(localDescription.sdp);
     let modifiedDirection = false;
-    const audioMedia = transformer.selectMedia(MediaType.AUDIO);
+    const audioMedia = transformer.selectMedia(MediaType.AUDIO)?.[0];
 
     if (audioMedia) {
         const desiredAudioDirection = this.getDesiredMediaDirection(MediaType.AUDIO);
@@ -2093,7 +2093,7 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection = function(localDes
         logger.warn(`${this} No "audio" media found in the local description`);
     }
 
-    const videoMedia = transformer.selectMedia(MediaType.VIDEO);
+    const videoMedia = transformer.selectMedia(MediaType.VIDEO)?.[0];
 
     if (videoMedia) {
         const desiredVideoDirection = this.getDesiredMediaDirection(MediaType.VIDEO);
@@ -2129,7 +2129,7 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
     const transformer = new SdpTransformWrap(remoteDescription.sdp);
 
     [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-        const media = transformer.selectMedia(mediaType);
+        const media = transformer.selectMedia(mediaType)?.[0];
         const hasLocalSource = this.hasAnyTracksOfType(mediaType);
         const hasRemoteSource = this.getRemoteTracks(null, mediaType).length > 0;
 
