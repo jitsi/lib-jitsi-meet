@@ -58,9 +58,10 @@
     "webpack-cli": "4.9.0"
   },
   "scripts": {
+    "build": "webpack && tsc",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "postinstall": "webpack && tsc",
+    "prepack": "npm run build",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls",
