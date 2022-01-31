@@ -463,7 +463,8 @@ export default class XMPP extends Listenable {
 
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
-            || this.conferenceDurationComponentAddress) {
+            || this.conferenceDurationComponentAddress
+            || this.breakoutRoomsComponentAddress) {
             this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
         }
     }
