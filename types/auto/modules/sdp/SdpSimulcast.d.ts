@@ -20,6 +20,14 @@ export default class SdpSimulcast {
      */
     constructor(options: any);
     /**
+     * Updates the given media description using the SSRCs that were cached for the mid associated
+     * with the media description and returns the modified media description.
+     *
+     * @param mLine
+     * @returns
+     */
+    _fillSsrcsFromCache(mLine: transform.MediaDescription): any;
+    /**
      * Generates a new set of SSRCs for the higher simulcast layers/streams and adds the attributes and SIM group to
      * the given media description and returns the modified media description.
      *
@@ -43,14 +51,6 @@ export default class SdpSimulcast {
      * @returns
      */
     _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string;
-    /**
-     * Updates the given media description using the SSRCs that were cached for the mid associated
-     * with the media description and returns the modified media description.
-     *
-     * @param mLine
-     * @returns
-     */
-    _fillSsrcsFromCache(mLine: transform.MediaDescription): any;
     /**
      * Returns an array of all the primary SSRCs in the SIM group for a given media description.
      *
