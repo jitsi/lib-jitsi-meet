@@ -1720,7 +1720,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Handles the deletion of the remote tracks and SSRCs associated with a remote endpoint.
+     * Handles the deletion of SSRCs associated with a remote user from the remote description when the user leaves.
      *
      * @param {string} id Endpoint id of the participant that has left the call.
      * @returns {void}
@@ -1730,7 +1730,6 @@ export default class JingleSessionPC extends JingleSession {
             const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
 
             if (removeSsrcInfo.length) {
-                this.peerconnection.removeRemoteTracks(id);
                 const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
                 const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
 

@@ -393,7 +393,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     removeRemoteStream(elem: any): void;
     /**
-     * Handles the deletion of the remote tracks and SSRCs associated with a remote endpoint.
+     * Handles the deletion of SSRCs associated with a remote user from the remote description when the user leaves.
      *
      * @param {string} id Endpoint id of the participant that has left the call.
      * @returns {void}
