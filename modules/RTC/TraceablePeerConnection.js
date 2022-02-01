@@ -17,6 +17,7 @@ import RtxModifier from '../sdp/RtxModifier';
 import SDP from '../sdp/SDP';
 import SDPUtil from '../sdp/SDPUtil';
 import SdpConsistency from '../sdp/SdpConsistency';
+import SdpSimulcast from '../sdp/SdpSimulcast.ts';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
@@ -260,14 +261,20 @@ export default function TraceablePeerConnection(
     this.maxstats = options.maxstats;
 
     this.interop = new Interop();
-    const Simulcast = require('@jitsi/sdp-simulcast');
 
-    this.simulcast = new Simulcast(
-        {
-            numOfLayers: SIM_LAYER_RIDS.length,
-            explodeRemoteSimulcast: false,
-            usesUnifiedPlan: this._usesUnifiedPlan
-        });
+    if (this._usesUnifiedPlan) {
+        this.simulcast = new SdpSimulcast({ numOfLayers: SIM_LAYER_RIDS.length });
+    } else {
+        const Simulcast = require('@jitsi/sdp-simulcast');
+
+        this.simulcast = new Simulcast(
+            {
+                numOfLayers: SIM_LAYER_RIDS.length,
+                explodeRemoteSimulcast: false,
+                usesUnifiedPlan: this._usesUnifiedPlan
+            });
+    }
+
     this.sdpConsistency = new SdpConsistency(this.toString());
 
     /**

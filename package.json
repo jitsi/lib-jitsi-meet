@@ -39,6 +39,7 @@
     "@babel/eslint-parser": "7.16.0",
     "@babel/preset-env": "7.16.0",
     "@jitsi/eslint-config": "4.0.0",
+    "@types/sdp-transform": "2.4.5",
     "babel-loader": "8.2.3",
     "core-js": "3.19.1",
     "eslint": "8.1.0",
@@ -69,6 +70,11 @@
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
-  "files": [ "dist", "types", "connection_optimization/external_connect.js", "modules/browser/capabilities.json" ],
+  "files": [
+    "dist",
+    "types",
+    "connection_optimization/external_connect.js",
+    "modules/browser/capabilities.json"
+  ],
   "license": "Apache-2.0"
 }
