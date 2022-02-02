@@ -33,7 +33,7 @@ export class SdpTransformWrap {
      * @param {string} rawSDP the SDP in raw text format.
      */
     constructor(rawSDP: string);
-    parsedSDP: transform.SessionDescription;
+    parsedSDP: any;
     /**
      * Selects all the m-lines from the SDP for a given media type.
      *
@@ -50,7 +50,6 @@ export class SdpTransformWrap {
      */
     toRawSDP(): string;
 }
-import * as transform from "sdp-transform";
 /**
  * A wrapper around 'sdp-transform' media description object which provides
  * utility methods for common SDP/SSRC related operations.

@@ -52,7 +52,7 @@ module.exports = (minimize, analyzeBundle) => {
                         ]
                     ]
                 },
-                test: /\.(js|ts)$/
+                test: /\.js$/
             }, {
                 exclude: /node_modules/,
                 test: /\.ts$/,

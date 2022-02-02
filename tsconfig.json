@@ -8,6 +8,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "lib": [
       "esnext",
