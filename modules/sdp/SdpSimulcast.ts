@@ -10,6 +10,10 @@ interface Description {
     sdp: string;
 }
 
+interface Options {
+    numOfLayers?: number
+}
+
 /**
  * This class handles SDP munging for enabling simulcast for local video streams in Unified plan. A set of random SSRCs
  * are generated for the higher layer streams and they are cached for a given mid. The cached SSRCs are then reused on
@@ -26,7 +30,7 @@ export default class SdpSimulcast {
      *
      * @param options
      */
-    constructor(options: any) {
+    constructor(options: Options) {
         this._options = options;
         this._ssrcCache = new Map();
 
