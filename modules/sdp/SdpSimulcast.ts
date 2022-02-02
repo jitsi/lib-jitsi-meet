@@ -22,7 +22,7 @@ interface Options {
  * to a given endpoint.
  */
 export default class SdpSimulcast {
-    private _options: any;
+    private _options: Options;
     private _ssrcCache: Map<string, Array<number>>;
 
     /**
@@ -144,7 +144,7 @@ export default class SdpSimulcast {
     _generateSsrc() : number {
         const max = 0xffffffff;
 
-        return Math.floor(Math.random() * (max - 0)) + 0;
+        return Math.floor(Math.random() * max);
     }
 
     /**
