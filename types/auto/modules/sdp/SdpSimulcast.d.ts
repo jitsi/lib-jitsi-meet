@@ -50,14 +50,14 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string;
+    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string | undefined;
     /**
      * Returns an array of all the primary SSRCs in the SIM group for a given media description.
      *
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription): Array<number>;
+    _parseSimLayers(mLine: transform.MediaDescription): Array<number> | null;
     /**
      * Munges the given media description to enable simulcast for the video media sections that are in either have
      * SENDRECV or SENDONLY as the media direction thereby ignoring all the RECVONLY transceivers created for remote

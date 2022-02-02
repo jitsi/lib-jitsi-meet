@@ -1,6 +1,7 @@
-import * as MediaType from '../../service/RTC/MediaType';
-import * as transform from 'sdp-transform';
 import MediaDirection from '../../service/RTC/MediaDirection';
+import * as MediaType from '../../service/RTC/MediaType';
+
+import * as transform from 'sdp-transform';
 
 const DEFAULT_NUM_OF_LAYERS = 3;
 
@@ -29,7 +30,7 @@ export default class SdpSimulcast {
         this._options = options;
         this._ssrcCache = new Map();
 
-        if (!this._options.numOfLayer) {
+        if (!this._options.numOfLayers) {
             this._options.numOfLayers = DEFAULT_NUM_OF_LAYERS;
         }
     }
@@ -45,8 +46,8 @@ export default class SdpSimulcast {
         const mid = mLine.mid;
         const cachedSsrcs = this._ssrcCache.get(mid);
         const newSsrcs = this._parseSimLayers(mLine);
-        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], "msid");
-        const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], "cname");
+        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], 'msid');
+        const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], 'cname');
 
         mLine.ssrcs = [];
         mLine.ssrcGroups = [];
@@ -86,12 +87,12 @@ export default class SdpSimulcast {
         const addAssociatedAttributes = (mLine: transform.MediaDescription, ssrc: number) => {
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: "cname",
+                attribute: 'cname',
                 value: cname
             });
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: "msid",
+                attribute: 'msid',
                 value: msid
             });
         }
@@ -106,7 +107,7 @@ export default class SdpSimulcast {
             primarySsrcs.forEach(ssrc => {
                 mLine.ssrcs.push({
                     id: ssrc.id,
-                    attribute: "msid",
+                    attribute: 'msid',
                     value: msid
                 });
             })
@@ -124,8 +125,8 @@ export default class SdpSimulcast {
 
         mLine.ssrcGroups = mLine.ssrcGroups || [];
         mLine.ssrcGroups.push({
-            semantics: "SIM",
-            ssrcs: primarySsrc + " " + simSsrcs.join(" ")
+            semantics: 'SIM',
+            ssrcs: primarySsrc + ' ' + simSsrcs.join(' ')
         });
     
         return mLine;
@@ -137,9 +138,9 @@ export default class SdpSimulcast {
      * @returns
      */
     _generateSsrc() : number {
-        const min = 0, max = 0xffffffff;
+        const max = 0xffffffff;
 
-        return Math.floor(Math.random() * (max - min)) + min;
+        return Math.floor(Math.random() * (max - 0)) + 0;
     }
 
     /**
@@ -150,11 +151,10 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string) : string {
-        return mLine.ssrcs
-            .filter(ssrcInfo => parseInt(ssrcInfo.id?.toString()) === ssrc)
-            .filter(ssrcInfo => ssrcInfo.attribute === attributeName)
-            .map(ssrcInfo => ssrcInfo.value)[0];
+    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string) : string | undefined {
+        return mLine.ssrcs?.find(
+            ssrcInfo => parseInt(ssrcInfo.id.toString()) === ssrc
+            && ssrcInfo.attribute === attributeName)?.value;
     }
 
     /**
@@ -163,14 +163,18 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription) : Array<number> {
+    _parseSimLayers(mLine: transform.MediaDescription) : Array<number> | null {
         const simGroup = mLine.ssrcGroups?.find(group => group.semantics === 'SIM');
 
         if (simGroup) {
             return simGroup.ssrcs.split(' ').map(ssrc => parseInt(ssrc));
         }
 
-        return [ parseInt(mLine.ssrcs?.[0]?.id?.toString()) ];
+        if (mLine.ssrcs?.length) {
+            return [ parseInt(mLine.ssrcs[0].id.toString()) ];
+        }
+
+        return null;
     }
 
     /**
@@ -183,7 +187,7 @@ export default class SdpSimulcast {
      * @returns
      */
     mungeLocalDescription(description: Description) : Description {
-        if (!(description && description?.sdp !== '')) {
+        if (!description || !description.sdp) {
             return description;
         }
         const session = transform.parse(description.sdp);
@@ -210,9 +214,11 @@ export default class SdpSimulcast {
             if (numSsrcs.size === 1) {
                 primarySsrc = parseInt((media.ssrcs[0]?.id).toString());
             } else {
-                const fidGroup = media.ssrcGroups.filter(group => group.semantics === 'FID')?.[0];
+                const fidGroup = media.ssrcGroups.find(group => group.semantics === 'FID');
 
-                primarySsrc = parseInt(fidGroup.ssrcs.split(' ')[0]);
+                if (fidGroup) {
+                    primarySsrc = parseInt(fidGroup.ssrcs.split(' ')[0]);
+                }
             }
 
             if (this._ssrcCache.has(mid)) {
@@ -239,7 +245,7 @@ export default class SdpSimulcast {
      * @returns
      */
     mungeRemoteDescription(description: Description) : Description {
-        if (!(description && description?.sdp !== '')) {
+        if (!description || !description.sdp) {
             return description;
         }
 
@@ -255,7 +261,7 @@ export default class SdpSimulcast {
             }
 
             // Ignore m-lines that do not have any SSRCs or SSRC groups. These are the ones associated with remote
-            // sources that left the call. These will be recycled when a new remote source joins the call.
+            // sources that have left the call. These will be recycled when a new remote source joins the call.
             if (!media.ssrcGroups?.length || !media?.ssrcs.length) {
                 continue;
             }
