@@ -153,7 +153,7 @@ export default class SdpSimulcast {
      */
     _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string) : string | undefined {
         return mLine.ssrcs?.find(
-            ssrcInfo => parseInt(ssrcInfo.id.toString()) === ssrc
+            ssrcInfo => Number(ssrcInfo.id) === ssrc
             && ssrcInfo.attribute === attributeName)?.value;
     }
 
@@ -167,11 +167,11 @@ export default class SdpSimulcast {
         const simGroup = mLine.ssrcGroups?.find(group => group.semantics === 'SIM');
 
         if (simGroup) {
-            return simGroup.ssrcs.split(' ').map(ssrc => parseInt(ssrc));
+            return simGroup.ssrcs.split(' ').map(ssrc => Number(ssrc));
         }
 
         if (mLine.ssrcs?.length) {
-            return [ parseInt(mLine.ssrcs[0].id.toString()) ];
+            return [ Number(mLine.ssrcs[0].id) ];
         }
 
         return null;
@@ -212,12 +212,12 @@ export default class SdpSimulcast {
                 continue;
             }
             if (numSsrcs.size === 1) {
-                primarySsrc = parseInt((media.ssrcs[0]?.id).toString());
+                primarySsrc = Number(media.ssrcs[0]?.id);
             } else {
                 const fidGroup = media.ssrcGroups.find(group => group.semantics === 'FID');
 
                 if (fidGroup) {
-                    primarySsrc = parseInt(fidGroup.ssrcs.split(' ')[0]);
+                    primarySsrc = Number(fidGroup.ssrcs.split(' ')[0]);
                 }
             }
 
@@ -267,37 +267,37 @@ export default class SdpSimulcast {
             }
 
             // Cache the SSRCs and the source groups.
-            const mungedSsrcs = new Set(media.ssrcs);
-            const mungedSsrcGroups = new Set(media.ssrcGroups);
-            let fidGroup = null;
-            let primarySsrc = null;
-            let secondarySsrc = null;
+            const mungedSsrcs = new Set(media.ssrcs.slice());
+            const mungedSsrcGroups = new Set(media.ssrcGroups.slice());
+            const fidGroups = media.ssrcGroups.filter(group => group.semantics === 'FID');
+            const simGroup = media.ssrcGroups.find(group => group.semantics === 'SIM');
+            const primarySsrc = simGroup?.ssrcs.split(' ')[0];;
 
-            for (const ssrcGroup of media.ssrcGroups) {
-                if (ssrcGroup.semantics !== 'SIM') {
-                    continue;
+            // When simulcast and RTX are both enabled.
+            if (fidGroups.length && simGroup) {
+                const fidGroup = fidGroups.find(group => group.ssrcs.includes(primarySsrc));
+                const secondarySsrc = fidGroup.ssrcs.split(' ')[1];
+
+                for (const ssrcGroup of media.ssrcGroups) {
+                    if (ssrcGroup !== fidGroup) {
+                        mungedSsrcGroups.delete(ssrcGroup);
+                    }
+                }
+                for (const ssrc of media.ssrcs) {
+                    if (ssrc.id.toString() !== primarySsrc
+                        && ssrc.id.toString() !== secondarySsrc) {
+                        mungedSsrcs.delete(ssrc);
+                    }
                 }
 
-                primarySsrc = ssrcGroup.ssrcs.split(' ')?.[0];
+            // When simulcast is enabled but RTX is disabled.
+            } else if (simGroup) {
+                mungedSsrcGroups.delete(simGroup);
 
-                // Find the matching RTX SSRC for the primary SSRC.
-                fidGroup = media.ssrcGroups
-                    .find(group => group.semantics === 'FID' && group.ssrcs.includes(primarySsrc));
-                secondarySsrc = fidGroup?.ssrcs?.split(' ')?.[1];
-            }
-
-            // Delete the SSRCs and the associated SSRC groups for the higher layers.
-            for (const ssrcGroup of media.ssrcGroups) {
-                if (fidGroup && ssrcGroup !== fidGroup) {
-                    mungedSsrcGroups.delete(ssrcGroup);
-                }
-            }
-            for (const ssrc of media.ssrcs) {
-                if (primarySsrc
-                    && ssrc.id !== parseInt(primarySsrc)
-                    && secondarySsrc
-                    && ssrc.id !== parseInt(secondarySsrc)) {
-                    mungedSsrcs.delete(ssrc);
+                for (const ssrc of media.ssrcs) {
+                    if (ssrc.id.toString() !== primarySsrc) {
+                        mungedSsrcs.delete(ssrc);
+                    }
                 }
             }
 

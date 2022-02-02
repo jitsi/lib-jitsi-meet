@@ -137,5 +137,21 @@ describe('sdp-simulcast', () => {
             expect(fidGroups[0].ssrcs).toContain('1757014965');
             expect(fidGroups[0].ssrcs).toContain('984899560');
         });
+
+        it('should implode remote simulcast SSRCs without RTX into one primary SSRC', () => {
+            const sdp = SampleSdpStrings.simulcastNoRtxSdp;
+            const desc = {
+                type: 'offer',
+                sdp: transform.write(sdp)
+            };
+            const newDesc = simulcast.mungeRemoteDescription(desc);
+            const newSdp = transform.parse(newDesc.sdp);
+            const fidGroups = getVideoGroups(newSdp, 'FID');
+            const simGroups = getVideoGroups(newSdp, 'SIM');
+
+            expect(fidGroups.length).toEqual(0);
+            expect(simGroups.length).toEqual(0);
+            expect(numVideoSsrcs(newSdp)).toEqual(1);
+        });
     });
 });
