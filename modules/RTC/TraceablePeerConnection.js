@@ -271,7 +271,7 @@ export default function TraceablePeerConnection(
             {
                 numOfLayers: SIM_LAYER_RIDS.length,
                 explodeRemoteSimulcast: false,
-                usesUnifiedPlan: this._usesUnifiedPlan
+                usesUnifiedPlan: false
             });
     }
 

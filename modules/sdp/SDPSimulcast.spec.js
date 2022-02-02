@@ -130,8 +130,10 @@ describe('sdp-simulcast', () => {
             const newDesc = simulcast.mungeRemoteDescription(desc);
             const newSdp = transform.parse(newDesc.sdp);
             const fidGroups = getVideoGroups(newSdp, 'FID');
+            const simGroups = getVideoGroups(newSdp, 'SIM');
 
             expect(fidGroups.length).toEqual(1);
+            expect(simGroups.length).toEqual(0);
             expect(fidGroups[0].ssrcs).toContain('1757014965');
             expect(fidGroups[0].ssrcs).toContain('984899560');
         });
