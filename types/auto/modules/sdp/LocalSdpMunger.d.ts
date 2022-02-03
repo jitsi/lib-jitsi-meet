@@ -42,12 +42,11 @@ export default class LocalSdpMunger {
      */
     _generateMsidAttribute(mediaType: string, trackId: string, streamId?: string): string | null;
     /**
-     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending
-     * the id of {@link LocalSdpMunger#tpc} at the end, preceding by a dash
-     * sign.
+     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending the id of {@link LocalSdpMunger#tpc} at the end,
+     * preceding by a dash sign.
      *
-     * @param {MLineWrap} mediaSection - The media part (audio or video) of the
-     * session description which will be modified in place.
+     * @param {MLineWrap} mediaSection - The media part (audio or video) of the session description which will be
+     * modified in place.
      * @returns {void}
      * @private
      */

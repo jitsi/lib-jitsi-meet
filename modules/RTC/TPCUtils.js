@@ -339,21 +339,41 @@ export class TPCUtils {
 
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
+     *
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
      * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
-     * @returns {Promise<void>} - resolved when done.
+     * @returns {Promise<RTCRtpTransceiver>} - resolved with the associated transceiver when done, rejected otherwise.
      */
     replaceTrack(oldTrack, newTrack) {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
-        const transceiver = this.findTransceiver(mediaType, oldTrack);
         const track = newTrack?.getTrack() ?? null;
+        let transceiver;
+
+        // If old track exists, replace the track on the corresponding sender.
+        if (oldTrack) {
+            transceiver = this.pc.peerconnection.getTransceivers()?.find(t => t.sender?.track === oldTrack.getTrack());
+
+        // Find the first recvonly transceiver when a second track of the same media type is being added to the pc. As
+        // part of the track addition, a new m-line was added to the remote description with direction set to recvonly.
+        } else if (this.pc.getLocalTracks(mediaType)?.length && !newTrack?.conference) {
+            transceiver = this.pc.peerconnection.getTransceivers()?.find(
+                t => t.receiver?.track?.kind === mediaType
+                && t.direction === MediaDirection.RECVONLY
+                && t.currentDirection === MediaDirection.INACTIVE);
+
+        // If a track of a given media type is added for the first time, replace the track on the first sender. This
+        // will be called when the user joins the call muted but unmutes during the call.
+        } else {
+            transceiver = this.pc.peerconnection.getTransceivers()?.find(t => t.receiver?.track?.kind === mediaType);
+        }
 
         if (!transceiver) {
             return Promise.reject(new Error('replace track failed'));
         }
         logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
-        return transceiver.sender.replaceTrack(track);
+        return transceiver.sender.replaceTrack(track)
+            .then(() => Promise.resolve(transceiver));
     }
 
     /**

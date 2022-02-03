@@ -11,6 +11,12 @@ declare class FeatureFlags {
      */
     init(flags: any): void;
     _sourceNameSignaling: boolean;
+    _sendMultipleVideoStreams: boolean;
+    /**
+     *
+     * @returns
+     */
+    isMultiStreamSupportEnabled(): boolean;
     /**
      * Checks if the source name signaling is enabled.
      *

@@ -13,8 +13,19 @@ class FeatureFlags {
      */
     init(flags) {
         this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
+        this._sendMultipleVideoStreams = Boolean(flags.sendMultipleVideoStreams);
 
-        logger.info(`Source name signaling: ${this._sourceNameSignaling}`);
+        logger.info(`Source name signaling: ${this._sourceNameSignaling},`
+            + ` Send multiple video streams: ${this._sendMultipleVideoStreams}`);
+    }
+
+    /**
+     * Checks if multiple local video streams support is enabled.
+     *
+     * @returns {boolean}
+     */
+    isMultiStreamSupportEnabled() {
+        return this._sourceNameSignaling && this._sendMultipleVideoStreams;
     }
 
     /**

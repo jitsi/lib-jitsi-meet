@@ -30,6 +30,12 @@ export default class SDP {
      */
     removeUdpCandidates: boolean;
     /**
+     * Adds a new m-line for receiving source of the given media type.
+     *
+     * @param {Mediatype} mediaType media type of the new source that is being added.
+     */
+    addMlineForNewLocalSource(mediaType: any): void;
+    /**
      * Returns map of MediaChannel mapped per channel idx.
      */
     getMediaSsrcMap(): {};

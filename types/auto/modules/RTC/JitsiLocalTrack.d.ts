@@ -81,6 +81,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _testDataSent: boolean;
     _realDeviceId: string;
+    _sourceName: string;
     _trackMutedTS: number;
     _onDeviceListWillChange: (devices: any) => void;
     _onAudioOutputDeviceChanged: any;
@@ -221,6 +222,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     getParticipantId(): string;
     /**
+     * Returns the source name associated with the jitsi track.
+     *
+     * @returns {string | null} source name
+     */
+    getSourceName(): string | null;
+    /**
      * Returns if associated MediaStreamTrack is in the 'ended' state
      *
      * @returns {boolean}
@@ -269,6 +276,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     setEffect(effect: any): Promise<any>;
+    /**
+     * Sets the source name to be used for signaling the jitsi track.
+     *
+     * @param {string} name The source name.
+     */
+    setSourceName(name: string): void;
     /**
      * Stops the associated MediaStream.
      *

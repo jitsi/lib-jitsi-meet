@@ -5,6 +5,7 @@ import { $iq, Strophe } from 'strophe.js';
 
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import MediaDirection from '../../service/RTC/MediaDirection';
+import * as MediaType from '../../service/RTC/MediaType';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
@@ -1383,7 +1384,7 @@ export default class JingleSessionPC extends JingleSession {
                     sid: this.sid
                 })
                 .c('content', {
-                    name: 'video',
+                    name: MediaType.VIDEO,
                     senders
                 });
 
@@ -2028,6 +2029,49 @@ export default class JingleSessionPC extends JingleSession {
                         return this.peerconnection.setRemoteDescription(remoteDescription);
                     });
             });
+    }
+
+    /**
+     * Adds a new track to the peerconnection. This method needs to be called only when a secondary JitsiLocalTrack is
+     * being added to the peerconnection for the first time.
+     *
+     * @param {JitsiLocalTrack} localTrack track to be added to the peer connection.
+     * @returns {Promise<void>} that resolves when the track is successfully added to the peerconnection, rejected
+     * otherwise.
+     */
+    addTrack(localTrack) {
+        if (!this.usesUnifiedPlan || localTrack.type !== MediaType.VIDEO) {
+            return Promise.reject(new Error('Multiple tracks of a given media type are not supported'));
+        }
+
+        const workFunction = finishedCallback => {
+            const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
+
+            // Add a new transceiver by adding a new mline in the remote description.
+            remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
+            this._renegotiate(remoteSdp.raw)
+                .then(() => finishedCallback(), error => finishedCallback(error));
+        };
+
+        return new Promise((resolve, reject) => {
+            logger.debug(`${this} Queued renegotiation after addTrack`);
+
+            this.modificationQueue.push(
+                workFunction,
+                error => {
+                    if (error) {
+                        logger.error(`${this} renegotiation after addTrack error`, error);
+                        reject(error);
+                    } else {
+                        logger.debug(`${this} renegotiation after addTrack executed - OK`);
+
+                        // Replace the track on the newly generated transceiver.
+                        return this.replaceTrack(null, localTrack)
+                            .then(() => resolve())
+                            .catch(() => reject());
+                    }
+                });
+        });
     }
 
     /**

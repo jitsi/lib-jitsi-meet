@@ -455,6 +455,15 @@ export default class JingleSessionPC extends JingleSession {
      */
     private _initiatorRenegotiate;
     /**
+     * Adds a new track to the peerconnection. This method needs to be called only when a secondary JitsiLocalTrack is
+     * being added to the peerconnection for the first time.
+     *
+     * @param {JitsiLocalTrack} localTrack track to be added to the peer connection.
+     * @returns {Promise<void>} that resolves when the track is successfully added to the peerconnection, rejected
+     * otherwise.
+     */
+    addTrack(localTrack: any): Promise<void>;
+    /**
      * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> and performs a single
      * offer/answer cycle after both operations are done. Either
      * <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
