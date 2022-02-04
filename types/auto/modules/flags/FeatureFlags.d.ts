@@ -13,8 +13,9 @@ declare class FeatureFlags {
     _sourceNameSignaling: boolean;
     _sendMultipleVideoStreams: boolean;
     /**
+     * Checks if multiple local video streams support is enabled.
      *
-     * @returns
+     * @returns {boolean}
      */
     isMultiStreamSupportEnabled(): boolean;
     /**

@@ -30,7 +30,8 @@ export default class SDP {
      */
     removeUdpCandidates: boolean;
     /**
-     * Adds a new m-line for receiving source of the given media type.
+     * Adds a new m-line to the description so that a new local source can then be attached to the transceiver that gets
+     * added after a reneogtiation cycle.
      *
      * @param {Mediatype} mediaType media type of the new source that is being added.
      */

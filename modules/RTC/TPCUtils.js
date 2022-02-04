@@ -351,20 +351,33 @@ export class TPCUtils {
 
         // If old track exists, replace the track on the corresponding sender.
         if (oldTrack) {
-            transceiver = this.pc.peerconnection.getTransceivers()?.find(t => t.sender?.track === oldTrack.getTrack());
+            transceiver = this.pc.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
 
-        // Find the first recvonly transceiver when a second track of the same media type is being added to the pc. As
-        // part of the track addition, a new m-line was added to the remote description with direction set to recvonly.
-        } else if (this.pc.getLocalTracks(mediaType)?.length && !newTrack?.conference) {
-            transceiver = this.pc.peerconnection.getTransceivers()?.find(
-                t => t.receiver?.track?.kind === mediaType
+        // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
+        // As part of the track addition, a new m-line was added to the remote description with direction set to
+        // recvonly.
+        } else if (this.pc.getLocalTracks(mediaType)?.length && !newTrack.conference) {
+            transceiver = this.pc.peerconnection.getTransceivers().find(
+                t => t.receiver.track.kind === mediaType
                 && t.direction === MediaDirection.RECVONLY
                 && t.currentDirection === MediaDirection.INACTIVE);
 
-        // If a track of a given media type is added for the first time, replace the track on the first sender. This
-        // will be called when the user joins the call muted but unmutes during the call.
+        // For unmute operations, find the transceiver based on the track index in the source name if present, otherwise
+        // it is assumed to be the first local track that was added to the peerconnection.
         } else {
-            transceiver = this.pc.peerconnection.getTransceivers()?.find(t => t.receiver?.track?.kind === mediaType);
+            transceiver = this.pc.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
+
+            const sourceName = newTrack.getSourceName();
+
+            if (sourceName) {
+                const trackIndex = Number(sourceName.split('-')[1].substring(1));
+
+                if (trackIndex) {
+                    transceiver = this.pc.peerconnection.getTransceivers()
+                        .filter(t => t.receiver.track.kind === mediaType
+                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
+                }
+            }
         }
 
         if (!transceiver) {
