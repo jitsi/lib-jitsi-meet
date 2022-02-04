@@ -3,7 +3,7 @@
  */
 export default class BreakoutRooms {
     /**
-     * Constructs lobby room.
+     * Constructs breakout room.
      *
      * @param {ChatRoom} room the room we are in.
      */
@@ -33,12 +33,26 @@ export default class BreakoutRooms {
      */
     removeBreakoutRoom(breakoutRoomJid: string): void;
     /**
+     * Changes the subject of a breakout room.
+     *
+     * @param {string} breakoutRoomJid - JID of the room to be removed.
+     * @param {string} subject - A new subject for the breakout room.
+     */
+    renameBreakoutRoom(breakoutRoomJid: string, subject: string): void;
+    /**
      * Sends the given participant to the given room.
      *
      * @param {string} participantJid - JID of the participant to be sent to a room.
      * @param {string} roomJid - JID of the target room.
      */
     sendParticipantToRoom(participantJid: string, roomJid: string): void;
+    /**
+     * Retrieves whether a breakout room feature is supported.
+     *
+     * @param {string} feature - Feature to check.
+     * @returns Wether the feature is supported.
+     */
+    isFeatureSupported(feature: string): boolean;
     /**
      * Whether Breakout Rooms support is enabled in the backend or not.
      */

@@ -109,6 +109,7 @@ export default class XMPP extends Listenable {
     conferenceDurationComponentAddress: any;
     lobbySupported: boolean;
     breakoutRoomsComponentAddress: any;
+    breakoutRoomsFeatures: {};
     /**
     * Parses a raw failure xmpp xml message received on auth failed.
     *

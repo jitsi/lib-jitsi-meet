@@ -6,8 +6,9 @@ import XMPPEvents from '../../service/xmpp/XMPPEvents';
 const FEATURE_KEY = 'features/breakout-rooms';
 const BREAKOUT_ROOM_ACTIONS = {
     ADD: `${FEATURE_KEY}/add`,
+    MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
     REMOVE: `${FEATURE_KEY}/remove`,
-    MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`
+    RENAME: `${FEATURE_KEY}/rename`
 };
 const BREAKOUT_ROOM_EVENTS = {
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
@@ -22,7 +23,7 @@ const logger = getLogger(__filename);
 export default class BreakoutRooms {
 
     /**
-     * Constructs lobby room.
+     * Constructs breakout room.
      *
      * @param {ChatRoom} room the room we are in.
      */
@@ -49,7 +50,7 @@ export default class BreakoutRooms {
      */
     createBreakoutRoom(subject) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot create breakout room - supported:${this.isSupported()}, 
+            logger.error(`Cannot create breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
@@ -70,7 +71,7 @@ export default class BreakoutRooms {
      */
     removeBreakoutRoom(breakoutRoomJid) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot remove breakout room - supported:${this.isSupported()}, 
+            logger.error(`Cannot remove breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
@@ -85,6 +86,29 @@ export default class BreakoutRooms {
     }
 
     /**
+     * Changes the subject of a breakout room.
+     *
+     * @param {string} breakoutRoomJid - JID of the room to be removed.
+     * @param {string} subject - A new subject for the breakout room.
+     */
+    renameBreakoutRoom(breakoutRoomJid, subject) {
+        if (!this.isSupported() || !this.room.isModerator()) {
+            logger.error(`Cannot rename breakout room - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        const message = {
+            type: BREAKOUT_ROOM_ACTIONS.RENAME,
+            breakoutRoomJid,
+            subject
+        };
+
+        this._sendMessage(message);
+    }
+
+    /**
      * Sends the given participant to the given room.
      *
      * @param {string} participantJid - JID of the participant to be sent to a room.
@@ -92,7 +116,7 @@ export default class BreakoutRooms {
      */
     sendParticipantToRoom(participantJid, roomJid) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot send participant to room - supported:${this.isSupported()}, 
+            logger.error(`Cannot send participant to room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
@@ -105,6 +129,16 @@ export default class BreakoutRooms {
         };
 
         this._sendMessage(message);
+    }
+
+    /**
+     * Retrieves whether a breakout room feature is supported.
+     *
+     * @param {string} feature - Feature to check.
+     * @returns Wether the feature is supported.
+     */
+    isFeatureSupported(feature) {
+        return Boolean((this.room.xmpp.breakoutRoomsFeatures || {})[feature]);
     }
 
     /**
