@@ -210,14 +210,14 @@ export default class LocalSdpMunger {
                     const trackId = streamAndTrackIDs[1];
 
                     // eslint-disable-next-line max-depth
-                    if (streamId === '-' || !streamId) {
-                        streamId = `${this.localEndpointId}-${mediaType}`;
-                    }
-
-                    // eslint-disable-next-line max-depth
                     if (FeatureFlags.isMultiStreamSupportEnabled()
                         && this.tpc.usesUnifiedPlan()
                         && mediaType === MediaType.VIDEO) {
+
+                        // eslint-disable-next-line max-depth
+                        if (streamId === '-' || !streamId) {
+                            streamId = `${this.localEndpointId}-${mediaType}`;
+                        }
 
                         // eslint-disable-next-line max-depth
                         if (!sourceToMsidMap.has(trackId)) {
