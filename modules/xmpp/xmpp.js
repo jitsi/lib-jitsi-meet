@@ -493,6 +493,24 @@ export default class XMPP extends Listenable {
             if (identity.type === 'breakout_rooms') {
                 this.breakoutRoomsComponentAddress = identity.name;
                 this._components.push(this.breakoutRoomsComponentAddress);
+
+                const processBreakoutRoomsFeatures = f => {
+                    this.breakoutRoomsFeatures = {};
+
+                    f.forEach(fr => {
+                        if (fr.endsWith('#rename')) {
+                            this.breakoutRoomsFeatures.rename = true;
+                        }
+                    });
+                };
+
+                if (features) {
+                    processBreakoutRoomsFeatures(features);
+                } else {
+                    identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                        .then(({ features: f }) => processBreakoutRoomsFeatures(f))
+                        .catch(e => logger.warn('Error getting features for breakout rooms.', e && e.message));
+                }
             }
 
             if (identity.type === 'room_metadata') {
