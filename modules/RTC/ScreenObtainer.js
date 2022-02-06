@@ -164,7 +164,7 @@ const ScreenObtainer = {
                             audio: audioConstraints,
                             video: {
                                 mandatory: {
-                                    chromeMediaSource: 'desktop',
+                                    chromeMediaSource: streamType === 'tab' ? 'tab' : 'desktop',
                                     chromeMediaSourceId: streamId,
                                     minFrameRate: desktopSharingFrameRate?.min ?? SS_DEFAULT_FRAME_RATE,
                                     maxFrameRate: desktopSharingFrameRate?.max ?? SS_DEFAULT_FRAME_RATE,
