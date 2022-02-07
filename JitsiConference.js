@@ -1095,6 +1095,23 @@ JitsiConference.prototype.addTrack = function(track) {
             return Promise.resolve(track);
         }
 
+        if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
+            const addTrackPromises = [];
+
+            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTrack(track));
+            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTrack(track));
+
+            return Promise.all(addTrackPromises)
+                .then(() => {
+                    this._setupNewTrack(track);
+
+                    // TODO Update presence and sent videoType message.
+                    if (this.isMutedByFocus || this.isVideoMutedByFocus) {
+                        this._fireMuteChangeEvent(track);
+                    }
+                });
+        }
+
         return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
     }
 
@@ -1327,6 +1344,8 @@ JitsiConference.prototype._removeLocalSourceOnReject = function(jingleSession, e
  * @param {JitsiLocalTrack} newTrack the new track being created
  */
 JitsiConference.prototype._setupNewTrack = function(newTrack) {
+    const mediaType = newTrack.getType();
+
     if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() && newTrack.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
         const devices = RTC.getCurrentlyAvailableMediaDevices();
@@ -1336,6 +1355,16 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         if (device) {
             Statistics.sendActiveDeviceListEvent(RTC.getEventDataForActiveDevice(device));
         }
+    }
+
+    // Create a source name for this track if it doesn't exist.
+    if (FeatureFlags.isSourceNameSignalingEnabled() && !newTrack.getSourceName()) {
+        const sourceName = getSourceNameForJitsiTrack(
+            this.myUserId(),
+            mediaType,
+            this.getLocalTracks(mediaType)?.length);
+
+        newTrack.setSourceName(sourceName);
     }
 
     this.rtc.addLocalTrack(newTrack);
@@ -1363,13 +1392,7 @@ JitsiConference.prototype._setNewVideoType = function(track) {
     if (FeatureFlags.isSourceNameSignalingEnabled() && track) {
         // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
         // to send the presence (not just modify it).
-        this._signalingLayer.setTrackVideoType(
-            getSourceNameForJitsiTrack(
-                this.myUserId(),
-                track.getType(),
-                0
-            ),
-            track.videoType);
+        this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
 
         // TODO: Optimize to detect whether presence was changed, for now always report changed to send presence
         return true;
@@ -1403,10 +1426,7 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
         // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
         // it triggers sending the presence (it only updates it for now, because the legacy code below sends).
-        this._signalingLayer.setTrackMuteStatus(
-            getSourceNameForJitsiTrack(this.myUserId(), mediaType, 0),
-            isMuted
-        );
+        this._signalingLayer.setTrackMuteStatus(localTrack?.getSourceName(), isMuted);
     }
 
     if (!this.room) {

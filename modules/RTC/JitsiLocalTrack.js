@@ -163,6 +163,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // correspond to the id of a matching device from the available device list.
         this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
 
+        // The source name that will be signaled for this track.
+        this._sourceName = null;
+
         this._trackMutedTS = 0;
 
         this._onDeviceListWillChange = devices => {
@@ -669,6 +672,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the source name associated with the jitsi track.
+     *
+     * @returns {string | null} source name
+     */
+    getSourceName() {
+        return this._sourceName;
+    }
+
+    /**
      * Returns if associated MediaStreamTrack is in the 'ended' state
      *
      * @returns {boolean}
@@ -859,6 +871,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 logger.error('Failed to switch to the new stream!', error);
                 throw error;
             });
+    }
+
+    /**
+     * Sets the source name to be used for signaling the jitsi track.
+     *
+     * @param {string} name The source name.
+     */
+    setSourceName(name) {
+        this._sourceName = name;
     }
 
     /**

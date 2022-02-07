@@ -182,17 +182,18 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending
-     * the id of {@link LocalSdpMunger#tpc} at the end, preceding by a dash
-     * sign.
+     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending the id of {@link LocalSdpMunger#tpc} at the end,
+     * preceding by a dash sign.
      *
-     * @param {MLineWrap} mediaSection - The media part (audio or video) of the
-     * session description which will be modified in place.
+     * @param {MLineWrap} mediaSection - The media part (audio or video) of the session description which will be
+     * modified in place.
      * @returns {void}
      * @private
      */
     _transformMediaIdentifiers(mediaSection) {
+        const mediaType = mediaSection.mLine?.type;
         const pcId = this.tpc.id;
+        const sourceToMsidMap = new Map();
 
         for (const ssrcLine of mediaSection.ssrcs) {
             switch (ssrcLine.attribute) {
@@ -205,15 +206,29 @@ export default class LocalSdpMunger {
                 if (ssrcLine.value) {
                     const streamAndTrackIDs = ssrcLine.value.split(' ');
 
-                    if (streamAndTrackIDs.length === 2) {
-                        ssrcLine.value
-                            = this._generateMsidAttribute(
-                                mediaSection.mLine?.type,
-                                streamAndTrackIDs[1],
-                                streamAndTrackIDs[0]);
-                    } else {
-                        logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
+                    let streamId = streamAndTrackIDs[0];
+                    const trackId = streamAndTrackIDs[1];
+
+                    // eslint-disable-next-line max-depth
+                    if (FeatureFlags.isMultiStreamSupportEnabled()
+                        && this.tpc.usesUnifiedPlan()
+                        && mediaType === MediaType.VIDEO) {
+
+                        // eslint-disable-next-line max-depth
+                        if (streamId === '-' || !streamId) {
+                            streamId = `${this.localEndpointId}-${mediaType}`;
+                        }
+
+                        // eslint-disable-next-line max-depth
+                        if (!sourceToMsidMap.has(trackId)) {
+                            streamId = `${streamId}-${sourceToMsidMap.size}`;
+                            sourceToMsidMap.set(trackId, streamId);
+                        }
                     }
+
+                    ssrcLine.value = this._generateMsidAttribute(mediaType, trackId, sourceToMsidMap.get(trackId));
+                } else {
+                    logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
                 }
                 break;
             }
@@ -246,7 +261,7 @@ export default class LocalSdpMunger {
                     .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
                 if (!msidExists) {
-                    const generatedMsid = this._generateMsidAttribute(mediaSection.mLine?.type, trackId);
+                    const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
 
                     mediaSection.ssrcs.push({
                         id: source,

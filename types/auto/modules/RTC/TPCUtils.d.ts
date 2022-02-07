@@ -108,11 +108,12 @@ export class TPCUtils {
     calculateEncodingsBitrates(localVideoTrack: any): Array<number>;
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
+     *
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
      * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
-     * @returns {Promise<void>} - resolved when done.
+     * @returns {Promise<RTCRtpTransceiver>} - resolved with the associated transceiver when done, rejected otherwise.
      */
-    replaceTrack(oldTrack: any, newTrack: any): Promise<void>;
+    replaceTrack(oldTrack: any, newTrack: any): Promise<RTCRtpTransceiver>;
     /**
     * Enables/disables audio transmission on the peer connection. When
     * disabled the audio transceiver direction will be set to 'inactive'

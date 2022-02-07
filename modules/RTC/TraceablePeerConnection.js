@@ -1952,10 +1952,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
             // The track will be replaced again on the peerconnection when the user unmutes.
             ? Promise.resolve()
             : this.tpcUtils.replaceTrack(oldTrack, newTrack);
-        const transceiver = this.tpcUtils.findTransceiver(mediaType, oldTrack);
 
         return promise
-            .then(() => {
+            .then(transceiver => {
                 oldTrack && this.localTracks.delete(oldTrack.rtcId);
                 newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
                 const mediaActive = mediaType === MediaType.AUDIO
