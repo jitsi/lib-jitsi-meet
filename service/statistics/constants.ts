@@ -2,4 +2,4 @@ const Constants = {
     LOCAL_JID: 'local'
 };
 
-module.exports = Constants;
+export default Constants;
