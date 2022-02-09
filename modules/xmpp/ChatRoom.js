@@ -458,6 +458,8 @@ export default class ChatRoom extends Listenable {
         member.jid = jid;
         member.isFocus
             = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
+
+        const isHidden = pres.getElementsByTagName('is_hidden').length;
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
@@ -565,6 +567,9 @@ export default class ChatRoom extends Listenable {
             const newRole
                 = member.affiliation === 'owner' ? member.role : 'none';
 
+            if (isHidden) {
+                this.connection.isHidden = true;
+            }
             if (this.role !== newRole) {
                 this.role = newRole;
                 this.eventEmitter.emit(
@@ -615,7 +620,7 @@ export default class ChatRoom extends Listenable {
                     from,
                     member.nick,
                     member.role,
-                    member.isHiddenDomain,
+                    member.isHiddenDomain || isHidden,
                     member.statsID,
                     member.status,
                     member.identity,
