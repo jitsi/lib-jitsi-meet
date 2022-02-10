@@ -13,7 +13,7 @@ const LASTN_UNLIMITED = -1;
  * This class translates the legacy signaling format between the client and the bridge (that affects bandwidth
  * allocation) to the new format described here https://github.com/jitsi/jitsi-videobridge/blob/master/doc/allocation.md
  */
-export class ReceiverVideoConstraints {
+class ReceiverVideoConstraints {
     /**
      * Creates a new instance.
      */
@@ -159,7 +159,7 @@ export class ReceiverVideoConstraints {
  * determined by the application based on how the remote video streams need to be displayed. This class is responsible
  * for communicating these constraints to the bridge over the bridge channel.
  */
-export class ReceiveVideoController {
+export default class ReceiveVideoController {
     /**
      * Creates a new instance for a given conference.
      *

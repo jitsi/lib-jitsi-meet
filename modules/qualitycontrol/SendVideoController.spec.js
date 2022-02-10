@@ -3,7 +3,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-import { SendVideoController } from './SendVideoController';
+import SendVideoController from './SendVideoController';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
