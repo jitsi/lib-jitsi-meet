@@ -1520,8 +1520,8 @@ JitsiConference.prototype.isHidden = function() {
     }
 
     return Strophe.getDomainFromJid(this.connection.getJid())
-        === this.options.config.hiddenDomain ||
-        this.connection.xmpp.connection.isHidden;
+        === this.options.config.hiddenDomain
+        || this.connection.xmpp.connection.isHidden;
 };
 
 /**
