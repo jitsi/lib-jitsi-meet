@@ -460,6 +460,7 @@ export default class ChatRoom extends Listenable {
             = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
 
         const isHidden = pres.getElementsByTagName('is_hidden').length;
+
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
