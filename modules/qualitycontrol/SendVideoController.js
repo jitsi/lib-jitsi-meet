@@ -50,7 +50,7 @@ export class SendVideoController {
         mediaSession.addListener(
             MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
             session => {
-                if (session === this.conference._getActiveMediaSession()) {
+                if (session === this.conference.getActiveMediaSession()) {
                     this._propagateSendMaxFrameHeight();
                 }
             });
@@ -68,7 +68,7 @@ export class SendVideoController {
         const promises = [];
 
         if (sendMaxFrameHeight >= 0) {
-            for (const session of this.conference._getMediaSessions()) {
+            for (const session of this.conference.getMediaSessions()) {
                 promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight));
             }
         }
@@ -83,7 +83,7 @@ export class SendVideoController {
      * @returns {number|undefined}
      */
     selectSendMaxFrameHeight() {
-        const activeMediaSession = this.conference._getActiveMediaSession();
+        const activeMediaSession = this.conference.getActiveMediaSession();
         const remoteRecvMaxFrameHeight = activeMediaSession
             ? activeMediaSession.isP2P
                 ? activeMediaSession.getRemoteRecvMaxFrameHeight()

@@ -74,11 +74,11 @@ class MockConference extends Listenable {
         this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, this.activeMediaSession);
     }
 
-    _getActiveMediaSession() {
+    getActiveMediaSession() {
         return this.activeMediaSession;
     }
 
-    _getMediaSessions() {
+    getMediaSessions() {
         return this.mediaSessions;
     }
 }

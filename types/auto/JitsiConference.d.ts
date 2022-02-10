@@ -255,8 +255,18 @@ declare class JitsiConference {
      * @returns {Promise}
      */
     leave(): Promise<any>;
-    private _getActiveMediaSession;
-    private _getMediaSessions;
+    /**
+     * Returns the currently active media session if any.
+     *
+     * @returns {JingleSessionPC|undefined}
+     */
+    getActiveMediaSession(): any | undefined;
+    /**
+     * Returns an array containing all media sessions existing in this conference.
+     *
+     * @returns {Array<JingleSessionPC>}
+     */
+    getMediaSessions(): Array<any>;
     private _registerRtcListeners;
     private _sendBridgeVideoTypeMessage;
     /**

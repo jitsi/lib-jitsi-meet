@@ -22,7 +22,7 @@ class MockConference extends Listenable {
         this.mediaSessions = [];
     }
 
-    _getMediaSessions() {
+    getMediaSessions() {
         return this.mediaSessions;
     }
 }

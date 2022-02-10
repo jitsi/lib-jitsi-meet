@@ -285,7 +285,7 @@ export class ReceiveVideoController {
     setPreferredReceiveMaxFrameHeight(maxFrameHeight) {
         this._maxFrameHeight = maxFrameHeight;
 
-        for (const session of this._conference._getMediaSessions()) {
+        for (const session of this._conference.getMediaSessions()) {
             if (session.isP2P || !this._receiverVideoConstraints) {
                 maxFrameHeight && session.setReceiverVideoConstraint(maxFrameHeight);
             } else {
@@ -328,7 +328,7 @@ export class ReceiveVideoController {
             this._selectedEndpoints = constraints.selectedEndpoints ?? this._selectedEndpoints;
             this._rtc.setNewReceiverVideoConstraints(constraints);
 
-            const p2pSession = this._conference._getMediaSessions().find(session => session.isP2P);
+            const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
 
             if (p2pSession) {
                 let maxFrameHeight = Object.values(constraints.constraints)[0]?.maxHeight;
