@@ -1,67 +1,9 @@
 /**
- * This class translates the legacy signaling format between the client and the bridge (that affects bandwidth
- * allocation) to the new format described here https://github.com/jitsi/jitsi-videobridge/blob/master/doc/allocation.md
- */
-export class ReceiverVideoConstraints {
-    _defaultConstraints: {
-        maxHeight: number;
-    };
-    _lastN: number;
-    _maxFrameHeight: number;
-    _selectedEndpoints: any[];
-    _receiverVideoConstraints: {
-        constraints: {};
-        defaultConstraints: any;
-        lastN: number;
-        onStageEndpoints: any[];
-        selectedEndpoints: any[];
-    };
-    /**
-     * Returns the receiver video constraints that need to be sent on the bridge channel.
-     */
-    get constraints(): {
-        constraints: {};
-        defaultConstraints: any;
-        lastN: number;
-        onStageEndpoints: any[];
-        selectedEndpoints: any[];
-    };
-    /**
-     * Updates the lastN field of the ReceiverVideoConstraints sent to the bridge.
-     *
-     * @param {number} value
-     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateLastN(value: number): boolean;
-    /**
-     * Updates the resolution (height requested) in the contraints field of the ReceiverVideoConstraints
-     * sent to the bridge.
-     *
-     * @param {number} maxFrameHeight
-     * @requires {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateReceiveResolution(maxFrameHeight: number): boolean;
-    /**
-     * Updates the receiver constraints sent to the bridge.
-     *
-     * @param {Object} videoConstraints
-     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateReceiverVideoConstraints(videoConstraints: any): boolean;
-    /**
-     * Updates the list of selected endpoints.
-     *
-     * @param {Array<string>} ids
-     * @returns {void}
-     */
-    updateSelectedEndpoints(ids: Array<string>): void;
-}
-/**
  * This class manages the receive video contraints for a given {@link JitsiConference}. These constraints are
  * determined by the application based on how the remote video streams need to be displayed. This class is responsible
  * for communicating these constraints to the bridge over the bridge channel.
  */
-export class ReceiveVideoController {
+export default class ReceiveVideoController {
     /**
      * Creates a new instance for a given conference.
      *
@@ -121,3 +63,62 @@ export class ReceiveVideoController {
      */
     setReceiverConstraints(constraints: any): void;
 }
+/**
+ * This class translates the legacy signaling format between the client and the bridge (that affects bandwidth
+ * allocation) to the new format described here https://github.com/jitsi/jitsi-videobridge/blob/master/doc/allocation.md
+ */
+declare class ReceiverVideoConstraints {
+    _defaultConstraints: {
+        maxHeight: number;
+    };
+    _lastN: number;
+    _maxFrameHeight: number;
+    _selectedEndpoints: any[];
+    _receiverVideoConstraints: {
+        constraints: {};
+        defaultConstraints: any;
+        lastN: number;
+        onStageEndpoints: any[];
+        selectedEndpoints: any[];
+    };
+    /**
+     * Returns the receiver video constraints that need to be sent on the bridge channel.
+     */
+    get constraints(): {
+        constraints: {};
+        defaultConstraints: any;
+        lastN: number;
+        onStageEndpoints: any[];
+        selectedEndpoints: any[];
+    };
+    /**
+     * Updates the lastN field of the ReceiverVideoConstraints sent to the bridge.
+     *
+     * @param {number} value
+     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
+     */
+    updateLastN(value: number): boolean;
+    /**
+     * Updates the resolution (height requested) in the contraints field of the ReceiverVideoConstraints
+     * sent to the bridge.
+     *
+     * @param {number} maxFrameHeight
+     * @requires {boolean} Returns true if the the value has been updated, false otherwise.
+     */
+    updateReceiveResolution(maxFrameHeight: number): boolean;
+    /**
+     * Updates the receiver constraints sent to the bridge.
+     *
+     * @param {Object} videoConstraints
+     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
+     */
+    updateReceiverVideoConstraints(videoConstraints: any): boolean;
+    /**
+     * Updates the list of selected endpoints.
+     *
+     * @param {Array<string>} ids
+     * @returns {void}
+     */
+    updateSelectedEndpoints(ids: Array<string>): void;
+}
+export {};

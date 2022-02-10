@@ -5,7 +5,7 @@
  * because local tracks are shared and while JVB may have no preference, the remote p2p may have and they may be totally
  * different.
  */
-export class SendVideoController {
+export default class SendVideoController {
     /**
      * Creates new instance for a given conference.
      *

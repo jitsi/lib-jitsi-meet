@@ -1,7 +1,7 @@
 import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
 
-import { ReceiveVideoController } from './ReceiveVideoController';
+import ReceiveVideoController from './ReceiveVideoController';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
