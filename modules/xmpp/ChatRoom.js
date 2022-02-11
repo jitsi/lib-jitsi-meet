@@ -341,6 +341,8 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
             }
 
+            this._isHiddenAllowed = $(result).find(
+                '>query>feature[var="http://jitsi.org/protocol/user_hidden"]').length === 1;
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error('Error getting room info: ', error);
@@ -459,7 +461,7 @@ export default class ChatRoom extends Listenable {
         member.isFocus
             = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
 
-        const isHidden = Boolean(pres.getElementsByTagName('is_hidden').length);
+        const isHidden = Boolean(pres.getElementsByTagName('is_hidden').length) && this._isHiddenAllowed;
 
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0

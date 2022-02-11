@@ -84,6 +84,7 @@ export default class ChatRoom extends Listenable {
      */
     discoRoomInfo(): void;
     membersOnlyEnabled: any;
+    _isHiddenAllowed: boolean;
     /**
      * Sets the meeting unique Id (received from the backend).
      *
