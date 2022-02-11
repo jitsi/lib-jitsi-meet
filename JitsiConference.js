@@ -883,6 +883,14 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
 };
 
 /**
+ * Returns all the local video tracks.
+ * @returns {Array<JitsiLocalTrack>}
+ */
+JitsiConference.prototype.getLocalVideoTracks = function() {
+    return this.rtc ? this.rtc.getLocalVideoTracks() : null;
+};
+
+/**
  * Obtains the performance statistics.
  * @returns {Object|null}
  */

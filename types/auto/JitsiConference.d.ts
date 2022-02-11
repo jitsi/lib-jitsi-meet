@@ -317,6 +317,11 @@ declare class JitsiConference {
      */
     getLocalVideoTrack(): any | null;
     /**
+     * Returns all the local video tracks.
+     * @returns {Array<JitsiLocalTrack>}
+     */
+    getLocalVideoTracks(): Array<any>;
+    /**
      * Obtains the performance statistics.
      * @returns {Object|null}
      */

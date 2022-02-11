@@ -254,6 +254,11 @@ export default class TraceablePeerConnection {
      * explicitly disabled.
      */
     _senderVideoMaxHeight: number;
+    /**
+     * The height constraints to be applied on the sender per local video source (source name as the key).
+     * @type {Map<string, number>}
+     */
+    _senderMaxHeights: Map<string, number>;
     trace: (what: any, info: any) => void;
     onicecandidate: any;
     onTrack: (evt: any) => void;
@@ -628,9 +633,10 @@ export default class TraceablePeerConnection {
     /**
      * Configures the stream encodings depending on the video type and the bitrates configured.
      *
+     * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    configureSenderVideoEncodings(): Promise<any>;
+    configureSenderVideoEncodings(localVideoTrack?: any): Promise<any>;
     setLocalDescription(description: any): Promise<any>;
     /**
      * Enables/disables audio media transmission on this peer connection. When
@@ -653,9 +659,10 @@ export default class TraceablePeerConnection {
      * bitrates on the send stream.
      *
      * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
+     * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    setSenderVideoConstraints(frameHeight: number): Promise<any>;
+    setSenderVideoConstraints(frameHeight: number, localVideoTrack: any): Promise<any>;
     encodingsEnabledState: boolean[];
     /**
      * Enables/disables video media transmission on this peer connection. When

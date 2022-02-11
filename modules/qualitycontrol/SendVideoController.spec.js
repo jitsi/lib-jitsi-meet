@@ -1,5 +1,6 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
@@ -78,6 +79,10 @@ class MockConference extends Listenable {
         return this.activeMediaSession;
     }
 
+    getLocalVideoTracks() {
+        return [];
+    }
+
     getMediaSessions() {
         return this.mediaSessions;
     }
@@ -108,6 +113,7 @@ describe('SendVideoController', () => {
     beforeEach(() => {
         conference = new MockConference();
         rtc = new MockRTC();
+        FeatureFlags.init({ sourceNameSignaling: false });
         sendVideoController = new SendVideoController(conference, rtc);
         jvbConnection = new MockJingleSessionPC(rtc, false /* isP2P */);
         p2pConnection = new MockJingleSessionPC(rtc, true /* isP2P */);
