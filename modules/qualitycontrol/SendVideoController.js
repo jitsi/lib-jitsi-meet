@@ -1,7 +1,11 @@
+import { getLogger } from '@jitsi/logger';
+
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
+
+const logger = getLogger(__filename);
 
 /**
  * The class manages send video constraints across media sessions({@link JingleSessionPC}) which belong to
@@ -73,6 +77,7 @@ export default class SendVideoController {
                     && (!this._sourceSenderConstraints.has(sourceName)
                     || this._sourceSenderConstraints.get(sourceName) !== idealHeight)) {
                     this._sourceSenderConstraints.set(sourceName, idealHeight);
+                    logger.debug(`Sender constraints for source:${sourceName} changed to idealHeight:${idealHeight}`);
                     this._propagateSendMaxFrameHeight(sourceName);
                 }
             }
@@ -91,6 +96,9 @@ export default class SendVideoController {
      * @private
      */
     _propagateSendMaxFrameHeight(sourceName = null) {
+        if (FeatureFlags.isSourceNameSignalingEnabled() && !sourceName) {
+            throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
+        }
         const sendMaxFrameHeight = this.selectSendMaxFrameHeight(sourceName);
         const promises = [];
 
@@ -111,6 +119,9 @@ export default class SendVideoController {
      * @returns {number|undefined}
      */
     selectSendMaxFrameHeight(sourceName = null) {
+        if (FeatureFlags.isSourceNameSignalingEnabled() && !sourceName) {
+            throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
+        }
         const activeMediaSession = this._conference.getActiveMediaSession();
         const remoteRecvMaxFrameHeight = activeMediaSession
             ? activeMediaSession.isP2P
@@ -135,6 +146,16 @@ export default class SendVideoController {
      */
     setPreferredSendMaxFrameHeight(maxFrameHeight) {
         this._preferredSendMaxFrameHeight = maxFrameHeight;
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            const promises = [];
+
+            for (const sourceName of this._sourceSenderConstraints.keys()) {
+                promises.push(this._propagateSendMaxFrameHeight(sourceName));
+            }
+
+            return Promise.allSettled(promises);
+        }
 
         return this._propagateSendMaxFrameHeight();
     }
