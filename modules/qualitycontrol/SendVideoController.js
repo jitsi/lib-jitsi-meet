@@ -6,6 +6,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 const logger = getLogger(__filename);
+const MAX_LOCAL_RESOLUTION = 2160;
 
 /**
  * The class manages send video constraints across media sessions({@link JingleSessionPC}) which belong to
@@ -24,6 +25,7 @@ export default class SendVideoController {
      */
     constructor(conference, rtc) {
         this._conference = conference;
+        this._preferredSendMaxFrameHeight = MAX_LOCAL_RESOLUTION;
         this._rtc = rtc;
 
         /**
@@ -37,10 +39,28 @@ export default class SendVideoController {
             session => this._onMediaSessionStarted(session));
         this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
-            () => this._propagateSendMaxFrameHeight());
+            () => this._configureConstraintsForLocalSources());
         this._rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
             videoConstraints => this._onSenderConstraintsReceived(videoConstraints));
+    }
+
+    /**
+     * Configures the video encodings on the local sources when a media connection is established or becomes active.
+     *
+     * @returns {Promise<void[]>}
+     * @private
+     */
+    _configureConstraintsForLocalSources() {
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            for (const track of this._rtc.getLocalVideoTracks()) {
+                const sourceName = track.getSourceName();
+
+                sourceName && this._propagateSendMaxFrameHeight(sourceName);
+            }
+        } else {
+            this._propagateSendMaxFrameHeight();
+        }
     }
 
     /**
@@ -56,7 +76,7 @@ export default class SendVideoController {
             MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
             session => {
                 if (session === this._conference.getActiveMediaSession()) {
-                    this._propagateSendMaxFrameHeight();
+                    this._configureConstraintsForLocalSources();
                 }
             });
     }
@@ -65,6 +85,8 @@ export default class SendVideoController {
      * Propagates the video constraints if they have changed.
      *
      * @param {Object} videoConstraints - The sender video constraints received from the bridge.
+     * @returns {Promise<void[]>}
+     * @private
      */
     _onSenderConstraintsReceived(videoConstraints) {
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
@@ -88,7 +110,7 @@ export default class SendVideoController {
     }
 
     /**
-     * Figures out the send video constraint as specified by {@link selectSendMaxFrameHeight} and sets it on all media
+     * Figures out the send video constraint as specified by {@link _selectSendMaxFrameHeight} and sets it on all media
      * sessions for the reasons mentioned in this class description.
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
@@ -99,7 +121,7 @@ export default class SendVideoController {
         if (FeatureFlags.isSourceNameSignalingEnabled() && !sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }
-        const sendMaxFrameHeight = this.selectSendMaxFrameHeight(sourceName);
+        const sendMaxFrameHeight = this._selectSendMaxFrameHeight(sourceName);
         const promises = [];
 
         if (sendMaxFrameHeight >= 0) {
@@ -117,8 +139,9 @@ export default class SendVideoController {
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
      * @returns {number|undefined}
+     * @private
      */
-    selectSendMaxFrameHeight(sourceName = null) {
+    _selectSendMaxFrameHeight(sourceName = null) {
         if (FeatureFlags.isSourceNameSignalingEnabled() && !sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }
