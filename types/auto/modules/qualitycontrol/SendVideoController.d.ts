@@ -15,12 +15,20 @@ export default class SendVideoController {
      */
     constructor(conference: any, rtc: any);
     _conference: any;
+    _preferredSendMaxFrameHeight: number;
     _rtc: any;
     /**
      * Source name based sender constraints.
      * @type {Map<string, number>};
      */
     _sourceSenderConstraints: Map<string, number>;
+    /**
+     * Configures the video encodings on the local sources when a media connection is established or becomes active.
+     *
+     * @returns {Promise<void[]>}
+     * @private
+     */
+    private _configureConstraintsForLocalSources;
     /**
      * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
      * session. It doesn't mean it's already active though. For example the JVB connection may be created after
@@ -34,11 +42,13 @@ export default class SendVideoController {
      * Propagates the video constraints if they have changed.
      *
      * @param {Object} videoConstraints - The sender video constraints received from the bridge.
+     * @returns {Promise<void[]>}
+     * @private
      */
-    _onSenderConstraintsReceived(videoConstraints: any): void;
+    private _onSenderConstraintsReceived;
     _senderVideoConstraints: any;
     /**
-     * Figures out the send video constraint as specified by {@link selectSendMaxFrameHeight} and sets it on all media
+     * Figures out the send video constraint as specified by {@link _selectSendMaxFrameHeight} and sets it on all media
      * sessions for the reasons mentioned in this class description.
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
@@ -52,8 +62,9 @@ export default class SendVideoController {
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
      * @returns {number|undefined}
+     * @private
      */
-    selectSendMaxFrameHeight(sourceName?: string): number | undefined;
+    private _selectSendMaxFrameHeight;
     /**
      * Sets local preference for max send video frame height.
      *
@@ -61,5 +72,4 @@ export default class SendVideoController {
      * @returns {Promise<void[]>} - resolved when the operation is complete.
      */
     setPreferredSendMaxFrameHeight(maxFrameHeight: number): Promise<void[]>;
-    _preferredSendMaxFrameHeight: number;
 }
