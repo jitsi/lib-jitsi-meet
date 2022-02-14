@@ -6,6 +6,7 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -1618,7 +1619,7 @@ export default class ChatRoom extends Listenable {
         }
         const data = {
             muted: true, // muted by default
-            videoType: undefined // no video type by default
+            videoType: VideoType.CAMERA // 'camera' by default
         };
         let mutedNode = null;
 
