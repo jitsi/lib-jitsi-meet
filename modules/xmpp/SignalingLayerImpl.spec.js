@@ -191,12 +191,6 @@ describe('SignalingLayerImpl', () => {
 
                 chatRoom.mockSourceInfoPresence('endpoint1', sourceInfo);
 
-                // <audiomuted/> still included for backwards compat and ChatRoom will emit the presence event
-                chatRoom.emitPresenceListener({
-                    tagName: 'audiomuted',
-                    value: 'true'
-                }, 'endpoint1');
-
                 // Just once event though the legacy presence is there as well
                 expect(emitterSpy).toHaveBeenCalledTimes(1);
                 expect(emitterSpy).toHaveBeenCalledWith(

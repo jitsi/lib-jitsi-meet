@@ -778,12 +778,9 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
         videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
     }
 
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        this.rtc.sendSourceVideoType(
-            getSourceNameForJitsiTrack(this.myUserId(), MediaType.VIDEO, 0),
-            videoType
-        );
-    } else {
+    if (FeatureFlags.isSourceNameSignalingEnabled() && localtrack) {
+        this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
+    } else if (!FeatureFlags.isSourceNameSignalingEnabled()) {
         this.rtc.setVideoType(videoType);
     }
 };
@@ -1398,10 +1395,7 @@ JitsiConference.prototype._setNewVideoType = function(track) {
     if (FeatureFlags.isSourceNameSignalingEnabled() && track) {
         // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
         // to send the presence (not just modify it).
-        this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
-
-        // TODO: Optimize to detect whether presence was changed, for now always report changed to send presence
-        return true;
+        return this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
     }
 
     const videoTypeTagName = 'videoType';
@@ -1429,10 +1423,8 @@ JitsiConference.prototype._setNewVideoType = function(track) {
  * @private
  */
 JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        // TODO When legacy signaling part is removed, remember to adjust signalingLayer.setTrackMuteStatus, so that
-        // it triggers sending the presence (it only updates it for now, because the legacy code below sends).
-        this._signalingLayer.setTrackMuteStatus(localTrack?.getSourceName(), isMuted);
+    if (FeatureFlags.isSourceNameSignalingEnabled() && localTrack) {
+        return this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
     }
 
     if (!this.room) {
@@ -1501,7 +1493,7 @@ JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
     return Promise.allSettled(removeAsMutePromises)
         .then(() => {
             // Signal the video type to the bridge.
-            track.isVideoTrack() && this._sendBridgeVideoTypeMessage();
+            track.isVideoTrack() && this._sendBridgeVideoTypeMessage(track);
         });
 };
 
@@ -3608,27 +3600,24 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
         ctx.skip = true;
     }
 
-    const localAudioTracks = jingleSession.peerconnection.getLocalTracks(MediaType.AUDIO);
-    const localVideoTracks = jingleSession.peerconnection.getLocalTracks(MediaType.VIDEO);
     let presenceChanged = false;
+    let muteStatusChanged, videoTypeChanged;
+    const localTracks = this.getLocalTracks();
 
-    if (localAudioTracks && localAudioTracks.length) {
-        presenceChanged = this._setTrackMuteStatus(MediaType.AUDIO, localAudioTracks[0], localAudioTracks[0].isMuted());
-    } else if (this._setTrackMuteStatus(MediaType.AUDIO, undefined, true)) {
-        presenceChanged = true;
+    for (const track of localTracks) {
+        muteStatusChanged = this._setTrackMuteStatus(track.getType(), track, track.isMuted());
+        if (track.getType() === MediaType.VIDEO) {
+            videoTypeChanged = this._setNewVideoType(track);
+        }
+        presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
     }
 
-    if (localVideoTracks && localVideoTracks.length) {
-        const muteStatusChanged = this._setTrackMuteStatus(
-            MediaType.VIDEO, localVideoTracks[0], localVideoTracks[0].isMuted());
-        const videoTypeChanged = this._setNewVideoType(localVideoTracks[0]);
+    if (!localTracks.length && !FeatureFlags.isSourceNameSignalingEnabled()) {
+        const audioMuteStatusChanged = this._setTrackMuteStatus(MediaType.AUDIO, undefined, true);
+        const videoMuteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
 
-        presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
-    } else {
-        const muteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
-        const videoTypeChanged = this._setNewVideoType(); // set back to default video type
-
-        presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
+        videoTypeChanged = this._setNewVideoType();
+        presenceChanged = audioMuteStatusChanged || videoMuteStatusChanged || videoTypeChanged;
     }
 
     presenceChanged && this.room.sendPresence();

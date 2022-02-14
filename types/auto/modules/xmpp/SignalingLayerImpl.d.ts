@@ -100,11 +100,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * Sets track's video type.
      * @param {SourceName} sourceName - the track's source name.
      * @param {VideoType} videoType - the new video type.
+     * @returns {boolean}
      */
     setTrackVideoType(sourceName: any, videoType: {
         CAMERA: string;
         DESKTOP: string;
-    }): void;
+    }): boolean;
     /**
      * Saves the source name for a track identified by it's ssrc.
      * @param {number} ssrc the ssrc of the target track.
