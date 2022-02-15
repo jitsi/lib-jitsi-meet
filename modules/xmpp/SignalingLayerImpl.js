@@ -232,6 +232,9 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
+
+                    // videoType is not allowed to change on a given JitsiLocalTrack when multi stream support is
+                    // enabled.
                     emitEventsFromHere
                         && !FeatureFlags.isMultiStreamSupportEnabled()
                         && emitVideoTypeEvent(endpointId, newVideoType);

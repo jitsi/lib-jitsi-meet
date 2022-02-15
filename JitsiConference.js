@@ -1248,6 +1248,13 @@ JitsiConference.prototype.removeTrack = function(track) {
  * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
+    const oldVideoType = oldTrack?.getVideoType();
+    const newVideoType = newTrack?.getVideoType();
+
+    if (FeatureFlags.isMultiStreamSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
+        throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
+            + ' not supported in this mode.');
+    }
     const oldTrackBelongsToConference = this === oldTrack?.conference;
 
     if (oldTrackBelongsToConference && oldTrack.disposed) {
