@@ -395,6 +395,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         this._unregisterHandlers();
                         this.stopStream();
                         this._setStream(null);
+
+                        // Send the videoType message to the bridge.
+                        this.isVideoTrack() && this.conference.sendBridgeVideoTypeMessage(this);
                         resolve();
                     },
                     reject);
@@ -444,7 +447,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.containers.map(
                     cont => RTCUtils.attachMediaStream(cont, this.stream));
 
-                return this._addStreamToConferenceAsUnmute();
+                return this._addStreamToConferenceAsUnmute()
+                    .then(() => {
+                        // Send the videoType message to the bridge.
+                        this.isVideoTrack() && this.conference.sendBridgeVideoTypeMessage(this);
+                    });
             });
         }
 

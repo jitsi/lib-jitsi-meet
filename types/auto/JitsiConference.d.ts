@@ -268,7 +268,14 @@ declare class JitsiConference {
      */
     getMediaSessions(): Array<any>;
     private _registerRtcListeners;
-    private _sendBridgeVideoTypeMessage;
+    /**
+     * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
+     * decisions based on the video type of the local source.
+     *
+     * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
+     * @returns {void}
+     */
+    sendBridgeVideoTypeMessage(localtrack: any): void;
     /**
      * Returns name of this conference.
      */
