@@ -1392,26 +1392,32 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
  * @private
  */
 JitsiConference.prototype._setNewVideoType = function(track) {
+    let videoTypeChanged = false;
+
     if (FeatureFlags.isSourceNameSignalingEnabled() && track) {
-        // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be adjusted
-        // to send the presence (not just modify it).
-        return this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
+        // FIXME once legacy signaling using 'sendCommand' is removed, signalingLayer.setTrackVideoType must be
+        // adjusted to send the presence (not just modify it).
+        videoTypeChanged = this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
     }
 
-    const videoTypeTagName = 'videoType';
+    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+        const videoTypeTagName = 'videoType';
 
-    // if track is missing we revert to default type Camera, the case where we screenshare and
-    // we return to be video muted
-    const trackVideoType = track ? track.videoType : VideoType.CAMERA;
+        // If track is missing we revert to default type Camera, the case where we screenshare and
+        // we return to be video muted.
+        const trackVideoType = track ? track.videoType : VideoType.CAMERA;
 
-    // if video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
-    if (trackVideoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
-        // we will not use this.sendCommand here to avoid sending the presence immediately, as later we may also set
-        // and the mute status
-        return this.room.addOrReplaceInPresence(videoTypeTagName, { value: trackVideoType });
+        // If video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
+        if (trackVideoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
+            // We will not use this.sendCommand here to avoid sending the presence immediately, as later we may also
+            // set the mute status.
+            const legacyTypeChanged = this.room.addOrReplaceInPresence(videoTypeTagName, { value: trackVideoType });
+
+            videoTypeChanged = videoTypeChanged || legacyTypeChanged;
+        }
     }
 
-    return false;
+    return videoTypeChanged;
 };
 
 /**
@@ -1423,19 +1429,31 @@ JitsiConference.prototype._setNewVideoType = function(track) {
  * @private
  */
 JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
+    let presenceChanged = false;
+
     if (FeatureFlags.isSourceNameSignalingEnabled() && localTrack) {
-        return this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
+        presenceChanged = this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
     }
 
-    if (!this.room) {
-        return false;
+    // Add the 'audioMuted' and 'videoMuted' tags when source name signaling is enabled for backward compatibility.
+    // It won't be used anymore when multiple stream support is enabled.
+    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+        let audioMuteChanged, videoMuteChanged;
+
+        if (!this.room) {
+            return false;
+        }
+
+        if (mediaType === MediaType.AUDIO) {
+            audioMuteChanged = this.room.addAudioInfoToPresence(isMuted);
+        } else {
+            videoMuteChanged = this.room.addVideoInfoToPresence(isMuted);
+        }
+
+        presenceChanged = presenceChanged || audioMuteChanged || videoMuteChanged;
     }
 
-    if (mediaType === MediaType.AUDIO) {
-        return this.room.addAudioInfoToPresence(isMuted);
-    }
-
-    return this.room.addVideoInfoToPresence(isMuted);
+    return presenceChanged;
 };
 
 /**
