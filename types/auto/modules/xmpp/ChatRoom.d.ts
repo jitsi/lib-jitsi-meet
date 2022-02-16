@@ -27,6 +27,8 @@ export default class ChatRoom extends Listenable {
      * @param {boolean} options.disableDiscoInfo - when set to {@code false} will skip disco info.
      * This is intended to be used only for lobby rooms.
      * @param {boolean} options.enableLobby - when set to {@code false} will skip creating lobby room.
+     * @param {boolean} options.hiddenFromRecorder - when set to {@code true} we will check identity tag for node
+     * presence.
      */
     constructor(connection: XmppConnection, jid: any, password: any, XMPP: any, options: any);
     xmpp: any;
