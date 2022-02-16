@@ -72,10 +72,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     _addLocalSourceInfoToPresence() {
         if (this.chatRoom) {
-            this.chatRoom.addOrReplaceInPresence(
+            return this.chatRoom.addOrReplaceInPresence(
                 SOURCE_INFO_PRESENCE_ELEMENT,
                 { value: JSON.stringify(this._localSourceState) });
         }
+
+        return false;
     }
 
     /**
@@ -195,7 +197,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 emitVideoTypeEvent(from, node.value);
             }
         };
-        room.addPresenceListener('videoType', this._videoTypeHandler);
+
+        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+            room.addPresenceListener('videoType', this._videoTypeHandler);
+        }
 
         this._sourceInfoHandler = (node, mucNick) => {
             const endpointId = mucNick;
@@ -220,11 +225,19 @@ export default class SignalingLayerImpl extends SignalingLayer {
                     }
                 }
 
-                const newVideoType = sourceInfoJSON[sourceName].videoType;
+                // Assume a default videoType of 'camera' for video sources.
+                const newVideoType = mediaType === MediaType.VIDEO
+                    ? sourceInfoJSON[sourceName].videoType ?? VideoType.CAMERA
+                    : undefined;
 
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
-                    emitEventsFromHere && emitVideoTypeEvent(endpointId, newVideoType);
+
+                    // videoType is not allowed to change on a given JitsiLocalTrack when multi stream support is
+                    // enabled.
+                    emitEventsFromHere
+                        && !FeatureFlags.isMultiStreamSupportEnabled()
+                        && emitVideoTypeEvent(endpointId, newVideoType);
                 }
             }
 
@@ -387,14 +400,17 @@ export default class SignalingLayerImpl extends SignalingLayer {
             // FIXME This only adjusts the presence, but doesn't actually send it. Here we temporarily rely on
             // the legacy signaling part to send the presence. Remember to add "send presence" here when the legacy
             // signaling is removed.
-            this._addLocalSourceInfoToPresence();
+            return this._addLocalSourceInfoToPresence();
         }
+
+        return false;
     }
 
     /**
      * Sets track's video type.
      * @param {SourceName} sourceName - the track's source name.
      * @param {VideoType} videoType - the new video type.
+     * @returns {boolean}
      */
     setTrackVideoType(sourceName, videoType) {
         if (!this._localSourceState[sourceName]) {
@@ -408,8 +424,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
             // NOTE this doesn't send the actual presence, because is called from the same place where the legacy video
             // type is emitted which does the actual sending. A send presence statement needs to be added when
             // the legacy part is removed.
-            this._addLocalSourceInfoToPresence();
+            return this._addLocalSourceInfoToPresence();
         }
+
+        return false;
     }
 
     /**

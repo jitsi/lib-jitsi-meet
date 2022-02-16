@@ -395,6 +395,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         this._unregisterHandlers();
                         this.stopStream();
                         this._setStream(null);
+
                         resolve();
                     },
                     reject);
@@ -451,6 +452,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         return promise
             .then(() => {
                 this._sendMuteStatus(muted);
+
+                // Send the videoType message to the bridge.
+                this.isVideoTrack() && this.conference && this.conference._sendBridgeVideoTypeMessage(this);
                 this.emit(TRACK_MUTE_CHANGED, this);
             });
     }
