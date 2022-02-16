@@ -454,7 +454,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._sendMuteStatus(muted);
 
                 // Send the videoType message to the bridge.
-                this.isVideoTrack() && this.conference && this.conference.sendBridgeVideoTypeMessage(this);
+                this.isVideoTrack() && this.conference && this.conference._sendBridgeVideoTypeMessage(this);
                 this.emit(TRACK_MUTE_CHANGED, this);
             });
     }

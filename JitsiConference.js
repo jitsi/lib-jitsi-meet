@@ -758,7 +758,7 @@ JitsiConference.prototype.getMediaSessions = function() {
 JitsiConference.prototype._registerRtcListeners = function(rtc) {
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
         for (const localTrack of this.rtc.localTracks) {
-            localTrack.isVideoTrack() && this.sendBridgeVideoTypeMessage(localTrack);
+            localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
         }
     });
 };
@@ -769,8 +769,9 @@ JitsiConference.prototype._registerRtcListeners = function(rtc) {
  *
  * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
  * @returns {void}
+ * @private
  */
-JitsiConference.prototype.sendBridgeVideoTypeMessage = function(localtrack) {
+JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
     let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
 
     if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
@@ -1173,7 +1174,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     // Send the video type message to the bridge if the track is not removed/added to the pc as part of
     // the mute/unmute operation. This currently happens only on Firefox.
     if (track.isVideoTrack() && !browser.doesVideoMuteByStreamRemove()) {
-        this.sendBridgeVideoTypeMessage(track);
+        this._sendBridgeVideoTypeMessage(track);
     }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
@@ -1276,7 +1277,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
             // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
             if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
-                this.sendBridgeVideoTypeMessage(newTrack);
+                this._sendBridgeVideoTypeMessage(newTrack);
             }
 
             // updates presence when we replace the video tracks desktop with screen and screen with desktop
