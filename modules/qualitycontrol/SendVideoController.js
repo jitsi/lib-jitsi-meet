@@ -90,16 +90,16 @@ export default class SendVideoController {
      */
     _onSenderConstraintsReceived(videoConstraints) {
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            const { idealHeight, sourceName } = videoConstraints;
+            const { maxHeight, sourceName } = videoConstraints;
             const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
 
             for (const track of localVideoTracks) {
                 // Propagate the sender constraint only if it has changed.
                 if (track.getSourceName() === sourceName
                     && (!this._sourceSenderConstraints.has(sourceName)
-                    || this._sourceSenderConstraints.get(sourceName) !== idealHeight)) {
-                    this._sourceSenderConstraints.set(sourceName, idealHeight);
-                    logger.debug(`Sender constraints for source:${sourceName} changed to idealHeight:${idealHeight}`);
+                    || this._sourceSenderConstraints.get(sourceName) !== maxHeight)) {
+                    this._sourceSenderConstraints.set(sourceName, maxHeight);
+                    logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
                     this._propagateSendMaxFrameHeight(sourceName);
                 }
             }
