@@ -110,6 +110,8 @@ export default class ChatRoom extends Listenable {
      * @param {boolean} options.disableDiscoInfo - when set to {@code false} will skip disco info.
      * This is intended to be used only for lobby rooms.
      * @param {boolean} options.enableLobby - when set to {@code false} will skip creating lobby room.
+     * @param {boolean} options.hiddenFromRecorderFeatureEnabled - when set to {@code true} we will check identity tag
+     * for node presence.
      */
     constructor(connection, jid, password, XMPP, options) {
         super();
@@ -488,7 +490,13 @@ export default class ChatRoom extends Listenable {
 
             if (userInfo) {
                 identity.user = {};
-                for (const tag of [ 'id', 'name', 'avatar' ]) {
+                const tags = [ 'id', 'name', 'avatar' ];
+
+                if (this.options.hiddenFromRecorderFeatureEnabled) {
+                    tags.push('hidden-from-recorder');
+                }
+
+                for (const tag of tags) {
                     const child
                         = userInfo.children.find(c => c.tagName === tag);
 
