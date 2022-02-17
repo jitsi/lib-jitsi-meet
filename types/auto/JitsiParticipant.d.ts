@@ -116,7 +116,13 @@ export default class JitsiParticipant {
      */
     isHidden(): boolean;
     /**
-     * @returns {Boolean} Wheter this participants replaces another participant
+     * @returns {Boolean} Whether this participant is a hidden participant. Some
+     * special system participants may want to join hidden (like for example the
+     * recorder).
+     */
+    isHiddenFromRecorder(): boolean;
+    /**
+     * @returns {Boolean} Whether this participant replaces another participant
      * from the meeting.
      */
     isReplacing(): boolean;
