@@ -1,4 +1,4 @@
-export enum MediaTypes {
+export enum MediaType {
     /**
      * The audio type.
      */
