@@ -20,6 +20,7 @@
     "doc",
     "dist",
     "**/*.spec.js",
+    "**/*.spec.ts",
     "*.conf*.js",
     "webpack*.js",
     "lib-jitsi-meet.*.js",
