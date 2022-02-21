@@ -16,6 +16,6 @@ export enum MediaType {
 };
 
 // exported for backward compatibility
-export const AUDIO = MediaTypes.AUDIO;
-export const PRESENTER = MediaTypes.PRESENTER;
-export const VIDEO = MediaTypes.VIDEO;
+export const AUDIO = MediaType.AUDIO;
+export const PRESENTER = MediaType.PRESENTER;
+export const VIDEO = MediaType.VIDEO;
