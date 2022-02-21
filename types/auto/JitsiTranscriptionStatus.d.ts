@@ -1,12 +1,12 @@
-/**
- * The transciption is on.
- *
- * @type {String}
- */
-export const ON: string;
-/**
- * The transciption is off.
- *
- * @type {String}
- */
-export const OFF: string;
+export declare enum JitsiTranscriptionStatus {
+    /**
+     * The transcription is on.
+     */
+    ON = "on",
+    /**
+     * The transcription is off.
+     */
+    OFF = "off"
+}
+export declare const ON = JitsiTranscriptionStatus.ON;
+export declare const OFF = JitsiTranscriptionStatus.OFF;

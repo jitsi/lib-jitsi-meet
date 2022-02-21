@@ -57,7 +57,7 @@ export default class ChatRoom extends Listenable {
     connectionTimes: {};
     participantPropertyListener: any;
     locked: boolean;
-    transcriptionStatus: string;
+    transcriptionStatus: JitsiTranscriptionStatus.JitsiTranscriptionStatus;
     /**
      *
      */
@@ -375,4 +375,5 @@ import Moderator from "./moderator";
 import Lobby from "./Lobby";
 import AVModeration from "./AVModeration";
 import BreakoutRooms from "./BreakoutRooms";
+import * as JitsiTranscriptionStatus from "../../JitsiTranscriptionStatus";
 import * as MediaType from "../../service/RTC/MediaType";
