@@ -285,19 +285,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {CodecMimeType} preferred the preferred codec.
      * @param {CodecMimeType} disabled the codec that needs to be disabled.
      */
-    setVideoCodecs(preferred?: {
-        H264: string;
-        OPUS: string;
-        ULPFEC: string;
-        VP8: string;
-        VP9: string;
-    }, disabled?: {
-        H264: string;
-        OPUS: string;
-        ULPFEC: string;
-        VP8: string;
-        VP9: string;
-    }): void;
+    setVideoCodecs(preferred?: typeof CodecMimeType, disabled?: typeof CodecMimeType): void;
     /**
      * Although it states "replace transport" it does accept full Jingle offer
      * which should contain new ICE transport details.
@@ -665,5 +653,6 @@ export type JingleSessionPCOptions = {
 };
 import JingleSession from "./JingleSession";
 import AsyncQueue from "../util/AsyncQueue";
+import * as CodecMimeType from "../../service/RTC/CodecMimeType";
 import SDP from "../sdp/SDP";
 import XmppConnection from "./XmppConnection";

@@ -509,13 +509,7 @@ export default class TraceablePeerConnection {
      * @returns {CodecMimeType} The codec that is set as the preferred codec to receive
      * video in the local SDP.
      */
-    getConfiguredVideoCodec(): {
-        H264: string;
-        OPUS: string;
-        ULPFEC: string;
-        VP8: string;
-        VP9: string;
-    };
+    getConfiguredVideoCodec(): typeof CodecMimeType;
     /**
      * Enables or disables simulcast for screenshare based on the frame rate requested for desktop track capture.
      *
@@ -530,29 +524,11 @@ export default class TraceablePeerConnection {
      * @param {CodecMimeType} disabledCodec the codec that needs to be disabled.
      * @returns {void}
      */
-    setVideoCodecs(preferredCodec?: {
-        H264: string;
-        OPUS: string;
-        ULPFEC: string;
-        VP8: string;
-        VP9: string;
-    }, disabledCodec?: {
-        H264: string;
-        OPUS: string;
-        ULPFEC: string;
-        VP8: string;
-        VP9: string;
-    }): void;
+    setVideoCodecs(preferredCodec?: typeof CodecMimeType, disabledCodec?: typeof CodecMimeType): void;
     codecPreference: {
         enable: boolean;
         mediaType: string;
-        mimeType: {
-            H264: string;
-            OPUS: string;
-            ULPFEC: string;
-            VP8: string;
-            VP9: string;
-        };
+        mimeType: typeof CodecMimeType;
     };
     /**
      * Tells if the given WebRTC <tt>MediaStream</tt> has been added to
@@ -778,3 +754,4 @@ import { TPCUtils } from "./TPCUtils";
 import SdpConsistency from "../sdp/SdpConsistency";
 import LocalSdpMunger from "../sdp/LocalSdpMunger";
 import RtxModifier from "../sdp/RtxModifier";
+import * as CodecMimeType from "../../service/RTC/CodecMimeType";
