@@ -2,7 +2,7 @@
  * The errors for the JitsiTrack objects.
  */
 
- export enum JitsiTrackErrors {
+export enum JitsiTrackErrors {
     /**
      * An error which indicates that some of requested constraints in
      * getUserMedia call were not satisfied.
@@ -72,15 +72,15 @@
 }
 
 // exported for backward compatibility
- export const CONSTRAINT_FAILED = JitsiTrackErrors.CONSTRAINT_FAILED;
- export const ELECTRON_DESKTOP_PICKER_ERROR = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR;
- export const ELECTRON_DESKTOP_PICKER_NOT_FOUND = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND;
- export const GENERAL = JitsiTrackErrors.GENERAL;
- export const NOT_FOUND = JitsiTrackErrors.NOT_FOUND;
- export const PERMISSION_DENIED = JitsiTrackErrors.PERMISSION_DENIED;
- export const SCREENSHARING_GENERIC_ERROR = JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR;
- export const SCREENSHARING_USER_CANCELED = JitsiTrackErrors.SCREENSHARING_USER_CANCELED;
- export const TIMEOUT = JitsiTrackErrors.TIMEOUT;
- export const TRACK_IS_DISPOSED = JitsiTrackErrors.TRACK_IS_DISPOSED;
- export const TRACK_NO_STREAM_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_FOUND;
- export const UNSUPPORTED_RESOLUTION = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
+export const CONSTRAINT_FAILED = JitsiTrackErrors.CONSTRAINT_FAILED;
+export const ELECTRON_DESKTOP_PICKER_ERROR = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR;
+export const ELECTRON_DESKTOP_PICKER_NOT_FOUND = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND;
+export const GENERAL = JitsiTrackErrors.GENERAL;
+export const NOT_FOUND = JitsiTrackErrors.NOT_FOUND;
+export const PERMISSION_DENIED = JitsiTrackErrors.PERMISSION_DENIED;
+export const SCREENSHARING_GENERIC_ERROR = JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR;
+export const SCREENSHARING_USER_CANCELED = JitsiTrackErrors.SCREENSHARING_USER_CANCELED;
+export const TIMEOUT = JitsiTrackErrors.TIMEOUT;
+export const TRACK_IS_DISPOSED = JitsiTrackErrors.TRACK_IS_DISPOSED;
+export const TRACK_NO_STREAM_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_FOUND;
+export const UNSUPPORTED_RESOLUTION = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
