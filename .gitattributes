@@ -1,3 +1,4 @@
 lib-jitsi-meet.min.js -text -diff
 lib-jitsi-meet.js -text -diff
 lib-jitsi-meet.js.map -text -diff
+text eol=lf
