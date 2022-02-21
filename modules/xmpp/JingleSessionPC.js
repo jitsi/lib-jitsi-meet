@@ -1517,9 +1517,10 @@ export default class JingleSessionPC extends JingleSession {
             // RN doesn't support RTCRtpSenders yet, aggresive layer suspension on RN is implemented
             // by changing the media direction in the SDP. This is applicable to jvb sessions only.
             if (!this.isP2P && browser.isReactNative() && typeof maxFrameHeight !== 'undefined') {
-                const videoActive = maxFrameHeight > 0;
+                const audioActive = this.peerconnection.audioTransferActive;
+                const videoActive = this.peerconnection.videoTransferActive && maxFrameHeight > 0;
 
-                return this.setMediaTransferActive(true, videoActive);
+                return this.setMediaTransferActive(audioActive, videoActive);
             }
 
             const jitsiLocalTrack = sourceName
