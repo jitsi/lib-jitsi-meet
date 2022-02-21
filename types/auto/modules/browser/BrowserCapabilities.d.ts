@@ -4,6 +4,10 @@
  */
 export default class BrowserCapabilities extends BrowserDetection {
     /**
+     * Creates new BrowserCapabilities instance.
+     */
+    constructor();
+    /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
      * https://bugzilla.mozilla.org/show_bug.cgi?id=1735951

@@ -1,3 +1,4 @@
+/// <reference path="../../../../modules/js-utils.d.ts" />
 declare namespace _default {
     export { jitsiLocalStorage as _storage };
     /**
@@ -16,3 +17,4 @@ declare namespace _default {
     export function init(externalStorage: Storage): void;
 }
 export default _default;
+import { jitsiLocalStorage } from "@jitsi/js-utils";
