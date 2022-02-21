@@ -8,8 +8,9 @@ describe( "/service/RTC/MediaType members", () => {
         PRESENTER,
         VIDEO,
         MediaType,
+        default: MediaTypeDefault,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported as any; // TODO: remove the cast once MediaType can be exported correctly
 
     it( "known members", () => {
         expect( AUDIO ).toBe( 'audio' );
@@ -19,6 +20,11 @@ describe( "/service/RTC/MediaType members", () => {
             expect( MediaType.AUDIO ).toBe( 'audio' );
             expect( MediaType.PRESENTER ).toBe( 'presenter' );
             expect( MediaType.VIDEO ).toBe( 'video' );
+        }
+        if ( MediaTypeDefault ) {
+            expect( MediaTypeDefault.AUDIO ).toBe( 'audio' );
+            expect( MediaTypeDefault.PRESENTER ).toBe( 'presenter' );
+            expect( MediaTypeDefault.VIDEO ).toBe( 'video' );
         }
     } );
 

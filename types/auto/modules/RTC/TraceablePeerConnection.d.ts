@@ -545,7 +545,7 @@ export default class TraceablePeerConnection {
     }): void;
     codecPreference: {
         enable: boolean;
-        mediaType: string;
+        mediaType: MediaType.default;
         mimeType: {
             H264: string;
             OPUS: string;

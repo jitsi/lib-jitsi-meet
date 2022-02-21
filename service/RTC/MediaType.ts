@@ -1,4 +1,5 @@
-export enum MediaType {
+// TODO can't yet export this enum because of the way it is used in modules\xmpp\SignalingLayerImpl.js
+enum MediaType {
     /**
      * The audio type.
      */
@@ -19,3 +20,5 @@ export enum MediaType {
 export const AUDIO = MediaType.AUDIO;
 export const PRESENTER = MediaType.PRESENTER;
 export const VIDEO = MediaType.VIDEO;
+
+export default MediaType;
