@@ -7,8 +7,9 @@ describe( "/service/RTC/CameraFacingMode members", () => {
         ENVIRONMENT,
         USER,
         CameraFacingMode,
+        default: CameraFacingModeDefault,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( ENVIRONMENT ).toBe( 'environment' );
@@ -16,6 +17,10 @@ describe( "/service/RTC/CameraFacingMode members", () => {
         if ( CameraFacingMode ) {
             expect( CameraFacingMode.ENVIRONMENT ).toBe( 'environment' );
             expect( CameraFacingMode.USER ).toBe( 'user' );
+        }
+        if ( CameraFacingModeDefault ) {
+            expect( CameraFacingModeDefault.ENVIRONMENT ).toBe( 'environment' );
+            expect( CameraFacingModeDefault.USER ).toBe( 'user' );
         }
     } );
 
