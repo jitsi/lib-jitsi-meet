@@ -1,4 +1,7 @@
-declare namespace _default {
-    const REMOTE_VIDEO_CONSTRAINTS_CHANGED: string;
+declare enum MediaSessionEvents {
+    /**
+     * Event triggered when the remote party signals it's receive video max frame height.
+     */
+    REMOTE_VIDEO_CONSTRAINTS_CHANGED = "media_session.REMOTE_VIDEO_CONSTRAINTS_CHANGED"
 }
-export default _default;
+export default MediaSessionEvents;
