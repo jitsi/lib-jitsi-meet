@@ -1,7 +1,8 @@
 /**
  * The events for the connection.
  */
-export declare enum JitsiConnectionEvents {
+
+export enum JitsiConnectionEvents {
     /**
      * Indicates that the connection has been disconnected. The event provides
      * the following parameters to its listeners:
@@ -9,7 +10,8 @@ export declare enum JitsiConnectionEvents {
      * @param msg {string} a message associated with the disconnect such as the
      * last (known) error message
      */
-    CONNECTION_DISCONNECTED = "connection.connectionDisconnected",
+    CONNECTION_DISCONNECTED = 'connection.connectionDisconnected',
+
     /**
      * Indicates that the connection has been established. The event provides
      * the following parameters to its listeners:
@@ -17,7 +19,8 @@ export declare enum JitsiConnectionEvents {
      * @param id {string} the ID of the local endpoint/participant/peer (within
      * the context of the established connection)
      */
-    CONNECTION_ESTABLISHED = "connection.connectionEstablished",
+    CONNECTION_ESTABLISHED = 'connection.connectionEstablished',
+
     /**
      * Indicates that the connection has been failed for some reason. The event
      * provides the following parameters to its listeners:
@@ -29,21 +32,25 @@ export declare enum JitsiConnectionEvents {
      * @param errReasonDetails {object} an optional object with details about
      * the error, like shard moving, suspending. Used for analytics purposes.
      */
-    CONNECTION_FAILED = "connection.connectionFailed",
+    CONNECTION_FAILED = 'connection.connectionFailed',
+
     /**
      * Indicates that the performed action cannot be executed because the
      * connection is not in the correct state(connected, disconnected, etc.)
      */
-    WRONG_STATE = "connection.wrongState",
+    WRONG_STATE = 'connection.wrongState',
+
     /**
      * Indicates that the display name is required over this connection and need to be supplied when
      * joining the room.
      * There are cases like lobby room where display name is required.
      */
-    DISPLAY_NAME_REQUIRED = "connection.display_name_required"
-}
-export declare const CONNECTION_DISCONNECTED = JitsiConnectionEvents.CONNECTION_DISCONNECTED;
-export declare const CONNECTION_ESTABLISHED = JitsiConnectionEvents.CONNECTION_ESTABLISHED;
-export declare const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
-export declare const WRONG_STATE = JitsiConnectionEvents.WRONG_STATE;
-export declare const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
+    DISPLAY_NAME_REQUIRED = 'connection.display_name_required'
+};
+
+// exported for backward compatibility
+export const CONNECTION_DISCONNECTED = JitsiConnectionEvents.CONNECTION_DISCONNECTED;
+export const CONNECTION_ESTABLISHED = JitsiConnectionEvents.CONNECTION_ESTABLISHED;
+export const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
+export const WRONG_STATE = JitsiConnectionEvents.WRONG_STATE;
+export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
