@@ -10,8 +10,9 @@ describe( "/service/RTC/CodecMimeType members", () => {
         VP8,
         VP9,
         CodecMimeType,
+        default: CodecMimeTypeDefault,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( H264 ).toBe( 'h264' );
@@ -25,6 +26,13 @@ describe( "/service/RTC/CodecMimeType members", () => {
             expect( CodecMimeType.ULPFEC ).toBe( 'ulpfec' );
             expect( CodecMimeType.VP8 ).toBe( 'vp8' );
             expect( CodecMimeType.VP9 ).toBe( 'vp9' );
+        }
+        if ( CodecMimeTypeDefault ) {
+            expect( CodecMimeTypeDefault.H264 ).toBe( 'h264' );
+            expect( CodecMimeTypeDefault.OPUS ).toBe( 'opus' );
+            expect( CodecMimeTypeDefault.ULPFEC ).toBe( 'ulpfec' );
+            expect( CodecMimeTypeDefault.VP8 ).toBe( 'vp8' );
+            expect( CodecMimeTypeDefault.VP9 ).toBe( 'vp9' );
         }
     } );
 
