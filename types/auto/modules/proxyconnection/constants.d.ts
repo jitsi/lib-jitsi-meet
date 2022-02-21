@@ -1,8 +1,12 @@
-export namespace ACTIONS {
-    const ACCEPT: string;
-    const CONNECTION_ERROR: string;
-    const INITIATE: string;
-    const TERMINATE: string;
-    const TRANSPORT_INFO: string;
-    const UNAVAILABLE: string;
+/**
+ * The know jingle actions that can be sent and should be acted upon by
+ * {@code ProxyConnectionService} and {@code ProxyConnectionPC}.
+ */
+export declare enum ACTIONS {
+    ACCEPT = "session-accept",
+    CONNECTION_ERROR = "connection-error-encountered",
+    INITIATE = "session-initiate",
+    TERMINATE = "session-terminate",
+    TRANSPORT_INFO = "transport-info",
+    UNAVAILABLE = "unavailable"
 }
