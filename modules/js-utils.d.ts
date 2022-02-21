@@ -1,3 +1,5 @@
+// these declarations are a work in progress and will be added to as declarations are required
+
 declare module '@jitsi/js-utils' {
     class BrowserDetection {
         getName: () => string;
