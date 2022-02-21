@@ -72,7 +72,7 @@ import {
     createJingleEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
-import XMPPEvents from './service/xmpp/XMPPEvents';
+import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 

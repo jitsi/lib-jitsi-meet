@@ -100,8 +100,10 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         ICE_CONNECTION_STATE_CHANGED,
         JSON_MESSAGE_RECEIVED,
         XMPPEvents,
+        default: XMPPEventsDefault,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
+
     it( "known members", () => {
         expect( ADD_ICE_CANDIDATE_FAILED ).toBe( 'xmpp.add_ice_candidate_failed' );
         expect( AUDIO_MUTED_BY_FOCUS ).toBe( 'xmpp.audio_muted_by_focus' );
