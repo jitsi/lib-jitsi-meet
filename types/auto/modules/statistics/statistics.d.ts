@@ -275,7 +275,7 @@ declare namespace Statistics {
      * @param {String} m a log message to send or an {Error} object to be reported
      */
     export function sendLog(m: string): void;
-    export const LOCAL_JID: string;
+    export const LOCAL_JID: any;
     /**
      * Reports global error to CallStats.
      *
