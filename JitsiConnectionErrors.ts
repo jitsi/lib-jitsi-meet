@@ -1,7 +1,8 @@
 /**
  * The errors for the connection.
  */
-export declare enum JitsiConnectionErrors {
+
+export enum JitsiConnectionErrors {
     /**
      * Indicates that the connection was dropped with an error which was most likely
      * caused by some networking issues. The dropped term in this context means that
@@ -13,22 +14,27 @@ export declare enum JitsiConnectionErrors {
      * that is not know to the server. But this should not happen in lib-jitsi-meet
      * case as long as the service is configured correctly (there is no bug).
      */
-    CONNECTION_DROPPED_ERROR = "connection.droppedError",
+    CONNECTION_DROPPED_ERROR = 'connection.droppedError',
+
     /**
      * Not specified errors.
      */
-    OTHER_ERROR = "connection.otherError",
+    OTHER_ERROR = 'connection.otherError',
+
     /**
      * Indicates that a password is required in order to join the conference.
      */
-    PASSWORD_REQUIRED = "connection.passwordRequired",
+    PASSWORD_REQUIRED = 'connection.passwordRequired',
+
     /**
      * Indicates that the connection was dropped, because of too many 5xx HTTP
      * errors on BOSH requests.
      */
-    SERVER_ERROR = "connection.serverError"
-}
-export declare const CONNECTION_DROPPED_ERROR = JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
-export declare const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
-export declare const PASSWORD_REQUIRED = JitsiConnectionErrors.PASSWORD_REQUIRED;
-export declare const SERVER_ERROR = JitsiConnectionErrors.SERVER_ERROR;
+    SERVER_ERROR = 'connection.serverError'
+};
+
+// exported for backward compatibility
+export const CONNECTION_DROPPED_ERROR = JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
+export const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
+export const PASSWORD_REQUIRED = JitsiConnectionErrors.PASSWORD_REQUIRED;
+export const SERVER_ERROR = JitsiConnectionErrors.SERVER_ERROR;
