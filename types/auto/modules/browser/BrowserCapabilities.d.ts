@@ -1,7 +1,8 @@
+/// <reference path="../../../../modules/js-utils.d.ts" />
 /**
  * Implements browser capabilities for lib-jitsi-meet.
  */
-export default class BrowserCapabilities {
+export default class BrowserCapabilities extends BrowserDetection {
     /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
@@ -94,7 +95,7 @@ export default class BrowserCapabilities {
      * Checks if the current browser supports RTT statistics for srflx local
      * candidates through the legacy getStats() API.
      */
-    supportsLocalCandidateRttStatistics(): any;
+    supportsLocalCandidateRttStatistics(): boolean;
     /**
      * Checks if the current browser supports the Long Tasks API that lets us observe
      * performance measurement events and be notified of tasks that take longer than
@@ -116,7 +117,7 @@ export default class BrowserCapabilities {
      * because of issues with rendering. Please check https://bugzilla.mozilla.org/show_bug.cgi?id=1492500,
      * https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074 for details.
      */
-    supportsVP9(): any;
+    supportsVP9(): boolean;
     /**
      * Checks if the browser uses SDP munging for turning on simulcast.
      *
@@ -195,3 +196,4 @@ export default class BrowserCapabilities {
      */
     _getIOSVersion(): number;
 }
+import { BrowserDetection } from "@jitsi/js-utils";
