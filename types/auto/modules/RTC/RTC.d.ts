@@ -289,12 +289,7 @@ export default class RTC extends Listenable {
      * @param {SourceName} sourceName - the track's source name.
      * @param {BridgeVideoType} videoType - the track's video type.
      */
-    sendSourceVideoType(sourceName: any, videoType: {
-        CAMERA: string;
-        DESKTOP: string;
-        DESKTOP_HIGH_FPS: string;
-        NONE: string;
-    }): void;
+    sendSourceVideoType(sourceName: any, videoType: BridgeVideoType): void;
     /**
      * Elects the participants with the given ids to be the selected
      * participants in order to always receive video for this participant (even
@@ -436,5 +431,6 @@ export default class RTC extends Listenable {
 import Listenable from "../util/Listenable";
 import TraceablePeerConnection from "./TraceablePeerConnection";
 import BridgeChannel from "./BridgeChannel";
+import BridgeVideoType from "../../service/RTC/BridgeVideoType";
 import JitsiLocalTrack from "./JitsiLocalTrack";
 import * as MediaType from "../../service/RTC/MediaType";

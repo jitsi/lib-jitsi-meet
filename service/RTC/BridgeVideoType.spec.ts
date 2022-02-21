@@ -9,6 +9,7 @@ describe( "/service/RTC/BridgeVideoType members", () => {
         DESKTOP_HIGH_FPS,
         NONE,
         BridgeVideoType,
+        default: BridgeVideoTypeDefault,
         ...others
     } = exported as any; // TODO: remove cast after typescript conversion
 
@@ -22,6 +23,12 @@ describe( "/service/RTC/BridgeVideoType members", () => {
             expect( BridgeVideoType.DESKTOP ).toBe( 'desktop' );
             expect( BridgeVideoType.DESKTOP_HIGH_FPS ).toBe( 'desktop_high_fps' );
             expect( BridgeVideoType.NONE ).toBe( 'none' );
+        }
+        if ( BridgeVideoTypeDefault ) {
+            expect( BridgeVideoTypeDefault.CAMERA ).toBe( 'camera' );
+            expect( BridgeVideoTypeDefault.DESKTOP ).toBe( 'desktop' );
+            expect( BridgeVideoTypeDefault.DESKTOP_HIGH_FPS ).toBe( 'desktop_high_fps' );
+            expect( BridgeVideoTypeDefault.NONE ).toBe( 'none' );
         }
     } );
 
