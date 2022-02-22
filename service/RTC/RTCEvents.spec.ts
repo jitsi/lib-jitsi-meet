@@ -10,6 +10,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         ENDPOINT_CONN_STATUS_CHANGED,
         DOMINANT_SPEAKER_CHANGED,
         LASTN_ENDPOINT_CHANGED,
+        FORWARDED_SOURCES_CHANGED,
         PERMISSIONS_CHANGED,
         SENDER_VIDEO_CONSTRAINTS_CHANGED,
         LASTN_VALUE_CHANGED,
@@ -41,6 +42,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
         expect( DOMINANT_SPEAKER_CHANGED ).toBe( 'rtc.dominant_speaker_changed' );
         expect( LASTN_ENDPOINT_CHANGED ).toBe( 'rtc.lastn_endpoint_changed' );
+        expect( FORWARDED_SOURCES_CHANGED ).toBe( 'rtc.forwarded_sources_changed' );
         expect( PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
         expect( LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );

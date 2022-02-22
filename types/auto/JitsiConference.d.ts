@@ -535,6 +535,11 @@ declare class JitsiConference {
      */
     getLastN(): number;
     /**
+     * Obtains the forwarded sources list in this conference.
+     * @return {Array<string>|null}
+     */
+    getForwardedSources(): Array<string> | null;
+    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.

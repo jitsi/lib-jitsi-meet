@@ -1613,6 +1613,14 @@ JitsiConference.prototype.getLastN = function() {
 };
 
 /**
+ * Obtains the forwarded sources list in this conference.
+ * @return {Array<string>|null}
+ */
+JitsiConference.prototype.getForwardedSources = function() {
+    return this.rtc.getForwardedSources();
+};
+
+/**
  * Selects a new value for "lastN". The requested amount of videos are going
  * to be delivered after the value is in effect. Set to -1 for unlimited or
  * all available videos.

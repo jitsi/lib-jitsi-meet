@@ -491,6 +491,7 @@ export const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
 export const KICKED = JitsiConferenceEvents.KICKED;
 export const PARTICIPANT_KICKED = JitsiConferenceEvents.PARTICIPANT_KICKED;
 export const LAST_N_ENDPOINTS_CHANGED = JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED;
+export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
 export const LOCK_STATE_CHANGED = JitsiConferenceEvents.LOCK_STATE_CHANGED;
 export const SERVER_REGION_CHANGED = JitsiConferenceEvents.SERVER_REGION_CHANGED;
 export const _MEDIA_SESSION_STARTED = JitsiConferenceEvents._MEDIA_SESSION_STARTED;

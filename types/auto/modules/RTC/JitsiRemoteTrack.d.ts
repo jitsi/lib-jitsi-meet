@@ -88,10 +88,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     isMuted(): boolean | any | any;
     /**
-     * @returns {Boolean} Whether this is a muted video track.
-     */
-    isVideoMuted(): boolean;
-    /**
      * Returns the participant id which owns the track.
      *
      * @returns {string} the id of the participants. It corresponds to the
@@ -134,40 +130,44 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     _getStatus(): string;
     /**
-     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus
+     * Initializes trackStreamingStatusImpl.
      */
-    disposeTrackStreamingStatus(): void;
+    _initTrackStreamingStatus(): void;
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
+     */
+    _disposeTrackStreamingStatus(): void;
     /**
      * Updates track's streaming status.
      *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatusMap}.
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
      */
-    setTrackStreamingStatus(status: any): void;
+    _setTrackStreamingStatus(status: any): void;
     /**
      * Returns track's streaming status.
      *
      * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
      * if trackStreamingStatusImpl hasn't been initialized.
      *
-     * {@link TrackStreamingStatusMap}.
+     * {@link TrackStreamingStatus}.
      */
     getTrackStreamingStatus(): string;
     /**
      * Clears the timestamp of when the track entered forwarded sources.
      */
-    clearEnteredForwardedSourcesTimestamp(): void;
+    _clearEnteredForwardedSourcesTimestamp(): void;
     /**
      * Updates the timestamp of when the track entered forwarded sources.
      *
      * @param {number} timestamp the time in millis
      */
-    setEnteredForwardedSourcesTimestamp(timestamp: number): void;
+    _setEnteredForwardedSourcesTimestamp(timestamp: number): void;
     /**
      * Returns the timestamp of when the track entered forwarded sources.
      *
      * @returns {number} the time in millis
      */
-    getEnteredForwardedSourcesTimestamp(): number;
+    _getEnteredForwardedSourcesTimestamp(): number;
 }
 import JitsiTrack from "./JitsiTrack";
 import TrackStreamingStatusImpl from "../connectivity/TrackStreamingStatus";

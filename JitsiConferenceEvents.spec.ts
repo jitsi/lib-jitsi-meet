@@ -28,6 +28,7 @@ describe( "/JitsiConferenceEvents members", () => {
         KICKED,
         PARTICIPANT_KICKED,
         LAST_N_ENDPOINTS_CHANGED,
+        FORWARDED_SOURCES_CHANGED,
         LOCK_STATE_CHANGED,
         SERVER_REGION_CHANGED,
         _MEDIA_SESSION_STARTED,
@@ -104,6 +105,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( KICKED ).toBe( 'conference.kicked' );
         expect( PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
         expect( LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );
+        expect( FORWARDED_SOURCES_CHANGED ).toBe( 'conference.forwardedSourcesChanged' );
         expect( LOCK_STATE_CHANGED ).toBe( 'conference.lock_state_changed' );
         expect( SERVER_REGION_CHANGED ).toBe( 'conference.server_region_changed' );
         expect( _MEDIA_SESSION_STARTED ).toBe( 'conference.media_session.started' );
@@ -176,6 +178,7 @@ describe( "/JitsiConferenceEvents members", () => {
             expect( JitsiConferenceEvents.KICKED ).toBe( 'conference.kicked' );
             expect( JitsiConferenceEvents.PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
             expect( JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );
+            expect( JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED ).toBe( 'conference.forwardedSourcesChanged' );
             expect( JitsiConferenceEvents.LOCK_STATE_CHANGED ).toBe( 'conference.lock_state_changed' );
             expect( JitsiConferenceEvents.SERVER_REGION_CHANGED ).toBe( 'conference.server_region_changed' );
             expect( JitsiConferenceEvents._MEDIA_SESSION_STARTED ).toBe( 'conference.media_session.started' );

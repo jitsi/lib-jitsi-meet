@@ -1,4 +1,4 @@
-import { JitsiConferenceEvents } from './JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiConnection from './JitsiConnection';
 import JitsiTrackError from './JitsiTrackError';
 import JitsiParticipant from './JitsiParticipant';
@@ -9,8 +9,6 @@ import Transcriber from './modules/transcription/transcriber';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import { MediaType } from './service/RTC/MediaType';
-
-type JitsiConferenceEventsType = `${JitsiConferenceEvents}`
 
 export default class JitsiConference {
   constructor( options: {
@@ -44,10 +42,10 @@ export default class JitsiConference {
   getLocalAudioTrack: () => JitsiLocalTrack | null;
   getLocalVideoTrack: () => JitsiLocalTrack | null;
   getPerformanceStats: () => unknown | null; // TODO:
-  on: ( eventId: JitsiConferenceEvents | JitsiConferenceEventsType, handler: (...args: any[]) => unknown ) => void; // TODO:
-  off: ( eventId: JitsiConferenceEvents | JitsiConferenceEventsType, handler: (...args: any[]) => unknown ) => void; // TODO:
-  addEventListener: ( eventId: JitsiConferenceEvents | JitsiConferenceEventsType, handler: (...args: any[]) => unknown ) => void; // TODO:
-  removeEventListener: ( eventId: JitsiConferenceEvents | JitsiConferenceEventsType, handler: (...args: any[]) => unknown ) => void; // TODO:
+  on: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
+  off: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
+  addEventListener: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
+  removeEventListener: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
   addCommandListener: ( command: string, handler: () => unknown ) => void; // TODO:
   removeCommandListener: ( command: string, handler: () => unknown ) => void; // TODO:
   // sendTextMessage: (message: string, elementName: string) => void; // obsolete

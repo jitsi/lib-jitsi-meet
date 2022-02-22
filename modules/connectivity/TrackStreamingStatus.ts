@@ -1,24 +1,45 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
 import JitsiConference from '../../types/hand-crafted/JitsiConference';
 import JitsiRemoteTrack from '../../types/hand-crafted/modules/RTC/JitsiRemoteTrack';
 import RTC from '../../types/hand-crafted/modules/RTC/RTC';
+import { VideoType } from '../../types/hand-crafted/service/RTC/VideoType';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 
 /** Track streaming statuses. */
-type TrackStreamingStatus = 'active' | 'inactive' | 'interrupted' | 'restoring';
-interface TrackStreamingStatusMapType {
-    [key: string]: TrackStreamingStatus
-}
+export enum TrackStreamingStatus {
 
-type VideoType = 'camera' | 'desktop';
+    /**
+     * Status indicating that streaming is currently active.
+     */
+    ACTIVE = 'active',
+
+    /**
+     * Status indicating that streaming is currently inactive.
+     * Inactive means the streaming was stopped on purpose from the bridge, like exiting forwarded sources or
+     * adaptivity decided to drop video because of not enough bandwidth.
+     */
+    INACTIVE = 'inactive',
+
+    /**
+     * Status indicating that streaming is currently interrupted.
+     */
+    INTERRUPTED = 'interrupted',
+
+    /**
+     * Status indicating that streaming is currently restoring.
+     */
+    RESTORING = 'restoring',
+  }
+
 type StreamingStatusMap = {
-    videoType?: VideoType,
+    // TODO: Replace this hand crafted VideoType when we convert VideoType.js to Typescript.
+    videoType?: VideoType, 
     startedMs?: number,
     p2p?: boolean,
     streamingStatus?: string,
@@ -48,30 +69,6 @@ const DEFAULT_RTC_MUTE_TIMEOUT = 10000;
  * no data is received for some time we set status of that track streaming to interrupted.
  */
 const DEFAULT_RESTORING_TIMEOUT = 10000;
-
-export const TrackStreamingStatusMap: TrackStreamingStatusMapType = {
-    /**
-     * Status indicating that streaming is currently active.
-     */
-    ACTIVE: 'active',
-
-    /**
-     * Status indicating that streaming is currently inactive.
-     * Inactive means the streaming was stopped on purpose from the bridge, like exiting forwarded sources or
-     * adaptivity decided to drop video because of not enough bandwidth.
-     */
-    INACTIVE: 'inactive',
-
-    /**
-     * Status indicating that streaming is currently interrupted.
-     */
-    INTERRUPTED: 'interrupted',
-
-    /**
-     * Status indicating that streaming is currently restoring.
-     */
-    RESTORING: 'restoring'
-};
 
 /**
  * Class is responsible for emitting JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED events.
@@ -147,7 +144,7 @@ export class TrackStreamingStatusImpl {
      * @param isInForwardedSources - indicates whether the track is in the forwarded sources set. When set to
      * false it means that JVB is not sending any video for the track.
      * @param isRestoringTimedout - if true it means that the track has been outside of forwarded sources too
-     * long to be considered {@link TrackStreamingStatusMap.RESTORING}.
+     * long to be considered {@link TrackStreamingStatus.RESTORING}.
      * @param isVideoMuted - true if the track is video muted and we should not expect to receive any video.
      * @param isVideoTrackFrozen - if the current browser support video frozen detection then it will be set to
      * true when the video track is frozen. If the current browser does not support frozen detection the it's always
@@ -165,23 +162,23 @@ export class TrackStreamingStatusImpl {
         if (isVideoMuted) {
             // If the connection is active according to JVB and the track is video muted there is no way for the
             // connection to be inactive, because the detection logic below only makes sense for video.
-            return TrackStreamingStatusMap.ACTIVE;
+            return TrackStreamingStatus.ACTIVE;
         }
 
         // Logic when isVideoTrackFrozen is supported
         if (browser.supportsVideoMuteOnConnInterrupted()) {
             if (!isVideoTrackFrozen) {
                 // If the video is playing we're good
-                return TrackStreamingStatusMap.ACTIVE;
+                return TrackStreamingStatus.ACTIVE;
             } else if (isInForwardedSources) {
-                return isRestoringTimedout ? TrackStreamingStatusMap.INTERRUPTED : TrackStreamingStatusMap.RESTORING;
+                return isRestoringTimedout ? TrackStreamingStatus.INTERRUPTED : TrackStreamingStatus.RESTORING;
             }
 
-            return TrackStreamingStatusMap.INACTIVE;
+            return TrackStreamingStatus.INACTIVE;
         }
 
         // Because this browser is incapable of detecting frozen video we must rely on the forwarded sources value
-        return isInForwardedSources ? TrackStreamingStatusMap.ACTIVE : TrackStreamingStatusMap.INACTIVE;
+        return isInForwardedSources ? TrackStreamingStatus.ACTIVE : TrackStreamingStatus.INACTIVE;
     }
 
     /* eslint-enable max-params*/
@@ -198,11 +195,11 @@ export class TrackStreamingStatusImpl {
     static _getNewStateForP2PMode(isVideoMuted: boolean, isVideoTrackFrozen: boolean): TrackStreamingStatus {
         if (!browser.supportsVideoMuteOnConnInterrupted()) {
             // There's no way to detect problems in P2P when there's no video track frozen detection...
-            return TrackStreamingStatusMap.ACTIVE;
+            return TrackStreamingStatus.ACTIVE;
         }
 
         return isVideoMuted || !isVideoTrackFrozen
-            ? TrackStreamingStatusMap.ACTIVE : TrackStreamingStatusMap.INTERRUPTED;
+            ? TrackStreamingStatus.ACTIVE : TrackStreamingStatus.INTERRUPTED;
     }
 
     /**
@@ -327,7 +324,7 @@ export class TrackStreamingStatusImpl {
 
             const sourceName = this.track.getSourceName();
 
-            this.track.setTrackStreamingStatus(newStatus);
+            this.track._setTrackStreamingStatus(newStatus);
 
             logger.debug(`Emit track streaming status(${Date.now()}) ${sourceName}: ${newStatus}`);
 
@@ -392,7 +389,7 @@ export class TrackStreamingStatusImpl {
 
         // NOTE Overriding videoMuted to true for audioOnlyMode should disable any detection based on video playback or
         // forwarded sources.
-        const isVideoMuted = this.track.isVideoMuted() || audioOnlyMode;
+        const isVideoMuted = this.track.isMuted() || audioOnlyMode;
         const isVideoTrackFrozen = this.isVideoTrackFrozen();
         const isInForwardedSources = this.rtc.isInForwardedSources(sourceName);
 
@@ -408,7 +405,7 @@ export class TrackStreamingStatusImpl {
                     isVideoTrackFrozen);
 
         // if the new state is not restoring clear timers and timestamps that we use to track the restoring state
-        if (newState !== TrackStreamingStatusMap.RESTORING) {
+        if (newState !== TrackStreamingStatus.RESTORING) {
             this._clearRestoringTimer();
         }
 
@@ -493,14 +490,14 @@ export class TrackStreamingStatusImpl {
         }
 
         if (leavingForwardedSources.includes(sourceName)) {
-            this.track.clearEnteredForwardedSourcesTimestamp();
+            this.track._clearEnteredForwardedSourcesTimestamp();
             this._clearRestoringTimer();
             browser.supportsVideoMuteOnConnInterrupted() && this.figureOutStreamingStatus();
         }
 
         if (enteringForwardedSources.includes(sourceName)) {
             // store the timestamp this track is entering forwarded sources
-            this.track.setEnteredForwardedSourcesTimestamp(timestamp);
+            this.track._setEnteredForwardedSourcesTimestamp(timestamp);
             browser.supportsVideoMuteOnConnInterrupted() && this.figureOutStreamingStatus();
         }
     }
@@ -527,7 +524,7 @@ export class TrackStreamingStatusImpl {
      * @private
      */
     _isRestoringTimedout(): boolean {
-        const enteredForwardedSourcesTimestamp = this.track.getEnteredForwardedSourcesTimestamp();
+        const enteredForwardedSourcesTimestamp = this.track._getEnteredForwardedSourcesTimestamp();
 
         if (enteredForwardedSourcesTimestamp
             && (Date.now() - enteredForwardedSourcesTimestamp) >= DEFAULT_RESTORING_TIMEOUT) {
@@ -576,7 +573,7 @@ export class TrackStreamingStatusImpl {
         logger.debug(`Detector track RTC muted: ${sourceName}`, Date.now());
 
         this.rtcMutedTimestamp = Date.now();
-        if (!track.isVideoMuted()) {
+        if (!track.isMuted()) {
             // If the user is not muted according to the signalling we'll give it some time, before the streaming
             // interrupted event is triggered.
             this.clearTimeout();

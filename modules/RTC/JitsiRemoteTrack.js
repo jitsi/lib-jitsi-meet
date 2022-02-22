@@ -1,6 +1,6 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
-import TrackStreamingStatusImpl, { TrackStreamingStatusMap } from '../connectivity/TrackStreamingStatus';
+import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
 import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
@@ -136,23 +136,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
             && !this._trackStreamingStatusImpl
         ) {
-            const config = this.conference.options.config;
-
-            this._trackStreamingStatus = TrackStreamingStatusMap.ACTIVE;
-
-            this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
-                this.rtc,
-                this.conference,
-                this,
-                {
-                    // These options are not public API, leaving it here only as an entry point through config for
-                    // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
-                    p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
-                    rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                    outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
-                });
-
-            this._trackStreamingStatusImpl.init();
+            this._initTrackStreamingStatus();
             logger.debug(`Initializing track streaming status: ${this._sourceName}`);
         }
     }
@@ -170,7 +154,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
             && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
         ) {
-            this.disposeTrackStreamingStatus();
+            this._disposeTrackStreamingStatus();
             logger.debug(`Disposing track streaming status: ${this._sourceName}`);
         }
     }
@@ -208,7 +192,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     dispose() {
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            this.disposeTrackStreamingStatus();
+            this._disposeTrackStreamingStatus();
         }
 
         return super.dispose();
@@ -243,13 +227,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     isMuted() {
         return this.muted;
-    }
-
-    /**
-     * @returns {Boolean} Whether this is a muted video track.
-     */
-    isVideoMuted() {
-        return this.isMuted() && this.isVideoTrack();
     }
 
     /**
@@ -408,9 +385,32 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus
+     * Initializes trackStreamingStatusImpl.
      */
-    disposeTrackStreamingStatus() {
+    _initTrackStreamingStatus() {
+        const config = this.conference.options.config;
+
+        this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
+
+        this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
+            this.rtc,
+            this.conference,
+            this,
+            {
+                // These options are not public API, leaving it here only as an entry point through config for
+                // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
+                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
+                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
+            });
+
+        this._trackStreamingStatusImpl.init();
+    }
+
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
+     */
+    _disposeTrackStreamingStatus() {
         if (this._trackStreamingStatusImpl) {
             this._trackStreamingStatusImpl.dispose();
             this._trackStreamingStatusImpl = null;
@@ -421,9 +421,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Updates track's streaming status.
      *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatusMap}.
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
      */
-    setTrackStreamingStatus(status) {
+    _setTrackStreamingStatus(status) {
         this._trackStreamingStatus = status;
     }
 
@@ -433,7 +433,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
      * if trackStreamingStatusImpl hasn't been initialized.
      *
-     * {@link TrackStreamingStatusMap}.
+     * {@link TrackStreamingStatus}.
      */
     getTrackStreamingStatus() {
         return this._trackStreamingStatus;
@@ -442,7 +442,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Clears the timestamp of when the track entered forwarded sources.
      */
-    clearEnteredForwardedSourcesTimestamp() {
+    _clearEnteredForwardedSourcesTimestamp() {
         this._enteredForwardedSourcesTimestamp = null;
     }
 
@@ -451,7 +451,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {number} timestamp the time in millis
      */
-    setEnteredForwardedSourcesTimestamp(timestamp) {
+    _setEnteredForwardedSourcesTimestamp(timestamp) {
         this._enteredForwardedSourcesTimestamp = timestamp;
     }
 
@@ -460,7 +460,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @returns {number} the time in millis
      */
-    getEnteredForwardedSourcesTimestamp() {
+    _getEnteredForwardedSourcesTimestamp() {
         return this._enteredForwardedSourcesTimestamp;
     }
 

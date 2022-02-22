@@ -357,6 +357,11 @@ export default class RTC extends Listenable {
      */
     addLocalTrack(track: any): void;
     /**
+     * Get forwarded sources list.
+     * @returns {Array<string>|null}
+     */
+    getForwardedSources(): Array<string> | null;
+    /**
      * Get local video track.
      * @returns {JitsiLocalTrack|undefined}
      */

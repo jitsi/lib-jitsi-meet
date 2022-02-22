@@ -1,12 +1,28 @@
 import JitsiConference from '../../types/hand-crafted/JitsiConference';
 import JitsiRemoteTrack from '../../types/hand-crafted/modules/RTC/JitsiRemoteTrack';
 import RTC from '../../types/hand-crafted/modules/RTC/RTC';
+import { VideoType } from '../../types/hand-crafted/service/RTC/VideoType';
 /** Track streaming statuses. */
-declare type TrackStreamingStatus = 'active' | 'inactive' | 'interrupted' | 'restoring';
-interface TrackStreamingStatusMapType {
-    [key: string]: TrackStreamingStatus;
+export declare enum TrackStreamingStatus {
+    /**
+     * Status indicating that streaming is currently active.
+     */
+    ACTIVE = "active",
+    /**
+     * Status indicating that streaming is currently inactive.
+     * Inactive means the streaming was stopped on purpose from the bridge, like exiting forwarded sources or
+     * adaptivity decided to drop video because of not enough bandwidth.
+     */
+    INACTIVE = "inactive",
+    /**
+     * Status indicating that streaming is currently interrupted.
+     */
+    INTERRUPTED = "interrupted",
+    /**
+     * Status indicating that streaming is currently restoring.
+     */
+    RESTORING = "restoring"
 }
-declare type VideoType = 'camera' | 'desktop';
 declare type StreamingStatusMap = {
     videoType?: VideoType;
     startedMs?: number;
@@ -14,7 +30,6 @@ declare type StreamingStatusMap = {
     streamingStatus?: string;
     value?: number;
 };
-export declare const TrackStreamingStatusMap: TrackStreamingStatusMapType;
 /**
  * Class is responsible for emitting JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED events.
  */
@@ -79,7 +94,7 @@ export declare class TrackStreamingStatusImpl {
      * @param isInForwardedSources - indicates whether the track is in the forwarded sources set. When set to
      * false it means that JVB is not sending any video for the track.
      * @param isRestoringTimedout - if true it means that the track has been outside of forwarded sources too
-     * long to be considered {@link TrackStreamingStatusMap.RESTORING}.
+     * long to be considered {@link TrackStreamingStatus.RESTORING}.
      * @param isVideoMuted - true if the track is video muted and we should not expect to receive any video.
      * @param isVideoTrackFrozen - if the current browser support video frozen detection then it will be set to
      * true when the video track is frozen. If the current browser does not support frozen detection the it's always

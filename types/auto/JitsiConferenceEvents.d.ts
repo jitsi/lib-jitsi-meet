@@ -129,6 +129,15 @@ export declare enum JitsiConferenceEvents {
      */
     LAST_N_ENDPOINTS_CHANGED = "conference.lastNEndpointsChanged",
     /**
+     * The forwarded sources set is changed.
+     *
+     * @param {Array<string>|null} leavingForwardedSources the sourceNames of all the tracks which are leaving forwarded
+     * sources
+     * @param {Array<string>|null} enteringForwardedSources the sourceNames of all the tracks which are entering forwarded
+     * sources
+     */
+    FORWARDED_SOURCES_CHANGED = "conference.forwardedSourcesChanged",
+    /**
      * Indicates that the room has been locked or unlocked.
      */
     LOCK_STATE_CHANGED = "conference.lock_state_changed",
@@ -408,6 +417,7 @@ export declare const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
 export declare const KICKED = JitsiConferenceEvents.KICKED;
 export declare const PARTICIPANT_KICKED = JitsiConferenceEvents.PARTICIPANT_KICKED;
 export declare const LAST_N_ENDPOINTS_CHANGED = JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED;
+export declare const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
 export declare const LOCK_STATE_CHANGED = JitsiConferenceEvents.LOCK_STATE_CHANGED;
 export declare const SERVER_REGION_CHANGED = JitsiConferenceEvents.SERVER_REGION_CHANGED;
 export declare const _MEDIA_SESSION_STARTED = JitsiConferenceEvents._MEDIA_SESSION_STARTED;

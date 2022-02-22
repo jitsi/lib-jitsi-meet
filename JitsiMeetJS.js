@@ -16,7 +16,7 @@ import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
-import { TrackStreamingStatusMap } from './modules/connectivity/TrackStreamingStatus';
+import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
@@ -121,7 +121,7 @@ export default _mergeNamespaceAndModule({
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         transcriptionStatus: JitsiTranscriptionStatus,
-        trackStreamingStatus: TrackStreamingStatusMap
+        trackStreamingStatus: TrackStreamingStatus
     },
     events: {
         conference: JitsiConferenceEvents,

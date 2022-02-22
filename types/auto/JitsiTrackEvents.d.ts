@@ -38,7 +38,7 @@ export const NO_DATA_FROM_SOURCE: "track.no_data_from_source";
  */
 export const NO_AUDIO_INPUT: "track.no_audio_input";
 /**
- * Event fired when we detect local problem with the video track.
+ * Event fired whenever video track's streaming changes.
  * First argument is the sourceName of the track and the second is a string indicating if the connection is currently
  * - active - the connection is active.
  * - inactive - the connection is inactive, was intentionally interrupted by the bridge because of low BWE or because
