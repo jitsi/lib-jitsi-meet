@@ -156,9 +156,9 @@ export enum JitsiConferenceEvents {
     /**
      * The forwarded sources set is changed.
      *
-     * @param {Array<string>|null} leavingForwardedSources the sourceNames of all the tracks which are leaving forwarded
+     * @param {Array<string>} leavingForwardedSources the sourceNames of all the tracks which are leaving forwarded
      * sources
-     * @param {Array<string>|null} enteringForwardedSources the sourceNames of all the tracks which are entering forwarded
+     * @param {Array<string>} enteringForwardedSources the sourceNames of all the tracks which are entering forwarded
      * sources
      */
     FORWARDED_SOURCES_CHANGED = 'conference.forwardedSourcesChanged',
