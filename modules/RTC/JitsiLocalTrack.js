@@ -470,7 +470,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
     _setRealDeviceIdFromDeviceList(devices) {
         const track = this.getTrack();
         const kind = `${track.kind}input`;
-        let device = devices.find(d => d.kind === kind && d.label === track.label);
+
+        // We need to match by deviceId as well, in case of multiple devices with the same label.
+        let device = devices.find(d => d.kind === kind && d.label === track.label && d.deviceId === this.deviceId);
 
         if (!device && this._realDeviceId === 'default') { // the default device has been changed.
             // If the default device was 'A' and the default device is changed to 'B' the label for the track will
