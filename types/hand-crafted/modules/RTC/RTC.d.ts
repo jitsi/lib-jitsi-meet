@@ -46,6 +46,7 @@ export default class RTC extends Listenable {
   sendChannelMessage: ( to: string, payload: unknown ) => void; // TODO:
   setLastN: ( value: number ) => void;
   isInLastN: ( id: string ) => boolean;
+  isInForwardedSources: ( sourceName: string ) => boolean;
   setNewReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
   setVideoType: ( videoType: string ) => void;
   setVideoMute: ( value: unknown ) => Promise<unknown>; // TODO:

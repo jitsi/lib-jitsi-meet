@@ -37,3 +37,15 @@ export const NO_DATA_FROM_SOURCE: "track.no_data_from_source";
  * the microphone that is currently selected.
  */
 export const NO_AUDIO_INPUT: "track.no_audio_input";
+/**
+ * Event fired whenever video track's streaming changes.
+ * First argument is the sourceName of the track and the second is a string indicating if the connection is currently
+ * - active - the connection is active.
+ * - inactive - the connection is inactive, was intentionally interrupted by the bridge because of low BWE or because
+ *   of the endpoint falling out of last N.
+ * - interrupted - a network problem occurred.
+ * - restoring - the connection was inactive and is restoring now.
+ *
+ * The current status value can be obtained by calling JitsiRemoteTrack.getTrackStreamingStatus().
+ */
+export const TRACK_STREAMING_STATUS_CHANGED: "track.streaming_status_changed";

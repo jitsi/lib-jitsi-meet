@@ -28,6 +28,15 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     muted: boolean;
     isP2P: boolean;
     _sourceName: string;
+    _trackStreamingStatus: any;
+    _trackStreamingStatusImpl: TrackStreamingStatusImpl;
+    /**
+     * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
+     * forwardedSources will have streaming status restoring and when we start receiving video will become active,
+     * but if video is not received for certain time {@link DEFAULT_RESTORING_TIMEOUT} that track streaming status
+     * will become interrupted.
+     */
+    _enteredForwardedSourcesTimestamp: number;
     hasBeenMuted: boolean;
     _containerHandlers: {};
     /**
@@ -36,6 +45,21 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {void}
      */
     _bindTrackHandlers(): void;
+    /**
+     * Overrides addEventListener method to init TrackStreamingStatus instance when there are listeners for the
+     * {@link JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED} event.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _addEventListener(event: string, handler: Function): void;
+    /**
+     * Overrides removeEventListener method to dispose TrackStreamingStatus instance.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _removeEventListener(event: string, handler: Function): void;
     /**
      * Callback invoked when the track is muted. Emits an event notifying
      * listeners of the mute event.
@@ -105,5 +129,45 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {string}
      */
     _getStatus(): string;
+    /**
+     * Initializes trackStreamingStatusImpl.
+     */
+    _initTrackStreamingStatus(): void;
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
+     */
+    _disposeTrackStreamingStatus(): void;
+    /**
+     * Updates track's streaming status.
+     *
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     */
+    _setTrackStreamingStatus(status: any): void;
+    /**
+     * Returns track's streaming status.
+     *
+     * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
+     * if trackStreamingStatusImpl hasn't been initialized.
+     *
+     * {@link TrackStreamingStatus}.
+     */
+    getTrackStreamingStatus(): string;
+    /**
+     * Clears the timestamp of when the track entered forwarded sources.
+     */
+    _clearEnteredForwardedSourcesTimestamp(): void;
+    /**
+     * Updates the timestamp of when the track entered forwarded sources.
+     *
+     * @param {number} timestamp the time in millis
+     */
+    _setEnteredForwardedSourcesTimestamp(timestamp: number): void;
+    /**
+     * Returns the timestamp of when the track entered forwarded sources.
+     *
+     * @returns {number} the time in millis
+     */
+    _getEnteredForwardedSourcesTimestamp(): number;
 }
 import JitsiTrack from "./JitsiTrack";
+import TrackStreamingStatusImpl from "../connectivity/TrackStreamingStatus";

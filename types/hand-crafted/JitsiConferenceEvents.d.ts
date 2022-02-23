@@ -21,6 +21,7 @@ export enum JitsiConferenceEvents {
   KICKED = 'conference.kicked',
   PARTICIPANT_KICKED = 'conference.participant_kicked',
   LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged',
+  FORWARDED_SOURCES_CHANGED = 'conference.forwardedSourcesChanged',
   LOCK_STATE_CHANGED = 'conference.lock_state_changed',
   SERVER_REGION_CHANGED = 'conference.server_region_changed',
   _MEDIA_SESSION_STARTED = 'conference.media_session.started',

@@ -35,6 +35,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         createFocusLeftEvent,
         createGetUserMediaEvent,
         createParticipantConnectionStatusEvent,
+        createTrackStreamingStatusEvent,
         createJingleEvent,
         createNoDataFromSourceEvent,
         createP2PEvent,
@@ -81,6 +82,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( typeof ( createFocusLeftEvent ) ).toBe( 'function' );
         expect( typeof ( createGetUserMediaEvent ) ).toBe( 'function' );
         expect( typeof ( createParticipantConnectionStatusEvent ) ).toBe( 'function' );
+        expect( typeof ( createTrackStreamingStatusEvent ) ).toBe( 'function' );
         expect( typeof ( createJingleEvent ) ).toBe( 'function' );
         expect( typeof ( createNoDataFromSourceEvent ) ).toBe( 'function' );
         expect( typeof ( createP2PEvent ) ).toBe( 'function' );

@@ -359,11 +359,25 @@ export default class BridgeChannel {
                 break;
             }
             case 'LastNEndpointsChangeEvent': {
-                // The new/latest list of last-n endpoint IDs (i.e. endpoints for which the bridge is sending video).
-                const lastNEndpoints = obj.lastNEndpoints;
+                if (!FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // The new/latest list of last-n endpoint IDs (i.e. endpoints for which the bridge is sending
+                    // video).
+                    const lastNEndpoints = obj.lastNEndpoints;
 
-                logger.info(`New forwarded endpoints: ${lastNEndpoints}`);
-                emitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED, lastNEndpoints);
+                    logger.info(`New forwarded endpoints: ${lastNEndpoints}`);
+                    emitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED, lastNEndpoints);
+                }
+
+                break;
+            }
+            case 'ForwardedSources': {
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // The new/latest list of forwarded sources
+                    const forwardedSources = obj.forwardedSources;
+
+                    logger.info(`New forwarded sources: ${forwardedSources}`);
+                    emitter.emit(RTCEvents.FORWARDED_SOURCES_CHANGED, forwardedSources);
+                }
 
                 break;
             }

@@ -4,6 +4,7 @@ export const DATA_CHANNEL_OPEN: string;
 export const ENDPOINT_CONN_STATUS_CHANGED: string;
 export const DOMINANT_SPEAKER_CHANGED: string;
 export const LASTN_ENDPOINT_CHANGED: string;
+export const FORWARDED_SOURCES_CHANGED: string;
 export const PERMISSIONS_CHANGED: string;
 export const SENDER_VIDEO_CONSTRAINTS_CHANGED: string;
 export const LASTN_VALUE_CHANGED: string;

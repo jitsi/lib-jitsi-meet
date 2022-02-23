@@ -1,9 +1,10 @@
+import EventEmitter from 'events';
 import JitsiConference from '../../JitsiConference';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
-export default class JitsiTrack {
+export default class JitsiTrack extends EventEmitter {
   constructor( conference: JitsiConference, stream: unknown, track: unknown, streamInactiveHandler: unknown, trackMediaType: unknown, videoType: unknown ); // TODO:
   disposed: boolean;
   getVideoType: () => VideoType;

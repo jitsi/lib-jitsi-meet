@@ -10,6 +10,12 @@ export default class JitsiRemoteTrack extends JitsiTrack {
   isLocal: () => false;
   getSSRC: () => number;
   toString: () => string;
+  getSourceName: () => string;
+  getTrackStreamingStatus: () => string;
+  _setTrackStreamingStatus: (newStatus: string) => void;
+  _clearEnteredForwardedSourcesTimestamp: () => void;
+  _setEnteredForwardedSourcesTimestamp: (timestamp: number) => void;
+  _getEnteredForwardedSourcesTimestamp: () => number | null;
 
   containerEvents: [ 'abort', 'canplay', 'canplaythrough', 'emptied', 'ended', 'error', 'loadeddata',
     'loadedmetadata', 'loadstart', 'pause', 'play', 'playing', 'ratechange', 'stalled', 'suspend',
