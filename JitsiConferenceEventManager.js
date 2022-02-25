@@ -19,7 +19,7 @@ import {
     createJingleEvent,
     createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
-import XMPPEvents from './service/xmpp/XMPPEvents';
+import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 

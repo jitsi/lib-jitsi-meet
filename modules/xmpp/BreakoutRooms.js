@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg } from 'strophe.js';
 
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 const FEATURE_KEY = 'features/breakout-rooms';
 const BREAKOUT_ROOM_ACTIONS = {
@@ -49,7 +49,7 @@ export default class BreakoutRooms {
      */
     createBreakoutRoom(subject) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot create breakout room - supported:${this.isSupported()}, 
+            logger.error(`Cannot create breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
@@ -70,7 +70,7 @@ export default class BreakoutRooms {
      */
     removeBreakoutRoom(breakoutRoomJid) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot remove breakout room - supported:${this.isSupported()}, 
+            logger.error(`Cannot remove breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
@@ -92,7 +92,7 @@ export default class BreakoutRooms {
      */
     sendParticipantToRoom(participantJid, roomJid) {
         if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot send participant to room - supported:${this.isSupported()}, 
+            logger.error(`Cannot send participant to room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
             return;
