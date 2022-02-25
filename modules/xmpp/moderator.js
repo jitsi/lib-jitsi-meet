@@ -7,7 +7,7 @@ import Settings from '../settings/Settings';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
-const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 const logger = getLogger(__filename);

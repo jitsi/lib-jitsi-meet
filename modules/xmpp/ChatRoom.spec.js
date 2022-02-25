@@ -1,6 +1,6 @@
 import { $pres } from 'strophe.js';
 
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import ChatRoom, { parser } from './ChatRoom';
 

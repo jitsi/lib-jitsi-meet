@@ -5,7 +5,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import VideoType from '../../service/RTC/VideoType';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';

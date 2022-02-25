@@ -10,7 +10,7 @@ import {
     ICE_DURATION,
     ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
