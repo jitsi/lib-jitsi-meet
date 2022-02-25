@@ -51,7 +51,7 @@ export default class JingleSession extends Listenable {
      * Jingle session state - uninitialized until {@link initialize} is
      * called @type {JingleSessionState}
      */
-    state: string;
+    state: JingleSessionState.JingleSessionState;
     /**
      * The RTC service instance
      * @type {RTC}
