@@ -457,7 +457,7 @@ class RTCUtils extends Listenable {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
-                        reject(error);
+                        reject(jitsiError);
                     }
 
                     if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
