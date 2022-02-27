@@ -7,13 +7,14 @@ describe( "/service/e2eping/E2ePingEvents members", () => {
         E2E_RTT_CHANGED,
         E2ePingEvents,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( E2E_RTT_CHANGED ).toBe( 'e2eping.e2e_rtt_changed' );
-        if ( E2ePingEvents ) {
-            expect( E2ePingEvents.E2E_RTT_CHANGED ).toBe( 'e2eping.e2e_rtt_changed' );
-        }
+
+        expect( E2ePingEvents ).toBeDefined();
+
+        expect( E2ePingEvents.E2E_RTT_CHANGED ).toBe( 'e2eping.e2e_rtt_changed' );
     } );
 
     it( "unknown members", () => {

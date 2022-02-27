@@ -26,7 +26,7 @@ describe( "/JitsiConferenceErrors members", () => {
         VIDEOBRIDGE_NOT_AVAILABLE,
         JitsiConferenceErrors,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( AUTHENTICATION_REQUIRED ).toBe( 'conference.authenticationRequired' );
@@ -49,28 +49,29 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( PASSWORD_REQUIRED ).toBe( 'conference.passwordRequired' );
         expect( RESERVATION_ERROR ).toBe( 'conference.reservationError' );
         expect( VIDEOBRIDGE_NOT_AVAILABLE ).toBe( 'conference.videobridgeNotAvailable' );
-        if ( JitsiConferenceErrors ) {
-            expect( JitsiConferenceErrors.AUTHENTICATION_REQUIRED ).toBe( 'conference.authenticationRequired' );
-            expect( JitsiConferenceErrors.CHAT_ERROR ).toBe( 'conference.chatError' );
-            expect( JitsiConferenceErrors.SETTINGS_ERROR ).toBe( 'conference.settingsError' );
-            expect( JitsiConferenceErrors.CONFERENCE_DESTROYED ).toBe( 'conference.destroyed' );
-            expect( JitsiConferenceErrors.CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
-            expect( JitsiConferenceErrors.CONNECTION_ERROR ).toBe( 'conference.connectionError' );
-            expect( JitsiConferenceErrors.CONFERENCE_RESTARTED ).toBe( 'conference.restarted' );
-            expect( JitsiConferenceErrors.NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );
-            expect( JitsiConferenceErrors.MEMBERS_ONLY_ERROR ).toBe( 'conference.connectionError.membersOnly' );
-            expect( JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED ).toBe( 'conference.connectionError.accessDenied' );
-            expect( JitsiConferenceErrors.FOCUS_DISCONNECTED ).toBe( 'conference.focusDisconnected' );
-            expect( JitsiConferenceErrors.FOCUS_LEFT ).toBe( 'conference.focusLeft' );
-            expect( JitsiConferenceErrors.GRACEFUL_SHUTDOWN ).toBe( 'conference.gracefulShutdown' );
-            expect( JitsiConferenceErrors.ICE_FAILED ).toBe( 'conference.iceFailed' );
-            expect( JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS ).toBe( 'conference.incompatible_server_versions' );
-            expect( JitsiConferenceErrors.OFFER_ANSWER_FAILED ).toBe( 'conference.offerAnswerFailed' );
-            expect( JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED ).toBe( 'conference.passwordNotSupported' );
-            expect( JitsiConferenceErrors.PASSWORD_REQUIRED ).toBe( 'conference.passwordRequired' );
-            expect( JitsiConferenceErrors.RESERVATION_ERROR ).toBe( 'conference.reservationError' );
-            expect( JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE ).toBe( 'conference.videobridgeNotAvailable' );
-        }
+
+        expect( JitsiConferenceErrors ).toBeDefined();
+
+        expect( JitsiConferenceErrors.AUTHENTICATION_REQUIRED ).toBe( 'conference.authenticationRequired' );
+        expect( JitsiConferenceErrors.CHAT_ERROR ).toBe( 'conference.chatError' );
+        expect( JitsiConferenceErrors.SETTINGS_ERROR ).toBe( 'conference.settingsError' );
+        expect( JitsiConferenceErrors.CONFERENCE_DESTROYED ).toBe( 'conference.destroyed' );
+        expect( JitsiConferenceErrors.CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
+        expect( JitsiConferenceErrors.CONNECTION_ERROR ).toBe( 'conference.connectionError' );
+        expect( JitsiConferenceErrors.CONFERENCE_RESTARTED ).toBe( 'conference.restarted' );
+        expect( JitsiConferenceErrors.NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );
+        expect( JitsiConferenceErrors.MEMBERS_ONLY_ERROR ).toBe( 'conference.connectionError.membersOnly' );
+        expect( JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED ).toBe( 'conference.connectionError.accessDenied' );
+        expect( JitsiConferenceErrors.FOCUS_DISCONNECTED ).toBe( 'conference.focusDisconnected' );
+        expect( JitsiConferenceErrors.FOCUS_LEFT ).toBe( 'conference.focusLeft' );
+        expect( JitsiConferenceErrors.GRACEFUL_SHUTDOWN ).toBe( 'conference.gracefulShutdown' );
+        expect( JitsiConferenceErrors.ICE_FAILED ).toBe( 'conference.iceFailed' );
+        expect( JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS ).toBe( 'conference.incompatible_server_versions' );
+        expect( JitsiConferenceErrors.OFFER_ANSWER_FAILED ).toBe( 'conference.offerAnswerFailed' );
+        expect( JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED ).toBe( 'conference.passwordNotSupported' );
+        expect( JitsiConferenceErrors.PASSWORD_REQUIRED ).toBe( 'conference.passwordRequired' );
+        expect( JitsiConferenceErrors.RESERVATION_ERROR ).toBe( 'conference.reservationError' );
+        expect( JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE ).toBe( 'conference.videobridgeNotAvailable' );
     } );
 
     it( "unknown members", () => {

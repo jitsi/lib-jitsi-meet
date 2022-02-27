@@ -8,15 +8,16 @@ describe( "/service/RTC/SignalingEvents members", () => {
         PEER_VIDEO_TYPE_CHANGED,
         SignalingEvents,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( PEER_MUTED_CHANGED ).toBe( 'signaling.peerMuted' );
         expect( PEER_VIDEO_TYPE_CHANGED ).toBe( 'signaling.peerVideoType' );
-        if ( SignalingEvents ) {
-            expect( SignalingEvents.PEER_MUTED_CHANGED ).toBe( 'signaling.peerMuted' );
-            expect( SignalingEvents.PEER_VIDEO_TYPE_CHANGED ).toBe( 'signaling.peerVideoType' );
-        }
+
+        expect( SignalingEvents ).toBeDefined();
+
+        expect( SignalingEvents.PEER_MUTED_CHANGED ).toBe( 'signaling.peerMuted' );
+        expect( SignalingEvents.PEER_VIDEO_TYPE_CHANGED ).toBe( 'signaling.peerVideoType' );
     } );
 
     it( "unknown members", () => {

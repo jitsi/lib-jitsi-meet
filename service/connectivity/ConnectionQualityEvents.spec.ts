@@ -8,15 +8,16 @@ describe( "/service/connectivity/ConnectionQualityEvents members", () => {
         REMOTE_STATS_UPDATED,
         ConnectionQualityEvents,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( LOCAL_STATS_UPDATED ).toBe( 'cq.local_stats_updated' );
         expect( REMOTE_STATS_UPDATED ).toBe( 'cq.remote_stats_updated' );
-        if ( ConnectionQualityEvents ) {
-            expect( ConnectionQualityEvents.LOCAL_STATS_UPDATED ).toBe( 'cq.local_stats_updated' );
-            expect( ConnectionQualityEvents.REMOTE_STATS_UPDATED ).toBe( 'cq.remote_stats_updated' );
-        }
+
+        expect( ConnectionQualityEvents ).toBeDefined();
+
+        expect( ConnectionQualityEvents.LOCAL_STATS_UPDATED ).toBe( 'cq.local_stats_updated' );
+        expect( ConnectionQualityEvents.REMOTE_STATS_UPDATED ).toBe( 'cq.remote_stats_updated' );
     } );
 
     it( "unknown members", () => {
