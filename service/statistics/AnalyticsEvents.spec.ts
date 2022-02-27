@@ -46,9 +46,9 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         createAudioOutputProblemEvent,
         createBridgeChannelClosedEvent,
         createTtfmEvent,
-        /*AnalyticsEvents,*/
+        AnalyticsEvents,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( TYPE_OPERATIONAL ).toBe( 'operational' );
@@ -74,6 +74,33 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( ICE_STATE_CHANGED ).toBe( 'ice.state.changed' );
         expect( NO_BYTES_SENT ).toBe( 'track.no-bytes-sent' );
         expect( TRACK_UNMUTED ).toBe( 'track.unmuted' );
+
+        expect( AnalyticsEvents ).toBeDefined();
+
+        expect( AnalyticsEvents.TYPE_OPERATIONAL ).toBe( 'operational' );
+        expect( AnalyticsEvents.TYPE_PAGE ).toBe( 'page' );
+        expect( AnalyticsEvents.TYPE_TRACK ).toBe( 'track' );
+        expect( AnalyticsEvents.TYPE_UI ).toBe( 'ui' );
+        expect( AnalyticsEvents.ACTION_JINGLE_RESTART ).toBe( 'restart' );
+        expect( AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT ).toBe( 'session-accept.timeout' );
+        expect( AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED ).toBe( 'session-initiate.received' );
+        expect( AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT ).toBe( 'session-initiate.timeout' );
+        expect( AnalyticsEvents.ACTION_JINGLE_TERMINATE ).toBe( 'terminate' );
+        expect( AnalyticsEvents.ACTION_JINGLE_TR_RECEIVED ).toBe( 'transport-replace.received' );
+        expect( AnalyticsEvents.ACTION_JINGLE_TR_SUCCESS ).toBe( 'transport-replace.success' );
+        expect( AnalyticsEvents.ACTION_P2P_DECLINED ).toBe( 'decline' );
+        expect( AnalyticsEvents.ACTION_P2P_ESTABLISHED ).toBe( 'established' );
+        expect( AnalyticsEvents.ACTION_P2P_FAILED ).toBe( 'failed' );
+        expect( AnalyticsEvents.ACTION_P2P_SWITCH_TO_JVB ).toBe( 'switch.to.jvb' );
+        expect( AnalyticsEvents.AVAILABLE_DEVICE ).toBe( 'available.device' );
+        expect( AnalyticsEvents.CONNECTION_DISCONNECTED ).toBe( 'connection.disconnected' );
+        expect( AnalyticsEvents.FEEDBACK ).toBe( 'feedback' );
+        expect( AnalyticsEvents.ICE_DURATION ).toBe( 'ice.duration' );
+        expect( AnalyticsEvents.ICE_ESTABLISHMENT_DURATION_DIFF ).toBe( 'ice.establishment.duration.diff' );
+        expect( AnalyticsEvents.ICE_STATE_CHANGED ).toBe( 'ice.state.changed' );
+        expect( AnalyticsEvents.NO_BYTES_SENT ).toBe( 'track.no-bytes-sent' );
+        expect( AnalyticsEvents.TRACK_UNMUTED ).toBe( 'track.unmuted' );
+
         expect( typeof ( createBridgeDownEvent ) ).toBe( 'function' );
         expect( typeof ( createConnectionFailedEvent ) ).toBe( 'function' );
         expect( typeof ( createConferenceEvent ) ).toBe( 'function' );
