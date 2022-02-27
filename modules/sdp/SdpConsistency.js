@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 
 import {
     parsePrimarySSRC,

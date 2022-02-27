@@ -1,4 +1,4 @@
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import VideoType from '../../service/RTC/VideoType';

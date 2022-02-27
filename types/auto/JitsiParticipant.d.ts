@@ -84,7 +84,7 @@ export default class JitsiParticipant {
      * @returns {Array.<JitsiTrack>} an array of media tracks for this
      * participant, for given media type.
      */
-    getTracksByMediaType(mediaType: typeof MediaType): Array<any>;
+    getTracksByMediaType(mediaType: MediaType): Array<any>;
     /**
      * @returns {String} The ID of this participant.
      */
@@ -204,4 +204,4 @@ export default class JitsiParticipant {
     setBotType(newBotType: string): void;
     _botType: string;
 }
-import * as MediaType from "./service/RTC/MediaType";
+import { MediaType } from "./service/RTC/MediaType";

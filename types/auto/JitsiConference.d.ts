@@ -305,7 +305,7 @@ declare class JitsiConference {
      * specific type is given.
      * @param {MediaType} [mediaType] Optional media type (audio or video).
      */
-    getLocalTracks(mediaType?: typeof MediaType): any[];
+    getLocalTracks(mediaType?: MediaType): any[];
     /**
      * Obtains local audio track.
      * @return {JitsiLocalTrack|null}
@@ -1160,26 +1160,26 @@ declare class JitsiConference {
      * Enables AV Moderation.
      * @param {MediaType} mediaType "audio" or "video"
      */
-    enableAVModeration(mediaType: typeof MediaType): void;
+    enableAVModeration(mediaType: MediaType): void;
     /**
      * Disables AV Moderation.
      * @param {MediaType} mediaType "audio" or "video"
      */
-    disableAVModeration(mediaType: typeof MediaType): void;
+    disableAVModeration(mediaType: MediaType): void;
     /**
      * Approve participant access to certain media, allows unmuting audio or video.
      *
      * @param {MediaType} mediaType "audio" or "video"
      * @param id the id of the participant.
      */
-    avModerationApprove(mediaType: typeof MediaType, id: any): void;
+    avModerationApprove(mediaType: MediaType, id: any): void;
     /**
      * Reject participant access to certain media, blocks unmuting audio or video.
      *
      * @param {MediaType} mediaType "audio" or "video"
      * @param id the id of the participant.
      */
-    avModerationReject(mediaType: typeof MediaType, id: any): void;
+    avModerationReject(mediaType: MediaType, id: any): void;
     /**
      * Returns the breakout rooms manager object.
      *
@@ -1224,7 +1224,7 @@ import VADAudioAnalyser from "./modules/detection/VADAudioAnalyser";
 import NoAudioSignalDetection from "./modules/detection/NoAudioSignalDetection";
 import Jvb121EventGenerator from "./modules/event/Jvb121EventGenerator";
 import P2PDominantSpeakerDetection from "./modules/detection/P2PDominantSpeakerDetection";
-import * as MediaType from "./service/RTC/MediaType";
+import { MediaType } from "./service/RTC/MediaType";
 import Transcriber from "./modules/transcription/transcriber";
 import JitsiParticipant from "./JitsiParticipant";
 import IceFailedHandling from "./modules/connectivity/IceFailedHandling";

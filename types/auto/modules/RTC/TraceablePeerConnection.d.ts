@@ -129,7 +129,7 @@ export default class TraceablePeerConnection {
      * remote tracks.
      * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
      */
-    remoteTracks: Map<string, Map<typeof MediaType, Set<JitsiRemoteTrack>>>;
+    remoteTracks: Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>;
     /**
      * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
      * @type {Map<number, JitsiLocalTrack>}
@@ -305,7 +305,7 @@ export default class TraceablePeerConnection {
      * @param {MediaType} [mediaType]
      * @return {Array<JitsiLocalTrack>}
      */
-    getLocalTracks(mediaType?: typeof MediaType): Array<any>;
+    getLocalTracks(mediaType?: MediaType): Array<any>;
     /**
      * Retrieves the local video tracks.
      *
@@ -319,7 +319,7 @@ export default class TraceablePeerConnection {
      * @param {MediaType} mediaType - The media type.
      * @return {boolean}
      */
-    hasAnyTracksOfType(mediaType: typeof MediaType): boolean;
+    hasAnyTracksOfType(mediaType: MediaType): boolean;
     /**
      * Obtains all remote tracks currently known to this PeerConnection instance.
      *
@@ -328,7 +328,7 @@ export default class TraceablePeerConnection {
      * specified.
      * @return {Array<JitsiRemoteTrack>}
      */
-    getRemoteTracks(endpointId?: string, mediaType?: typeof MediaType): Array<JitsiRemoteTrack>;
+    getRemoteTracks(endpointId?: string, mediaType?: MediaType): Array<JitsiRemoteTrack>;
     /**
      * Parses the remote description and returns the sdp lines of the sources associated with a remote participant.
      *
@@ -386,7 +386,7 @@ export default class TraceablePeerConnection {
      * @param {boolean} muted the initial muted status
      * @param {String} sourceName the track's source name
      */
-    _createRemoteTrack(ownerEndpointId: string, stream: MediaStream, track: MediaStreamTrack, mediaType: typeof MediaType, videoType?: {
+    _createRemoteTrack(ownerEndpointId: string, stream: MediaStream, track: MediaStreamTrack, mediaType: MediaType, videoType?: {
         CAMERA: string;
         DESKTOP: string;
     }, ssrc: number, muted: boolean, sourceName: string): void;
@@ -545,7 +545,7 @@ export default class TraceablePeerConnection {
     }): void;
     codecPreference: {
         enable: boolean;
-        mediaType: string;
+        mediaType: MediaType;
         mimeType: {
             H264: string;
             OPUS: string;
@@ -772,7 +772,7 @@ export default class TraceablePeerConnection {
     toString(): string;
 }
 import RTC from "./RTC";
-import * as MediaType from "../../service/RTC/MediaType";
+import { MediaType } from "../../service/RTC/MediaType";
 import JitsiRemoteTrack from "./JitsiRemoteTrack";
 import { TPCUtils } from "./TPCUtils";
 import SdpConsistency from "../sdp/SdpConsistency";

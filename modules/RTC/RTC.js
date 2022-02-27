@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import BridgeVideoType from '../../service/RTC/BridgeVideoType';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';

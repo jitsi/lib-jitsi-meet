@@ -6,7 +6,7 @@ import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 import VideoType from './service/RTC/VideoType';
 import AuthenticationEvents

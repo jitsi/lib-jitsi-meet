@@ -387,14 +387,14 @@ export default class RTC extends Listenable {
      * @param {MediaType} [mediaType] Optional media type filter.
      * (audio or video).
      */
-    getLocalTracks(mediaType?: typeof MediaType): any[];
+    getLocalTracks(mediaType?: MediaType): any[];
     /**
      * Obtains all remote tracks currently known to this RTC module instance.
      * @param {MediaType} [mediaType] The remote tracks will be filtered
      *      by their media type if this argument is specified.
      * @return {Array<JitsiRemoteTrack>}
      */
-    getRemoteTracks(mediaType?: typeof MediaType): Array<any>;
+    getRemoteTracks(mediaType?: MediaType): Array<any>;
     /**
      * Set mute for all local audio streams attached to the conference.
      * @param value The mute value.
@@ -466,4 +466,4 @@ import Listenable from "../util/Listenable";
 import TraceablePeerConnection from "./TraceablePeerConnection";
 import BridgeChannel from "./BridgeChannel";
 import JitsiLocalTrack from "./JitsiLocalTrack";
-import * as MediaType from "../../service/RTC/MediaType";
+import { MediaType } from "../../service/RTC/MediaType";
