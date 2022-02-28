@@ -11,7 +11,7 @@ describe( "modules/proxyconnection/constants members", () => {
         TRANSPORT_INFO,
         UNAVAILABLE,
         ...others
-    } = ACTIONS as any; // TODO: remove cast after typescript conversion
+    } = ACTIONS;
 
     it( "known members", () => {
         expect( ACCEPT ).toBe( 'session-accept' );

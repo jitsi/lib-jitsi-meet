@@ -10,19 +10,20 @@ describe( "/JitsiConnectionErrors members", () => {
         SERVER_ERROR,
         JitsiConnectionErrors,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( CONNECTION_DROPPED_ERROR ).toBe( 'connection.droppedError' );
         expect( OTHER_ERROR ).toBe( 'connection.otherError' );
         expect( PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
         expect( SERVER_ERROR ).toBe( 'connection.serverError' );
-        if ( JitsiConnectionErrors ) {
-            expect( JitsiConnectionErrors.CONNECTION_DROPPED_ERROR ).toBe( 'connection.droppedError' );
-            expect( JitsiConnectionErrors.OTHER_ERROR ).toBe( 'connection.otherError' );
-            expect( JitsiConnectionErrors.PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
-            expect( JitsiConnectionErrors.SERVER_ERROR ).toBe( 'connection.serverError' );
-        }
+
+        expect( JitsiConnectionErrors ).toBeDefined();
+
+        expect( JitsiConnectionErrors.CONNECTION_DROPPED_ERROR ).toBe( 'connection.droppedError' );
+        expect( JitsiConnectionErrors.OTHER_ERROR ).toBe( 'connection.otherError' );
+        expect( JitsiConnectionErrors.PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
+        expect( JitsiConnectionErrors.SERVER_ERROR ).toBe( 'connection.serverError' );
     } );
 
     it( "unknown members", () => {

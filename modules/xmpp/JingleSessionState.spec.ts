@@ -9,17 +9,18 @@ describe( "/modules/xmpp/JingleSessionState members", () => {
         ENDED,
         JingleSessionState,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( PENDING ).toBe( 'pending' );
         expect( ACTIVE ).toBe( 'active' );
         expect( ENDED ).toBe( 'ended' );
-        if ( JingleSessionState ) {
-            expect( JingleSessionState.PENDING ).toBe( 'pending' );
-            expect( JingleSessionState.ACTIVE ).toBe( 'active' );
-            expect( JingleSessionState.ENDED ).toBe( 'ended' );
-        }
+
+        expect( JingleSessionState ).toBeDefined();
+
+        expect( JingleSessionState.PENDING ).toBe( 'pending' );
+        expect( JingleSessionState.ACTIVE ).toBe( 'active' );
+        expect( JingleSessionState.ENDED ).toBe( 'ended' );
     } );
 
     it( "unknown members", () => {

@@ -8,15 +8,16 @@ describe( "/JitsiTranscriptionStatus members", () => {
         OFF,
         JitsiTranscriptionStatus,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( ON ).toBe( 'on' );
         expect( OFF ).toBe( 'off' );
-        if ( JitsiTranscriptionStatus ) {
-            expect( JitsiTranscriptionStatus.ON ).toBe( 'on' );
-            expect( JitsiTranscriptionStatus.OFF ).toBe( 'off' );
-        }
+
+        expect( JitsiTranscriptionStatus ).toBeDefined();
+
+        expect( JitsiTranscriptionStatus.ON ).toBe( 'on' );
+        expect( JitsiTranscriptionStatus.OFF ).toBe( 'off' );
     } );
 
     it( "unknown members", () => {
