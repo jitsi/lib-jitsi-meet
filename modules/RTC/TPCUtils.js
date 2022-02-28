@@ -5,6 +5,7 @@ import MediaDirection from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 const DESKTOP_SHARE_RATE = 500000;
@@ -350,13 +351,15 @@ export class TPCUtils {
         let transceiver;
 
         // If old track exists, replace the track on the corresponding sender.
-        if (oldTrack) {
+        if (oldTrack && !oldTrack.isMuted()) {
             transceiver = this.pc.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
 
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to
         // recvonly.
-        } else if (this.pc.getLocalTracks(mediaType)?.length && !newTrack.conference) {
+        } else if (FeatureFlags.isMultiStreamSupportEnabled()
+            && this.pc.getLocalTracks(mediaType)?.length
+            && !newTrack.conference) {
             transceiver = this.pc.peerconnection.getTransceivers().find(
                 t => t.receiver.track.kind === mediaType
                 && t.direction === MediaDirection.RECVONLY
@@ -367,7 +370,7 @@ export class TPCUtils {
         } else {
             transceiver = this.pc.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
 
-            const sourceName = newTrack.getSourceName();
+            const sourceName = newTrack?.getSourceName();
 
             if (sourceName) {
                 const trackIndex = Number(sourceName.split('-')[1].substring(1));
