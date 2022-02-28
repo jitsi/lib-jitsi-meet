@@ -32,6 +32,10 @@ export default class IceFailedHandling {
      * @returns {void}
      */
     _actOnIceFailed() {
+        if (!this._conference.room) {
+            return;
+        }
+
         const { enableForcedReload, enableIceRestart } = this._conference.options.config;
         const explicitlyDisabled = typeof enableIceRestart !== 'undefined' && !enableIceRestart;
         const supportsRestartByTerminate = this._conference.room.supportsRestartByTerminate();
