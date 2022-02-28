@@ -4,22 +4,16 @@ import * as exported from "./MediaType";
 
 describe( "/service/RTC/MediaType members", () => {
     const {
-        AUDIO,
-        PRESENTER,
-        VIDEO,
         MediaType,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( AUDIO ).toBe( 'audio' );
-        expect( PRESENTER ).toBe( 'presenter' );
-        expect( VIDEO ).toBe( 'video' );
-        if ( MediaType ) {
-            expect( MediaType.AUDIO ).toBe( 'audio' );
-            expect( MediaType.PRESENTER ).toBe( 'presenter' );
-            expect( MediaType.VIDEO ).toBe( 'video' );
-        }
+        expect( MediaType ).toBeDefined();
+
+        expect( MediaType.AUDIO ).toBe( 'audio' );
+        expect( MediaType.PRESENTER ).toBe( 'presenter' );
+        expect( MediaType.VIDEO ).toBe( 'video' );
     } );
 
     it( "unknown members", () => {

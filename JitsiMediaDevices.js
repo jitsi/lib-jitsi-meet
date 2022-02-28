@@ -4,7 +4,7 @@ import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import Statistics from './modules/statistics/statistics';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone';

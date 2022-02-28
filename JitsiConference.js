@@ -54,7 +54,7 @@ import {
 } from './modules/xmpp/xmpp';
 import BridgeVideoType from './service/RTC/BridgeVideoType';
 import CodecMimeType from './service/RTC/CodecMimeType';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 import { getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import VideoType from './service/RTC/VideoType';

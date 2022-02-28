@@ -5,7 +5,7 @@ import { $iq, Strophe } from 'strophe.js';
 
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import MediaDirection from '../../service/RTC/MediaDirection';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED

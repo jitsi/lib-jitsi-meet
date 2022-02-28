@@ -1,5 +1,5 @@
 import MediaDirection from '../../service/RTC/MediaDirection';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 
 import * as transform from 'sdp-transform';
 
@@ -119,7 +119,7 @@ export default class SdpSimulcast {
 
         // Generate SIM layers.
         const simSsrcs = [];
-    
+
         for (let i = 0; i < this._options.numOfLayers - 1; ++i) {
             const simSsrc = this._generateSsrc();
 
@@ -132,7 +132,7 @@ export default class SdpSimulcast {
             semantics: 'SIM',
             ssrcs: primarySsrc + ' ' + simSsrcs.join(' ')
         });
-    
+
         return mLine;
     }
 

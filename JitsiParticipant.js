@@ -5,7 +5,7 @@ import { Strophe } from 'strophe.js';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 
 /**
  * Represents a participant in (i.e. a member of) a conference.

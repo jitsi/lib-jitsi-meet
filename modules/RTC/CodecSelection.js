@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import CodecMimeType from '../../service/RTC/CodecMimeType';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);

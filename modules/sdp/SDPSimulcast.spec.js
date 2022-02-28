@@ -1,6 +1,6 @@
 import * as transform from 'sdp-transform';
 
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 
 import { default as SampleSdpStrings } from './SampleSdpStrings.js';
 import SdpSimulcast from './SdpSimulcast.ts';

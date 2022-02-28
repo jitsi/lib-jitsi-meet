@@ -33,7 +33,7 @@ import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';

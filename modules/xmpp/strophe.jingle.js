@@ -3,7 +3,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import {
     ACTION_JINGLE_TR_RECEIVED,
     ACTION_JINGLE_TR_SUCCESS,

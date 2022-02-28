@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import VideoType from '../../service/RTC/VideoType';
 import FeatureFlags from '../flags/FeatureFlags';

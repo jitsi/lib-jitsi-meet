@@ -1,6 +1,6 @@
 
 import Listenable from '../../modules/util/Listenable';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 
 /**
  * @typedef {string} EndpointId
