@@ -11,7 +11,7 @@ describe( "/service/statistics/Events members", () => {
         LONG_TASKS_STATS,
         Events,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( AUDIO_LEVEL ).toBe( 'statistics.audioLevel' );
