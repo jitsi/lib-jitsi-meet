@@ -9,11 +9,12 @@ You can use Jitsi Meet API to create Jitsi Meet video conferences with a custom 
 
 ## Building the sources
 
-NOTE: you need Node.js >= 12 and npm >= 6
+NOTE: you need Node.js >= 12 and npm >= 7
 
 To build the library, just type:
 ```
 npm install
+npm run build
 ```
 To lint:
 ```
@@ -24,9 +25,8 @@ and to run unit tests:
 npm test
 ```
 if you need to rebuild lib-jitsi-meet.min.js
-
 ```
-npm run postinstall
+npm run build
 ```
 
 Both linting and units will also be done by a pre-commit hook.
