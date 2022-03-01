@@ -1980,8 +1980,8 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     ? Promise.resolve()
                     : this.tpcUtils.setEncodings(newTrack);
 
-                // Renegotiate only in the case of P2P. We rely on 'negotiationeeded' to be fired for JVB.
-                return configureEncodingsPromise.then(() => this.isP2P || negotiationNeeded);
+                // Force renegotiation only when the source is added for the first time.
+                return configureEncodingsPromise.then(() => negotiationNeeded);
             });
     }
 
