@@ -1868,15 +1868,8 @@ export default class JingleSessionPC extends JingleSession {
                     const mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
 
                     if (mid > -1) {
+                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
                         if (this.isP2P) {
-                            // Do not remove ssrcs from m-line in p2p mode. If the ssrc is removed and added back to
-                            // the same m-line (on source-add), Chrome/Safari do not render the media even if it is
-                            // being received and decoded from the remote peer. The webrtc spec is not clear about
-                            // m-line re-use and the browser vendors have implemented this differently. Currently work
-                            // around this by changing the media direction, that should be enough for the browser to
-                            // fire the "removetrack" event on the associated MediaStream. Also, the current direction
-                            // of the transceiver for p2p will depend on whether a local sources is added or not. It
-                            // will be 'sendrecv' if the local source is present, 'sendonly' otherwise.
                             const mediaType = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0])?.media;
                             const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, false);
 
@@ -1886,7 +1879,6 @@ export default class JingleSessionPC extends JingleSession {
                             });
                         } else {
                             // Jvb connections will have direction set to 'sendonly' for the remote sources.
-                            remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
                             remoteSdp.media[mid] = remoteSdp.media[mid]
                                 .replace(`a=${MediaDirection.SENDONLY}`, `a=${MediaDirection.INACTIVE}`);
                         }
