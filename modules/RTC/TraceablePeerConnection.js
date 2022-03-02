@@ -1651,14 +1651,12 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.addTrack using unified plan`);
-        if (webrtcStream || !this.isP2P) {
-            try {
-                this.tpcUtils.addTrack(track, isInitiator);
-            } catch (error) {
-                logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
+        try {
+            this.tpcUtils.addTrack(track, isInitiator);
+        } catch (error) {
+            logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
 
-                return Promise.reject(error);
-            }
+            return Promise.reject(error);
         }
     } else {
         // Use addStream API for the plan-b case.
@@ -1736,7 +1734,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.replaceTrack(null, track).then(() => this.isP2P);
+        return this.tpcUtils.replaceTrack(null, track).then(() => false);
     }
 
     this._addStream(webRtcStream);
@@ -2020,7 +2018,7 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.replaceTrack(localTrack, null);
+        return this.tpcUtils.replaceTrack(localTrack, null).then(() => false);
     }
 
     if (webRtcStream) {
