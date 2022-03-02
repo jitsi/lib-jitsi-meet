@@ -239,11 +239,17 @@ export class TPCUtils {
         const track = localTrack.getTrack();
 
         if (isInitiator) {
+            const streams = [];
+
+            if (localTrack.getOriginalStream()) {
+                streams.push(localTrack.getOriginalStream());
+            }
+
             // Use pc.addTransceiver() for the initiator case when local tracks are getting added
             // to the peerconnection before a session-initiate is sent over to the peer.
             const transceiverInit = {
                 direction: MediaDirection.SENDRECV,
-                streams: [ localTrack.getOriginalStream() ],
+                streams,
                 sendEncodings: []
             };
 
