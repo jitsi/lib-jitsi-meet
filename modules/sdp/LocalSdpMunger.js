@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import MediaDirection from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import { SdpTransformWrap } from './SdpTransformUtil';

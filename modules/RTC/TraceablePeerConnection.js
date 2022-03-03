@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import * as VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';

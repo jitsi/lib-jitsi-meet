@@ -3,7 +3,7 @@ import isEqual from 'lodash.isequal';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
-import * as VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import {

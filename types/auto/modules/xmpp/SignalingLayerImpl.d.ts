@@ -102,10 +102,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @param {VideoType} videoType - the new video type.
      * @returns {boolean}
      */
-    setTrackVideoType(sourceName: any, videoType: {
-        CAMERA: string;
-        DESKTOP: string;
-    }): boolean;
+    setTrackVideoType(sourceName: any, videoType: VideoType): boolean;
     /**
      * Saves the source name for a track identified by it's ssrc.
      * @param {number} ssrc the ssrc of the target track.
@@ -115,3 +112,4 @@ export default class SignalingLayerImpl extends SignalingLayer {
     setTrackSourceName(ssrc: number, sourceName: any): void;
 }
 import SignalingLayer from "../../service/RTC/SignalingLayer";
+import { VideoType } from "../../service/RTC/VideoType";
