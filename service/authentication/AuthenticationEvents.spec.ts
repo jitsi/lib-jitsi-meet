@@ -8,16 +8,16 @@ describe( "/service/authentication/AuthenticationEvents members", () => {
         AuthenticationEvents,
         default: AuthenticationEventsDefault,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
-        if ( AuthenticationEvents ) {
-            expect( AuthenticationEvents.IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
-        }
-        if ( AuthenticationEventsDefault ) {
-            expect( AuthenticationEventsDefault.IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
-        }
+
+        expect( AuthenticationEvents ).toBeDefined();
+        expect( AuthenticationEvents.IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
+
+        expect( AuthenticationEventsDefault ).toBeDefined();
+        expect( AuthenticationEventsDefault.IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
     } );
 
     it( "unknown members", () => {
