@@ -57,7 +57,7 @@ import CodecMimeType from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 import { getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
-import VideoType from './service/RTC/VideoType';
+import { VideoType } from './service/RTC/VideoType';
 import {
     ACTION_JINGLE_RESTART,
     ACTION_JINGLE_SI_RECEIVED,

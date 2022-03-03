@@ -13,7 +13,7 @@ import {
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import {
     NO_BYTES_SENT,
     TRACK_UNMUTED,

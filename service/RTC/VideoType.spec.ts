@@ -4,19 +4,15 @@ import * as exported from "./VideoType";
 
 describe( "/service/RTC/VideoType members", () => {
     const {
-        CAMERA,
-        DESKTOP,
         VideoType,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( CAMERA ).toBe( 'camera' );
-        expect( DESKTOP ).toBe( 'desktop' );
-        if ( VideoType ) {
-            expect( VideoType.CAMERA ).toBe( 'camera' );
-            expect( VideoType.DESKTOP ).toBe( 'desktop' );
-        }
+        expect( VideoType ).toBeDefined();
+
+        expect( VideoType.CAMERA ).toBe( 'camera' );
+        expect( VideoType.DESKTOP ).toBe( 'desktop' );
     } );
 
     it( "unknown members", () => {

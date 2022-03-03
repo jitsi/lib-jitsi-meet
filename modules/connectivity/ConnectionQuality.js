@@ -7,7 +7,7 @@ import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQ
 import browser from '../browser';
 
 const Resolutions = require('../../service/RTC/Resolutions');
-const VideoType = require('../../service/RTC/VideoType');
+const { VideoType } = require('../../service/RTC/VideoType');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
 const logger = getLogger(__filename);

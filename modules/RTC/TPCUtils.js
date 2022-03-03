@@ -3,7 +3,7 @@ import transform from 'sdp-transform';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
