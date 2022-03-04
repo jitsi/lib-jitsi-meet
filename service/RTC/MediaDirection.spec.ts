@@ -4,25 +4,17 @@ import * as exported from "./MediaDirection";
 
 describe( "/service/RTC/MediaDirection members", () => {
     const {
-        INACTIVE,
-        RECVONLY,
-        SENDONLY,
-        SENDRECV,
         MediaDirection,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( INACTIVE ).toBe( 'inactive' );
-        expect( RECVONLY ).toBe( 'recvonly' );
-        expect( SENDONLY ).toBe( 'sendonly' );
-        expect( SENDRECV ).toBe( 'sendrecv' );
-        if ( MediaDirection ) {
-            expect( MediaDirection.INACTIVE ).toBe( 'inactive' );
-            expect( MediaDirection.RECVONLY ).toBe( 'recvonly' );
-            expect( MediaDirection.SENDONLY ).toBe( 'sendonly' );
-            expect( MediaDirection.SENDRECV ).toBe( 'sendrecv' );
-        }
+        expect( MediaDirection ).toBeDefined();
+
+        expect( MediaDirection.INACTIVE ).toBe( 'inactive' );
+        expect( MediaDirection.RECVONLY ).toBe( 'recvonly' );
+        expect( MediaDirection.SENDONLY ).toBe( 'sendonly' );
+        expect( MediaDirection.SENDRECV ).toBe( 'sendrecv' );
     } );
 
     it( "unknown members", () => {
