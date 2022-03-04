@@ -1,5 +1,6 @@
 /* global __dirname */
 
+const path = require('path');
 const process = require('process');
 const { ProvidePlugin } = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
@@ -24,7 +25,7 @@ module.exports = (minimize, analyzeBundle) => {
                         process.env.LIB_JITSI_MEET_COMMIT_HASH || 'development',
                     search: '{#COMMIT_HASH#}'
                 },
-                test: `${__dirname}/JitsiMeetJS.js`
+                test: path.join(__dirname, 'JitsiMeetJS.js')
             }, {
                 // Transpile ES2015 (aka ES6) to ES5.
 
