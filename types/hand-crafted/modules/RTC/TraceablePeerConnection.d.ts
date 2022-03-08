@@ -88,7 +88,6 @@ export default class TraceablePeerConnection {
   iceConnectionState: unknown; // TODO:
   localDescription: unknown; // TODO:
   remoteDescription: unknown; // TODO:
-  containsTrack: ( track: JitsiLocalTrack | JitsiRemoteTrack ) => boolean;
   addTrack: ( track: JitsiLocalTrack, isInitiator?: boolean ) => Promise<void>;
   addTrackUnmute: ( track: JitsiLocalTrack ) => Promise<boolean>;
   getConfiguredVideoCodec: () => CodecMimeType;
