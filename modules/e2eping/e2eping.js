@@ -61,8 +61,6 @@ class ParticipantWrapper {
 
         this.pingInterval = window.setInterval(
             this.sendRequest, e2eping.pingIntervalMs);
-        this.analyticsInterval = window.setTimeout(
-            this.maybeSendAnalytics, this.e2eping.analyticsIntervalMs);
     }
 
     /**
@@ -72,9 +70,6 @@ class ParticipantWrapper {
     clearIntervals() {
         if (this.pingInterval) {
             window.clearInterval(this.pingInterval);
-        }
-        if (this.analyticsInterval) {
-            window.clearInterval(this.analyticsInterval);
         }
     }
 
@@ -105,13 +100,7 @@ class ParticipantWrapper {
 
         if (request) {
             request.rtt = window.performance.now() - request.timeSent;
-            this.e2eping.eventEmitter.emit(
-                E2ePingEvents.E2E_RTT_CHANGED,
-                this.participant,
-                request.rtt);
         }
-
-        this.maybeSendAnalytics();
     }
 
     /**
@@ -133,10 +122,7 @@ class ParticipantWrapper {
             if (this.requests.hasOwnProperty(requestId)) {
                 request = this.requests[requestId];
 
-                if (request.timeSent < now - this.e2eping.analyticsIntervalMs) {
-                    // An old request. We don't care about it anymore.
-                    delete this.requests[requestId];
-                } else if (request.rtt) {
+                if (request.rtt) {
                     rtt = Math.min(rtt, request.rtt);
                 }
             }
@@ -188,9 +174,6 @@ export default class E2ePing {
         // The interval at which pings will be sent (<= 0 disables sending).
         this.pingIntervalMs = 10000;
 
-        // The interval at which analytics events will be sent.
-        this.analyticsIntervalMs = 60000;
-
         // Maps a participant ID to its ParticipantWrapper
         this.participants = {};
 
@@ -201,20 +184,9 @@ export default class E2ePing {
             if (typeof options.e2eping.pingInterval === 'number') {
                 this.pingIntervalMs = options.e2eping.pingInterval;
             }
-            if (typeof options.e2eping.analyticsInterval === 'number') {
-                this.analyticsIntervalMs = options.e2eping.analyticsInterval;
-            }
-
-            // We want to report at most once a ping interval.
-            if (this.analyticsIntervalMs > 0 && this.analyticsIntervalMs
-                < this.pingIntervalMs) {
-                this.analyticsIntervalMs = this.pingIntervalMs;
-            }
         }
         logger.info(
-            `Initializing e2e ping; pingInterval=${
-                this.pingIntervalMs}, analyticsInterval=${
-                this.analyticsIntervalMs}.`);
+            `Initializing e2e ping; pingInterval=${this.pingIntervalMs}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
         conference.on(
