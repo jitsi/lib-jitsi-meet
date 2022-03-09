@@ -22,13 +22,3 @@ export enum MediaDirection {
      */
     SENDRECV = 'sendrecv'
 };
-
-//export const INACTIVE = MediaDirection.INACTIVE;
-//export const RECVONLY = MediaDirection.RECVONLY;
-//export const SENDONLY = MediaDirection.SENDONLY;
-//export const SENDRECV = MediaDirection.SENDRECV;
-
-// TODO: this was a pre-ES6 module using module.exports = MediaDirection which doesn't translate well
-// it is used in a number of places and should be updated to use the named export
-
-//export default MediaDirection;
