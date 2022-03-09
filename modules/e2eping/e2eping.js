@@ -3,7 +3,6 @@ import { getLogger } from '@jitsi/logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as E2ePingEvents
     from '../../service/e2eping/E2ePingEvents';
-import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
@@ -19,6 +18,11 @@ const E2E_PING_REQUEST = 'e2e-ping-request';
  * @type {string}
  */
 const E2E_PING_RESPONSE = 'e2e-ping-response';
+
+/**
+ * The number of requests to wait for before emitting an RTT value.
+ */
+const DEFAULT_NUM_REQUESTS = 5;
 
 /**
  * Saves e2e ping related state for a single JitsiParticipant.
@@ -50,8 +54,7 @@ class ParticipantWrapper {
         this.clearIntervals = this.clearIntervals.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
-        this.maybeSendAnalytics = this.maybeSendAnalytics.bind(this);
-        this.sendAnalytics = this.sendAnalytics.bind(this);
+        this.maybeLogRttAndStop = this.maybeLogRttAndStop.bind(this);
 
         // If the data channel was already open (this is likely a participant
         // joining an existing conference) send a request immediately.
@@ -104,44 +107,34 @@ class ParticipantWrapper {
     }
 
     /**
-     * Goes over the requests, clearing ones which we don't need anymore, and
-     * if it finds at least one request with a valid RTT in the last
-     * 'analyticsIntervalMs' then sends an analytics event.
+     * Check if we've received the pre-configured number of responses, and if
+     * so log the measured RTT and stop sending requests.
      * @type {*}
      */
-    maybeSendAnalytics() {
+    maybeLogRttAndStop() {
         const now = window.performance.now();
 
-        // The RTT we'll report is the minimum RTT measured in the last
-        // analyticsInterval
+        // The RTT we'll report is the minimum RTT measured
         let rtt = Infinity;
         let request, requestId;
+        let numRequestsWithResponses = 0
 
-        // It's time to send analytics. Clean up all requests and find the
         for (requestId in this.requests) {
             if (this.requests.hasOwnProperty(requestId)) {
                 request = this.requests[requestId];
 
                 if (request.rtt) {
+                    numRequestsWithResponses++;
                     rtt = Math.min(rtt, request.rtt);
                 }
             }
         }
 
-        if (rtt < Infinity) {
-            this.sendAnalytics(rtt);
+        if (numRequestsWithResponses >= e2eping.numRequests) {
+            console.log(`Measured RTT=${rtt} ms to participant ${this.id} (in
+                region ${this.participant.getProperty('region')}`));
+            clearIntervals()
         }
-    }
-
-    /**
-     * Sends an analytics event for this participant with the given RTT.
-     * @type {*}
-     */
-    sendAnalytics(rtt) {
-        Statistics.sendAnalytics(createE2eRttEvent(
-            this.id,
-            this.participant.getProperty('region'),
-            rtt));
     }
 }
 
@@ -180,13 +173,19 @@ export default class E2ePing {
         // Whether the WebRTC channel has been opened or not.
         this.isDataChannelOpen = false;
 
+        this.numRequests = DEFAULT_NUM_REQUESTS;
+
         if (options && options.e2eping) {
             if (typeof options.e2eping.pingInterval === 'number') {
                 this.pingIntervalMs = options.e2eping.pingInterval;
             }
+            if (typeof options.e2eping.numRequests === 'number') {
+                this.numRequests = options.e2eping.numRequests;
+            }
         }
         logger.info(
-            `Initializing e2e ping; pingInterval=${this.pingIntervalMs}.`);
+            `Initializing e2e ping; pingInterval=${this.pingIntervalMs},
+            numRequests=${this.numRequests}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
         conference.on(
