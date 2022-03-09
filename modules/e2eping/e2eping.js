@@ -266,7 +266,13 @@ export default class E2ePing {
             delete this.participants[id];
         }
 
-        this.participants[id] = new ParticipantWrapper(participant, this);
+        // We don't need to send e2eping in both directions for a pair of
+        // endpoints. Force only one direction with just string comparison of
+        // the IDs.
+        if (conference.myUserId() > id) {
+            console.log(`Starting e2eping for participant ${id}`);
+            this.participants[id] = new ParticipantWrapper(participant, this);
+        }
     }
 
     /**
