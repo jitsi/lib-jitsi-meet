@@ -260,7 +260,7 @@ export default class LocalSdpMunger {
                 const msidExists = mediaSection.ssrcs
                     .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
-                if (!msidExists) {
+                if (!msidExists && trackId) {
                     const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
 
                     mediaSection.ssrcs.push({
