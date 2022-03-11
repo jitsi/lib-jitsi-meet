@@ -9,6 +9,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -248,6 +249,12 @@ export default class XMPP extends Listenable {
 
         if (E2EEncryption.isSupported(this.options)) {
             this.caps.addFeature(FEATURE_E2EE, false, true);
+        }
+
+        // Advertise source-name signaling when the endpoint supports it.
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            logger.info('Source-name signaling is enabled');
+            this.caps.addFeatures('http://jitsi.org/source-name');
         }
     }
 
