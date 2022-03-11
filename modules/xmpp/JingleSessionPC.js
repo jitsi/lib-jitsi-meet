@@ -2020,9 +2020,7 @@ export default class JingleSessionPC extends JingleSession {
      * otherwise.
      */
     addTrack(localTrack) {
-        if (!FeatureFlags.isMultiStreamSupportEnabled()
-            || !this.usesUnifiedPlan
-            || localTrack.type !== MediaType.VIDEO) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled() || localTrack.type !== MediaType.VIDEO) {
             return Promise.reject(new Error('Multiple tracks of a given media type are not supported'));
         }
 

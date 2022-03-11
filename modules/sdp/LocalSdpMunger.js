@@ -210,9 +210,7 @@ export default class LocalSdpMunger {
                     const trackId = streamAndTrackIDs[1];
 
                     // eslint-disable-next-line max-depth
-                    if (FeatureFlags.isMultiStreamSupportEnabled()
-                        && this.tpc.usesUnifiedPlan()
-                        && mediaType === MediaType.VIDEO) {
+                    if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
 
                         // eslint-disable-next-line max-depth
                         if (streamId === '-' || !streamId) {
