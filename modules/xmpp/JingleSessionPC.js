@@ -2031,7 +2031,14 @@ export default class JingleSessionPC extends JingleSession {
 
             // Add a new transceiver by adding a new mline in the remote description.
             remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
-            this._renegotiate(remoteSdp.raw)
+
+            // Always initiate a responder renegotiate since the new m-line is added to remote SDP.
+            const remoteDescription = new RTCSessionDescription({
+                type: 'offer',
+                sdp: remoteSdp.raw
+            });
+
+            this._responderRenegotiate(remoteDescription)
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
