@@ -1,10 +1,16 @@
 /* global __dirname */
 
+const { execSync } = require('child_process');
 const path = require('path');
 const process = require('process');
 const { IgnorePlugin, ProvidePlugin } = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
+const devNull = process.platform === 'win32' ? 'nul' : '/dev/null';
+const commitHash = process.env.LIB_JITSI_MEET_COMMIT_HASH
+    || execSync(`git rev-parse --short HEAD 2>${devNull} || echo development`)
+        .toString()
+        .trim();
 
 module.exports = (minimize, analyzeBundle) => {
     return {
@@ -24,8 +30,7 @@ module.exports = (minimize, analyzeBundle) => {
                 loader: 'string-replace-loader',
                 options: {
                     flags: 'g',
-                    replace:
-                        process.env.LIB_JITSI_MEET_COMMIT_HASH || 'development',
+                    replace: commitHash,
                     search: '{#COMMIT_HASH#}'
                 },
                 test: path.join(__dirname, 'JitsiMeetJS.ts')
