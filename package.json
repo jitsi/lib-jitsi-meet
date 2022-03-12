@@ -65,7 +65,7 @@
   },
   "scripts": {
     "build": "npm run build:webpack && npm run build:tsc",
-    "build:webpack": "LIB_JITSI_MEET_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null) webpack",
+    "build:webpack": "webpack",
     "build:webpack-dev": "webpack --mode development",
     "build:tsc": "tsc --build --clean && tsc",
     "gen-types": "tsc --declaration --emitDeclarationOnly --out types/index.d.ts",
