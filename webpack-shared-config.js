@@ -29,12 +29,11 @@ module.exports = (minimize, analyzeBundle) => {
             }, {
                 // Transpile ES2015 (aka ES6) to ES5.
 
-                exclude: [
+                include: [
                     new RegExp(
-                        `${__dirname}/node_modules/(?!@jitsi/js-utils)`
-                            .replace(/\//g, path.sep)
-                            .replace(/\\/g, '\\$&')
-                    )
+                        path.join(__dirname, '(?!node_modules)').replace(/\\/g, '\\$&')
+                    ),
+                    path.join(__dirname, 'node_modules', '@jitsi', 'js-utils')
                 ],
                 loader: 'babel-loader',
                 options: {
