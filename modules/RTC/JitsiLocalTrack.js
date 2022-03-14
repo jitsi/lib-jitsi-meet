@@ -447,8 +447,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.containers.map(cont => RTCUtils.attachMediaStream(cont, this.stream));
 
                 return this._addStreamToConferenceAsUnmute();
-            })
-            .catch(error => Promise.reject(error));
+            });
         }
 
         return promise

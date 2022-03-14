@@ -254,7 +254,7 @@ export default class XMPP extends Listenable {
         // Advertise source-name signaling when the endpoint supports it.
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
             logger.info('Source-name signaling is enabled');
-            this.caps.addFeatures('http://jitsi.org/source-name');
+            this.caps.addFeature('http://jitsi.org/source-name');
         }
     }
 
