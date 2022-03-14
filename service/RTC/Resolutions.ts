@@ -1,4 +1,9 @@
-const Resolutions = {
+export type Resolution = {
+    width: number;
+    height: number;
+}
+
+export const resolutions: { [ key: string ]: Resolution } = {
     '2160': {
         width: 3840,
         height: 2160
@@ -53,4 +58,3 @@ const Resolutions = {
     }
 };
 
-module.exports = Resolutions;

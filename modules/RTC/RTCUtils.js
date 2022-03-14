@@ -6,7 +6,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import Resolutions from '../../service/RTC/Resolutions';
+import { resolutions } from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
@@ -105,8 +105,8 @@ function getConstraints(um = [], options = {}) {
 
     if (um.indexOf('video') >= 0) {
         // The "resolution" option is a shortcut and takes precendence.
-        if (Resolutions[options.resolution]) {
-            const r = Resolutions[options.resolution];
+        if (resolutions[options.resolution]) {
+            const r = resolutions[options.resolution];
 
             constraints.video.height = { ideal: r.height };
             constraints.video.width = { ideal: r.width };
