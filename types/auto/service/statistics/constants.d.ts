@@ -1,1 +1,1 @@
-export const LOCAL_JID: string;
+export declare const LOCAL_JID = "local";

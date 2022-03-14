@@ -5,15 +5,11 @@ import * as exported from "./constants";
 describe( "/service/statistics/constants members", () => {
     const {
         LOCAL_JID,
-        Constants,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
         expect( LOCAL_JID ).toBe( 'local' );
-        if ( Constants ) {
-            expect( Constants.LOCAL_JID ).toBe( 'local' );
-        }
     } );
 
     it( "unknown members", () => {
