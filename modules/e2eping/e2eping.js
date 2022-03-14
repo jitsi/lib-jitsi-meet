@@ -1,9 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import * as E2ePingEvents
-    from '../../service/e2eping/E2ePingEvents';
-import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 
@@ -112,12 +109,10 @@ class ParticipantWrapper {
      * @type {*}
      */
     maybeLogRttAndStop() {
-        const now = window.performance.now();
-
         // The RTT we'll report is the minimum RTT measured
         let rtt = Infinity;
         let request, requestId;
-        let numRequestsWithResponses = 0
+        let numRequestsWithResponses = 0;
 
         for (requestId in this.requests) {
             if (this.requests.hasOwnProperty(requestId)) {
@@ -130,10 +125,10 @@ class ParticipantWrapper {
             }
         }
 
-        if (numRequestsWithResponses >= e2eping.numRequests) {
+        if (numRequestsWithResponses >= this.e2eping.numRequests) {
             console.log(`Measured RTT=${rtt} ms to participant ${this.id} (in
-                region ${this.participant.getProperty('region')}`));
-            clearIntervals()
+                region ${this.participant.getProperty('region')}`);
+            this.clearIntervals();
         }
     }
 }
@@ -269,7 +264,7 @@ export default class E2ePing {
         // We don't need to send e2eping in both directions for a pair of
         // endpoints. Force only one direction with just string comparison of
         // the IDs.
-        if (conference.myUserId() > id) {
+        if (this.conference.myUserId() > id) {
             console.log(`Starting e2eping for participant ${id}`);
             this.participants[id] = new ParticipantWrapper(participant, this);
         }

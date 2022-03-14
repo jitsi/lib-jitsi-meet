@@ -24,9 +24,9 @@ export default class E2ePing {
     eventEmitter: any;
     sendMessage: Function;
     pingIntervalMs: any;
-    analyticsIntervalMs: any;
     participants: {};
     isDataChannelOpen: boolean;
+    numRequests: any;
     /**
      * Handles a participant joining the conference. Starts to send ping
      * requests to the participant.
