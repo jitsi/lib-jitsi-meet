@@ -57,4 +57,3 @@ export const resolutions: { [ key: string ]: Resolution } = {
         height: 180
     }
 };
-
