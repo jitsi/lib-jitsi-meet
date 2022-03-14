@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import transform from 'sdp-transform';
 
-import MediaDirection from '../../service/RTC/MediaDirection';
+import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';

@@ -1,27 +1,24 @@
 /**
  * Enumeration of the media direction types.
- * @type {{INACTIVE: string, RECVONLY: string, SENDONLY: string, SENDRECV: string}}
  */
-const MediaDirection = {
+export enum MediaDirection {
     /**
      * Media is send and receive is suspended.
      */
-    INACTIVE: 'inactive',
+    INACTIVE = 'inactive',
 
     /**
      * Media is only received from remote peer.
      */
-    RECVONLY: 'recvonly',
+    RECVONLY = 'recvonly',
 
     /**
      * Media is only sent to the remote peer.
      */
-    SENDONLY: 'sendonly',
+    SENDONLY = 'sendonly',
 
     /**
      * Media is sent and received.
      */
-    SENDRECV: 'sendrecv'
+    SENDRECV = 'sendrecv'
 };
-
-module.exports = MediaDirection;
