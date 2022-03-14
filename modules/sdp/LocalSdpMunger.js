@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -165,7 +164,7 @@ export default class LocalSdpMunger {
      */
     _generateMsidAttribute(mediaType, trackId, streamId = null) {
         if (!(mediaType && trackId)) {
-            logger.warn(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
+            logger.error(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
 
             return null;
         }
@@ -325,9 +324,13 @@ export default class LocalSdpMunger {
             this._injectSourceNames(audioMLine);
         }
 
-        const videoMLine = transformer.selectMedia(MediaType.VIDEO)?.[0];
+        const videoMlines = transformer.selectMedia(MediaType.VIDEO);
 
-        if (videoMLine) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+            videoMlines.splice(1);
+        }
+
+        for (const videoMLine of videoMlines) {
             this._transformMediaIdentifiers(videoMLine);
             this._injectSourceNames(videoMLine);
         }
@@ -362,13 +365,21 @@ export default class LocalSdpMunger {
 
         for (const source of sources) {
             const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
+            const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid')?.value;
+            let sourceName = null;
 
+            if (msid) {
+                const msidInfo = msid.split('-');
+
+                msidInfo.splice(3);
+                sourceName = msidInfo.join('-');
+            }
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'name',
-                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, 0)
+                    value: sourceName
                 });
             }
         }
