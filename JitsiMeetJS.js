@@ -149,7 +149,7 @@ export default _mergeNamespaceAndModule({
 
         // Multi-stream is supported only on endpoints running in Unified plan mode and the flag to disable unified
         // plan also needs to be taken into consideration.
-        if (typeof options.enableUnifiedOnChrome !== 'undefined') {
+        if (typeof options.enableUnifiedOnChrome !== 'undefined' && options.flags) {
             options.flags.enableUnifiedOnChrome = options.enableUnifiedOnChrome;
         }
 
