@@ -354,6 +354,11 @@ export class TPCUtils {
     replaceTrack(oldTrack, newTrack) {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const track = newTrack?.getTrack() ?? null;
+        const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
+            && this.pc.getLocalTracks(mediaType)?.length
+            && !oldTrack
+            && newTrack
+            && !newTrack.conference;
         let transceiver;
 
         // If old track exists, replace the track on the corresponding sender.
@@ -363,20 +368,17 @@ export class TPCUtils {
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to
         // recvonly.
-        } else if (FeatureFlags.isMultiStreamSupportEnabled()
-            && this.pc.getLocalTracks(mediaType)?.length
-            && !newTrack.conference) {
+        } else if (isNewLocalSource) {
             transceiver = this.pc.peerconnection.getTransceivers().find(
                 t => t.receiver.track.kind === mediaType
                 && t.direction === MediaDirection.RECVONLY
                 && t.currentDirection === MediaDirection.INACTIVE);
 
-        // For unmute operations, find the transceiver based on the track index in the source name if present, otherwise
-        // it is assumed to be the first local track that was added to the peerconnection.
+        // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
+        // otherwise it is assumed to be the first local track that was added to the peerconnection.
         } else {
             transceiver = this.pc.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
-
-            const sourceName = newTrack?.getSourceName();
+            const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
 
             if (sourceName) {
                 const trackIndex = Number(sourceName.split('-')[1].substring(1));

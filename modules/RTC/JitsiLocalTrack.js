@@ -20,6 +20,7 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -354,7 +355,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     _setMuted(muted) {
-        if (this.isMuted() === muted) {
+        if (this.isMuted() === muted
+            && !(this.videoType === VideoType.DESKTOP && FeatureFlags.isMultiStreamSupportEnabled())) {
             return Promise.resolve();
         }
 
@@ -367,8 +369,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
 
+        // In the multi-stream mode, desktop tracks are muted from jitsi-meet instead of being removed from the
+        // conference. This is needed because we don't want the client to signal a source-remove to the remote peer for
+        // the desktop track when screenshare is stopped. Later when screenshare is started again, the same sender will
+        // be re-used without the need for signaling a new ssrc through source-add.
         if (this.isAudioTrack()
-                || this.videoType === VideoType.DESKTOP
+                || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSupportEnabled())
                 || !browser.doesVideoMuteByStreamRemove()) {
             logMuteInfo();
 
@@ -442,8 +448,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._startStreamEffect(this._streamEffect);
                 }
 
-                this.containers.map(
-                    cont => RTCUtils.attachMediaStream(cont, this.stream));
+                this.containers.map(cont => RTCUtils.attachMediaStream(cont, this.stream));
 
                 return this._addStreamToConferenceAsUnmute();
             });

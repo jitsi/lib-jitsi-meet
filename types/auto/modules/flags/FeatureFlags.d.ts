@@ -12,6 +12,7 @@ declare class FeatureFlags {
     init(flags: any): void;
     _sourceNameSignaling: boolean;
     _sendMultipleVideoStreams: boolean;
+    _usesUnifiedPlan: any;
     /**
      * Checks if multiple local video streams support is enabled.
      *

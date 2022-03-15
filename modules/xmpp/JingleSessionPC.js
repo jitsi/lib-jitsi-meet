@@ -2020,9 +2020,7 @@ export default class JingleSessionPC extends JingleSession {
      * otherwise.
      */
     addTrack(localTrack) {
-        if (!FeatureFlags.isMultiStreamSupportEnabled()
-            || !this.usesUnifiedPlan
-            || localTrack.type !== MediaType.VIDEO) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled() || localTrack.type !== MediaType.VIDEO) {
             return Promise.reject(new Error('Multiple tracks of a given media type are not supported'));
         }
 
@@ -2031,7 +2029,14 @@ export default class JingleSessionPC extends JingleSession {
 
             // Add a new transceiver by adding a new mline in the remote description.
             remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
-            this._renegotiate(remoteSdp.raw)
+
+            // Always initiate a responder renegotiate since the new m-line is added to remote SDP.
+            const remoteDescription = new RTCSessionDescription({
+                type: 'offer',
+                sdp: remoteSdp.raw
+            });
+
+            this._responderRenegotiate(remoteDescription)
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
 

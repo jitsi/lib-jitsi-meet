@@ -1107,8 +1107,9 @@ JitsiConference.prototype.addTrack = function(track) {
             return Promise.all(addTrackPromises)
                 .then(() => {
                     this._setupNewTrack(track);
+                    this._sendBridgeVideoTypeMessage(track);
+                    this._updateRoomPresence(this.getActiveMediaSession());
 
-                    // TODO Update presence and sent videoType message.
                     if (this.isMutedByFocus || this.isVideoMutedByFocus) {
                         this._fireMuteChangeEvent(track);
                     }
@@ -1267,6 +1268,10 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
     if (oldTrack && !oldTrackBelongsToConference) {
         logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
+    }
+
+    if (FeatureFlags.isMultiStreamSupportEnabled() && oldTrack && newTrack && oldTrack.isVideoTrack()) {
+        newTrack.setSourceName(oldTrack.getSourceName());
     }
 
     // Now replace the stream at the lower levels

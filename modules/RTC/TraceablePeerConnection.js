@@ -2008,11 +2008,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
 
-    this.trace(
-        'removeStreamMute',
-        localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
+    this.trace('removeTrackMute', localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
 
-    if (!this._assertTrackBelongs('removeStreamMute', localTrack)) {
+    if (!this._assertTrackBelongs('removeTrackMute', localTrack)) {
         // Abort - nothing to be done here
         return Promise.reject('Track not found in the peerconnection');
     }
@@ -2028,7 +2026,7 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
         return Promise.resolve(true);
     }
 
-    logger.error(`${this} removeStreamMute - no WebRTC stream for track=${localTrack}`);
+    logger.error(`${this} removeTrackMute - no WebRTC stream for track=${localTrack}`);
 
     return Promise.reject('Stream not found');
 };

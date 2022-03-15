@@ -165,7 +165,7 @@ export default class LocalSdpMunger {
      */
     _generateMsidAttribute(mediaType, trackId, streamId = null) {
         if (!(mediaType && trackId)) {
-            logger.warn(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
+            logger.error(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
 
             return null;
         }
@@ -210,9 +210,7 @@ export default class LocalSdpMunger {
                     const trackId = streamAndTrackIDs[1];
 
                     // eslint-disable-next-line max-depth
-                    if (FeatureFlags.isMultiStreamSupportEnabled()
-                        && this.tpc.usesUnifiedPlan()
-                        && mediaType === MediaType.VIDEO) {
+                    if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
 
                         // eslint-disable-next-line max-depth
                         if (streamId === '-' || !streamId) {
@@ -260,7 +258,7 @@ export default class LocalSdpMunger {
                 const msidExists = mediaSection.ssrcs
                     .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
-                if (!msidExists) {
+                if (!msidExists && trackId) {
                     const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
 
                     mediaSection.ssrcs.push({
@@ -327,9 +325,13 @@ export default class LocalSdpMunger {
             this._injectSourceNames(audioMLine);
         }
 
-        const videoMLine = transformer.selectMedia(MediaType.VIDEO)?.[0];
+        const videoMlines = transformer.selectMedia(MediaType.VIDEO);
 
-        if (videoMLine) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+            videoMlines.splice(1);
+        }
+
+        for (const videoMLine of videoMlines) {
             this._transformMediaIdentifiers(videoMLine);
             this._injectSourceNames(videoMLine);
         }
@@ -364,13 +366,15 @@ export default class LocalSdpMunger {
 
         for (const source of sources) {
             const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
+            const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid')?.value;
+            const trackIndex = msid ? msid.split('-')[2] : null;
 
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'name',
-                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, 0)
+                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex)
                 });
             }
         }
