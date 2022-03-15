@@ -101,6 +101,7 @@ class ParticipantWrapper {
         if (request) {
             request.rtt = window.performance.now() - request.timeSent;
         }
+        this.maybeLogRttAndStop()
     }
 
     /**
@@ -113,11 +114,13 @@ class ParticipantWrapper {
         let rtt = Infinity;
         let request, requestId;
         let numRequestsWithResponses = 0;
+        let totalNumRequests = 0;
 
         for (requestId in this.requests) {
             if (this.requests.hasOwnProperty(requestId)) {
                 request = this.requests[requestId];
 
+                totalNumRequests++;
                 if (request.rtt) {
                     numRequestsWithResponses++;
                     rtt = Math.min(rtt, request.rtt);
@@ -126,8 +129,13 @@ class ParticipantWrapper {
         }
 
         if (numRequestsWithResponses >= this.e2eping.numRequests) {
-            console.log(`Measured RTT=${rtt} ms to participant ${this.id} (in
-                region ${this.participant.getProperty('region')}`);
+            logger.info(`Measured RTT=${rtt} ms to participant ${this.id} (in `
+                + `region ${this.participant.getProperty('region')}`);
+            this.clearIntervals();
+        } else if (totalNumRequests > 2 * this.e2eping.numRequests) {
+            logger.info(`Stopping e2eping for ${this.id} because we've sent `
+                + `${totalNumRequests} with only ${numRequestsWithResponses} `
+                + `responses.`)
             this.clearIntervals();
         }
     }
@@ -265,7 +273,7 @@ export default class E2ePing {
         // endpoints. Force only one direction with just string comparison of
         // the IDs.
         if (this.conference.myUserId() > id) {
-            console.log(`Starting e2eping for participant ${id}`);
+            logger.info(`Starting e2eping for participant ${id}`);
             this.participants[id] = new ParticipantWrapper(participant, this);
         }
     }
