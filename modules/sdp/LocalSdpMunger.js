@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import MediaDirection from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -366,20 +367,14 @@ export default class LocalSdpMunger {
         for (const source of sources) {
             const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
             const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid')?.value;
-            let sourceName = null;
+            const trackIndex = msid ? msid.split('-')[2] : null;
 
-            if (msid) {
-                const msidInfo = msid.split('-');
-
-                msidInfo.splice(3);
-                sourceName = msidInfo.join('-');
-            }
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'name',
-                    value: sourceName
+                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex)
                 });
             }
         }

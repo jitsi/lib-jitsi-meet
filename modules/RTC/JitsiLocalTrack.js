@@ -369,6 +369,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
 
+        // In the multi-stream mode, desktop tracks are muted from jitsi-meet instead of being removed from the
+        // conference. This is needed because we don't want the client to signal a source-remove to the remote peer for
+        // the desktop track when screenshare is stopped. Later when screenshare is started again, the same sender will
+        // be re-used without the need for signaling a new ssrc through source-add.
         if (this.isAudioTrack()
                 || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSupportEnabled())
                 || !browser.doesVideoMuteByStreamRemove()) {

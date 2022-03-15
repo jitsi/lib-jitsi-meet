@@ -354,7 +354,7 @@ export class TPCUtils {
     replaceTrack(oldTrack, newTrack) {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const track = newTrack?.getTrack() ?? null;
-        const isNewSecondaryLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
+        const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
             && this.pc.getLocalTracks(mediaType)?.length
             && !oldTrack
             && newTrack
@@ -368,7 +368,7 @@ export class TPCUtils {
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to
         // recvonly.
-        } else if (isNewSecondaryLocalSource) {
+        } else if (isNewLocalSource) {
             transceiver = this.pc.peerconnection.getTransceivers().find(
                 t => t.receiver.track.kind === mediaType
                 && t.direction === MediaDirection.RECVONLY
