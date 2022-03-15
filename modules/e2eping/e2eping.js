@@ -48,10 +48,12 @@ class ParticipantWrapper {
         // request. Start at 1 so we can consider only thruthy values valid.
         this.lastRequestId = 1;
 
-        this.clearIntervals = this.clearIntervals.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
         this.maybeLogRttAndStop = this.maybeLogRttAndStop.bind(this);
+        this.scheduleNext = this.scheduleNext.bind(this);
+        this.stop = this.stop.bind(this);
+        this.getDelay = this.getDelay.bind(this);
 
         // If the data channel was already open (this is likely a participant
         // joining an existing conference) send a request immediately.
@@ -59,18 +61,32 @@ class ParticipantWrapper {
             this.sendRequest();
         }
 
-        this.pingInterval = window.setInterval(
-            this.sendRequest, e2eping.pingIntervalMs);
+        this.timeout = this.scheduleNext();
     }
 
     /**
-     * Clears the interval which sends pings.
-     * @type {*}
+     * Schedule the next ping to be sent.
      */
-    clearIntervals() {
-        if (this.pingInterval) {
-            window.clearInterval(this.pingInterval);
+    scheduleNext() {
+        return window.setTimeout(this.sendRequest, this.getDelay());
+    }
+
+    /**
+     * Stop pinging this participant, canceling a scheduled ping, if any.
+     */
+    stop() {
+        logger.info(`Stopping e2eping for ${this.id}`);
+        if (this.timeout) {
+            window.clearTimeout(this.timeout);
         }
+        this.e2eping.removeParticipant(this.id);
+    }
+
+    /**
+     * Get the delay until the next ping.
+     */
+    getDelay() {
+        return 1000;
     }
 
     /**
@@ -101,7 +117,7 @@ class ParticipantWrapper {
         if (request) {
             request.rtt = window.performance.now() - request.timeSent;
         }
-        this.maybeLogRttAndStop()
+        this.maybeLogRttAndStop();
     }
 
     /**
@@ -130,14 +146,20 @@ class ParticipantWrapper {
 
         if (numRequestsWithResponses >= this.e2eping.numRequests) {
             logger.info(`Measured RTT=${rtt} ms to participant ${this.id} (in `
-                + `region ${this.participant.getProperty('region')}`);
-            this.clearIntervals();
+                + `region ${this.participant.getProperty('region')})`);
+            this.stop();
+
+            return;
         } else if (totalNumRequests > 2 * this.e2eping.numRequests) {
             logger.info(`Stopping e2eping for ${this.id} because we've sent `
                 + `${totalNumRequests} with only ${numRequestsWithResponses} `
-                + `responses.`)
-            this.clearIntervals();
+                + 'responses.');
+            this.stop();
+
+            return;
         }
+
+        this.timeout = this.scheduleNext();
     }
 }
 
@@ -167,9 +189,6 @@ export default class E2ePing {
         this.eventEmitter = conference.eventEmitter;
         this.sendMessage = sendMessage;
 
-        // The interval at which pings will be sent (<= 0 disables sending).
-        this.pingIntervalMs = 10000;
-
         // Maps a participant ID to its ParticipantWrapper
         this.participants = {};
 
@@ -179,16 +198,12 @@ export default class E2ePing {
         this.numRequests = DEFAULT_NUM_REQUESTS;
 
         if (options && options.e2eping) {
-            if (typeof options.e2eping.pingInterval === 'number') {
-                this.pingIntervalMs = options.e2eping.pingInterval;
-            }
             if (typeof options.e2eping.numRequests === 'number') {
                 this.numRequests = options.e2eping.numRequests;
             }
         }
         logger.info(
-            `Initializing e2e ping; pingInterval=${this.pingIntervalMs},
-            numRequests=${this.numRequests}.`);
+            `Initializing e2e ping with numRequests=${this.numRequests}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
         conference.on(
@@ -258,15 +273,10 @@ export default class E2ePing {
      * @param {JitsiParticipant} participant - The participant that joined.
      */
     participantJoined(id, participant) {
-        if (this.pingIntervalMs <= 0) {
-            return;
-        }
-
         if (this.participants[id]) {
             logger.info(
                 `Participant wrapper already exists for ${id}. Clearing.`);
-            this.participants[id].clearIntervals();
-            delete this.participants[id];
+            this.participants[id].stop();
         }
 
         // We don't need to send e2eping in both directions for a pair of
@@ -279,17 +289,22 @@ export default class E2ePing {
     }
 
     /**
+     * Remove a participant without calling "stop".
+     */
+    removeParticipant(id) {
+        if (this.participants[id]) {
+            delete this.participants[id];
+        }
+    }
+
+    /**
      * Handles a participant leaving the conference. Stops sending requests.
      *
      * @param {String} id - The ID of the participant.
      */
     participantLeft(id) {
-        if (this.pingIntervalMs <= 0) {
-            return;
-        }
-
         if (this.participants[id]) {
-            this.participants[id].clearIntervals();
+            this.participants[id].stop();
             delete this.participants[id];
         }
     }
@@ -351,7 +366,7 @@ export default class E2ePing {
 
         for (const id in this.participants) {
             if (this.participants.hasOwnProperty(id)) {
-                this.participants[id].clearIntervals();
+                this.participants[id].stop();
             }
         }
 

@@ -23,7 +23,6 @@ export default class E2ePing {
     conference: any;
     eventEmitter: any;
     sendMessage: Function;
-    pingIntervalMs: any;
     participants: {};
     isDataChannelOpen: boolean;
     numRequests: any;
@@ -53,6 +52,10 @@ export default class E2ePing {
      * and it can now send messages via sendMessage.
      */
     dataChannelOpened(): void;
+    /**
+     * Remove a participant without calling "stop".
+     */
+    removeParticipant(id: any): void;
     /**
      * Handles a ping request coming from another participant.
      *
