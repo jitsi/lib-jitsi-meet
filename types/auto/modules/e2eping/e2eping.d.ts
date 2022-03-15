@@ -26,6 +26,8 @@ export default class E2ePing {
     participants: {};
     isDataChannelOpen: boolean;
     numRequests: any;
+    maxConferenceSize: any;
+    maxMessagesPerSecond: any;
     /**
      * Handles a participant joining the conference. Starts to send ping
      * requests to the participant.

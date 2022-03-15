@@ -22,6 +22,17 @@ const E2E_PING_RESPONSE = 'e2e-ping-response';
 const DEFAULT_NUM_REQUESTS = 5;
 
 /**
+ * The maximum number of messages per second to aim for. This is for the entire
+ * conference, with the assumption that all endpoints join at once.
+ */
+const DEFAULT_MAX_MESSAGES_PER_SECOND = 300;
+
+/**
+ * The conference size beyond which e2e pings will be disabled.
+ */
+const DEFAULT_MAX_CONFERENCE_SIZE = 200;
+
+/**
  * Saves e2e ping related state for a single JitsiParticipant.
  */
 class ParticipantWrapper {
@@ -83,10 +94,23 @@ class ParticipantWrapper {
     }
 
     /**
-     * Get the delay until the next ping.
+     * Get the delay until the next ping in milliseconds.
      */
     getDelay() {
-        return 1000;
+        const conferenceSize = this.e2eping.conference.getParticipants().length;
+        const endpointPairs = conferenceSize * (conferenceSize - 1) / 2;
+        const totalMessages = endpointPairs * this.e2eping.numRequests;
+        const totalSeconds
+            = totalMessages / this.e2eping.maxMessagesPerSecond;
+
+        // Randomize between .9 and 1.1
+        const r = 1 - ((Math.random() - 0.5) * 0.2);
+        const delayBetweenMessages
+            = Math.max(
+                r * 1000 * (totalSeconds / this.e2eping.numRequests),
+                1000);
+
+        return delayBetweenMessages;
     }
 
     /**
@@ -196,14 +220,25 @@ export default class E2ePing {
         this.isDataChannelOpen = false;
 
         this.numRequests = DEFAULT_NUM_REQUESTS;
+        this.maxConferenceSize = DEFAULT_MAX_CONFERENCE_SIZE;
+        this.maxMessagesPerSecond = DEFAULT_MAX_MESSAGES_PER_SECOND;
 
         if (options && options.e2eping) {
             if (typeof options.e2eping.numRequests === 'number') {
                 this.numRequests = options.e2eping.numRequests;
             }
+            if (typeof options.e2eping.maxConferenceSize === 'number') {
+                this.maxConferenceSize = options.e2eping.maxConferenceSize;
+            }
+            if (typeof options.e2eping.maxMessagesPerSecond === 'number') {
+                this.maxMessagesPerSecond
+                    = options.e2eping.maxMessagesPerSecond;
+            }
         }
         logger.info(
-            `Initializing e2e ping with numRequests=${this.numRequests}.`);
+            `Initializing e2e ping with numRequests=${this.numRequests}, `
+            + `maxConferenceSize=${this.maxConferenceSize}, `
+            + `maxMessagesPerSecond=${this.maxMessagesPerSecond}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
         conference.on(
@@ -277,6 +312,10 @@ export default class E2ePing {
             logger.info(
                 `Participant wrapper already exists for ${id}. Clearing.`);
             this.participants[id].stop();
+        }
+
+        if (this.conference.getParticipants().length > this.maxConferenceSize) {
+            return;
         }
 
         // We don't need to send e2eping in both directions for a pair of
