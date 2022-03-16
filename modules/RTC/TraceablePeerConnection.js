@@ -1961,6 +1961,17 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
             .then(transceiver => {
                 oldTrack && this.localTracks.delete(oldTrack.rtcId);
                 newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
+
+                // Update the local SSRC cache for the case when one track gets replaced with another and no
+                // renegotiation is triggered as a result of this.
+                if (oldTrack && newTrack) {
+                    const oldTrackSSRC = this.localSSRCs.get(oldTrack.rtcId);
+
+                    if (oldTrackSSRC) {
+                        this.localSSRCs.delete(oldTrack.rtcId);
+                        this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
+                    }
+                }
                 const mediaActive = mediaType === MediaType.AUDIO
                     ? this.audioTransferActive
                     : this.videoTransferActive;
