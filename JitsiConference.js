@@ -407,7 +407,7 @@ JitsiConference.prototype._init = function(options = {}) {
     this.room.addListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
     this.room.addListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
-    if (config.e2eping.enabled === true) {
+    if (config.e2eping && config.e2eping.enabled === true) {
         this.e2eping = new E2ePing(
             this,
             config,
