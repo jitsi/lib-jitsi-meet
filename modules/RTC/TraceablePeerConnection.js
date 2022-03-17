@@ -1944,7 +1944,11 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     // Jicofo before the mute state is sent over presence. Therefore, trigger a renegotiation in this case. If we
     // rely on "negotiationneeded" fired by the browser to signal new ssrcs, the mute state in presence will be sent
     // before the source signaling which is undesirable.
-    const negotiationNeeded = Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
+    // Send the presence before signaling for a new screenshare source. This is needed for multi-stream support since
+    // videoType needs to be availble at remote track creation time so that a fake tile for screenshare can be added.
+    // FIXME - This check needs to be removed when the client switches to the bridge based signaling for tracks.
+    const isNewTrackScreenshare = !oldTrack && newTrack?.getVideoType() === VideoType.DESKTOP;
+    const negotiationNeeded = !isNewTrackScreenshare && Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
 
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
