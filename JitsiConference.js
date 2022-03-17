@@ -1102,8 +1102,8 @@ JitsiConference.prototype.addTrack = function(track) {
         if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
             const addTrackPromises = [];
 
-            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTrack(track));
-            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTrack(track));
+            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
+            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
 
             return Promise.all(addTrackPromises)
                 .then(() => {

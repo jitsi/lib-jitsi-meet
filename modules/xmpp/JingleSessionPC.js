@@ -984,10 +984,20 @@ export default class JingleSessionPC extends JingleSession {
         }
         const workFunction = finishedCallback => {
             const addTracks = [];
+            const audioTracks = localTracks.filter(track => track.getType() === MediaType.AUDIO);
+            const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
+            let tracks = localTracks;
 
-            for (const localTrack of localTracks) {
-                addTracks.push(this.peerconnection.addTrack(localTrack, this.isInitiator));
+            // Add only 1 video track at a time. Adding 2 or more video tracks to the peerconnection at the same time
+            // makes the browser go into a renegotiation loop by firing 'negotiationneeded' event after every
+            // renegotiation.
+            if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length > 1) {
+                tracks = [ ...audioTracks, videoTracks[0] ];
             }
+            for (const track of tracks) {
+                addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
+            }
+            videoTracks.length && videoTracks.splice(0, 1);
 
             Promise.all(addTracks)
                 .then(() => this.peerconnection.createOffer(this.mediaConstraints))
@@ -996,6 +1006,13 @@ export default class JingleSessionPC extends JingleSession {
                     // NOTE that the offer is obtained from the localDescription getter as it needs to go though
                     // the transformation chain.
                     this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
+                })
+                .then(() => {
+                    if (videoTracks.length) {
+                        return this.addTracks(videoTracks);
+                    }
+
+                    return Promise.resolve();
                 })
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
@@ -1109,15 +1126,22 @@ export default class JingleSessionPC extends JingleSession {
     setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks = []) {
         const workFunction = finishedCallback => {
             const addTracks = [];
+            const audioTracks = localTracks.filter(track => track.getType() === MediaType.AUDIO);
+            const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
+            let tracks = localTracks;
 
-            for (const track of localTracks) {
+            // Add only 1 video track at a time. Adding 2 or more video tracks to the peerconnection at the same time
+            // makes the browser go into a renegotiation loop by firing 'negotiationneeded' event after every
+            // renegotiation.
+            if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length > 1) {
+                tracks = [ ...audioTracks, videoTracks[0] ];
+            }
+            for (const track of tracks) {
                 addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
             }
-
-            const newRemoteSdp
-                = this._processNewJingleOfferIq(jingleOfferAnswerIq);
-            const oldLocalSdp
-                = this.peerconnection.localDescription.sdp;
+            videoTracks.length && videoTracks.splice(0, 1);
+            const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferAnswerIq);
+            const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
             const bridgeSession
                 = $(jingleOfferAnswerIq)
@@ -1132,21 +1156,22 @@ export default class JingleSessionPC extends JingleSession {
             Promise.all(addTracks)
                 .then(() => this._renegotiate(newRemoteSdp.raw))
                 .then(() => {
+                    if (videoTracks.length) {
+                        return this.addTracks(videoTracks);
+                    }
+
+                    return Promise.resolve();
+                })
+                .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
 
-                        // #1 Sync up video transfer active/inactive only after
-                        // the initial O/A cycle. We want to adjust the video
-                        // media direction only in the local SDP and the Jingle
-                        // contents direction included in the initial
-                        // offer/answer is mapped to the remote SDP. Jingle
-                        // 'content-modify' IQ is processed in a way that it
-                        // will only modify local SDP when remote peer is no
-                        // longer interested in receiving video content.
-                        // Changing media direction in the remote SDP will mess
-                        // up our SDP translation chain (simulcast, video mute,
-                        // RTX etc.)
-                        //
+                        // #1 Sync up video transfer active/inactive only after the initial O/A cycle. We want to
+                        // adjust the video media direction only in the local SDP and the Jingle contents direction
+                        // included in the initial offer/answer is mapped to the remote SDP. Jingle 'content-modify'
+                        // IQ is processed in a way that it will only modify local SDP when remote peer is no longer
+                        // interested in receiving video content. Changing media direction in the remote SDP will mess
+                        // up our SDP translation chain (simulcast, video mute, RTX etc.)
                         // #2 Sends the max frame height if it was set, before the session-initiate/accept
                         if (this.isP2P
                             && (!this._localVideoActive || this.localRecvMaxFrameHeight)) {
@@ -1154,16 +1179,12 @@ export default class JingleSessionPC extends JingleSession {
                         }
                     }
 
-                    // Old local SDP will be available when we're setting answer
-                    // for the first time, but not when offer and it's fine
-                    // since we're generating an answer now it will contain all
-                    // our SSRCs
+                    // Old local SDP will be available when we're setting answer for the first time, but not when offer
+                    // and it's fine since we're generating an answer now it will contain all our SSRCs.
                     if (oldLocalSdp) {
-                        const newLocalSdp
-                            = new SDP(this.peerconnection.localDescription.sdp);
+                        const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-                        this.notifyMySSRCUpdate(
-                            new SDP(oldLocalSdp), newLocalSdp);
+                        this.notifyMySSRCUpdate(new SDP(oldLocalSdp), newLocalSdp);
                     }
                 })
                 .then(() => finishedCallback(), error => finishedCallback(error));
@@ -2015,20 +2036,25 @@ export default class JingleSessionPC extends JingleSession {
      * Adds a new track to the peerconnection. This method needs to be called only when a secondary JitsiLocalTrack is
      * being added to the peerconnection for the first time.
      *
-     * @param {JitsiLocalTrack} localTrack track to be added to the peer connection.
+     * @param {Array<JitsiLocalTrack>} localTracks - Tracks to be added to the peer connection.
      * @returns {Promise<void>} that resolves when the track is successfully added to the peerconnection, rejected
      * otherwise.
      */
-    addTrack(localTrack) {
-        if (!FeatureFlags.isMultiStreamSupportEnabled() || localTrack.type !== MediaType.VIDEO) {
-            return Promise.reject(new Error('Multiple tracks of a given media type are not supported'));
+    addTracks(localTracks = null) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled()
+            || !localTracks?.length
+            || localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
+            return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
         }
 
+        const replaceTracks = [];
         const workFunction = finishedCallback => {
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
 
-            // Add a new transceiver by adding a new mline in the remote description.
-            remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
+            // Add transceivers by adding a new mline in the remote description for each track.
+            for (const track of localTracks) {
+                remoteSdp.addMlineForNewLocalSource(track.getType());
+            }
 
             // Always initiate a responder renegotiate since the new m-line is added to remote SDP.
             const remoteDescription = new RTCSessionDescription({
@@ -2052,8 +2078,12 @@ export default class JingleSessionPC extends JingleSession {
                     } else {
                         logger.debug(`${this} renegotiation after addTrack executed - OK`);
 
-                        // Replace the track on the newly generated transceiver.
-                        return this.replaceTrack(null, localTrack)
+                        // Replace the tracks on the newly generated transceivers.
+                        for (const track of localTracks) {
+                            replaceTracks.push(this.replaceTrack(null, track));
+                        }
+
+                        return Promise.all(replaceTracks)
                             .then(() => resolve())
                             .catch(() => reject());
                     }
