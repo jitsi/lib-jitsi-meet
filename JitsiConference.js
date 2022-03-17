@@ -430,7 +430,9 @@ JitsiConference.prototype._init = function(options = {}) {
     this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
     this.sendVideoController = new SendVideoController(this, this.rtc);
 
-    this.participantConnectionStatus
+    // Do not initialize ParticipantConnectionStatusHandler when source-name signaling is enabled.
+    if (!FeatureFlags.isSourceNameSignalingEnabled()) {
+        this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
             this.rtc,
             this,
@@ -441,7 +443,8 @@ JitsiConference.prototype._init = function(options = {}) {
                 rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
                 outOfLastNTimeout: config._peerConnStatusOutOfLastNTimeout
             });
-    this.participantConnectionStatus.init();
+        this.participantConnectionStatus.init();
+    }
 
     // Add the ability to enable callStats only on a percentage of users based on config.js settings.
     let enableCallStats = true;
