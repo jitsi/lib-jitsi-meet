@@ -65,13 +65,6 @@ class ParticipantWrapper {
         this.scheduleNext = this.scheduleNext.bind(this);
         this.stop = this.stop.bind(this);
         this.getDelay = this.getDelay.bind(this);
-
-        // If the data channel was already open (this is likely a participant
-        // joining an existing conference) send a request immediately.
-        if (e2eping.isDataChannelOpen) {
-            this.sendRequest();
-        }
-
         this.timeout = this.scheduleNext();
     }
 
@@ -213,9 +206,6 @@ export default class E2ePing {
         // Maps a participant ID to its ParticipantWrapper
         this.participants = {};
 
-        // Whether the WebRTC channel has been opened or not.
-        this.isDataChannelOpen = false;
-
         this.numRequests = DEFAULT_NUM_REQUESTS;
         this.maxConferenceSize = DEFAULT_MAX_CONFERENCE_SIZE;
         this.maxMessagesPerSecond = DEFAULT_MAX_MESSAGES_PER_SECOND;
@@ -249,11 +239,6 @@ export default class E2ePing {
             JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             this.messageReceived);
 
-        this.dataChannelOpened = this.dataChannelOpened.bind(this);
-        conference.on(
-            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
-            this.dataChannelOpened);
-
         this.conferenceJoined = this.conferenceJoined.bind(this);
         conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, this.conferenceJoined);
     }
@@ -265,29 +250,6 @@ export default class E2ePing {
     conferenceJoined() {
         this.conference.getParticipants().forEach(p => this.participantJoined(p.getId(), p));
         this.conference.on(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
-    }
-
-    /**
-     * Notifies this instance that the communications channel has been opened
-     * and it can now send messages via sendMessage.
-     */
-    dataChannelOpened() {
-        this.isDataChannelOpen = true;
-
-        // We don't want to wait the whole interval before sending the first
-        // request, but we can't send it immediately after the participant joins
-        // either, because our data channel might not have initialized.
-        // So once the data channel initializes, send requests to everyone.
-        // Wait an additional 200ms to give a chance to the remote side (if it
-        // also just connected as is the case for the first 2 participants in a
-        // conference) to open its data channel.
-        for (const id in this.participants) {
-            if (this.participants.hasOwnProperty(id)) {
-                const participantWrapper = this.participants[id];
-
-                window.setTimeout(participantWrapper.sendRequest, 200);
-            }
-        }
     }
 
     /**
@@ -405,9 +367,6 @@ export default class E2ePing {
         this.conference.off(
             JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             this.messageReceived);
-        this.conference.off(
-            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
-            this.dataChannelOpened);
 
         for (const id in this.participants) {
             if (this.participants.hasOwnProperty(id)) {

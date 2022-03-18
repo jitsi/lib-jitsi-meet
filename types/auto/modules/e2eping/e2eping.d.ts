@@ -24,7 +24,6 @@ export default class E2ePing {
     eventEmitter: any;
     sendMessage: Function;
     participants: {};
-    isDataChannelOpen: boolean;
     numRequests: any;
     maxConferenceSize: any;
     maxMessagesPerSecond: any;
@@ -49,11 +48,6 @@ export default class E2ePing {
      * @param payload - The payload of the message.
      */
     messageReceived(participant: any, payload: any): void;
-    /**
-     * Notifies this instance that the communications channel has been opened
-     * and it can now send messages via sendMessage.
-     */
-    dataChannelOpened(): void;
     /**
      * Delay processing USER_JOINED events until the MUC is fully joined,
      * otherwise the apparent conference size will be wrong.
