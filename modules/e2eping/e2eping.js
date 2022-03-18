@@ -79,7 +79,6 @@ class ParticipantWrapper {
      * Stop pinging this participant, canceling a scheduled ping, if any.
      */
     stop() {
-        logger.info(`Stopping e2eping for ${this.id}`);
         if (this.timeout) {
             window.clearTimeout(this.timeout);
         }
