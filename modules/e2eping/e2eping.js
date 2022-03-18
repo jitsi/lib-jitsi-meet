@@ -103,12 +103,9 @@ class ParticipantWrapper {
         const totalSeconds
             = totalMessages / this.e2eping.maxMessagesPerSecond;
 
-        // Randomize between .9 and 1.1
-        const r = 1 - ((Math.random() - 0.5) * 0.2);
-        const delayBetweenMessages
-            = Math.max(
-                r * 1000 * (totalSeconds / this.e2eping.numRequests),
-                1000);
+        // Randomize between .5 and 1.5
+        const r = 1.5 - Math.random();
+        const delayBetweenMessages = r * Math.max(1000 * (totalSeconds / this.e2eping.numRequests), 1000);
 
         return delayBetweenMessages;
     }
