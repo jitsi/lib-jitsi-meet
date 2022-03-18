@@ -25,7 +25,7 @@ const DEFAULT_NUM_REQUESTS = 5;
  * The maximum number of messages per second to aim for. This is for the entire
  * conference, with the assumption that all endpoints join at once.
  */
-const DEFAULT_MAX_MESSAGES_PER_SECOND = 300;
+const DEFAULT_MAX_MESSAGES_PER_SECOND = 250;
 
 /**
  * The conference size beyond which e2e pings will be disabled.
