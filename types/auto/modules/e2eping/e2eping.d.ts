@@ -23,10 +23,10 @@ export default class E2ePing {
     conference: any;
     eventEmitter: any;
     sendMessage: Function;
-    pingIntervalMs: any;
-    analyticsIntervalMs: any;
     participants: {};
-    isDataChannelOpen: boolean;
+    numRequests: any;
+    maxConferenceSize: any;
+    maxMessagesPerSecond: any;
     /**
      * Handles a participant joining the conference. Starts to send ping
      * requests to the participant.
@@ -49,10 +49,14 @@ export default class E2ePing {
      */
     messageReceived(participant: any, payload: any): void;
     /**
-     * Notifies this instance that the communications channel has been opened
-     * and it can now send messages via sendMessage.
+     * Delay processing USER_JOINED events until the MUC is fully joined,
+     * otherwise the apparent conference size will be wrong.
      */
-    dataChannelOpened(): void;
+    conferenceJoined(): void;
+    /**
+     * Remove a participant without calling "stop".
+     */
+    removeParticipant(id: any): void;
     /**
      * Handles a ping request coming from another participant.
      *
