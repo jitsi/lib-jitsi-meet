@@ -93,8 +93,7 @@ class ParticipantWrapper {
         const conferenceSize = this.e2eping.conference.getParticipants().length;
         const endpointPairs = conferenceSize * (conferenceSize - 1) / 2;
         const totalMessages = endpointPairs * this.e2eping.numRequests;
-        const totalSeconds
-            = totalMessages / this.e2eping.maxMessagesPerSecond;
+        const totalSeconds = totalMessages / this.e2eping.maxMessagesPerSecond;
 
         // Randomize between .5 and 1.5
         const r = 1.5 - Math.random();
@@ -159,15 +158,13 @@ class ParticipantWrapper {
         }
 
         if (numRequestsWithResponses >= this.e2eping.numRequests) {
-            logger.info(`Measured RTT=${rtt} ms to participant ${this.id} (in `
-                + `region ${this.participant.getProperty('region')})`);
+            logger.info(`Measured RTT=${rtt} ms to ${this.id} (in ${this.participant.getProperty('region')})`);
             this.stop();
 
             return;
         } else if (totalNumRequests > 2 * this.e2eping.numRequests) {
-            logger.info(`Stopping e2eping for ${this.id} because we've sent `
-                + `${totalNumRequests} with only ${numRequestsWithResponses} `
-                + 'responses.');
+            logger.info(`Stopping e2eping for ${this.id} because we sent ${totalNumRequests} with only `
+                + `${numRequestsWithResponses} responses.`);
             this.stop();
 
             return;
@@ -218,26 +215,20 @@ export default class E2ePing {
                 this.maxConferenceSize = options.e2eping.maxConferenceSize;
             }
             if (typeof options.e2eping.maxMessagesPerSecond === 'number') {
-                this.maxMessagesPerSecond
-                    = options.e2eping.maxMessagesPerSecond;
+                this.maxMessagesPerSecond = options.e2eping.maxMessagesPerSecond;
             }
         }
         logger.info(
-            `Initializing e2e ping with numRequests=${this.numRequests}, `
-            + `maxConferenceSize=${this.maxConferenceSize}, `
+            `Initializing e2e ping with numRequests=${this.numRequests}, maxConferenceSize=${this.maxConferenceSize}, `
             + `maxMessagesPerSecond=${this.maxMessagesPerSecond}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
 
         this.participantLeft = this.participantLeft.bind(this);
-        conference.on(
-            JitsiConferenceEvents.USER_LEFT,
-            this.participantLeft);
+        conference.on(JitsiConferenceEvents.USER_LEFT, this.participantLeft);
 
         this.messageReceived = this.messageReceived.bind(this);
-        conference.on(
-            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            this.messageReceived);
+        conference.on(JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, this.messageReceived);
 
         this.conferenceJoined = this.conferenceJoined.bind(this);
         conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, this.conferenceJoined);
@@ -277,8 +268,7 @@ export default class E2ePing {
      */
     participantJoined(id, participant) {
         if (this.participants[id]) {
-            logger.info(
-                `Participant wrapper already exists for ${id}. Clearing.`);
+            logger.info(`Participant wrapper already exists for ${id}. Clearing.`);
             this.participants[id].stop();
         }
 
@@ -333,8 +323,7 @@ export default class E2ePing {
 
             this.sendMessage(response, participantId);
         } else {
-            logger.info(
-                `Received an invalid e2e ping request from ${participantId}.`);
+            logger.info(`Received an invalid e2e ping request from ${participantId}.`);
         }
     }
 
@@ -358,15 +347,9 @@ export default class E2ePing {
     stop() {
         logger.info('Stopping e2eping');
 
-        this.conference.off(
-            JitsiConferenceEvents.USER_JOINED,
-            this.participantJoined);
-        this.conference.off(
-            JitsiConferenceEvents.USER_LEFT,
-            this.participantLeft);
-        this.conference.off(
-            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            this.messageReceived);
+        this.conference.off(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
+        this.conference.off(JitsiConferenceEvents.USER_LEFT, this.participantLeft);
+        this.conference.off(JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, this.messageReceived);
 
         for (const id in this.participants) {
             if (this.participants.hasOwnProperty(id)) {
