@@ -55,6 +55,11 @@ export default class E2ePing {
      */
     dataChannelOpened(): void;
     /**
+     * Delay processing USER_JOINED events until the MUC is fully joined,
+     * otherwise the apparent conference size will be wrong.
+     */
+    conferenceJoined(): void;
+    /**
      * Remove a participant without calling "stop".
      */
     removeParticipant(id: any): void;

@@ -238,9 +238,6 @@ export default class E2ePing {
             + `maxMessagesPerSecond=${this.maxMessagesPerSecond}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
-        conference.on(
-            JitsiConferenceEvents.USER_JOINED,
-            this.participantJoined);
 
         this.participantLeft = this.participantLeft.bind(this);
         conference.on(
@@ -256,6 +253,18 @@ export default class E2ePing {
         conference.on(
             JitsiConferenceEvents.DATA_CHANNEL_OPENED,
             this.dataChannelOpened);
+
+        this.conferenceJoined = this.conferenceJoined.bind(this);
+        conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, this.conferenceJoined);
+    }
+
+    /**
+     * Delay processing USER_JOINED events until the MUC is fully joined,
+     * otherwise the apparent conference size will be wrong.
+     */
+    conferenceJoined() {
+        this.conference.getParticipants().forEach(p => this.participantJoined(p.getId(), p));
+        this.conference.on(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
     }
 
     /**
