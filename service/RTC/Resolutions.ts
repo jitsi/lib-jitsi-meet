@@ -3,7 +3,7 @@ export type Resolution = {
     height: number;
 }
 
-export const resolutions = {
+const _resolutions = {
     '2160': {
         width: 3840,
         height: 2160
@@ -58,7 +58,11 @@ export const resolutions = {
     }
 };
 
-export type Resolutions = keyof typeof resolutions;
+export type Resolutions = keyof typeof _resolutions;
+
+type ResolutionMap = {
+    +readonly [ Property in Resolutions ]: Resolution;
+};
 
 // this is here to ensure that all members of the resolutions constant are of type Resolution
-const typeGuard: { [ key: string ]: Resolution } = resolutions;
+export const resolutions: ResolutionMap = _resolutions;

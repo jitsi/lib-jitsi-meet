@@ -2,7 +2,7 @@ export declare type Resolution = {
     width: number;
     height: number;
 };
-export declare const resolutions: {
+declare const _resolutions: {
     '2160': {
         width: number;
         height: number;
@@ -56,4 +56,9 @@ export declare const resolutions: {
         height: number;
     };
 };
-export declare type Resolutions = keyof typeof resolutions;
+export declare type Resolutions = keyof typeof _resolutions;
+declare type ResolutionMap = {
+    +readonly [Property in Resolutions]: Resolution;
+};
+export declare const resolutions: ResolutionMap;
+export {};
