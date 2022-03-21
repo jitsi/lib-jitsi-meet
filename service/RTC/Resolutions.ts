@@ -61,4 +61,4 @@ export const resolutions = {
 export type Resolutions = keyof typeof resolutions;
 
 // this is here to ensure that all members of the resolutions constant are of type Resolution
-const typeGuard: { [ key: string | Resolutions ]: Resolution } = resolutions;
+const typeGuard: { [ key: string ]: Resolution } = resolutions;
