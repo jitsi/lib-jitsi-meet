@@ -210,7 +210,7 @@ export default class LocalSdpMunger {
                     const trackId = streamAndTrackIDs[1];
 
                     // eslint-disable-next-line max-depth
-                    if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
+                    if (FeatureFlags.isSourceNameSignalingEnabled()) {
 
                         // eslint-disable-next-line max-depth
                         if (streamId === '-' || !streamId) {
@@ -367,7 +367,13 @@ export default class LocalSdpMunger {
         for (const source of sources) {
             const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
             const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid')?.value;
-            const trackIndex = msid ? msid.split('-')[2] : null;
+            let trackIndex;
+
+            if (msid) {
+                const streamId = msid.split(' ')[0];
+
+                trackIndex = streamId.split('-')[2];
+            }
 
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
