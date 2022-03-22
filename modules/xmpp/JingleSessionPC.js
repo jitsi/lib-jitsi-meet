@@ -1885,8 +1885,10 @@ export default class JingleSessionPC extends JingleSession {
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
             if (this.usesUnifiedPlan) {
+                let mid;
+
                 lines.forEach(line => {
-                    const mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
+                    mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
 
                     if (mid > -1) {
                         remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
@@ -1905,6 +1907,15 @@ export default class JingleSessionPC extends JingleSession {
                         }
                     }
                 });
+
+                // Reject the m-line so that the browser removes the associated transceiver from the list of available
+                // transceivers. This will prevent the client from trying to re-use these inactive transceivers when
+                // additional video sources are added to the peerconnection.
+                if (mid > -1 && !this.isP2P && FeatureFlags.isMultiStreamSupportEnabled()) {
+                    const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
+
+                    remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
+                }
             } else {
                 lines.forEach(line => {
                     remoteSdp.media[idx] = remoteSdp.media[idx].replace(`${line}\r\n`, '');
@@ -2049,6 +2060,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const replaceTracks = [];
         const workFunction = finishedCallback => {
+            const oldLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
 
             // Add transceivers by adding a new mline in the remote description for each track.
@@ -2056,14 +2068,33 @@ export default class JingleSessionPC extends JingleSession {
                 remoteSdp.addMlineForNewLocalSource(track.getType());
             }
 
-            // Always initiate a responder renegotiate since the new m-line is added to remote SDP.
             const remoteDescription = new RTCSessionDescription({
                 type: 'offer',
                 sdp: remoteSdp.raw
             });
 
+            // Always initiate a responder renegotiate since the new m-line is added to remote SDP.
             this._responderRenegotiate(remoteDescription)
-                .then(() => finishedCallback(), error => finishedCallback(error));
+                .then(() => {
+                    // Replace the tracks on the newly generated transceivers.
+                    for (const track of localTracks) {
+                        replaceTracks.push(this.peerconnection.replaceTrack(null, track));
+                    }
+
+                    return Promise.all(replaceTracks);
+                })
+
+                // Trigger a renegotiation here since renegotiations are suppressed at TPC.replaceTrack for screenshare
+                // tracks. This is done here so that presence for screenshare tracks is sent before signaling.
+                .then(() => this._renegotiate())
+                .then(() => {
+                    const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+                    // Signal the new sources to the peer.
+                    this.notifyMySSRCUpdate(oldLocalSDP, newLocalSDP);
+                    finishedCallback();
+                })
+                .catch(error => finishedCallback(error));
         };
 
         return new Promise((resolve, reject) => {
@@ -2077,15 +2108,7 @@ export default class JingleSessionPC extends JingleSession {
                         reject(error);
                     } else {
                         logger.debug(`${this} renegotiation after addTrack executed - OK`);
-
-                        // Replace the tracks on the newly generated transceivers.
-                        for (const track of localTracks) {
-                            replaceTracks.push(this.replaceTrack(null, track));
-                        }
-
-                        return Promise.all(replaceTracks)
-                            .then(() => resolve())
-                            .catch(() => reject());
+                        resolve();
                     }
                 });
         });
