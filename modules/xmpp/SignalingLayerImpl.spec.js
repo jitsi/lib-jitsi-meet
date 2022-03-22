@@ -398,19 +398,5 @@ describe('SignalingLayerImpl', () => {
 
             expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeUndefined();
         });
-        it('when it\'s no longer in the presence', () => {
-            chatRoom.mockSourceInfoPresence(endpointId, {
-                '12345678-v0': { muted: false }
-            });
-
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeDefined();
-
-            chatRoom.mockSourceInfoPresence(endpointId, {
-                '12345678-v1': { muted: false }
-            });
-
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeUndefined();
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v1')).toBeDefined();
-        });
     });
 });

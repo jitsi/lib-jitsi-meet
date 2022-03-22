@@ -351,7 +351,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     getPeerSourceInfo(owner, sourceName) {
-        return this._remoteSourceState[owner] ? this._remoteSourceState[owner][sourceName] : undefined;
+        const mediaInfo = {
+            muted: true, // muted by default
+            videoType: VideoType.CAMERA // 'camera' by default
+        };
+
+        return this._remoteSourceState[owner]
+            ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
+            : undefined;
     }
 
     /**
