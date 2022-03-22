@@ -923,8 +923,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`
         + `type=${mediaType},sourceName=${sourceName}]`);
 
-    const peerMediaInfo
-        = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
+    const peerMediaInfo = FeatureFlags.isSourceNameSignalingEnabled()
+        ? this.signalingLayer.getPeerSourceInfo(ownerEndpointId, sourceName)
+        : this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
 
     if (!peerMediaInfo) {
         GlobalOnErrorHandler.callErrorHandler(
