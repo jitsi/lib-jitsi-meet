@@ -1735,7 +1735,7 @@ JitsiConference.prototype.revokeOwner = function(id) {
     const role = this.isMembersOnly() ? 'member' : 'none';
 
     if (isMyself) {
-        this.room.setAffiliation(this.room.myroomjid, role);
+        this.room.setAffiliation(this.connection.getJid(), role);
     } else if (participant) {
         this.room.setAffiliation(participant.getConnectionJid(), role);
     }
