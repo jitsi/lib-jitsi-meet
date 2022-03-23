@@ -293,6 +293,20 @@ export default class TraceablePeerConnection {
      */
     isSimulcastOn(): boolean;
     /**
+     * Handles remote source mute and unmute changed events.
+     *
+     * @param {string} sourceName - The name of the remote source.
+     * @param {boolean} isMuted - The new mute state.
+     */
+    _sourceMutedChanged(sourceName: string, isMuted: boolean): void;
+    /**
+     * Handles remote source videoType changed events.
+     *
+     * @param {string} sourceName - The name of the remote source.
+     * @param {boolean} isMuted - The new value.
+     */
+    _sourceVideoTypeChanged(sourceName: string, videoType: any): void;
+    /**
      * Obtains audio levels of the remote audio tracks by getting the source information on the RTCRtpReceivers.
      * The information relevant to the ssrc is updated each time a RTP packet constaining the ssrc is received.
      * @param {Array<string>} speakerList list of endpoint ids for which audio levels are to be gathered.

@@ -6,6 +6,8 @@ describe( "/service/RTC/SignalingEvents members", () => {
     const {
         PEER_MUTED_CHANGED,
         PEER_VIDEO_TYPE_CHANGED,
+        SOURCE_MUTED_CHANGED,
+        SOURCE_VIDEO_TYPE_CHANGED,
         SignalingEvents,
         ...others
     } = exported;
@@ -13,6 +15,8 @@ describe( "/service/RTC/SignalingEvents members", () => {
     it( "known members", () => {
         expect( PEER_MUTED_CHANGED ).toBe( 'signaling.peerMuted' );
         expect( PEER_VIDEO_TYPE_CHANGED ).toBe( 'signaling.peerVideoType' );
+        expect( SOURCE_MUTED_CHANGED ).toBe( 'signaling.sourceMuted');
+        expect( SOURCE_VIDEO_TYPE_CHANGED ).toBe( 'signaling.sourceVideoType');
 
         expect( SignalingEvents ).toBeDefined();
 
