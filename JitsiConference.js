@@ -1721,7 +1721,7 @@ JitsiConference.prototype.grantOwner = function(id) {
     if (!participant) {
         return;
     }
-    this.room.setAffiliation(participant.getJid(), 'owner');
+    this.room.setAffiliation(participant.getConnectionJid(), 'owner');
 };
 
 /**
@@ -1737,10 +1737,9 @@ JitsiConference.prototype.revokeOwner = function(id) {
     if (isMyself) {
         this.room.setAffiliation(this.room.myroomjid, role);
     } else if (participant) {
-        this.room.setAffiliation(participant.getJid(), role);
+        this.room.setAffiliation(participant.getConnectionJid(), role);
     }
 };
-
 
 /**
  * Kick participant from this conference.
@@ -1844,6 +1843,7 @@ JitsiConference.prototype.onMemberJoined = function(
     const participant
         = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
+    participant.setConnectionJid(fullJid);
     participant.setRole(role);
     participant.setBotType(botType);
     participant.setFeatures(features);
