@@ -200,9 +200,8 @@ describe('SignalingLayerImpl', () => {
                 // Just once event though the legacy presence is there as well
                 expect(emitterSpy).toHaveBeenCalledTimes(1);
                 expect(emitterSpy).toHaveBeenCalledWith(
-                    SignalingEvents.PEER_MUTED_CHANGED,
-                    'endpoint1',
-                    'audio',
+                    SignalingEvents.SOURCE_MUTED_CHANGED,
+                    '12345678-a0',
                     true
                 );
             });

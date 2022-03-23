@@ -218,10 +218,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
                 if (oldSourceState.muted !== newMutedState) {
                     oldSourceState.muted = newMutedState;
-                    if (emitEventsFromHere && mediaType === MediaType.AUDIO) {
-                        emitAudioMutedEvent(endpointId, newMutedState);
-                    } else {
-                        emitVideoMutedEvent(endpointId, newMutedState);
+                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
+                        this.eventEmitter.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
                     }
                 }
 
@@ -233,11 +231,11 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
 
-                    // videoType is not allowed to change on a given JitsiLocalTrack when multi stream support is
-                    // enabled.
-                    emitEventsFromHere
-                        && !FeatureFlags.isMultiStreamSupportEnabled()
-                        && emitVideoTypeEvent(endpointId, newVideoType);
+                    // Since having a mix of eps that do/don't support multi-stream in the same call is supported, emit
+                    // SOURCE_VIDEO_TYPE_CHANGED event when the remote source changes videoType.
+                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
+                        this.eventEmitter.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
+                    }
                 }
             }
 
