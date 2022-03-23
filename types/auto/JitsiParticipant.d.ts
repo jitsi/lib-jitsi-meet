@@ -203,5 +203,17 @@ export default class JitsiParticipant {
      */
     setBotType(newBotType: string): void;
     _botType: string;
+    /**
+     * Returns the connection jid for the participant.
+     *
+     * @returns {string|undefined} - The connection jid of the participant.
+     */
+    getConnectionJid(): string | undefined;
+    /**
+     * Sets the connection jid for the participant.
+     * @param {String} newJid - The connection jid to set.
+     */
+    setConnectionJid(newJid: string): void;
+    _connectionJid: string;
 }
 import { MediaType } from "./service/RTC/MediaType";

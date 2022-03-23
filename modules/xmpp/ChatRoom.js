@@ -1230,7 +1230,7 @@ export default class ChatRoom extends Listenable {
         .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
         .c('item', {
             affiliation,
-            nick: Strophe.getResourceFromJid(jid)
+            jid: Strophe.getBareJidFromJid(jid)
         })
         .c('reason').t(`Your affiliation has been changed to '${affiliation}'.`)
         .up().up().up();
@@ -1376,7 +1376,7 @@ export default class ChatRoom extends Listenable {
                             xmlns: 'http://jabber.org/protocol/muc#admin' })
                         .c('item', {
                             'affiliation': 'member',
-                            'jid': m.jid
+                            'jid': Strophe.getBareJidFromJid(m.jid)
                         }).up().up());
                 }
             });
