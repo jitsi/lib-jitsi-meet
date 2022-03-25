@@ -168,9 +168,8 @@ describe('Transform msids for source-name signaling', () => {
     const tpc = new MockPeerConnection('1', false);
     const localEndpointId = 'sRdpsdg';
 
-    FeatureFlags.init({ });
     const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
-    let audioMsidLine, audioMsid, videoMsidLine, videoMsid;
+    let audioMsid, audioMsidLine, videoMsid, videoMsidLine;
     const transformStreamIdentifiers = () => {
         const sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
         const desc = new RTCSessionDescription({
@@ -187,6 +186,7 @@ describe('Transform msids for source-name signaling', () => {
     };
 
     it('should not transform', () => {
+        FeatureFlags.init({ sourceNameSignaling: false });
         transformStreamIdentifiers();
 
         expect(audioMsid).toBe('dcbb0236-cea5-402e-9e9a-595c65ffcc2a-1');
