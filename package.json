@@ -18,7 +18,7 @@
   "dependencies": {
     "@jitsi/js-utils": "2.0.0",
     "@jitsi/logger": "2.0.0",
-    "@jitsi/sdp-interop": "https://git@github.com/jitsi/sdp-interop#dbd765c99e50a7f18bea75d0b6fb07dc58691076",
+    "@jitsi/sdp-interop": "https://git@github.com/jitsi/sdp-interop#3d49eb4aa26863a3f8d32d7581cdb4321244266b",
     "@jitsi/sdp-simulcast": "0.4.0",
     "async": "0.9.0",
     "base64-js": "1.3.1",

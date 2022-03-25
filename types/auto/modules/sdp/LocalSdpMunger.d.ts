@@ -16,6 +16,8 @@ export default class LocalSdpMunger {
     constructor(tpc: any, localEndpointId: string);
     tpc: any;
     localEndpointId: string;
+    audioSourcesToMsidMap: Map<any, any>;
+    videoSourcesToMsidMap: Map<any, any>;
     /**
      * Makes sure that muted local video tracks associated with the parent
      * {@link TraceablePeerConnection} are described in the local SDP. It's done
