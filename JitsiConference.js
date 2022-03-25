@@ -2165,10 +2165,22 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
  * Handles an incoming call event for the P2P jingle session.
  */
 JitsiConference.prototype._onIncomingCallP2P = function(jingleSession, jingleOffer) {
-
     let rejectReason;
+    const usesUnifiedPlan = browser.supportsUnifiedPlan()
+        && (!browser.isChromiumBased() || (this.options.config.enableUnifiedOnChrome ?? true));
+    const contentName = jingleOffer.find('>content').attr('name');
+    const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
 
-    if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) || browser.isFirefox() || browser.isWebKitBased()) {
+    // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
+    if (usesUnifiedPlan !== peerUsesUnifiedPlan) {
+        rejectReason = {
+            reason: 'decline',
+            reasonDescription: 'P2P disabled',
+            errorMsg: 'P2P across two endpoints in different SDP modes is disabled'
+        };
+    } else if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled())
+        || browser.isFirefox()
+        || browser.isWebKitBased()) {
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',
