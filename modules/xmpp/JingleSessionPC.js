@@ -868,39 +868,33 @@ export default class JingleSessionPC extends JingleSession {
      * @param contents
      */
     readSsrcInfo(contents) {
-        const ssrcs
-            = $(contents).find(
-                '>description>'
-                    + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+        const ssrcs = $(contents).find('>description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
         ssrcs.each((i, ssrcElement) => {
             const ssrc = Number(ssrcElement.getAttribute('ssrc'));
 
+            if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                if (ssrcElement.hasAttribute('name')) {
+                    const sourceName = ssrcElement.getAttribute('name');
+
+                    this._signalingLayer.setTrackSourceName(ssrc, sourceName);
+                }
+            }
+
             if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
-                this._signalingLayer.setSSRCOwner(
-                    ssrc, Strophe.getResourceFromJid(this.remoteJid));
+                this._signalingLayer.setSSRCOwner(ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
-                if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                    // Only set sourceName for non-P2P case
-                    if (ssrcElement.hasAttribute('name')) {
-                        const sourceName = ssrcElement.getAttribute('name');
-
-                        this._signalingLayer.setTrackSourceName(ssrc, sourceName);
-                    }
-                }
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
                     .each((i3, ssrcInfoElement) => {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
-                        if (owner && owner.length) {
+                        if (owner?.length) {
                             if (isNaN(ssrc) || ssrc < 0) {
                                 logger.warn(`${this} Invalid SSRC ${ssrc} value received for ${owner}`);
                             } else {
-                                this._signalingLayer.setSSRCOwner(
-                                    ssrc,
-                                    getEndpointId(owner));
+                                this._signalingLayer.setSSRCOwner(ssrc, getEndpointId(owner));
                             }
                         }
                     });
