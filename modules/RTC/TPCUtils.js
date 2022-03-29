@@ -298,6 +298,7 @@ export class TPCUtils {
             // that the highest resolution stream is available always. Safari is an exception here since it does not
             // send the desktop stream at all if only the high resolution stream is enabled.
             if (this.pc.isSharingLowFpsScreen()
+                && localVideoTrack.getVideoType() === VideoType.DESKTOP
                 && this.pc.usesUnifiedPlan()
                 && !browser.isWebKitBased()
                 && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
@@ -451,8 +452,9 @@ export class TPCUtils {
         logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
         transceivers.forEach((transceiver, idx) => {
             if (active) {
-                // The first transceiver is for the local track and only this one can be set to 'sendrecv'
-                if (idx === 0 && localTracks.length) {
+                // The first transceiver is for the local track and only this one can be set to 'sendrecv'.
+                // When multi-stream is enabled, there can be multiple transceivers with outbound streams.
+                if ((idx === 0 && localTracks.length) || FeatureFlags.isMultiStreamSupportEnabled()) {
                     transceiver.direction = MediaDirection.SENDRECV;
                 } else {
                     transceiver.direction = MediaDirection.RECVONLY;
