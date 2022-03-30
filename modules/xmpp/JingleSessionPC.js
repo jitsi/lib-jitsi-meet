@@ -2653,14 +2653,15 @@ export default class JingleSessionPC extends JingleSession {
                 sid: this.sid
             }
             );
-        const removedAnySSRCs = sdpDiffer.toJingle(remove);
+
+        sdpDiffer.toJingle(remove);
 
         // context a common object for one run of ssrc update (source-add and source-remove) so we can match them if we
         // need to
         const ctx = {};
         const removedSsrcInfo = getSignaledSourceInfo(sdpDiffer);
 
-        if (removedAnySSRCs && removedSsrcInfo.ssrcs.length) {
+        if (removedSsrcInfo.ssrcs.length) {
             // Log only the SSRCs instead of the full IQ.
             logger.info(`${this} Sending source-remove for ${removedSsrcInfo.mediaType}`
                 + ` ssrcs=${removedSsrcInfo.ssrcs}`);
@@ -2687,10 +2688,10 @@ export default class JingleSessionPC extends JingleSession {
             }
             );
 
-        const containsNewSSRCs = sdpDiffer.toJingle(add);
+        sdpDiffer.toJingle(add);
         const addedSsrcInfo = getSignaledSourceInfo(sdpDiffer);
 
-        if (containsNewSSRCs && addedSsrcInfo.ssrcs.length) {
+        if (addedSsrcInfo.ssrcs.length) {
             // Log only the SSRCs instead of the full IQ.
             logger.info(`${this} Sending source-add for ${addedSsrcInfo.mediaType} ssrcs=${addedSsrcInfo.ssrcs}`);
             this.connection.sendIQ(

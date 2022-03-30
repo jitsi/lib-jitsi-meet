@@ -454,7 +454,7 @@ export class TPCUtils {
             if (active) {
                 // The first transceiver is for the local track and only this one can be set to 'sendrecv'.
                 // When multi-stream is enabled, there can be multiple transceivers with outbound streams.
-                if ((idx === 0 && localTracks.length) || FeatureFlags.isMultiStreamSupportEnabled()) {
+                if (idx < localTracks.length) {
                     transceiver.direction = MediaDirection.SENDRECV;
                 } else {
                     transceiver.direction = MediaDirection.RECVONLY;
