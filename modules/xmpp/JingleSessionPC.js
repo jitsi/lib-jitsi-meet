@@ -1697,6 +1697,8 @@ export default class JingleSessionPC extends JingleSession {
                 });
             });
 
+            let midFound = false;
+
             /* eslint-enable no-invalid-this */
             currentRemoteSdp.media.forEach((media, i2) => {
                 if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
@@ -1706,7 +1708,14 @@ export default class JingleSessionPC extends JingleSession {
                     addSsrcInfo[i2] = '';
                 }
                 addSsrcInfo[i2] += lines;
+                midFound = true;
             });
+
+            // In p2p unified mode with multi-stream enabled, the new sources will have content name that doesn't exist
+            // in the current remote description. Add a new m-line for this newly signaled source.
+            if (!midFound && this.isP2P && FeatureFlags.isSourceNameSignalingEnabled()) {
+                addSsrcInfo[name] = lines;
+            }
         });
 
         return addSsrcInfo;
@@ -1929,8 +1938,17 @@ export default class JingleSessionPC extends JingleSession {
      *  in removeSsrcInfo
      */
     _processRemoteAddSource(addSsrcInfo) {
-        const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
 
+        // Add a new m-line in the remote description if the source info for a secondary video source is recceived from
+        // the remote p2p peer when multi-stream support is enabled.
+        if (addSsrcInfo.length > remoteSdp.media.length
+            && FeatureFlags.isSourceNameSignalingEnabled()
+            && this.isP2P
+            && this.usesUnifiedPlan) {
+            remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
+            remoteSdp = new SDP(remoteSdp.raw);
+        }
         addSsrcInfo.forEach((lines, idx) => {
             remoteSdp.media[idx] += lines;
 
@@ -2635,17 +2653,18 @@ export default class JingleSessionPC extends JingleSession {
                 sid: this.sid
             }
             );
-        const removedAnySSRCs = sdpDiffer.toJingle(remove);
+
+        sdpDiffer.toJingle(remove);
 
         // context a common object for one run of ssrc update (source-add and source-remove) so we can match them if we
         // need to
         const ctx = {};
+        const removedSsrcInfo = getSignaledSourceInfo(sdpDiffer);
 
-        if (removedAnySSRCs) {
-            const sourceInfo = getSignaledSourceInfo(sdpDiffer);
-
+        if (removedSsrcInfo.ssrcs.length) {
             // Log only the SSRCs instead of the full IQ.
-            logger.info(`${this} Sending source-remove for ${sourceInfo.mediaType} ssrcs=${sourceInfo.ssrcs}`);
+            logger.info(`${this} Sending source-remove for ${removedSsrcInfo.mediaType}`
+                + ` ssrcs=${removedSsrcInfo.ssrcs}`);
             this.connection.sendIQ(
                 remove,
                 () => {
@@ -2669,20 +2688,19 @@ export default class JingleSessionPC extends JingleSession {
             }
             );
 
-        const containsNewSSRCs = sdpDiffer.toJingle(add);
+        sdpDiffer.toJingle(add);
+        const addedSsrcInfo = getSignaledSourceInfo(sdpDiffer);
 
-        if (containsNewSSRCs) {
-            const sourceInfo = getSignaledSourceInfo(sdpDiffer);
-
+        if (addedSsrcInfo.ssrcs.length) {
             // Log only the SSRCs instead of the full IQ.
-            logger.info(`${this} Sending source-add for ${sourceInfo.mediaType} ssrcs=${sourceInfo.ssrcs}`);
+            logger.info(`${this} Sending source-add for ${addedSsrcInfo.mediaType} ssrcs=${addedSsrcInfo.ssrcs}`);
             this.connection.sendIQ(
                 add,
                 () => {
                     this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
                 },
                 this.newJingleErrorHandler(add, error => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, sourceInfo.mediaType, ctx);
+                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, addedSsrcInfo.mediaType, ctx);
                 }),
                 IQ_TIMEOUT);
         }

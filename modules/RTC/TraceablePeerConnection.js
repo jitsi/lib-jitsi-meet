@@ -1977,7 +1977,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     // Send the presence before signaling for a new screenshare source. This is needed for multi-stream support since
     // videoType needs to be availble at remote track creation time so that a fake tile for screenshare can be added.
     // FIXME - This check needs to be removed when the client switches to the bridge based signaling for tracks.
-    const isNewTrackScreenshare = !oldTrack && newTrack?.getVideoType() === VideoType.DESKTOP;
+    const isNewTrackScreenshare = !oldTrack
+        && newTrack?.getVideoType() === VideoType.DESKTOP
+        && FeatureFlags.isMultiStreamSupportEnabled();
     const negotiationNeeded = !isNewTrackScreenshare && Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
 
     if (this._usesUnifiedPlan) {
@@ -2015,6 +2017,8 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                 // this connection again.
                 if (transceiver && mediaActive) {
                     transceiver.direction = newTrack ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+                } else if (transceiver) {
+                    transceiver.direction = MediaDirection.INACTIVE;
                 }
 
                 // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
