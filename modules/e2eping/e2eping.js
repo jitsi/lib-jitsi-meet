@@ -157,9 +157,17 @@ class ParticipantWrapper {
         }
 
         if (numRequestsWithResponses >= this.e2eping.numRequests) {
-            logger.info(`Measured RTT=${rtt} ms to ${this.id} (in ${this.participant.getProperty('region')})`);
+            const region = this.participant.getProperty('region');
+            logger.info(`Measured RTT=${rtt} ms to ${this.id} (in ${region})`);
             this.stop();
 
+            this.e2eping.conference.eventEmitter.emit(
+                JitsiConferenceEvents.PARTICIPANT_E2ERTT_RECEIVED,
+                {
+                    rtt: rtt,
+                    remoteEndpointId: this.id,
+                    remoteRegion:  region
+                });
             return;
         } else if (totalNumRequests > 2 * this.e2eping.numRequests) {
             logger.info(`Stopping e2eping for ${this.id} because we sent ${totalNumRequests} with only `
