@@ -134,7 +134,7 @@ export default function JitsiConference(options) {
     this.xmpp = this.connection?.xmpp;
 
     if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
-        const errmsg = 'A coference with the same name has already been created!';
+        const errmsg = 'A conference with the same name has already been created!';
 
         delete this.connection;
         delete this.xmpp;
