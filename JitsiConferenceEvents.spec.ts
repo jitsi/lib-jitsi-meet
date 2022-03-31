@@ -42,7 +42,6 @@ describe( "/JitsiConferenceEvents members", () => {
         PARTICIPANT_CONN_STATUS_CHANGED,
         PARTCIPANT_FEATURES_CHANGED,
         PARTICIPANT_PROPERTY_CHANGED,
-        PARTICIPANT_E2ERTT_RECEIVED,
         P2P_STATUS,
         PHONE_NUMBER_CHANGED,
         PROPERTIES_CHANGED,
@@ -120,7 +119,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( PARTICIPANT_CONN_STATUS_CHANGED ).toBe( 'conference.participant_conn_status_changed' );
         expect( PARTCIPANT_FEATURES_CHANGED ).toBe( 'conference.partcipant_features_changed' );
         expect( PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
-        expect( PARTICIPANT_E2ERTT_RECEIVED ).toBe('conference.participant_e2ertt_received');
         expect( P2P_STATUS ).toBe( 'conference.p2pStatus' );
         expect( PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
         expect( PROPERTIES_CHANGED ).toBe( 'conference.propertiesChanged' );

@@ -252,11 +252,6 @@ export enum JitsiConferenceEvents {
     PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed',
 
     /**
-     * Indicates that the end-to-end RTT between the local participant and a remote participant has been measured.
-     */
-    PARTICIPANT_E2ERTT_RECEIVED = 'conference.participant_e2ertt_received',
-
-    /**
      * Indicates that the conference has switched between JVB and P2P connections.
      * The first argument of this event is a <tt>boolean</tt> which when set to
      * <tt>true</tt> means that the conference is running on the P2P connection.
@@ -510,7 +505,6 @@ export const PRIVATE_MESSAGE_RECEIVED = JitsiConferenceEvents.PRIVATE_MESSAGE_RE
 export const PARTICIPANT_CONN_STATUS_CHANGED = JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED;
 export const PARTCIPANT_FEATURES_CHANGED = JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED;
 export const PARTICIPANT_PROPERTY_CHANGED = JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED;
-export const PARTICIPANT_E2ERTT_RECEIVED = JitsiConferenceEvents.PARTICIPANT_E2ERTT_RECEIVED;
 export const P2P_STATUS = JitsiConferenceEvents.P2P_STATUS;
 export const PHONE_NUMBER_CHANGED = JitsiConferenceEvents.PHONE_NUMBER_CHANGED;
 export const PROPERTIES_CHANGED = JitsiConferenceEvents.PROPERTIES_CHANGED;
