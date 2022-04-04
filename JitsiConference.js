@@ -3749,11 +3749,13 @@ JitsiConference.prototype.getSpeakerStats = function() {
 };
 
 /**
- * Sends a facial expression with its duration to the xmpp server.
+ * Sends a face landmarks object to the xmpp server.
  * @param {Object} payload
  */
-JitsiConference.prototype.sendFacialExpression = function(payload) {
-    this.xmpp.sendFacialExpressionEvent(this.room.roomjid, payload);
+JitsiConference.prototype.sendFaceLandmarks = function(payload) {
+    if (payload.faceExpression) {
+        this.xmpp.sendFaceExpressionEvent(this.room.roomjid, payload);
+    }
 };
 
 /**
