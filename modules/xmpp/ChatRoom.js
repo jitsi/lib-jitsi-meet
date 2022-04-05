@@ -1627,7 +1627,7 @@ export default class ChatRoom extends Listenable {
         }
         const data = {
             muted: true, // muted by default
-            videoType: VideoType.CAMERA // 'camera' by default
+            videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
         };
         let mutedNode = null;
 
