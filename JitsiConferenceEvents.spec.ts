@@ -73,7 +73,7 @@ describe( "/JitsiConferenceEvents members", () => {
         AV_MODERATION_CHANGED,
         AV_MODERATION_PARTICIPANT_APPROVED,
         AV_MODERATION_PARTICIPANT_REJECTED,
-        FACIAL_EXPRESSION_ADDED,
+        FACE_LANDMARK_ADDED,
         BREAKOUT_ROOMS_MOVE_TO_ROOM,
         BREAKOUT_ROOMS_UPDATED,
         JitsiConferenceEvents,
@@ -150,7 +150,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( AV_MODERATION_CHANGED ).toBe( 'conference.av_moderation.changed' );
         expect( AV_MODERATION_PARTICIPANT_APPROVED ).toBe( 'conference.av_moderation.participant.approved' );
         expect( AV_MODERATION_PARTICIPANT_REJECTED ).toBe( 'conference.av_moderation.participant.rejected' );
-        expect( FACIAL_EXPRESSION_ADDED ).toBe( 'conference.facial_expression.added' );
+        expect( FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
 
@@ -225,7 +225,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.AV_MODERATION_CHANGED ).toBe( 'conference.av_moderation.changed' );
         expect( JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_APPROVED ).toBe( 'conference.av_moderation.participant.approved' );
         expect( JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_REJECTED ).toBe( 'conference.av_moderation.participant.rejected' );
-        expect( JitsiConferenceEvents.FACIAL_EXPRESSION_ADDED ).toBe( 'conference.facial_expression.added' );
+        expect( JitsiConferenceEvents.FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
     } );

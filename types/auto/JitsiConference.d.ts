@@ -986,10 +986,10 @@ declare class JitsiConference {
      */
     getSpeakerStats(): object;
     /**
-     * Sends a facial expression with its duration to the xmpp server.
+     * Sends a face landmarks object to the xmpp server.
      * @param {Object} payload
      */
-    sendFacialExpression(payload: any): void;
+    sendFaceLandmarks(payload: any): void;
     /**
      * Sets the constraints for the video that is requested from the bridge.
      *

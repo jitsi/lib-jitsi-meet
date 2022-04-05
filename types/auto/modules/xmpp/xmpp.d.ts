@@ -240,11 +240,11 @@ export default class XMPP extends Listenable {
      */
     sendDominantSpeakerEvent(roomJid: string): void;
     /**
-     * Sends facial expression to speaker stats component.
+     * Sends face expressions to speaker stats component.
      * @param {String} roomJid - The room jid where the speaker event occurred.
      * @param {Object} payload - The expression to be sent to the speaker stats.
      */
-    sendFacialExpressionEvent(roomJid: string, payload: any): void;
+    sendFaceExpressionEvent(roomJid: string, payload: any): void;
     /**
      * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
      * parsing it and checking if it has a field called 'type'.
