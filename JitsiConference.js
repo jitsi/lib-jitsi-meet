@@ -3646,6 +3646,8 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
     let presenceChanged = false;
     let muteStatusChanged, videoTypeChanged;
     const localTracks = this.getLocalTracks();
+    const localAudioTracks = jingleSession.peerconnection.getLocalTracks(MediaType.AUDIO);
+    const localVideoTracks = jingleSession.peerconnection.getLocalTracks(MediaType.VIDEO);
 
     // Set presence for all the available local tracks.
     for (const track of localTracks) {
@@ -3653,16 +3655,22 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
         if (track.getType() === MediaType.VIDEO) {
             videoTypeChanged = this._setNewVideoType(track);
         }
-        presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
+        presenceChanged = muteStatusChanged || videoTypeChanged;
     }
 
     // Set the presence in the legacy format if there are no local tracks and multi stream support is not enabled.
-    if (!localTracks.length && !FeatureFlags.isMultiStreamSupportEnabled()) {
-        const audioMuteStatusChanged = this._setTrackMuteStatus(MediaType.AUDIO, undefined, true);
-        const videoMuteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
+    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+        let audioMuteStatusChanged, videoMuteStatusChanged;
 
-        videoTypeChanged = this._setNewVideoType();
-        presenceChanged = audioMuteStatusChanged || videoMuteStatusChanged || videoTypeChanged;
+        if (!localAudioTracks?.length) {
+            audioMuteStatusChanged = this._setTrackMuteStatus(MediaType.AUDIO, undefined, true);
+        }
+        if (!localVideoTracks?.length) {
+            videoMuteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
+            videoTypeChanged = this._setNewVideoType();
+        }
+
+        presenceChanged = presenceChanged || audioMuteStatusChanged || videoMuteStatusChanged || videoTypeChanged;
     }
 
     presenceChanged && this.room.sendPresence();
