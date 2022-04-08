@@ -249,7 +249,7 @@ export default class RTC extends Listenable {
      * @param {string} [wsUrl] WebSocket URL.
      */
     initializeBridgeChannel(peerconnection?: RTCPeerConnection, wsUrl?: string): void;
-    _channelOpenListener: any;
+    _channelOpenListener: () => void;
     /**
      * Receives events when Last N had changed.
      * @param {array} lastNEndpoints The new Last N endpoints.
