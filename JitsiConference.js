@@ -2188,7 +2188,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(jingleSession, jingleOff
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',
-            errorMsg: 'P2P mode disabled in the configuration'
+            errorMsg: 'P2P mode disabled in the configuration or browser unsupported'
         };
     } else if (this.p2pJingleSession) {
         // Reject incoming P2P call (already in progress)
