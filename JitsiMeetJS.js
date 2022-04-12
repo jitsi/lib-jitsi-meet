@@ -12,6 +12,7 @@ import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import RTC from './modules/RTC/RTC';
+import screenObtainer from './modules/RTC/ScreenObtainer';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { ParticipantConnectionStatus }
@@ -268,6 +269,7 @@ export default _mergeNamespaceAndModule({
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {boolean} options.virtualBackgroundSharing
      * @param {intiger} interval - the interval (in ms) for
      * checking whether the desktop sharing extension is installed or not
      * @param {Function} checkAgain - returns boolean. While checkAgain()==true
@@ -294,9 +296,19 @@ export default _mergeNamespaceAndModule({
     createLocalTracks(options = {}, oldfirePermissionPromptIsShownEvent) {
         let promiseFulfilled = false;
 
-        const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
+        const {
+            firePermissionPromptIsShownEvent,
+            fireSlowPromiseEvent,
+            virtualBackgroundSharing,
+            ...restOptions
+        } = options;
         const firePermissionPrompt = firePermissionPromptIsShownEvent || oldfirePermissionPromptIsShownEvent;
 
+        if (virtualBackgroundSharing) {
+            screenObtainer.virtualBackgroundSharing = true;
+        } else {
+            screenObtainer.virtualBackgroundSharing = false;
+        }
         if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
             JitsiMediaDevices.emitEvent(
                 JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
