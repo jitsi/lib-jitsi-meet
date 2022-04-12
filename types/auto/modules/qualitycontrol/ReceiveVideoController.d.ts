@@ -16,8 +16,22 @@ export default class ReceiveVideoController {
     _rtc: any;
     _lastN: any;
     _maxFrameHeight: number;
+    /**
+     * The map that holds the max frame height requested for each remote source when source-name signaling is
+     * enabled.
+     *
+     * @type Map<string, number>
+     */
+    _sourceReceiverConstraints: Map<string, number>;
     _receiverVideoConstraints: ReceiverVideoConstraints;
     _selectedEndpoints: any[];
+    /**
+     * Returns a map of all the remote source names and the corresponding max frame heights.
+     *
+     * @param {number} maxFrameHeight
+     * @returns
+     */
+    _getDefaultSourceReceiverConstraints(mediaSession: any, maxFrameHeight: number): Map<any, any>;
     /**
      * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
      * session. The preferred receive frameHeight is applied on the media session.
