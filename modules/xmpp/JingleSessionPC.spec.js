@@ -26,16 +26,14 @@ function createContentModify(senders = 'both', maxFrameHeight) {
 
 /**
  * Creates 'content-modify' Jingle IQ.
- * @param {string} senders - 'both' or 'none'.
- * @param {number|undefined} maxFrameHeight - the source constraints.
  * @returns {jQuery}
  */
 function createContentModifyForSourceNames() {
     const modifyContentsIq = jQuery.parseXML(
         '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
-        + `<content name="video" senders="both">`
-        + `<source-frame-height maxHeight="180" sourceName="8d519815-v0" xmlns="http://jitsi.org/jitmeet/video"/>`
-        + `<source-frame-height maxHeight="2160" sourceName="8d519815-v1" xmlns="http://jitsi.org/jitmeet/video"/>`
+        + '<content name="video" senders="both">'
+        + '<source-frame-height maxHeight="180" sourceName="8d519815-v0" xmlns="http://jitsi.org/jitmeet/video"/>'
+        + '<source-frame-height maxHeight="2160" sourceName="8d519815-v1" xmlns="http://jitsi.org/jitmeet/video"/>'
         + '</content>'
         + '</jingle>');
 
@@ -175,9 +173,11 @@ describe('JingleSessionPC w/o source-name signaling', () => {
                 expect(sendIQSpy.calls.first().args[0].toString()).toBe(
                     '<iq to="peer2" type="set" xmlns="jabber:client">'
                     + '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
-                    + `<content name="video" senders="both">`
-                    + `<source-frame-height maxHeight="180" sourceName="8d519815-v0" xmlns="http://jitsi.org/jitmeet/video"/>`
-                    + `<source-frame-height maxHeight="2160" sourceName="8d519815-v1" xmlns="http://jitsi.org/jitmeet/video"/>`
+                    + '<content name="video" senders="both">'
+                    + '<source-frame-height maxHeight="180" sourceName="8d519815-v0"'
+                    + ' xmlns="http://jitsi.org/jitmeet/video"/>'
+                    + '<source-frame-height maxHeight="2160" sourceName="8d519815-v1"'
+                    + ' xmlns="http://jitsi.org/jitmeet/video"/>'
                     + '</content>'
                     + '</jingle>'
                     + '</iq>');
