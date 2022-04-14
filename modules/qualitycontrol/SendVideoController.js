@@ -66,19 +66,25 @@ export default class SendVideoController {
     /**
      * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
      * session. It doesn't mean it's already active though. For example the JVB connection may be created after
-     * the conference has entered the p2p mode already.
+-    * the conference has entered the p2p mode already.
      *
      * @param {JingleSessionPC} mediaSession - the started media session.
      * @private
      */
     _onMediaSessionStarted(mediaSession) {
-        mediaSession.addListener(
-            MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-            session => {
-                if (session === this._conference.getActiveMediaSession()) {
-                    this._configureConstraintsForLocalSources();
-                }
-            });
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            mediaSession.addListener(
+                MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
+                (session, sourceConstraints) => {
+                    session === this._conference.getActiveMediaSession()
+                        && sourceConstraints.forEach(constraint => this._onSenderConstraintsReceived(constraint));
+                });
+        } else {
+            mediaSession.addListener(
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
+                session => session === this._conference.getActiveMediaSession()
+                    && this._configureConstraintsForLocalSources());
+        }
     }
 
     /**
@@ -148,7 +154,9 @@ export default class SendVideoController {
         const activeMediaSession = this._conference.getActiveMediaSession();
         const remoteRecvMaxFrameHeight = activeMediaSession
             ? activeMediaSession.isP2P
-                ? activeMediaSession.getRemoteRecvMaxFrameHeight()
+                ? sourceName
+                    ? this._sourceSenderConstraints.get(sourceName)
+                    : activeMediaSession.getRemoteRecvMaxFrameHeight()
                 : sourceName ? this._sourceSenderConstraints.get(sourceName) : this._senderVideoConstraints?.idealHeight
             : undefined;
 
