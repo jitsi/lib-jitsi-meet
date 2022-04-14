@@ -31,7 +31,8 @@ export default class SendVideoController {
     private _configureConstraintsForLocalSources;
     /**
      * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
-     * session.
+     * session. It doesn't mean it's already active though. For example the JVB connection may be created after
+-    * the conference has entered the p2p mode already.
      *
      * @param {JingleSessionPC} mediaSession - the started media session.
      * @private
