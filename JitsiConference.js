@@ -1123,7 +1123,12 @@ JitsiConference.prototype.addTrack = function(track) {
         return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
     }
 
-    return this.replaceTrack(null, track);
+    return this.replaceTrack(null, track)
+        .then(() => {
+            if (track.getVideoType() === VideoType.DESKTOP && FeatureFlags.isMultiStreamSupportEnabled()) {
+                this._updateRoomPresence(this.getActiveMediaSession());
+            }
+        });
 };
 
 /**

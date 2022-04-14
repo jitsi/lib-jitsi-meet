@@ -1977,7 +1977,8 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     // FIXME - This check needs to be removed when the client switches to the bridge based signaling for tracks.
     const isNewTrackScreenshare = !oldTrack
         && newTrack?.getVideoType() === VideoType.DESKTOP
-        && FeatureFlags.isMultiStreamSupportEnabled();
+        && FeatureFlags.isMultiStreamSupportEnabled()
+        && !this.isP2P; // negotiationneeded is not fired on p2p peerconnection
     const negotiationNeeded = !isNewTrackScreenshare && Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
 
     if (this._usesUnifiedPlan) {
