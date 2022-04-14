@@ -1125,6 +1125,9 @@ JitsiConference.prototype.addTrack = function(track) {
 
     return this.replaceTrack(null, track)
         .then(() => {
+            // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
+            // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
+            // only be sent after a session-accept or source-add is ack'ed.
             if (track.getVideoType() === VideoType.DESKTOP && FeatureFlags.isMultiStreamSupportEnabled()) {
                 this._updateRoomPresence(this.getActiveMediaSession());
             }
