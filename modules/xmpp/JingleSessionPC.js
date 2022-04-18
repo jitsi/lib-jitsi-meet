@@ -1012,17 +1012,12 @@ export default class JingleSessionPC extends JingleSession {
                     // The first video track is added to the peerconnection and signaled as part of the session-accept.
                     // Add secondary video tracks (that were already added to conference) to the peerconnection here.
                     // This will happen when someone shares a secondary source to a two people call, the other user
-                    // leaves and joins the call again, a new peerconnection is created for p2p connection. At this
+                    // leaves and joins the call again, a new peerconnection is created for p2p/jvb connection. At this
                     // point, there are 2 video tracks which need to be signaled to the remote peer.
                     const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
 
                     videoTracks.length && videoTracks.splice(0, 1);
                     if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length) {
-                        // Clear the conference field on the secondary local tracks if it was set previously, this is
-                        // needed for correctly identifying the RTCRtpSender for track replacement.
-                        videoTracks.forEach(track => {
-                            track.setConference(null);
-                        });
                         this.addTracks(videoTracks);
                     }
                 },

@@ -354,12 +354,13 @@ export class TPCUtils {
      */
     replaceTrack(oldTrack, newTrack) {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
+        const localTracks = this.pc.getLocalTracks(mediaType);
         const track = newTrack?.getTrack() ?? null;
         const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
-            && this.pc.getLocalTracks(mediaType)?.length
+            && localTracks?.length
             && !oldTrack
             && newTrack
-            && !newTrack.conference;
+            && !localTracks.find(t => t === newTrack);
         let transceiver;
 
         // If old track exists, replace the track on the corresponding sender.
