@@ -40,7 +40,7 @@ function createContentModifyForSourceNames() {
     return $(modifyContentsIq).find('>jingle');
 }
 
-describe('JingleSessionPC w/o source-name signaling', () => {
+describe('JingleSessionPC', () => {
     let jingleSession;
     let connection;
     let rtc;

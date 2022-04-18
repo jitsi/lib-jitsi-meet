@@ -1007,12 +1007,22 @@ export default class JingleSessionPC extends JingleSession {
                 // modify sendSessionAccept method to do that
                 this.sendSessionAccept(() => {
                     success();
-
                     this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT, this);
+
+                    // The first video track is added to the peerconnection and signaled as part of the session-accept.
+                    // Add secondary video tracks (that were already added to conference) to the peerconnection here.
+                    // This will happen when someone shares a secondary source to a two people call, the other user
+                    // leaves and joins the call again, a new peerconnection is created for p2p/jvb connection. At this
+                    // point, there are 2 video tracks which need to be signaled to the remote peer.
+                    const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
+
+                    videoTracks.length && videoTracks.splice(0, 1);
+                    if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length) {
+                        this.addTracks(videoTracks);
+                    }
                 },
                 error => {
                     failure(error);
-
                     this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this, error);
                 });
             },
@@ -1034,20 +1044,10 @@ export default class JingleSessionPC extends JingleSession {
         }
         const workFunction = finishedCallback => {
             const addTracks = [];
-            const audioTracks = localTracks.filter(track => track.getType() === MediaType.AUDIO);
-            const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
-            let tracks = localTracks;
 
-            // Add only 1 video track at a time. Adding 2 or more video tracks to the peerconnection at the same time
-            // makes the browser go into a renegotiation loop by firing 'negotiationneeded' event after every
-            // renegotiation.
-            if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length > 1) {
-                tracks = [ ...audioTracks, videoTracks[0] ];
-            }
-            for (const track of tracks) {
+            for (const track of localTracks) {
                 addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
             }
-            videoTracks.length && videoTracks.splice(0, 1);
 
             Promise.all(addTracks)
                 .then(() => this.peerconnection.createOffer(this.mediaConstraints))
@@ -1056,13 +1056,6 @@ export default class JingleSessionPC extends JingleSession {
                     // NOTE that the offer is obtained from the localDescription getter as it needs to go though
                     // the transformation chain.
                     this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
-                })
-                .then(() => {
-                    if (videoTracks.length) {
-                        return this.addTracks(videoTracks);
-                    }
-
-                    return Promise.resolve();
                 })
                 .then(() => finishedCallback(), error => finishedCallback(error));
         };
@@ -1189,7 +1182,6 @@ export default class JingleSessionPC extends JingleSession {
             for (const track of tracks) {
                 addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
             }
-            videoTracks.length && videoTracks.splice(0, 1);
             const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferAnswerIq);
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
@@ -1205,13 +1197,6 @@ export default class JingleSessionPC extends JingleSession {
 
             Promise.all(addTracks)
                 .then(() => this._renegotiate(newRemoteSdp.raw))
-                .then(() => {
-                    if (videoTracks.length) {
-                        return this.addTracks(videoTracks);
-                    }
-
-                    return Promise.resolve();
-                })
                 .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
