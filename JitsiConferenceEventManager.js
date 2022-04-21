@@ -246,6 +246,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONFERENCE_DESTROYED);
+    chatRoom.addListener(XMPPEvents.MUC_DESTROYED, () => conference.leave());
 
     this.chatRoomForwarder.forward(XMPPEvents.CHAT_ERROR_RECEIVED,
         JitsiConferenceEvents.CONFERENCE_ERROR,
