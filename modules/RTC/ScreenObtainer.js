@@ -215,14 +215,26 @@ const ScreenObtainer = {
         }
 
         const { desktopSharingFrameRate } = this.options;
-        const video = typeof desktopSharingFrameRate === 'object' ? { frameRate: desktopSharingFrameRate } : true;
+        const { setScreenSharingResolutionConstraints } = this.options.testing;
+        const video = {};
+
+        if (typeof desktopSharingFrameRate === 'object') {
+            video.frameRate = desktopSharingFrameRate;
+        }
+        if (setScreenSharingResolutionConstraints) {
+            // Set bogus resolution constraints to work around
+            // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311
+            video.height = 99999;
+            video.width = 99999;
+        }
+
         const audio = this._getAudioConstraints();
 
         // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
         video.frameRate && delete video.frameRate.min;
 
         const constraints = {
-            video,
+            video: video || true,
             audio,
             cursor: 'always'
         };
