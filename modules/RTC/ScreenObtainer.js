@@ -215,7 +215,8 @@ const ScreenObtainer = {
         }
 
         const { desktopSharingFrameRate } = this.options;
-        const { setScreenSharingResolutionConstraints } = this.options.testing;
+        const setScreenSharingResolutionConstraints = browser.isChromiumBased()
+            && this.options?.testing?.setScreenSharingResolutionConstraints;
         const video = {};
 
         if (typeof desktopSharingFrameRate === 'object') {
