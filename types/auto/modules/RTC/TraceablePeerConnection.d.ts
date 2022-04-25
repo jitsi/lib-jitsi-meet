@@ -441,14 +441,12 @@ export default class TraceablePeerConnection {
      */
     getLocalSSRC(localTrack: any): number;
     /**
-     * When doing unified plan simulcast, we'll have a set of ssrcs with the
-     * same msid but no ssrc-group, since unified plan signals the simulcast
-     * group via the a=simulcast line.  Unfortunately, Jicofo will complain
-     * if it sees ssrcs with matching msids but no ssrc-group, so we'll inject
-     * an ssrc-group line to make Jicofo happy.
+     * When doing unified plan simulcast, we'll have a set of ssrcs but no ssrc-groups on Firefox. Unfortunately, Jicofo
+     * will complain if it sees ssrcs with matching msids but no ssrc-group, so a ssrc-group line is injected to make
+     * Jicofo happy.
+     *
      * @param desc A session description object (with 'type' and 'sdp' fields)
-     * @return A session description object with its sdp field modified to
-     * contain an inject ssrc-group for simulcast
+     * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
      */
     _injectSsrcGroupForUnifiedSimulcast(desc: any): any;
     _getSSRC(rtcId: any): {

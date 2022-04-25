@@ -1428,54 +1428,56 @@ TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
 };
 
 /**
- * When doing unified plan simulcast, we'll have a set of ssrcs with the
- * same msid but no ssrc-group, since unified plan signals the simulcast
- * group via the a=simulcast line.  Unfortunately, Jicofo will complain
- * if it sees ssrcs with matching msids but no ssrc-group, so we'll inject
- * an ssrc-group line to make Jicofo happy.
+ * When doing unified plan simulcast, we'll have a set of ssrcs but no ssrc-groups on Firefox. Unfortunately, Jicofo
+ * will complain if it sees ssrcs with matching msids but no ssrc-group, so a ssrc-group line is injected to make
+ * Jicofo happy.
+ *
  * @param desc A session description object (with 'type' and 'sdp' fields)
- * @return A session description object with its sdp field modified to
- * contain an inject ssrc-group for simulcast
+ * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
  */
-TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
-    = function(desc) {
-        const sdp = transform.parse(desc.sdp);
-        const video = sdp.media.find(mline => mline.type === 'video');
+TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function(desc) {
+    const sdp = transform.parse(desc.sdp);
+    const video = sdp.media.find(mline => mline.type === 'video');
 
-        // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
-        video.ssrcGroups = video.ssrcGroups || [];
-        const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
+    // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
+    video.ssrcGroups = video.ssrcGroups || [];
+    const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
 
-        if (video.simulcast || video.simulcast_03) {
-            const ssrcs = [];
+    if (video.simulcast || video.simulcast_03) {
+        const ssrcs = [];
 
-            if (fidGroups && fidGroups.length) {
-                fidGroups.forEach(group => {
-                    ssrcs.push(group.ssrcs.split(' ')[0]);
-                });
-            } else {
-                video.ssrcs.forEach(ssrc => {
-                    if (ssrc.attribute === 'msid') {
-                        ssrcs.push(ssrc.id);
-                    }
-                });
-            }
-            if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
-                // Group already exists, no need to do anything
-                return desc;
-            }
+        if (fidGroups && fidGroups.length) {
+            fidGroups.forEach(group => {
+                ssrcs.push(group.ssrcs.split(' ')[0]);
+            });
+        } else {
+            video.ssrcs.forEach(ssrc => {
+                if (ssrc.attribute === 'msid') {
+                    ssrcs.push(ssrc.id);
+                }
+            });
+        }
+        if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
+            // Group already exists, no need to do anything
+            return desc;
+        }
+
+        // Add a SIM group for every 3 FID groups.
+        for (let i = 0; i < ssrcs.length; i += 3) {
+            const simSsrcs = ssrcs.slice(i, i + 3);
 
             video.ssrcGroups.push({
                 semantics: 'SIM',
-                ssrcs: ssrcs.join(' ')
+                ssrcs: simSsrcs.join(' ')
             });
         }
+    }
 
-        return new RTCSessionDescription({
-            type: desc.type,
-            sdp: transform.write(sdp)
-        });
-    };
+    return new RTCSessionDescription({
+        type: desc.type,
+        sdp: transform.write(sdp)
+    });
+};
 
 /* eslint-disable-next-line vars-on-top */
 const getters = {
