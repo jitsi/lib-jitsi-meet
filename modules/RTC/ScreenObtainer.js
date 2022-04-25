@@ -234,8 +234,12 @@ const ScreenObtainer = {
         // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
         video.frameRate && delete video.frameRate.min;
 
+        if (Object.keys(video).length === 0) {
+            video = true;
+        }
+
         const constraints = {
-            video: video || true,
+            video: video,
             audio,
             cursor: 'always'
         };
