@@ -256,6 +256,11 @@ export default class XMPP extends Listenable {
             logger.info('Source-name signaling is enabled');
             this.caps.addFeature('http://jitsi.org/source-name');
         }
+
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            logger.info('SSRC rewriting is supported');
+            this.caps.addFeature('http://jitsi.org/ssrc-rewriting');
+        }
     }
 
     /**
