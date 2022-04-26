@@ -336,7 +336,8 @@ export class TrackStreamingStatusImpl {
                     status: newStatus
                 }));
 
-            this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, newStatus);
+            // It's common for the event listeners to access the JitsiRemoteTrack. Thus pass it as a parameter here.
+            this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, this.track, newStatus);
         }
     }
 
