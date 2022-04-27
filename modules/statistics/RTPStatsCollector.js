@@ -318,25 +318,27 @@ StatsCollector.prototype._processAndEmitReport = function() {
             // either participantId or sourceName.
             if (FeatureFlags.isSourceNameSignalingEnabled()) {
                 const sourceName = track.getSourceName();
-                
+
                 if (sourceName) {
                     const resolution = ssrcStats.resolution;
-                    
-                    if (resolution.width
+
+                    if (resolution.width // eslint-disable-line max-depth
                         && resolution.height
                         && resolution.width !== -1
                         && resolution.height !== -1) {
                         const sourceResolutions = resolutions[sourceName] || {};
-                        
+
                         sourceResolutions[ssrc] = resolution;
                         resolutions[sourceName] = sourceResolutions;
                     }
-                    if (ssrcStats.framerate !== 0) {
+                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
                         const sourceFramerates = framerates[sourceName] || {};
-                        
+
                         sourceFramerates[ssrc] = ssrcStats.framerate;
                         framerates[sourceName] = sourceFramerates;
                     }
+                } else {
+                    logger.error(`No source name returned by ${track}`);
                 }
             }
 
