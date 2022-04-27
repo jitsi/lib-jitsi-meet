@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
@@ -307,6 +308,36 @@ StatsCollector.prototype._processAndEmitReport = function() {
                 videoBitrateDownload += ssrcStats.bitrate.download;
                 videoBitrateUpload += ssrcStats.bitrate.upload;
                 videoCodec = ssrcStats.codec;
+            }
+
+            // Mix { sourceName, { ssrc, resolution } } to resolutions,
+            // which becomes { participantId | sourceName, { ssrc, resolution } }.
+            // Mix { sourceName, { ssrc, framerate } } to framerates,
+            // which becomes participantId | sourceName, { ssrc, resolution } }.
+            // This enables jitsi-meet code to select resolution and framerate by
+            // either participantId or sourceName.
+            if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                const sourceName = track.getSourceName();
+                
+                if (sourceName) {
+                    const resolution = ssrcStats.resolution;
+                    
+                    if (resolution.width
+                        && resolution.height
+                        && resolution.width !== -1
+                        && resolution.height !== -1) {
+                        const sourceResolutions = resolutions[sourceName] || {};
+                        
+                        sourceResolutions[ssrc] = resolution;
+                        resolutions[sourceName] = sourceResolutions;
+                    }
+                    if (ssrcStats.framerate !== 0) {
+                        const sourceFramerates = framerates[sourceName] || {};
+                        
+                        sourceFramerates[ssrc] = ssrcStats.framerate;
+                        framerates[sourceName] = sourceFramerates;
+                    }
+                }
             }
 
             const participantId = track.getParticipantId();
