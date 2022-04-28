@@ -1,4 +1,3 @@
-import exp from "constants";
 import * as exported from "./CodecMimeType";
 
 // this test is brittle on purpose because it's designed to ensure that the TypeScript conversion maintains backward compatibility
