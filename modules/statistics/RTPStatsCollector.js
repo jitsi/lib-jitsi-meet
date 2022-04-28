@@ -310,71 +310,67 @@ StatsCollector.prototype._processAndEmitReport = function() {
                 videoCodec = ssrcStats.codec;
             }
 
-            // Mix { sourceName, { ssrc, resolution } } to resolutions,
-            // which becomes { participantId | sourceName, { ssrc, resolution } }.
-            // Mix { sourceName, { ssrc, framerate } } to framerates,
-            // which becomes participantId | sourceName, { ssrc, resolution } }.
-            // This enables jitsi-meet code to select resolution and framerate by
-            // either participantId or sourceName.
             if (FeatureFlags.isSourceNameSignalingEnabled()) {
                 const sourceName = track.getSourceName();
 
                 if (sourceName) {
                     const resolution = ssrcStats.resolution;
-
-                    if (resolution.width // eslint-disable-line max-depth
-                        && resolution.height
-                        && resolution.width !== -1
-                        && resolution.height !== -1) {
-                        const sourceResolutions = resolutions[sourceName] || {};
-
-                        sourceResolutions[ssrc] = resolution;
-                        resolutions[sourceName] = sourceResolutions;
+    
+                    if (resolution.width
+                            && resolution.height
+                            && resolution.width !== -1
+                            && resolution.height !== -1) {
+                        resolutions[sourceName] = resolution;
                     }
-                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
-                        const sourceFramerates = framerates[sourceName] || {};
-
-                        sourceFramerates[ssrc] = ssrcStats.framerate;
-                        framerates[sourceName] = sourceFramerates;
+                    if (ssrcStats.framerate !== 0) {    
+                        framerates[sourceName] = ssrcStats.framerate;
+                    }
+                    if (audioCodec && videoCodec) {
+                        const codecDesc = {
+                            'audio': audioCodec,
+                            'video': videoCodec
+                        };
+    
+                        codecs[sourceName] = codecDesc;
                     }
                 } else {
                     logger.error(`No source name returned by ${track}`);
                 }
-            }
-
-            const participantId = track.getParticipantId();
-
-            if (participantId) {
-                const resolution = ssrcStats.resolution;
-
-                if (resolution.width
-                        && resolution.height
-                        && resolution.width !== -1
-                        && resolution.height !== -1) {
-                    const userResolutions = resolutions[participantId] || {};
-
-                    userResolutions[ssrc] = resolution;
-                    resolutions[participantId] = userResolutions;
-                }
-                if (ssrcStats.framerate !== 0) {
-                    const userFramerates = framerates[participantId] || {};
-
-                    userFramerates[ssrc] = ssrcStats.framerate;
-                    framerates[participantId] = userFramerates;
-                }
-                if (audioCodec && videoCodec) {
-                    const codecDesc = {
-                        'audio': audioCodec,
-                        'video': videoCodec
-                    };
-
-                    const userCodecs = codecs[participantId] || {};
-
-                    userCodecs[ssrc] = codecDesc;
-                    codecs[participantId] = userCodecs;
-                }
             } else {
-                logger.error(`No participant ID returned by ${track}`);
+                const participantId = track.getParticipantId();
+    
+                if (participantId) {
+                    const resolution = ssrcStats.resolution;
+    
+                    if (resolution.width
+                            && resolution.height
+                            && resolution.width !== -1
+                            && resolution.height !== -1) {
+                        const userResolutions = resolutions[participantId] || {};
+    
+                        userResolutions[ssrc] = resolution;
+                        resolutions[participantId] = userResolutions;
+                    }
+                    if (ssrcStats.framerate !== 0) {
+                        const userFramerates = framerates[participantId] || {};
+    
+                        userFramerates[ssrc] = ssrcStats.framerate;
+                        framerates[participantId] = userFramerates;
+                    }
+                    if (audioCodec && videoCodec) {
+                        const codecDesc = {
+                            'audio': audioCodec,
+                            'video': videoCodec
+                        };
+    
+                        const userCodecs = codecs[participantId] || {};
+    
+                        userCodecs[ssrc] = codecDesc;
+                        codecs[participantId] = userCodecs;
+                    }
+                } else {
+                    logger.error(`No participant ID returned by ${track}`);
+                }
             }
         }
 
