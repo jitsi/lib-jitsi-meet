@@ -12,6 +12,7 @@ declare class FeatureFlags {
     init(flags: any): void;
     _sourceNameSignaling: boolean;
     _sendMultipleVideoStreams: boolean;
+    _ssrcRewriting: boolean;
     _usesUnifiedPlan: any;
     /**
      * Checks if multiple local video streams support is enabled.
@@ -25,4 +26,9 @@ declare class FeatureFlags {
      * @returns {boolean}
      */
     isSourceNameSignalingEnabled(): boolean;
+    /**
+     * Checks if the clients supports re-writing of the SSRCs on the media streams by the bridge.
+     * @returns {boolean}
+     */
+    isSsrcRewritingSupported(): boolean;
 }

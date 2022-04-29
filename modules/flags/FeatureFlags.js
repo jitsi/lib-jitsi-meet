@@ -16,6 +16,7 @@ class FeatureFlags {
     init(flags) {
         this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
         this._sendMultipleVideoStreams = Boolean(flags.sendMultipleVideoStreams);
+        this._ssrcRewriting = Boolean(flags.ssrcRewritingOnBridgeSupported);
 
         // For Chromium, check if Unified plan is enabled.
         this._usesUnifiedPlan = browser.supportsUnifiedPlan()
@@ -23,6 +24,7 @@ class FeatureFlags {
 
         logger.info(`Source name signaling: ${this._sourceNameSignaling},`
             + ` Send multiple video streams: ${this._sendMultipleVideoStreams},`
+            + ` SSRC rewriting supported: ${this._ssrcRewriting},`
             + ` uses Unified plan: ${this._usesUnifiedPlan}`);
     }
 
@@ -42,6 +44,14 @@ class FeatureFlags {
      */
     isSourceNameSignalingEnabled() {
         return this._sourceNameSignaling;
+    }
+
+    /**
+     * Checks if the clients supports re-writing of the SSRCs on the media streams by the bridge.
+     * @returns {boolean}
+     */
+    isSsrcRewritingSupported() {
+        return this._ssrcRewriting;
     }
 }
 
