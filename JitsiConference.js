@@ -1293,11 +1293,9 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
                 this._sendBridgeVideoTypeMessage(newTrack);
             }
 
-            // updates presence when we replace the video tracks desktop with screen and screen with desktop
-            if (oldTrackBelongsToConference && oldTrack?.isVideoTrack()
-
-                // we do not want to send presence update during setEffect switching, which does remove and then add
-                && !(oldTrack?._setEffectInProgress || newTrack?._setEffectInProgress)) {
+            // We do not want to send presence update during setEffect switching, which removes and then adds the same
+            // track back to the conference.
+            if (!(oldTrack?._setEffectInProgress || newTrack?._setEffectInProgress)) {
                 this._updateRoomPresence(this.getActiveMediaSession());
             }
 
@@ -3649,9 +3647,9 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
 
     let presenceChanged = false;
     let muteStatusChanged, videoTypeChanged;
-    const localTracks = this.getLocalTracks();
-    const localAudioTracks = jingleSession.peerconnection.getLocalTracks(MediaType.AUDIO);
-    const localVideoTracks = jingleSession.peerconnection.getLocalTracks(MediaType.VIDEO);
+    const localTracks = jingleSession.peerconnection.getLocalTracks();
+    const localAudioTracks = localTracks.filter(track => track.getType() === MediaType.AUDIO);
+    const localVideoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
 
     // Set presence for all the available local tracks.
     for (const track of localTracks) {
