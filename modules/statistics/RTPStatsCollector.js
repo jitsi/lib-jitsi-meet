@@ -315,22 +315,22 @@ StatsCollector.prototype._processAndEmitReport = function() {
 
                 if (sourceName) {
                     const resolution = ssrcStats.resolution;
-    
-                    if (resolution.width
+
+                    if (resolution.width // eslint-disable-line max-depth
                             && resolution.height
                             && resolution.width !== -1
                             && resolution.height !== -1) {
                         resolutions[sourceName] = resolution;
                     }
-                    if (ssrcStats.framerate !== 0) {    
+                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
                         framerates[sourceName] = ssrcStats.framerate;
                     }
-                    if (audioCodec && videoCodec) {
+                    if (audioCodec && videoCodec) { // eslint-disable-line max-depth
                         const codecDesc = {
                             'audio': audioCodec,
                             'video': videoCodec
                         };
-    
+
                         codecs[sourceName] = codecDesc;
                     }
                 } else {
@@ -338,33 +338,33 @@ StatsCollector.prototype._processAndEmitReport = function() {
                 }
             } else {
                 const participantId = track.getParticipantId();
-    
+
                 if (participantId) {
                     const resolution = ssrcStats.resolution;
-    
-                    if (resolution.width
+
+                    if (resolution.width // eslint-disable-line max-depth
                             && resolution.height
                             && resolution.width !== -1
                             && resolution.height !== -1) {
                         const userResolutions = resolutions[participantId] || {};
-    
+
                         userResolutions[ssrc] = resolution;
                         resolutions[participantId] = userResolutions;
                     }
-                    if (ssrcStats.framerate !== 0) {
+                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
                         const userFramerates = framerates[participantId] || {};
-    
+
                         userFramerates[ssrc] = ssrcStats.framerate;
                         framerates[participantId] = userFramerates;
                     }
-                    if (audioCodec && videoCodec) {
+                    if (audioCodec && videoCodec) { // eslint-disable-line max-depth
                         const codecDesc = {
                             'audio': audioCodec,
                             'video': videoCodec
                         };
-    
+
                         const userCodecs = codecs[participantId] || {};
-    
+
                         userCodecs[ssrc] = codecDesc;
                         codecs[participantId] = userCodecs;
                     }
