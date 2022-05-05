@@ -2284,9 +2284,12 @@ TraceablePeerConnection.prototype._mungeInactive = function(description) {
     const mLines = parsedSdp.media;
 
     for (const mLine of mLines) {
-        mLine.direction = MediaDirection.INACTIVE;
-        mLine.ssrcs = undefined;
-        mLine.ssrcGroups = undefined;
+        // Change the direction of the m-lines that are associated with remote tracks.
+        if (mLine.direction === MediaDirection.SENDONLY) {
+            mLine.direction = MediaDirection.INACTIVE;
+            mLine.ssrcs = undefined;
+            mLine.ssrcGroups = undefined;
+        }
     }
 
     return new RTCSessionDescription({
