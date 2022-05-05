@@ -7,9 +7,11 @@ declare class FeatureFlags {
     /**
      * Configures the module.
      *
+     * @param {boolean} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
      * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
      */
     init(flags: any): void;
+    _runInLiteMode: boolean;
     _sourceNameSignaling: boolean;
     _sendMultipleVideoStreams: boolean;
     _ssrcRewriting: boolean;
@@ -20,6 +22,14 @@ declare class FeatureFlags {
      * @returns {boolean}
      */
     isMultiStreamSupportEnabled(): boolean;
+    /**
+     * Checks if the run in lite mode is enabled.
+     * This will cause any media to be received and not decoded. (Directions are inactive and no ssrc and ssrc-groups
+     * are added to the remote description). This can be used for various test scenarios.
+     *
+     * @returns {boolean}
+     */
+    isRunInLiteModeEnabled(): boolean;
     /**
      * Checks if the source name signaling is enabled.
      *

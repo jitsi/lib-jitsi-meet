@@ -636,6 +636,13 @@ export default class TraceablePeerConnection {
      */
     _mungeOpus(description: RTCSessionDescription): RTCSessionDescription;
     /**
+     * Munges the SDP to set all directions to inactive and drop all ssrc and ssrc-groups.
+     *
+     * @param {RTCSessionDescription} description that needs to be munged.
+     * @returns {RTCSessionDescription} the munged description.
+     */
+    _mungeInactive(description: RTCSessionDescription): RTCSessionDescription;
+    /**
      * Sets up the _dtlsTransport object and initializes callbacks for it.
      */
     _initializeDtlsTransport(): void;
