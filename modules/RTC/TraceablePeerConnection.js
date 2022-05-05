@@ -2274,6 +2274,28 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
 };
 
 /**
+ * Munges the SDP to set all directions to inactive and drop all ssrc and ssrc-groups.
+ *
+ * @param {RTCSessionDescription} description that needs to be munged.
+ * @returns {RTCSessionDescription} the munged description.
+ */
+TraceablePeerConnection.prototype._mungeInactive = function(description) {
+    const parsedSdp = transform.parse(description.sdp);
+    const mLines = parsedSdp.media;
+
+    for (const mLine of mLines) {
+        mLine.direction = MediaDirection.INACTIVE;
+        mLine.ssrcs = undefined;
+        mLine.ssrcGroups = undefined;
+    }
+
+    return new RTCSessionDescription({
+        type: description.type,
+        sdp: transform.write(parsedSdp)
+    });
+};
+
+/**
  * Sets up the _dtlsTransport object and initializes callbacks for it.
  */
 TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
@@ -2415,6 +2437,10 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
             remoteDescription = this.interop.toUnifiedPlan(remoteDescription, currentDescription);
             this.trace('setRemoteDescription::postTransform (Unified)', dumpSDP(remoteDescription));
+
+            if (FeatureFlags.isRunInLiteModeEnabled()) {
+                remoteDescription = this._mungeInactive(remoteDescription);
+            }
         }
         if (this.isSimulcastOn()) {
             // Implode the simulcast ssrcs so that the remote sdp has only the first ssrc in the SIM group.
