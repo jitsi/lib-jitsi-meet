@@ -233,6 +233,7 @@ export default class RTC extends Listenable {
      * @param {string} [wsUrl] WebSocket URL.
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
+        this._closeBridgeChannel();
         this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter);
 
         this._channelOpenListener = () => {
@@ -356,6 +357,14 @@ export default class RTC extends Listenable {
      * PeerConnection has been closed using PeerConnection.close() method.
      */
     onCallEnded() {
+        this._closeBridgeChannel();
+    }
+
+    /**
+     * Close the current Bridge Channel.
+     * @private
+     */
+    _closeBridgeChannel() {
         if (this._channel) {
             // The BridgeChannel is not explicitly closed as the PeerConnection
             // is closed on call ended which triggers datachannel onclose

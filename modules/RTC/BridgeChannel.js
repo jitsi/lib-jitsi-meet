@@ -160,6 +160,9 @@ export default class BridgeChannel {
             try {
                 this._channel.close();
             } catch (error) {} // eslint-disable-line no-empty
+            if (this._wsUrl) {
+                logger.debug(`close() with wsUrl:"${this._wsUrl}"`);
+            }
 
             this._channel = null;
         }
