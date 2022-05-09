@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RTC from '../RTC/RTC';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import SignalingLayerImpl from '../xmpp/SignalingLayerImpl';
@@ -277,7 +277,7 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, this._rtc, configStub);
+        peerConnection.initialize(roomStub, this._rtc, signalingLayer, configStub);
 
         return peerConnection;
     }

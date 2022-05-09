@@ -16,6 +16,7 @@ import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
+import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
@@ -32,7 +33,7 @@ import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
-import * as MediaType from './service/RTC/MediaType';
+import { MediaType } from './service/RTC/MediaType';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
@@ -119,7 +120,8 @@ export default _mergeNamespaceAndModule({
         participantConnectionStatus: ParticipantConnectionStatus,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
-        transcriptionStatus: JitsiTranscriptionStatus
+        transcriptionStatus: JitsiTranscriptionStatus,
+        trackStreamingStatus: TrackStreamingStatus
     },
     events: {
         conference: JitsiConferenceEvents,
@@ -145,10 +147,14 @@ export default _mergeNamespaceAndModule({
         Settings.init(options.externalStorage);
         Statistics.init(options);
 
+        // Multi-stream is supported only on endpoints running in Unified plan mode and the flag to disable unified
+        // plan also needs to be taken into consideration.
+        if (typeof options.enableUnifiedOnChrome !== 'undefined' && options.flags) {
+            options.flags.enableUnifiedOnChrome = options.enableUnifiedOnChrome;
+        }
+
         // Configure the feature flags.
-        FeatureFlags.init({
-            sourceNameSignaling: options.sourceNameSignaling
-        });
+        FeatureFlags.init(options.flags || { });
 
         // Initialize global window.connectionTimes
         // FIXME do not use 'window'

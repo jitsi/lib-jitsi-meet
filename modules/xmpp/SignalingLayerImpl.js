@@ -1,11 +1,11 @@
 import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
-import VideoType from '../../service/RTC/VideoType';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { VideoType } from '../../service/RTC/VideoType';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';
@@ -52,6 +52,16 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * @private
          */
         this._remoteSourceState = { };
+
+        /**
+         * A map that stores the source name of a track identified by it's ssrc.
+         * We store the mapping when jingle is received, and later is used
+         * onaddstream webrtc event where we have only the ssrc
+         * FIXME: This map got filled and never cleaned and can grow during long
+         * conference
+         * @type {Map<number, string>} maps SSRC number to source name
+         */
+        this._sourceNames = new Map();
     }
 
     /**
@@ -62,10 +72,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     _addLocalSourceInfoToPresence() {
         if (this.chatRoom) {
-            this.chatRoom.addOrReplaceInPresence(
+            return this.chatRoom.addOrReplaceInPresence(
                 SOURCE_INFO_PRESENCE_ELEMENT,
                 { value: JSON.stringify(this._localSourceState) });
         }
+
+        return false;
     }
 
     /**
@@ -185,7 +197,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 emitVideoTypeEvent(from, node.value);
             }
         };
-        room.addPresenceListener('videoType', this._videoTypeHandler);
+
+        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+            room.addPresenceListener('videoType', this._videoTypeHandler);
+        }
 
         this._sourceInfoHandler = (node, mucNick) => {
             const endpointId = mucNick;
@@ -203,18 +218,24 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
                 if (oldSourceState.muted !== newMutedState) {
                     oldSourceState.muted = newMutedState;
-                    if (emitEventsFromHere && mediaType === MediaType.AUDIO) {
-                        emitAudioMutedEvent(endpointId, newMutedState);
-                    } else {
-                        emitVideoMutedEvent(endpointId, newMutedState);
+                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
+                        this.eventEmitter.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
                     }
                 }
 
-                const newVideoType = sourceInfoJSON[sourceName].videoType;
+                // Assume a default videoType of 'camera' for video sources.
+                const newVideoType = mediaType === MediaType.VIDEO
+                    ? sourceInfoJSON[sourceName].videoType ?? VideoType.CAMERA
+                    : undefined;
 
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
-                    emitEventsFromHere && emitVideoTypeEvent(endpointId, newVideoType);
+
+                    // Since having a mix of eps that do/don't support multi-stream in the same call is supported, emit
+                    // SOURCE_VIDEO_TYPE_CHANGED event when the remote source changes videoType.
+                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
+                        this.eventEmitter.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
+                    }
                 }
             }
 
@@ -234,6 +255,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
             const endpointId = Strophe.getResourceFromJid(jid);
 
             delete this._remoteSourceState[endpointId];
+
+            if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                for (const [ key, value ] of this.ssrcOwners.entries()) {
+                    if (value === endpointId) {
+                        delete this._sourceNames[key];
+                    }
+                }
+            }
         };
 
         room.addEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
@@ -267,23 +296,26 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(owner, mediaType) {
+    getPeerMediaInfo(owner, mediaType, sourceName) {
         const legacyGetPeerMediaInfo = () => {
             if (this.chatRoom) {
                 return this.chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
             logger.error('Requested peer media info, before room was set');
         };
+        const lastPresence = this.chatRoom.getLastPresence(owner);
+
+        if (!lastPresence) {
+            throw new Error(`getPeerMediaInfo - no presence stored for: ${owner}`);
+        }
 
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            const lastPresence = this.chatRoom.getLastPresence(owner);
-
-            if (!lastPresence) {
-                throw new Error(`getPeerMediaInfo - no presence stored for: ${owner}`);
-            }
-
             if (!this._doesEndpointSendNewSourceInfo(owner)) {
                 return legacyGetPeerMediaInfo();
+            }
+
+            if (sourceName) {
+                return this.getPeerSourceInfo(owner, sourceName);
             }
 
             /**
@@ -320,7 +352,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     getPeerSourceInfo(owner, sourceName) {
-        return this._remoteSourceState[owner] ? this._remoteSourceState[owner][sourceName] : undefined;
+        const mediaInfo = {
+            muted: true, // muted by default
+            videoType: VideoType.CAMERA // 'camera' by default
+        };
+
+        return this._remoteSourceState[owner]
+            ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
+            : undefined;
     }
 
     /**
@@ -369,14 +408,17 @@ export default class SignalingLayerImpl extends SignalingLayer {
             // FIXME This only adjusts the presence, but doesn't actually send it. Here we temporarily rely on
             // the legacy signaling part to send the presence. Remember to add "send presence" here when the legacy
             // signaling is removed.
-            this._addLocalSourceInfoToPresence();
+            return this._addLocalSourceInfoToPresence();
         }
+
+        return false;
     }
 
     /**
      * Sets track's video type.
      * @param {SourceName} sourceName - the track's source name.
      * @param {VideoType} videoType - the new video type.
+     * @returns {boolean}
      */
     setTrackVideoType(sourceName, videoType) {
         if (!this._localSourceState[sourceName]) {
@@ -390,7 +432,39 @@ export default class SignalingLayerImpl extends SignalingLayer {
             // NOTE this doesn't send the actual presence, because is called from the same place where the legacy video
             // type is emitted which does the actual sending. A send presence statement needs to be added when
             // the legacy part is removed.
-            this._addLocalSourceInfoToPresence();
+            return this._addLocalSourceInfoToPresence();
         }
+
+        return false;
     }
+
+    /**
+     * @inheritDoc
+     */
+    getTrackSourceName(ssrc) {
+        return this._sourceNames.get(ssrc);
+    }
+
+    /**
+     * Saves the source name for a track identified by it's ssrc.
+     * @param {number} ssrc the ssrc of the target track.
+     * @param {SourceName} sourceName the track's source name to save.
+     * @throws TypeError if <tt>ssrc</tt> is not a number
+     */
+    setTrackSourceName(ssrc, sourceName) {
+        if (typeof ssrc !== 'number') {
+            throw new TypeError(`SSRC(${ssrc}) must be a number`);
+        }
+
+        // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
+        // an SSRC conflict could potentially occur. Log a message to make debugging easier.
+        const existingName = this._sourceNames.get(ssrc);
+
+        if (existingName && existingName !== sourceName) {
+            logger.error(`SSRC(${ssrc}) sourceName re-assigned from ${existingName} to ${sourceName}`);
+        }
+
+        this._sourceNames.set(ssrc, sourceName);
+    }
+
 }

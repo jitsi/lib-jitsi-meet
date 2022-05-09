@@ -1,8 +1,13 @@
 /**
  * Enumeration of the codec mime types
- * @type {{H264: string, OPUS: string, VP8: string, VP9: string}}
+ * @type {{H264: string, OPUS: string, ULPFEC: string, VP8: string, VP9: string}}
  */
 const CodecMimeType = {
+    /**
+     * AV1 codec mime type.
+     */
+    AV1: 'av1',
+
     /**
      * The h264 codec mime type.
      */
@@ -12,6 +17,11 @@ const CodecMimeType = {
      * The opus codec mime type.
      */
     OPUS: 'opus',
+
+    /**
+     * The ulpfec codec mime type.
+     */
+    ULPFEC: 'ulpfec',
 
     /**
      * The vp8 codec mime type.

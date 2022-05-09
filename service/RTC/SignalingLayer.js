@@ -1,6 +1,6 @@
 
 import Listenable from '../../modules/util/Listenable';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 
 /**
  * @typedef {string} EndpointId
@@ -104,6 +104,15 @@ export default class SignalingLayer extends Listenable {
      * @returns {SourceInfo | undefined}
      */
     getPeerSourceInfo(owner, sourceName) { // eslint-disable-line no-unused-vars
+        throw new Error('not implemented');
+    }
+
+    /**
+     * Obtains the source name for given SSRC.
+     * @param {number} ssrc the track's SSRC identifier.
+     * @returns {SourceName | undefined} the track's source name.
+     */
+    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 }

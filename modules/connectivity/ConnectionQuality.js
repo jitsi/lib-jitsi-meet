@@ -7,8 +7,8 @@ import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQ
 import browser from '../browser';
 
 const Resolutions = require('../../service/RTC/Resolutions');
-const VideoType = require('../../service/RTC/VideoType');
-const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const { VideoType } = require('../../service/RTC/VideoType');
+const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
 const logger = getLogger(__filename);
 
@@ -20,9 +20,9 @@ const STATS_MESSAGE_TYPE = 'stats';
 
 /**
  * The value to use for the "type" field for messages sent
- * over the data channel that contain facial expression.
+ * over the data channel that contain a face landmark.
  */
-const FACIAL_EXPRESSION_MESSAGE_TYPE = 'facial_expression';
+const FACE_LANDMARK_MESSAGE_TYPE = 'face_landmark';
 
 const kSimulcastFormats = [
     { width: 1920,
@@ -232,9 +232,9 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
-                if (payload.type === FACIAL_EXPRESSION_MESSAGE_TYPE) {
+                if (payload.type === FACE_LANDMARK_MESSAGE_TYPE) {
                     this.eventEmitter.emit(
-                        ConferenceEvents.FACIAL_EXPRESSION_ADDED,
+                        ConferenceEvents.FACE_LANDMARK_ADDED,
                         participant.getId(),
                         payload);
                 }

@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg, Strophe } from 'strophe.js';
 
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -80,6 +80,74 @@ export default class Lobby {
         }
 
         this.mainRoom.setMembersOnly(false);
+    }
+
+    /**
+     * Broadcast a message to all participants in the lobby room
+     * @param {Object} message The message to send
+     *
+     * @returns {void}
+     */
+    sendMessage(message) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.sendMessage(JSON.stringify(message), 'json-message');
+        }
+    }
+
+    /**
+     * Sends a private message to a participant in a lobby room.
+     * @param {string} id The message to send
+     * @param {Object} message The message to send
+     *
+     * @returns {void}
+     */
+    sendPrivateMessage(id, message) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.sendPrivateMessage(id, JSON.stringify(message), 'json-message');
+        }
+    }
+
+    /**
+     * Gets the local id for a participant in a lobby room.
+     * This is used for lobby room private chat messages.
+     *
+     * @returns {string}
+     */
+    getLocalId() {
+        if (this.lobbyRoom) {
+            return Strophe.getResourceFromJid(this.lobbyRoom.myroomjid);
+        }
+    }
+
+    /**
+     * Adds a message listener to the lobby room.
+     * @param {Function} listener The listener function,
+     * called when a new message is received in the lobby room.
+     *
+     * @returns {Function} Handler returned to be able to remove it later.
+     */
+    addMessageListener(listener) {
+        if (this.lobbyRoom) {
+            const handler = (participantId, message) => {
+                listener(message, Strophe.getResourceFromJid(participantId));
+            };
+
+            this.lobbyRoom.on(XMPPEvents.JSON_MESSAGE_RECEIVED, handler);
+
+            return handler;
+        }
+    }
+
+    /**
+     * Remove a message handler from the lobby room.
+     * @param {Function} handler The handler function to remove.
+     *
+     * @returns {void}
+     */
+    removeMessageHandler(handler) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.off(XMPPEvents.JSON_MESSAGE_RECEIVED, handler);
+        }
     }
 
     /**

@@ -1,10 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import * as E2ePingEvents
-    from '../../service/e2eping/E2ePingEvents';
-import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
-import Statistics from '../statistics/statistics';
+import * as JitsiE2EPingEvents from '../../service/e2eping/E2ePingEvents';
 
 const logger = getLogger(__filename);
 
@@ -19,6 +16,22 @@ const E2E_PING_REQUEST = 'e2e-ping-request';
  * @type {string}
  */
 const E2E_PING_RESPONSE = 'e2e-ping-response';
+
+/**
+ * The number of requests to wait for before emitting an RTT value.
+ */
+const DEFAULT_NUM_REQUESTS = 5;
+
+/**
+ * The maximum number of messages per second to aim for. This is for the entire
+ * conference, with the assumption that all endpoints join at once.
+ */
+const DEFAULT_MAX_MESSAGES_PER_SECOND = 250;
+
+/**
+ * The conference size beyond which e2e pings will be disabled.
+ */
+const DEFAULT_MAX_CONFERENCE_SIZE = 200;
 
 /**
  * Saves e2e ping related state for a single JitsiParticipant.
@@ -47,35 +60,46 @@ class ParticipantWrapper {
         // request. Start at 1 so we can consider only thruthy values valid.
         this.lastRequestId = 1;
 
-        this.clearIntervals = this.clearIntervals.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
-        this.maybeSendAnalytics = this.maybeSendAnalytics.bind(this);
-        this.sendAnalytics = this.sendAnalytics.bind(this);
-
-        // If the data channel was already open (this is likely a participant
-        // joining an existing conference) send a request immediately.
-        if (e2eping.isDataChannelOpen) {
-            this.sendRequest();
-        }
-
-        this.pingInterval = window.setInterval(
-            this.sendRequest, e2eping.pingIntervalMs);
-        this.analyticsInterval = window.setTimeout(
-            this.maybeSendAnalytics, this.e2eping.analyticsIntervalMs);
+        this.maybeLogRttAndStop = this.maybeLogRttAndStop.bind(this);
+        this.scheduleNext = this.scheduleNext.bind(this);
+        this.stop = this.stop.bind(this);
+        this.getDelay = this.getDelay.bind(this);
+        this.timeout = this.scheduleNext();
     }
 
     /**
-     * Clears the interval which sends pings.
-     * @type {*}
+     * Schedule the next ping to be sent.
      */
-    clearIntervals() {
-        if (this.pingInterval) {
-            window.clearInterval(this.pingInterval);
+    scheduleNext() {
+        return window.setTimeout(this.sendRequest, this.getDelay());
+    }
+
+    /**
+     * Stop pinging this participant, canceling a scheduled ping, if any.
+     */
+    stop() {
+        if (this.timeout) {
+            window.clearTimeout(this.timeout);
         }
-        if (this.analyticsInterval) {
-            window.clearInterval(this.analyticsInterval);
-        }
+        this.e2eping.removeParticipant(this.id);
+    }
+
+    /**
+     * Get the delay until the next ping in milliseconds.
+     */
+    getDelay() {
+        const conferenceSize = this.e2eping.conference.getParticipants().length;
+        const endpointPairs = conferenceSize * (conferenceSize - 1) / 2;
+        const totalMessages = endpointPairs * this.e2eping.numRequests;
+        const totalSeconds = totalMessages / this.e2eping.maxMessagesPerSecond;
+
+        // Randomize between .5 and 1.5
+        const r = 1.5 - Math.random();
+        const delayBetweenMessages = r * Math.max(1000 * (totalSeconds / this.e2eping.numRequests), 1000);
+
+        return delayBetweenMessages;
     }
 
     /**
@@ -105,57 +129,51 @@ class ParticipantWrapper {
 
         if (request) {
             request.rtt = window.performance.now() - request.timeSent;
-            this.e2eping.eventEmitter.emit(
-                E2ePingEvents.E2E_RTT_CHANGED,
-                this.participant,
-                request.rtt);
         }
-
-        this.maybeSendAnalytics();
+        this.maybeLogRttAndStop();
     }
 
     /**
-     * Goes over the requests, clearing ones which we don't need anymore, and
-     * if it finds at least one request with a valid RTT in the last
-     * 'analyticsIntervalMs' then sends an analytics event.
+     * Check if we've received the pre-configured number of responses, and if
+     * so log the measured RTT and stop sending requests.
      * @type {*}
      */
-    maybeSendAnalytics() {
-        const now = window.performance.now();
-
-        // The RTT we'll report is the minimum RTT measured in the last
-        // analyticsInterval
+    maybeLogRttAndStop() {
+        // The RTT we'll report is the minimum RTT measured
         let rtt = Infinity;
         let request, requestId;
+        let numRequestsWithResponses = 0;
+        let totalNumRequests = 0;
 
-        // It's time to send analytics. Clean up all requests and find the
         for (requestId in this.requests) {
             if (this.requests.hasOwnProperty(requestId)) {
                 request = this.requests[requestId];
 
-                if (request.timeSent < now - this.e2eping.analyticsIntervalMs) {
-                    // An old request. We don't care about it anymore.
-                    delete this.requests[requestId];
-                } else if (request.rtt) {
+                totalNumRequests++;
+                if (request.rtt) {
+                    numRequestsWithResponses++;
                     rtt = Math.min(rtt, request.rtt);
                 }
             }
         }
 
-        if (rtt < Infinity) {
-            this.sendAnalytics(rtt);
-        }
-    }
+        if (numRequestsWithResponses >= this.e2eping.numRequests) {
+            logger.info(`Measured RTT=${rtt} ms to ${this.id} (in ${this.participant.getProperty('region')})`);
+            this.stop();
 
-    /**
-     * Sends an analytics event for this participant with the given RTT.
-     * @type {*}
-     */
-    sendAnalytics(rtt) {
-        Statistics.sendAnalytics(createE2eRttEvent(
-            this.id,
-            this.participant.getProperty('region'),
-            rtt));
+            this.e2eping.conference.eventEmitter.emit(
+                JitsiE2EPingEvents.E2E_RTT_CHANGED, this.participant, rtt);
+
+            return;
+        } else if (totalNumRequests > 2 * this.e2eping.numRequests) {
+            logger.info(`Stopping e2eping for ${this.id} because we sent ${totalNumRequests} with only `
+                + `${numRequestsWithResponses} responses.`);
+            this.stop();
+
+            return;
+        }
+
+        this.timeout = this.scheduleNext();
     }
 }
 
@@ -185,79 +203,47 @@ export default class E2ePing {
         this.eventEmitter = conference.eventEmitter;
         this.sendMessage = sendMessage;
 
-        // The interval at which pings will be sent (<= 0 disables sending).
-        this.pingIntervalMs = 10000;
-
-        // The interval at which analytics events will be sent.
-        this.analyticsIntervalMs = 60000;
-
         // Maps a participant ID to its ParticipantWrapper
         this.participants = {};
 
-        // Whether the WebRTC channel has been opened or not.
-        this.isDataChannelOpen = false;
+        this.numRequests = DEFAULT_NUM_REQUESTS;
+        this.maxConferenceSize = DEFAULT_MAX_CONFERENCE_SIZE;
+        this.maxMessagesPerSecond = DEFAULT_MAX_MESSAGES_PER_SECOND;
 
         if (options && options.e2eping) {
-            if (typeof options.e2eping.pingInterval === 'number') {
-                this.pingIntervalMs = options.e2eping.pingInterval;
+            if (typeof options.e2eping.numRequests === 'number') {
+                this.numRequests = options.e2eping.numRequests;
             }
-            if (typeof options.e2eping.analyticsInterval === 'number') {
-                this.analyticsIntervalMs = options.e2eping.analyticsInterval;
+            if (typeof options.e2eping.maxConferenceSize === 'number') {
+                this.maxConferenceSize = options.e2eping.maxConferenceSize;
             }
-
-            // We want to report at most once a ping interval.
-            if (this.analyticsIntervalMs > 0 && this.analyticsIntervalMs
-                < this.pingIntervalMs) {
-                this.analyticsIntervalMs = this.pingIntervalMs;
+            if (typeof options.e2eping.maxMessagesPerSecond === 'number') {
+                this.maxMessagesPerSecond = options.e2eping.maxMessagesPerSecond;
             }
         }
         logger.info(
-            `Initializing e2e ping; pingInterval=${
-                this.pingIntervalMs}, analyticsInterval=${
-                this.analyticsIntervalMs}.`);
+            `Initializing e2e ping with numRequests=${this.numRequests}, maxConferenceSize=${this.maxConferenceSize}, `
+            + `maxMessagesPerSecond=${this.maxMessagesPerSecond}.`);
 
         this.participantJoined = this.participantJoined.bind(this);
-        conference.on(
-            JitsiConferenceEvents.USER_JOINED,
-            this.participantJoined);
 
         this.participantLeft = this.participantLeft.bind(this);
-        conference.on(
-            JitsiConferenceEvents.USER_LEFT,
-            this.participantLeft);
+        conference.on(JitsiConferenceEvents.USER_LEFT, this.participantLeft);
 
         this.messageReceived = this.messageReceived.bind(this);
-        conference.on(
-            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            this.messageReceived);
+        conference.on(JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, this.messageReceived);
 
-        this.dataChannelOpened = this.dataChannelOpened.bind(this);
-        conference.on(
-            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
-            this.dataChannelOpened);
+        this.conferenceJoined = this.conferenceJoined.bind(this);
+        conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, this.conferenceJoined);
     }
 
     /**
-     * Notifies this instance that the communications channel has been opened
-     * and it can now send messages via sendMessage.
+     * Delay processing USER_JOINED events until the MUC is fully joined,
+     * otherwise the apparent conference size will be wrong.
      */
-    dataChannelOpened() {
-        this.isDataChannelOpen = true;
-
-        // We don't want to wait the whole interval before sending the first
-        // request, but we can't send it immediately after the participant joins
-        // either, because our data channel might not have initialized.
-        // So once the data channel initializes, send requests to everyone.
-        // Wait an additional 200ms to give a chance to the remote side (if it
-        // also just connected as is the case for the first 2 participants in a
-        // conference) to open its data channel.
-        for (const id in this.participants) {
-            if (this.participants.hasOwnProperty(id)) {
-                const participantWrapper = this.participants[id];
-
-                window.setTimeout(participantWrapper.sendRequest, 200);
-            }
-        }
+    conferenceJoined() {
+        this.conference.getParticipants().forEach(p => this.participantJoined(p.getId(), p));
+        this.conference.on(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
     }
 
     /**
@@ -284,18 +270,31 @@ export default class E2ePing {
      * @param {JitsiParticipant} participant - The participant that joined.
      */
     participantJoined(id, participant) {
-        if (this.pingIntervalMs <= 0) {
+        if (this.participants[id]) {
+            logger.info(`Participant wrapper already exists for ${id}. Clearing.`);
+            this.participants[id].stop();
+        }
+
+        if (this.conference.getParticipants().length > this.maxConferenceSize) {
             return;
         }
 
+        // We don't need to send e2eping in both directions for a pair of
+        // endpoints. Force only one direction with just string comparison of
+        // the IDs.
+        if (this.conference.myUserId() > id) {
+            logger.info(`Starting e2eping for participant ${id}`);
+            this.participants[id] = new ParticipantWrapper(participant, this);
+        }
+    }
+
+    /**
+     * Remove a participant without calling "stop".
+     */
+    removeParticipant(id) {
         if (this.participants[id]) {
-            logger.info(
-                `Participant wrapper already exists for ${id}. Clearing.`);
-            this.participants[id].clearIntervals();
             delete this.participants[id];
         }
-
-        this.participants[id] = new ParticipantWrapper(participant, this);
     }
 
     /**
@@ -304,12 +303,8 @@ export default class E2ePing {
      * @param {String} id - The ID of the participant.
      */
     participantLeft(id) {
-        if (this.pingIntervalMs <= 0) {
-            return;
-        }
-
         if (this.participants[id]) {
-            this.participants[id].clearIntervals();
+            this.participants[id].stop();
             delete this.participants[id];
         }
     }
@@ -331,8 +326,7 @@ export default class E2ePing {
 
             this.sendMessage(response, participantId);
         } else {
-            logger.info(
-                `Received an invalid e2e ping request from ${participantId}.`);
+            logger.info(`Received an invalid e2e ping request from ${participantId}.`);
         }
     }
 
@@ -356,22 +350,13 @@ export default class E2ePing {
     stop() {
         logger.info('Stopping e2eping');
 
-        this.conference.off(
-            JitsiConferenceEvents.USER_JOINED,
-            this.participantJoined);
-        this.conference.off(
-            JitsiConferenceEvents.USER_LEFT,
-            this.participantLeft);
-        this.conference.off(
-            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            this.messageReceived);
-        this.conference.off(
-            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
-            this.dataChannelOpened);
+        this.conference.off(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
+        this.conference.off(JitsiConferenceEvents.USER_LEFT, this.participantLeft);
+        this.conference.off(JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, this.messageReceived);
 
         for (const id in this.participants) {
             if (this.participants.hasOwnProperty(id)) {
-                this.participants[id].clearIntervals();
+                this.participants[id].stop();
             }
         }
 

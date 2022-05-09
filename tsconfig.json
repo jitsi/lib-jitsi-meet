@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "es6",
+    "declaration": true,
+    "declarationDir": "types/auto/",
+    "sourceMap": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "outDir": "dist/esm/",
+  },
+  "exclude": [
+    "doc",
+    "dist",
+    "**/*.spec.js",
+    "**/*.spec.ts",
+    "*.conf*.js",
+    "webpack*.js",
+    "lib-jitsi-meet.*.js",
+    "types"
+  ]
+}

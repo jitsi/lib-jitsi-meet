@@ -1,10 +1,11 @@
 import { getLogger } from '@jitsi/logger';
 import transform from 'sdp-transform';
 
-import MediaDirection from '../../service/RTC/MediaDirection';
-import * as MediaType from '../../service/RTC/MediaType';
-import VideoType from '../../service/RTC/VideoType';
+import { MediaDirection } from '../../service/RTC/MediaDirection';
+import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 const DESKTOP_SHARE_RATE = 500000;
@@ -238,11 +239,17 @@ export class TPCUtils {
         const track = localTrack.getTrack();
 
         if (isInitiator) {
+            const streams = [];
+
+            if (localTrack.getOriginalStream()) {
+                streams.push(localTrack.getOriginalStream());
+            }
+
             // Use pc.addTransceiver() for the initiator case when local tracks are getting added
             // to the peerconnection before a session-initiate is sent over to the peer.
             const transceiverInit = {
                 direction: MediaDirection.SENDRECV,
-                streams: [ localTrack.getOriginalStream() ],
+                streams,
                 sendEncodings: []
             };
 
@@ -291,6 +298,7 @@ export class TPCUtils {
             // that the highest resolution stream is available always. Safari is an exception here since it does not
             // send the desktop stream at all if only the high resolution stream is enabled.
             if (this.pc.isSharingLowFpsScreen()
+                && localVideoTrack.getVideoType() === VideoType.DESKTOP
                 && this.pc.usesUnifiedPlan()
                 && !browser.isWebKitBased()
                 && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
@@ -339,21 +347,59 @@ export class TPCUtils {
 
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
+     *
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
      * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
-     * @returns {Promise<void>} - resolved when done.
+     * @returns {Promise<RTCRtpTransceiver>} - resolved with the associated transceiver when done, rejected otherwise.
      */
     replaceTrack(oldTrack, newTrack) {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
-        const transceiver = this.findTransceiver(mediaType, oldTrack);
+        const localTracks = this.pc.getLocalTracks(mediaType);
         const track = newTrack?.getTrack() ?? null;
+        const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
+            && localTracks?.length
+            && !oldTrack
+            && newTrack
+            && !localTracks.find(t => t === newTrack);
+        let transceiver;
+
+        // If old track exists, replace the track on the corresponding sender.
+        if (oldTrack && !oldTrack.isMuted()) {
+            transceiver = this.pc.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
+
+        // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
+        // As part of the track addition, a new m-line was added to the remote description with direction set to
+        // recvonly.
+        } else if (isNewLocalSource) {
+            transceiver = this.pc.peerconnection.getTransceivers().find(
+                t => t.receiver.track.kind === mediaType
+                && t.direction === MediaDirection.RECVONLY
+                && t.currentDirection === MediaDirection.INACTIVE);
+
+        // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
+        // otherwise it is assumed to be the first local track that was added to the peerconnection.
+        } else {
+            transceiver = this.pc.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
+            const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
+
+            if (sourceName) {
+                const trackIndex = Number(sourceName.split('-')[1].substring(1));
+
+                if (trackIndex) {
+                    transceiver = this.pc.peerconnection.getTransceivers()
+                        .filter(t => t.receiver.track.kind === mediaType
+                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
+                }
+            }
+        }
 
         if (!transceiver) {
             return Promise.reject(new Error('replace track failed'));
         }
         logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
-        return transceiver.sender.replaceTrack(track);
+        return transceiver.sender.replaceTrack(track)
+            .then(() => Promise.resolve(transceiver));
     }
 
     /**
@@ -407,8 +453,9 @@ export class TPCUtils {
         logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
         transceivers.forEach((transceiver, idx) => {
             if (active) {
-                // The first transceiver is for the local track and only this one can be set to 'sendrecv'
-                if (idx === 0 && localTracks.length) {
+                // The first transceiver is for the local track and only this one can be set to 'sendrecv'.
+                // When multi-stream is enabled, there can be multiple transceivers with outbound streams.
+                if (idx < localTracks.length) {
                     transceiver.direction = MediaDirection.SENDRECV;
                 } else {
                     transceiver.direction = MediaDirection.RECVONLY;

@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
@@ -358,11 +359,25 @@ export default class BridgeChannel {
                 break;
             }
             case 'LastNEndpointsChangeEvent': {
-                // The new/latest list of last-n endpoint IDs (i.e. endpoints for which the bridge is sending video).
-                const lastNEndpoints = obj.lastNEndpoints;
+                if (!FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // The new/latest list of last-n endpoint IDs (i.e. endpoints for which the bridge is sending
+                    // video).
+                    const lastNEndpoints = obj.lastNEndpoints;
 
-                logger.info(`New forwarded endpoints: ${lastNEndpoints}`);
-                emitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED, lastNEndpoints);
+                    logger.info(`New forwarded endpoints: ${lastNEndpoints}`);
+                    emitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED, lastNEndpoints);
+                }
+
+                break;
+            }
+            case 'ForwardedSources': {
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    // The new/latest list of forwarded sources
+                    const forwardedSources = obj.forwardedSources;
+
+                    logger.info(`New forwarded sources: ${forwardedSources}`);
+                    emitter.emit(RTCEvents.FORWARDED_SOURCES_CHANGED, forwardedSources);
+                }
 
                 break;
             }
@@ -372,6 +387,25 @@ export default class BridgeChannel {
                 if (videoConstraints) {
                     logger.info(`SenderVideoConstraints: ${JSON.stringify(videoConstraints)}`);
                     emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, videoConstraints);
+                }
+                break;
+            }
+            case 'SenderSourceConstraints': {
+                if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                    const { sourceName, maxHeight } = obj;
+
+                    if (typeof sourceName === 'string' && typeof maxHeight === 'number') {
+                        // eslint-disable-next-line object-property-newline
+                        logger.info(`SenderSourceConstraints: ${JSON.stringify({ sourceName, maxHeight })}`);
+                        emitter.emit(
+                            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, {
+                                sourceName,
+                                maxHeight
+                            }
+                        );
+                    } else {
+                        logger.error(`Invalid SenderSourceConstraints: ${JSON.stringify(obj)}`);
+                    }
                 }
                 break;
             }

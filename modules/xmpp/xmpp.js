@@ -6,9 +6,10 @@ import 'strophejs-plugin-disco';
 
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -186,7 +187,7 @@ export default class XMPP extends Listenable {
         // they wanted to utilize the connected connection in an unload handler
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
-        $(window).on('beforeunload unload', ev => {
+        $(window).on(`${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`, ev => {
             this.disconnect(ev).catch(() => {
                 // ignore errors in order to not brake the unload.
             });
@@ -248,6 +249,17 @@ export default class XMPP extends Listenable {
 
         if (E2EEncryption.isSupported(this.options)) {
             this.caps.addFeature(FEATURE_E2EE, false, true);
+        }
+
+        // Advertise source-name signaling when the endpoint supports it.
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            logger.info('Source-name signaling is enabled');
+            this.caps.addFeature('http://jitsi.org/source-name');
+        }
+
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            logger.info('SSRC rewriting is supported');
+            this.caps.addFeature('http://jitsi.org/ssrc-rewriting');
         }
     }
 
@@ -463,7 +475,8 @@ export default class XMPP extends Listenable {
 
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
-            || this.conferenceDurationComponentAddress) {
+            || this.conferenceDurationComponentAddress
+            || this.breakoutRoomsComponentAddress) {
             this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
         }
     }
@@ -907,11 +920,11 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Sends facial expression to speaker stats component.
+     * Sends face expressions to speaker stats component.
      * @param {String} roomJid - The room jid where the speaker event occurred.
      * @param {Object} payload - The expression to be sent to the speaker stats.
      */
-    sendFacialExpressionEvent(roomJid, payload) {
+    sendFaceExpressionEvent(roomJid, payload) {
         // no speaker stats component advertised
         if (!this.speakerStatsComponentAddress || !roomJid) {
             return;
@@ -919,10 +932,10 @@ export default class XMPP extends Listenable {
 
         const msg = $msg({ to: this.speakerStatsComponentAddress });
 
-        msg.c('facialExpression', {
+        msg.c('faceExpression', {
             xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
-            expression: payload.facialExpression,
+            expression: payload.faceExpression,
             duration: payload.duration
         }).up();
 

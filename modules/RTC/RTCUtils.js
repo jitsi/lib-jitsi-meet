@@ -7,7 +7,7 @@ import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
-import VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
@@ -457,7 +457,7 @@ class RTCUtils extends Listenable {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
-                        reject(error);
+                        reject(jitsiError);
                     }
 
                     if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
@@ -762,8 +762,10 @@ class RTCUtils extends Listenable {
 
         // Calling getUserMedia again (for preview) kills the track returned by the first getUserMedia call because of
         // https://bugs.webkit.org/show_bug.cgi?id=179363. Therefore, do not show microphone/camera options on mobile
-        // Safari.
-        if ((deviceType === 'audioinput' || deviceType === 'input') && browser.isIosBrowser()) {
+        // Safari. Bug fixed in Safari 15.4.
+        if ((deviceType === 'audioinput' || deviceType === 'input')
+            && browser.isIosBrowser()
+            && browser.isVersionLessThan('15.4')) {
             return false;
         }
 

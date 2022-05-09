@@ -1,9 +1,10 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-import { SendVideoController } from './SendVideoController';
+import SendVideoController from './SendVideoController';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
@@ -74,11 +75,15 @@ class MockConference extends Listenable {
         this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, this.activeMediaSession);
     }
 
-    _getActiveMediaSession() {
+    getActiveMediaSession() {
         return this.activeMediaSession;
     }
 
-    _getMediaSessions() {
+    getLocalVideoTracks() {
+        return [];
+    }
+
+    getMediaSessions() {
         return this.mediaSessions;
     }
 }
@@ -108,6 +113,7 @@ describe('SendVideoController', () => {
     beforeEach(() => {
         conference = new MockConference();
         rtc = new MockRTC();
+        FeatureFlags.init({ sourceNameSignaling: false });
         sendVideoController = new SendVideoController(conference, rtc);
         jvbConnection = new MockJingleSessionPC(rtc, false /* isP2P */);
         p2pConnection = new MockJingleSessionPC(rtc, true /* isP2P */);

@@ -1,6 +1,9 @@
 /* global $ */
 
-import MediaDirection from '../../service/RTC/MediaDirection';
+import clonedeep from 'lodash.clonedeep';
+import transform from 'sdp-transform';
+
+import { MediaDirection } from '../../service/RTC/MediaDirection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -47,6 +50,40 @@ SDP.prototype.removeTcpCandidates = false;
  * @type {boolean}
  */
 SDP.prototype.removeUdpCandidates = false;
+
+/**
+ * Adds a new m-line to the description so that a new local source can then be attached to the transceiver that gets
+ * added after a reneogtiation cycle.
+ *
+ * @param {Mediatype} mediaType media type of the new source that is being added.
+ */
+SDP.prototype.addMlineForNewLocalSource = function(mediaType) {
+    const mid = this.media.length;
+    const sdp = transform.parse(this.raw);
+    const mline = clonedeep(sdp.media.find(m => m.type === mediaType));
+
+    // Edit media direction, mid and remove the existing ssrc lines in the m-line.
+    mline.mid = mid;
+    mline.direction = MediaDirection.RECVONLY;
+
+    // Remove the ssrcs and source groups.
+    mline.msid = undefined;
+    mline.ssrcs = undefined;
+    mline.ssrcGroups = undefined;
+
+    sdp.media = sdp.media.concat(mline);
+
+    // We regenerate the BUNDLE group (since we added a new m-line)
+    sdp.groups.forEach(group => {
+        if (group.type === 'BUNDLE') {
+            const mids = group.mids.split(' ');
+
+            mids.push(mid);
+            group.mids = mids.join(' ');
+        }
+    });
+    this.raw = transform.write(sdp);
+};
 
 /**
  * Returns map of MediaChannel mapped per channel idx.

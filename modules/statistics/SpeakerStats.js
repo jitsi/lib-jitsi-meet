@@ -24,7 +24,7 @@ class SpeakerStats {
         this.totalDominantSpeakerTime = 0;
         this._dominantSpeakerStart = 0;
         this._hasLeft = false;
-        this._facialExpressions = {
+        this._faceExpressions = {
             happy: 0,
             neutral: 0,
             surprised: 0,
@@ -136,32 +136,32 @@ class SpeakerStats {
     }
 
     /**
-     * Gets the facial expressions of the user.
+     * Gets the face expressions of the user.
      *
      * @returns {Object}
      */
-    getFacialExpressions() {
-        return this._facialExpressions;
+    getFaceExpressions() {
+        return this._faceExpressions;
     }
 
     /**
-     * Sets the facial expressions of the user.
+     * Sets the face expressions of the user.
      *
-     * @param {Object} facialExpressions - object with facial expressions.
+     * @param {Object} faceExpressions - object with face expressions.
      * @returns {void}
      */
-    setFacialExpressions(facialExpressions) {
-        this._facialExpressions = facialExpressions;
+    setFaceExpressions(faceExpressions) {
+        this._faceExpressions = faceExpressions;
     }
 
     /**
-     * Adds a new facial expression to speaker stats.
+     * Adds a new face expression to speaker stats.
      *
-     * @param  {string} facialExpression
+     * @param  {string} faceExpression
      * @param {number} duration
      */
-    addFacialExpression(facialExpression, duration) {
-        this._facialExpressions[facialExpression] += duration;
+    addFaceExpression(faceExpression, duration) {
+        this._faceExpressions[faceExpression] += duration;
     }
 }
 

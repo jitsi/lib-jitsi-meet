@@ -1,5 +1,7 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
+import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -38,6 +40,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {boolean} muted the initial muted state
      * @param {boolean} isP2P indicates whether or not this track belongs to a
      * P2P session
+     * @param {String} sourceName the source name signaled for the track
      * @throws {TypeError} if <tt>ssrc</tt> is not a number.
      * @constructor
      */
@@ -51,7 +54,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             videoType,
             ssrc,
             muted,
-            isP2P) {
+            isP2P,
+            sourceName) {
         super(
             conference,
             stream,
@@ -71,6 +75,20 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.ownerEndpointId = ownerEndpointId;
         this.muted = muted;
         this.isP2P = isP2P;
+        this._sourceName = sourceName;
+        this._trackStreamingStatus = null;
+        this._trackStreamingStatusImpl = null;
+
+        /**
+         * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
+         * forwardedSources will have streaming status restoring and when we start receiving video will become active,
+         * but if video is not received for certain time {@link DEFAULT_RESTORING_TIMEOUT} that track streaming status
+         * will become interrupted.
+         */
+        this._enteredForwardedSourcesTimestamp = null;
+
+        this.addEventListener = this.on = this._addEventListener.bind(this);
+        this.removeEventListener = this.off = this._removeEventListener.bind(this);
 
         logger.debug(`New remote track added: ${this}`);
 
@@ -104,6 +122,44 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
+     * Overrides addEventListener method to init TrackStreamingStatus instance when there are listeners for the
+     * {@link JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED} event.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _addEventListener(event, handler) {
+        super.addListener(event, handler);
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()
+            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+            && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
+            && !this._trackStreamingStatusImpl
+        ) {
+            this._initTrackStreamingStatus();
+            logger.debug(`Initializing track streaming status: ${this._sourceName}`);
+        }
+    }
+
+    /**
+     * Overrides removeEventListener method to dispose TrackStreamingStatus instance.
+     *
+     * @param {string} event - event name
+     * @param {function} handler - event handler
+     */
+    _removeEventListener(event, handler) {
+        super.removeListener(event, handler);
+
+        if (FeatureFlags.isSourceNameSignalingEnabled()
+            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+            && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
+        ) {
+            this._disposeTrackStreamingStatus();
+            logger.debug(`Disposing track streaming status: ${this._sourceName}`);
+        }
+    }
+
+    /**
      * Callback invoked when the track is muted. Emits an event notifying
      * listeners of the mute event.
      *
@@ -127,6 +183,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+    }
+
+    /**
+     * Removes attached event listeners and dispose TrackStreamingStatus .
+     *
+     * @returns {Promise}
+     */
+    dispose() {
+        if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            this._disposeTrackStreamingStatus();
+        }
+
+        return super.dispose();
     }
 
     /**
@@ -187,6 +256,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         return this.ssrc;
     }
 
+
+    /**
+     * Returns the tracks source name
+     *
+     * @returns {string} the track's source name
+     */
+    getSourceName() {
+        return this._sourceName;
+    }
+
     /**
      * Changes the video type of the track.
      *
@@ -204,6 +283,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Handles track play events.
      */
     _playCallback() {
+        if (!this.conference.room) {
+            return;
+        }
+
         const type = this.isVideoTrack() ? 'video' : 'audio';
 
         const now = window.performance.now();
@@ -306,11 +389,91 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
+     * Initializes trackStreamingStatusImpl.
+     */
+    _initTrackStreamingStatus() {
+        const config = this.conference.options.config;
+
+        this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
+
+        this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
+            this.rtc,
+            this.conference,
+            this,
+            {
+                // These options are not public API, leaving it here only as an entry point through config for
+                // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
+                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
+                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
+            });
+
+        this._trackStreamingStatusImpl.init();
+    }
+
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
+     */
+    _disposeTrackStreamingStatus() {
+        if (this._trackStreamingStatusImpl) {
+            this._trackStreamingStatusImpl.dispose();
+            this._trackStreamingStatusImpl = null;
+            this._trackStreamingStatus = null;
+        }
+    }
+
+    /**
+     * Updates track's streaming status.
+     *
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     */
+    _setTrackStreamingStatus(status) {
+        this._trackStreamingStatus = status;
+    }
+
+    /**
+     * Returns track's streaming status.
+     *
+     * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
+     * if trackStreamingStatusImpl hasn't been initialized.
+     *
+     * {@link TrackStreamingStatus}.
+     */
+    getTrackStreamingStatus() {
+        return this._trackStreamingStatus;
+    }
+
+    /**
+     * Clears the timestamp of when the track entered forwarded sources.
+     */
+    _clearEnteredForwardedSourcesTimestamp() {
+        this._enteredForwardedSourcesTimestamp = null;
+    }
+
+    /**
+     * Updates the timestamp of when the track entered forwarded sources.
+     *
+     * @param {number} timestamp the time in millis
+     */
+    _setEnteredForwardedSourcesTimestamp(timestamp) {
+        this._enteredForwardedSourcesTimestamp = timestamp;
+    }
+
+    /**
+     * Returns the timestamp of when the track entered forwarded sources.
+     *
+     * @returns {number} the time in millis
+     */
+    _getEnteredForwardedSourcesTimestamp() {
+        return this._enteredForwardedSourcesTimestamp;
+    }
+
+    /**
      * Creates a text representation of this remote track instance.
      * @return {string}
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, status: ${this._getStatus()}]`;
+            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: ${this._getStatus()}]`;
     }
 }

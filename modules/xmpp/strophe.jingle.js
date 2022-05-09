@@ -3,13 +3,13 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import {
     ACTION_JINGLE_TR_RECEIVED,
     ACTION_JINGLE_TR_SUCCESS,
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
@@ -377,15 +377,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 to: this.xmpp.options.hosts.domain })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
             v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
-            v2Err => {
-                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1', v2Err);
+            () => {
+                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1');
                 this.connection.sendIQ(
                     $iq({ type: 'get',
                         to: this.xmpp.options.hosts.domain })
                         .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
                     v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
-                    v1Err => {
-                        logger.warn('getting turn credentials failed', v1Err);
+                    () => {
+                        logger.warn('getting turn credentials failed');
                         logger.warn('is mod_turncredentials or similar installed and configured?');
                     }
                 );

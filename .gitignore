@@ -13,3 +13,7 @@ npm-*.log
 .DS_Store
 stats.json
 .vscode
+dist
+types/types-comparer/auto.json
+types/types-comparer/hand-crafted.json
+*.tgz

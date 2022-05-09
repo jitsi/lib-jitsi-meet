@@ -1,8 +1,8 @@
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import VideoType from '../../service/RTC/VideoType';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { VideoType } from '../../service/RTC/VideoType';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
 
@@ -200,9 +200,8 @@ describe('SignalingLayerImpl', () => {
                 // Just once event though the legacy presence is there as well
                 expect(emitterSpy).toHaveBeenCalledTimes(1);
                 expect(emitterSpy).toHaveBeenCalledWith(
-                    SignalingEvents.PEER_MUTED_CHANGED,
-                    'endpoint1',
-                    'audio',
+                    SignalingEvents.SOURCE_MUTED_CHANGED,
+                    '12345678-a0',
                     true
                 );
             });
@@ -397,20 +396,6 @@ describe('SignalingLayerImpl', () => {
             chatRoom.emitParticipantLeft(endpointId);
 
             expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeUndefined();
-        });
-        it('when it\'s no longer in the presence', () => {
-            chatRoom.mockSourceInfoPresence(endpointId, {
-                '12345678-v0': { muted: false }
-            });
-
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeDefined();
-
-            chatRoom.mockSourceInfoPresence(endpointId, {
-                '12345678-v1': { muted: false }
-            });
-
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeUndefined();
-            expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v1')).toBeDefined();
         });
     });
 });

@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
-import MediaDirection from '../../service/RTC/MediaDirection';
-import * as MediaType from '../../service/RTC/MediaType';
+import { MediaDirection } from '../../service/RTC/MediaDirection';
+import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import VideoType from '../../service/RTC/VideoType';
+import { VideoType } from '../../service/RTC/VideoType';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
@@ -29,6 +29,8 @@ export default class LocalSdpMunger {
     constructor(tpc, localEndpointId) {
         this.tpc = tpc;
         this.localEndpointId = localEndpointId;
+        this.audioSourcesToMsidMap = new Map();
+        this.videoSourcesToMsidMap = new Map();
     }
 
     /**
@@ -58,7 +60,7 @@ export default class LocalSdpMunger {
                     + 'Strange things may happen !', localVideos);
         }
 
-        const videoMLine = transformer.selectMedia('video');
+        const videoMLine = transformer.selectMedia(MediaType.VIDEO)?.[0];
 
         if (!videoMLine) {
             logger.debug(
@@ -165,7 +167,7 @@ export default class LocalSdpMunger {
      */
     _generateMsidAttribute(mediaType, trackId, streamId = null) {
         if (!(mediaType && trackId)) {
-            logger.warn(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
+            logger.error(`Unable to munge local MSID - track id=${trackId} or media type=${mediaType} is missing`);
 
             return null;
         }
@@ -182,16 +184,16 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending
-     * the id of {@link LocalSdpMunger#tpc} at the end, preceding by a dash
-     * sign.
+     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending the id of {@link LocalSdpMunger#tpc} at the end,
+     * preceding by a dash sign.
      *
-     * @param {MLineWrap} mediaSection - The media part (audio or video) of the
-     * session description which will be modified in place.
+     * @param {MLineWrap} mediaSection - The media part (audio or video) of the session description which will be
+     * modified in place.
      * @returns {void}
      * @private
      */
     _transformMediaIdentifiers(mediaSection) {
+        const mediaType = mediaSection.mLine?.type;
         const pcId = this.tpc.id;
 
         for (const ssrcLine of mediaSection.ssrcs) {
@@ -205,15 +207,33 @@ export default class LocalSdpMunger {
                 if (ssrcLine.value) {
                     const streamAndTrackIDs = ssrcLine.value.split(' ');
 
-                    if (streamAndTrackIDs.length === 2) {
-                        ssrcLine.value
-                            = this._generateMsidAttribute(
-                                mediaSection.mLine?.type,
-                                streamAndTrackIDs[1],
-                                streamAndTrackIDs[0]);
-                    } else {
-                        logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
+                    let streamId = streamAndTrackIDs[0];
+                    const trackId = streamAndTrackIDs[1];
+
+                    if (FeatureFlags.isSourceNameSignalingEnabled()) {
+                        // Always overwrite streamId since we want the msid to be in this format even if the browser
+                        // generates one (in p2p mode).
+                        streamId = `${this.localEndpointId}-${mediaType}`;
+
+                        // eslint-disable-next-line max-depth
+                        if (mediaType === MediaType.VIDEO) {
+                            // eslint-disable-next-line max-depth
+                            if (!this.videoSourcesToMsidMap.has(trackId)) {
+                                streamId = `${streamId}-${this.videoSourcesToMsidMap.size}`;
+                                this.videoSourcesToMsidMap.set(trackId, streamId);
+                            }
+                        } else if (!this.audioSourcesToMsidMap.has(trackId)) {
+                            streamId = `${streamId}-${this.audioSourcesToMsidMap.size}`;
+                            this.audioSourcesToMsidMap.set(trackId, streamId);
+                        }
+
+                        streamId = mediaType === MediaType.VIDEO
+                            ? this.videoSourcesToMsidMap.get(trackId)
+                            : this.audioSourcesToMsidMap.get(trackId);
                     }
+                    ssrcLine.value = this._generateMsidAttribute(mediaType, trackId, streamId);
+                } else {
+                    logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
                 }
                 break;
             }
@@ -245,8 +265,8 @@ export default class LocalSdpMunger {
                 const msidExists = mediaSection.ssrcs
                     .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
-                if (!msidExists) {
-                    const generatedMsid = this._generateMsidAttribute(mediaSection.mLine?.type, trackId);
+                if (!msidExists && trackId) {
+                    const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
 
                     mediaSection.ssrcs.push({
                         id: source,
@@ -305,16 +325,20 @@ export default class LocalSdpMunger {
         }
 
         const transformer = new SdpTransformWrap(sessionDesc.sdp);
-        const audioMLine = transformer.selectMedia('audio');
+        const audioMLine = transformer.selectMedia(MediaType.AUDIO)?.[0];
 
         if (audioMLine) {
             this._transformMediaIdentifiers(audioMLine);
             this._injectSourceNames(audioMLine);
         }
 
-        const videoMLine = transformer.selectMedia('video');
+        const videoMlines = transformer.selectMedia(MediaType.VIDEO);
 
-        if (videoMLine) {
+        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+            videoMlines.splice(1);
+        }
+
+        for (const videoMLine of videoMlines) {
             this._transformMediaIdentifiers(videoMLine);
             this._injectSourceNames(videoMLine);
         }
@@ -349,13 +373,21 @@ export default class LocalSdpMunger {
 
         for (const source of sources) {
             const nameExists = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'name');
+            const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid')?.value;
+            let trackIndex;
+
+            if (msid) {
+                const streamId = msid.split(' ')[0];
+
+                trackIndex = streamId.split('-')[2];
+            }
 
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'name',
-                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, 0)
+                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex)
                 });
             }
         }

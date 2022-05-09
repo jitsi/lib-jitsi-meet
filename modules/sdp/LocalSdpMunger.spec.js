@@ -163,3 +163,41 @@ describe('DoNotTransformSdpForPlanB', () => {
         });
     });
 });
+
+describe('Transform msids for source-name signaling', () => {
+    const tpc = new MockPeerConnection('1', false);
+    const localEndpointId = 'sRdpsdg';
+
+    const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
+    let audioMsid, audioMsidLine, videoMsid, videoMsidLine;
+    const transformStreamIdentifiers = () => {
+        const sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
+        const desc = new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdpStr
+        });
+        const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+        const newSdp = transform.parse(transformedDesc.sdp);
+
+        audioMsidLine = getSsrcLines(newSdp, 'audio').find(ssrc => ssrc.attribute === 'msid')?.value;
+        audioMsid = audioMsidLine.split(' ')[0];
+        videoMsidLine = getSsrcLines(newSdp, 'video').find(ssrc => ssrc.attribute === 'msid')?.value;
+        videoMsid = videoMsidLine.split(' ')[0];
+    };
+
+    it('should not transform', () => {
+        FeatureFlags.init({ sourceNameSignaling: false });
+        transformStreamIdentifiers();
+
+        expect(audioMsid).toBe('dcbb0236-cea5-402e-9e9a-595c65ffcc2a-1');
+        expect(videoMsid).toBe('0836cc8e-a7bb-47e9-affb-0599414bc56d-1');
+    });
+
+    it('should transform', () => {
+        FeatureFlags.init({ sourceNameSignaling: true });
+        transformStreamIdentifiers();
+
+        expect(audioMsid).toBe('sRdpsdg-audio-0-1');
+        expect(videoMsid).toBe('sRdpsdg-video-0-1');
+    });
+});

@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg } from 'strophe.js';
 
-import * as MediaType from '../../service/RTC/MediaType';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import { MediaType } from '../../service/RTC/MediaType';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -29,7 +29,15 @@ export default class AVModeration {
         this._whitelistAudio = [];
         this._whitelistVideo = [];
 
-        this._xmpp.addListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage.bind(this));
+        this._onMessage = this._onMessage.bind(this);
+        this._xmpp.addListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage);
+    }
+
+    /**
+     * Stops listening for events.
+     */
+    dispose() {
+        this._xmpp.removeListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage);
     }
 
     /**
@@ -46,7 +54,7 @@ export default class AVModeration {
      */
     enable(state, mediaType) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
-            logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()}, 
+            logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
 
             return;
@@ -74,7 +82,7 @@ export default class AVModeration {
      */
     approve(mediaType, jid) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
-            logger.error(`Cannot approve in AV moderation supported:${this.isSupported()}, 
+            logger.error(`Cannot approve in AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
 
             return;

@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 const logger = getLogger(__filename);
 
 import CodecMimeType from '../../service/RTC/CodecMimeType';
-import MediaDirection from '../../service/RTC/MediaDirection';
+import { MediaDirection } from '../../service/RTC/MediaDirection';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 

@@ -7,7 +7,7 @@ import Settings from '../settings/Settings';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
-const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 const logger = getLogger(__filename);
@@ -197,6 +197,39 @@ Moderator.prototype.createConferenceIq = function() {
             'property', {
                 name: 'startVideoMuted',
                 value: this.options.conference.startVideoMuted
+            }).up();
+    }
+
+    // this flag determines whether the bridge will include this call in its
+    // rtcstats reporting or not. If the site admin hasn't set the flag in
+    // config.js, then the client defaults to false (see
+    // react/features/rtcstats/functions.js in jitsi-meet). The server-side
+    // components default to true to match the pre-existing behavior so we only
+    // signal if false.
+    const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? false;
+
+    if (!rtcstatsEnabled) {
+        elem.c(
+            'property', {
+                name: 'rtcstatsEnabled',
+                value: rtcstatsEnabled
+            }).up();
+    }
+
+    const { callStatsID, callStatsSecret, disableThirdPartyRequests, enableCallStats } = this.options.conference;
+    const callstatsDisabled = !callStatsID || !callStatsSecret || !enableCallStats
+
+        // Even though AppID and AppSecret may be specified, the integration
+        // of callstats.io may be disabled because of globally-disallowed
+        // requests to any third parties.
+        || disableThirdPartyRequests === true;
+
+    // since the default is true across all the server-side components, only signal if false.
+    if (callstatsDisabled) {
+        elem.c(
+            'property', {
+                name: 'callstatsEnabled',
+                value: !callstatsDisabled
             }).up();
     }
     elem.up();
