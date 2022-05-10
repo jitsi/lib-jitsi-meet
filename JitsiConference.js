@@ -1278,12 +1278,16 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     }
 
     if (FeatureFlags.isSourceNameSignalingEnabled() && newTrack) {
-        const sourceName = getSourceNameForJitsiTrack(
-            this.myUserId(),
-            mediaType,
-            this.getLocalTracks(mediaType)?.length);
+        if (oldTrack) {
+            newTrack.setSourceName(oldTrack.getSourceName());
+        } else {
+            const sourceName = getSourceNameForJitsiTrack(
+                this.myUserId(),
+                mediaType,
+                this.getLocalTracks(mediaType)?.length);
 
-        newTrack.setSourceName(sourceName);
+            newTrack.setSourceName(sourceName);
+        }
     }
     const oldTrackBelongsToConference = this === oldTrack?.conference;
 
