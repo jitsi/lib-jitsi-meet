@@ -653,7 +653,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 return;
             }
 
-            const ssrc = this.peerconnection.getLocalSSRC(localVideoTracks[0]);
+            const ssrc = this.peerconnection.getSsrcByTrackId(now.trackIdentifier);
 
             if (!ssrc) {
                 return;

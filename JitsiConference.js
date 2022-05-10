@@ -1103,6 +1103,12 @@ JitsiConference.prototype.addTrack = function(track) {
         }
 
         if (FeatureFlags.isMultiStreamSupportEnabled() && mediaType === MediaType.VIDEO) {
+            const sourceName = getSourceNameForJitsiTrack(
+                this.myUserId(),
+                mediaType,
+                this.getLocalTracks(mediaType)?.length);
+
+            track.setSourceName(sourceName);
             const addTrackPromises = [];
 
             this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
@@ -1263,11 +1269,25 @@ JitsiConference.prototype.removeTrack = function(track) {
  */
 JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     const oldVideoType = oldTrack?.getVideoType();
+    const mediaType = oldTrack?.getType() || newTrack?.getType();
     const newVideoType = newTrack?.getVideoType();
 
     if (FeatureFlags.isMultiStreamSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
         throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
             + ' not supported in this mode.');
+    }
+
+    if (FeatureFlags.isSourceNameSignalingEnabled() && newTrack) {
+        if (oldTrack) {
+            newTrack.setSourceName(oldTrack.getSourceName());
+        } else {
+            const sourceName = getSourceNameForJitsiTrack(
+                this.myUserId(),
+                mediaType,
+                this.getLocalTracks(mediaType)?.length);
+
+            newTrack.setSourceName(sourceName);
+        }
     }
     const oldTrackBelongsToConference = this === oldTrack?.conference;
 
