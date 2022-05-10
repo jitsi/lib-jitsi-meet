@@ -269,6 +269,11 @@ export default class RTC extends Listenable {
      */
     onCallEnded(): void;
     /**
+     * Close the current Bridge Channel.
+     * @private
+     */
+    private _closeBridgeChannel;
+    /**
      * Sets the capture frame rate to be used for desktop tracks.
      *
      * @param {number} maxFps framerate to be used for desktop track capture.
