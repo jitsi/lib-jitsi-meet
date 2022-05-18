@@ -88,7 +88,12 @@ export declare enum RTCEvents {
      * is the source of the event.
      * The second argument is the actual "ufrag" string.
      */
-    REMOTE_UFRAG_CHANGED = "rtc.remote_ufrag_changed"
+    REMOTE_UFRAG_CHANGED = "rtc.remote_ufrag_changed",
+    /**
+     * Designates an event indicating that some received SSRCs will now map to
+     * new remote sources.
+     */
+    SSRCS_REMAPPED = "rtc.ssrcs_remapped"
 }
 export declare const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
 export declare const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
@@ -117,4 +122,5 @@ export declare const ENDPOINT_MESSAGE_RECEIVED = RTCEvents.ENDPOINT_MESSAGE_RECE
 export declare const ENDPOINT_STATS_RECEIVED = RTCEvents.ENDPOINT_STATS_RECEIVED;
 export declare const LOCAL_UFRAG_CHANGED = RTCEvents.LOCAL_UFRAG_CHANGED;
 export declare const REMOTE_UFRAG_CHANGED = RTCEvents.REMOTE_UFRAG_CHANGED;
+export declare const SSRCS_REMAPPED = RTCEvents.SSRCS_REMAPPED;
 export default RTCEvents;

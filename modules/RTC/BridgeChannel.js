@@ -5,8 +5,91 @@ import { createBridgeChannelClosedEvent } from '../../service/statistics/Analyti
 import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import { $build } from 'strophe.js';
+import { MediaType } from '../../service/RTC/MediaType';
 
 const logger = getLogger(__filename);
+
+function _createVideoSources(ms) {
+
+    let node = $build('content', {
+        xmlns: 'urn:xmpp:jingle:1',
+        name: 'video'
+    }).c('description', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+        media: MediaType.VIDEO
+    });
+
+    for(const cc of ms) {
+        logger.error(`JPA received VideoSourceMapping: ${cc.source} (${cc.videoType}) ${cc.ssrc}/${cc.rtx} ep=${cc.owner}`);
+        let xxx = cc.owner + ' ' + cc.owner; // $ ?
+        node = node.c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: cc.ssrc,
+            name: cc.source
+        }).c('parameter', {
+            name: 'msid',
+            value: xxx
+        }).up().c('ssrc-info', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            owner: cc.owner
+        }).up().up().c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: cc.rtx,
+            name: cc.source
+        }).c('parameter', {
+            name: 'msid',
+            value: xxx
+        }).up().c('ssrc-info', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            owner: cc.owner
+        }).up().up().c('ssrc-group', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            semantics: 'FID'
+        }).c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: cc.ssrc
+        }).up().c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: cc.rtx,
+        }).up().up();
+    }
+
+    node = node.up();
+    logger.error("JPA (Video) " + node.toString());
+    return node.node;
+}
+
+function _createAudioSources(ms) {
+
+    let node = $build('content', {
+        xmlns: 'urn:xmpp:jingle:1',
+        name: 'audio'
+    }).c('description', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+        media: MediaType.AUDIO
+    });
+
+    for(const cc of ms) {
+        logger.error(`JPA received AudioSourceMapping: ${cc.source} ${cc.ssrc} ep=${cc.owner}`);
+        let xxx = cc.owner + ' ' + cc.owner; // $ ?
+        node = node.c('source', {
+            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            ssrc: cc.ssrc,
+            name: cc.source
+        }).c('parameter', {
+            name: 'msid',
+            value: xxx
+        }).up().c('ssrc-info', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            owner: cc.owner
+        }).up().up();
+    }
+    
+    node = node.up();
+    logger.error("JPA (Audio) " + node.toString());
+    return node.node;
+}
 
 /**
  * Handles a WebRTC RTCPeerConnection or a WebSocket instance to communicate
@@ -411,6 +494,18 @@ export default class BridgeChannel {
             }
             case 'ServerHello': {
                 logger.info(`Received ServerHello, version=${obj.version}.`);
+                break;
+            }
+            case 'VideoSourcesMap': {
+                logger.error(`JPA received VideoSourcesMap.`);
+                let node = _createVideoSources(obj.mappedSources);
+                emitter.emit(RTCEvents.SSRCS_REMAPPED, node);
+                break;
+            }
+            case 'AudioSourcesMap': {
+                logger.error(`JPA received AudioSourcesMap.`);
+                let node = _createAudioSources(obj.mappedSources);
+                emitter.emit(RTCEvents.SSRCS_REMAPPED, node);
                 break;
             }
             default: {

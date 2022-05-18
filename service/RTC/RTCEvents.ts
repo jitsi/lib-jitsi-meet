@@ -110,7 +110,13 @@ export enum RTCEvents {
      * is the source of the event.
      * The second argument is the actual "ufrag" string.
      */
-    REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed'
+    REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
+
+    /**
+     * Designates an event indicating that some received SSRCs will now map to
+     * new remote sources.
+     */
+    SSRCS_REMAPPED = 'rtc.ssrcs_remapped'
 };
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
@@ -140,6 +146,7 @@ export const ENDPOINT_MESSAGE_RECEIVED = RTCEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = RTCEvents.ENDPOINT_STATS_RECEIVED;
 export const LOCAL_UFRAG_CHANGED = RTCEvents.LOCAL_UFRAG_CHANGED;
 export const REMOTE_UFRAG_CHANGED = RTCEvents.REMOTE_UFRAG_CHANGED;
+export const SSRCS_REMAPPED = RTCEvents.SSRCS_REMAPPED;
 
 // TODO: this was a pre-ES6 module using module.exports = RTCEvents which doesn't translate well
 // it is used in a number of places and should be updated to use the named export

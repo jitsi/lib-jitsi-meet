@@ -553,6 +553,12 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 
+    rtc.addListener(RTCEvents.SSRCS_REMAPPED, (node) => {
+        logger.error('JPA processing SSRCS_REMAPPED');
+        const sess = this.conference.getActiveMediaSession();
+        sess.addRemoteStream(node);
+    });
+
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         (from, payload) => {
             const participant = conference.getParticipantById(from);
