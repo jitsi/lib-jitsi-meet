@@ -1189,7 +1189,6 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
         if (FeatureFlags.isMultiStreamSupportEnabled()) {
             media = media.filter(mline => mline.direction === MediaDirection.SENDONLY
                 || mline.direction === MediaDirection.SENDRECV);
-            logger.warn(`local m-lines is ${media.length}`);
         } else {
             media = [];
             [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {

@@ -207,6 +207,41 @@ const simulcastRtxVideoMLineSdp = ''
 + 'a=ssrc-group:SIM 1757014965 1479742055 1089111804\r\n'
 + 'a=rtcp-mux\r\n';
 
+const simulcastRtxVideoMLineSdpReplacedTrack = ''
++ 'm=video 9 RTP/SAVPF 100 96\r\n'
++ 'c=IN IP4 0.0.0.0\r\n'
++ 'a=rtpmap:100 VP8/90000\r\n'
++ 'a=fmtp:96 apt=100\r\n'
++ 'a=rtcp:9 IN IP4 0.0.0.0\r\n'
++ 'a=rtcp-fb:100 ccm fir\r\n'
++ 'a=rtcp-fb:100 nack\r\n'
++ 'a=rtcp-fb:100 nack pli\r\n'
++ 'a=rtcp-fb:100 goog-remb\r\n'
++ 'a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n'
++ 'a=setup:passive\r\n'
++ 'a=mid:video\r\n'
++ 'a=sendonly\r\n'
++ 'a=ice-ufrag:adPg\r\n'
++ 'a=ice-pwd:Xsr05Mq8S7CR44DAnusZE26F\r\n'
++ 'a=fingerprint:sha-256 6A:39:DE:11:24:AD:2E:4E:63:D6:69:D3:85:05:53:C7:3C:38:A4:B7:91:74:C0:91:44:FC:94:63:7F:01:AB:A9\r\n'
++ 'a=ssrc:1234567890 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:1234567890 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc:2345678901 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:2345678901 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc:3456789012 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:3456789012 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc:4567890123 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:4567890123 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc:5678901234 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:5678901234 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc:6789012345 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d abcdesfgh\r\n'
++ 'a=ssrc:6789012345 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=ssrc-group:FID 1234567890 2345678901\r\n'
++ 'a=ssrc-group:FID 3456789012 4567890123\r\n'
++ 'a=ssrc-group:FID 5678901234 6789012345\r\n'
++ 'a=ssrc-group:SIM 1757014965 3456789012 5678901234\r\n'
++ 'a=rtcp-mux\r\n';
+
 // An sdp video mline with 1 video ssrc, 1 video rtx ssrc and one flexfec ssrc
 const flexFecVideoMLineSdp = ''
 + 'm=video 9 RTP/SAVPF 100 107 101 96 99 97 109\r\n'
@@ -406,6 +441,9 @@ const simulcastNoRtxSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastVideo
 // A full sdp string representing a client doing simulcast and rtx
 const simulcastRtxSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdp + baseDataMLineSdp;
 
+// A full sdp string representing a client doing simulcast and rtx with a different track and SSRCs.
+const simulcastRtxSdpTrackReplaced = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdpReplacedTrack;
+
 // A full sdp string representing a client doing a single video stream
 const plainVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
 
@@ -438,6 +476,10 @@ export default {
 
     get simulcastRtxSdp() {
         return transform.parse(simulcastRtxSdpStr);
+    },
+
+    get simulcastRtxSdpReplacedTrack() {
+        return transform.parse(simulcastRtxSdpTrackReplaced);
     },
 
     get plainVideoSdp() {

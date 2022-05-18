@@ -343,6 +343,13 @@ export default class LocalSdpMunger {
             this._injectSourceNames(videoMLine);
         }
 
+        // Plan-b clients generate new SSRCs and trackIds whenever tracks are removed and added back to the
+        // peerconnection, therefore local track based map for msids needs to be reset after every transformation.
+        if (FeatureFlags.isSourceNameSignalingEnabled() && !this.tpc._usesUnifiedPlan) {
+            this.audioSourcesToMsidMap.clear();
+            this.videoSourcesToMsidMap.clear();
+        }
+
         return new RTCSessionDescription({
             type: sessionDesc.type,
             sdp: transformer.toRawSDP()
