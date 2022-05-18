@@ -21,6 +21,7 @@ import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import FeatureFlags from './modules/flags/FeatureFlags';
+import NoiseSuppressor from './modules/noisesupression/NoiseSuppressor';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
@@ -38,7 +39,6 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
-import NoiseSuppressor from './modules/noisesupression/NoiseSuppressor';
 
 const logger = Logger.getLogger(__filename);
 
