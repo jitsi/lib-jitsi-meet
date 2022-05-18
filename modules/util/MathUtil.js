@@ -58,6 +58,44 @@ export function filterPositiveValues(valueArray) {
 }
 
 /**
+ * Compute the greatest common divisor using Euclid's algorithm.
+ *
+ * @param {number} num1
+ * @param {number} num2
+ * @returns {number}
+ */
+export function greatestCommonDivisor(num1, num2) {
+    let number1 = num1;
+    let number2 = num2;
+
+    while (number1 !== number2) {
+        if (number1 > number2) {
+            number1 = number1 - number2;
+        } else {
+            number2 = number2 - number1;
+        }
+    }
+
+    return number2;
+}
+
+/**
+ * Calculate least common multiple using gcd.
+ *
+ * @param {*} num1
+ * @param {*} num2
+ * @returns {number}
+ */
+export function leastCommonMultiple(num1, num2) {
+    const number1 = num1;
+    const number2 = num2;
+
+    const gcd = greatestCommonDivisor(number1, number2);
+
+    return (number1 * number2) / gcd;
+}
+
+/**
  * This class calculates a simple running average that continually changes
  * as more data points are collected and added.
  */

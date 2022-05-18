@@ -38,6 +38,7 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
+import NoiseSuppressor from './modules/noisesupression/NoiseSuppressor';
 
 const logger = Logger.getLogger(__filename);
 
@@ -441,6 +442,21 @@ export default _mergeNamespaceAndModule({
      */
     createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
         return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
+    },
+
+    /**
+     * Creates NoiseSuppressor used for denoising MediaStreams using the provided denoiseProcessor.
+     *
+     * @param {number} procNodeSampleRate - Sample rate which will dictate how much data gets denoised at a time.
+     * Possible values: 256, 512, 1024,4096, 8192, 16384. Passing other values will default to closes neighbor.
+     * Lower values will be more CPU intensive but with lower latency. A value of 1024 is recommended.
+     * @param {Object} denoiseProcessor - Denoise Processors that does the actual compute on a PCM sample.
+     * @param {MediaStream} streamToDenoise - Stream which will be denoised, the resulting stream can then
+     * be obtained via {@code getDenoisedStream}.
+     * @returns {NoiseSuppressor}
+     */
+    createNoiseSuppressor(procNodeSampleRate, denoiseProcessor, streamToDenoise) {
+        return new NoiseSuppressor(procNodeSampleRate, denoiseProcessor, streamToDenoise);
     },
 
     /**
