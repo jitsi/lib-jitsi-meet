@@ -8,19 +8,16 @@ import { deriveKeys, importKey, ratchet } from './crypto-utils';
 // in the frame trailer.
 const KEYRING_SIZE = 16;
 
-// We copy the first bytes of the VP8 payload unencrypted.
-// For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
-//   https://tools.ietf.org/html/rfc6386#section-9.1
-// This allows the bridge to continue detecting keyframes (only one byte needed in the JVB)
-// and is also a bit easier for the VP8 decoder (i.e. it generates funny garbage pictures
+// We copy the first bytes of the VP9 payload unencrypted.
+// For keyframes and non-keyframes (delta) this is 16 bytes. See
+//   https://datatracker.ietf.org/doc/html/draft-ietf-payload-vp9-15#section-4.2
+// This allows the bridge to continue detecting keyframes
+// and is also a bit easier for the VP9 decoder (i.e. it generates funny garbage pictures
 // instead of being unable to decode).
-// This is a bit for show and we might want to reduce to 1 unconditionally in the final version.
 //
-// For audio (where frame.type is not set) we do not encrypt the opus TOC byte:
-//   https://tools.ietf.org/html/rfc6716#section-3.1
 const UNENCRYPTED_BYTES = {
-    key: 10,
-    delta: 3,
+    key: 16,
+    delta: 16,
     undefined: 1 // frame.type is not set on audio
 };
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
@@ -96,13 +93,13 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      *
-     * The VP8 payload descriptor described in
-     * https://tools.ietf.org/html/rfc7741#section-4.2
+     * The VP9 payload descriptor described in
+     * https://datatracker.ietf.org/doc/html/draft-ietf-payload-vp9-15#section-4.2
      * is part of the RTP packet and not part of the frame and is not controllable by us.
      * This is fine as the SFU keeps having access to it for routing.
      *
      * The encrypted frame is formed as follows:
-     * 1) Leave the first (10, 3, 1) bytes unencrypted, depending on the frame type and kind.
+     * 1) Leave the first (16, 16, 1) bytes unencrypted, depending on the frame type and kind.
      * 2) Form the GCM IV for the frame as described above.
      * 3) Encrypt the rest of the frame using AES-GCM.
      * 4) Allocate space for the encrypted frame.
@@ -118,7 +115,7 @@ export class Context {
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
-            // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
+            // Thіs is not encrypted and contains the VP9 payload descriptor.
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Frame trailer contains the R|IV_LENGTH and key index
