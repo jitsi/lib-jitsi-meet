@@ -467,7 +467,7 @@ export default class XMPP extends Listenable {
             }
 
             if (identity.type === 'release') {
-                this.options.deploymentInfo.release = identity.name;
+                this.options.deploymentInfo.backendRelease = identity.name;
             }
 
             if (identity.type === 'breakout_rooms') {
@@ -1056,13 +1056,16 @@ export default class XMPP extends Listenable {
         if (aprops && Object.keys(aprops).length > 0) {
             const logObject = {};
 
-            logObject.id = 'deployment_info';
             for (const attr in aprops) {
                 if (aprops.hasOwnProperty(attr)) {
                     logObject[attr] = aprops[attr];
                 }
             }
 
+            // Let's push to analytics any updates that may have come from the backend
+            Statistics.analytics.addPermanentProperties({ ...logObject });
+
+            logObject.id = 'deployment_info';
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
