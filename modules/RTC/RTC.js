@@ -6,7 +6,6 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
-import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
@@ -504,13 +503,6 @@ export default class RTC extends Listenable {
      */
     createPeerConnection(signaling, pcConfig, isP2P, options) {
         const pcConstraints = JSON.parse(JSON.stringify(RTCUtils.pcConstraints));
-
-        if (typeof options.abtestSuspendVideo !== 'undefined') {
-            RTCUtils.setSuspendVideo(pcConstraints, options.abtestSuspendVideo);
-
-            Statistics.analytics.addPermanentProperties(
-                { abtestSuspendVideo: options.abtestSuspendVideo });
-        }
 
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
