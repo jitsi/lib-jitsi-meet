@@ -207,13 +207,6 @@ export default class JitsiTrack extends EventEmitter {
      */
     getId(): string | null;
     /**
-     * Returns the streaming status of the track.
-     *
-     * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null if
--    * trackStreamingStatusImpl hasn't been initialized.
-     */
-    getTrackStreamingStatus(): string;
-    /**
      * Checks whether the MediaStream is active/not ended.
      * When there is no check for active we don't have information and so
      * will return that stream is active (in case of FF).
