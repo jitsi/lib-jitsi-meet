@@ -144,15 +144,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     _setTrackStreamingStatus(status: any): void;
     /**
-     * Returns track's streaming status.
-     *
-     * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
-     * if trackStreamingStatusImpl hasn't been initialized.
-     *
-     * {@link TrackStreamingStatus}.
-     */
-    getTrackStreamingStatus(): string;
-    /**
      * Clears the timestamp of when the track entered forwarded sources.
      */
     _clearEnteredForwardedSourcesTimestamp(): void;
