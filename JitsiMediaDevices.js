@@ -264,7 +264,7 @@ class JitsiMediaDevices {
     isMultipleAudioInputSupported() {
         return !(
             (browser.isFirefox() && browser.isVersionLessThan('101'))
-            || (browser.isIosBrowser() && browser.isVersionLessThan('15.4'))
+            || browser.isIosBrowser()
         );
     }
 

@@ -760,15 +760,6 @@ class RTCUtils extends Listenable {
             return isAudioOutputDeviceChangeAvailable;
         }
 
-        // Calling getUserMedia again (for preview) kills the track returned by the first getUserMedia call because of
-        // https://bugs.webkit.org/show_bug.cgi?id=179363. Therefore, do not show microphone/camera options on mobile
-        // Safari. Bug fixed in Safari 15.4.
-        if ((deviceType === 'audioinput' || deviceType === 'input')
-            && browser.isIosBrowser()
-            && browser.isVersionLessThan('15.4')) {
-            return false;
-        }
-
         return true;
     }
 
