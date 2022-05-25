@@ -138,6 +138,10 @@ export default class XMPP extends Listenable {
         this.token = token;
         this.authenticatedUser = false;
 
+        if (!options.deploymentInfo) {
+            options.deploymentInfo = {};
+        }
+
         initStropheNativePlugins();
 
         const xmppPing = options.xmppPing || {};
@@ -154,7 +158,7 @@ export default class XMPP extends Listenable {
             websocketKeepAlive: options.websocketKeepAlive,
             websocketKeepAliveUrl: options.websocketKeepAliveUrl,
             xmppPing,
-            shard: options.deploymentInfo?.shard
+            shard: options.deploymentInfo.shard
         });
 
         // forwards the shard changed event
