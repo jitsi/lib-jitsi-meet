@@ -138,8 +138,8 @@ export default class XMPP extends Listenable {
         this.token = token;
         this.authenticatedUser = false;
 
-        if (!options.deploymentInfo) {
-            options.deploymentInfo = {};
+        if (!this.options.deploymentInfo) {
+            this.options.deploymentInfo = {};
         }
 
         initStropheNativePlugins();
