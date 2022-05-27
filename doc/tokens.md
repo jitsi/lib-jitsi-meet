@@ -22,6 +22,7 @@ The following JWT claims are used in the authentication token:
 - 'aud' application identifier. This value indicates what service is consuming the token.  It should be negotiated with the service provider before generating the token.
 
 The secret is used to compute the HMAC hash value and verify the token for HS256 tokens.  
+- It is now possible to define the algorithm type used, simply update the prosody.cfg.lua file with your chosen type. e.g `signature_algorithm = "HS512"`
 
 Alternately the token may be signed by a private key and authorized via a public keyserver using RS256 tokens.  In this mode, the 'kid' header of the JWT must be set to the name of the public key.  The backend server must be configured to fetch and confirm keys from a pre-configured public keyserver.
 
