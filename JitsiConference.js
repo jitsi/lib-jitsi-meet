@@ -2393,8 +2393,8 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
  * @private
  */
 JitsiConference.prototype._rejectIncomingCall = function(jingleSession, options) {
-    if (options && options.errorMsg) {
-        GlobalOnErrorHandler.callErrorHandler(new Error(options.errorMsg));
+    if (options?.errorMsg) {
+        logger.warn(options.errorMsg);
     }
 
     // Terminate the jingle session with a reason
