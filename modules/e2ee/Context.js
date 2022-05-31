@@ -259,6 +259,8 @@ export class Context {
             }
 
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                const currentKey = this._cryptoKeyRing[this._currentKeyIndex];
+
                 material = await importKey(await ratchet(material));
 
                 const newKey = await deriveKeys(material);
@@ -268,7 +270,7 @@ export class Context {
                 return await this._decryptFrame(
                     encodedFrame,
                     keyIndex,
-                    initialKey || this._cryptoKeyRing[this._currentKeyIndex],
+                    initialKey || currentKey,
                     ratchetCount + 1);
             }
 
