@@ -3677,7 +3677,7 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
         if (track.getType() === MediaType.VIDEO) {
             videoTypeChanged = this._setNewVideoType(track);
         }
-        presenceChanged = muteStatusChanged || videoTypeChanged;
+        presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
     }
 
     // Set the presence in the legacy format if there are no local tracks and multi stream support is not enabled.
