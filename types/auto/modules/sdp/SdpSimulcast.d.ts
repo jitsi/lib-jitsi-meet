@@ -71,12 +71,5 @@ export default class SdpSimulcast {
      * @returns
      */
     mungeLocalDescription(description: Description): Description;
-    /**
-     * Munges the given media description by removing the SSRCs and related FID groups for the higher layer streams.
-     *
-     * @param description
-     * @returns
-     */
-    mungeRemoteDescription(description: Description): Description;
 }
 export {};
