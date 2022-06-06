@@ -2454,10 +2454,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             }
         }
         if (this.isSimulcastOn()) {
-            // Implode the simulcast ssrcs so that the remote sdp has only the first ssrc in the SIM group.
-            remoteDescription = this.simulcast.mungeRemoteDescription(remoteDescription);
-            this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(remoteDescription));
-
             remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
             this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));
         }
