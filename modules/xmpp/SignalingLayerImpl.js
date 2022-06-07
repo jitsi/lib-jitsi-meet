@@ -303,13 +303,15 @@ export default class SignalingLayerImpl extends SignalingLayer {
             }
             logger.error('Requested peer media info, before room was set');
         };
-        const lastPresence = this.chatRoom.getLastPresence(owner);
-
-        if (!lastPresence) {
-            throw new Error(`getPeerMediaInfo - no presence stored for: ${owner}`);
-        }
 
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            const lastPresence = this.chatRoom?.getLastPresence(owner);
+
+            if (!lastPresence) {
+                logger.error(`getPeerMediaInfo - no presence stored for: ${owner}`);
+
+                return;
+            }
             if (!this._doesEndpointSendNewSourceInfo(owner)) {
                 return legacyGetPeerMediaInfo();
             }
