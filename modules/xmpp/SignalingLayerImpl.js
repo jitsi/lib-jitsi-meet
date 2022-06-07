@@ -301,15 +301,17 @@ export default class SignalingLayerImpl extends SignalingLayer {
             if (this.chatRoom) {
                 return this.chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
-            logger.error('Requested peer media info, before room was set');
+            logger.warn('Requested peer media info, before room was set');
         };
-        const lastPresence = this.chatRoom.getLastPresence(owner);
-
-        if (!lastPresence) {
-            throw new Error(`getPeerMediaInfo - no presence stored for: ${owner}`);
-        }
 
         if (FeatureFlags.isSourceNameSignalingEnabled()) {
+            const lastPresence = this.chatRoom?.getLastPresence(owner);
+
+            if (!lastPresence) {
+                logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+
+                return;
+            }
             if (!this._doesEndpointSendNewSourceInfo(owner)) {
                 return legacyGetPeerMediaInfo();
             }
