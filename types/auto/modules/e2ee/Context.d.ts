@@ -64,7 +64,7 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {number} keyIndex - the index of the decryption data in _cryptoKeyRing array.
      * @param {number} ratchetCount - the number of retries after ratcheting the key.
-     * @returns {RTCEncodedVideoFrame|RTCEncodedAudioFrame} - The decrypted frame.
+     * @returns {Promise<RTCEncodedVideoFrame|RTCEncodedAudioFrame>} - The decrypted frame.
      * @private
      */
     private _decryptFrame;
