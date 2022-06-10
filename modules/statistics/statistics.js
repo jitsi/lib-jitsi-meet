@@ -441,14 +441,18 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
 
         return;
     }
+    let confID = this.options.confID;
+
+    if (!confID.endsWith(this.options.roomName)) {
+        confID = `${this.options.confID.slice(0, this.options.confID.lastIndexOf('/'))}/${this.options.roomName}`;
+    }
 
     logger.info(`Starting CallStats for ${tpc}...`);
-
     const newInstance
         = new CallStats(
             tpc,
             {
-                confID: this.options.confID,
+                confID,
                 remoteUserID
             });
 
