@@ -29,8 +29,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
         FeatureFlags.init({ });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
-    describe('stripSsrcs', () => {
-        it('should strip ssrcs from an sdp with no msid', () => {
+    describe('dontStripSsrcs', () => {
+        it('shouldn\'t strip ssrcs from an sdp with no msid', () => {
             localSdpMunger.tpc.isP2P = false;
 
             const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
@@ -43,8 +43,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(0);
-            expect(videoSsrcs.length).toEqual(0);
+            expect(audioSsrcs.length).toEqual(1);
+            expect(videoSsrcs.length).toEqual(1);
         });
 
         describe('should do nothing to an sdp with msid', () => {
