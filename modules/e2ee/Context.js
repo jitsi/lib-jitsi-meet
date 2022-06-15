@@ -204,7 +204,7 @@ export class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {number} keyIndex - the index of the decryption data in _cryptoKeyRing array.
      * @param {number} ratchetCount - the number of retries after ratcheting the key.
-     * @returns {RTCEncodedVideoFrame|RTCEncodedAudioFrame} - The decrypted frame.
+     * @returns {Promise<RTCEncodedVideoFrame|RTCEncodedAudioFrame>} - The decrypted frame.
      * @private
      */
     async _decryptFrame(
@@ -259,6 +259,8 @@ export class Context {
             }
 
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                const currentKey = this._cryptoKeyRing[this._currentKeyIndex];
+
                 material = await importKey(await ratchet(material));
 
                 const newKey = await deriveKeys(material);
@@ -268,7 +270,7 @@ export class Context {
                 return await this._decryptFrame(
                     encodedFrame,
                     keyIndex,
-                    initialKey || this._cryptoKeyRing[this._currentKeyIndex],
+                    initialKey || currentKey,
                     ratchetCount + 1);
             }
 

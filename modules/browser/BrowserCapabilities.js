@@ -332,7 +332,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsUnifiedPlan() {
-        return !this.isReactNative();
+        // We do not want to enable unified plan on Electron clients that have Chromium version < 96 because of
+        // performance and screensharing issues.
+        return !(this.isReactNative() || (this.isElectron() && (this._getChromiumBasedVersion() < 96)));
     }
 
     /**

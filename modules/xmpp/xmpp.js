@@ -138,6 +138,10 @@ export default class XMPP extends Listenable {
         this.token = token;
         this.authenticatedUser = false;
 
+        if (!this.options.deploymentInfo) {
+            this.options.deploymentInfo = {};
+        }
+
         initStropheNativePlugins();
 
         const xmppPing = options.xmppPing || {};
@@ -154,7 +158,7 @@ export default class XMPP extends Listenable {
             websocketKeepAlive: options.websocketKeepAlive,
             websocketKeepAliveUrl: options.websocketKeepAliveUrl,
             xmppPing,
-            shard: options.deploymentInfo?.shard
+            shard: options.deploymentInfo.shard
         });
 
         // forwards the shard changed event
@@ -464,6 +468,10 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'region') {
                 this.options.deploymentInfo.region = this.connection.region = identity.name;
+            }
+
+            if (identity.type === 'release') {
+                this.options.deploymentInfo.backendRelease = identity.name;
             }
 
             if (identity.type === 'breakout_rooms') {
@@ -1052,13 +1060,16 @@ export default class XMPP extends Listenable {
         if (aprops && Object.keys(aprops).length > 0) {
             const logObject = {};
 
-            logObject.id = 'deployment_info';
             for (const attr in aprops) {
                 if (aprops.hasOwnProperty(attr)) {
                     logObject[attr] = aprops[attr];
                 }
             }
 
+            // Let's push to analytics any updates that may have come from the backend
+            Statistics.analytics.addPermanentProperties({ ...logObject });
+
+            logObject.id = 'deployment_info';
             Statistics.sendLog(JSON.stringify(logObject));
         }
 

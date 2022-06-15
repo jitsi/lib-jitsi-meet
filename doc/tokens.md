@@ -7,7 +7,7 @@ generate the JWT token as described in the RFC and pass it to your client app. O
 
 During configuration you will need to provide the *application ID* that identifies the client and a *secret* shared by both server and JWT token generator. Like described in the RFC, the secret is used to compute a HMAC hash value which allows authentication of the generated token. There are many existing libraries which can be used to implement token generation. More info can be found here: [http://jwt.io/#libraries-io]
 
-JWT token authentication only currently works with BOSH connections.
+JWT token authentication works with BOSH and websocket connections.
 
 [RFC7519]: https://tools.ietf.org/html/rfc7519
 [http://jwt.io/#libraries-io]: http://jwt.io/#libraries-io
@@ -22,6 +22,7 @@ The following JWT claims are used in the authentication token:
 - 'aud' application identifier. This value indicates what service is consuming the token.  It should be negotiated with the service provider before generating the token.
 
 The secret is used to compute the HMAC hash value and verify the token for HS256 tokens.  
+- It is now possible to define the algorithm type used, simply update the prosody.cfg.lua file with your chosen type. e.g `signature_algorithm = "HS512"`
 
 Alternately the token may be signed by a private key and authorized via a public keyserver using RS256 tokens.  In this mode, the 'kid' header of the JWT must be set to the name of the public key.  The backend server must be configured to fetch and confirm keys from a pre-configured public keyserver.
 

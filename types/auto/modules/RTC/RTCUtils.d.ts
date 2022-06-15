@@ -30,17 +30,7 @@ declare class RTCUtils extends Listenable {
     getTrackID: ({ id }: {
         id: any;
     }) => any;
-    pcConstraints: {
-        optional: ({
-            googScreencastMinBitrate: number;
-            googCpuOveruseDetection?: undefined;
-        } | {
-            googCpuOveruseDetection: boolean;
-            googScreencastMinBitrate?: undefined;
-        })[];
-    } | {
-        optional?: undefined;
-    };
+    pcConstraints: {};
     /**
      *
      * @param {Function} callback
@@ -168,14 +158,5 @@ declare class RTCUtils extends Listenable {
      * @returns {MediaDeviceInfo} device.
      */
     getEventDataForActiveDevice(device: any): MediaDeviceInfo;
-    /**
-     * Configures the given PeerConnection constraints to either enable or
-     * disable (according to the value of the 'enable' parameter) the
-     * 'googSuspendBelowMinBitrate' option.
-     * @param constraints the constraints on which to operate.
-     * @param enable {boolean} whether to enable or disable the suspend video
-     * option.
-     */
-    setSuspendVideo(constraints: any, enable: boolean): void;
 }
 import Listenable from "../util/Listenable";

@@ -365,12 +365,7 @@ class RTCUtils extends Listenable {
             this.getTrackID = ({ id }) => id;
         }
 
-        this.pcConstraints = browser.isChromiumBased() || browser.isReactNative()
-            ? { optional: [
-                { googScreencastMinBitrate: 100 },
-                { googCpuOveruseDetection: true }
-            ] }
-            : {};
+        this.pcConstraints = {};
 
         screenObtainer.init(options);
 
@@ -760,15 +755,6 @@ class RTCUtils extends Listenable {
             return isAudioOutputDeviceChangeAvailable;
         }
 
-        // Calling getUserMedia again (for preview) kills the track returned by the first getUserMedia call because of
-        // https://bugs.webkit.org/show_bug.cgi?id=179363. Therefore, do not show microphone/camera options on mobile
-        // Safari. Bug fixed in Safari 15.4.
-        if ((deviceType === 'audioinput' || deviceType === 'input')
-            && browser.isIosBrowser()
-            && browser.isVersionLessThan('15.4')) {
-            return false;
-        }
-
         return true;
     }
 
@@ -887,30 +873,6 @@ class RTCUtils extends Listenable {
         deviceList.push(deviceData);
 
         return { deviceList };
-    }
-
-    /**
-     * Configures the given PeerConnection constraints to either enable or
-     * disable (according to the value of the 'enable' parameter) the
-     * 'googSuspendBelowMinBitrate' option.
-     * @param constraints the constraints on which to operate.
-     * @param enable {boolean} whether to enable or disable the suspend video
-     * option.
-     */
-    setSuspendVideo(constraints, enable) {
-        if (!constraints.optional) {
-            constraints.optional = [];
-        }
-
-        // Get rid of all "googSuspendBelowMinBitrate" constraints (we assume
-        // that the elements of constraints.optional contain a single property).
-        constraints.optional
-            = constraints.optional.filter(
-                c => !c.hasOwnProperty('googSuspendBelowMinBitrate'));
-
-        if (enable) {
-            constraints.optional.push({ googSuspendBelowMinBitrate: 'true' });
-        }
     }
 }
 

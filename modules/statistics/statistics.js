@@ -441,14 +441,22 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
 
         return;
     }
+    let confID = this.options.confID;
+
+    // confID - domain/tenant/roomName
+    // roomName - meeting name or breakout room ID
+    // For breakout rooms we change the conference ID used for callstats to use
+    // the room ID instead of the meeting name
+    if (!confID.endsWith(this.options.roomName)) {
+        confID = `${this.options.confID.slice(0, this.options.confID.lastIndexOf('/'))}/${this.options.roomName}`;
+    }
 
     logger.info(`Starting CallStats for ${tpc}...`);
-
     const newInstance
         = new CallStats(
             tpc,
             {
-                confID: this.options.confID,
+                confID,
                 remoteUserID
             });
 

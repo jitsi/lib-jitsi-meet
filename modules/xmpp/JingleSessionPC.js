@@ -2259,6 +2259,14 @@ export default class JingleSessionPC extends JingleSession {
                     }
 
                     return promise.then(() => {
+                        // Set the source name of the new track.
+                        if (FeatureFlags.isSourceNameSignalingEnabled()
+                            && oldTrack
+                            && newTrack
+                            && oldTrack.isVideoTrack()) {
+                            newTrack.setSourceName(oldTrack.getSourceName());
+                        }
+
                         if (newTrack?.isVideoTrack()) {
                             logger.debug(`${this} replaceTrack worker: configuring video stream`);
 

@@ -76,7 +76,7 @@ describe('E2EE Context', () => {
             await receiver.setKey(key, 0);
         });
 
-        it('with an audio frame', async done => {
+        it('with an audio frame', done => {
             sendController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -90,10 +90,10 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeAudioFrame(), sendController);
         });
 
-        it('with a video frame', async done => {
+        it('with a video frame', done => {
             sendController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -107,7 +107,7 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeVideoFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
         });
     });
 
@@ -122,7 +122,7 @@ describe('E2EE Context', () => {
             };
         });
 
-        it('with an audio frame', async done => {
+        it('with an audio frame', done => {
             receiveController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -133,10 +133,10 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeAudioFrame(), sendController);
         });
 
-        it('with a video frame', async done => {
+        it('with a video frame', done => {
             receiveController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -147,15 +147,10 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeVideoFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
         });
 
-        it('the receiver ratchets forward', async done => {
-            // Ratchet the key. We reimport from the raw bytes.
-            const material = await importKey(key);
-
-            await sender.setKey(await ratchet(material), 0);
-
+        it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -166,7 +161,16 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeAudioFrame(), sendController);
+            const encodeFunction = async () => {
+                // Ratchet the key. We reimport from the raw bytes.
+                const material = await importKey(key);
+
+                await sender.setKey(await ratchet(material), 0);
+
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            };
+
+            encodeFunction();
         });
     });
 });

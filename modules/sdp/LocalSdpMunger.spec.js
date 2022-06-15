@@ -29,8 +29,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
         FeatureFlags.init({ });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
-    describe('stripSsrcs', () => {
-        it('should strip ssrcs from an sdp with no msid', () => {
+    describe('dontStripSsrcs', () => {
+        it('shouldn\'t strip ssrcs from an sdp with no msid', () => {
             localSdpMunger.tpc.isP2P = false;
 
             const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
@@ -43,8 +43,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(0);
-            expect(videoSsrcs.length).toEqual(0);
+            expect(audioSsrcs.length).toEqual(1);
+            expect(videoSsrcs.length).toEqual(1);
         });
 
         describe('should do nothing to an sdp with msid', () => {
@@ -198,6 +198,43 @@ describe('Transform msids for source-name signaling', () => {
         transformStreamIdentifiers();
 
         expect(audioMsid).toBe('sRdpsdg-audio-0-1');
+        expect(videoMsid).toBe('sRdpsdg-video-0-1');
+    });
+});
+
+describe('Track replace operations in plan-b', () => {
+    const tpc = new MockPeerConnection('1', false);
+    const localEndpointId = 'sRdpsdg';
+    let desc, newSdp, sdpStr, transformedDesc, videoMsid, videoMsidLine;
+    const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
+
+    it('should not increment track index for new tracks', () => {
+        FeatureFlags.init({ sourceNameSignaling: true });
+
+        sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
+        desc = new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdpStr
+        });
+        transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+        newSdp = transform.parse(transformedDesc.sdp);
+
+        videoMsidLine = getSsrcLines(newSdp, 'video').find(ssrc => ssrc.attribute === 'msid')?.value;
+        videoMsid = videoMsidLine.split(' ')[0];
+
+        expect(videoMsid).toBe('sRdpsdg-video-0-1');
+
+        sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdpReplacedTrack);
+        desc = new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdpStr
+        });
+        transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+        newSdp = transform.parse(transformedDesc.sdp);
+
+        videoMsidLine = getSsrcLines(newSdp, 'video').find(ssrc => ssrc.attribute === 'msid')?.value;
+        videoMsid = videoMsidLine.split(' ')[0];
+
         expect(videoMsid).toBe('sRdpsdg-video-0-1');
     });
 });
