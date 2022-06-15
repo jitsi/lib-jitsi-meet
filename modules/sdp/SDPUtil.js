@@ -48,21 +48,33 @@ const SDPUtil = {
     },
 
     /**
+     * Returns an object with parsed attributes from the given array of SSRC attribute lines.
+     *
+     * @param {string[]} ssrcLines - an array of lines similar to 'a:213123 msid:stream-id track-id'.
+     * @returns {Object.<string, string>} - an object with parsed attributes
+     */
+    parseSsrcAttributes(ssrcLines) {
+        const attributes = {};
+
+        ssrcLines.forEach(line => {
+            const { key, value } = line.match(/a=ssrc:\w+\s+(?<key>\w+):(?<value>.*)/)?.groups ?? {};
+
+            if (key && value) {
+                attributes[key] = SDPUtil.filterSpecialChars(value);
+            }
+        });
+
+        return attributes;
+    },
+
+    /**
      * Finds the MSID attribute in the given array of SSRC attribute lines and returns the value.
      *
      * @param {string[]} ssrcLines - an array of lines similar to 'a:213123 msid:stream-id track-id'.
      * @returns {undefined|string}
      */
     parseMSIDAttribute(ssrcLines) {
-        const msidLine = ssrcLines.find(line => line.indexOf(' msid:') > 0);
-
-        if (!msidLine) {
-            return undefined;
-        }
-
-        const v = msidLine.substring(msidLine.indexOf(' msid:') + 6 /* the length of ' msid:' */);
-
-        return SDPUtil.filterSpecialChars(v);
+        return SDPUtil.parseSsrcAttributes(ssrcLines).msid;
     },
     parseMLine(line) {
         const data = {};

@@ -171,6 +171,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
             const mediaSsrc = media.ssrcs[ssrcNum];
             const ssrcLines = mediaSsrc.lines;
             const sourceName = SDPUtil.parseSourceNameLine(ssrcLines);
+            const { msid, cname } = SDPUtil.parseSsrcAttributes(ssrcLines);
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({
@@ -178,13 +179,17 @@ SDPDiffer.prototype.toJingle = function(modify) {
                 ssrc: mediaSsrc.ssrc
             });
 
-            // Only MSID attribute is sent
-            const msid = SDPUtil.parseMSIDAttribute(ssrcLines);
-
             if (msid) {
                 modify.c('parameter');
                 modify.attrs({ name: 'msid' });
                 modify.attrs({ value: msid });
+                modify.up();
+            }
+
+            if (cname) {
+                modify.c('parameter');
+                modify.attrs({ name: 'cname' });
+                modify.attrs({ value: cname });
                 modify.up();
             }
 
