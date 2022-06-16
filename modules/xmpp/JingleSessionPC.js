@@ -26,6 +26,7 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 
 const logger = getLogger(__filename);
 
@@ -1745,6 +1746,18 @@ export default class JingleSessionPC extends JingleSession {
                     // Do not print the warning for unified plan p2p case since ssrcs are never removed from the SDP.
                     !(self.usesUnifiedPlan && self.isP2P)
                         && logger.warn(`${self} Source-add request for existing SSRC: ${ssrc}`);
+
+                    const info = $(this).find('ssrc-info[xmlns="http://jitsi.org/jitmeet"]');
+                    if (info.length) {
+                        const owner = $(info).attr('owner');
+                        if (owner.length) {
+                            console.error(`ssrc ${ssrc}: new owner ${owner}`);
+                            self.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, ssrc, owner);
+                        }
+                        else {
+                            console.error(`owner not found`);
+                        }
+                    }
 
                     return;
                 }

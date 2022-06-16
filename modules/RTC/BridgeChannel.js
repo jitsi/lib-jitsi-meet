@@ -336,7 +336,8 @@ export default class BridgeChannel {
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
     sendNewReceiverVideoConstraintsMessage(constraints) {
-        logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
+        // $
+        logger.error(`JPA Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',
             ...constraints

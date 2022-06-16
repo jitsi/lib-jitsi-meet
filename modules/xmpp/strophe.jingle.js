@@ -176,7 +176,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 for (const endpoint of audioVideoSsrcs.keys()) {
                     logMessage.push(`${endpoint}:[${audioVideoSsrcs.get(endpoint)}]`);
                 }
-                logger.debug(`Received ${action} from ${fromJid} with sources=${logMessage.join(', ')}`);
+                // $
+                logger.error(`Received ${action} from ${fromJid} with sources=${logMessage.join(', ')}`);
             }
 
             // TODO: is there a way to remove the json-message elements once we've extracted the information?

@@ -49,7 +49,11 @@ export declare enum JitsiTrackEvents {
      *
      * The current status value can be obtained by calling JitsiRemoteTrack.getTrackStreamingStatus().
      */
-    TRACK_STREAMING_STATUS_CHANGED = "track.streaming_status_changed"
+    TRACK_STREAMING_STATUS_CHANGED = "track.streaming_status_changed",
+    /**
+     * $
+     */
+    TRACK_OWNER_CHANGED_JTE = "track.owner_changed"
 }
 export declare const LOCAL_TRACK_STOPPED = JitsiTrackEvents.LOCAL_TRACK_STOPPED;
 export declare const TRACK_AUDIO_LEVEL_CHANGED = JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED;
@@ -59,3 +63,4 @@ export declare const TRACK_VIDEOTYPE_CHANGED = JitsiTrackEvents.TRACK_VIDEOTYPE_
 export declare const NO_DATA_FROM_SOURCE = JitsiTrackEvents.NO_DATA_FROM_SOURCE;
 export declare const NO_AUDIO_INPUT = JitsiTrackEvents.NO_AUDIO_INPUT;
 export declare const TRACK_STREAMING_STATUS_CHANGED = JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED;
+export declare const TRACK_OWNER_CHANGED_JTE = JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE;

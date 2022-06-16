@@ -3,6 +3,7 @@ import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import * as JitsiTrackEvents from './JitsiTrackEvents';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
@@ -188,6 +189,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
                 JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
         }
+    });
+
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, (ssrc, owner) => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_OWNER_CHANGED_JCE, ssrc, owner);
     });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,

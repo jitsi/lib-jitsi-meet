@@ -90,7 +90,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.addEventListener = this.on = this._addEventListener.bind(this);
         this.removeEventListener = this.off = this._removeEventListener.bind(this);
 
-        logger.debug(`New remote track added: ${this}`);
+        // $
+        console.error(`JPA New remote track added: ${this}`);
 
         // we want to mark whether the track has been ever muted
         // to detect ttfm events for startmuted conferences, as it can
@@ -474,6 +475,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: ${this._getStatus()}]`;
+            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }
 }

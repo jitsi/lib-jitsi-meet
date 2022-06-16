@@ -121,7 +121,8 @@ export default class ChatRoom extends Listenable {
         this.myroomjid = jid;
         this.password = password;
         this.replaceParticipant = false;
-        logger.info(`Joined MUC as ${this.myroomjid}`);
+        // $
+        logger.error(`JPA Joined MUC as ${this.myroomjid}`);
         this.members = {};
         this.presMap = {};
         this.presHandlers = {};
