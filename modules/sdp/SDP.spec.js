@@ -220,7 +220,7 @@ a=sendrecv
 a=mid:audio
 a=rtcp-mux
 a=rtpmap:111 opus/48000/2
-a=fmtp:111 minptime=10; useinbandfec=1
+a=fmtp:111 minptime=10;useinbandfec=1
 a=rtcp-fb:111 transport-cc
 a=rtpmap:103 ISAC/16000
 a=rtpmap:104 ISAC/32000
@@ -351,7 +351,7 @@ a=sendrecv
 a=mid:audio
 a=rtcp-mux
 a=rtpmap:111 opus/48000/2
-a=fmtp:111 minptime=10; useinbandfec=1
+a=fmtp:111 minptime=10;useinbandfec=1
 a=rtcp-fb:111 transport-cc
 a=rtpmap:103 ISAC/16000
 a=rtpmap:104 ISAC/32000
