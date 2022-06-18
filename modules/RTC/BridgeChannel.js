@@ -10,6 +10,21 @@ import { MediaType } from '../../service/RTC/MediaType';
 
 const logger = getLogger(__filename);
 
+function _addSourceElement(description, cc, ssrc_) {
+    const val = cc.owner + ' ' + cc.owner; // $ ?
+    description.c('source', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        ssrc: ssrc_,
+        name: cc.source
+    }).c('parameter', {
+        name: 'msid',
+        value: val
+    }).up().c('ssrc-info', {
+        xmlns: 'http://jitsi.org/jitmeet',
+        owner: cc.owner
+    }).up().up();
+}
+
 function _createVideoSources(ms) {
 
     let node = $build('content', {
@@ -22,37 +37,20 @@ function _createVideoSources(ms) {
 
     for(const cc of ms) {
         logger.error(`JPA received VideoSourceMapping: ${cc.source} (${cc.videoType}) ${cc.ssrc}/${cc.rtx} ep=${cc.owner}`);
-        let xxx = cc.owner + ' ' + cc.owner; // $ ?
-        node = node.c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            ssrc: cc.ssrc,
-            name: cc.source
-        }).c('parameter', {
-            name: 'msid',
-            value: xxx
-        }).up().c('ssrc-info', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            owner: cc.owner
-        }).up().up().c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            ssrc: cc.rtx,
-            name: cc.source
-        }).c('parameter', {
-            name: 'msid',
-            value: xxx
-        }).up().c('ssrc-info', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            owner: cc.owner
-        }).up().up().c('ssrc-group', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            semantics: 'FID'
-        }).c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            ssrc: cc.ssrc
-        }).up().c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            ssrc: cc.rtx,
-        }).up().up();
+        _addSourceElement(node, cc, cc.ssrc);
+        if(cc.rtx != "-1") {
+            _addSourceElement(node, cc, cc.rtx);
+            node.c('ssrc-group', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                semantics: 'FID'
+            }).c('source', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                ssrc: cc.ssrc
+            }).up().c('source', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                ssrc: cc.rtx,
+            }).up().up();
+        }
     }
 
     node = node.up();
@@ -72,20 +70,9 @@ function _createAudioSources(ms) {
 
     for(const cc of ms) {
         logger.error(`JPA received AudioSourceMapping: ${cc.source} ${cc.ssrc} ep=${cc.owner}`);
-        let xxx = cc.owner + ' ' + cc.owner; // $ ?
-        node = node.c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-            ssrc: cc.ssrc,
-            name: cc.source
-        }).c('parameter', {
-            name: 'msid',
-            value: xxx
-        }).up().c('ssrc-info', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            owner: cc.owner
-        }).up().up();
+        _addSourceElement(node, cc, cc.ssrc);
     }
-    
+
     node = node.up();
     logger.error("JPA (Audio) " + node.toString());
     return node.node;
