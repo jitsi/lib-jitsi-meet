@@ -181,6 +181,11 @@ export default function TraceablePeerConnection(
     this.localSSRCs = new Map();
 
     /**
+     * $
+     */
+    this.remoteSSRCs = new Set();
+
+    /**
      * The local ICE username fragment for this session.
      */
     this.localUfrag = null;
@@ -1016,7 +1021,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
             + 'deleting the existing track');
         const existingTrack = Array.from(userTracksByMediaType)[0];
 
-        // The exisiting track needs to be removed here. This happens on Safari sometimes when a SSRC is removed from
+        // The existing track needs to be removed here. This happens on Safari sometimes when an SSRC is removed from
         // the remote description and the browser doesn't fire a 'removetrack' event on the associated MediaStream.
         this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
     }
@@ -2980,6 +2985,13 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             logger.warn(`${this} No SSRCs found in the local SDP for track=${track}, stream=${sourceIdentifier}`);
         }
     }
+};
+
+TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {
+    const existing = this.remoteSSRCs.has(ssrc);
+    if(!existing)
+        this.remoteSSRCs.add(ssrc);
+    return !existing;
 };
 
 TraceablePeerConnection.prototype.addIceCandidate = function(candidate) {

@@ -1812,6 +1812,31 @@ export default class JingleSessionPC extends JingleSession {
         this._addOrRemoveRemoteStream(false /* remove */, elem);
     }
 
+    addRemoteStream2(elem) {
+        const self = this;
+        let gotNew = false;
+
+        $(elem).each((i1, content) => {
+            // handles both >source and >description>source
+            const source = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+
+            source.each(function() {
+                const ssrc = $(this).attr('ssrc');
+
+                if(self.peerconnection.addRemoteSsrc(ssrc)) {
+                    console.error(`YYY new`);
+                    gotNew = true;
+                    return false; // terminate loop
+                }
+
+                return true;
+            });
+        });
+
+        if(gotNew)
+            this._addOrRemoveRemoteStream(true /* add */, elem);
+    }
+
     /**
      * Handles the deletion of SSRCs associated with a remote user from the remote description when the user leaves.
      *

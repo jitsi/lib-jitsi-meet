@@ -561,7 +561,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     rtc.addListener(RTCEvents.SSRCS_REMAPPED, (node) => {
         logger.error('JPA processing SSRCS_REMAPPED');
         const sess = this.conference.getActiveMediaSession();
-        sess.addRemoteStream(node);
+        sess.addRemoteStream2(node);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,

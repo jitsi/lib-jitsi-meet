@@ -183,6 +183,10 @@ export default class TraceablePeerConnection {
         }[];
     }>;
     /**
+     * $
+     */
+    remoteSSRCs: Set<any>;
+    /**
      * The local ICE username fragment for this session.
      */
     localUfrag: any;
@@ -731,6 +735,7 @@ export default class TraceablePeerConnection {
      */
     _extractPrimarySSRC(ssrcObj: any): number | null;
     private _processLocalSSRCsMap;
+    addRemoteSsrc(ssrc: any): boolean;
     addIceCandidate(candidate: any): Promise<void>;
     /**
      * Returns the number of simulcast streams that are currently enabled on the peerconnection.
