@@ -647,6 +647,13 @@ export default class TraceablePeerConnection {
      */
     _initializeDtlsTransport(): void;
     /**
+     * Sets the max bitrates on the video m-lines when VP9 is the selected codec.
+     *
+     * @param {RTCSessionDescription} description - The local description that needs to be munged.
+     * @returns RTCSessionDescription
+     */
+    _setVp9MaxBitrates(description: RTCSessionDescription): RTCSessionDescription;
+    /**
      * Configures the stream encodings depending on the video type and the bitrates configured.
      *
      * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
