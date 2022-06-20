@@ -297,8 +297,8 @@ export class TPCUtils {
             // b/w and cpu cases, especially on the low end machines. Suspending the low resolution streams ensures
             // that the highest resolution stream is available always. Safari is an exception here since it does not
             // send the desktop stream at all if only the high resolution stream is enabled.
-            if (this.pc.isSharingLowFpsScreen()
-                && localVideoTrack.getVideoType() === VideoType.DESKTOP
+            if (localVideoTrack.getVideoType() === VideoType.DESKTOP
+                && this.pc._capScreenshareBitrate
                 && this.pc.usesUnifiedPlan()
                 && !browser.isWebKitBased()
                 && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
@@ -323,10 +323,12 @@ export class TPCUtils {
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
         const presenterEnabled = localVideoTrack._originalStream
             && localVideoTrack._originalStream.id !== localVideoTrack.getStreamId();
-
+        const lowFpsScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP
+            && this.pc._capScreenshareBitrate
+            && !browser.isWebKitBased();
         const encodingsBitrates = this.localStreamEncodingsConfig
         .map(encoding => {
-            const bitrate = this.pc.isSharingLowFpsScreen() && !browser.isWebKitBased()
+            const bitrate = lowFpsScreenshare
 
                 // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on, 2500 Kbps
                 // otherwise.
