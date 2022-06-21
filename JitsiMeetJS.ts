@@ -27,7 +27,6 @@ import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import precallTest from './modules/statistics/PrecallTest';
 import Statistics from './modules/statistics/statistics';
-import AuthUtil from './modules/util/AuthUtil';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -559,7 +558,6 @@ export default {
      * interest to lib-jitsi-meet clients.
      */
     util: {
-        AuthUtil,
         ScriptUtil,
         browser
     }
