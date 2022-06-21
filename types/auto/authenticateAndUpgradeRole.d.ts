@@ -30,7 +30,6 @@
  * @param {string} options.id - XMPP user's ID to log in. For example,
  * user@xmpp-server.com.
  * @param {string} options.password - XMPP user's password to log in with.
- * @param {string} [options.roomPassword] - The password to join the MUC with.
  * @param {Function} [options.onLoginSuccessful] - Callback called when logging
  * into the XMPP server was successful. The next step will be to obtain a new
  * session ID from Jicofo and join the MUC using it which will effectively
@@ -47,10 +46,9 @@
  * thenable will be rejected with an empty object (i.e. no error property will
  * be set on the rejection reason).
  */
-export default function authenticateAndUpgradeRole({ id, password, onCreateResource, onLoginSuccessful, roomPassword }: {
+export default function authenticateAndUpgradeRole({ id, password, onCreateResource, onLoginSuccessful }: {
     id: string;
     password: string;
-    roomPassword?: string;
     onLoginSuccessful?: Function;
 }): any;
 export type UpgradeRoleError = {
