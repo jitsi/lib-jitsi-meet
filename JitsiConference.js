@@ -856,34 +856,6 @@ JitsiConference.prototype.getAuthLogin = function() {
 };
 
 /**
- * Check if external authentication is enabled for this conference.
- */
-JitsiConference.prototype.isExternalAuthEnabled = function() {
-    return this.room && this.room.xmpp.moderator.isExternalAuthEnabled();
-};
-
-/**
- * Get url for external authentication.
- * @param {boolean} [urlForPopup] if true then return url for login popup,
- *                                else url of login page.
- * @returns {Promise}
- */
-JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
-    return new Promise((resolve, reject) => {
-        if (!this.isExternalAuthEnabled()) {
-            reject();
-
-            return;
-        }
-        if (urlForPopup) {
-            this.room.xmpp.moderator.getPopupLoginUrl(this.room.roomjid, resolve, reject);
-        } else {
-            this.room.xmpp.moderator.getLoginUrl(this.room.roomjid, resolve, reject);
-        }
-    });
-};
-
-/**
  * Returns the local tracks of the given media type, or all local tracks if no
  * specific type is given.
  * @param {MediaType} [mediaType] Optional media type (audio or video).

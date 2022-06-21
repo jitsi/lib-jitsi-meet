@@ -1,7 +1,7 @@
 /* eslint-disable newline-per-chained-call */
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import { $iq, Strophe } from 'strophe.js';
+import { $iq } from 'strophe.js';
 
 import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -54,9 +54,6 @@ export default class Moderator extends Listenable {
         this.getNextTimeout = createExpBackoffTimer(1000);
         this.getNextErrorTimeout = createExpBackoffTimer(1000);
         this.options = xmpp.options;
-
-        // External authentication stuff
-        this.externalAuthEnabled = false;
 
         // Whether SIP gateway (jigasi) support is enabled. TODO: use presence so it can be changed based on jigasi
         // availability.
@@ -131,14 +128,6 @@ export default class Moderator extends Listenable {
         }
 
         return false;
-    }
-
-    /**
-     * Is external authentication enabled.
-     * @returns {boolean}
-     */
-    isExternalAuthEnabled() {
-        return this.externalAuthEnabled;
     }
 
     /**
@@ -385,10 +374,7 @@ export default class Moderator extends Listenable {
 
         logger.info(`Authentication enabled: ${authenticationEnabled}`);
 
-        this.externalAuthEnabled = conferenceRequest.properties.externalAuth === 'true';
-        logger.info(`External authentication enabled: ${this.externalAuthEnabled}`);
-
-        if (!this.externalAuthEnabled && conferenceRequest.sessionId) {
+        if (conferenceRequest.sessionId) {
             logger.info(`Received sessionId: ${conferenceRequest.sessionId}`);
             Settings.sessionId = conferenceRequest.sessionId;
         }
@@ -507,13 +493,6 @@ export default class Moderator extends Listenable {
         // Not authorized to create new room
         const notAuthorized = $(error).find('>error>not-authorized').length > 0;
 
-        if (notAuthorized
-            && Strophe.getDomainFromJid(error.getAttribute('to')) !== this.options.hosts.anonymousdomain) {
-            // FIXME "is external" should come either from the focus or
-            // config.js
-            this.externalAuthEnabled = true;
-        }
-
         this._handleError(roomJid, invalidSession, notAuthorized, callback);
     }
 
@@ -569,84 +548,6 @@ export default class Moderator extends Listenable {
     }
 
     /**
-     * Gets the login URL by requesting it to jicofo.
-     * @param roomJid The room jid to use.
-     * @param urlCallback The success callback.
-     * @param failureCallback The error callback.
-     */
-    getLoginUrl(roomJid, urlCallback, failureCallback) {
-        this._getLoginUrl(roomJid, /* popup */ false, urlCallback, failureCallback);
-    }
-
-    /**
-     * Gets the login URL by requesting it to jicofo.
-     * @param {boolean} popup false for {@link Moderator#getLoginUrl} or true for
-     * {@link Moderator#getPopupLoginUrl}
-     * @param roomJid - The room jid to use.
-     * @param urlCb
-     * @param failureCb
-     */
-    _getLoginUrl(roomJid, popup, urlCb, failureCb) {
-        const iq = $iq({
-            to: this.targetJid,
-            type: 'get'
-        });
-        const attrs = {
-            xmlns: 'http://jitsi.org/protocol/focus',
-            room: roomJid,
-            'machine-uid': Settings.machineId
-        };
-        let str = 'auth url'; // for logger
-
-        if (popup) {
-            attrs.popup = true;
-            str = `POPUP ${str}`;
-        }
-        iq.c('login-url', attrs);
-
-        /**
-         * Implements a failure callback which reports an error message and an error
-         * through (1) GlobalOnErrorHandler, (2) logger, and (3) failureCb.
-         *
-         * @param {string} errmsg the error messsage to report
-         * @param {*} error the error to report (in addition to errmsg)
-         */
-        function reportError(errmsg, err) {
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg, err);
-            failureCb(err);
-        }
-
-        this.connection.sendIQ(
-            iq,
-            result => {
-                let url = $(result)
-                    .find('login-url')
-                    .attr('url');
-
-                url = decodeURIComponent(url);
-                if (url) {
-                    logger.info(`Got ${str}: ${url}`);
-                    urlCb(url);
-                } else {
-                    reportError(`Failed to get ${str} from the focus`, result);
-                }
-            },
-            reportError.bind(undefined, `Get ${str} error`)
-        );
-    }
-
-    /**
-     * Gets the login URL by requesting it to jicofo.
-     * @param roomJid The room jid to use.
-     * @param urlCallback The success callback.
-     * @param failureCallback The error callback.
-     */
-    getPopupLoginUrl(roomJid, urlCallback, failureCallback) {
-        this._getLoginUrl(roomJid, /* popup */ true, urlCallback, failureCallback);
-    }
-
-    /**
      * Logout by sending conference IQ.
      * @param callback
      */
@@ -669,16 +570,9 @@ export default class Moderator extends Listenable {
         this.connection.sendIQ(
             iq,
             result => {
-                let logoutUrl = $(result)
-                    .find('logout')
-                    .attr('logout-url');
-
-                if (logoutUrl) {
-                    logoutUrl = decodeURIComponent(logoutUrl);
-                }
-                logger.info(`Log out OK, url: ${logoutUrl}`, result);
+                logger.info('Log out OK', result);
                 Settings.sessionId = undefined;
-                callback(logoutUrl);
+                callback();
             },
             error => {
                 const errmsg = 'Logout error';

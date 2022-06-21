@@ -16,7 +16,6 @@ import TrackVADEmitter, { VADProcessor } from './modules/detection/TrackVADEmitt
 import RecordingConstants from './modules/recording/recordingConstants';
 import JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import PrecallTest from './modules/statistics/PrecallTest';
-import AuthUtil from './modules/util/AuthUtil';
 import ScriptUtil from './modules/util/ScriptUtil';
 import { VideoSIPGWConstants } from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
@@ -140,7 +139,6 @@ export type JitsiMeetJSType = {
   precallTest: PrecallTest;
 
   util: {
-    AuthUtil: { getTokenAuthUrl: typeof AuthUtil.getTokenAuthUrl },
     ScriptUtil: { loadScript: typeof ScriptUtil.loadScript },
     browser: BrowserCapabilities
   }
