@@ -118,6 +118,67 @@ export class Context {
             // Thіs is not encrypted and contains the VP9 payload descriptor.
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
+            let offset = 0;
+            const firstByte = frameHeader[0];
+            const descriptor = {
+                i: !!(firstByte & 0x80),
+                p: !!(firstByte & 0x40),
+                l: !!(firstByte & 0x20),
+                f: !!(firstByte & 0x10),
+                b: !!(firstByte & 0x08),
+                e: !!(firstByte & 0x04),
+                v: !!(firstByte & 0x02),
+                z: !!(firstByte & 0x01),
+            };
+        //    console.log("XXX encode", descriptor)
+
+            offset++;
+            if (descriptor.i) { // I set.
+             //   console.log("XXX encode I set")
+                if (frameHeader[offset] & 0x80) { // M set.
+            //        console.log("XXX encode M set")
+                    offset += 2;
+                } else {
+                    offset++;
+                }
+            }
+            if (descriptor.l) { // L set.
+             //   console.log("XXX encode L set")
+                offset++;
+            }
+            if (descriptor.f) { // F set.
+            //    console.log("XXX encode F set")
+                if (descriptor.p) {
+            //        console.log("XXX encode P set")
+                    for (let i = 0; i < 3; i++) {
+                        if (!(frameHeader[offset] & 0x01)) {
+                            offset++;
+                            break;
+                        }
+                        offset++;
+                    }
+                }
+            } else {
+                offset++;
+            }
+            if (descriptor.v) {
+                const firstByte1 = frameHeader[offset];
+                console.log("XXX firstByte1", firstByte1)
+                const descriptor1 = {
+                    n_s0: firstByte1 & 0x80,
+                    n_s1: firstByte1 & 0x40,
+                    n_s2: firstByte1 & 0x20,
+                    y: firstByte1 & 0x10,
+                    g: firstByte1 & 0x08
+                };
+
+                const n_s = descriptor1.n_s0 * 4 + descriptor1.n_s1 * 2 + descriptor1.n_s2;
+                console.log("XXX n_s", descriptor1)
+            }
+
+            console.log("XXX encode offset", offset)
+
+
             // Frame trailer contains the R|IV_LENGTH and key index
             const frameTrailer = new Uint8Array(2);
 
