@@ -4,6 +4,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
+import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
@@ -245,8 +246,28 @@ export default class LocalSdpMunger {
             return;
         }
 
-        // Add the msid attribute if it is missing when the direction is sendrecv/sendonly. Firefox doesn't produce a
-        // a=ssrc line with msid attribute for p2p connection.
+        const mediaDirection = mediaSection.mLine?.direction;
+
+        // On FF when the user has started muted create answer will generate a recv only SSRC. We don't want to signal
+        // this SSRC in order to reduce the load of the xmpp server for large calls. Therefore the SSRC needs to be
+        // removed from the SDP.
+        //
+        // For all other use cases (when the user has had media but then the user has stopped it) we want to keep the
+        // receive only SSRCs in the SDP. Otherwise source-remove will be triggered and the next time the user add a
+        // track we will reuse the SSRCs and send source-add with the same SSRCs. This is problematic because of issues
+        // on Chrome and FF (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729) when removing and then adding the
+        // same SSRC in the remote sdp the remote track is not rendered.
+        if (browser.isFirefox()
+            && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
+            && (
+                (mediaType === MediaType.VIDEO && !this.tpc._hadVideoAdded)
+                || (mediaType === MediaType.AUDIO && !this.tpc._hadAudioAdded)
+            )
+        ) {
+            mediaSection.ssrcs = undefined;
+            mediaSection.ssrcGroups = undefined;
+        }
+
         const msidLine = mediaSection.mLine?.msid;
         const trackId = msidLine && msidLine.split(' ')[1];
         const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
