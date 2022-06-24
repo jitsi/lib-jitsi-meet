@@ -234,6 +234,10 @@ export default class TraceablePeerConnection {
      */
     _hasHadAudioTrack: boolean;
     /**
+     * Indicates whether a video track has ever been added to the peer connection.
+     */
+    _hasHadVideoTrack: boolean;
+    /**
      * @type {number} The max number of stats to keep in this.stats. Limit to
      * 300 values, i.e. 5 minutes; set to 0 to disable
      */
@@ -499,7 +503,6 @@ export default class TraceablePeerConnection {
      * @returns {Promise<void>} - resolved when done.
      */
     addTrack(track: any, isInitiator?: boolean): Promise<void>;
-    _hasHadVideoTrack: boolean;
     /**
      * Adds local track as part of the unmute operation.
      * @param {JitsiLocalTrack} track the track to be added as part of the unmute operation.

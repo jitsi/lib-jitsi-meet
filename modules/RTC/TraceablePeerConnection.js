@@ -266,7 +266,7 @@ export default function TraceablePeerConnection(
         /**
          * Indicates whether a video track has ever been added to the peer connection.
          */
-        this._hasHadAudioTrack = false;
+        this._hasHadVideoTrack = false;
     }
 
     /**
