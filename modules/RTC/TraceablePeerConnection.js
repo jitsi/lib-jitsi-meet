@@ -256,6 +256,19 @@ export default function TraceablePeerConnection(
     this._usesTransceiverCodecPreferences
         && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
 
+    // We currently need these flags only for FF and that's why we are updating them only for unified plan.
+    if (this._usesUnifiedPlan) {
+        /**
+         * Indicates whether an audio track has ever been added to the peer connection.
+         */
+        this._hasHadAudioTrack = false;
+
+        /**
+         * Indicates whether a video track has ever been added to the peer connection.
+         */
+        this._hasHadAudioTrack = false;
+    }
+
     /**
      * @type {number} The max number of stats to keep in this.stats. Limit to
      * 300 values, i.e. 5 minutes; set to 0 to disable
@@ -1672,6 +1685,13 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
         logger.debug(`${this} TPC.addTrack using unified plan`);
         try {
             this.tpcUtils.addTrack(track, isInitiator);
+            if (track) {
+                if (track.isAudioTrack()) {
+                    this._hasHadAudioTrack = true;
+                } else {
+                    this._hasHadVideoTrack = true;
+                }
+            }
         } catch (error) {
             logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
 
@@ -1753,7 +1773,17 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     }
 
     if (this._usesUnifiedPlan) {
-        return this.tpcUtils.replaceTrack(null, track).then(() => false);
+        return this.tpcUtils.replaceTrack(null, track).then(() => {
+            if (track) {
+                if (track.isAudioTrack()) {
+                    this._hasHadAudioTrack = true;
+                } else {
+                    this._hasHadVideoTrack = true;
+                }
+            }
+
+            return false;
+        });
     }
 
     this._addStream(webRtcStream);
@@ -1985,6 +2015,14 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 
         return promise
             .then(transceiver => {
+                if (newTrack) {
+                    if (newTrack.isAudioTrack()) {
+                        this._hasHadAudioTrack = true;
+                    } else {
+                        this._hasHadVideoTrack = true;
+                    }
+                }
+
                 oldTrack && this.localTracks.delete(oldTrack.rtcId);
                 newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
 
