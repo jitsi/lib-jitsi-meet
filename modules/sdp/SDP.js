@@ -707,7 +707,7 @@ SDP.prototype.jingle2media = function(content) {
                                 + parameter.getAttribute('value'));
                     })
                     .get()
-                    .join('; ');
+                    .join(';');
             sdp += '\r\n';
         }
 
