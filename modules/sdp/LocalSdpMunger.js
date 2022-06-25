@@ -260,8 +260,8 @@ export default class LocalSdpMunger {
         if (browser.isFirefox()
             && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
             && (
-                (mediaType === MediaType.VIDEO && !this.tpc._hadVideoAdded)
-                || (mediaType === MediaType.AUDIO && !this.tpc._hadAudioAdded)
+                (mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack)
+                || (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack)
             )
         ) {
             mediaSection.ssrcs = undefined;
