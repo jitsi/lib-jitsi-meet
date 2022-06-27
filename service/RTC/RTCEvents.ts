@@ -113,10 +113,16 @@ export enum RTCEvents {
     REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
 
     /**
-     * Designates an event indicating that some received SSRCs will now map to
+     * Designates an event indicating that some received video SSRCs will now map to
      * new remote sources.
      */
-    SSRCS_REMAPPED = 'rtc.ssrcs_remapped'
+    VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped',
+
+    /**
+     * Designates an event indicating that some received audio SSRCs will now map to
+     * new remote sources.
+     */
+    AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped'
 };
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
@@ -146,7 +152,8 @@ export const ENDPOINT_MESSAGE_RECEIVED = RTCEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = RTCEvents.ENDPOINT_STATS_RECEIVED;
 export const LOCAL_UFRAG_CHANGED = RTCEvents.LOCAL_UFRAG_CHANGED;
 export const REMOTE_UFRAG_CHANGED = RTCEvents.REMOTE_UFRAG_CHANGED;
-export const SSRCS_REMAPPED = RTCEvents.SSRCS_REMAPPED;
+export const VIDEO_SSRCS_REMAPPED = RTCEvents.VIDEO_SSRCS_REMAPPED;
+export const AUDIO_SSRCS_REMAPPED = RTCEvents.AUDIO_SSRCS_REMAPPED;
 
 // TODO: this was a pre-ES6 module using module.exports = RTCEvents which doesn't translate well
 // it is used in a number of places and should be updated to use the named export

@@ -558,10 +558,16 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 
-    rtc.addListener(RTCEvents.SSRCS_REMAPPED, (node) => {
-        logger.error('JPA processing SSRCS_REMAPPED');
+    rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, (msg) => {
+        logger.error('JPA processing VIDEO_SSRCS_REMAPPED');
         const sess = this.conference.getActiveMediaSession();
-        sess.addRemoteStream2(node);
+        sess.videoSsrcsRemapped(msg);
+    });
+
+    rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, (msg) => {
+        logger.error('JPA processing AUDIO_SSRCS_REMAPPED');
+        const sess = this.conference.getActiveMediaSession();
+        sess.audioSsrcsRemapped(msg);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
