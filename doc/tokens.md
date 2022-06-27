@@ -138,7 +138,7 @@ Include "conf.d/*.cfg.lua"
 
 Also check if client to server encryption is enforced. If not then token authentication won't work:
 ```
-c2s_require_encryption=false
+c2s_require_encryption=true
 ```
 
 Restart the service to take the changes into account
