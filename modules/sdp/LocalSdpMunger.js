@@ -246,6 +246,9 @@ export default class LocalSdpMunger {
             return;
         }
 
+        // If the msid attribute is missing, then remove the ssrc from the transformed description so that a
+        // source-remove is signaled to Jicofo. This happens when the direction of the transceiver (or m-line)
+        // is set to 'inactive' or 'recvonly' on Firefox, Chrome (unified) and Safari.
         const mediaDirection = mediaSection.mLine?.direction;
 
         // On FF when the user has started muted create answer will generate a recv only SSRC. We don't want to signal
@@ -266,24 +269,27 @@ export default class LocalSdpMunger {
         ) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
-        }
 
-        const msidLine = mediaSection.mLine?.msid;
-        const trackId = msidLine && msidLine.split(' ')[1];
-        const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
+        // Add the msid attribute if it is missing when the direction is sendrecv/sendonly. Firefox doesn't produce a
+        // a=ssrc line with msid attribute for p2p connection.
+        } else {
+            const msidLine = mediaSection.mLine?.msid;
+            const trackId = msidLine && msidLine.split(' ')[1];
+            const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
 
-        for (const source of sources) {
-            const msidExists = mediaSection.ssrcs
-                .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
+            for (const source of sources) {
+                const msidExists = mediaSection.ssrcs
+                    .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
-            if (!msidExists && trackId) {
-                const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
+                if (!msidExists && trackId) {
+                    const generatedMsid = this._generateMsidAttribute(mediaType, trackId);
 
-                mediaSection.ssrcs.push({
-                    id: source,
-                    attribute: 'msid',
-                    value: generatedMsid
-                });
+                    mediaSection.ssrcs.push({
+                        id: source,
+                        attribute: 'msid',
+                        value: generatedMsid
+                    });
+                }
             }
         }
     }
