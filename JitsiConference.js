@@ -1312,13 +1312,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
                 this._sendBridgeVideoTypeMessage(newTrack);
             }
-
-            // We do not want to send presence update during setEffect switching, which removes and then adds the same
-            // track back to the conference.
-            if (!(oldTrack?._setEffectInProgress || newTrack?._setEffectInProgress)) {
-                this._updateRoomPresence(this.getActiveMediaSession());
-            }
-
+            this._updateRoomPresence(this.getActiveMediaSession());
             if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
                 this._fireMuteChangeEvent(newTrack);
             }
