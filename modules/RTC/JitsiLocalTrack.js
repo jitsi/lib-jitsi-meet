@@ -863,15 +863,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._setEffectInProgress = true;
 
-        // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
-        return conference.removeTrack(this)
+        return conference._removeLocalTrackAsMute(this)
             .then(() => {
                 this._switchStreamEffect(effect);
                 if (this.isVideoTrack()) {
                     this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
                 }
 
-                return conference.addTrack(this);
+                return conference._addLocalTrackAsUnmute(this);
             })
             .then(() => {
                 this._setEffectInProgress = false;
