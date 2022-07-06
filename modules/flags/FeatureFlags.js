@@ -13,11 +13,13 @@ class FeatureFlags {
      *
      * @param {boolean} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
      * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
+     * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
      */
     init(flags) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
 
         this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
+        this._receiveMultipleVideoStreams = Boolean(flags.receiveMultipleVideoStreams);
         this._sendMultipleVideoStreams = Boolean(flags.sendMultipleVideoStreams);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingOnBridgeSupported);
 
@@ -38,6 +40,15 @@ class FeatureFlags {
      */
     isMultiStreamSupportEnabled() {
         return this._sourceNameSignaling && this._sendMultipleVideoStreams && this._usesUnifiedPlan;
+    }
+
+    /**
+     * Checks if receiving multiple video streams is supported.
+     *
+     * @returns {boolean}
+     */
+    isReceiveMultipleVideoStreamsSupported() {
+        return this._receiveMultipleVideoStreams;
     }
 
     /**
