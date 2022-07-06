@@ -1487,54 +1487,51 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} (a video one) in order to add
- * back the underlying WebRTC MediaStream to the PeerConnection (which has
- * removed on video mute).
- * @param {JitsiLocalTrack} track the local track that will be added as part of
- * the unmute operation.
- * @return {Promise} resolved when the process is done or rejected with a string
- * which describes the error.
+ * Method called by the {@link JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
+ *
+ * @param {JitsiLocalTrack} track the local track that will be added to the pc.
+ * @return {Promise} resolved when the process is done or rejected with a string which describes the error.
  */
-JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
-    const addAsUnmutePromises = [];
+JitsiConference.prototype._addLocalTrackToPc = function(track) {
+    const addPromises = [];
 
     if (this.jvbJingleSession) {
-        addAsUnmutePromises.push(this.jvbJingleSession.addTrackAsUnmute(track));
+        addPromises.push(this.jvbJingleSession.addTrackToPc(track));
     } else {
-        logger.debug('Add local MediaStream as unmute - no JVB Jingle session started yet');
+        logger.debug('Add local MediaStream - no JVB Jingle session started yet');
     }
 
     if (this.p2pJingleSession) {
-        addAsUnmutePromises.push(this.p2pJingleSession.addTrackAsUnmute(track));
+        addPromises.push(this.p2pJingleSession.addTrackToPc(track));
     } else {
-        logger.debug('Add local MediaStream as unmute - no P2P Jingle session started yet');
+        logger.debug('Add local MediaStream - no P2P Jingle session started yet');
     }
 
-    return Promise.allSettled(addAsUnmutePromises);
+    return Promise.allSettled(addPromises);
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} (a video one) in order to remove
- * the underlying WebRTC MediaStream from the PeerConnection. The purpose of
- * that is to stop sending any data and turn off the HW camera device.
+ * Method called by the {@link JitsiLocalTrack} in order to remove the underlying MediaStream from the
+ * RTCPeerConnection.
+ *
  * @param {JitsiLocalTrack} track the local track that will be removed.
- * @return {Promise}
+ * @return {Promise} resolved when the process is done or rejected with a string which describes the error.
  */
-JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
-    const removeAsMutePromises = [];
+JitsiConference.prototype._removeLocalTrackFromPc = function(track) {
+    const removePromises = [];
 
     if (this.jvbJingleSession) {
-        removeAsMutePromises.push(this.jvbJingleSession.removeTrackAsMute(track));
+        removePromises.push(this.jvbJingleSession.removeTrackFromPc(track));
     } else {
         logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
     }
     if (this.p2pJingleSession) {
-        removeAsMutePromises.push(this.p2pJingleSession.removeTrackAsMute(track));
+        removePromises.push(this.p2pJingleSession.removeTrackFromPc(track));
     } else {
         logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
     }
 
-    return Promise.allSettled(removeAsMutePromises);
+    return Promise.allSettled(removePromises);
 };
 
 /**
