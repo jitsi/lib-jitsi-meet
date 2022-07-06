@@ -295,6 +295,20 @@ const SDPUtil = {
         // Everything past the "name:" part
         return sourceNameLine?.substring(sourceNameLine.indexOf(' name:') + 6);
     },
+
+    /**
+     * Parse the "videoType" attribute encoded in a set of SSRC attributes (e.g.
+     * "a=ssrc:1234 videoType:desktop")
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
+     */
+    parseVideoTypeLine(ssrcLines) {
+        const s = ' videoType:';
+        const videoTypeLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(s) > 0);
+
+        return videoTypeLine?.substring(videoTypeLine.indexOf(s) + s.length);
+    },
     parseRTCPFB(line) {
         const parts = line.substr(10).split(' ');
         const data = {};

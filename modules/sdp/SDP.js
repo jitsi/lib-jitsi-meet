@@ -242,10 +242,12 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                 for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
                     const sourceName = SDPUtil.parseSourceNameLine(ssrcParameters);
+                    const videoType = SDPUtil.parseVideoTypeLine(ssrcParameters);
 
                     elem.c('source', {
                         ssrc: availableSsrc,
                         name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceName : undefined,
+                        videoType,
                         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                     });
 
