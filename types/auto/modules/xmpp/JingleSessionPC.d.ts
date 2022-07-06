@@ -530,14 +530,13 @@ export default class JingleSessionPC extends JingleSession {
      */
     private _verifyNoSSRCChanged;
     /**
-     * Adds local track back to this session, as part of the unmute operation.
+     * Adds local track back to the peerconnection associated with this session.
      * @param {JitsiLocalTrack} track
-     * @return {Promise} a promise that will resolve once the local track is
-     * added back to this session and renegotiation succeeds. Will be rejected
-     * with a <tt>string</tt> that provides some error details in case something
-     * goes wrong.
+     * @return {Promise} a promise that will resolve once the local track is added back to this session and
+     * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
+     * details in case something goes wrong.
      */
-    addTrackAsUnmute(track: any): Promise<any>;
+    addTrackToPc(track: any): Promise<any>;
     /**
      * Remove local track as part of the mute operation.
      * @param {JitsiLocalTrack} track the local track to be removed
@@ -546,15 +545,14 @@ export default class JingleSessionPC extends JingleSession {
      * The promise will be rejected with a <tt>string</tt> that the describes
      * the error if anything goes wrong.
      */
-    removeTrackAsMute(track: any): Promise<any>;
+    removeTrackFromPc(track: any): Promise<any>;
     /**
-     * See {@link addTrackAsUnmute} and {@link removeTrackAsMute}.
-     * @param {boolean} isMute <tt>true</tt> for "remove as mute" or
-     * <tt>false</tt> for "add as unmute".
+     * See {@link addTrackToPc} and {@link removeTrackFromPc}.
+     * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
      * @param {JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
-    private _addRemoveTrackAsMuteUnmute;
+    private _addRemoveTrack;
     /**
      * Resumes or suspends media transfer over the underlying peer connection.
      * @param {boolean} audioActive <tt>true</tt> to enable audio media

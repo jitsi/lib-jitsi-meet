@@ -2405,16 +2405,14 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Adds local track back to this session, as part of the unmute operation.
+     * Adds local track back to the peerconnection associated with this session.
      * @param {JitsiLocalTrack} track
-     * @return {Promise} a promise that will resolve once the local track is
-     * added back to this session and renegotiation succeeds. Will be rejected
-     * with a <tt>string</tt> that provides some error details in case something
-     * goes wrong.
+     * @return {Promise} a promise that will resolve once the local track is added back to this session and
+     * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
+     * details in case something goes wrong.
      */
-    addTrackAsUnmute(track) {
-        return this._addRemoveTrackAsMuteUnmute(
-            false /* add as unmute */, track)
+    addTrackToPc(track) {
+        return this._addRemoveTrack(false /* add */, track)
             .then(() => {
                 // Configure the video encodings after the track is unmuted. If the user joins the call muted and
                 // unmutes it the first time, all the parameters need to be configured.
@@ -2432,38 +2430,34 @@ export default class JingleSessionPC extends JingleSession {
      * The promise will be rejected with a <tt>string</tt> that the describes
      * the error if anything goes wrong.
      */
-    removeTrackAsMute(track) {
-        return this._addRemoveTrackAsMuteUnmute(
-            true /* remove as mute */, track);
+    removeTrackFromPc(track) {
+        return this._addRemoveTrack(true /* remove */, track);
     }
 
     /**
-     * See {@link addTrackAsUnmute} and {@link removeTrackAsMute}.
-     * @param {boolean} isMute <tt>true</tt> for "remove as mute" or
-     * <tt>false</tt> for "add as unmute".
+     * See {@link addTrackToPc} and {@link removeTrackFromPc}.
+     * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
      * @param {JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
-    _addRemoveTrackAsMuteUnmute(isMute, track) {
+    _addRemoveTrack(isRemove, track) {
         if (!track) {
             return Promise.reject('invalid "track" argument value');
         }
-        const operationName = isMute ? 'removeTrackMute' : 'addTrackUnmute';
+        const operationName = isRemove ? 'removeTrack' : 'addTrack';
         const workFunction = finishedCallback => {
             const tpc = this.peerconnection;
 
             if (!tpc) {
-                finishedCallback(
-                    `Error:  tried ${operationName} track with no active peer`
-                        + 'connection');
+                finishedCallback(`Error:  tried ${operationName} track with no active peer connection`);
 
                 return;
             }
             const oldLocalSDP = tpc.localDescription.sdp;
             const operationPromise
-                = isMute
-                    ? tpc.removeTrackMute(track)
-                    : tpc.addTrackUnmute(track);
+                = isRemove
+                    ? tpc.removeTrackFromPc(track)
+                    : tpc.addTrackToPc(track);
 
             operationPromise
                 .then(shouldRenegotiate => {
