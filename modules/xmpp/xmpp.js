@@ -236,9 +236,6 @@ export default class XMPP extends Listenable {
         // XEP-0294
         // this.caps.addFeature('urn:xmpp:jingle:apps:rtp:rtp-hdrext:0');
 
-        this.caps.addFeature('urn:ietf:rfc:5761'); // rtcp-mux
-        this.caps.addFeature('urn:ietf:rfc:5888'); // a=group, e.g. bundle
-
         // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
