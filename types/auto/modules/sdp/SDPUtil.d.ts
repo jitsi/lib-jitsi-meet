@@ -152,6 +152,22 @@ declare namespace SDPUtil {
      * @returns {string | undefined}
      */
     function parseSourceNameLine(ssrcLines: string[]): string;
+    /**
+     * Parse the "videoType" attribute encoded in a set of SSRC attributes (e.g.
+     * "a=ssrc:1234 videoType:desktop")
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
+     */
+    function parseVideoTypeLine(ssrcLines: string[]): string;
+    /**
+     * Parse the "videoType" attribute encoded in a set of SSRC attributes (e.g.
+     * "a=ssrc:1234 videoType:desktop")
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
+     */
+    function parseVideoTypeLine(ssrcLines: string[]): string;
     function parseRTCPFB(line: any): {
         pt: any;
         type: any;
