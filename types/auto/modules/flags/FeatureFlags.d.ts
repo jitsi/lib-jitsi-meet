@@ -24,6 +24,11 @@ declare class FeatureFlags {
      * @returns {boolean}
      */
     isMultiStreamSupportEnabled(): boolean;
+    /**
+     * Checks if receiving multiple video streams is supported.
+     *
+     * @returns {boolean}
+     */
     isReceiveMultipleVideoStreamsSupported(): boolean;
     /**
      * Checks if the run in lite mode is enabled.

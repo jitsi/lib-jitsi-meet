@@ -2,7 +2,7 @@
  * A queue for async task execution.
  */
 export default class AsyncQueue {
-    _queue: import("async").QueueObject<any>;
+    _queue: any;
     _stopped: boolean;
     /**
      * Removes any pending tasks from the queue.
