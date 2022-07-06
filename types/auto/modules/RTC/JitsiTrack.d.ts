@@ -197,11 +197,6 @@ export default class JitsiTrack extends EventEmitter {
      */
     dispose(): Promise<any>;
     /**
-     * Returns true if this is a video track and the source of the video is a
-     * screen capture as opposed to a camera.
-     */
-    isScreenSharing(): void;
-    /**
      * Returns id of the track.
      * @returns {string|null} id of the track or null if this is fake track.
      */
