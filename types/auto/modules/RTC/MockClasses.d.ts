@@ -53,6 +53,10 @@ export class MockPeerConnection {
      * {@link TraceablePeerConnection.usesUnifiedPlan}.
      */
     usesUnifiedPlan(): boolean;
+    /**
+     * {@link TraceablePeerConnection.getLocalVideoTracks}.
+     */
+    getLocalVideoTracks(): any[];
 }
 /**
  * Mock {@link RTC} - add things as needed, but only things useful for all tests.
