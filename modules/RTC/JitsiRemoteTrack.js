@@ -267,6 +267,15 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
+     * Sets the source name to be used for signaling the jitsi track.
+     *
+     * @param {string} name The source name.
+     */
+     setSourceName(name) {
+        this._sourceName = name;
+    }
+
+    /**
      * Changes the video type of the track.
      *
      * @param {string} type - The new video type("camera", "desktop").

@@ -1873,8 +1873,14 @@ export default class JingleSessionPC extends JingleSession {
                 newSources[newSources.length] = s;
             }
             else {
-                console.error(`JPA existing ssrc ${s.ssrc}: new owner ${s.owner}`);
-                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, s.ssrc, s.owner);
+                const track = this.peerconnection.getTrackBySSRC(s.ssrc);
+                if (!track) {
+                    console.error(`remapped ssrc ${s.ssrc} not found`);
+                } else {
+                    console.error(`JPA existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
+                    track.setSourceName(s.source);
+                    this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, s.ssrc, s.owner);
+                }
             }
         }
 
