@@ -558,13 +558,15 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 
-    rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, (msg) => {
+    rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
         const sess = this.conference.getActiveMediaSession();
+
         sess.videoSsrcsRemapped(msg);
     });
 
-    rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, (msg) => {
+    rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
         const sess = this.conference.getActiveMediaSession();
+
         sess.audioSsrcsRemapped(msg);
     });
 

@@ -271,7 +271,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {string} name The source name.
      */
-     setSourceName(name) {
+    setSourceName(name) {
         this._sourceName = name;
     }
 

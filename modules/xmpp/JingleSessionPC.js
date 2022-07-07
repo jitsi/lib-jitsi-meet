@@ -3,6 +3,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $build, $iq, Strophe } from 'strophe.js';
 
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -26,7 +27,6 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
-import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 
 const logger = getLogger(__filename);
 
@@ -59,21 +59,33 @@ function getEndpointId(jidOrEndpointId) {
     return Strophe.getResourceFromJid(jidOrEndpointId) || jidOrEndpointId;
 }
 
+/**
+ * $
+ */
 function _addSourceElement(description, s, ssrc_) {
-    const val = s.owner + ' ' + s.owner; // $ ?
+    const val = `${s.owner} ${s.owner}`; // $ ?
+
     description.c('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
         ssrc: ssrc_,
         name: s.source
-    }).c('parameter', {
-        name: 'msid',
-        value: val
-    }).up().c('ssrc-info', {
-        xmlns: 'http://jitsi.org/jitmeet',
-        owner: s.owner
-    }).up().up();
+    })
+        .c('parameter', {
+            name: 'msid',
+            value: val
+        })
+        .up()
+        .c('ssrc-info', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            owner: s.owner
+        })
+        .up()
+        .up();
 }
 
+/**
+ * $
+ */
 function _createVideoSources(sources) {
 
     let node = $build('content', {
@@ -84,27 +96,36 @@ function _createVideoSources(sources) {
         media: MediaType.VIDEO
     });
 
-    for(const s of sources) {
+    for (const s of sources) {
         _addSourceElement(node, s, s.ssrc);
-        if(s.rtx != "-1") {
+        if (s.rtx !== '-1') {
             _addSourceElement(node, s, s.rtx);
             node.c('ssrc-group', {
                 xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
                 semantics: 'FID'
-            }).c('source', {
-                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                ssrc: s.ssrc
-            }).up().c('source', {
-                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                ssrc: s.rtx,
-            }).up().up();
+            })
+                .c('source', {
+                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                    ssrc: s.ssrc
+                })
+                .up()
+                .c('source', {
+                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                    ssrc: s.rtx
+                })
+                .up()
+                .up();
         }
     }
 
     node = node.up();
+
     return node.node;
 }
 
+/**
+ * $
+ */
 function _createAudioSources(sources) {
 
     let node = $build('content', {
@@ -115,11 +136,12 @@ function _createAudioSources(sources) {
         media: MediaType.AUDIO
     });
 
-    for(const s of sources) {
+    for (const s of sources) {
         _addSourceElement(node, s, s.ssrc);
     }
 
     node = node.up();
+
     return node.node;
 }
 
@@ -1864,41 +1886,54 @@ export default class JingleSessionPC extends JingleSession {
         this._addOrRemoveRemoteStream(false /* remove */, elem);
     }
 
+    /**
+     * $
+     */
     getNewSources(msg) {
-        let newSources = [];
-        
-        for(const s of msg.mappedSources) {
-            if(this.peerconnection.addRemoteSsrc(s.ssrc)) {
+        const newSources = [];
+
+        for (const s of msg.mappedSources) {
+            if (this.peerconnection.addRemoteSsrc(s.ssrc)) {
                 console.error(`JPA new ssrc ${s.ssrc}`);
                 newSources[newSources.length] = s;
-            }
-            else {
+            } else {
                 const track = this.peerconnection.getTrackBySSRC(s.ssrc);
-                if (!track) {
-                    console.error(`remapped ssrc ${s.ssrc} not found`);
-                } else {
+
+                if (track) {
                     console.error(`JPA existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
                     track.setSourceName(s.source);
                     this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, s.ssrc, s.owner);
+                } else {
+                    console.error(`remapped ssrc ${s.ssrc} not found`);
                 }
             }
         }
 
-        return newSources
+        return newSources;
     }
 
+    /**
+     * $
+     */
     videoSsrcsRemapped(msg) {
-        let newSources = this.getNewSources(msg)
-        if(newSources.length > 0) {
-            let elem = _createVideoSources(newSources);
+        const newSources = this.getNewSources(msg);
+
+        if (newSources.length > 0) {
+            const elem = _createVideoSources(newSources);
+
             this._addOrRemoveRemoteStream(true /* add */, elem);
         }
     }
 
+    /**
+     * $
+     */
     audioSsrcsRemapped(msg) {
-        let newSources = this.getNewSources(msg)
-        if(newSources.length > 0) {
-            let elem = _createAudioSources(newSources);
+        const newSources = this.getNewSources(msg);
+
+        if (newSources.length > 0) {
+            const elem = _createAudioSources(newSources);
+
             this._addOrRemoveRemoteStream(true /* add */, elem);
         }
     }

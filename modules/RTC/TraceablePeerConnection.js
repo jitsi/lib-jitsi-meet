@@ -3072,8 +3072,11 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
 
 TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {
     const existing = this.remoteSSRCs.has(ssrc);
-    if(!existing)
+
+    if (!existing) {
         this.remoteSSRCs.add(ssrc);
+    }
+
     return !existing;
 };
 

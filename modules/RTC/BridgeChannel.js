@@ -415,12 +415,12 @@ export default class BridgeChannel {
                 break;
             }
             case 'VideoSourcesMap': {
-                logger.error(`JPA received VideoSourcesMap.`);
+                logger.error('JPA received VideoSourcesMap.');
                 emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);
                 break;
             }
             case 'AudioSourcesMap': {
-                logger.error(`JPA received AudioSourcesMap.`);
+                logger.error('JPA received AudioSourcesMap.');
                 emitter.emit(RTCEvents.AUDIO_SSRCS_REMAPPED, obj);
                 break;
             }
