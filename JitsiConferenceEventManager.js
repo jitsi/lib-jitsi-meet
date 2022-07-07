@@ -559,13 +559,11 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     });
 
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, (msg) => {
-        logger.error('JPA processing VIDEO_SSRCS_REMAPPED');
         const sess = this.conference.getActiveMediaSession();
         sess.videoSsrcsRemapped(msg);
     });
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, (msg) => {
-        logger.error('JPA processing AUDIO_SSRCS_REMAPPED');
         const sess = this.conference.getActiveMediaSession();
         sess.audioSsrcsRemapped(msg);
     });

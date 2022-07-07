@@ -85,7 +85,6 @@ function _createVideoSources(sources) {
     });
 
     for(const s of sources) {
-        logger.error(`JPA received VideoSourceMapping: ${s.source} (${s.videoType}) ${s.ssrc}/${s.rtx} ep=${s.owner}`);
         _addSourceElement(node, s, s.ssrc);
         if(s.rtx != "-1") {
             _addSourceElement(node, s, s.rtx);
@@ -103,7 +102,6 @@ function _createVideoSources(sources) {
     }
 
     node = node.up();
-    logger.error("JPA (Video) " + node.toString());
     return node.node;
 }
 
@@ -118,12 +116,10 @@ function _createAudioSources(sources) {
     });
 
     for(const s of sources) {
-        logger.error(`JPA received AudioSourceMapping: ${s.source} ${s.ssrc} ep=${s.owner}`);
         _addSourceElement(node, s, s.ssrc);
     }
 
     node = node.up();
-    logger.error("JPA (Audio) " + node.toString());
     return node.node;
 }
 
