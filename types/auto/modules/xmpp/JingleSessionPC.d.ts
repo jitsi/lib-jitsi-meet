@@ -421,8 +421,19 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     removeRemoteStream(elem: any): void;
+    /**
+     * Filter remapped SSRCs.
+     * Process owner change for existing SSRCs.
+     * Return new ones for further processing.
+     */
     getNewSources(msg: any): any[];
+    /**
+     * Process SSRC remappings for video sources.
+     */
     videoSsrcsRemapped(msg: any): void;
+    /**
+     * Process SSRC remappings for audio sources.
+     */
     audioSsrcsRemapped(msg: any): void;
     /**
      * Handles the deletion of SSRCs associated with a remote user from the remote description when the user leaves.

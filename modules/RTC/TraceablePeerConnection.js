@@ -181,7 +181,8 @@ export default function TraceablePeerConnection(
     this.localSSRCs = new Map();
 
     /**
-     * $
+     * The set of remote SSRCs seen so far.
+     * Distinguishes new SSRCs from those that have been remapped.
      */
     this.remoteSSRCs = new Set();
 
@@ -3070,6 +3071,11 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
     }
 };
 
+/**
+ * Track the SSRCs seen so far.
+ * @param {int} ssrc - SSRC.
+ * @return {boolean} - Whether this is a new SSRC.
+ */
 TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {
     const existing = this.remoteSSRCs.has(ssrc);
 

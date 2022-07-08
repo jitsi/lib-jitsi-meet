@@ -51,7 +51,7 @@ export declare enum JitsiTrackEvents {
      */
     TRACK_STREAMING_STATUS_CHANGED = "track.streaming_status_changed",
     /**
-     * $
+     * An SSRC has been remapped. The track is now associated with a new participant.
      */
     TRACK_OWNER_CHANGED_JTE = "track.owner_changed"
 }

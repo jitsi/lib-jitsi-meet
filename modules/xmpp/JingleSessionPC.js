@@ -60,10 +60,10 @@ function getEndpointId(jidOrEndpointId) {
 }
 
 /**
- * $
+ * Add "source" element as a child of "description" element.
  */
 function _addSourceElement(description, s, ssrc_) {
-    const val = `${s.owner} ${s.owner}`; // $ ?
+    const val = `${s.owner} ${s.owner}`; // $ what should we set this to?
 
     description.c('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
@@ -84,7 +84,7 @@ function _addSourceElement(description, s, ssrc_) {
 }
 
 /**
- * $
+ * Build "content" element for a list of video sources.
  */
 function _createVideoSources(sources) {
 
@@ -124,7 +124,7 @@ function _createVideoSources(sources) {
 }
 
 /**
- * $
+ * Build "content" element for a list of audio sources.
  */
 function _createAudioSources(sources) {
 
@@ -1887,24 +1887,26 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * $
+     * Filter remapped SSRCs.
+     * Process owner change for existing SSRCs.
+     * Return new ones for further processing.
      */
     getNewSources(msg) {
         const newSources = [];
 
         for (const s of msg.mappedSources) {
             if (this.peerconnection.addRemoteSsrc(s.ssrc)) {
-                console.error(`JPA new ssrc ${s.ssrc}`);
+                logger.debug(`new ssrc ${s.ssrc}`);
                 newSources[newSources.length] = s;
             } else {
                 const track = this.peerconnection.getTrackBySSRC(s.ssrc);
 
                 if (track) {
-                    console.error(`JPA existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
+                    logger.debug(`existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
                     track.setSourceName(s.source);
                     this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, s.ssrc, s.owner);
                 } else {
-                    console.error(`remapped ssrc ${s.ssrc} not found`);
+                    logger.error(`remapped ssrc ${s.ssrc} not found`);
                 }
             }
         }
@@ -1913,7 +1915,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * $
+     * Process SSRC remappings for video sources.
      */
     videoSsrcsRemapped(msg) {
         const newSources = this.getNewSources(msg);
@@ -1926,7 +1928,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * $
+     * Process SSRC remappings for audio sources.
      */
     audioSsrcsRemapped(msg) {
         const newSources = this.getNewSources(msg);

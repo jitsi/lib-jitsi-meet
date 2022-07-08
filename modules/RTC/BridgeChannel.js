@@ -253,8 +253,7 @@ export default class BridgeChannel {
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
     sendNewReceiverVideoConstraintsMessage(constraints) {
-        // $
-        logger.error(`JPA Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
+        logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',
             ...constraints
@@ -415,12 +414,12 @@ export default class BridgeChannel {
                 break;
             }
             case 'VideoSourcesMap': {
-                logger.error('JPA received VideoSourcesMap.');
+                logger.info('received VideoSourcesMap');
                 emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);
                 break;
             }
             case 'AudioSourcesMap': {
-                logger.error('JPA received AudioSourcesMap.');
+                logger.info('received AudioSourcesMap');
                 emitter.emit(RTCEvents.AUDIO_SSRCS_REMAPPED, obj);
                 break;
             }

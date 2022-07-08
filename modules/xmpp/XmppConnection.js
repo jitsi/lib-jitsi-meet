@@ -62,12 +62,6 @@ export default class XmppConnection extends Listenable {
         };
 
         this._stropheConn = new Strophe.Connection(serviceUrl);
-        this._stropheConn.xmlInput = function(elem) {
-            logger.warn(`JPA <- ${elem.outerHTML}`);
-        }; // $
-        this._stropheConn.xmlOutput = function(elem) {
-            logger.warn(`JPA -> ${elem.outerHTML}`);
-        }; // $
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
         // The default maxRetries is 5, which is too long.

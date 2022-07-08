@@ -183,7 +183,8 @@ export default class TraceablePeerConnection {
         }[];
     }>;
     /**
-     * $
+     * The set of remote SSRCs seen so far.
+     * Distinguishes new SSRCs from those that have been remapped.
      */
     remoteSSRCs: Set<any>;
     /**
@@ -747,6 +748,11 @@ export default class TraceablePeerConnection {
      */
     _extractPrimarySSRC(ssrcObj: any): number | null;
     private _processLocalSSRCsMap;
+    /**
+     * Track the SSRCs seen so far.
+     * @param {int} ssrc - SSRC.
+     * @return {boolean} - Whether this is a new SSRC.
+     */
     addRemoteSsrc(ssrc: any): boolean;
     addIceCandidate(candidate: any): Promise<void>;
     /**
