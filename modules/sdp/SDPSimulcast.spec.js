@@ -2,8 +2,8 @@ import * as transform from 'sdp-transform';
 
 import { MediaType } from '../../service/RTC/MediaType';
 
-import { default as SampleSdpStrings } from './SampleSdpStrings.js';
-import SdpSimulcast from './SdpSimulcast.ts';
+import { default as SampleSdpStrings } from './SampleSdpStrings';
+import SdpSimulcast from './SdpSimulcast';
 
 
 const getVideoGroups = (parsedSdp, groupSemantics) => {
