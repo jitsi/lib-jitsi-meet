@@ -369,6 +369,10 @@ export default class ChatRoom extends Listenable {
      * rejected.
      */
     leave(reason: any): Promise<any>;
+    /**
+     * Ends the conference.
+     */
+    end(): void;
 }
 import Listenable from "../util/Listenable";
 import XmppConnection from "./XmppConnection";

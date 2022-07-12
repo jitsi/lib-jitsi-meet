@@ -257,6 +257,16 @@ declare class JitsiConference {
      */
     leave(reason: string | undefined): Promise<any>;
     /**
+     * Returns <tt>true</tt> if end conference support is enabled in the backend.
+     *
+     * @returns {boolean} whether end conference is supported in the backend.
+     */
+    isEndConferenceSupported(): boolean;
+    /**
+     * Ends the conference.
+     */
+    end(): Promise<void>;
+    /**
      * Returns the currently active media session if any.
      *
      * @returns {JingleSessionPC|undefined}
