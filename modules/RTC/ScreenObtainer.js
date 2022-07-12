@@ -225,7 +225,7 @@ const ScreenObtainer = {
 
         // Capturing the screenshare at very high resolutions restricts the framerate. Therefore, skip this hack when
         // the capture framerate is > 5 fps.
-        if (setScreenSharingResolutionConstraints && desktopSharingFrameRate <= SS_DEFAULT_FRAME_RATE) {
+        if (setScreenSharingResolutionConstraints && !(desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE)) {
             // Set bogus resolution constraints to work around
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311
             video.height = 99999;
