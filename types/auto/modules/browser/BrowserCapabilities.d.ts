@@ -124,12 +124,6 @@ export default class BrowserCapabilities {
      */
     usesSdpMungingForSimulcast(): boolean;
     /**
-     * Checks if the browser uses webrtc-adapter. All browsers except React Native do.
-     *
-     * @returns {boolean}
-     */
-    usesAdapter(): boolean;
-    /**
      * Checks if the browser uses RIDs/MIDs for siganling the simulcast streams
      * to the bridge instead of the ssrcs.
      */
