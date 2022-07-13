@@ -91,11 +91,6 @@ export default class BrowserCapabilities {
      */
     supportsDeviceChangeEvent(): boolean;
     /**
-     * Checks if the current browser supports RTT statistics for srflx local
-     * candidates through the legacy getStats() API.
-     */
-    supportsLocalCandidateRttStatistics(): any;
-    /**
      * Checks if the current browser supports the Long Tasks API that lets us observe
      * performance measurement events and be notified of tasks that take longer than
      * 50ms to execute on the main thread.
