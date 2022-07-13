@@ -1877,9 +1877,15 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Ends the conference.
+     * Ends the conference for all participants.
      */
     end() {
+        if (this.breakoutRooms.isBreakoutRoom()) {
+            logger.warn('Cannot end conference: this is a breakout room.');
+
+            return;
+        }
+
         // Send the end conference message.
         const msg = $msg({ to: this.xmpp.endConferenceComponentAddress });
 

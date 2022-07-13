@@ -370,7 +370,7 @@ export default class ChatRoom extends Listenable {
      */
     leave(reason: any): Promise<any>;
     /**
-     * Ends the conference.
+     * Ends the conference for all participants.
      */
     end(): void;
 }
