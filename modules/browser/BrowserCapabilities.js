@@ -251,15 +251,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser uses webrtc-adapter. All browsers except React Native do.
-     *
-     * @returns {boolean}
-     */
-    usesAdapter() {
-        return !this.isReactNative();
-    }
-
-    /**
      * Checks if the browser uses RIDs/MIDs for siganling the simulcast streams
      * to the bridge instead of the ssrcs.
      */
