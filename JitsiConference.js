@@ -743,7 +743,7 @@ JitsiConference.prototype.isEndConferenceSupported = function() {
 /**
  * Ends the conference.
  */
-JitsiConference.prototype.end = async function() {
+JitsiConference.prototype.end = function() {
     if (!this.isEndConferenceSupported()) {
         logger.warn('Cannot end conference: is not supported.');
 

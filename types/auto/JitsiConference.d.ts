@@ -265,7 +265,7 @@ declare class JitsiConference {
     /**
      * Ends the conference.
      */
-    end(): Promise<void>;
+    end(): void;
     /**
      * Returns the currently active media session if any.
      *
