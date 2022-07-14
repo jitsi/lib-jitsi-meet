@@ -34,7 +34,8 @@ export class RFC2198Encoder {
     }
 
     addRedundancy(encodedFrame, controller) {
-        // TODO: should this ensure encodedFrame.type being not set and encodedFrame.getMetadata().payloadType being the same as before?
+        // TODO: should this ensure encodedFrame.type being not set and
+        // encodedFrame.getMetadata().payloadType being the same as before?
         /*
          * From https://datatracker.ietf.org/doc/html/rfc2198#section-3:
          0                   1                    2                   3
@@ -79,12 +80,13 @@ export class RFC2198Encoder {
         for (let i = 0; i < allFrames.length - 1; i++) {
             const frame = allFrames[i];
 
-            // TODO: check this for wraparound
-            const tOffset = (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP; // Ensure correct behaviour on wraparound.
+            // Ensure correct behaviour on wraparound.
+            const tOffset = (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP;
 
-            newView.setUint8(frameOffset, this.payloadType | 0x80);
+            newView.setUint8(frameOffset, this.payloadType | 0x80); // eslint-disable-line no-bitwise
+            // eslint-disable-next-line no-bitwise
             newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
-            newView.setUint8(frameOffset + 3, frame.byteLength & 0xff);
+            newView.setUint8(frameOffset + 3, frame.byteLength & 0xff); // eslint-disable-line no-bitwise
             frameOffset += 4;
         }
 

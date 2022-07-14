@@ -38,7 +38,8 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(2);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
         });
 
         it('does not add redundancy for the first packet on the third packet', () => {
@@ -59,8 +60,10 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(3);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
         });
 
         it('does not add redundancy for DTX packets with a 400ms timestamp gap', () => {
@@ -81,7 +84,8 @@ describe('RED', () => {
             expect(spy.calls.count()).toEqual(3);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
             expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0x6f, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
         });
     });
 
@@ -107,8 +111,10 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(3);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
         });
 
         it('does not add redundancy for the first packet on the fourth packet', () => {
@@ -133,9 +139,13 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(4);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
-            expect(spy.calls.argsFor(3)[0].data).toEqual(new Uint8Array([ 0xef, 0x1e, 0x00, 0x02, 0xef, 0x0f, 0x00, 0x03, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff, 0xfa, 0x1f, 0xfa, 0x1f ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(3)[0].data).toEqual(new Uint8Array([
+                0xef, 0x1e, 0x00, 0x02, 0xef, 0x0f, 0x00, 0x03, 0x6f,
+                0xad, 0xbe, 0xef, 0xff, 0xff, 0xfa, 0x1f, 0xfa, 0x1f ]).buffer);
         });
     });
 
@@ -160,8 +170,10 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(3);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
         });
 
         it('increases the redundancy', () => {
@@ -183,8 +195,11 @@ describe('RED', () => {
 
             expect(spy.calls.count()).toEqual(3);
             expect(spy.calls.argsFor(0)[0].data).toEqual(new Uint8Array([ 0x6f, 0xde ]).buffer);
-            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([ 0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
-            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([ 0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02, 0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
+            expect(spy.calls.argsFor(1)[0].data).toEqual(new Uint8Array([
+                0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe ]).buffer);
+            expect(spy.calls.argsFor(2)[0].data).toEqual(new Uint8Array([
+                0xef, 0x1e, 0x00, 0x01, 0xef, 0x0f, 0x00, 0x02,
+                0x6f, 0xde, 0xad, 0xbe, 0xef, 0xff, 0xff ]).buffer);
         });
     });
 });
