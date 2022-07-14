@@ -22,64 +22,62 @@ describe('RED', () => {
             expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0x6f, 0x00])).buffer);
         });
 
-        /*
         it('adds redundancy on the first and second packet', () => {
-            const stub = sinon.stub();
+            const spy = jasmine.createSpy();
             encoder.addRedundancy({
                 data: new Uint8Array([0xde]),
                 timestamp: 0,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
             encoder.addRedundancy({
                 data: new Uint8Array([0xad, 0xbe]),
                 timestamp: 960,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
 
-            expect(stub.callCount).to.equal(2);
-            expect(Buffer.from(stub.getCall(0).args[0].data)).to.deep.equal(Buffer.from([0x6f, 0xde]));
-            expect(Buffer.from(stub.getCall(1).args[0].data)).to.deep.equal(Buffer.from([0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe]));
+            expect(spy.calls.count()).toEqual(2);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0x6f, 0x00])).buffer);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe])).buffer);
         });
 
         it('does not add redundancy for the first packet on the third packet', () => {
-            const stub = sinon.stub();
+            const spy = jasmine.createSpy();
             encoder.addRedundancy({
                 data: new Uint8Array([0xde]),
                 timestamp: 0,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
             encoder.addRedundancy({
                 data: new Uint8Array([0xad, 0xbe]),
                 timestamp: 960,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
             encoder.addRedundancy({
                 data: new Uint8Array([0xef, 0xff, 0xff]),
                 timestamp: 1920,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
 
-            expect(stub.callCount).to.equal(3);
-            expect(Buffer.from(stub.getCall(0).args[0].data)).to.deep.equal(Buffer.from([0x6f, 0xde]));
-            expect(Buffer.from(stub.getCall(1).args[0].data)).to.deep.equal(Buffer.from([0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe]));
-            expect(Buffer.from(stub.getCall(2).args[0].data)).to.deep.equal(Buffer.from([0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff]));
+            expect(spy.calls.count()).toEqual(3);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0x6f, 0xde])).buffer);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0xef, 0x0f, 0x00, 0x01, 0x6f, 0xde, 0xad, 0xbe])).buffer);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff])).buffer);
         });
 
         it('does not add redundancy for DTX packets with a 400ms timestamp gap', () => {
-            const stub = sinon.stub();
+            const spy = jasmine.createSpy();
             encoder.addRedundancy({
                 data: new Uint8Array([0xde]),
                 timestamp: 0,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
             encoder.addRedundancy({
                 data: new Uint8Array([0xad, 0xbe]),
                 timestamp: 19200,
-            }, {enqueue: stub});
+            }, {enqueue: spy});
             encoder.addRedundancy({
                 data: new Uint8Array([0xef, 0xff, 0xff]),
                 timestamp: 20160,
-            }, {enqueue: stub});
-            expect(stub.callCount).to.equal(3);
-            expect(Buffer.from(stub.getCall(0).args[0].data)).to.deep.equal(Buffer.from([0x6f, 0xde]));
-            expect(Buffer.from(stub.getCall(1).args[0].data)).to.deep.equal(Buffer.from([0x6f, 0xad, 0xbe]));
-            expect(Buffer.from(stub.getCall(2).args[0].data)).to.deep.equal(Buffer.from([0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff]));
+            }, {enqueue: spy});
+            expect(spy.calls.count()).toEqual(3);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0x6f, 0xde])).buffer);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0x6f, 0xad, 0xbe])).buffer);
+            expect(spy.calls.argsFor(0)[0].data).toEqual((new Uint8Array([0xef, 0x0f, 0x00, 0x02, 0x6f, 0xad, 0xbe, 0xef, 0xff, 0xff])).buffer);
         });
-        */
     });
 
     /*
