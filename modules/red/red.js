@@ -11,6 +11,7 @@ export class RFC2198Encoder {
     // It is possible to reduce this to 0 to minimize the overhead to one byte.
     setRedundancy(targetRedundancy) {
         const currentBuffer = this.frameBuffer;
+
         if (targetRedundancy > this.targetRedundancy) {
             this.frameBuffer = new Array(targetRedundancy);
             for (let i = 0; i < currentBuffer.length; i++) {
@@ -49,13 +50,18 @@ export class RFC2198Encoder {
         const data = new Uint8Array(encodedFrame.data);
 
         const newFrame = data.slice(0);
+
         newFrame.timestamp = encodedFrame.timestamp;
 
-        let allFrames = this.frameBuffer.filter(x => !!x).concat(newFrame);
+        let allFrames = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
+
         // TODO: determine how much we can fit into the available size (which we need to assume as 1190 bytes or so)
         let needLength = 1 + newFrame.length;
+
         for (let i = allFrames.length - 2; i >= 0; i--) {
             const frame = allFrames[i];
+
+
             // TODO: timestamp wraparound?
             if ((allFrames[i + 1].timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP >= 16384) {
                 allFrames = allFrames.slice(i + 1);
@@ -66,23 +72,29 @@ export class RFC2198Encoder {
 
         const newData = new Uint8Array(needLength);
         const newView = new DataView(newData.buffer);
+
         // Construct the header.
         let frameOffset = 0;
+
         for (let i = 0; i < allFrames.length - 1; i++) {
             const frame = allFrames[i];
+
             // TODO: check this for wraparound
             const tOffset = (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP; // Ensure correct behaviour on wraparound.
+
             newView.setUint8(frameOffset, this.payloadType | 0x80);
             newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
             newView.setUint8(frameOffset + 3, frame.byteLength & 0xff);
             frameOffset += 4;
         }
+
         // Last block header.
         newView.setUint8(frameOffset++, this.payloadType);
 
         // Construct the frame.
         for (let i = 0; i < allFrames.length; i++) {
             const frame = allFrames[i];
+
             newData.set(frame, frameOffset);
             frameOffset += frame.byteLength;
         }
