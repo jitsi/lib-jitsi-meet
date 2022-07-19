@@ -1,7 +1,7 @@
 /**
  * Mock {@link ChatRoom}.
  */
-export class MockChatRoom {
+export class MockChatRoom extends Listenable {
     /**
      * {@link ChatRoom.addPresenceListener}.
      */
