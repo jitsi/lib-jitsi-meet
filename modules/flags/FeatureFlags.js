@@ -19,7 +19,7 @@ class FeatureFlags {
 
         this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
         this._sendMultipleVideoStreams = Boolean(flags.sendMultipleVideoStreams);
-        this._ssrcRewriting = Boolean(flags.ssrcRewritingOnBridgeSupported);
+        this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
 
         // For Chromium, check if Unified plan is enabled.
         this._usesUnifiedPlan = browser.supportsUnifiedPlan()
