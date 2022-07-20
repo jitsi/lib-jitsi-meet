@@ -6,7 +6,7 @@ describe('RED', () => {
 
     beforeEach(() => {
         encoder = new RFC2198Encoder();
-        encoder.setOpusPayloadType(opusPayloadType);
+        encoder.setPayloadType(opusPayloadType);
     });
 
     describe('addRedundancy with a redundancy of 1', () => {

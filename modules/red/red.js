@@ -41,7 +41,7 @@ export class RFC2198Encoder {
      * after setting the answer.
      * @param {Number} payloadType the payload type to use for opus.
      */
-    setOpusPayloadType(payloadType) {
+    setPayloadType(payloadType) {
         this.payloadType = payloadType;
     }
 
@@ -100,7 +100,8 @@ export class RFC2198Encoder {
             // Ensure correct behaviour on wraparound.
             const tOffset = (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP;
 
-            newView.setUint8(frameOffset, this.payloadType | 0x80); // eslint-disable-line no-bitwise
+            // eslint-disable-next-line no-bitwise
+            newView.setUint8(frameOffset, (this.payloadType & 0x7f) | 0x80);
             // eslint-disable-next-line no-bitwise
             newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
             newView.setUint8(frameOffset + 3, frame.byteLength & 0xff); // eslint-disable-line no-bitwise
@@ -119,8 +120,8 @@ export class RFC2198Encoder {
         }
         encodedFrame.data = newData.buffer;
 
-        this.frameBuffer.push(newFrame);
         this.frameBuffer.shift();
+        this.frameBuffer.push(newFrame);
 
         controller.enqueue(encodedFrame);
     }
