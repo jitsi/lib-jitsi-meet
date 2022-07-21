@@ -63,11 +63,11 @@ export class KeyHandler extends Listenable {
      * @returns {void}
      */
     async setEnabled(enabled) {
+        this._enabling && await this._enabling;
+
         if (enabled === this.enabled) {
             return;
         }
-
-        this._enabling && await this._enabling;
 
         this._enabling = new Deferred();
 
