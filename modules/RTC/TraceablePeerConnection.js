@@ -320,7 +320,7 @@ export default function TraceablePeerConnection(
 
     // override as desired
     this.trace = (what, info) => {
-        logger.debug(what, info);
+        logger.trace(what, info);
 
         this.updateLog.push({
             time: new Date(),
@@ -1538,8 +1538,8 @@ const getters = {
         } else if (!this._usesUnifiedPlan) {
             if (browser.doesVideoMuteByStreamRemove()) {
                 desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
-                logger.debug(
-                    'getLocalDescription::postTransform (munge local SDP)', desc);
+                this.trace('getLocalDescription::postTransform (munge local SDP)',
+                    dumpSDP(desc));
             }
 
             // What comes out of this getter will be signalled over Jingle to
