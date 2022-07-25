@@ -269,9 +269,9 @@ export default class JingleSessionPC extends JingleSession {
     getConfiguredVideoCodec(): any;
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
-     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
-     * added, before the offer/answer cycle executes (for the local track
-     * addition to be an atomic operation together with the offer/answer).
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together with the offer/answer).
      */
     invite(localTracks?: Array<any>): void;
     /**
@@ -286,23 +286,22 @@ export default class JingleSessionPC extends JingleSession {
      */
     private sendSessionInitiate;
     /**
-     * Sets the answer received from the remote peer.
+     * Sets the answer received from the remote peer as the remote description.
+     *
      * @param jingleAnswer
      */
     setAnswer(jingleAnswer: any): void;
     /**
-     * This is a setRemoteDescription/setLocalDescription cycle which starts at
-     * converting Strophe Jingle IQ into remote offer SDP. Once converted
-     * setRemoteDescription, createAnswer and setLocalDescription calls follow.
-     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element
-     *        of the offer (or answer) IQ
+     * This is a setRemoteDescription/setLocalDescription cycle which starts at converting Strophe Jingle IQ into
+     * remote offer SDP. Once converted, setRemoteDescription, createAnswer and setLocalDescription calls follow.
+     *
+     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
-     * @param failure callback called with an error object as an argument if we
-     *        fail at any point during setRD, createAnswer, setLD.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
-     * the local tracks that will be added, before the offer/answer cycle
-     * executes (for the local track addition to be an atomic operation together
-     * with the offer/answer).
+     * @param failure callback called with an error object as an argument if we fail at any point during setRD,
+     * createAnswer, setLD.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
+     * the offer/answer cycle executes (for the local track addition to be an atomic operation together with the
+     * offer/answer).
      */
     setOfferAnswerCycle(jingleOfferAnswerIq: any, success: any, failure: any, localTracks?: Array<any>): void;
     /**
