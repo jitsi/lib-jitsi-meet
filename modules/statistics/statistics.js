@@ -240,10 +240,6 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
 Statistics.localStats = [];
 
 Statistics.startLocalStats = function(track, callback) {
-    if (!Statistics.audioLevelsEnabled) {
-        return;
-    }
-
     track.addEventListener(
         JitsiTrackEvents.LOCAL_TRACK_STOPPED,
         () => {
@@ -273,6 +269,10 @@ Statistics.startLocalStats = function(track, callback) {
                 }
             }
         });
+
+    if (!Statistics.audioLevelsEnabled) {
+        return;
+    }
 
     const stream = track.getOriginalStream();
     const localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
