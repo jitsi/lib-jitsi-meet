@@ -2,7 +2,7 @@
  * Provides statistics for the local stream.
  */
 
- const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require('@jitsi/logger').getLogger(__filename);
 
 /**
  * Size of the webaudio analyzer buffer.
@@ -160,7 +160,7 @@ LocalStatsCollector.disconnectAudioContext = async function() {
 /**
  * Connects the audio context.
  */
-LocalStatsCollector.connectAudioContext = async function() {
+LocalStatsCollector.connectAudioContext = function() {
     if (!LocalStatsCollector.isLocalStatsSupported()) {
         return;
     }
@@ -177,7 +177,7 @@ LocalStatsCollector.connectAudioContext = async function() {
     // display a page which notifies the user that the Web app is not supported
     // there.
     if (context.suspend) {
-        await context.suspend();
+        context.suspend();
     }
 };
 

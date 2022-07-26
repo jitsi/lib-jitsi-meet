@@ -32,19 +32,8 @@ export default function getActiveAudioDevice() {
                     // We expect a single device to be available when obtained from obtainAudioAndVideoPermissions
                     // that's  why only take p.value[0].
                     const track = tracks[0];
-                    const originalStream = track.getOriginalStream();
 
-                    Statistics.startLocalStats(originalStream, track.setAudioLevel.bind(track));
-                    track.addEventListener(JitsiTrackEvents.LOCAL_TRACK_STOPPED, () => {
-                        Statistics.stopLocalStats(originalStream);
-                    });
-                    track.addEventListener(JitsiTrackEvents.NO_DATA_FROM_SOURCE, value => {
-                        if (value) {
-                            Statistics.stopAudioContext();
-                        } else {
-                            Statistics.startAudioContext();
-                        }
-                    });
+                    Statistics.startLocalStats(track, track.setAudioLevel.bind(track));
 
                     return track;
                 });

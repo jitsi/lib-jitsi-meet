@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiTrackError from '../../JitsiTrackError';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
@@ -238,10 +239,42 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
 
 Statistics.localStats = [];
 
-Statistics.startLocalStats = function(stream, callback) {
+Statistics.startLocalStats = function(track, callback) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
+
+    track.addEventListener(
+        JitsiTrackEvents.LOCAL_TRACK_STOPPED,
+        () => {
+            Statistics.stopLocalStats(track);
+        });
+
+    track.addEventListener(
+        JitsiTrackEvents.NO_DATA_FROM_SOURCE,
+
+        /**
+         * Closes AudioContext on no audio data, and enables it on data received again.
+         *
+         * @param {boolean} value - Whether we receive audio data or not.
+         */
+        async value => {
+
+            if (value) {
+                for (let i = 0; i < Statistics.localStats.length; i++) {
+                    Statistics.localStats[i].stop();
+                }
+
+                await LocalStats.disconnectAudioContext();
+            } else {
+                LocalStats.connectAudioContext();
+                for (let i = 0; i < Statistics.localStats.length; i++) {
+                    Statistics.localStats[i].start();
+                }
+            }
+        });
+
+    const stream = track.getOriginalStream();
     const localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
         callback);
 
@@ -388,34 +421,12 @@ Statistics.prototype.dispose = function() {
     }
 };
 
-Statistics.stopAudioContext = async function() {
+Statistics.stopLocalStats = function(track) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
 
-    for (let i = 0; i < Statistics.localStats.length; i++) {
-        Statistics.localStats[i].stop();
-    }
-
-    await LocalStats.disconnectAudioContext();
-};
-
-Statistics.startAudioContext = async function() {
-    if (!Statistics.audioLevelsEnabled) {
-        return;
-    }
-
-    await LocalStats.connectAudioContext();
-
-    for (let i = 0; i < Statistics.localStats.length; i++) {
-        Statistics.localStats[i].start();
-    }
-};
-
-Statistics.stopLocalStats = function(stream) {
-    if (!Statistics.audioLevelsEnabled) {
-        return;
-    }
+    const stream = track.getOriginalStream();
 
     for (let i = 0; i < Statistics.localStats.length; i++) {
         if (Statistics.localStats[i].stream === stream) {
