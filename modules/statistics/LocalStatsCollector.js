@@ -93,7 +93,7 @@ LocalStatsCollector.prototype.start = function() {
         return;
     }
 
-    context.resume?.();
+    context.resume();
     this.analyser = context.createAnalyser();
 
     this.analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;
@@ -176,9 +176,7 @@ LocalStatsCollector.connectAudioContext = function() {
     // still want to be able to load the lib-jitsi-meet library there and
     // display a page which notifies the user that the Web app is not supported
     // there.
-    if (context.suspend) {
-        context.suspend();
-    }
+    context.suspend();
 };
 
 /**

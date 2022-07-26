@@ -255,17 +255,16 @@ Statistics.startLocalStats = function(track, callback) {
          * @param {boolean} value - Whether we receive audio data or not.
          */
         async value => {
-
             if (value) {
-                for (let i = 0; i < Statistics.localStats.length; i++) {
-                    Statistics.localStats[i].stop();
+                for (const localStat of Statistics.localStats) {
+                    localStat.stop();
                 }
 
                 await LocalStats.disconnectAudioContext();
             } else {
                 LocalStats.connectAudioContext();
-                for (let i = 0; i < Statistics.localStats.length; i++) {
-                    Statistics.localStats[i].start();
+                for (const localStat of Statistics.localStats) {
+                    localStat.start();
                 }
             }
         });

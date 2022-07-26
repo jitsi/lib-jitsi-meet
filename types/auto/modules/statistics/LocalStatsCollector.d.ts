@@ -48,6 +48,6 @@ declare namespace LocalStatsCollector {
     /**
      * Connects the audio context.
      */
-    function connectAudioContext(): void;
+    function connectAudioContext(): Promise<void>;
 }
 export default LocalStatsCollector;
