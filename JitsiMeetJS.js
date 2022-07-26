@@ -340,6 +340,15 @@ export default _mergeNamespaceAndModule({
                                 () => {
                                     Statistics.stopLocalStats(mStream);
                                 });
+                            track.addEventListener(
+                                JitsiTrackEvents.NO_DATA_FROM_SOURCE,
+                                value => {
+                                    if (value) {
+                                        Statistics.stopAudioContext();
+                                    } else {
+                                        Statistics.startAudioContext();
+                                    }
+                                });
                         }
                     }
                 }

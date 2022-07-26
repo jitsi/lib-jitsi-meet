@@ -38,6 +38,13 @@ export default function getActiveAudioDevice() {
                     track.addEventListener(JitsiTrackEvents.LOCAL_TRACK_STOPPED, () => {
                         Statistics.stopLocalStats(originalStream);
                     });
+                    track.addEventListener(JitsiTrackEvents.NO_DATA_FROM_SOURCE, value => {
+                        if (value) {
+                            Statistics.stopAudioContext();
+                        } else {
+                            Statistics.startAudioContext();
+                        }
+                    });
 
                     return track;
                 });

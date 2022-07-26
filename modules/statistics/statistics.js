@@ -388,6 +388,30 @@ Statistics.prototype.dispose = function() {
     }
 };
 
+Statistics.stopAudioContext = async function() {
+    if (!Statistics.audioLevelsEnabled) {
+        return;
+    }
+
+    for (let i = 0; i < Statistics.localStats.length; i++) {
+        Statistics.localStats[i].stop();
+    }
+
+    await LocalStats.disconnectAudioContext();
+};
+
+Statistics.startAudioContext = async function() {
+    if (!Statistics.audioLevelsEnabled) {
+        return;
+    }
+
+    await LocalStats.connectAudioContext();
+
+    for (let i = 0; i < Statistics.localStats.length; i++) {
+        Statistics.localStats[i].start();
+    }
+};
+
 Statistics.stopLocalStats = function(stream) {
     if (!Statistics.audioLevelsEnabled) {
         return;

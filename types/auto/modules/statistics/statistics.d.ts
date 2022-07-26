@@ -245,6 +245,8 @@ declare namespace Statistics {
     export const instances: any;
     export const localStats: any[];
     export function startLocalStats(stream: any, callback: any): void;
+    export function stopAudioContext(): Promise<void>;
+    export function startAudioContext(): Promise<void>;
     export function stopLocalStats(stream: any): void;
     /**
      * Obtains the list of *all* {@link CallStats} instances collected from every
