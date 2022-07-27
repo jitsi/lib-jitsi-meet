@@ -23,7 +23,6 @@ import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
-import RTCUtils from './RTCUtils';
 import {
     HD_BITRATE,
     HD_SCALE_FACTOR,
@@ -231,7 +230,7 @@ export default function TraceablePeerConnection(
         logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
     }
 
-    this.peerconnection = new RTCUtils.RTCPeerConnectionType(pcConfig, safeConstraints);
+    this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
 
     this.tpcUtils = new TPCUtils(this);
     this.updateLog = [];
@@ -818,7 +817,7 @@ TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
-    const streamId = RTC.getStreamID(stream);
+    const streamId = stream.id;
 
     if (!RTC.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
@@ -862,7 +861,7 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
  * for the remote participant in unified plan.
  */
 TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, transceiver = null) {
-    const streamId = RTC.getStreamID(stream);
+    const streamId = stream.id;
     const mediaType = track.kind;
 
     if (!this.isP2P && !RTC.isUserStreamById(streamId)) {
@@ -1061,9 +1060,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
  */
 TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
     if (!RTC.isUserStream(stream)) {
-        const id = RTC.getStreamID(stream);
-
-        logger.info(`Ignored remote 'stream removed' event for stream[id=${id}]`);
+        logger.info(`Ignored remote 'stream removed' event for stream[id=${stream.id}]`);
 
         return;
     }
@@ -1089,8 +1086,8 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) {
-    const streamId = RTC.getStreamID(stream);
-    const trackId = track && RTC.getTrackID(track);
+    const streamId = stream.id;
+    const trackId = track?.id;
 
     if (!RTC.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream removed' event for non-user stream[id=${streamId}]`);

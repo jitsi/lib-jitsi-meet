@@ -11,7 +11,6 @@ import Resolutions from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
-import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -329,34 +328,13 @@ class RTCUtils extends Listenable {
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
-        if (browser.isReactNative()) {
-            this.RTCPeerConnectionType = RTCPeerConnection;
-
-            this.attachMediaStream = undefined; // Unused on React Native.
-
-            this.getStreamID = function({ id }) {
-                // The react-native-webrtc implementation that we use at the
-                // time of this writing returns a number for the id of
-                // MediaStream. Let's just say that a number contains no special
-                // characters.
-                return (
-                    typeof id === 'number'
-                        ? id
-                        : SDPUtil.filterSpecialChars(id));
-            };
-            this.getTrackID = ({ id }) => id;
-        } else {
-            this.RTCPeerConnectionType = RTCPeerConnection;
-
+        if (!browser.isReactNative()) {
             this.attachMediaStream
                 = wrapAttachMediaStream((element, stream) => {
                     if (element) {
                         element.srcObject = stream;
                     }
                 });
-
-            this.getStreamID = ({ id }) => id;
-            this.getTrackID = ({ id }) => id;
         }
 
         this.pcConstraints = {};
