@@ -195,6 +195,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_OWNER_CHANGED_JCE, ssrc, owner);
     });
 
+    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED_JTE, track => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    });
+
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONNECTION_ERROR);

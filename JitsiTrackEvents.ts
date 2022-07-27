@@ -62,6 +62,12 @@ export enum JitsiTrackEvents {
      * An SSRC has been remapped. The track is now associated with a new participant.
      */
     TRACK_OWNER_CHANGED_JTE = 'track.owner_changed',
+
+    /**
+     * A track is being removed. Fired when a session terminates for tracks
+     * that persist in ssrc-rewriting mode.
+     */
+    TRACK_REMOVED_JTE = 'track.removed',
 };
 
 // exported for backward compatibility
@@ -74,3 +80,4 @@ export const NO_DATA_FROM_SOURCE = JitsiTrackEvents.NO_DATA_FROM_SOURCE;
 export const NO_AUDIO_INPUT = JitsiTrackEvents.NO_AUDIO_INPUT;
 export const TRACK_STREAMING_STATUS_CHANGED = JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED;
 export const TRACK_OWNER_CHANGED_JTE = JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE;
+export const TRACK_REMOVED_JTE = JitsiTrackEvents.TRACK_REMOVED_JTE;

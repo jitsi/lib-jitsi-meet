@@ -1764,6 +1764,12 @@ export default class JingleSessionPC extends JingleSession {
             this._removeSenderVideoConstraintsChangeListener();
         }
 
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            this.peerconnection.getRemoteTracks().forEach(track => {
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED_JTE, track);
+            });
+        }
+
         this.close();
     }
 
