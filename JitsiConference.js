@@ -1191,8 +1191,13 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     }
 
     // Send the video type message to the bridge if the track is not removed/added to the pc as part of
-    // the mute/unmute operation. This currently happens only on Firefox.
-    if (track.isVideoTrack() && !browser.doesVideoMuteByStreamRemove()) {
+    // the mute/unmute operation.
+    // In React Native we mute the camera by setting track.enabled but that doesn't
+    // work for screen-share tracks, so do the remove-as-mute for those.
+    const doesVideoMuteByStreamRemove
+        = browser.isReactNative() ? track.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
+
+    if (track.isVideoTrack() && !doesVideoMuteByStreamRemove) {
         this._sendBridgeVideoTypeMessage(track);
     }
 

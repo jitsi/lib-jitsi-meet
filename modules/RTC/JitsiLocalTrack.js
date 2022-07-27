@@ -369,13 +369,18 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
 
+        // In React Native we mute the camera by setting track.enabled but that doesn't
+        // work for screen-share tracks, so do the remove-as-mute for those.
+        const doesVideoMuteByStreamRemove
+            = browser.isReactNative() ? this.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
+
         // In the multi-stream mode, desktop tracks are muted from jitsi-meet instead of being removed from the
         // conference. This is needed because we don't want the client to signal a source-remove to the remote peer for
         // the desktop track when screenshare is stopped. Later when screenshare is started again, the same sender will
         // be re-used without the need for signaling a new ssrc through source-add.
         if (this.isAudioTrack()
                 || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSendSupportEnabled())
-                || !browser.doesVideoMuteByStreamRemove()) {
+                || !doesVideoMuteByStreamRemove) {
             logMuteInfo();
 
             // If we have a stream effect that implements its own mute functionality, prioritize it before

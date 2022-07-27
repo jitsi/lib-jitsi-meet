@@ -426,8 +426,7 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan
             = browser.supportsUnifiedPlan()
-                && (browser.isFirefox()
-                    || browser.isWebKitBased()
+                && (!browser.isChromiumBased()
                     || (browser.isChromiumBased()
 
                         // Provide a way to control the behavior for jvb and p2p connections independently.
@@ -598,7 +597,8 @@ export default class JingleSessionPC extends JingleSession {
                 if (!this.wasConnected
                     && (this.wasstable
                         || isStable
-                        || (this.usesUnifiedPlan && this.isInitiator && browser.isChromiumBased()))) {
+                        || (this.usesUnifiedPlan && this.isInitiator
+                            && (browser.isChromiumBased() || browser.isReactNative())))) {
 
                     Statistics.sendAnalytics(
                         ICE_DURATION,

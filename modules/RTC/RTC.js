@@ -472,8 +472,8 @@ export default class RTC extends Listenable {
             pcConfig.encodedInsertableStreams = true;
         }
 
-        const supportsSdpSemantics = browser.isReactNative()
-            || (browser.isChromiumBased() && !options.usesUnifiedPlan);
+        // TODO: remove this.
+        const supportsSdpSemantics = browser.isChromiumBased() && !options.usesUnifiedPlan;
 
         if (supportsSdpSemantics) {
             logger.debug('WebRTC application is running in plan-b mode');
