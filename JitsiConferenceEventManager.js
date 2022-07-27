@@ -191,11 +191,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, (ssrc, owner) => {
-        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_OWNER_CHANGED_JCE, ssrc, owner);
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_CHANGED, (ssrc, owner) => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_OWNER_CHANGED, ssrc, owner);
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED_JTE, track => {
+    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED, track => {
         conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
     });
 

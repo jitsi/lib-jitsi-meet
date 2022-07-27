@@ -1766,7 +1766,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (FeatureFlags.isSsrcRewritingSupported()) {
             this.peerconnection.getRemoteTracks().forEach(track => {
-                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED_JTE, track);
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED, track);
             });
         }
 
@@ -1910,7 +1910,7 @@ export default class JingleSessionPC extends JingleSession {
                 if (track) {
                     logger.debug(`existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
                     track.setSourceName(s.source);
-                    this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED_JTE, s.ssrc, s.owner);
+                    this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, s.ssrc, s.owner);
                 } else {
                     logger.error(`remapped ssrc ${s.ssrc} not found`);
                 }
