@@ -18,18 +18,7 @@ declare class RTCUtils extends Listenable {
      * @returns {void}
      */
     init(options?: any): void;
-    RTCPeerConnectionType: {
-        new (configuration?: RTCConfiguration): RTCPeerConnection;
-        prototype: RTCPeerConnection;
-        generateCertificate(keygenAlgorithm: AlgorithmIdentifier): Promise<RTCCertificate>;
-    };
     attachMediaStream: Function;
-    getStreamID: ({ id }: {
-        id: any;
-    }) => any;
-    getTrackID: ({ id }: {
-        id: any;
-    }) => any;
     pcConstraints: {};
     /**
      *

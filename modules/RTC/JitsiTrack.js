@@ -392,11 +392,7 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {string|null} id of the track or null if this is fake track.
      */
     getId() {
-        if (this.stream) {
-            return RTCUtils.getStreamID(this.stream);
-        }
-
-        return null;
+        return this.getStreamId();
     }
 
     /**

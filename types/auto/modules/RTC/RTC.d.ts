@@ -49,16 +49,6 @@ export default class RTC extends Listenable {
      */
     static attachMediaStream(elSelector: any, stream: any): any;
     /**
-     * Returns the id of the given stream.
-     * @param {MediaStream} stream
-     */
-    static getStreamID(stream: MediaStream): any;
-    /**
-     * Returns the id of the given track.
-     * @param {MediaStreamTrack} track
-     */
-    static getTrackID(track: MediaStreamTrack): any;
-    /**
      * Returns true if retrieving the list of input devices is supported
      * and false if not.
      */
