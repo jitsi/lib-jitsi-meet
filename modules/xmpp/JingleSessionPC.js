@@ -1065,25 +1065,19 @@ export default class JingleSessionPC extends JingleSession {
         return this.peerconnection.getConfiguredVideoCodec();
     }
 
-    /* eslint-disable max-params */
     /**
-     * Accepts incoming Jingle 'session-initiate' and should send
-     * 'session-accept' in result.
-     * @param jingleOffer jQuery selector pointing to the jingle element of
-     * the offer IQ
-     * @param success callback called when we accept incoming session
-     * successfully and receive RESULT packet to 'session-accept' sent.
-     * @param failure function(error) called if for any reason we fail to accept
-     * the incoming offer. 'error' argument can be used to log some details
-     * about the error.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
-     * the local tracks that will be added, before the offer/answer cycle
-     * executes. We allow the localTracks to optionally be passed in so that
-     * the addition of the local tracks and the processing of the initial offer
-     * can all be done atomically. We want to make sure that any other
-     * operations which originate in the XMPP Jingle messages related with
-     * this session to be executed with an assumption that the initial
-     * offer/answer cycle has been executed already.
+     * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
+     *
+     * @param jingleOffer jQuery selector pointing to the jingle element of the offer IQ
+     * @param success callback called when we accept incoming session successfully and receive RESULT packet to
+     * 'session-accept' sent.
+     * @param failure function(error) called if for any reason we fail to accept the incoming offer. 'error' argument
+     * can be used to log some details about the error.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
+     * the offer/answer cycle executes. We allow the localTracks to optionally be passed in so that the addition of the
+     * local tracks and the processing of the initial offer can all be done atomically. We want to make sure that any
+     * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
+     * assumption that the initial offer/answer cycle has been executed already.
      */
     acceptOffer(jingleOffer, success, failure, localTracks) {
         this.setOfferAnswerCycle(
@@ -1117,13 +1111,11 @@ export default class JingleSessionPC extends JingleSession {
             localTracks);
     }
 
-    /* eslint-enable max-params */
-
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
-     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
-     * added, before the offer/answer cycle executes (for the local track
-     * addition to be an atomic operation together with the offer/answer).
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together with the offer/answer).
      */
     invite(localTracks = []) {
         if (!this.isInitiator) {
@@ -1196,62 +1188,59 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Sets the answer received from the remote peer.
+     * Sets the answer received from the remote peer as the remote description.
+     *
      * @param jingleAnswer
      */
     setAnswer(jingleAnswer) {
         if (!this.isInitiator) {
             throw new Error('Trying to set an answer on the responder session');
         }
-        this.setOfferAnswerCycle(
-            jingleAnswer,
-            () => {
-                logger.info(`${this} setAnswer - succeeded`);
-                if (this.usesUnifiedPlan && browser.isChromiumBased()) {
-                    const workFunction = finishedCallback => {
-                        // This hack is needed for Chrome to create a decoder for the ssrcs in the remote SDP when
-                        // the local endpoint is the offerer and starts muted.
-                        const remoteSdp = this.peerconnection.remoteDescription.sdp;
-                        const remoteDescription = new RTCSessionDescription({
-                            type: 'offer',
-                            sdp: remoteSdp
-                        });
 
-                        return this._responderRenegotiate(remoteDescription)
-                        .then(() => finishedCallback(), error => finishedCallback(error));
-                    };
+        const workFunction = finishedCallback => {
+            const newRemoteSdp = this._processNewJingleOfferIq(jingleAnswer);
+            const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+            const remoteDescription = new RTCSessionDescription({
+                type: 'answer',
+                sdp: newRemoteSdp.raw
+            });
 
-                    logger.debug(`${this} Queued responderRenegotiate task`);
-                    this.modificationQueue.push(
-                        workFunction,
-                        error => {
-                            if (error) {
-                                logger.error(`${this} failed to renegotiate a decoder for muted endpoint ${error}`);
-                            } else {
-                                logger.debug(`${this} renegotiate a decoder for muted endpoint`);
-                            }
-                        });
-                }
-            },
+            this.peerconnection.setRemoteDescription(remoteDescription)
+                .then(() => {
+                    if (this.state === JingleSessionState.PENDING) {
+                        this.state = JingleSessionState.ACTIVE;
+                        const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+
+                        this.sendContentModify();
+                        this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
+                    }
+                })
+                .then(() => finishedCallback(), error => finishedCallback(error));
+        };
+
+        logger.debug(`${this} Queued setAnswer task`);
+        this.modificationQueue.push(
+            workFunction,
             error => {
-                logger.error(`${this} setAnswer failed: `, error);
+                if (error) {
+                    logger.error(`${this} setAnswer task failed: ${error}`);
+                } else {
+                    logger.debug(`${this} setAnswer task done`);
+                }
             });
     }
 
-    /* eslint-disable max-params */
     /**
-     * This is a setRemoteDescription/setLocalDescription cycle which starts at
-     * converting Strophe Jingle IQ into remote offer SDP. Once converted
-     * setRemoteDescription, createAnswer and setLocalDescription calls follow.
-     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element
-     *        of the offer (or answer) IQ
+     * This is a setRemoteDescription/setLocalDescription cycle which starts at converting Strophe Jingle IQ into
+     * remote offer SDP. Once converted, setRemoteDescription, createAnswer and setLocalDescription calls follow.
+     *
+     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
-     * @param failure callback called with an error object as an argument if we
-     *        fail at any point during setRD, createAnswer, setLD.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
-     * the local tracks that will be added, before the offer/answer cycle
-     * executes (for the local track addition to be an atomic operation together
-     * with the offer/answer).
+     * @param failure callback called with an error object as an argument if we fail at any point during setRD,
+     * createAnswer, setLD.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
+     * the offer/answer cycle executes (for the local track addition to be an atomic operation together with the
+     * offer/answer).
      */
     setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks = []) {
         const workFunction = finishedCallback => {
@@ -1272,18 +1261,20 @@ export default class JingleSessionPC extends JingleSession {
             const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferAnswerIq);
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
-            const bridgeSession
-                = $(jingleOfferAnswerIq)
-                    .find('>bridge-session['
-                        + 'xmlns="http://jitsi.org/protocol/focus"]');
+            const bridgeSession = $(jingleOfferAnswerIq)
+                .find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]');
             const bridgeSessionId = bridgeSession.attr('id');
 
             if (bridgeSessionId !== this._bridgeSessionId) {
                 this._bridgeSessionId = bridgeSessionId;
             }
+            const remoteDescription = new RTCSessionDescription({
+                type: 'offer',
+                sdp: newRemoteSdp.raw
+            });
 
             Promise.all(addTracks)
-                .then(() => this._renegotiate(newRemoteSdp.raw))
+                .then(() => this._responderRenegotiate(remoteDescription))
                 .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
@@ -2024,21 +2015,15 @@ export default class JingleSessionPC extends JingleSession {
                 = isAdd
                     ? this._processRemoteAddSource(addOrRemoveSsrcInfo)
                     : this._processRemoteRemoveSource(addOrRemoveSsrcInfo);
-
-            // Add a workaround for a bug in Chrome (unified plan) for p2p connection. When the media direction on
-            // the transceiver goes from "inactive" (both users join muted) to "recvonly" (peer unmutes), the browser
-            // doesn't seem to create a decoder if the signaling state changes from "have-local-offer" to "stable".
-            // Therefore, initiate a responder renegotiate even if the endpoint is the offerer to workaround this issue.
-            // TODO - open a chrome bug and update the comments.
             const remoteDescription = new RTCSessionDescription({
                 type: 'offer',
                 sdp: newRemoteSdp.raw
             });
-            const promise = isAdd && this.usesUnifiedPlan && this.isP2P && browser.isChromiumBased()
-                ? this._responderRenegotiate(remoteDescription)
-                : this._renegotiate(newRemoteSdp.raw);
 
-            promise.then(() => {
+            // Always initiate a sRD->cA->sLD cycle when a remote source is added or removed irrespective of whether
+            // the local endpoint is an initiator or responder. Fixes bugs on Chromium where decoders are not created
+            // when sLD->cO->sRD cycle is initiated for p2p cases when remote sources are received.
+            this._responderRenegotiate(remoteDescription).then(() => {
                 const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
                 logger.log(`${this} ${logPrefix} - OK`);
@@ -2552,16 +2537,14 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Adds local track back to this session, as part of the unmute operation.
+     * Adds local track back to the peerconnection associated with this session.
      * @param {JitsiLocalTrack} track
-     * @return {Promise} a promise that will resolve once the local track is
-     * added back to this session and renegotiation succeeds. Will be rejected
-     * with a <tt>string</tt> that provides some error details in case something
-     * goes wrong.
+     * @return {Promise} a promise that will resolve once the local track is added back to this session and
+     * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
+     * details in case something goes wrong.
      */
-    addTrackAsUnmute(track) {
-        return this._addRemoveTrackAsMuteUnmute(
-            false /* add as unmute */, track)
+    addTrackToPc(track) {
+        return this._addRemoveTrack(false /* add */, track)
             .then(() => {
                 // Configure the video encodings after the track is unmuted. If the user joins the call muted and
                 // unmutes it the first time, all the parameters need to be configured.
@@ -2579,38 +2562,34 @@ export default class JingleSessionPC extends JingleSession {
      * The promise will be rejected with a <tt>string</tt> that the describes
      * the error if anything goes wrong.
      */
-    removeTrackAsMute(track) {
-        return this._addRemoveTrackAsMuteUnmute(
-            true /* remove as mute */, track);
+    removeTrackFromPc(track) {
+        return this._addRemoveTrack(true /* remove */, track);
     }
 
     /**
-     * See {@link addTrackAsUnmute} and {@link removeTrackAsMute}.
-     * @param {boolean} isMute <tt>true</tt> for "remove as mute" or
-     * <tt>false</tt> for "add as unmute".
+     * See {@link addTrackToPc} and {@link removeTrackFromPc}.
+     * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
      * @param {JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
-    _addRemoveTrackAsMuteUnmute(isMute, track) {
+    _addRemoveTrack(isRemove, track) {
         if (!track) {
             return Promise.reject('invalid "track" argument value');
         }
-        const operationName = isMute ? 'removeTrackMute' : 'addTrackUnmute';
+        const operationName = isRemove ? 'removeTrack' : 'addTrack';
         const workFunction = finishedCallback => {
             const tpc = this.peerconnection;
 
             if (!tpc) {
-                finishedCallback(
-                    `Error:  tried ${operationName} track with no active peer`
-                        + 'connection');
+                finishedCallback(`Error:  tried ${operationName} track with no active peer connection`);
 
                 return;
             }
             const oldLocalSDP = tpc.localDescription.sdp;
             const operationPromise
-                = isMute
-                    ? tpc.removeTrackMute(track)
-                    : tpc.addTrackUnmute(track);
+                = isRemove
+                    ? tpc.removeTrackFromPc(track)
+                    : tpc.addTrackToPc(track);
 
             operationPromise
                 .then(shouldRenegotiate => {

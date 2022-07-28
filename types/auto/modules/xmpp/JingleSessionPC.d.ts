@@ -269,9 +269,9 @@ export default class JingleSessionPC extends JingleSession {
     getConfiguredVideoCodec(): any;
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
-     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
-     * added, before the offer/answer cycle executes (for the local track
-     * addition to be an atomic operation together with the offer/answer).
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together with the offer/answer).
      */
     invite(localTracks?: Array<any>): void;
     /**
@@ -286,23 +286,22 @@ export default class JingleSessionPC extends JingleSession {
      */
     private sendSessionInitiate;
     /**
-     * Sets the answer received from the remote peer.
+     * Sets the answer received from the remote peer as the remote description.
+     *
      * @param jingleAnswer
      */
     setAnswer(jingleAnswer: any): void;
     /**
-     * This is a setRemoteDescription/setLocalDescription cycle which starts at
-     * converting Strophe Jingle IQ into remote offer SDP. Once converted
-     * setRemoteDescription, createAnswer and setLocalDescription calls follow.
-     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element
-     *        of the offer (or answer) IQ
+     * This is a setRemoteDescription/setLocalDescription cycle which starts at converting Strophe Jingle IQ into
+     * remote offer SDP. Once converted, setRemoteDescription, createAnswer and setLocalDescription calls follow.
+     *
+     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
-     * @param failure callback called with an error object as an argument if we
-     *        fail at any point during setRD, createAnswer, setLD.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
-     * the local tracks that will be added, before the offer/answer cycle
-     * executes (for the local track addition to be an atomic operation together
-     * with the offer/answer).
+     * @param failure callback called with an error object as an argument if we fail at any point during setRD,
+     * createAnswer, setLD.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
+     * the offer/answer cycle executes (for the local track addition to be an atomic operation together with the
+     * offer/answer).
      */
     setOfferAnswerCycle(jingleOfferAnswerIq: any, success: any, failure: any, localTracks?: Array<any>): void;
     /**
@@ -544,14 +543,13 @@ export default class JingleSessionPC extends JingleSession {
      */
     private _verifyNoSSRCChanged;
     /**
-     * Adds local track back to this session, as part of the unmute operation.
+     * Adds local track back to the peerconnection associated with this session.
      * @param {JitsiLocalTrack} track
-     * @return {Promise} a promise that will resolve once the local track is
-     * added back to this session and renegotiation succeeds. Will be rejected
-     * with a <tt>string</tt> that provides some error details in case something
-     * goes wrong.
+     * @return {Promise} a promise that will resolve once the local track is added back to this session and
+     * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
+     * details in case something goes wrong.
      */
-    addTrackAsUnmute(track: any): Promise<any>;
+    addTrackToPc(track: any): Promise<any>;
     /**
      * Remove local track as part of the mute operation.
      * @param {JitsiLocalTrack} track the local track to be removed
@@ -560,15 +558,14 @@ export default class JingleSessionPC extends JingleSession {
      * The promise will be rejected with a <tt>string</tt> that the describes
      * the error if anything goes wrong.
      */
-    removeTrackAsMute(track: any): Promise<any>;
+    removeTrackFromPc(track: any): Promise<any>;
     /**
-     * See {@link addTrackAsUnmute} and {@link removeTrackAsMute}.
-     * @param {boolean} isMute <tt>true</tt> for "remove as mute" or
-     * <tt>false</tt> for "add as unmute".
+     * See {@link addTrackToPc} and {@link removeTrackFromPc}.
+     * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
      * @param {JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
-    private _addRemoveTrackAsMuteUnmute;
+    private _addRemoveTrack;
     /**
      * Resumes or suspends media transfer over the underlying peer connection.
      * @param {boolean} audioActive <tt>true</tt> to enable audio media

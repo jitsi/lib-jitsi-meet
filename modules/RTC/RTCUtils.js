@@ -1,6 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';
 import clonedeep from 'lodash.clonedeep';
+import 'webrtc-adapter';
 
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
@@ -18,13 +19,6 @@ import Listenable from '../util/Listenable';
 import screenObtainer from './ScreenObtainer';
 
 const logger = getLogger(__filename);
-
-// Require adapter only for certain browsers. This is being done for
-// react-native, which has its own shims, and while browsers are being migrated
-// over to use adapter's shims.
-if (browser.usesAdapter()) {
-    require('webrtc-adapter');
-}
 
 const eventEmitter = new EventEmitter();
 

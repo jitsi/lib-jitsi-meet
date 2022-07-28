@@ -23,7 +23,7 @@ export default class AudioOutputProblemDetector {
     /**
      * Creates new <tt>AudioOutputProblemDetector</tt> instance.
      *
-     * @param {JitsiCofnerence} conference - The conference instance to be monitored.
+     * @param {JitsiConference} conference - The conference instance to be monitored.
      */
     constructor(conference) {
         this._conference = conference;

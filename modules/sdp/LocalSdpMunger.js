@@ -260,8 +260,8 @@ export default class LocalSdpMunger {
         if (browser.isFirefox()
             && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
             && (
-                (mediaType === MediaType.VIDEO && !this.tpc._hadVideoAdded)
-                || (mediaType === MediaType.AUDIO && !this.tpc._hadAudioAdded)
+                (mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack)
+                || (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack)
             )
         ) {
             mediaSection.ssrcs = undefined;
@@ -399,13 +399,29 @@ export default class LocalSdpMunger {
                 trackIndex = streamId.split('-')[2];
             }
 
+            const sourceName = getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex);
+
             if (!nameExists) {
                 // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'name',
-                    value: getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex)
+                    value: sourceName
                 });
+            }
+
+            if (mediaType === MediaType.VIDEO) {
+                const videoType = this.tpc.getLocalVideoTracks().find(track => track.getSourceName() === sourceName)
+                    ?.getVideoType();
+
+                if (videoType) {
+                    // Inject videoType as a=ssrc:1234 videoType:desktop.
+                    mediaSection.ssrcs.push({
+                        id: source,
+                        attribute: 'videoType',
+                        value: videoType
+                    });
+                }
             }
         }
     }

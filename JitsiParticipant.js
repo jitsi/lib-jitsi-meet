@@ -196,7 +196,7 @@ export default class JitsiParticipant {
      * recorder).
      */
     isHiddenFromRecorder() {
-        return Boolean(this._identity?.user?.['hidden-from-recorder']);
+        return this._identity?.user?.['hidden-from-recorder'] === 'true';
     }
 
     /**

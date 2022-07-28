@@ -84,6 +84,13 @@ export class MockPeerConnection {
     usesUnifiedPlan() {
         return this._usesUnifiedPlan;
     }
+
+    /**
+     * {@link TraceablePeerConnection.getLocalVideoTracks}.
+     */
+    getLocalVideoTracks() {
+        return [];
+    }
 }
 
 /**

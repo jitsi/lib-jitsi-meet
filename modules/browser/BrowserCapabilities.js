@@ -186,14 +186,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the current browser supports RTT statistics for srflx local
-     * candidates through the legacy getStats() API.
-     */
-    supportsLocalCandidateRttStatistics() {
-        return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
-    }
-
-    /**
      * Checks if the current browser supports the Long Tasks API that lets us observe
      * performance measurement events and be notified of tasks that take longer than
      * 50ms to execute on the main thread.
@@ -248,15 +240,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     usesSdpMungingForSimulcast() {
         return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
-    }
-
-    /**
-     * Checks if the browser uses webrtc-adapter. All browsers except React Native do.
-     *
-     * @returns {boolean}
-     */
-    usesAdapter() {
-        return !this.isReactNative();
     }
 
     /**
