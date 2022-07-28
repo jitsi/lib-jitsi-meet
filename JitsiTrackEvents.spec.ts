@@ -12,6 +12,8 @@ describe( "/JitsiTrackEvents members", () => {
         TRACK_VIDEOTYPE_CHANGED,
         NO_DATA_FROM_SOURCE,
         NO_AUDIO_INPUT,
+        TRACK_OWNER_CHANGED,
+        TRACK_REMOVED,
         JitsiTrackEvents,
         ...others
     } = exported;
