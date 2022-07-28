@@ -80,7 +80,7 @@ export default class ChatRoom extends Listenable {
      * Sends the presence unavailable, signaling the server
      * we want to leave the room.
      */
-    doLeave(): void;
+    doLeave(reason: any): void;
     /**
      *
      */
@@ -367,7 +367,7 @@ export default class ChatRoom extends Listenable {
      * less than 5s after sending presence unavailable. Otherwise the promise is
      * rejected.
      */
-    leave(): Promise<any>;
+    leave(reason: any): Promise<any>;
 }
 import Listenable from "../util/Listenable";
 import XmppConnection from "./XmppConnection";

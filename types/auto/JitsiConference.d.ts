@@ -252,9 +252,10 @@ declare class JitsiConference {
     isP2PTestModeEnabled(): boolean;
     /**
      * Leaves the conference.
+     * @param reason {string|undefined} The reason for leaving the conference.
      * @returns {Promise}
      */
-    leave(): Promise<any>;
+    leave(reason: string | undefined): Promise<any>;
     /**
      * Returns the currently active media session if any.
      *

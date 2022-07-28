@@ -627,9 +627,10 @@ JitsiConference.prototype.isP2PTestModeEnabled = function() {
 
 /**
  * Leaves the conference.
+ * @param reason {string|undefined} The reason for leaving the conference.
  * @returns {Promise}
  */
-JitsiConference.prototype.leave = async function() {
+JitsiConference.prototype.leave = async function(reason) {
     if (this.participantConnectionStatus) {
         this.participantConnectionStatus.dispose();
         this.participantConnectionStatus = null;
@@ -710,7 +711,7 @@ JitsiConference.prototype.leave = async function() {
     let leaveError;
 
     try {
-        await room.leave();
+        await room.leave(reason);
     } catch (err) {
         leaveError = err;
 

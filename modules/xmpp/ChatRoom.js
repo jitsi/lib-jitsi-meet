@@ -259,10 +259,16 @@ export default class ChatRoom extends Listenable {
      * Sends the presence unavailable, signaling the server
      * we want to leave the room.
      */
-    doLeave() {
+    doLeave(reason) {
         logger.log('do leave', this.myroomjid);
-        const pres = $pres({ to: this.myroomjid,
-            type: 'unavailable' });
+        const pres = $pres({
+            to: this.myroomjid,
+            type: 'unavailable'
+        });
+
+        if (reason) {
+            pres.c('status').t(reason).up();
+        }
 
         this.presMap.length = 0;
 
@@ -1829,7 +1835,7 @@ export default class ChatRoom extends Listenable {
      * less than 5s after sending presence unavailable. Otherwise the promise is
      * rejected.
      */
-    leave() {
+    leave(reason) {
         this.avModeration.dispose();
         this.breakoutRooms.dispose();
 
@@ -1856,7 +1862,7 @@ export default class ChatRoom extends Listenable {
 
             this.clean();
             this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
-            this.doLeave();
+            this.doLeave(reason);
         }));
 
         return Promise.allSettled(promises);
