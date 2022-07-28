@@ -58,6 +58,7 @@ describe( "/JitsiConferenceEvents members", () => {
         TRACK_MUTE_CHANGED,
         TRACK_REMOVED,
         TRACK_UNMUTE_REJECTED,
+        TRACK_OWNER_CHANGED,
         TRANSCRIPTION_STATUS_CHANGED,
         USER_JOINED,
         USER_LEFT,
@@ -135,6 +136,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( TRACK_MUTE_CHANGED ).toBe( 'conference.trackMuteChanged' );
         expect( TRACK_REMOVED ).toBe( 'conference.trackRemoved' );
         expect( TRACK_UNMUTE_REJECTED ).toBe( 'conference.trackUnmuteRejected' );
+        expect( TRACK_OWNER_CHANGED ).toBe( 'conference.track_owner_changed' );
         expect( TRANSCRIPTION_STATUS_CHANGED ).toBe( 'conference.transcriptionStatusChanged' );
         expect( USER_JOINED ).toBe( 'conference.userJoined' );
         expect( USER_LEFT ).toBe( 'conference.userLeft' );
@@ -210,6 +212,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.TRACK_MUTE_CHANGED ).toBe( 'conference.trackMuteChanged' );
         expect( JitsiConferenceEvents.TRACK_REMOVED ).toBe( 'conference.trackRemoved' );
         expect( JitsiConferenceEvents.TRACK_UNMUTE_REJECTED ).toBe( 'conference.trackUnmuteRejected' );
+        expect( JitsiConferenceEvents.TRACK_OWNER_CHANGED ).toBe( 'conference.track_owner_changed' );
         expect( JitsiConferenceEvents.TRANSCRIPTION_STATUS_CHANGED ).toBe( 'conference.transcriptionStatusChanged' );
         expect( JitsiConferenceEvents.USER_JOINED ).toBe( 'conference.userJoined' );
         expect( JitsiConferenceEvents.USER_LEFT ).toBe( 'conference.userLeft' );
