@@ -246,7 +246,13 @@ Statistics.startLocalStats = function(track, callback) {
             Statistics.stopLocalStats(track);
         });
 
-    track.addEventListener(
+
+    if (browser.isIosBrowser()) {
+        // On iOS browsers audio is lost if the audio input device is in use by another app
+        // https://bugs.webkit.org/show_bug.cgi?id=233473
+        // The culprit was using the AudioContext, so now we close the AudioContext during
+        // the track being muted, and re-instantiate it afterwards.
+        track.addEventListener(
         JitsiTrackEvents.NO_DATA_FROM_SOURCE,
 
         /**
@@ -268,6 +274,7 @@ Statistics.startLocalStats = function(track, callback) {
                 }
             }
         });
+    }
 
     if (!Statistics.audioLevelsEnabled) {
         return;
