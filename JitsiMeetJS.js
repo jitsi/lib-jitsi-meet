@@ -330,16 +330,10 @@ export default _mergeNamespaceAndModule({
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
-                        const mStream = track.getOriginalStream();
 
                         if (track.getType() === MediaType.AUDIO) {
-                            Statistics.startLocalStats(mStream,
+                            Statistics.startLocalStats(track,
                                 track.setAudioLevel.bind(track));
-                            track.addEventListener(
-                                JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-                                () => {
-                                    Statistics.stopLocalStats(mStream);
-                                });
                         }
                     }
                 }

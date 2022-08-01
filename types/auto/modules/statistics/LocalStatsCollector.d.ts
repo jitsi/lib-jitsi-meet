@@ -22,6 +22,8 @@ declare class LocalStatsCollector {
     intervalMilis: any;
     audioLevel: number;
     callback: any;
+    source: MediaStreamAudioSourceNode;
+    analyser: AnalyserNode;
     /**
      * Starts the collecting the statistics.
      */
@@ -39,5 +41,13 @@ declare namespace LocalStatsCollector {
      * @returns {boolean}
      */
     function isLocalStatsSupported(): boolean;
+    /**
+     * Disconnects the audio context.
+     */
+    function disconnectAudioContext(): Promise<void>;
+    /**
+     * Connects the audio context.
+     */
+    function connectAudioContext(): void;
 }
 export default LocalStatsCollector;
