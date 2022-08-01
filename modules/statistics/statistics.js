@@ -240,13 +240,6 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
 Statistics.localStats = [];
 
 Statistics.startLocalStats = function(track, callback) {
-    track.addEventListener(
-        JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-        () => {
-            Statistics.stopLocalStats(track);
-        });
-
-
     if (browser.isIosBrowser()) {
         // On iOS browsers audio is lost if the audio input device is in use by another app
         // https://bugs.webkit.org/show_bug.cgi?id=233473
@@ -279,6 +272,12 @@ Statistics.startLocalStats = function(track, callback) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
+
+    track.addEventListener(
+        JitsiTrackEvents.LOCAL_TRACK_STOPPED,
+        () => {
+            Statistics.stopLocalStats(track);
+        });
 
     const stream = track.getOriginalStream();
     const localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
