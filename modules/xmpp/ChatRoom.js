@@ -943,15 +943,16 @@ export default class ChatRoom extends Listenable {
      * @param jid the jid of the participant that leaves
      * @param skipEvents optional params to skip any events, including check
      * whether this is the focus that left
+     * @param reason the reason for leaving (optional).
      */
-    onParticipantLeft(jid, skipEvents) {
+    onParticipantLeft(jid, skipEvents, reason) {
         delete this.lastPresences[jid];
 
         if (skipEvents) {
             return;
         }
 
-        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
+        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
 
         this.moderator.onMucMemberLeft(jid);
     }
@@ -1053,8 +1054,15 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
         } else {
+            const reasonSelect = $(pres).find('>status');
+            let reason;
+
+            if (reasonSelect.length) {
+                reason = reasonSelect.text();
+            }
+
             delete this.members[from];
-            this.onParticipantLeft(from, false);
+            this.onParticipantLeft(from, false, reason);
         }
     }
 

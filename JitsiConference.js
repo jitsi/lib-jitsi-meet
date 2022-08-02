@@ -1947,7 +1947,7 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
     }
 };
 
-JitsiConference.prototype.onMemberLeft = function(jid) {
+JitsiConference.prototype.onMemberLeft = function(jid, reason) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
@@ -1974,7 +1974,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     if (participant) {
         delete this.participants[id];
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
     }
 
     if (this.room !== null) { // Skip if we have left the room already.

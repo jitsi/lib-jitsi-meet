@@ -163,8 +163,9 @@ export default class ChatRoom extends Listenable {
      * @param jid the jid of the participant that leaves
      * @param skipEvents optional params to skip any events, including check
      * whether this is the focus that left
+     * @param reason the reason for leaving (optional).
      */
-    onParticipantLeft(jid: any, skipEvents: any): void;
+    onParticipantLeft(jid: any, skipEvents: any, reason: any): void;
     /**
      *
      * @param pres

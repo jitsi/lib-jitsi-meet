@@ -623,7 +623,7 @@ declare class JitsiConference {
     private _onMucJoined;
     private _updateFeatures;
     private _onMemberBotTypeChanged;
-    onMemberLeft(jid: any): void;
+    onMemberLeft(jid: any, reason: any): void;
     /**
      * Designates an event indicating that we were kicked from the XMPP MUC.
      * @param {boolean} isSelfPresence - whether it is for local participant
