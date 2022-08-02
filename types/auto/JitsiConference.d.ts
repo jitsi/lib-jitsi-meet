@@ -252,9 +252,10 @@ declare class JitsiConference {
     isP2PTestModeEnabled(): boolean;
     /**
      * Leaves the conference.
+     * @param reason {string|undefined} The reason for leaving the conference.
      * @returns {Promise}
      */
-    leave(): Promise<any>;
+    leave(reason: string | undefined): Promise<any>;
     /**
      * Returns the currently active media session if any.
      *
@@ -622,7 +623,7 @@ declare class JitsiConference {
     private _onMucJoined;
     private _updateFeatures;
     private _onMemberBotTypeChanged;
-    onMemberLeft(jid: any): void;
+    onMemberLeft(jid: any, reason: any): void;
     /**
      * Designates an event indicating that we were kicked from the XMPP MUC.
      * @param {boolean} isSelfPresence - whether it is for local participant
