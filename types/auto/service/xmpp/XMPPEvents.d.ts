@@ -216,7 +216,7 @@ export declare enum XMPPEvents {
     /**
      * Indicates that video SIP GW state changed.
      *
-     * @param {VideoSIPGWConstants} status - Any of the following statuses:
+     * @param {VideoSIPGWStatusConstants} status - Any of the following statuses:
      * STATUS_BUSY, STATUS_AVAILABLE or STATUS_UNDEFINED.
      */
     VIDEO_SIP_GW_AVAILABILITY_CHANGED = "xmpp.videoSIPGWAvailabilityChanged",
@@ -224,7 +224,7 @@ export declare enum XMPPEvents {
      * Indicates that video SIP GW Session state changed.
      * The statuses are any of the following statuses:
      * STATE_ON, STATE_OFF, STATE_PENDING, STATE_RETRYING, STATE_FAILED.
-     * {@see VideoSIPGWConstants}
+     * {@see VideoSIPGWStateConstants}
      *
      * @param {options} event - {address, oldState, newState, displayName}.
      */
