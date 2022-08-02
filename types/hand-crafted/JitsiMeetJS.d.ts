@@ -1,4 +1,4 @@
-import Logger from 'jitsi-meet-logger';
+import Logger from '@jitsi/logger';
 import JitsiConnection from './JitsiConnection';
 import JitsiMediaDevices from './JitsiMediaDevices';
 import { JitsiConferenceErrors } from './JitsiConferenceErrors';
@@ -95,7 +95,7 @@ export type JitsiMeetJSType = {
     JitsiTrackError: unknown // TODO:
   };
 
-  logLevels: typeof JitsiLogLevels; // TODO: code refers to Logger.levels and that is in jitsi-meet-logger
+  logLevels: typeof JitsiLogLevels; // TODO: code refers to Logger.levels and that is in @jitsi/logger
 
   mediaDevices: typeof JitsiMediaDevices;
 

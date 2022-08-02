@@ -26,4 +26,4 @@ export enum AnalyticsEvents {
   TRACK_UNMUTED = 'track.unmuted',
 }
 
-export const createRemotelyMutedEvent: ( mediaType: MediaType ) => { type: TYPE_OPERATIONAL, action: string, mediaType: MediaType };
+export const createRemotelyMutedEvent: ( mediaType: MediaType ) => { type: AnalyticsEvents.TYPE_OPERATIONAL, action: string, mediaType: MediaType };

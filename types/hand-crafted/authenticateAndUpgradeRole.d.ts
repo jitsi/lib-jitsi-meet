@@ -1,4 +1,4 @@
-import JitsiConnectionErrors from '../../JitsiConnectionErrors';
+import { JitsiConnectionErrors } from "./JitsiConnectionErrors";
 
 export default function authenticateAndUpgradeRole( options: { id: string, password: string, roomPassword?: string, onLoginSuccessful?: ( params: unknown ) => unknown } ): unknown;
 
