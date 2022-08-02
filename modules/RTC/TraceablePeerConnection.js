@@ -2359,16 +2359,20 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
  * Sets the max bitrates on the video m-lines when VP9 is the selected codec.
  *
  * @param {RTCSessionDescription} description - The local description that needs to be munged.
+ * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
  * @returns RTCSessionDescription
  */
-TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description) {
+TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isLocalSdp = false) {
     if (!this.codecPreference) {
         return description;
     }
 
     const parsedSdp = transform.parse(description.sdp);
+
+    // Find all the m-lines associated with the local sources.
+    const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
     const mLines = FeatureFlags.isMultiStreamSupportEnabled()
-        ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== MediaDirection.RECVONLY)
+        ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction)
         : [ parsedSdp.media.find(m => m.type === MediaType.VIDEO) ];
 
     // Find the mid associated with the desktop track so that bitrates can be configured accordingly on the
@@ -2393,8 +2397,7 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description) {
     };
 
     for (const mLine of mLines) {
-        if (this.codecPreference.mimeType === CodecMimeType.VP9
-            && this.getConfiguredVideoCodec() === CodecMimeType.VP9) {
+        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const mid = mLine.mid;
@@ -2470,7 +2473,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     localDescription = this._mungeCodecOrder(localDescription);
-    localDescription = this._setVp9MaxBitrates(localDescription);
+    localDescription = this._setVp9MaxBitrates(localDescription, true);
 
     this.trace('setLocalDescription::postTransform', dumpSDP(localDescription));
 
@@ -2564,6 +2567,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     remoteDescription = this._mungeCodecOrder(remoteDescription);
+    remoteDescription = this._setVp9MaxBitrates(remoteDescription);
     this.trace('setRemoteDescription::postTransform (munge codec order)', dumpSDP(remoteDescription));
 
     return new Promise((resolve, reject) => {
