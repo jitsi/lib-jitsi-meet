@@ -71,7 +71,10 @@
     "watch": "webpack --config webpack.config.js --watch --mode development"
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
-  "module": "dist/esm/JitsiMeetJS.js",
+  "exports": {
+    "import": "./dist/esm/JitsiMeetJS.js",
+    "default": "./dist/umd/lib-jitsi-meet.min.js"
+  },
   "files": [
     "dist",
     "types",
