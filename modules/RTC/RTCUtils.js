@@ -443,11 +443,12 @@ class RTCUtils extends Listenable {
      * logic compared to use screenObtainer versus normal device capture logic
      * in RTCUtils#_getUserMedia.
      *
+     * @param {Object} options - Optional parameters.
      * @returns {Promise} A promise which will be resolved with an object which
      * contains the acquired display stream. If desktop sharing is not supported
      * then a rejected promise will be returned.
      */
-    _getDesktopMedia() {
+    _getDesktopMedia(options) {
         if (!screenObtainer.isSupported()) {
             return Promise.reject(new Error('Desktop sharing is not supported!'));
         }
@@ -459,7 +460,8 @@ class RTCUtils extends Listenable {
                 },
                 error => {
                     reject(error);
-                });
+                },
+                options);
         });
     }
 
@@ -509,6 +511,8 @@ class RTCUtils extends Listenable {
      * @param {Object} options.desktopSharingFrameRate.max - Maximum fps
      * @param {String} options.desktopSharingSourceDevice - The device id or
      * label for a video input source that should be used for screensharing.
+     * @param {Array<string>} options.desktopSharingSources - The types of sources ("screen", "window", etc)
+     * from which the user can select what to share.
      * @returns {Promise} The promise, when successful, will return an array of
      * meta data for the requested device type, which includes the stream and
      * track. If an error occurs, it will be deferred to the caller for
@@ -542,7 +546,8 @@ class RTCUtils extends Listenable {
             }
 
             const {
-                desktopSharingSourceDevice
+                desktopSharingSourceDevice,
+                desktopSharingSources
             } = otherOptions;
 
             // Attempt to use a video input device as a screenshare source if
@@ -580,7 +585,7 @@ class RTCUtils extends Listenable {
                     });
             }
 
-            return this._getDesktopMedia();
+            return this._getDesktopMedia({ desktopSharingSources });
         }.bind(this);
 
         /**

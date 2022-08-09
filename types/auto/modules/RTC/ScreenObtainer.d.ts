@@ -64,15 +64,17 @@ declare namespace ScreenObtainer {
      *
      * @param onSuccess - Success callback.
      * @param onFailure - Failure callback.
+     * @param {Object} options - Optional parameters.
      */
-    function obtainScreenOnElectron(onSuccess: any, onFailure: any): void;
+    function obtainScreenOnElectron(onSuccess: any, onFailure: any, options?: any): void;
     /**
      * Obtains a screen capture stream on Electron.
      *
      * @param onSuccess - Success callback.
      * @param onFailure - Failure callback.
+     * @param {Object} options - Optional parameters.
      */
-    function obtainScreenOnElectron(onSuccess: any, onFailure: any): void;
+    function obtainScreenOnElectron(onSuccess: any, onFailure: any, options?: any): void;
     /**
      * Obtains a screen capture stream using getDisplayMedia.
      *

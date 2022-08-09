@@ -124,14 +124,16 @@ const ScreenObtainer = {
      *
      * @param onSuccess - Success callback.
      * @param onFailure - Failure callback.
+     * @param {Object} options - Optional parameters.
      */
-    obtainScreenOnElectron(onSuccess, onFailure) {
+    obtainScreenOnElectron(onSuccess, onFailure, options = {}) {
         if (window.JitsiMeetScreenObtainer && window.JitsiMeetScreenObtainer.openDesktopPicker) {
             const { desktopSharingFrameRate, desktopSharingSources } = this.options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
-                    desktopSharingSources: desktopSharingSources || [ 'screen', 'window' ]
+                    desktopSharingSources:
+                        options.desktopSharingSources || desktopSharingSources || [ 'screen', 'window' ]
                 },
                 (streamId, streamType, screenShareAudio = false) => {
                     if (streamId) {
