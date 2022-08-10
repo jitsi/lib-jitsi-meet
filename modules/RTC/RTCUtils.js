@@ -718,7 +718,7 @@ class RTCUtils extends Listenable {
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
-     * @params {string} [deviceType] - type of device to change. Default is
+     * @param {string} [deviceType] - type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
@@ -845,6 +845,17 @@ class RTCUtils extends Listenable {
         deviceList.push(deviceData);
 
         return { deviceList };
+    }
+
+
+    /**
+     * Returns boolean value indicating whether given stream ID
+     * indicates user stream or not
+     * @param {string} [streamId] - ID of a stream
+     * @returns {boolean}
+     */
+    isUserStreamById(streamId) {
+        return streamId && streamId !== 'mixedmslabel' && streamId !== 'default';
     }
 }
 

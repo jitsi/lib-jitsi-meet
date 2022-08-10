@@ -93,11 +93,11 @@ declare class RTCUtils extends Listenable {
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
-     * @params {string} [deviceType] - type of device to change. Default is
+     * @param {string} [deviceType] - type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable(deviceType: any): boolean;
+    isDeviceChangeAvailable(deviceType?: string): boolean;
     /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.
@@ -147,5 +147,12 @@ declare class RTCUtils extends Listenable {
      * @returns {MediaDeviceInfo} device.
      */
     getEventDataForActiveDevice(device: any): MediaDeviceInfo;
+    /**
+     * Returns boolean value indicating whether given stream ID
+     * indicates user stream or not
+     * @param {string} [streamId] - ID of a stream
+     * @returns {boolean}
+     */
+    isUserStreamById(streamId?: string): boolean;
 }
 import Listenable from "../util/Listenable";

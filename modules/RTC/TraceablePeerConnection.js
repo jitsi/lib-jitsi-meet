@@ -22,7 +22,7 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
-import RTC from './RTC';
+import RTCUtils from './RTCUtils';
 import {
     HD_BITRATE,
     HD_SCALE_FACTOR,
@@ -819,7 +819,7 @@ TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     const streamId = stream.id;
 
-    if (!RTC.isUserStreamById(streamId)) {
+    if (!RTCUtils.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
 
         return;
@@ -864,7 +864,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const streamId = stream.id;
     const mediaType = track.kind;
 
-    if (!this.isP2P && !RTC.isUserStreamById(streamId)) {
+    if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
 
         return;
@@ -1059,7 +1059,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
  * PeerConnection
  */
 TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
-    if (!RTC.isUserStream(stream)) {
+    if (!RTCUtils.isUserStreamById(stream.id)) {
         logger.info(`Ignored remote 'stream removed' event for stream[id=${stream.id}]`);
 
         return;
@@ -1089,7 +1089,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     const streamId = stream.id;
     const trackId = track?.id;
 
-    if (!RTC.isUserStreamById(streamId)) {
+    if (!RTCUtils.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream removed' event for non-user stream[id=${streamId}]`);
 
         return;

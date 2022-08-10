@@ -23,7 +23,7 @@
  *
  * @constructor
  */
-export default function TraceablePeerConnection(rtc: RTC, id: number, signalingLayer: any, pcConfig: object, constraints: object, isP2P: boolean, options: {
+export default function TraceablePeerConnection(rtc: any, id: number, signalingLayer: any, pcConfig: object, constraints: object, isP2P: boolean, options: {
     disableSimulcast: boolean;
     disableRtx: boolean;
     disabledCodec: string;
@@ -57,7 +57,7 @@ export default class TraceablePeerConnection {
      *
      * @constructor
      */
-    constructor(rtc: RTC, id: number, signalingLayer: any, pcConfig: object, constraints: object, isP2P: boolean, options: {
+    constructor(rtc: any, id: number, signalingLayer: any, pcConfig: object, constraints: object, isP2P: boolean, options: {
         disableSimulcast: boolean;
         disableRtx: boolean;
         disabledCodec: string;
@@ -112,7 +112,7 @@ export default class TraceablePeerConnection {
      * <tt>TracablePeerConnection</tt>.
      * @type {RTC}
      */
-    rtc: RTC;
+    rtc: any;
     /**
      * The peer connection identifier assigned by the RTC module.
      * @type {number}
@@ -801,7 +801,6 @@ export default class TraceablePeerConnection {
      */
     toString(): string;
 }
-import RTC from "./RTC";
 import { MediaType } from "../../service/RTC/MediaType";
 import JitsiRemoteTrack from "./JitsiRemoteTrack";
 import { TPCUtils } from "./TPCUtils";
