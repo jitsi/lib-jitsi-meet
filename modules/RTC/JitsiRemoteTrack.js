@@ -409,6 +409,17 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             });
 
         this._trackStreamingStatusImpl.init();
+
+        // In some edge cases, both browser 'unmute' and bridge's forwarded sources events are received before a
+        // LargeVideoUpdate is scheduled for auto-pinning a new screenshare track. If there are no layout changes and
+        // no further track events are received for the SS track, a black tile will be displayed for screenshare on
+        // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
+        // track to prevent this from happening.
+        !this._trackStreamingStatusImpl.isVideoTrackFrozen()
+            && this.rtc.eventEmitter.emit(
+                JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
+                this,
+                this._trackStreamingStatus);
     }
 
     /**
