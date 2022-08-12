@@ -67,7 +67,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             /* conference */ null,
             stream,
             track,
-            /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED),
+            /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED, this),
             mediaType,
             videoType);
 
