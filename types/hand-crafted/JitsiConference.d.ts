@@ -30,7 +30,7 @@ export default class JitsiConference {
   isJoined: () => boolean;
   isP2PEnabled: () => boolean;
   isP2PTestModeEnabled: () => boolean;
-  leave: () => Promise<unknown>; // TODO:
+  leave: ( reason?: string ) => Promise<unknown>; // TODO:
   getName: () => string;
   getConnection: () => JitsiConnection;
   isAuthEnabled: () => boolean;
@@ -79,7 +79,7 @@ export default class JitsiConference {
   kickParticipant: ( id: string, reason?: string ) => void;
   muteParticipant: ( id: string, mediaType?: MediaType ) => void;
   onMemberJoined: ( jid: string, nick: string, role: string, isHidden: boolean, statsID?: unknown, status?: string, identity?: unknown, botType?: unknown, fullJid?: string, features?: unknown, isReplaceParticipant?: boolean ) => void;
-  onMemberLeft: ( jid: string ) => void;
+  onMemberLeft: ( jid: string, reason?: string ) => void;
   onMemberKicked: ( isSelfPresence: boolean, actorId: string, kickedParticipantId?: string, reason?: string, isReplaceParticipant?: boolean ) => void;
   onLocalRoleChanged: ( role: string ) => void;
   onUserRoleChanged: ( jid: string, role: string ) => void;

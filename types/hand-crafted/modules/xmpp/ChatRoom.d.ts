@@ -14,7 +14,7 @@ export default class ChatRoom extends Listenable {
   initPresenceMap: ( options?: { statsId: string, deploymentInfo?: { userRegion: string } } ) => void; // TODO: check the options
   join: ( password: string, replaceParticipant?: boolean ) => Promise<unknown>; // TODO:
   sendPresence: ( fromJoin: boolean ) => void;
-  doLeave: () => void;
+  doLeave: ( reason?: string ) => void;
   discoRoomInfo: () => unknown;
   setMeetingId: ( meetingId: string ) => void;
   createNonAnonymousRoom: () => void;
@@ -26,7 +26,7 @@ export default class ChatRoom extends Listenable {
   sendMessage: ( message: unknown, elementName: string ) => void; // TODO:
   sendPrivateMessage: ( id: unknown, message: unknown, elementName: string ) => void; // TODO:
   setSubject: ( subject: string ) => void;
-  onParticipantLeft: ( jid: string, skipEvents?: boolean ) => void;
+  onParticipantLeft: ( jid: string, skipEvents?: boolean, reason?: string ) => void;
   onPresenceUnavailable: ( pres: unknown, from: unknown ) => void; // TODO:
   onMessage: ( msg: unknown, from: unknown ) => void; // TODO:
   onPresenceError: ( pres: unknown, from: unknown ) => void; // TODO:
@@ -61,5 +61,5 @@ export default class ChatRoom extends Listenable {
   onMuteVideo: ( iq: unknown ) => void; // TODO:
   onMute: ( iq: unknown ) => void; // TODO:
   clean: () => void;
-  leave: () => Promise<unknown>; // TODO:
+  leave: ( reason?: string ) => Promise<unknown>; // TODO:
 }
