@@ -217,7 +217,8 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const roomStub = {
-            addPresenceListener: () => { /** no-op */ },
+            addEventListener: () => { /* no op */ },
+            addPresenceListener: () => { /* no-op */ },
             connectionTimes: [],
             eventEmitter: { emit: emitter },
             getMediaPresenceInfo: () => {
@@ -225,7 +226,8 @@ export default class ProxyConnectionPC {
 
                 return {};
             },
-            removePresenceListener: () => { /** no-op */ },
+            removeEventListener: () => { /* no op */ },
+            removePresenceListener: () => { /* no-op */ },
             supportsRestartByTerminate: () => false
         };
 
