@@ -172,12 +172,12 @@ export default class SpeakerStatsCollector {
                     this.stats.users[userId] = speakerStatsToUpdate;
                     speakerStatsToUpdate.markAsHasLeft();
                 }
+
+                speakerStatsToUpdate.totalDominantSpeakerTime
+                    = newStats[userId].totalDominantSpeakerTime;
+
+                speakerStatsToUpdate.setFaceExpressions(newStats[userId].faceExpressions);
             }
-
-            speakerStatsToUpdate.totalDominantSpeakerTime
-                = newStats[userId].totalDominantSpeakerTime;
-
-            speakerStatsToUpdate.setFaceExpressions(newStats[userId].faceExpressions);
         }
     }
 }
