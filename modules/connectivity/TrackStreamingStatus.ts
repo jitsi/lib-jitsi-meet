@@ -480,9 +480,6 @@ export class TrackStreamingStatusImpl {
 
         const sourceName = this.track.getSourceName();
 
-        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=${
-            enteringForwardedSources} at ${timestamp}`);
-
         // If the browser doesn't fire the mute/onmute events when the remote peer stops/starts sending media,
         // calculate the streaming status for all the tracks since it won't get triggered automatically on the track
         // that has started/stopped receiving media.
