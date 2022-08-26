@@ -318,6 +318,13 @@ export default function TraceablePeerConnection(
      */
     this._senderMaxHeights = new Map();
 
+    /**
+     * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
+     * {@link JitsiLocalTrack.rtcId}.
+     * @type {Map<string, string>}
+     */
+    this._localTrackTransceiverMids = new Map();
+
     // override as desired
     this.trace = (what, info) => {
         logger.debug(what, info);
@@ -1970,6 +1977,30 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
 };
 
 /**
+ * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
+ *
+ * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
+    const localSdp = this.peerconnection.localDescription?.sdp;
+
+    if (!localSdp) {
+        return;
+    }
+
+    for (const localTrack of localTracks) {
+        const mediaType = localTrack.getType();
+        const parsedSdp = transform.parse(localSdp);
+        const mLine = parsedSdp.media.find(mline => mline.type === mediaType);
+
+        if (!this._localTrackTransceiverMids.has(localTrack.rtcId)) {
+            this._localTrackTransceiverMids.set(localTrack.rtcId, mLine.mid.toString());
+        }
+    }
+};
+
+/**
  * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
  * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
@@ -2014,16 +2045,20 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 
         return promise
             .then(transceiver => {
+                if (oldTrack) {
+                    this.localTracks.delete(oldTrack.rtcId);
+                    this._localTrackTransceiverMids.delete(oldTrack.rtcId);
+                }
+
                 if (newTrack) {
                     if (newTrack.isAudioTrack()) {
                         this._hasHadAudioTrack = true;
                     } else {
                         this._hasHadVideoTrack = true;
                     }
+                    this._localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
+                    this.localTracks.set(newTrack.rtcId, newTrack);
                 }
-
-                oldTrack && this.localTracks.delete(oldTrack.rtcId);
-                newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
 
                 // Update the local SSRC cache for the case when one track gets replaced with another and no
                 // renegotiation is triggered as a result of this.

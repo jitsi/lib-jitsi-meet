@@ -267,6 +267,12 @@ export default class TraceablePeerConnection {
      * @type {Map<string, number>}
      */
     _senderMaxHeights: Map<string, number>;
+    /**
+     * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
+     * {@link JitsiLocalTrack.rtcId}.
+     * @type {Map<string, string>}
+     */
+    _localTrackTransceiverMids: Map<string, string>;
     trace: (what: any, info: any) => void;
     onicecandidate: any;
     onTrack: (evt: any) => void;
@@ -608,6 +614,13 @@ export default class TraceablePeerConnection {
      * was found.
      */
     findSenderForTrack(track: any): RTCRtpSender | undefined;
+    /**
+     * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
+     * @returns {void}
+     */
+    processLocalSdpForTransceiverInfo(localTracks: Array<any>): void;
     /**
      * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
      * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid

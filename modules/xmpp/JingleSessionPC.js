@@ -1053,6 +1053,8 @@ export default class JingleSessionPC extends JingleSession {
                 .then(() => this.peerconnection.createOffer(this.mediaConstraints))
                 .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
                 .then(() => {
+                    this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
+
                     // NOTE that the offer is obtained from the localDescription getter as it needs to go though
                     // the transformation chain.
                     this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
@@ -1198,6 +1200,7 @@ export default class JingleSessionPC extends JingleSession {
             Promise.all(addTracks)
                 .then(() => this._renegotiate(newRemoteSdp.raw))
                 .then(() => {
+                    this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
 
