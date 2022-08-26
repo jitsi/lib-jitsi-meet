@@ -48,6 +48,14 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TraceablePeerConnection.processLocalSdpForTransceiverInfo}.
+     *
+     * @returns {void}
+     */
+    processLocalSdpForTransceiverInfo() {
+    }
+
+    /**
      * {@link TraceablePeerConnection.setLocalDescription}.
      *
      * @returns {Promise<void>}
