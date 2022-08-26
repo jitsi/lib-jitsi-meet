@@ -335,6 +335,7 @@ export default class RTC extends Listenable {
         const oldForwardedSources = this._forwardedSources || [];
         let leavingForwardedSources = [];
         let enteringForwardedSources = [];
+        const timestamp = Date.now();
 
         this._forwardedSources = forwardedSources;
 
@@ -343,11 +344,13 @@ export default class RTC extends Listenable {
         enteringForwardedSources = forwardedSources.filter(
             sourceName => oldForwardedSources.indexOf(sourceName) === -1);
 
+        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
+            + `${enteringForwardedSources} at ${timestamp}`);
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
             leavingForwardedSources,
             enteringForwardedSources,
-            Date.now());
+            timestamp);
     }
 
     /**
