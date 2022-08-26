@@ -388,9 +388,12 @@ export class TPCUtils {
                 const trackIndex = Number(sourceName.split('-')[1].substring(1));
 
                 if (trackIndex) {
-                    transceiver = this.pc.peerconnection.getTransceivers()
-                        .filter(t => t.receiver.track.kind === mediaType
-                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
+                    transceiver = this.pc.isP2P
+                        ? this.pc.peerconnection.getTransceivers()
+                            .filter(t => t.receiver.track.kind === mediaType)[trackIndex]
+                        : this.pc.peerconnection.getTransceivers()
+                            .filter(t => t.receiver.track.kind === mediaType
+                                && t.direction !== MediaDirection.RECVONLY)[trackIndex];
                 }
             }
         }
@@ -450,14 +453,13 @@ export class TPCUtils {
     setMediaTransferActive(mediaType, active) {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
-        const localTracks = this.pc.getLocalTracks(mediaType);
 
         logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
-        transceivers.forEach((transceiver, idx) => {
+        transceivers.forEach(transceiver => {
             if (active) {
-                // The first transceiver is for the local track and only this one can be set to 'sendrecv'.
-                // When multi-stream is enabled, there can be multiple transceivers with outbound streams.
-                if (idx < localTracks.length) {
+                const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
+
+                if (localTrackMids.find(mids => mids[1] === transceiver.mid)) {
                     transceiver.direction = MediaDirection.SENDRECV;
                 } else {
                     transceiver.direction = MediaDirection.RECVONLY;
