@@ -62,4 +62,5 @@ export default class ChatRoom extends Listenable {
   onMute: ( iq: unknown ) => void; // TODO:
   clean: () => void;
   leave: ( reason?: string ) => Promise<unknown>; // TODO:
+  end: () => void;
 }
