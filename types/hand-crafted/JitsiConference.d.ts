@@ -31,6 +31,10 @@ export default class JitsiConference {
   isP2PEnabled: () => boolean;
   isP2PTestModeEnabled: () => boolean;
   leave: ( reason?: string ) => Promise<unknown>; // TODO:
+  isEndConferenceSupported: () => boolean;
+  end: () => void;
+  getActiveMediaSession: () => JingleSessionPC | undefined;
+  getMediaSessions: () => JingleSessionPC[];
   getName: () => string;
   getConnection: () => JitsiConnection;
   isAuthEnabled: () => boolean;

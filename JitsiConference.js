@@ -750,7 +750,7 @@ JitsiConference.prototype.end = function() {
         return;
     }
     if (!this.room) {
-        throw new Error('The conference has been already left');
+        throw new Error('You have already left the conference');
     }
 
     this.room.end();
