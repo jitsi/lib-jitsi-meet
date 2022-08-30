@@ -1,7 +1,6 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';
+import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
 

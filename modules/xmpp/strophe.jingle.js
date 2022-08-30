@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import { $iq, Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';

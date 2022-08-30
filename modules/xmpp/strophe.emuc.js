@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import { Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';

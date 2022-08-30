@@ -11,6 +11,9 @@ module.exports = (minimize, analyzeBundle) => {
         // The inline-source-map is used to allow debugging the unit tests with Karma
         devtool: minimize ? 'source-map' : 'inline-source-map',
         resolve: {
+            alias: {
+                'jquery': require.resolve('jquery/dist/jquery.slim.min.js')
+            },
             extensions: [ '', '.js', '.ts' ]
         },
         mode: minimize ? 'production' : 'development',
@@ -72,8 +75,8 @@ module.exports = (minimize, analyzeBundle) => {
         },
         performance: {
             hints: minimize ? 'error' : false,
-            maxAssetSize: 750 * 1024,
-            maxEntrypointSize: 750 * 1024
+            maxAssetSize: 825 * 1024,
+            maxEntrypointSize: 825 * 1024
         },
         plugins: [
             analyzeBundle
