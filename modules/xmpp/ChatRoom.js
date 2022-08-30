@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 

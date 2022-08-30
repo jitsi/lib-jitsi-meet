@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
