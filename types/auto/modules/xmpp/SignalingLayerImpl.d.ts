@@ -81,35 +81,5 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @private
      */
     private _findEndpointSourceInfoForMediaType;
-    /**
-     * Set an SSRC owner.
-     * @param {number} ssrc an SSRC to be owned
-     * @param {string} endpointId owner's ID (MUC nickname)
-     * @throws TypeError if <tt>ssrc</tt> is not a number
-     */
-    setSSRCOwner(ssrc: number, endpointId: string): void;
-    /**
-     * Adjusts muted status of given track.
-     *
-     * @param {SourceName} sourceName - the name of the track's source.
-     * @param {boolean} muted - the new muted status.
-     * @returns {boolean}
-     */
-    setTrackMuteStatus(sourceName: any, muted: boolean): boolean;
-    /**
-     * Sets track's video type.
-     * @param {SourceName} sourceName - the track's source name.
-     * @param {VideoType} videoType - the new video type.
-     * @returns {boolean}
-     */
-    setTrackVideoType(sourceName: any, videoType: VideoType): boolean;
-    /**
-     * Saves the source name for a track identified by it's ssrc.
-     * @param {number} ssrc the ssrc of the target track.
-     * @param {SourceName} sourceName the track's source name to save.
-     * @throws TypeError if <tt>ssrc</tt> is not a number
-     */
-    setTrackSourceName(ssrc: number, sourceName: any): void;
 }
 import SignalingLayer from "../../service/RTC/SignalingLayer";
-import { VideoType } from "../../service/RTC/VideoType";
