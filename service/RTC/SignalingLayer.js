@@ -116,4 +116,42 @@ export default class SignalingLayer extends Listenable {
     getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
+
+    /**
+     * Set an SSRC owner.
+     * @param {number} ssrc an SSRC to be owned
+     * @param {string} endpointId owner's ID (MUC nickname)
+     * @throws TypeError if <tt>ssrc</tt> is not a number
+     */
+    setSSRCOwner(ssrc, endpointId) { // eslint-disable-line no-unused-vars
+    }
+
+
+    /**
+     * Adjusts muted status of given track.
+     *
+     * @param {SourceName} sourceName - the name of the track's source.
+     * @param {boolean} muted - the new muted status.
+     * @returns {boolean}
+     */
+    setTrackMuteStatus(sourceName, muted) { // eslint-disable-line no-unused-vars
+    }
+
+    /**
+     * Saves the source name for a track identified by it's ssrc.
+     * @param {number} ssrc the ssrc of the target track.
+     * @param {SourceName} sourceName the track's source name to save.
+     * @throws TypeError if <tt>ssrc</tt> is not a number
+     */
+    setTrackSourceName(ssrc, sourceName) { // eslint-disable-line no-unused-vars
+    }
+
+    /**
+     * Sets track's video type.
+     * @param {SourceName} sourceName - the track's source name.
+     * @param {VideoType} videoType - the new video type.
+     * @returns {boolean}
+     */
+    setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    }
 }
