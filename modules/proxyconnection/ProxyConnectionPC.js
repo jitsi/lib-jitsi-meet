@@ -4,9 +4,9 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RTC from '../RTC/RTC';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
-import SignalingLayerImpl from '../xmpp/SignalingLayerImpl';
 import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 
+import CustomSignalingLayer from './CustomSignalingLayer';
 import { ACTIONS } from './constants';
 
 const logger = getLogger(__filename);
@@ -271,7 +271,7 @@ export default class ProxyConnectionPC {
             this._options.isInitiator // isInitiator
         );
 
-        const signalingLayer = new SignalingLayerImpl();
+        const signalingLayer = new CustomSignalingLayer();
 
         signalingLayer.setChatRoom(roomStub);
 
