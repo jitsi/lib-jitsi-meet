@@ -335,6 +335,7 @@ export default class RTC extends Listenable {
         const oldForwardedSources = this._forwardedSources || [];
         let leavingForwardedSources = [];
         let enteringForwardedSources = [];
+        const timestamp = Date.now();
 
         this._forwardedSources = forwardedSources;
 
@@ -343,11 +344,13 @@ export default class RTC extends Listenable {
         enteringForwardedSources = forwardedSources.filter(
             sourceName => oldForwardedSources.indexOf(sourceName) === -1);
 
+        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
+            + `${enteringForwardedSources} at ${timestamp}`);
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
             leavingForwardedSources,
             enteringForwardedSources,
-            Date.now());
+            timestamp);
     }
 
     /**
@@ -722,22 +725,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns the id of the given stream.
-     * @param {MediaStream} stream
-     */
-    static getStreamID(stream) {
-        return RTCUtils.getStreamID(stream);
-    }
-
-    /**
-     * Returns the id of the given track.
-     * @param {MediaStreamTrack} track
-     */
-    static getTrackID(track) {
-        return RTCUtils.getTrackID(track);
-    }
-
-    /**
      * Returns true if retrieving the list of input devices is supported
      * and false if not.
      */
@@ -826,7 +813,7 @@ export default class RTC extends Listenable {
      * @returns {boolean}
      */
     static isUserStream(stream) {
-        return RTC.isUserStreamById(RTCUtils.getStreamID(stream));
+        return RTC.isUserStreamById(stream.id);
     }
 
     /**

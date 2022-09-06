@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
@@ -434,6 +433,10 @@ export default class XMPP extends Listenable {
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
                 this.avModerationComponentAddress = identity.name;
+            }
+
+            if (identity.type === 'end_conference') {
+                this.endConferenceComponentAddress = identity.name;
             }
 
             if (identity.type === 'speakerstats') {

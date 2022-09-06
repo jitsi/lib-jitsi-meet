@@ -52,9 +52,7 @@ class MockConference extends Listenable {
      */
     constructor() {
         super();
-        this.options = {
-            config: { enableLayerSuspension: true }
-        };
+        this.options = {};
         this.activeMediaSession = undefined;
         this.mediaSessions = [];
     }

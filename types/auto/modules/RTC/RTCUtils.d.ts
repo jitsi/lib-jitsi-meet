@@ -18,18 +18,7 @@ declare class RTCUtils extends Listenable {
      * @returns {void}
      */
     init(options?: any): void;
-    RTCPeerConnectionType: {
-        new (configuration?: RTCConfiguration): RTCPeerConnection;
-        prototype: RTCPeerConnection;
-        generateCertificate(keygenAlgorithm: AlgorithmIdentifier): Promise<RTCCertificate>;
-    };
     attachMediaStream: Function;
-    getStreamID: ({ id }: {
-        id: any;
-    }) => any;
-    getTrackID: ({ id }: {
-        id: any;
-    }) => any;
     pcConstraints: {};
     /**
      *
@@ -51,11 +40,12 @@ declare class RTCUtils extends Listenable {
      * logic compared to use screenObtainer versus normal device capture logic
      * in RTCUtils#_getUserMedia.
      *
+     * @param {Object} options - Optional parameters.
      * @returns {Promise} A promise which will be resolved with an object which
      * contains the acquired display stream. If desktop sharing is not supported
      * then a rejected promise will be returned.
      */
-    _getDesktopMedia(): Promise<any>;
+    _getDesktopMedia(options: any): Promise<any>;
     /**
      * Private utility for determining if the passed in MediaStream contains
      * tracks of the type(s) specified in the requested devices.
@@ -81,6 +71,8 @@ declare class RTCUtils extends Listenable {
      * @param {Object} options.desktopSharingFrameRate.max - Maximum fps
      * @param {String} options.desktopSharingSourceDevice - The device id or
      * label for a video input source that should be used for screensharing.
+     * @param {Array<string>} options.desktopSharingSources - The types of sources ("screen", "window", etc)
+     * from which the user can select what to share.
      * @returns {Promise} The promise, when successful, will return an array of
      * meta data for the requested device type, which includes the stream and
      * track. If an error occurs, it will be deferred to the caller for
@@ -93,6 +85,7 @@ declare class RTCUtils extends Listenable {
             max: any;
         };
         desktopSharingSourceDevice: string;
+        desktopSharingSources: Array<string>;
     }): Promise<any>;
     /**
      * Checks whether it is possible to enumerate available cameras/microphones.

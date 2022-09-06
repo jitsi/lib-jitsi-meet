@@ -1,6 +1,5 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
+import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
@@ -259,10 +258,16 @@ export default class ChatRoom extends Listenable {
      * Sends the presence unavailable, signaling the server
      * we want to leave the room.
      */
-    doLeave() {
+    doLeave(reason) {
         logger.log('do leave', this.myroomjid);
-        const pres = $pres({ to: this.myroomjid,
-            type: 'unavailable' });
+        const pres = $pres({
+            to: this.myroomjid,
+            type: 'unavailable'
+        });
+
+        if (reason) {
+            pres.c('status').t(reason).up();
+        }
 
         this.presMap.length = 0;
 
@@ -937,15 +942,16 @@ export default class ChatRoom extends Listenable {
      * @param jid the jid of the participant that leaves
      * @param skipEvents optional params to skip any events, including check
      * whether this is the focus that left
+     * @param reason the reason for leaving (optional).
      */
-    onParticipantLeft(jid, skipEvents) {
+    onParticipantLeft(jid, skipEvents, reason) {
         delete this.lastPresences[jid];
 
         if (skipEvents) {
             return;
         }
 
-        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
+        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
 
         this.moderator.onMucMemberLeft(jid);
     }
@@ -1047,8 +1053,15 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
         } else {
+            const reasonSelect = $(pres).find('>status');
+            let reason;
+
+            if (reasonSelect.length) {
+                reason = reasonSelect.text();
+            }
+
             delete this.members[from];
-            this.onParticipantLeft(from, false);
+            this.onParticipantLeft(from, false, reason);
         }
     }
 
@@ -1829,7 +1842,7 @@ export default class ChatRoom extends Listenable {
      * less than 5s after sending presence unavailable. Otherwise the promise is
      * rejected.
      */
-    leave() {
+    leave(reason) {
         this.avModeration.dispose();
         this.breakoutRooms.dispose();
 
@@ -1856,10 +1869,28 @@ export default class ChatRoom extends Listenable {
 
             this.clean();
             this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
-            this.doLeave();
+            this.doLeave(reason);
         }));
 
         return Promise.allSettled(promises);
+    }
+
+    /**
+     * Ends the conference for all participants.
+     */
+    end() {
+        if (this.breakoutRooms.isBreakoutRoom()) {
+            logger.warn('Cannot end conference: this is a breakout room.');
+
+            return;
+        }
+
+        // Send the end conference message.
+        const msg = $msg({ to: this.xmpp.endConferenceComponentAddress });
+
+        msg.c('end_conference').up();
+
+        this.xmpp.connection.send(msg);
     }
 }
 

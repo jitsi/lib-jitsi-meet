@@ -1,5 +1,4 @@
-/* global $ */
-
+import $ from 'jquery';
 import { b64_sha1, Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';

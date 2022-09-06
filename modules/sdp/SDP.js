@@ -1,5 +1,4 @@
-/* global $ */
-
+import $ from 'jquery';
 import clonedeep from 'lodash.clonedeep';
 import transform from 'sdp-transform';
 

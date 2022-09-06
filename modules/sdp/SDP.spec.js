@@ -1,4 +1,4 @@
-/* globals $ */
+import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';

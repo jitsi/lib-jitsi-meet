@@ -23,7 +23,6 @@ import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
-import RTCUtils from './RTCUtils';
 import {
     HD_BITRATE,
     HD_SCALE_FACTOR,
@@ -237,7 +236,7 @@ export default function TraceablePeerConnection(
         logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
     }
 
-    this.peerconnection = new RTCUtils.RTCPeerConnectionType(pcConfig, safeConstraints);
+    this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
 
     this.tpcUtils = new TPCUtils(this);
     this.updateLog = [];
@@ -323,6 +322,13 @@ export default function TraceablePeerConnection(
      * @type {Map<string, number>}
      */
     this._senderMaxHeights = new Map();
+
+    /**
+     * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
+     * {@link JitsiLocalTrack.rtcId}.
+     * @type {Map<string, string>}
+     */
+    this._localTrackTransceiverMids = new Map();
 
     // override as desired
     this.trace = (what, info) => {
@@ -824,7 +830,7 @@ TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
-    const streamId = RTC.getStreamID(stream);
+    const streamId = stream.id;
 
     if (!RTC.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
@@ -868,7 +874,7 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
  * for the remote participant in unified plan.
  */
 TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, transceiver = null) {
-    const streamId = RTC.getStreamID(stream);
+    const streamId = stream.id;
     const mediaType = track.kind;
 
     if (!this.isP2P && !RTC.isUserStreamById(streamId)) {
@@ -1067,9 +1073,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
  */
 TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
     if (!RTC.isUserStream(stream)) {
-        const id = RTC.getStreamID(stream);
-
-        logger.info(`Ignored remote 'stream removed' event for stream[id=${id}]`);
+        logger.info(`Ignored remote 'stream removed' event for stream[id=${stream.id}]`);
 
         return;
     }
@@ -1095,8 +1099,8 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) {
-    const streamId = RTC.getStreamID(stream);
-    const trackId = track && RTC.getTrackID(track);
+    const streamId = stream.id;
+    const trackId = track?.id;
 
     if (!RTC.isUserStreamById(streamId)) {
         logger.info(`${this} ignored remote 'stream removed' event for non-user stream[id=${streamId}]`);
@@ -1976,6 +1980,30 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
 };
 
 /**
+ * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
+ *
+ * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
+    const localSdp = this.peerconnection.localDescription?.sdp;
+
+    if (!localSdp) {
+        return;
+    }
+
+    for (const localTrack of localTracks) {
+        const mediaType = localTrack.getType();
+        const parsedSdp = transform.parse(localSdp);
+        const mLine = parsedSdp.media.find(mline => mline.type === mediaType);
+
+        if (!this._localTrackTransceiverMids.has(localTrack.rtcId)) {
+            this._localTrackTransceiverMids.set(localTrack.rtcId, mLine.mid.toString());
+        }
+    }
+};
+
+/**
  * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
  * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
@@ -2020,16 +2048,20 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 
         return promise
             .then(transceiver => {
+                if (oldTrack) {
+                    this.localTracks.delete(oldTrack.rtcId);
+                    this._localTrackTransceiverMids.delete(oldTrack.rtcId);
+                }
+
                 if (newTrack) {
                     if (newTrack.isAudioTrack()) {
                         this._hasHadAudioTrack = true;
                     } else {
                         this._hasHadVideoTrack = true;
                     }
+                    this._localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
+                    this.localTracks.set(newTrack.rtcId, newTrack);
                 }
-
-                oldTrack && this.localTracks.delete(oldTrack.rtcId);
-                newTrack && this.localTracks.set(newTrack.rtcId, newTrack);
 
                 // Update the local SSRC cache for the case when one track gets replaced with another and no
                 // renegotiation is triggered as a result of this.
@@ -2368,16 +2400,20 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
  * Sets the max bitrates on the video m-lines when VP9 is the selected codec.
  *
  * @param {RTCSessionDescription} description - The local description that needs to be munged.
+ * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
  * @returns RTCSessionDescription
  */
-TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description) {
+TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isLocalSdp = false) {
     if (!this.codecPreference) {
         return description;
     }
 
     const parsedSdp = transform.parse(description.sdp);
+
+    // Find all the m-lines associated with the local sources.
+    const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
     const mLines = FeatureFlags.isMultiStreamSupportEnabled()
-        ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== MediaDirection.RECVONLY)
+        ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction)
         : [ parsedSdp.media.find(m => m.type === MediaType.VIDEO) ];
 
     // Find the mid associated with the desktop track so that bitrates can be configured accordingly on the
@@ -2402,8 +2438,7 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description) {
     };
 
     for (const mLine of mLines) {
-        if (this.codecPreference.mimeType === CodecMimeType.VP9
-            && this.getConfiguredVideoCodec() === CodecMimeType.VP9) {
+        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const mid = mLine.mid;
@@ -2479,7 +2514,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     localDescription = this._mungeCodecOrder(localDescription);
-    localDescription = this._setVp9MaxBitrates(localDescription);
+    localDescription = this._setVp9MaxBitrates(localDescription, true);
 
     this.trace('setLocalDescription::postTransform', dumpSDP(localDescription));
 
@@ -2573,6 +2608,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     remoteDescription = this._mungeCodecOrder(remoteDescription);
+    remoteDescription = this._setVp9MaxBitrates(remoteDescription);
     this.trace('setRemoteDescription::postTransform (munge codec order)', dumpSDP(remoteDescription));
 
     return new Promise((resolve, reject) => {

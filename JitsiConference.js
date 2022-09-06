@@ -1,7 +1,6 @@
-/* global $ */
-
 import { getLogger } from '@jitsi/logger';
 import EventEmitter from 'events';
+import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
 
@@ -627,9 +626,10 @@ JitsiConference.prototype.isP2PTestModeEnabled = function() {
 
 /**
  * Leaves the conference.
+ * @param reason {string|undefined} The reason for leaving the conference.
  * @returns {Promise}
  */
-JitsiConference.prototype.leave = async function() {
+JitsiConference.prototype.leave = async function(reason) {
     if (this.participantConnectionStatus) {
         this.participantConnectionStatus.dispose();
         this.participantConnectionStatus = null;
@@ -710,7 +710,7 @@ JitsiConference.prototype.leave = async function() {
     let leaveError;
 
     try {
-        await room.leave();
+        await room.leave(reason);
     } catch (err) {
         leaveError = err;
 
@@ -728,6 +728,31 @@ JitsiConference.prototype.leave = async function() {
     if (leaveError) {
         throw leaveError;
     }
+};
+
+/**
+ * Returns <tt>true</tt> if end conference support is enabled in the backend.
+ *
+ * @returns {boolean} whether end conference is supported in the backend.
+ */
+JitsiConference.prototype.isEndConferenceSupported = function() {
+    return Boolean(this.room && this.room.xmpp.endConferenceComponentAddress);
+};
+
+/**
+ * Ends the conference.
+ */
+JitsiConference.prototype.end = function() {
+    if (!this.isEndConferenceSupported()) {
+        logger.warn('Cannot end conference: is not supported.');
+
+        return;
+    }
+    if (!this.room) {
+        throw new Error('The conference has been already left');
+    }
+
+    this.room.end();
 };
 
 /**
@@ -1946,7 +1971,7 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
     }
 };
 
-JitsiConference.prototype.onMemberLeft = function(jid) {
+JitsiConference.prototype.onMemberLeft = function(jid, reason) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
@@ -1976,7 +2001,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     if (participant) {
         delete this.participants[id];
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
     }
 
     if (this.room !== null) { // Skip if we have left the room already.

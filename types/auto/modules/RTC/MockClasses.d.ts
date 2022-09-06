@@ -30,6 +30,12 @@ export class MockPeerConnection {
      */
     createAnswer(): Promise<any>;
     /**
+     * {@link TraceablePeerConnection.processLocalSdpForTransceiverInfo}.
+     *
+     * @returns {void}
+     */
+    processLocalSdpForTransceiverInfo(): void;
+    /**
      * {@link TraceablePeerConnection.setLocalDescription}.
      *
      * @returns {Promise<void>}

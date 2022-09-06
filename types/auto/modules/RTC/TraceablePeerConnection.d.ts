@@ -272,6 +272,12 @@ export default class TraceablePeerConnection {
      * @type {Map<string, number>}
      */
     _senderMaxHeights: Map<string, number>;
+    /**
+     * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
+     * {@link JitsiLocalTrack.rtcId}.
+     * @type {Map<string, string>}
+     */
+    _localTrackTransceiverMids: Map<string, string>;
     trace: (what: any, info: any) => void;
     onicecandidate: any;
     onTrack: (evt: any) => void;
@@ -614,6 +620,13 @@ export default class TraceablePeerConnection {
      */
     findSenderForTrack(track: any): RTCRtpSender | undefined;
     /**
+     * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
+     * @returns {void}
+     */
+    processLocalSdpForTransceiverInfo(localTracks: Array<any>): void;
+    /**
      * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
      * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
      * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
@@ -661,9 +674,10 @@ export default class TraceablePeerConnection {
      * Sets the max bitrates on the video m-lines when VP9 is the selected codec.
      *
      * @param {RTCSessionDescription} description - The local description that needs to be munged.
+     * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
      * @returns RTCSessionDescription
      */
-    _setVp9MaxBitrates(description: RTCSessionDescription): RTCSessionDescription;
+    _setVp9MaxBitrates(description: RTCSessionDescription, isLocalSdp?: boolean): RTCSessionDescription;
     /**
      * Configures the stream encodings depending on the video type and the bitrates configured.
      *
