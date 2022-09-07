@@ -414,12 +414,12 @@ export default class BridgeChannel {
                 break;
             }
             case 'VideoSourcesMap': {
-                logger.info('received VideoSourcesMap');
+                logger.info(`Received VideoSourcesMap: ${JSON.stringify(obj.mappedSources)}`);
                 emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);
                 break;
             }
             case 'AudioSourcesMap': {
-                logger.info('received AudioSourcesMap');
+                logger.info(`Received AudioSourcesMap: ${JSON.stringify(obj.mappedSources)}`);
                 emitter.emit(RTCEvents.AUDIO_SSRCS_REMAPPED, obj);
                 break;
             }

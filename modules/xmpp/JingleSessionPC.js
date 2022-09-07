@@ -1894,17 +1894,17 @@ export default class JingleSessionPC extends JingleSession {
 
         for (const s of msg.mappedSources) {
             if (this.peerconnection.addRemoteSsrc(s.ssrc)) {
-                logger.debug(`new ssrc ${s.ssrc}`);
+                logger.debug(`New SSRC ${s.ssrc}`);
                 newSources[newSources.length] = s;
             } else {
                 const track = this.peerconnection.getTrackBySSRC(s.ssrc);
 
                 if (track) {
-                    logger.debug(`existing ssrc ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
+                    logger.debug(`Existing SSRC ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
                     track.setSourceName(s.source);
                     this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, s.ssrc, s.owner);
                 } else {
-                    logger.error(`remapped ssrc ${s.ssrc} not found`);
+                    logger.error(`Remapped SSRC ${s.ssrc} not found`);
                 }
             }
         }
