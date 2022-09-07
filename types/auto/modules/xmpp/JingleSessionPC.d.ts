@@ -170,6 +170,20 @@ export default class JingleSessionPC extends JingleSession {
      */
     remoteRecvMaxFrameHeight: number | undefined;
     /**
+     * Number of remote video sources, in SSRC rewriting mode.
+     * Used to generate next unique msid attribute.
+     *
+     * @type {Number}
+     */
+    numRemoteVideoSources: number;
+    /**
+     * Number of remote audio sources, in SSRC rewriting mode.
+     * Used to generate next unique msid attribute.
+     *
+     * @type {Number}
+     */
+    numRemoteAudioSources: number;
+    /**
      * Remote preference for the receive video max frame heights when source-name signaling is enabled.
      *
      * @type {Map<string, number>|undefined}

@@ -60,9 +60,12 @@ function getEndpointId(jidOrEndpointId) {
 
 /**
  * Add "source" element as a child of "description" element.
+ * @param {Object} description The "description" element to add to.
+ * @param {Object} s Contains properties of the source being added.
+ * @param {Number} ssrc_ The SSRC.
+ * @param {String} msid The "msid" attribute.
  */
-function _addSourceElement(description, s, ssrc_) {
-    const val = `${s.owner} ${s.owner}`; // $ what should we set this to?
+function _addSourceElement(description, s, ssrc_, msid) {
 
     description.c('source', {
         xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
@@ -71,7 +74,7 @@ function _addSourceElement(description, s, ssrc_) {
     })
         .c('parameter', {
             name: 'msid',
-            value: val
+            value: msid
         })
         .up()
         .c('ssrc-info', {
@@ -80,68 +83,6 @@ function _addSourceElement(description, s, ssrc_) {
         })
         .up()
         .up();
-}
-
-/**
- * Build "content" element for a list of video sources.
- */
-function _createVideoSources(sources) {
-
-    let node = $build('content', {
-        xmlns: 'urn:xmpp:jingle:1',
-        name: 'video'
-    }).c('description', {
-        xmlns: 'urn:xmpp:jingle:apps:rtp:1',
-        media: MediaType.VIDEO
-    });
-
-    for (const s of sources) {
-        _addSourceElement(node, s, s.ssrc);
-        if (s.rtx !== '-1') {
-            _addSourceElement(node, s, s.rtx);
-            node.c('ssrc-group', {
-                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                semantics: 'FID'
-            })
-                .c('source', {
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                    ssrc: s.ssrc
-                })
-                .up()
-                .c('source', {
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                    ssrc: s.rtx
-                })
-                .up()
-                .up();
-        }
-    }
-
-    node = node.up();
-
-    return node.node;
-}
-
-/**
- * Build "content" element for a list of audio sources.
- */
-function _createAudioSources(sources) {
-
-    let node = $build('content', {
-        xmlns: 'urn:xmpp:jingle:1',
-        name: 'audio'
-    }).c('description', {
-        xmlns: 'urn:xmpp:jingle:apps:rtp:1',
-        media: MediaType.AUDIO
-    });
-
-    for (const s of sources) {
-        _addSourceElement(node, s, s.ssrc);
-    }
-
-    node = node.up();
-
-    return node.node;
 }
 
 /**
@@ -383,6 +324,22 @@ export default class JingleSessionPC extends JingleSession {
          * @type {Number|undefined}
          */
         this.remoteRecvMaxFrameHeight = undefined;
+
+        /**
+         * Number of remote video sources, in SSRC rewriting mode.
+         * Used to generate next unique msid attribute.
+         *
+         * @type {Number}
+         */
+        this.numRemoteVideoSources = 0;
+
+        /**
+         * Number of remote audio sources, in SSRC rewriting mode.
+         * Used to generate next unique msid attribute.
+         *
+         * @type {Number}
+         */
+        this.numRemoteAudioSources = 0;
 
         /**
          * Remote preference for the receive video max frame heights when source-name signaling is enabled.
@@ -1919,9 +1876,43 @@ export default class JingleSessionPC extends JingleSession {
         const newSources = this.getNewSources(msg);
 
         if (newSources.length > 0) {
-            const elem = _createVideoSources(newSources);
 
-            this._addOrRemoveRemoteStream(true /* add */, elem);
+            let node = $build('content', {
+                xmlns: 'urn:xmpp:jingle:1',
+                name: 'video'
+            }).c('description', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                media: MediaType.VIDEO
+            });
+
+            for (const s of newSources) {
+                const idx = ++this.numRemoteVideoSources;
+                const msid = `remote-video-${idx} remote-video-${idx}`;
+
+                _addSourceElement(node, s, s.ssrc, msid);
+                if (s.rtx !== '-1') {
+                    _addSourceElement(node, s, s.rtx, msid);
+                    node.c('ssrc-group', {
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                        semantics: 'FID'
+                    })
+                        .c('source', {
+                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                            ssrc: s.ssrc
+                        })
+                        .up()
+                        .c('source', {
+                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                            ssrc: s.rtx
+                        })
+                        .up()
+                        .up();
+                }
+            }
+
+            node = node.up();
+
+            this._addOrRemoveRemoteStream(true /* add */, node.node);
         }
     }
 
@@ -1932,9 +1923,25 @@ export default class JingleSessionPC extends JingleSession {
         const newSources = this.getNewSources(msg);
 
         if (newSources.length > 0) {
-            const elem = _createAudioSources(newSources);
 
-            this._addOrRemoveRemoteStream(true /* add */, elem);
+            let node = $build('content', {
+                xmlns: 'urn:xmpp:jingle:1',
+                name: 'audio'
+            }).c('description', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                media: MediaType.AUDIO
+            });
+
+            for (const s of newSources) {
+                const idx = ++this.numRemoteAudioSources;
+                const msid = `remote-audio-${idx} remote-audio-${idx}`;
+
+                _addSourceElement(node, s, s.ssrc, msid);
+            }
+
+            node = node.up();
+
+            this._addOrRemoveRemoteStream(true /* add */, node.node);
         }
     }
 
