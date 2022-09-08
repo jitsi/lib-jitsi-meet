@@ -55,18 +55,19 @@ export default class SpeakerStatsCollector {
      * Reacts to dominant speaker change events by changing its speaker stats
      * models to reflect the current dominant speaker.
      *
-     * @param {string} dominantSpeakerId - The user id of the new
-     * dominant speaker.
+     * @param {string} dominantSpeakerId - The user id of the new dominant speaker.
+     * @param {Array[string]} previous - The array with previous speakers.
+     * @param {boolean} silence - Indecates whether the dominant speaker is silent or not.
      * @returns {void}
      * @private
      */
-    _onDominantSpeaker(dominantSpeakerId) {
+    _onDominantSpeaker(dominantSpeakerId, previous, silence) {
         const oldDominantSpeaker
             = this.stats.users[this.stats.dominantSpeakerId];
         const newDominantSpeaker = this.stats.users[dominantSpeakerId];
 
         oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false);
-        newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true);
+        newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true, silence);
         this.stats.dominantSpeakerId = dominantSpeakerId;
     }
 

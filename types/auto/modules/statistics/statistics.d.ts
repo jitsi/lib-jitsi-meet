@@ -170,8 +170,9 @@ declare class Statistics {
      * Notifies the statistics module that we are now the dominant speaker of the
      * conference.
      * @param {String} roomJid - The room jid where the speaker event occurred.
+     * @param {boolean} silence - Whether the dominant speaker is silent or not.
      */
-    sendDominantSpeakerEvent(roomJid: string): void;
+    sendDominantSpeakerEvent(roomJid: string, silence: boolean): void;
     /**
      * Lets the underlying statistics module know where is given SSRC rendered by
      * providing renderer tag ID.

@@ -914,8 +914,9 @@ export default class XMPP extends Listenable {
      * Notifies speaker stats component if available that we are the new
      * dominant speaker in the conference.
      * @param {String} roomJid - The room jid where the speaker event occurred.
+     * @param {boolean} silence - Whether the dominant speaker is silent or not.
      */
-    sendDominantSpeakerEvent(roomJid) {
+    sendDominantSpeakerEvent(roomJid, silence) {
         // no speaker stats component advertised
         if (!this.speakerStatsComponentAddress || !roomJid) {
             return;
@@ -925,7 +926,8 @@ export default class XMPP extends Listenable {
 
         msg.c('speakerstats', {
             xmlns: 'http://jitsi.org/jitmeet',
-            room: roomJid })
+            room: roomJid,
+            silence })
             .up();
 
         this.connection.send(msg);
