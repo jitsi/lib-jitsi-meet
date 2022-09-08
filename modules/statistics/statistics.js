@@ -614,14 +614,15 @@ Statistics.prototype.sendScreenSharingEvent
  * Notifies the statistics module that we are now the dominant speaker of the
  * conference.
  * @param {String} roomJid - The room jid where the speaker event occurred.
+ * @param {boolean} silence - Whether the dominant speaker is silent or not.
  */
-Statistics.prototype.sendDominantSpeakerEvent = function(roomJid) {
+Statistics.prototype.sendDominantSpeakerEvent = function(roomJid, silence) {
     for (const cs of this.callsStatsInstances.values()) {
         cs.sendDominantSpeakerEvent();
     }
 
     // xmpp send dominant speaker event
-    this.xmpp.sendDominantSpeakerEvent(roomJid);
+    this.xmpp.sendDominantSpeakerEvent(roomJid, silence);
 };
 
 /**
