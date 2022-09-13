@@ -2016,31 +2016,11 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
         return Promise.resolve();
     }
 
-    // If a track is being added to the peerconnection for the first time, we want the source signaling to be sent to
-    // Jicofo before the mute state is sent over presence. Therefore, trigger a renegotiation in this case. If we
-    // rely on "negotiationneeded" fired by the browser to signal new ssrcs, the mute state in presence will be sent
-    // before the source signaling which is undesirable.
-    // Send the presence before signaling for a new screenshare source. This is needed for multi-stream support since
-    // videoType needs to be availble at remote track creation time so that a fake tile for screenshare can be added.
-    // FIXME - This check needs to be removed when the client switches to the bridge based signaling for tracks.
-    const isNewTrackScreenshare = !oldTrack
-        && newTrack?.getVideoType() === VideoType.DESKTOP
-        && FeatureFlags.isMultiStreamSupportEnabled()
-        && !this.isP2P; // negotiationneeded is not fired on p2p peerconnection
-    const negotiationNeeded = !isNewTrackScreenshare && Boolean(!oldTrack || !this.localTracks.has(oldTrack?.rtcId));
-
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
-        const stream = newTrack?.getOriginalStream();
-        const promise = newTrack && !stream
 
-            // Ignore cases when the track is replaced while the device is in a muted state.
-            // The track will be replaced again on the peerconnection when the user unmutes.
-            ? Promise.resolve()
-            : this.tpcUtils.replaceTrack(oldTrack, newTrack);
-
-        return promise
+        return this.tpcUtils.replaceTrack(oldTrack, newTrack)
             .then(transceiver => {
                 if (oldTrack) {
                     this.localTracks.delete(oldTrack.rtcId);
@@ -2100,8 +2080,7 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     ? Promise.resolve()
                     : this.tpcUtils.setEncodings(newTrack);
 
-                // Force renegotiation only when the source is added for the first time.
-                return configureEncodingsPromise.then(() => negotiationNeeded);
+                return configureEncodingsPromise.then(() => false);
             });
     }
 
