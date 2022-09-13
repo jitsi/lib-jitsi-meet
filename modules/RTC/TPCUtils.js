@@ -376,7 +376,10 @@ export class TPCUtils {
             transceiver = this.pc.peerconnection.getTransceivers().find(
                 t => t.receiver.track.kind === mediaType
                 && t.direction === MediaDirection.RECVONLY
-                && t.currentDirection === MediaDirection.INACTIVE);
+
+                // Re-use any existing recvonly transceiver (if available) for p2p case.
+                && ((this.pc.isP2P && t.currentDirection === MediaDirection.RECVONLY)
+                    || t.currentDirection === MediaDirection.INACTIVE));
 
         // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
         // otherwise it is assumed to be the first local track that was added to the peerconnection.
@@ -387,17 +390,20 @@ export class TPCUtils {
             if (sourceName) {
                 const trackIndex = Number(sourceName.split('-')[1].substring(1));
 
-                if (trackIndex) {
-                    transceiver = this.pc.isP2P
-                        ? this.pc.peerconnection.getTransceivers()
-                            .filter(t => t.receiver.track.kind === mediaType)[trackIndex]
-                        : this.pc.peerconnection.getTransceivers()
+                if (this.pc.isP2P) {
+                    transceiver = this.pc.peerconnection.getTransceivers()
+                        .filter(t => t.receiver.track.kind === mediaType)[trackIndex];
+                } else if (oldTrack) {
+                    const transceiverMid = this.pc._localTrackTransceiverMids.get(oldTrack.rtcId);
+
+                    transceiver = this.pc.peerconnection.getTransceivers().find(t => t.mid === transceiverMid);
+                } else if (trackIndex) {
+                    transceiver = this.pc.peerconnection.getTransceivers()
                             .filter(t => t.receiver.track.kind === mediaType
                                 && t.direction !== MediaDirection.RECVONLY)[trackIndex];
                 }
             }
         }
-
         if (!transceiver) {
             return Promise.reject(new Error('replace track failed'));
         }
