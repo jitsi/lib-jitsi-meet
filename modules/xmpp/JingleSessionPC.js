@@ -637,7 +637,6 @@ export default class JingleSessionPC extends JingleSession {
             const remoteDescription = this.peerconnection.remoteDescription;
 
             if (this.usesUnifiedPlan
-                && !this.isP2P
                 && state === 'stable'
                 && remoteDescription
                 && typeof remoteDescription.sdp === 'string') {
@@ -2123,10 +2122,18 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishedCallback => {
             const oldLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
+            const recvOnlyTransceiver = this.peerconnection.peerconnection.getTransceivers()
+                    .find(t => t.receiver.track.kind === MediaType.VIDEO
+                        && t.direction === MediaDirection.RECVONLY
+                        && t.currentDirection === MediaDirection.RECVONLY);
 
-            // Add transceivers by adding a new mline in the remote description for each track.
+            // Add transceivers by adding a new mline in the remote description for each track. Do not create a new
+            // m-line if a recv-only transceiver exists in the p2p case. The new track will be attached to the
+            // existing one in that case.
             for (const track of localTracks) {
-                remoteSdp.addMlineForNewLocalSource(track.getType());
+                if (!this.isP2P || !recvOnlyTransceiver) {
+                    remoteSdp.addMlineForNewLocalSource(track.getType());
+                }
             }
 
             const remoteDescription = new RTCSessionDescription({
