@@ -17,13 +17,14 @@
     "outDir": "dist/esm/",
   },
   "exclude": [
-    "doc",
     "dist",
+    "doc",
+    "types",
     "**/*.spec.js",
     "**/*.spec.ts",
     "*.conf*.js",
-    "webpack*.js",
+    "index.js",
     "lib-jitsi-meet.*.js",
-    "types"
+    "webpack*.js",
   ]
 }
