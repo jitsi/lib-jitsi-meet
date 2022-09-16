@@ -26,6 +26,7 @@ export default class E2EEcontext {
      * @param {boolean} [options.sharedKey] - whether there is a uniques key shared amoung all participants.
      */
     constructor({ sharedKey } = {}) {
+        console.log("XXX here")
         // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
