@@ -379,7 +379,7 @@ export class TPCUtils {
 
                 // Re-use any existing recvonly transceiver (if available) for p2p case.
                 && ((this.pc.isP2P && t.currentDirection === MediaDirection.RECVONLY)
-                    || t.currentDirection === MediaDirection.INACTIVE));
+                    || (t.currentDirection === MediaDirection.INACTIVE && !t.stopped)));
 
         // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
         // otherwise it is assumed to be the first local track that was added to the peerconnection.
