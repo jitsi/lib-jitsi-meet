@@ -62,7 +62,9 @@
     "webpack-cli": "4.9.0"
   },
   "scripts": {
-    "build": "export LIB_JITSI_MEET_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null) && webpack && tsc --build --clean && tsc",
+    "build": "npm run build:webpack && npm run build:tsc",
+    "build:webpack": "LIB_JITSI_MEET_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null) webpack",
+    "build:tsc": "tsc --build --clean && tsc",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "prepack": "npm run build",
