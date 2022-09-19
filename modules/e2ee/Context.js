@@ -252,6 +252,10 @@ export class Context {
 
             return encodedFrame;
         } catch (error) {
+            if (this._sharedKey) {
+                return;
+            }
+
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 const currentKey = this._cryptoKeyRing[this._currentKeyIndex];
 
