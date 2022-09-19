@@ -16,9 +16,10 @@ export class NetworkInfo extends Listenable {
     };
     /**
      * Updates the network info state.
-     * @param {boolean} isOnline - {@code true} if internet is online or {@code false} otherwise.
      */
-    updateNetworkInfo({ isOnline }: boolean): void;
+    updateNetworkInfo({ isOnline }: {
+        isOnline: any;
+    }): void;
     /**
      * Returns the online/offline internet status. By default the value is {@code true} and changes only if
      * the lib's user wires the state through {@link JitsiMeetJS.setNetworkInfo} like the jitsi-meet does. Because of
