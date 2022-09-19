@@ -55,20 +55,36 @@ const USER_MEDIA_SLOW_PROMISE_TIMEOUT = 1000;
  * @returns {*} the attributes to attach to analytics events.
  */
 function getAnalyticsAttributesFromOptions(options) {
-    const attributes = {
-        'audio_requested':
-            options.devices.includes('audio'),
-        'video_requested':
-            options.devices.includes('video'),
-        'screen_sharing_requested':
-            options.devices.includes('desktop')
-    };
+    const attributes: any = {};
+
+    attributes['audio_requested'] = options.devices.includes('audio');
+    attributes['video_requested'] = options.devices.includes('video');
+    attributes['screen_sharing_requested'] = options.devices.includes('desktop');
 
     if (attributes.video_requested) {
         attributes.resolution = options.resolution;
     }
 
     return attributes;
+}
+
+interface ICreateLocalTrackOptions {
+    cameraDeviceId?: string;
+    devices?: any[];
+    firePermissionPromptIsShownEvent?: boolean;
+    fireSlowPromiseEvent?: boolean;
+    micDeviceId?: string;
+    resolution?: string;
+}
+
+interface IJitsiMeetJSOptions {
+    enableAnalyticsLogging?: boolean;
+    enableUnifiedOnChrome?: boolean;
+    enableWindowOnErrorHandler?: boolean;
+    externalStorage?: Storage;
+    flags?: {
+        enableUnifiedOnChrome?: boolean;
+    }
 }
 
 /**
@@ -114,9 +130,9 @@ export default {
         JitsiTrackError
     },
     logLevels: Logger.levels,
-    mediaDevices: JitsiMediaDevices,
-    analytics: Statistics.analytics,
-    init(options = {}) {
+    mediaDevices: JitsiMediaDevices as unknown,
+    analytics: Statistics.analytics as unknown,
+    init(options: IJitsiMeetJSOptions = {}) {
         Settings.init(options.externalStorage);
         Statistics.init(options);
         const flags = options.flags || {};
@@ -265,16 +281,15 @@ export default {
      * that returns an array of created JitsiTracks if resolved, or a
      * JitsiConferenceError if rejected.
      */
-    createLocalTracks(options = {}, oldfirePermissionPromptIsShownEvent) {
+    createLocalTracks(options: ICreateLocalTrackOptions = {}, oldfirePermissionPromptIsShownEvent) {
         let promiseFulfilled = false;
 
         const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
         const firePermissionPrompt = firePermissionPromptIsShownEvent || oldfirePermissionPromptIsShownEvent;
 
         if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
-            JitsiMediaDevices.emitEvent(
-                JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                browser.getName());
+            // @ts-ignore
+            JitsiMediaDevices.emitEvent(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
         } else if (fireSlowPromiseEvent) {
             window.setTimeout(() => {
                 if (!promiseFulfilled) {
@@ -289,6 +304,7 @@ export default {
         window.connectionTimes['obtainPermissions.start']
             = window.performance.now();
 
+        // @ts-ignore
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
                 promiseFulfilled = true;
