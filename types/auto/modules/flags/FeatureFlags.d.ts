@@ -12,11 +12,11 @@ declare class FeatureFlags {
      * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
      */
     init(flags: any): void;
-    _runInLiteMode: boolean;
-    _sourceNameSignaling: any;
     _receiveMultipleVideoStreams: any;
+    _runInLiteMode: boolean;
     _sendMultipleVideoStreams: any;
-    _ssrcRewriting: any;
+    _sourceNameSignaling: any;
+    _ssrcRewriting: boolean;
     _usesUnifiedPlan: any;
     /**
      * Checks if multiple local video streams support is enabled.
