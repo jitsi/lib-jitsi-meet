@@ -13,10 +13,10 @@ declare class FeatureFlags {
      */
     init(flags: any): void;
     _runInLiteMode: boolean;
-    _sourceNameSignaling: boolean;
-    _receiveMultipleVideoStreams: boolean;
-    _sendMultipleVideoStreams: boolean;
-    _ssrcRewriting: boolean;
+    _sourceNameSignaling: any;
+    _receiveMultipleVideoStreams: any;
+    _sendMultipleVideoStreams: any;
+    _ssrcRewriting: any;
     _usesUnifiedPlan: any;
     /**
      * Checks if multiple local video streams support is enabled.
