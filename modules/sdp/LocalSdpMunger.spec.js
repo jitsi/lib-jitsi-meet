@@ -26,7 +26,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        FeatureFlags.init({ });
+        FeatureFlags.init({ sourceNameSignaling: false });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('dontStripSsrcs', () => {
@@ -70,7 +70,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 expect(videoSsrcs.length).toEqual(6);
             });
             it('with source name signaling enabled (injected source name)', () => {
-                FeatureFlags.init({ sourceNameSignaling: true });
+                FeatureFlags.init({ });
                 transformStreamIdentifiers();
 
                 expect(audioSsrcs.length).toEqual(4 + 1 /* injected source name */);
@@ -125,7 +125,7 @@ describe('DoNotTransformSdpForPlanB', () => {
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        FeatureFlags.init({ });
+        FeatureFlags.init({ sourceNameSignaling: false });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('stripSsrcs', () => {
@@ -154,7 +154,7 @@ describe('DoNotTransformSdpForPlanB', () => {
                 expect(videoSsrcs.length).toEqual(1);
             });
             it('with source name signaling', () => {
-                FeatureFlags.init({ sourceNameSignaling: true });
+                FeatureFlags.init({ });
                 transformStreamIdentifiers();
 
                 expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
@@ -194,7 +194,7 @@ describe('Transform msids for source-name signaling', () => {
     });
 
     it('should transform', () => {
-        FeatureFlags.init({ sourceNameSignaling: true });
+        FeatureFlags.init({ });
         transformStreamIdentifiers();
 
         expect(audioMsid).toBe('sRdpsdg-audio-0-1');
@@ -209,7 +209,7 @@ describe('Track replace operations in plan-b', () => {
     const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
 
     it('should not increment track index for new tracks', () => {
-        FeatureFlags.init({ sourceNameSignaling: true });
+        FeatureFlags.init({ });
 
         sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
         desc = new RTCSessionDescription({
