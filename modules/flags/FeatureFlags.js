@@ -16,11 +16,10 @@ class FeatureFlags {
      * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
      */
     init(flags) {
+        this._receiveMultipleVideoStreams = flags.receiveMultipleVideoStreams ?? true;
         this._runInLiteMode = Boolean(flags.runInLiteMode);
-
-        this._sourceNameSignaling = Boolean(flags.sourceNameSignaling);
-        this._receiveMultipleVideoStreams = Boolean(flags.receiveMultipleVideoStreams);
-        this._sendMultipleVideoStreams = Boolean(flags.sendMultipleVideoStreams);
+        this._sendMultipleVideoStreams = flags.sendMultipleVideoStreams ?? true;
+        this._sourceNameSignaling = flags.sourceNameSignaling ?? true;
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
 
         // For Chromium, check if Unified plan is enabled.

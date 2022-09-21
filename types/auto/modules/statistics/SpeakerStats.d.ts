@@ -22,6 +22,8 @@ declare class SpeakerStats {
     _isLocalStats: boolean;
     totalDominantSpeakerTime: number;
     _dominantSpeakerStart: number;
+    _isDominantSpeaker: boolean;
+    _isSilent: boolean;
     _hasLeft: boolean;
     _faceExpressions: {
         happy: number;
@@ -70,9 +72,10 @@ declare class SpeakerStats {
      * @param {boolean} - If true, the user will being accumulating time
      * as dominant speaker. If false, the user will not accumulate time
      * and will record any time accumulated since starting as dominant speaker.
+     * @param {boolean} silence - Indecates whether the dominant speaker is silent or not.
      * @returns {void}
      */
-    setDominantSpeaker(isNowDominantSpeaker: any): void;
+    setDominantSpeaker(isNowDominantSpeaker: any, silence: boolean): void;
     /**
      * Get how long the tracked user has been dominant speaker.
      *

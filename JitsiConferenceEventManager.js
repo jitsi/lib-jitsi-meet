@@ -522,29 +522,32 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.onRemoteTrackRemoved.bind(conference));
 
     rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
-        (dominant, previous) => {
-            if (conference.lastDominantSpeaker !== dominant && conference.room) {
+        (dominant, previous, silence) => {
+            if ((conference.lastDominantSpeaker !== dominant || conference.dominantSpeakerIsSilent !== silence)
+                    && conference.room) {
                 conference.lastDominantSpeaker = dominant;
+                conference.dominantSpeakerIsSilent = silence;
                 conference.eventEmitter.emit(
-                    JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous);
-
-                if (previous && previous.length) {
-                    const speakerList = previous.slice(0);
-
-                    // Add the dominant speaker to the top of the list (exclude self).
-                    if (conference.myUserId !== dominant) {
-                        speakerList.splice(0, 0, dominant);
-                    }
-
-                    // Trim the list to the top 5 speakers only.
-                    if (speakerList.length > SPEAKERS_AUDIO_LEVELS) {
-                        speakerList.splice(SPEAKERS_AUDIO_LEVELS, speakerList.length - SPEAKERS_AUDIO_LEVELS);
-                    }
-                    conference.statistics && conference.statistics.setSpeakerList(speakerList);
-                }
+                    JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous, silence);
                 if (conference.statistics && conference.myUserId() === dominant) {
                     // We are the new dominant speaker.
-                    conference.statistics.sendDominantSpeakerEvent(conference.room.roomjid);
+                    conference.statistics.sendDominantSpeakerEvent(conference.room.roomjid, silence);
+                }
+                if (conference.lastDominantSpeaker !== dominant) {
+                    if (previous && previous.length) {
+                        const speakerList = previous.slice(0);
+
+                        // Add the dominant speaker to the top of the list (exclude self).
+                        if (conference.myUserId !== dominant) {
+                            speakerList.splice(0, 0, dominant);
+                        }
+
+                        // Trim the list to the top 5 speakers only.
+                        if (speakerList.length > SPEAKERS_AUDIO_LEVELS) {
+                            speakerList.splice(SPEAKERS_AUDIO_LEVELS, speakerList.length - SPEAKERS_AUDIO_LEVELS);
+                        }
+                        conference.statistics && conference.statistics.setSpeakerList(speakerList);
+                    }
                 }
             }
         });

@@ -372,10 +372,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Set an SSRC owner.
-     * @param {number} ssrc an SSRC to be owned
-     * @param {string} endpointId owner's ID (MUC nickname)
-     * @throws TypeError if <tt>ssrc</tt> is not a number
+     * @inheritDoc
      */
     setSSRCOwner(ssrc, endpointId) {
         if (typeof ssrc !== 'number') {
@@ -393,11 +390,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Adjusts muted status of given track.
-     *
-     * @param {SourceName} sourceName - the name of the track's source.
-     * @param {boolean} muted - the new muted status.
-     * @returns {boolean}
+     * @inheritDoc
      */
     setTrackMuteStatus(sourceName, muted) {
         if (!this._localSourceState[sourceName]) {
@@ -417,10 +410,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Sets track's video type.
-     * @param {SourceName} sourceName - the track's source name.
-     * @param {VideoType} videoType - the new video type.
-     * @returns {boolean}
+     * @inheritDoc
      */
     setTrackVideoType(sourceName, videoType) {
         if (!this._localSourceState[sourceName]) {
@@ -448,10 +438,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Saves the source name for a track identified by it's ssrc.
-     * @param {number} ssrc the ssrc of the target track.
-     * @param {SourceName} sourceName the track's source name to save.
-     * @throws TypeError if <tt>ssrc</tt> is not a number
+     * @inheritDoc
      */
     setTrackSourceName(ssrc, sourceName) {
         if (typeof ssrc !== 'number') {

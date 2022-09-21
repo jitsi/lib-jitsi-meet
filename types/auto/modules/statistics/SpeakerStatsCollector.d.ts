@@ -20,8 +20,9 @@ export default class SpeakerStatsCollector {
      * Reacts to dominant speaker change events by changing its speaker stats
      * models to reflect the current dominant speaker.
      *
-     * @param {string} dominantSpeakerId - The user id of the new
-     * dominant speaker.
+     * @param {string} dominantSpeakerId - The user id of the new dominant speaker.
+     * @param {Array[string]} previous - The array with previous speakers.
+     * @param {boolean} silence - Indecates whether the dominant speaker is silent or not.
      * @returns {void}
      * @private
      */
