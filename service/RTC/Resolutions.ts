@@ -1,4 +1,9 @@
-const Resolutions = {
+export type Resolution = {
+    width: number;
+    height: number;
+}
+
+const _resolutions = {
     '2160': {
         width: 3840,
         height: 2160
@@ -53,4 +58,11 @@ const Resolutions = {
     }
 };
 
-module.exports = Resolutions;
+export type Resolutions = keyof typeof _resolutions;
+
+type ResolutionMap = {
+    +readonly [ Property in Resolutions ]: Resolution;
+};
+
+// this is here to ensure that all members of the resolutions constant are of type Resolution
+export const resolutions: ResolutionMap = _resolutions;

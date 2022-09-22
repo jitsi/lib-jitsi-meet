@@ -3,10 +3,10 @@ import { getLogger } from '@jitsi/logger';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
+import { resolutions } from '../../service/RTC/Resolutions';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 import browser from '../browser';
 
-const Resolutions = require('../../service/RTC/Resolutions');
 const { VideoType } = require('../../service/RTC/VideoType');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
@@ -304,7 +304,7 @@ export default class ConnectionQuality {
 
         // resolutionName is an index into Resolutions (where "720" is
         // "1280x720" and "960" is "960x720" ...).
-        const resolution = Resolutions[resolutionName];
+        const resolution = resolutions[resolutionName];
 
         let quality = 100;
         let packetLoss;
