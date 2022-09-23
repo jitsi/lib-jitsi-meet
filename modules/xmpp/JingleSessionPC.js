@@ -1858,6 +1858,13 @@ export default class JingleSessionPC extends JingleSession {
                 if (track) {
                     logger.debug(`Existing SSRC ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
                     track.setSourceName(s.source);
+
+                    if (s.videoType === 'CAMERA') {
+                        track._setVideoType('camera');
+                    } else if (s.videoType === 'DESKTOP') {
+                        track._setVideoType('desktop');
+                    }
+
                     this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, s.ssrc, s.owner);
                 } else {
                     logger.error(`Remapped SSRC ${s.ssrc} not found`);
