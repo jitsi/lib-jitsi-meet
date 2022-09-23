@@ -296,10 +296,6 @@ export declare enum JitsiConferenceEvents {
      */
     TRACK_UNMUTE_REJECTED = "conference.trackUnmuteRejected",
     /**
-     * Indicates that an ssrc is now associated with a new participant.
-     */
-    TRACK_OWNER_CHANGED = "conference.track_owner_changed",
-    /**
      * Notifies for transcription status changes. The event provides the
      * following parameters to its listeners:
      *
@@ -451,7 +447,6 @@ export declare const TRACK_AUDIO_LEVEL_CHANGED = JitsiConferenceEvents.TRACK_AUD
 export declare const TRACK_MUTE_CHANGED = JitsiConferenceEvents.TRACK_MUTE_CHANGED;
 export declare const TRACK_REMOVED = JitsiConferenceEvents.TRACK_REMOVED;
 export declare const TRACK_UNMUTE_REJECTED = JitsiConferenceEvents.TRACK_UNMUTE_REJECTED;
-export declare const TRACK_OWNER_CHANGED = JitsiConferenceEvents.TRACK_OWNER_CHANGED;
 export declare const TRANSCRIPTION_STATUS_CHANGED = JitsiConferenceEvents.TRANSCRIPTION_STATUS_CHANGED;
 export declare const USER_JOINED = JitsiConferenceEvents.USER_JOINED;
 export declare const USER_LEFT = JitsiConferenceEvents.USER_LEFT;
