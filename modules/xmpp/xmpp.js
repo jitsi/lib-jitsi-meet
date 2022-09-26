@@ -481,6 +481,10 @@ export default class XMPP extends Listenable {
             if (identity.type === 'breakout_rooms') {
                 this.breakoutRoomsComponentAddress = identity.name;
             }
+
+            if (identity.type === 'room_metadata') {
+                this.roomMetadataComponentAddress = identity.name;
+            }
         });
 
         this._maybeSendDeploymentInfoStat(true);
@@ -488,7 +492,8 @@ export default class XMPP extends Listenable {
         if (this.avModerationComponentAddress
             || this.speakerStatsComponentAddress
             || this.conferenceDurationComponentAddress
-            || this.breakoutRoomsComponentAddress) {
+            || this.breakoutRoomsComponentAddress
+            || this.roomMetadataComponentAddress) {
             this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
         }
     }
@@ -1013,7 +1018,8 @@ export default class XMPP extends Listenable {
         if (!(from === this.speakerStatsComponentAddress
             || from === this.conferenceDurationComponentAddress
             || from === this.avModerationComponentAddress
-            || from === this.breakoutRoomsComponentAddress)) {
+            || from === this.breakoutRoomsComponentAddress
+            || from === this.roomMetadataComponentAddress)) {
             return true;
         }
 
@@ -1033,6 +1039,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'breakout_rooms') {
             this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'room_metadata') {
+            this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
         }
 
         return true;

@@ -391,7 +391,11 @@ export declare enum JitsiConferenceEvents {
     /**
      * Event fired when the breakout rooms data was updated.
      */
-    BREAKOUT_ROOMS_UPDATED = "conference.breakout-rooms.updated"
+    BREAKOUT_ROOMS_UPDATED = "conference.breakout-rooms.updated",
+    /**
+     * Event fired when the conference metadata is updated.
+     */
+    METADATA_UPDATED = "conference.metadata.updated"
 }
 export declare const AUDIO_INPUT_STATE_CHANGE = JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE;
 export declare const AUDIO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED;
@@ -465,3 +469,4 @@ export declare const AV_MODERATION_PARTICIPANT_REJECTED = JitsiConferenceEvents.
 export declare const FACE_LANDMARK_ADDED = JitsiConferenceEvents.FACE_LANDMARK_ADDED;
 export declare const BREAKOUT_ROOMS_MOVE_TO_ROOM = JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM;
 export declare const BREAKOUT_ROOMS_UPDATED = JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED;
+export declare const METADATA_UPDATED = JitsiConferenceEvents.METADATA_UPDATED;

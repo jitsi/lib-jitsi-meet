@@ -4224,3 +4224,12 @@ JitsiConference.prototype.avModerationReject = function(mediaType, id) {
 JitsiConference.prototype.getBreakoutRooms = function() {
     return this.room?.getBreakoutRooms();
 };
+
+/**
+ * Returns the metadata handler object.
+ *
+ * @returns {Object} the room metadata handler.
+ */
+JitsiConference.prototype.getMetadataHandler = function() {
+    return this.room?.getMetadataHandler();
+};

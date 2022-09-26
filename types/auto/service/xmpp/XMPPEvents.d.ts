@@ -199,6 +199,14 @@ export declare enum XMPPEvents {
      * Event fired when the breakout rooms data was updated.
      */
     BREAKOUT_ROOMS_UPDATED = "xmpp.breakout-rooms.updated",
+    /**
+     * Event fired when we receive a message related to room metadata.
+     */
+    ROOM_METADATA_EVENT = "xmpp.room-metadata.event",
+    /**
+     * Event fired when we receive a message related to room metadata.
+     */
+    ROOM_METADATA_UPDATED = "xmpp.room-metadata.updated",
     START_MUTED_FROM_FOCUS = "xmpp.start_muted_from_focus",
     SUBJECT_CHANGED = "xmpp.subject_changed",
     SUSPEND_DETECTED = "xmpp.suspend_detected",

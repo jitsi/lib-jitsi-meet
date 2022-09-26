@@ -1194,6 +1194,12 @@ declare class JitsiConference {
      * @returns {Object} the breakout rooms manager.
      */
     getBreakoutRooms(): any;
+    /**
+     * Returns the metadata handler object.
+     *
+     * @returns {Object} the room metadata handler.
+     */
+    getMetadataHandler(): any;
 }
 declare namespace JitsiConference {
     /**

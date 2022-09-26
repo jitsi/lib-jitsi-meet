@@ -76,6 +76,7 @@ describe( "/JitsiConferenceEvents members", () => {
         FACE_LANDMARK_ADDED,
         BREAKOUT_ROOMS_MOVE_TO_ROOM,
         BREAKOUT_ROOMS_UPDATED,
+        METADATA_UPDATED,
         JitsiConferenceEvents,
         ...others
     } = exported;
@@ -153,6 +154,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
+        expect( METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
 
         expect( JitsiConferenceEvents ).toBeDefined();
 
@@ -228,6 +230,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
+        expect( JitsiConferenceEvents.METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
     } );
 
 it( "unknown members", () => {
