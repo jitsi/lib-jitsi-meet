@@ -65,6 +65,7 @@ export default class XMPP extends Listenable {
     };
     token: any;
     authenticatedUser: boolean;
+    _components: any[];
     caps: Caps;
     /**
      * Initializes the list of feature advertised through the disco-info

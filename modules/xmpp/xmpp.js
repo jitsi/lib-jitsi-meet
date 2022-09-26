@@ -141,6 +141,9 @@ export default class XMPP extends Listenable {
             this.options.deploymentInfo = {};
         }
 
+        // Cache of components used for certain features.
+        this._components = [];
+
         initStropheNativePlugins();
 
         const xmppPing = options.xmppPing || {};
@@ -433,18 +436,22 @@ export default class XMPP extends Listenable {
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
                 this.avModerationComponentAddress = identity.name;
+                this._components.push(this.avModerationComponentAddress);
             }
 
             if (identity.type === 'end_conference') {
                 this.endConferenceComponentAddress = identity.name;
+                this._components.push(this.endConferenceComponentAddress);
             }
 
             if (identity.type === 'speakerstats') {
                 this.speakerStatsComponentAddress = identity.name;
+                this._components.push(this.speakerStatsComponentAddress);
             }
 
             if (identity.type === 'conference_duration') {
                 this.conferenceDurationComponentAddress = identity.name;
+                this._components.push(this.conferenceDurationComponentAddress);
             }
 
             if (identity.type === 'lobbyrooms') {
@@ -480,20 +487,18 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'breakout_rooms') {
                 this.breakoutRoomsComponentAddress = identity.name;
+                this._components.push(this.breakoutRoomsComponentAddress);
             }
 
             if (identity.type === 'room_metadata') {
                 this.roomMetadataComponentAddress = identity.name;
+                this._components.push(this.roomMetadataComponentAddress);
             }
         });
 
         this._maybeSendDeploymentInfoStat(true);
 
-        if (this.avModerationComponentAddress
-            || this.speakerStatsComponentAddress
-            || this.conferenceDurationComponentAddress
-            || this.breakoutRoomsComponentAddress
-            || this.roomMetadataComponentAddress) {
+        if (this._components.length > 0) {
             this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
         }
     }
@@ -1015,11 +1020,7 @@ export default class XMPP extends Listenable {
     _onPrivateMessage(msg) {
         const from = msg.getAttribute('from');
 
-        if (!(from === this.speakerStatsComponentAddress
-            || from === this.conferenceDurationComponentAddress
-            || from === this.avModerationComponentAddress
-            || from === this.breakoutRoomsComponentAddress
-            || from === this.roomMetadataComponentAddress)) {
+        if (!this._components.includes(from)) {
             return true;
         }
 
