@@ -51,6 +51,7 @@ export default class ChatRoom extends Listenable {
     lobby: Lobby;
     avModeration: AVModeration;
     breakoutRooms: BreakoutRooms;
+    roomMetadata: RoomMetadata;
     lastPresences: {};
     phoneNumber: any;
     phonePin: any;
@@ -328,6 +329,10 @@ export default class ChatRoom extends Listenable {
      */
     getBreakoutRooms(): BreakoutRooms;
     /**
+     * @returns {RoomMetadata}
+     */
+    getMetadataHandler(): RoomMetadata;
+    /**
      * Returns the phone number for joining the conference.
      */
     getPhoneNumber(): any;
@@ -380,5 +385,6 @@ import Moderator from "./moderator";
 import Lobby from "./Lobby";
 import AVModeration from "./AVModeration";
 import BreakoutRooms from "./BreakoutRooms";
+import RoomMetadata from "./RoomMetadata";
 import * as JitsiTranscriptionStatus from "../../JitsiTranscriptionStatus";
 import { MediaType } from "../../service/RTC/MediaType";
