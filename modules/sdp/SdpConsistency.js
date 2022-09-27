@@ -3,9 +3,9 @@ import { getLogger } from '@jitsi/logger';
 import { MediaType } from '../../service/RTC/MediaType';
 
 import {
+    SdpTransformWrap,
     parsePrimarySSRC,
-    parseSecondarySSRC,
-    SdpTransformWrap
+    parseSecondarySSRC
 } from './SdpTransformUtil';
 
 const logger = getLogger(__filename);

@@ -40,7 +40,7 @@
     "@babel/eslint-parser": "7.16.0",
     "@babel/preset-env": "7.16.0",
     "@babel/preset-typescript": "7.16.7",
-    "@jitsi/eslint-config": "4.0.0",
+    "@jitsi/eslint-config": "4.1.4",
     "@types/async": "3.2.12",
     "@types/jasmine": "4.0.3",
     "@types/sdp-transform": "2.4.5",
