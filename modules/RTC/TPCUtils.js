@@ -3,6 +3,7 @@ import transform from 'sdp-transform';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -388,7 +389,7 @@ export class TPCUtils {
             const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
 
             if (sourceName) {
-                const trackIndex = Number(sourceName.split('-')[1].substring(1));
+                const trackIndex = getSourceIndexFromSourceName(sourceName);
 
                 if (this.pc.isP2P) {
                     transceiver = this.pc.peerconnection.getTransceivers()
@@ -405,7 +406,8 @@ export class TPCUtils {
             }
         }
         if (!transceiver) {
-            return Promise.reject(new Error('replace track failed'));
+            return Promise.reject(
+                new Error(`Replace track failed - no transceiver for old: ${oldTrack}, new: ${newTrack}`));
         }
         logger.debug(`${this.pc} Replacing ${oldTrack} with ${newTrack}`);
 
