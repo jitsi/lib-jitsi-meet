@@ -2267,7 +2267,7 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
 TraceablePeerConnection.prototype._mungeOpus = function(description) {
     const { audioQuality } = this.options;
 
-    if (!audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
+    if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
         return description;
     }
 
@@ -2302,6 +2302,12 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
 
             if (audioQuality?.opusMaxAverageBitrate) {
                 fmtpConfig.maxaveragebitrate = audioQuality.opusMaxAverageBitrate;
+                sdpChanged = true;
+            }
+
+            // On Firefox, the OpusDtx enablement has no effect
+            if (!browser.isFirefox() && audioQuality?.enableOpusDtx) {
+                fmtpConfig.usedtx = 1;
                 sdpChanged = true;
             }
 
