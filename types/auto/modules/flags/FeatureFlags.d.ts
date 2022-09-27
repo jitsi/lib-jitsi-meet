@@ -8,12 +8,15 @@ declare class FeatureFlags {
      * Configures the module.
      *
      * @param {boolean} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
-     * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
      * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
+     * @param {boolean} flags.sendMultipleVideoStreams - Signal support for sending multiple video streams.
+     * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
+     * @param {boolean} flags.ssrcRewritingEnabled - Use SSRC rewriting. Requires sourceNameSignaling to be enabled.
+     * @param {boolean} flags.enableUnifiedOnChrome - Use unified plan signaling on chrome browsers.
      */
     init(flags: any): void;
-    _receiveMultipleVideoStreams: any;
     _runInLiteMode: boolean;
+    _receiveMultipleVideoStreams: any;
     _sendMultipleVideoStreams: any;
     _sourceNameSignaling: any;
     _ssrcRewriting: boolean;

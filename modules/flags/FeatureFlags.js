@@ -12,24 +12,29 @@ class FeatureFlags {
      * Configures the module.
      *
      * @param {boolean} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
-     * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
      * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
+     * @param {boolean} flags.sendMultipleVideoStreams - Signal support for sending multiple video streams.
+     * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
+     * @param {boolean} flags.ssrcRewritingEnabled - Use SSRC rewriting. Requires sourceNameSignaling to be enabled.
+     * @param {boolean} flags.enableUnifiedOnChrome - Use unified plan signaling on chrome browsers.
      */
     init(flags) {
-        this._receiveMultipleVideoStreams = flags.receiveMultipleVideoStreams ?? true;
         this._runInLiteMode = Boolean(flags.runInLiteMode);
+        this._receiveMultipleVideoStreams = flags.receiveMultipleVideoStreams ?? true;
         this._sendMultipleVideoStreams = flags.sendMultipleVideoStreams ?? true;
         this._sourceNameSignaling = flags.sourceNameSignaling ?? true;
-        this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
+        this._ssrcRewriting = this._sourceNameSignaling && Boolean(flags.ssrcRewritingEnabled);
 
         // For Chromium, check if Unified plan is enabled.
         this._usesUnifiedPlan = browser.supportsUnifiedPlan()
             && (!browser.isChromiumBased() || (flags.enableUnifiedOnChrome ?? true));
 
-        logger.info(`Source name signaling: ${this._sourceNameSignaling},`
+        logger.info(`Lite mode: ${this._runInLiteMode},`
+            + ` Receive multiple video streams: ${this._receiveMultipleVideoStreams},`
             + ` Send multiple video streams: ${this._sendMultipleVideoStreams},`
-            + ` SSRC rewriting supported: ${this._ssrcRewriting},`
-            + ` uses Unified plan: ${this._usesUnifiedPlan}`);
+            + ` Source name signaling: ${this._sourceNameSignaling},`
+            + ` SSRC rewriting: ${this._ssrcRewriting},`
+            + ` Unified plan: ${this._usesUnifiedPlan}`);
     }
 
     /**
