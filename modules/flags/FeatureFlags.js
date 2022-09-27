@@ -29,8 +29,7 @@ class FeatureFlags {
         this._usesUnifiedPlan = browser.supportsUnifiedPlan()
             && (!browser.isChromiumBased() || (flags.enableUnifiedOnChrome ?? true));
 
-        logger.info(`Lite mode: ${this._runInLiteMode},`
-            + ` Receive multiple video streams: ${this._receiveMultipleVideoStreams},`
+        logger.info(` Receive multiple video streams: ${this._receiveMultipleVideoStreams},`
             + ` Send multiple video streams: ${this._sendMultipleVideoStreams},`
             + ` Source name signaling: ${this._sourceNameSignaling},`
             + ` SSRC rewriting: ${this._ssrcRewriting},`
