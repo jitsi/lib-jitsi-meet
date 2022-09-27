@@ -7,7 +7,10 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
+import {
+    getSourceIndexFromSourceName,
+    getSourceNameForJitsiTrack
+} from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -3043,12 +3046,12 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
 
         if (FeatureFlags.isMultiStreamSupportEnabled()) {
             sourceName = track.getSourceName();
-            sourceIndex = sourceName?.indexOf('-') + 2;
+            sourceIndex = getSourceIndexFromSourceName(sourceName);
         }
 
         const sourceIdentifier = this._usesUnifiedPlan
-            ? FeatureFlags.isMultiStreamSupportEnabled() && sourceIndex
-                ? `${track.getType()}-${sourceName.substr(sourceIndex, 1)}` : track.getType()
+            ? FeatureFlags.isMultiStreamSupportEnabled()
+                ? `${track.getType()}-${sourceIndex}` : track.getType()
             : track.storedMSID;
 
         if (ssrcMap.has(sourceIdentifier)) {

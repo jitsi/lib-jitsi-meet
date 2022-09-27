@@ -396,7 +396,11 @@ export default class LocalSdpMunger {
             if (msid) {
                 const streamId = msid.split(' ')[0];
 
-                trackIndex = streamId.split('-')[2];
+                // Example stream id: d8ff91-video-8-1
+                // In the example above 8 is the track index
+                const trackIndexParts = streamId.split('-');
+
+                trackIndex = trackIndexParts[trackIndexParts.length - 2];
             }
 
             const sourceName = getSourceNameForJitsiTrack(this.localEndpointId, mediaType, trackIndex);
