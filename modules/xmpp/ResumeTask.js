@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
 import {
-    default as NetworkInfo,
-    NETWORK_INFO_EVENT
+    NETWORK_INFO_EVENT,
+    default as NetworkInfo
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
 

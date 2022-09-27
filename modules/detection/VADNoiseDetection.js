@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 
 import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
 
-import { VAD_NOISY_DEVICE, DETECTOR_STATE_CHANGE } from './DetectionEvents';
+import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from './DetectionEvents';
 
 /**
  * The average value VAD needs to be under over a period of time to be considered noise.

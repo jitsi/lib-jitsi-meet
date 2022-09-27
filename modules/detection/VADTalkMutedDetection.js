@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 
 import { calculateAverage } from '../util/MathUtil';
 
-import { VAD_TALK_WHILE_MUTED, DETECTOR_STATE_CHANGE } from './DetectionEvents';
+import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
 
 
 /**
