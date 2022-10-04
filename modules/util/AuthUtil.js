@@ -12,7 +12,7 @@ const AuthUtil = {
      * @param urlPattern a URL pattern pointing to the login service
      * @param roomName the name of the conference room for which the user will
      * be authenticated
-     * @param {bool} roleUpgrade <tt>true</tt> if the URL will be used for role
+     * @param {boolean} roleUpgrade <tt>true</tt> if the URL will be used for role
      * upgrade scenario, where the user logs-in from the popup window in order
      * to have the moderator rights granted
      *
