@@ -11,9 +11,11 @@ class FeatureFlags {
     /**
      * Configures the module.
      *
-     * @param {boolean} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
-     * @param {boolean} flags.sourceNameSignaling - Enables source names in the signaling.
-     * @param {boolean} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
+     * @param {object} flags - The feature flags.
+     * @param {boolean=} flags.enableUnifiedOnChrome - Enable unified plan implementation support on Chromium.
+     * @param {boolean=} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
+     * @param {boolean=} flags.sourceNameSignaling - Enables source names in the signaling.
+     * @param {boolean=} flags.receiveMultipleVideoStreams - Signal support for receiving multiple video streams.
      */
     init(flags) {
         this._receiveMultipleVideoStreams = flags.receiveMultipleVideoStreams ?? true;

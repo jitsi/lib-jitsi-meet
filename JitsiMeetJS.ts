@@ -304,7 +304,6 @@ export default {
         window.connectionTimes['obtainPermissions.start']
             = window.performance.now();
 
-        // @ts-ignore
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
                 promiseFulfilled = true;
@@ -531,7 +530,8 @@ export default {
     /**
      * Informs lib-jitsi-meet about the current network status.
      *
-     * @param {boolean} isOnline - {@code true} if the internet connectivity is online or {@code false}
+     * @param {object} state - The network info state.
+     * @param {boolean} state.isOnline - {@code true} if the internet connectivity is online or {@code false}
      * otherwise.
      */
     setNetworkInfo({ isOnline }) {
