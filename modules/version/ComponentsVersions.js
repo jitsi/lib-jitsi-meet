@@ -51,6 +51,9 @@ ComponentsVersions.prototype.processVersions
         // logs versions to stats
         if (log.length > 0) {
             Statistics.sendLog(JSON.stringify(log));
+            // #bloomberg #log @rpang27 log component_version
+            logger.info(JSON.stringify(log));
+            // #end
         }
     };
 

@@ -181,6 +181,9 @@ export default _mergeNamespaceAndModule({
             };
 
             Statistics.sendLog(JSON.stringify(logObject));
+            // #bloomberg #log @rpang27 log component_version
+            logger.info(JSON.stringify(logObject));
+            // #end
         }
 
         return RTC.init(options);

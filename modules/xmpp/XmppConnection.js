@@ -1,6 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 import { $pres, Strophe } from 'strophe.js';
 import 'strophejs-plugin-stream-management';
+import { v4 as uuidv4 } from 'uuid'; // #bloomberg #shard @araje Pass request headers for debugging
+import jwt_decode from "jwt-decode"; // #bloomberg #shard @araje Pass request headers for debugging
 
 import Listenable from '../util/Listenable';
 
@@ -422,6 +424,44 @@ export default class XmppConnection extends Listenable {
         }
     }
 
+    // #bloomberg #shard @araje Decode token query param from shard detection URL
+    /**
+     * Find token passed as query param in the given URL for shard detection.
+     */
+     _getTokenFromKeepAliveAndCheckShardUrl(url) {
+        try {
+            const keepAliveAndCheckShardUrlSearchParams = new URLSearchParams(url.split('?')[1]);
+
+            return keepAliveAndCheckShardUrlSearchParams.get('token');
+        } catch (err) {
+
+            return null;
+        }
+    }
+
+    /**
+     * Decode token passed as query param in the shard detection URL.
+     */
+    _decodeTokenFromKeepAliveAndCheckShardUrl(url) {
+        const token = this._getTokenFromKeepAliveAndCheckShardUrl(url);
+
+        if (!token) {
+
+            return null;
+        }
+
+        try {
+            const decodedToken = jwt_decode(token);
+
+            return decodedToken || null;
+        } catch (err) {
+
+            return null;
+        }
+    }
+
+    // #end
+
     /**
      * Do a http GET to the shard and if shard change will throw an event.
      *
@@ -433,8 +473,31 @@ export default class XmppConnection extends Listenable {
         const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
             : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
 
-        return fetch(url)
+        // #bloomberg #shard @araje Pass request headers for debugging
+        const traceId = uuidv4();
+
+        // Debugging info for shard detection
+        logger.info(`[REQUEST ${traceId}] GET ${url}`);
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Trace-Id': traceId,
+        };
+
+        const decodedToken = this._decodeTokenFromKeepAliveAndCheckShardUrl(url);
+        if (decodedToken?.uuid) {
+            headers['X-User-Id'] = decodedToken?.uuid;
+        }
+
+        // return fetch(url)
+        return fetch(url, { headers })
+
+        // #end
             .then(response => {
+                // #bloomberg #shard @araje Debugging info for shard detection
+                logger.info(`[RESPONSE ${traceId}] GET ${url} ${response?.status}`);
+
+                // #end
 
                 // skips header checking if there is no info in options
                 if (!shard) {
@@ -450,6 +513,11 @@ export default class XmppConnection extends Listenable {
                 }
             })
             .catch(error => {
+                // #bloomberg #shard @araje Debugging info for shard detection
+                logger.error(`[ERROR ${traceId}] GET ${url} Error: `, { error });
+
+                // #end
+
                 logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
             });
     }
