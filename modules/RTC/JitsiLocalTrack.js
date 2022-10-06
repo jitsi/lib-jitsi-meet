@@ -98,7 +98,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
          */
         this.rtcId = rtcId;
         this.sourceId = sourceId;
-        this.sourceType = sourceType;
+        this.sourceType = sourceType ?? displaySurface;
 
         // Get the resolution from the track itself because it cannot be
         // certain which resolution webrtc has fallen back to using.
