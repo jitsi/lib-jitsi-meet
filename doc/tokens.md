@@ -136,11 +136,6 @@ Make sure that */etc/prosody/prosody.cfg.lua* contains the line below at the end
 Include "conf.d/*.cfg.lua"
 ```
 
-Also check if client to server encryption is enforced. If not then token authentication won't work:
-```
-c2s_require_encryption=false
-```
-
 Restart the service to take the changes into account
 ```
 sudo /etc/init.d/prosody restart
