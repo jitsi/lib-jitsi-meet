@@ -18,12 +18,6 @@ const logger = getLogger(__filename);
  */
 const STATS_MESSAGE_TYPE = 'stats';
 
-/**
- * The value to use for the "type" field for messages sent
- * over the data channel that contain a face landmark.
- */
-const FACE_LANDMARK_MESSAGE_TYPE = 'face_landmark';
-
 const kSimulcastFormats = [
     { width: 1920,
         height: 1080,
@@ -227,17 +221,6 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
             (participant, payload) => {
                 this._updateRemoteStats(participant.getId(), payload);
-            });
-
-        conference.on(
-            ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            (participant, payload) => {
-                if (payload.type === FACE_LANDMARK_MESSAGE_TYPE) {
-                    this.eventEmitter.emit(
-                        ConferenceEvents.FACE_LANDMARK_ADDED,
-                        participant.getId(),
-                        payload);
-                }
             });
 
         // Listen to local statistics events originating from the RTC module and update the _localStats field.

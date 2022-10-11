@@ -3710,7 +3710,7 @@ JitsiConference.prototype.getSpeakerStats = function() {
  */
 JitsiConference.prototype.sendFaceLandmarks = function(payload) {
     if (payload.faceExpression) {
-        this.xmpp.sendFaceExpressionEvent(this.room.roomjid, payload);
+        this.xmpp.sendFaceLandmarksEvent(this.room.roomjid, payload);
     }
 };
 
