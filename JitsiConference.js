@@ -3897,6 +3897,50 @@ JitsiConference.prototype.setMediaEncryptionKey = function(keyInfo) {
 };
 
 /**
+ * Marks the given participant as verified. After this is done, MAC verification will
+ * be performed and an event will be emitted with the result.
+ *
+ * @param {string} participantId The participant which will be marked as verified.
+ * @returns {void}
+ */
+ JitsiConference.prototype.startVerification = function(participantId) {
+    const participant = this.getParticipantById(participantId);
+
+    if (!participant) {
+        return;
+    }
+
+    this._e2eEncryption.startVerification(participant);
+};
+
+JitsiConference.prototype.markParticipantChannelVerified = function(isVerified, participantId) {
+    const participant = this.getParticipantById(participantId);
+
+    if (!participant) {
+        return;
+    }
+
+    this._e2eEncryption.markChannelVerified(isVerified, participant);
+};
+
+/**
+ * Marks the given participant as verified. After this is done, MAC verification will
+ * be performed and an event will be emitted with the result.
+ *
+ * @param {string} participantId The participant which will be marked as verified.
+ * @returns {void}
+ */
+ JitsiConference.prototype.markParticipantVerified = function(participantId) {
+    const participant = this.getParticipantById(participantId);
+
+    if (!participant) {
+        return;
+    }
+
+    this._e2eEncryption.markVerified(participant);
+};
+
+/**
  * Returns <tt>true</tt> if lobby support is enabled in the backend.
  *
  * @returns {boolean} whether lobby is supported in the backend.

@@ -36,6 +36,10 @@ export class ManagedKeyHandler extends KeyHandler {
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
 
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_SAS_READY,
+            this._onParticipantSasReady.bind(this));
+
         this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
             this._onParticipantPropertyChanged.bind(this));
@@ -50,6 +54,17 @@ export class ManagedKeyHandler extends KeyHandler {
                 () => {
                     this._conferenceJoined = true;
                 });
+    }
+
+    startVerification(participant) {
+        this._olmAdapter.startVerification(participant);
+    }
+
+    markChannelVerified(isVerified, participant) {
+        this._olmAdapter.onChannelVerified(isVerified, participant);
+    }
+
+    markVerified(participant) {
     }
 
     /**
@@ -86,8 +101,10 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+        console.log("XXX _onParticipantPropertyChanged", name)
         switch (name) {
         case 'e2ee.idKey':
+            console.log("XXX _onParticipantPropertyChanged")
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
             break;
         case 'e2ee.enabled':
@@ -165,6 +182,10 @@ export class ManagedKeyHandler extends KeyHandler {
         logger.debug(`Participant ${id} updated their key`);
 
         this.e2eeCtx.setKey(id, key, index);
+    }
+
+    _onParticipantSasReady(pId, sas) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_READY, pId, sas);
     }
 
     /**

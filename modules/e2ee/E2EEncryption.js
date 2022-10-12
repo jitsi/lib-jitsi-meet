@@ -71,4 +71,15 @@ export class E2EEncryption {
     setEncryptionKey(keyInfo) {
         this._keyHandler.setKey(keyInfo);
     }
+
+    startVerification(participant) {
+        this._keyHandler.startVerification(participant);
+    }
+
+    markChannelVerified(isVerified, participant) {
+        this._keyHandler.markChannelVerified(isVerified, participant);
+    }
+
+    markVerified(participant) {
+    }
 }
