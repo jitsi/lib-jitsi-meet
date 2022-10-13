@@ -1639,28 +1639,26 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     const parsedSdp = transform.parse(description.sdp);
+    const mLines = parsedSdp.media.filter(m => m.type === this.codecPreference.mediaType);
 
-    // Only the m-line that defines the source the browser will be sending should need to change.
-    // This is typically the first m-line with the matching media type.
-    const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
-
-    if (!mLine) {
+    if (!mLines.length) {
         return description;
     }
 
-    if (this.codecPreference.enable) {
-        SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+    for (const mLine of mLines) {
+        if (this.codecPreference.enable) {
+            SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
-        // Strip the high profile H264 codecs on mobile clients for p2p connection.
-        // High profile codecs give better quality at the expense of higher load which
-        // we do not want on mobile clients.
-        // Jicofo offers only the baseline code for the jvb connection.
-        // TODO - add check for mobile browsers once js-utils provides that check.
-        if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
+            // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
+            // baseline code for the jvb connection and therefore this is not needed for jvb connection.
+            // TODO - add check for mobile browsers once js-utils provides that check.
+            if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+                SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            }
+        } else {
+            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
         }
-    } else {
-        SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
 
     return new RTCSessionDescription({
@@ -2402,21 +2400,12 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
     // corresponding m-line.
     const getDesktopTrackMid = () => {
         const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
-        let mid;
 
         if (desktopTrack) {
-            const trackIndex = Number(desktopTrack.getSourceName()?.split('-')[1].substring(1));
-
-            if (typeof trackIndex === 'number') {
-                const transceiver = this.peerconnection.getTransceivers()
-                    .filter(t => t.receiver.track.kind === MediaType.VIDEO
-                        && t.direction !== MediaDirection.RECVONLY)[trackIndex];
-
-                mid = transceiver?.mid;
-            }
+            return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
         }
 
-        return Number(mid);
+        return null;
     };
 
     for (const mLine of mLines) {
