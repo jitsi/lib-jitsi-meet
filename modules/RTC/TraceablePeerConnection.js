@@ -1987,15 +1987,17 @@ TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(l
         return;
     }
 
-    for (const localTrack of localTracks) {
-        const mediaType = localTrack.getType();
+    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+        const tracks = localTracks.filter(t => t.getType() === mediaType);
         const parsedSdp = transform.parse(localSdp);
-        const mLine = parsedSdp.media.find(mline => mline.type === mediaType);
+        const mLines = parsedSdp.media.filter(mline => mline.type === mediaType);
 
-        if (!this._localTrackTransceiverMids.has(localTrack.rtcId)) {
-            this._localTrackTransceiverMids.set(localTrack.rtcId, mLine.mid.toString());
-        }
-    }
+        tracks.forEach((track, idx) => {
+            if (!this._localTrackTransceiverMids.has(track.rtcId)) {
+                this._localTrackTransceiverMids.set(track.rtcId, mLines[idx].mid.toString());
+            }
+        });
+    });
 };
 
 /**
