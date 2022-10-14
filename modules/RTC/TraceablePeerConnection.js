@@ -2626,6 +2626,11 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     }
 
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
+        const sourceName = localVideoTrack.getSourceName();
+
+        if (this._senderMaxHeights.get(sourceName) === frameHeight) {
+            return Promise.resolve();
+        }
         this._senderMaxHeights.set(localVideoTrack.getSourceName(), frameHeight);
     } else {
         this._senderVideoMaxHeight = frameHeight;
