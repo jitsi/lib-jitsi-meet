@@ -514,6 +514,21 @@ TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType,
 };
 
 /**
+ * Returns the MID of the m-line associated with the local desktop track (if it exists).
+ *
+ * @returns {Number|null}
+ */
+TraceablePeerConnection.prototype._getDesktopTrackMid = function() {
+    const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
+
+    if (desktopTrack) {
+        return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
+    }
+
+    return null;
+};
+
+/**
  * Returns the list of RTCRtpReceivers created for the source of the given media type associated with
  * the set of remote endpoints specified.
  * @param {Array<string>} endpoints list of the endpoints
@@ -2253,8 +2268,14 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
                 mLine.direction = MediaDirection.SENDONLY;
             } else if (!remoteSources) {
                 mLine.direction = MediaDirection.RECVONLY;
+
+            // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
+            // the second one needs to be set to 'recvonly'.
             } else if (localSources > remoteSources) {
                 mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
+
+            // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
+            // the second one needs to be set to 'sendonly'.
             } else {
                 mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
             }
@@ -2408,25 +2429,13 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
         ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction)
         : [ parsedSdp.media.find(m => m.type === MediaType.VIDEO) ];
 
-    // Find the mid associated with the desktop track so that bitrates can be configured accordingly on the
-    // corresponding m-line.
-    const getDesktopTrackMid = () => {
-        const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
-
-        if (desktopTrack) {
-            return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
-        }
-
-        return null;
-    };
-
     for (const mLine of mLines) {
         if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const mid = mLine.mid;
             const isSharingScreen = FeatureFlags.isMultiStreamSupportEnabled()
-                ? mid === getDesktopTrackMid()
+                ? mid === this._getDesktopTrackMid()
                 : this._isSharingScreen();
             const limit = Math.floor((isSharingScreen ? HD_BITRATE : hdBitrate) / 1000);
 
