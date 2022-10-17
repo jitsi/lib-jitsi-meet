@@ -636,6 +636,7 @@ export default class JingleSessionPC extends JingleSession {
             const remoteDescription = this.peerconnection.remoteDescription;
 
             if (this.usesUnifiedPlan
+                && !this.isP2P
                 && state === 'stable'
                 && remoteDescription
                 && typeof remoteDescription.sdp === 'string') {
