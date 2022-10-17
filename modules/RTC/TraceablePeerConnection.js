@@ -511,6 +511,21 @@ TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType,
 };
 
 /**
+ * Returns the MID of the m-line associated with the local desktop track (if it exists).
+ *
+ * @returns {Number|null}
+ */
+TraceablePeerConnection.prototype._getDesktopTrackMid = function() {
+    const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
+
+    if (desktopTrack) {
+        return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
+    }
+
+    return null;
+};
+
+/**
  * Returns the list of RTCRtpReceivers created for the source of the given media type associated with
  * the set of remote endpoints specified.
  * @param {Array<string>} endpoints list of the endpoints
@@ -1636,28 +1651,26 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     const parsedSdp = transform.parse(description.sdp);
+    const mLines = parsedSdp.media.filter(m => m.type === this.codecPreference.mediaType);
 
-    // Only the m-line that defines the source the browser will be sending should need to change.
-    // This is typically the first m-line with the matching media type.
-    const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
-
-    if (!mLine) {
+    if (!mLines.length) {
         return description;
     }
 
-    if (this.codecPreference.enable) {
-        SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+    for (const mLine of mLines) {
+        if (this.codecPreference.enable) {
+            SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
-        // Strip the high profile H264 codecs on mobile clients for p2p connection.
-        // High profile codecs give better quality at the expense of higher load which
-        // we do not want on mobile clients.
-        // Jicofo offers only the baseline code for the jvb connection.
-        // TODO - add check for mobile browsers once js-utils provides that check.
-        if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
+            // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
+            // baseline code for the jvb connection and therefore this is not needed for jvb connection.
+            // TODO - add check for mobile browsers once js-utils provides that check.
+            if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+                SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            }
+        } else {
+            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
         }
-    } else {
-        SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
 
     return new RTCSessionDescription({
@@ -1986,15 +1999,17 @@ TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(l
         return;
     }
 
-    for (const localTrack of localTracks) {
-        const mediaType = localTrack.getType();
+    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+        const tracks = localTracks.filter(t => t.getType() === mediaType);
         const parsedSdp = transform.parse(localSdp);
-        const mLine = parsedSdp.media.find(mline => mline.type === mediaType);
+        const mLines = parsedSdp.media.filter(mline => mline.type === mediaType);
 
-        if (!this._localTrackTransceiverMids.has(localTrack.rtcId)) {
-            this._localTrackTransceiverMids.set(localTrack.rtcId, mLine.mid.toString());
-        }
-    }
+        tracks.forEach((track, idx) => {
+            if (!this._localTrackTransceiverMids.has(track.rtcId)) {
+                this._localTrackTransceiverMids.set(track.rtcId, mLines[idx].mid.toString());
+            }
+        });
+    });
 };
 
 /**
@@ -2080,7 +2095,7 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     ? Promise.resolve()
                     : this.tpcUtils.setEncodings(newTrack);
 
-                return configureEncodingsPromise.then(() => false);
+                return configureEncodingsPromise.then(() => this.isP2P);
             });
     }
 
@@ -2237,15 +2252,31 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
     const transformer = new SdpTransformWrap(remoteDescription.sdp);
 
     [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-        const media = transformer.selectMedia(mediaType)?.[0];
-        const hasLocalSource = this.hasAnyTracksOfType(mediaType);
-        const hasRemoteSource = this.getRemoteTracks(null, mediaType).length > 0;
+        const media = transformer.selectMedia(mediaType);
+        const localSources = this.getLocalTracks(mediaType).length;
+        const remoteSources = this.getRemoteTracks(null, mediaType).length;
 
-        media.direction = hasLocalSource && hasRemoteSource
-            ? MediaDirection.SENDRECV
-            : hasLocalSource
-                ? MediaDirection.RECVONLY
-                : hasRemoteSource ? MediaDirection.SENDONLY : MediaDirection.INACTIVE;
+        media.forEach((mLine, idx) => {
+            if (localSources && localSources === remoteSources) {
+                mLine.direction = MediaDirection.SENDRECV;
+            } else if (!localSources && !remoteSources) {
+                mLine.direction = MediaDirection.INACTIVE;
+            } else if (!localSources) {
+                mLine.direction = MediaDirection.SENDONLY;
+            } else if (!remoteSources) {
+                mLine.direction = MediaDirection.RECVONLY;
+
+            // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
+            // the second one needs to be set to 'recvonly'.
+            } else if (localSources > remoteSources) {
+                mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
+
+            // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
+            // the second one needs to be set to 'sendonly'.
+            } else {
+                mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
+            }
+        });
     });
 
     return new RTCSessionDescription({
@@ -2389,34 +2420,13 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
         ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction)
         : [ parsedSdp.media.find(m => m.type === MediaType.VIDEO) ];
 
-    // Find the mid associated with the desktop track so that bitrates can be configured accordingly on the
-    // corresponding m-line.
-    const getDesktopTrackMid = () => {
-        const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
-        let mid;
-
-        if (desktopTrack) {
-            const trackIndex = Number(desktopTrack.getSourceName()?.split('-')[1].substring(1));
-
-            if (typeof trackIndex === 'number') {
-                const transceiver = this.peerconnection.getTransceivers()
-                    .filter(t => t.receiver.track.kind === MediaType.VIDEO
-                        && t.direction !== MediaDirection.RECVONLY)[trackIndex];
-
-                mid = transceiver?.mid;
-            }
-        }
-
-        return Number(mid);
-    };
-
     for (const mLine of mLines) {
         if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const mid = mLine.mid;
             const isSharingScreen = FeatureFlags.isMultiStreamSupportEnabled()
-                ? mid === getDesktopTrackMid()
+                ? mid === this._getDesktopTrackMid()
                 : this._isSharingScreen();
             const limit = Math.floor((isSharingScreen ? HD_BITRATE : hdBitrate) / 1000);
 
@@ -2626,7 +2636,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     }
 
     if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        this._senderMaxHeights.set(localVideoTrack.getSourceName(), frameHeight);
+        const sourceName = localVideoTrack.getSourceName();
+
+        if (this._senderMaxHeights.get(sourceName) === frameHeight) {
+            return Promise.resolve();
+        }
+        this._senderMaxHeights.set(sourceName, frameHeight);
     } else {
         this._senderVideoMaxHeight = frameHeight;
     }

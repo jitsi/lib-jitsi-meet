@@ -104,7 +104,11 @@ export default class SendVideoController {
                 if (track.getSourceName() === sourceName
                     && (!this._sourceSenderConstraints.has(sourceName)
                     || this._sourceSenderConstraints.get(sourceName) !== maxHeight)) {
-                    this._sourceSenderConstraints.set(sourceName, maxHeight);
+                    this._sourceSenderConstraints.set(
+                        sourceName,
+                        maxHeight === -1
+                            ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
+                            : maxHeight);
                     logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
                     this._propagateSendMaxFrameHeight(sourceName);
                 }
