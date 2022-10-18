@@ -1,7 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import { $iq, Strophe } from 'strophe.js';
+import { $build, $iq, Strophe } from 'strophe.js';
 
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -55,6 +56,33 @@ const ICE_CAND_GATHERING_TIMEOUT = 150;
  */
 function getEndpointId(jidOrEndpointId) {
     return Strophe.getResourceFromJid(jidOrEndpointId) || jidOrEndpointId;
+}
+
+/**
+ * Add "source" element as a child of "description" element.
+ * @param {Object} description The "description" element to add to.
+ * @param {Object} s Contains properties of the source being added.
+ * @param {Number} ssrc_ The SSRC.
+ * @param {String} msid The "msid" attribute.
+ */
+function _addSourceElement(description, s, ssrc_, msid) {
+
+    description.c('source', {
+        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        ssrc: ssrc_,
+        name: s.source
+    })
+        .c('parameter', {
+            name: 'msid',
+            value: msid
+        })
+        .up()
+        .c('ssrc-info', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            owner: s.owner
+        })
+        .up()
+        .up();
 }
 
 /**
@@ -296,6 +324,22 @@ export default class JingleSessionPC extends JingleSession {
          * @type {Number|undefined}
          */
         this.remoteRecvMaxFrameHeight = undefined;
+
+        /**
+         * Number of remote video sources, in SSRC rewriting mode.
+         * Used to generate next unique msid attribute.
+         *
+         * @type {Number}
+         */
+        this.numRemoteVideoSources = 0;
+
+        /**
+         * Number of remote audio sources, in SSRC rewriting mode.
+         * Used to generate next unique msid attribute.
+         *
+         * @type {Number}
+         */
+        this.numRemoteAudioSources = 0;
 
         /**
          * Remote preference for the receive video max frame heights when source-name signaling is enabled.
@@ -1669,6 +1713,12 @@ export default class JingleSessionPC extends JingleSession {
             this._removeSenderVideoConstraintsChangeListener();
         }
 
+        if (FeatureFlags.isSsrcRewritingSupported() && this.peerconnection) {
+            this.peerconnection.getRemoteTracks().forEach(track => {
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED, track);
+            });
+        }
+
         this.close();
     }
 
@@ -1789,6 +1839,116 @@ export default class JingleSessionPC extends JingleSession {
      */
     removeRemoteStream(elem) {
         this._addOrRemoveRemoteStream(false /* remove */, elem);
+    }
+
+    /**
+     * Filter remapped SSRCs.
+     * Process owner change for existing SSRCs.
+     * Return new ones for further processing.
+     */
+    getNewSources(msg) {
+        const newSources = [];
+
+        for (const s of msg.mappedSources) {
+            if (this.peerconnection.addRemoteSsrc(s.ssrc)) {
+                logger.debug(`New SSRC ${s.ssrc}`);
+                newSources[newSources.length] = s;
+            } else {
+                const track = this.peerconnection.getTrackBySSRC(s.ssrc);
+
+                if (track) {
+                    logger.debug(`Existing SSRC ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
+
+                    if (s.videoType === 'CAMERA') {
+                        track._setVideoType('camera');
+                    } else if (s.videoType === 'DESKTOP') {
+                        track._setVideoType('desktop');
+                    }
+
+                    track.setNewSource(s.owner, s.source);
+                } else {
+                    logger.error(`Remapped SSRC ${s.ssrc} not found`);
+                }
+            }
+        }
+
+        return newSources;
+    }
+
+    /**
+     * Process SSRC remappings for video sources.
+     */
+    videoSsrcsRemapped(msg) {
+        const newSources = this.getNewSources(msg);
+
+        if (newSources.length > 0) {
+
+            let node = $build('content', {
+                xmlns: 'urn:xmpp:jingle:1',
+                name: 'video'
+            }).c('description', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                media: MediaType.VIDEO
+            });
+
+            for (const s of newSources) {
+                const idx = ++this.numRemoteVideoSources;
+                const msid = `remote-video-${idx} remote-video-${idx}`;
+
+                _addSourceElement(node, s, s.ssrc, msid);
+                if (s.rtx !== '-1') {
+                    _addSourceElement(node, s, s.rtx, msid);
+                    node.c('ssrc-group', {
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                        semantics: 'FID'
+                    })
+                        .c('source', {
+                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                            ssrc: s.ssrc
+                        })
+                        .up()
+                        .c('source', {
+                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                            ssrc: s.rtx
+                        })
+                        .up()
+                        .up();
+                }
+            }
+
+            node = node.up();
+
+            this._addOrRemoveRemoteStream(true /* add */, node.node);
+        }
+    }
+
+    /**
+     * Process SSRC remappings for audio sources.
+     */
+    audioSsrcsRemapped(msg) {
+        const newSources = this.getNewSources(msg);
+
+        if (newSources.length > 0) {
+
+            let node = $build('content', {
+                xmlns: 'urn:xmpp:jingle:1',
+                name: 'audio'
+            }).c('description', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                media: MediaType.AUDIO
+            });
+
+            for (const s of newSources) {
+                const idx = ++this.numRemoteAudioSources;
+                const msid = `remote-audio-${idx} remote-audio-${idx}`;
+
+                _addSourceElement(node, s, s.ssrc, msid);
+            }
+
+            node = node.up();
+
+            this._addOrRemoveRemoteStream(true /* add */, node.node);
+        }
     }
 
     /**

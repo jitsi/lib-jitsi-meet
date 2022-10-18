@@ -263,11 +263,6 @@ export default class XMPP extends Listenable {
             logger.info('Receiving multiple video streams is enabled');
             this.caps.addFeature('http://jitsi.org/receive-multiple-video-streams');
         }
-
-        if (FeatureFlags.isSsrcRewritingSupported()) {
-            logger.info('SSRC rewriting is supported');
-            this.caps.addFeature('http://jitsi.org/ssrc-rewriting');
-        }
     }
 
     /**

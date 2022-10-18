@@ -84,6 +84,11 @@ interface IJitsiMeetJSOptions {
     externalStorage?: Storage;
     flags?: {
         enableUnifiedOnChrome?: boolean;
+        receiveMultipleVideoStreams?: boolean;
+        runInLiteMode?: boolean;
+        sendMultipleVideoStreams?: boolean;
+        sourceNameSignaling?: boolean;
+        ssrcRewritingEnabled?: boolean;
     }
 }
 
