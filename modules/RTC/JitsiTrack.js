@@ -282,18 +282,6 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
-     * Eventually will trigger RTCEvents.TRACK_ATTACHED event.
-     * @param container the video/audio container to which this stream is
-     *        attached and for which event will be fired.
-     * @private
-     */
-    _maybeFireTrackAttached(container) {
-        if (this.conference && container) {
-            this.conference._onTrackAttach(this, container);
-        }
-    }
-
-    /**
      * Attaches the MediaStream of this track to an HTML container.
      * Adds the container to the list of containers that are displaying the
      * track.
@@ -309,7 +297,6 @@ export default class JitsiTrack extends EventEmitter {
             RTCUtils.attachMediaStream(container, this.stream);
         }
         this.containers.push(container);
-        this._maybeFireTrackAttached(container);
         this._attachTTFMTracker(container);
     }
 

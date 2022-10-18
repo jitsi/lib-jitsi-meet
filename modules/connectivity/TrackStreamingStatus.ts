@@ -328,14 +328,6 @@ export class TrackStreamingStatusImpl {
 
             logger.debug(`Emit track streaming status(${Date.now()}) ${sourceName}: ${newStatus}`);
 
-            // Log the event on CallStats
-            Statistics.sendLog(
-                JSON.stringify({
-                    id: 'track.streaming.status',
-                    track: sourceName,
-                    status: newStatus
-                }));
-
             // It's common for the event listeners to access the JitsiRemoteTrack. Thus pass it as a parameter here.
             this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, this.track, newStatus);
         }

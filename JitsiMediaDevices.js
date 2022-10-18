@@ -3,7 +3,6 @@ import EventEmitter from 'events';
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
-import Statistics from './modules/statistics/statistics';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 
@@ -28,12 +27,6 @@ class JitsiMediaDevices {
             devices =>
                 this._eventEmitter.emit(
                     JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
-                    devices));
-        RTC.addListener(
-            RTCEvents.DEVICE_LIST_AVAILABLE,
-            devices =>
-                this._logOutputDevice(
-                    this.getAudioOutputDevice(),
                     devices));
 
         // We would still want to update the permissions cache in case the permissions API is not supported.
@@ -143,22 +136,6 @@ class JitsiMediaDevices {
                 // eslint-disable-next-line no-empty-function
                 this.enumerateDevices(() => {});
             }
-        }
-    }
-
-    /**
-     * Gathers data and sends it to statistics.
-     * @param deviceID the device id to log
-     * @param devices list of devices
-     */
-    _logOutputDevice(deviceID, devices) {
-        const device
-            = devices.find(
-                d => d.kind === 'audiooutput' && d.deviceId === deviceID);
-
-        if (device) {
-            Statistics.sendActiveDeviceListEvent(
-                RTC.getEventDataForActiveDevice(device));
         }
     }
 
@@ -286,16 +263,6 @@ class JitsiMediaDevices {
      *      otherwise
      */
     setAudioOutputDevice(deviceId) {
-        const availableDevices = RTC.getCurrentlyAvailableMediaDevices();
-
-        if (availableDevices.length > 0) {
-            // if we have devices info report device to stats
-            // normally this will not happen on startup as this method is called
-            // too early. This will happen only on user selection of new device
-            this._logOutputDevice(
-                deviceId, RTC.getCurrentlyAvailableMediaDevices());
-        }
-
         return RTC.setAudioOutputDevice(deviceId);
     }
 

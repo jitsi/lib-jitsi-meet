@@ -215,22 +215,6 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
 
-    const { callStatsID, callStatsSecret, disableThirdPartyRequests, enableCallStats } = this.options.conference;
-    const callstatsDisabled = !callStatsID || !callStatsSecret || !enableCallStats
-
-        // Even though AppID and AppSecret may be specified, the integration
-        // of callstats.io may be disabled because of globally-disallowed
-        // requests to any third parties.
-        || disableThirdPartyRequests === true;
-
-    // since the default is true across all the server-side components, only signal if false.
-    if (callstatsDisabled) {
-        elem.c(
-            'property', {
-                name: 'callstatsEnabled',
-                value: !callstatsDisabled
-            }).up();
-    }
     elem.up();
 
     return elem;

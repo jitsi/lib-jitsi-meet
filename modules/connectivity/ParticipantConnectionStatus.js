@@ -463,15 +463,6 @@ export default class ParticipantConnectionStatusHandler {
                 `Emit endpoint conn status(${Date.now()}) ${endpointId}: ${
                     newStatus}`);
 
-            // Log the event on CallStats
-            Statistics.sendLog(
-                JSON.stringify({
-                    id: 'peer.conn.status',
-                    participant: endpointId,
-                    status: newStatus
-                }));
-
-
             this.conference.eventEmitter.emit(
                 JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,
                 endpointId, newStatus);

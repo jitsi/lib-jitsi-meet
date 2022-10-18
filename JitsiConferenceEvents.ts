@@ -22,8 +22,7 @@ export enum JitsiConferenceEvents {
 
     /**
      * Fired just before the statistics module is disposed and it's the last chance
-     * to submit some logs to the statistics service (ex. CallStats if enabled),
-     * before it's disconnected.
+     * to submit some logs to the statistics service before it's disconnected.
      */
     BEFORE_STATISTICS_DISPOSED = 'conference.beforeStatisticsDisposed',
 

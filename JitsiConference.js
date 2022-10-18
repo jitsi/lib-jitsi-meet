@@ -446,29 +446,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.participantConnectionStatus.init();
     }
 
-    // Add the ability to enable callStats only on a percentage of users based on config.js settings.
-    let enableCallStats = true;
-
-    if (config.testing && config.testing.callStatsThreshold) {
-        enableCallStats = (Math.random() * 100) <= config.testing.callStatsThreshold;
-    }
-
     if (!this.statistics) {
-        this.statistics = new Statistics(this.xmpp, {
-            aliasName: this._statsCurrentId,
-            userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
-            confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
-            siteID: config.siteID,
-            customScriptUrl: config.callStatsCustomScriptUrl,
-            callStatsID: config.callStatsID,
-            callStatsSecret: config.callStatsSecret,
-            callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
-            enableCallStats,
-            roomName: this.options.name,
-            applicationName: config.applicationName,
-            getWiFiStatsMethod: config.getWiFiStatsMethod,
-            configParams: config.callStatsConfigParams
-        });
+        this.statistics = new Statistics(this.xmpp);
         Statistics.analytics.addPermanentProperties({
             'callstats_name': this._statsCurrentId
         });
@@ -1267,13 +1246,6 @@ JitsiConference.prototype.onLocalTrackRemoved = function(track) {
         track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
     }
 
-    // send event for stopping screen sharing
-    // FIXME: we assume we have only one screen sharing track
-    // if we change this we need to fix this check
-    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP) {
-        this.statistics.sendScreenSharingEvent(false);
-    }
-
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
 };
 
@@ -1409,17 +1381,6 @@ JitsiConference.prototype._removeLocalSourceOnReject = function(jingleSession, e
  */
 JitsiConference.prototype._setupNewTrack = function(newTrack) {
     const mediaType = newTrack.getType();
-
-    if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() && newTrack.videoType !== VideoType.DESKTOP)) {
-        // Report active device to statistics
-        const devices = RTC.getCurrentlyAvailableMediaDevices();
-        const device = devices
-            .find(d => d.kind === `${newTrack.getTrack().kind}input` && d.label === newTrack.getTrack().label);
-
-        if (device) {
-            Statistics.sendActiveDeviceListEvent(RTC.getEventDataForActiveDevice(device));
-        }
-    }
 
     // Create a source name for this track if it doesn't exist.
     if (FeatureFlags.isSourceNameSignalingEnabled() && !newTrack.getSourceName()) {
@@ -2359,14 +2320,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
         this._desktopSharingFrameRate
             && jingleSession.peerconnection.setDesktopSharingFrameRate(this._desktopSharingFrameRate);
 
-        // Start callstats as soon as peerconnection is initialized,
-        // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-        // happen in case if user doesn't have or denied permission to
-        // both camera and microphone.
-        logger.info('Starting CallStats for JVB connection...');
-        this.statistics.startCallStats(
-            this.jvbJingleSession.peerconnection,
-            'jitsi' /* Remote user ID for JVB is 'jitsi' */);
         this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
@@ -2456,11 +2409,7 @@ JitsiConference.prototype.onCallEnded = function(jingleSession, reasonCondition,
 
         // Stop the stats
         if (this.statistics) {
-            this.statistics.stopRemoteStats(
-                this.jvbJingleSession.peerconnection);
-            logger.info('Stopping JVB CallStats');
-            this.statistics.stopCallStats(
-                this.jvbJingleSession.peerconnection);
+            this.statistics.stopRemoteStats(this.jvbJingleSession.peerconnection);
         }
 
         // Current JVB JingleSession is no longer valid, so set it to null
@@ -2782,7 +2731,7 @@ JitsiConference.prototype.getLocalParticipantProperty = function(name) {
 };
 
 /**
- * Sends the given feedback through CallStats if enabled.
+ * Sends the given feedback.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the
  * user feedback
@@ -2794,14 +2743,13 @@ JitsiConference.prototype.sendFeedback = function(overallFeedback, detailedFeedb
 };
 
 /**
- * Returns true if the callstats integration is enabled, otherwise returns
- * false.
+ * Always returns false because callstats is no longer supported.
  *
  * @returns true if the callstats integration is enabled, otherwise returns
  * false.
  */
 JitsiConference.prototype.isCallstatsEnabled = function() {
-    return this.statistics.isCallstatsEnabled();
+    return false;
 };
 
 /**
@@ -2815,51 +2763,10 @@ JitsiConference.prototype.getSsrcByTrack = function(track) {
 };
 
 /**
- * Handles track attached to container (Calls associateStreamWithVideoTag method
- * from statistics module)
- * @param {JitsiLocalTrack|JitsiRemoteTrack} track the track
- * @param container the container
+ * Logs an "application log" message. No-op, kept only for backward compatibility.
  */
-JitsiConference.prototype._onTrackAttach = function(track, container) {
-    const isLocal = track.isLocal();
-    let ssrc = null;
-    const isP2P = track.isP2P;
-    const remoteUserId = isP2P ? track.getParticipantId() : 'jitsi';
-    const peerConnection
-        = isP2P
-            ? this.p2pJingleSession && this.p2pJingleSession.peerconnection
-            : this.jvbJingleSession && this.jvbJingleSession.peerconnection;
-
-    if (isLocal) {
-        // Local tracks have SSRC stored on per peer connection basis.
-        if (peerConnection) {
-            ssrc = peerConnection.getLocalSSRC(track);
-        }
-    } else {
-        ssrc = track.getSSRC();
-    }
-    if (!container.id || !ssrc || !peerConnection) {
-        return;
-    }
-
-    this.statistics.associateStreamWithVideoTag(
-        peerConnection,
-        ssrc,
-        isLocal,
-        remoteUserId,
-        track.getUsageLabel(),
-        container.id);
-};
-
-/**
- * Logs an "application log" message.
- * @param message {string} The message to log. Note that while this can be a
- * generic string, the convention used by lib-jitsi-meet and jitsi-meet is to
- * log valid JSON strings, with an "id" field used for distinguishing between
- * message types. E.g.: {id: "recorder_status", status: "off"}
- */
-JitsiConference.prototype.sendApplicationLog = function(message) {
-    Statistics.sendLog(message);
+JitsiConference.prototype.sendApplicationLog = function() {
+    // eslint-disable no-empty-function */
 };
 
 /**
@@ -3080,8 +2987,6 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             enableInsertableStreams: this.isE2EEEnabled()
         });
 
-    logger.info('Starting CallStats for P2P connection...');
-
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
     const participant = this.participants[remoteID];
@@ -3089,10 +2994,6 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
     if (participant) {
         remoteID = participant.getStatsID() || remoteID;
     }
-
-    this.statistics.startCallStats(
-        this.p2pJingleSession.peerconnection,
-        remoteID);
 
     const localTracks = this.getLocalTracks();
 
@@ -3397,12 +3298,6 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
         logger.info('Peer to peer connection closed!');
     }
 
-    // Put the JVB connection on hold/resume
-    if (this.jvbJingleSession) {
-        this.statistics.sendConnectionResumeOrHoldEvent(
-            this.jvbJingleSession.peerconnection, !newStatus);
-    }
-
     // Clear dtmfManager, so that it can be recreated with new connection
     this.dtmfManager = null;
 
@@ -3451,8 +3346,6 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             enableInsertableStreams: this.isE2EEEnabled()
         });
 
-    logger.info('Starting CallStats for P2P connection...');
-
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
     const participant = this.participants[remoteID];
@@ -3460,10 +3353,6 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
     if (participant) {
         remoteID = participant.getStatsID() || remoteID;
     }
-
-    this.statistics.startCallStats(
-        this.p2pJingleSession.peerconnection,
-        remoteID);
 
     const localTracks = this.getLocalTracks();
 
@@ -3621,8 +3510,6 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
     // Stop P2P stats
     logger.info('Stopping remote stats for P2P connection');
     this.statistics.stopRemoteStats(this.p2pJingleSession.peerconnection);
-    logger.info('Stopping CallStats for P2P connection');
-    this.statistics.stopCallStats(this.p2pJingleSession.peerconnection);
 
     this.p2pJingleSession.terminate(
         () => {
