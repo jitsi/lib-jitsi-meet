@@ -1982,23 +1982,26 @@ JitsiConference.prototype.onMemberLeft = function(jid, reason) {
         return;
     }
 
-    const participant = this.participants[id];
-    const mediaSessions = this.getMediaSessions();
-    let tracksToBeRemoved = [];
+    if (!FeatureFlags.isSsrcRewritingSupported()) {
+        const mediaSessions = this.getMediaSessions();
+        let tracksToBeRemoved = [];
 
-    for (const session of mediaSessions) {
-        const remoteTracks = session.peerconnection.getRemoteTracks(id);
+        for (const session of mediaSessions) {
+            const remoteTracks = session.peerconnection.getRemoteTracks(id);
 
-        remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
+            remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
 
-        // Remove the ssrcs from the remote description and renegotiate.
-        session.removeRemoteStreamsOnLeave(id);
+            // Remove the ssrcs from the remote description and renegotiate.
+            session.removeRemoteStreamsOnLeave(id);
+        }
+
+        // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
+        tracksToBeRemoved.forEach(track => {
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+        });
     }
 
-    // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
-    tracksToBeRemoved.forEach(track => {
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-    });
+    const participant = this.participants[id];
 
     if (participant) {
         delete this.participants[id];

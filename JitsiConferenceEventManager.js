@@ -3,6 +3,7 @@ import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import * as JitsiTrackEvents from './JitsiTrackEvents';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
@@ -188,6 +189,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
                 JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
         }
+    });
+
+    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED, track => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
     });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
@@ -558,6 +563,18 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             createConnectionStageReachedEvent(key, { value: now }));
 
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
+    });
+
+    rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
+        const sess = this.conference.getActiveMediaSession();
+
+        sess.videoSsrcsRemapped(msg);
+    });
+
+    rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
+        const sess = this.conference.getActiveMediaSession();
+
+        sess.audioSsrcsRemapped(msg);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
