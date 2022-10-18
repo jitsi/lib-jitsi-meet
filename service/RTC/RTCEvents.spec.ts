@@ -31,6 +31,8 @@ describe( "/service/RTC/RTCEvents members", () => {
         ENDPOINT_STATS_RECEIVED,
         LOCAL_UFRAG_CHANGED,
         REMOTE_UFRAG_CHANGED,
+        VIDEO_SSRCS_REMAPPED,
+        AUDIO_SSRCS_REMAPPED,
         RTCEvents,
         default: RTCEventsDefault,
         ...others
@@ -64,6 +66,8 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( ENDPOINT_STATS_RECEIVED ).toBe( 'rtc.endpoint_stats_received' );
         expect( LOCAL_UFRAG_CHANGED ).toBe( 'rtc.local_ufrag_changed' );
         expect( REMOTE_UFRAG_CHANGED ).toBe( 'rtc.remote_ufrag_changed' );
+        expect( VIDEO_SSRCS_REMAPPED ).toBe( 'rtc.video_ssrcs_remapped' );
+        expect( AUDIO_SSRCS_REMAPPED ).toBe( 'rtc.audio_ssrcs_remapped' );
 
         if ( RTCEvents ) {
             expect( RTCEvents.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
@@ -92,6 +96,8 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEvents.ENDPOINT_STATS_RECEIVED ).toBe( 'rtc.endpoint_stats_received' );
             expect( RTCEvents.LOCAL_UFRAG_CHANGED ).toBe( 'rtc.local_ufrag_changed' );
             expect( RTCEvents.REMOTE_UFRAG_CHANGED ).toBe( 'rtc.remote_ufrag_changed' );
+            expect( RTCEvents.VIDEO_SSRCS_REMAPPED ).toBe( 'rtc.video_ssrcs_remapped' );
+            expect( RTCEvents.AUDIO_SSRCS_REMAPPED ).toBe( 'rtc.audio_ssrcs_remapped' );
         }
 
         if ( RTCEventsDefault ) {
@@ -121,6 +127,8 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEventsDefault.ENDPOINT_STATS_RECEIVED ).toBe( 'rtc.endpoint_stats_received' );
             expect( RTCEventsDefault.LOCAL_UFRAG_CHANGED ).toBe( 'rtc.local_ufrag_changed' );
             expect( RTCEventsDefault.REMOTE_UFRAG_CHANGED ).toBe( 'rtc.remote_ufrag_changed' );
+            expect( RTCEventsDefault.VIDEO_SSRCS_REMAPPED ).toBe( 'rtc.video_ssrcs_remapped' );
+            expect( RTCEventsDefault.AUDIO_SSRCS_REMAPPED ).toBe( 'rtc.audio_ssrcs_remapped' );
         }
     } );
 

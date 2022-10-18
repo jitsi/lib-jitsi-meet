@@ -267,6 +267,18 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
+     * Update the properties when the track is remapped to another source.
+     *
+     * @param {string} owner The endpoint ID of the new owner.
+     * @param {string} name The new source name.
+     */
+    setNewSource(owner, name) {
+        this.ownerEndpointId = owner;
+        this._sourceName = name;
+        this.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, owner);
+    }
+
+    /**
      * Changes the video type of the track.
      *
      * @param {string} type - The new video type("camera", "desktop").
@@ -485,6 +497,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: ${this._getStatus()}]`;
+            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }
 }
