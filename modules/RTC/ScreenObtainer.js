@@ -221,6 +221,11 @@ const ScreenObtainer = {
             && this.options?.testing?.setScreenSharingResolutionConstraints;
         let video = {};
 
+        // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
+        if (browser.isChromiumBased() && browser.isVersionGreaterThan(106)) {
+            video.surfaceSwitching = 'include';
+        }
+
         if (typeof desktopSharingFrameRate === 'object') {
             video.frameRate = desktopSharingFrameRate;
         }
