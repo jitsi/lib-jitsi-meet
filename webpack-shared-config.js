@@ -33,7 +33,7 @@ module.exports = (minimize, analyzeBundle) => {
                     replace: commitHash,
                     search: '{#COMMIT_HASH#}'
                 },
-                test: path.join(__dirname, 'JitsiMeetJS.js')
+                test: path.join(__dirname, 'JitsiMeetJS.ts')
             }, {
                 // Transpile ES2015 (aka ES6) to ES5.
 
