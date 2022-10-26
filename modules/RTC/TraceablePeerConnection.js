@@ -978,17 +978,12 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
+    let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
 
-    let sourceName;
-
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
-
-        // If source name was not signaled, we'll generate one which allows testing signaling
-        // when mixing legacy(mobile) with new clients.
-        if (!sourceName) {
-            sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
-        }
+    // If source name was not signaled, we'll generate one which allows testing signaling
+    // when mixing legacy(mobile) with new clients.
+    if (!sourceName) {
+        sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
     }
 
     // eslint-disable-next-line no-undef
@@ -1054,14 +1049,6 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},type=${mediaType}]`);
 
         return;
-    } else if (userTracksByMediaType?.size && !FeatureFlags.isSourceNameSignalingEnabled()) {
-        logger.error(`${this} received a second remote track for track[endpoint=${ownerEndpointId},type=${mediaType}]`
-            + 'deleting the existing track');
-        const existingTrack = Array.from(userTracksByMediaType)[0];
-
-        // The existing track needs to be removed here. This happens on Safari sometimes when an SSRC is removed from
-        // the remote description and the browser doesn't fire a 'removetrack' event on the associated MediaStream.
-        this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
     }
 
     const remoteTrack
@@ -1224,20 +1211,16 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
 
     let media = session.media;
 
-    // For unified plan clients, only the first audio and video mlines will have ssrcs for the local sources.
-    // The rest of the m-lines are for the recv-only sources, one for each remote source.
     if (this._usesUnifiedPlan) {
-        if (FeatureFlags.isMultiStreamSupportEnabled()) {
-            media = media.filter(mline => mline.direction === MediaDirection.SENDONLY
-                || mline.direction === MediaDirection.SENDRECV);
-        } else {
-            media = [];
-            [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-                const mLine = session.media.find(m => m.type === mediaType);
+        media = media.filter(mline => mline.direction === MediaDirection.SENDONLY
+            || mline.direction === MediaDirection.SENDRECV);
+    } else {
+        media = [];
+        [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+            const mLine = session.media.find(m => m.type === mediaType);
 
-                mLine && media.push(mLine);
-            });
-        }
+            mLine && media.push(mLine);
+        });
     }
 
     let index = 0;
@@ -1278,9 +1261,7 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
             // the standard and the unified plan SDPs do not have a proper msid attribute for the sources.
             // Also the ssrcs for sources do not change for Unified plan clients since RTCRtpSender#replaceTrack is
             // used for switching the tracks so it is safe to use the mediaType as the key for the TrackSSRCInfo map.
-            const key = this._usesUnifiedPlan
-                ? FeatureFlags.isMultiStreamSupportEnabled() ? `${mLine.type}-${index}` : mLine.type
-                : ssrc.value;
+            const key = this._usesUnifiedPlan ? `${mLine.type}-${index}` : ssrc.value;
             const ssrcNumber = ssrc.id;
             let ssrcInfo = ssrcMap.get(key);
 
@@ -2431,16 +2412,14 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
 
     // Find all the m-lines associated with the local sources.
     const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
-    const mLines = FeatureFlags.isMultiStreamSupportEnabled()
-        ? parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction)
-        : [ parsedSdp.media.find(m => m.type === MediaType.VIDEO) ];
+    const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
 
     for (const mLine of mLines) {
         if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const mid = mLine.mid;
-            const isSharingScreen = FeatureFlags.isMultiStreamSupportEnabled()
+            const isSharingScreen = FeatureFlags.isMultiStreamSendSupportEnabled()
                 ? mid === this._getDesktopTrackMid()
                 : this._isSharingScreen();
             const limit = Math.floor((isSharingScreen ? HD_BITRATE : hdBitrate) / 1000);
@@ -2473,28 +2452,18 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.configureSenderVideoEncodings = function(localVideoTrack = null) {
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        if (localVideoTrack) {
-            return this.setSenderVideoConstraints(
-                this._senderMaxHeights.get(localVideoTrack.getSourceName()),
-                localVideoTrack);
-        }
-        const promises = [];
+    if (localVideoTrack) {
+        return this.setSenderVideoConstraints(
+            this._senderMaxHeights.get(localVideoTrack.getSourceName()),
+            localVideoTrack);
+    }
+    const promises = [];
 
-        for (const track of this.getLocalVideoTracks()) {
-            promises.push(this.setSenderVideoConstraints(this._senderMaxHeights.get(track.getSourceName()), track));
-        }
-
-        return Promise.allSettled(promises);
+    for (const track of this.getLocalVideoTracks()) {
+        promises.push(this.setSenderVideoConstraints(this._senderMaxHeights.get(track.getSourceName()), track));
     }
 
-    let localTrack = localVideoTrack;
-
-    if (!localTrack) {
-        localTrack = this.getLocalVideoTracks()[0];
-    }
-
-    return this.setSenderVideoConstraints(this._senderVideoMaxHeight, localTrack);
+    return Promise.allSettled(promises);
 };
 
 TraceablePeerConnection.prototype.setLocalDescription = function(description) {
@@ -2650,16 +2619,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         return Promise.resolve();
     }
 
-    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-        const sourceName = localVideoTrack.getSourceName();
+    const sourceName = localVideoTrack.getSourceName();
 
-        if (this._senderMaxHeights.get(sourceName) === frameHeight) {
-            return Promise.resolve();
-        }
-        this._senderMaxHeights.set(sourceName, frameHeight);
-    } else {
-        this._senderVideoMaxHeight = frameHeight;
+    if (this._senderMaxHeights.get(sourceName) === frameHeight) {
+        return Promise.resolve();
     }
+    this._senderMaxHeights.set(sourceName, frameHeight);
 
     if (!localVideoTrack || localVideoTrack.isMuted()) {
         return Promise.resolve();
@@ -3069,16 +3034,10 @@ TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
  */
 TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
     for (const track of this.localTracks.values()) {
-        let sourceIndex, sourceName;
-
-        if (FeatureFlags.isMultiStreamSupportEnabled()) {
-            sourceName = track.getSourceName();
-            sourceIndex = getSourceIndexFromSourceName(sourceName);
-        }
-
+        const sourceName = track.getSourceName();
+        const sourceIndex = getSourceIndexFromSourceName(sourceName);
         const sourceIdentifier = this._usesUnifiedPlan
-            ? FeatureFlags.isMultiStreamSupportEnabled()
-                ? `${track.getType()}-${sourceIndex}` : track.getType()
+            ? `${track.getType()}-${sourceIndex}`
             : track.storedMSID;
 
         if (ssrcMap.has(sourceIdentifier)) {

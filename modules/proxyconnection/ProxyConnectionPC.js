@@ -221,11 +221,6 @@ export default class ProxyConnectionPC {
             addPresenceListener: () => { /* no-op */ },
             connectionTimes: [],
             eventEmitter: { emit: emitter },
-            getMediaPresenceInfo: () => {
-                // Errors occur if this function does not return an object
-
-                return {};
-            },
             removeEventListener: () => { /* no op */ },
             removePresenceListener: () => { /* no-op */ },
             supportsRestartByTerminate: () => false

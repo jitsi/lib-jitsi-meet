@@ -5,7 +5,6 @@ import BridgeVideoType from '../../service/RTC/BridgeVideoType';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
-import FeatureFlags from '../flags/FeatureFlags';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
@@ -151,9 +150,6 @@ export default class RTC extends Listenable {
          */
         this._selectedEndpoints = null;
 
-        // The last N change listener.
-        this._lastNChangeListener = this._onLastNChanged.bind(this);
-
         // The forwarded sources change listener.
         this._forwardedSourcesChangeListener = this._onForwardedSourcesChanged.bind(this);
 
@@ -270,23 +266,11 @@ export default class RTC extends Listenable {
                     logError(error, 'LastNChangedEvent', this._lastN);
                 }
             }
-            if (!FeatureFlags.isSourceNameSignalingEnabled()) {
-                try {
-                    this._channel.sendVideoTypeMessage(this._videoType);
-                } catch (error) {
-                    logError(error, 'VideoTypeMessage', this._videoType);
-                }
-            }
         };
         this.addListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
 
-        // Add Last N change listener.
-        this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED, this._lastNChangeListener);
-
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            // Add forwarded sources change listener.
-            this.addListener(RTCEvents.FORWARDED_SOURCES_CHANGED, this._forwardedSourcesChangeListener);
-        }
+        // Add forwarded sources change listener.
+        this.addListener(RTCEvents.FORWARDED_SOURCES_CHANGED, this._forwardedSourcesChangeListener);
     }
 
     /**
@@ -299,30 +283,6 @@ export default class RTC extends Listenable {
      */
     _onDeviceListChanged() {
         this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
-    }
-
-    /**
-     * Receives events when Last N had changed.
-     * @param {array} lastNEndpoints The new Last N endpoints.
-     * @private
-     */
-    _onLastNChanged(lastNEndpoints = []) {
-        const oldLastNEndpoints = this._lastNEndpoints || [];
-        let leavingLastNEndpoints = [];
-        let enteringLastNEndpoints = [];
-
-        this._lastNEndpoints = lastNEndpoints;
-
-        leavingLastNEndpoints = oldLastNEndpoints.filter(
-            id => !this.isInLastN(id));
-
-        enteringLastNEndpoints = lastNEndpoints.filter(
-            id => oldLastNEndpoints.indexOf(id) === -1);
-
-        this.conference.eventEmitter.emit(
-            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
-            leavingLastNEndpoints,
-            enteringLastNEndpoints);
     }
 
     /**
@@ -866,8 +826,6 @@ export default class RTC extends Listenable {
         if (this._channel) {
             this._channel.close();
             this._channel = null;
-
-            this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED, this._lastNChangeListener);
         }
     }
 
@@ -937,17 +895,6 @@ export default class RTC extends Listenable {
             }
             this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
         }
-    }
-
-    /**
-     * Indicates if the endpoint id is currently included in the last N.
-     * @param {string} id The endpoint id that we check for last N.
-     * @returns {boolean} true if the endpoint id is in the last N or if we
-     * don't have bridge channel support, otherwise we return false.
-     */
-    isInLastN(id) {
-        return !this._lastNEndpoints // lastNEndpoints not initialised yet.
-            || this._lastNEndpoints.indexOf(id) > -1;
     }
 
     /**

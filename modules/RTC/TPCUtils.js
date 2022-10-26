@@ -359,7 +359,7 @@ export class TPCUtils {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const localTracks = this.pc.getLocalTracks(mediaType);
         const track = newTrack?.getTrack() ?? null;
-        const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
+        const isNewLocalSource = FeatureFlags.isMultiStreamSendSupportEnabled()
             && localTracks?.length
             && !oldTrack
             && newTrack

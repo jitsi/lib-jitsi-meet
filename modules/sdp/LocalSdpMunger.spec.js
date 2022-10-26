@@ -26,7 +26,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        FeatureFlags.init({ sourceNameSignaling: false });
+        FeatureFlags.init({ });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('dontStripSsrcs', () => {
@@ -43,8 +43,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(1);
-            expect(videoSsrcs.length).toEqual(1);
+            expect(audioSsrcs.length).toEqual(2);
+            expect(videoSsrcs.length).toEqual(2);
         });
 
         describe('should do nothing to an sdp with msid', () => {
@@ -63,14 +63,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 videoSsrcs = getSsrcLines(newSdp, 'video');
             };
 
-            it('without source name signaling enabled (no injected source name)', () => {
-                transformStreamIdentifiers();
-
-                expect(audioSsrcs.length).toEqual(4);
-                expect(videoSsrcs.length).toEqual(6);
-            });
             it('with source name signaling enabled (injected source name)', () => {
-                FeatureFlags.init({ });
                 transformStreamIdentifiers();
 
                 expect(audioSsrcs.length).toEqual(4 + 1 /* injected source name */);
@@ -95,7 +88,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 if (ssrcLine.attribute === 'msid') {
                     const msid = ssrcLine.value.split(' ')[0];
 
-                    expect(msid).toBe(`${localEndpointId}-video-${tpc.id}`);
+                    expect(msid).toBe(`${localEndpointId}-video-0-${tpc.id}`);
                 }
             }
         });
@@ -125,7 +118,6 @@ describe('DoNotTransformSdpForPlanB', () => {
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        FeatureFlags.init({ sourceNameSignaling: false });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('stripSsrcs', () => {
@@ -147,12 +139,6 @@ describe('DoNotTransformSdpForPlanB', () => {
                 videoSsrcs = getSsrcLines(newSdp, 'video');
             };
 
-            it('without source name signaling', () => {
-                transformStreamIdentifiers();
-
-                expect(audioSsrcs.length).toEqual(1);
-                expect(videoSsrcs.length).toEqual(1);
-            });
             it('with source name signaling', () => {
                 FeatureFlags.init({ });
                 transformStreamIdentifiers();
@@ -184,14 +170,6 @@ describe('Transform msids for source-name signaling', () => {
         videoMsidLine = getSsrcLines(newSdp, 'video').find(ssrc => ssrc.attribute === 'msid')?.value;
         videoMsid = videoMsidLine.split(' ')[0];
     };
-
-    it('should not transform', () => {
-        FeatureFlags.init({ sourceNameSignaling: false });
-        transformStreamIdentifiers();
-
-        expect(audioMsid).toBe('dcbb0236-cea5-402e-9e9a-595c65ffcc2a-1');
-        expect(videoMsid).toBe('0836cc8e-a7bb-47e9-affb-0599414bc56d-1');
-    });
 
     it('should transform', () => {
         FeatureFlags.init({ });

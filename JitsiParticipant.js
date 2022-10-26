@@ -3,8 +3,6 @@ import { Strophe } from 'strophe.js';
 
 
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import { ParticipantConnectionStatus }
-    from './modules/connectivity/ParticipantConnectionStatus';
 import { MediaType } from './service/RTC/MediaType';
 
 /**
@@ -40,7 +38,6 @@ export default class JitsiParticipant {
         this._status = status;
         this._hidden = hidden;
         this._statsID = statsID;
-        this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
         this._identity = identity;
         this._isReplacing = isReplacing;
@@ -79,27 +76,6 @@ export default class JitsiParticipant {
                 jitsiTrack =>
                     jitsiTrack.getType() === MediaType.VIDEO
                         && jitsiTrack.isWebRTCTrackMuted()));
-    }
-
-    /**
-     * Updates participant's connection status.
-     * @param {string} state the current participant connection state.
-     * {@link ParticipantConnectionStatus}.
-     * @private
-     */
-    _setConnectionStatus(status) {
-        this._connectionStatus = status;
-    }
-
-    /**
-     * Return participant's connectivity status.
-     *
-     * @returns {string} the connection status
-     * <tt>ParticipantConnectionStatus</tt> of the user.
-     * {@link ParticipantConnectionStatus}.
-     */
-    getConnectionStatus() {
-        return this._connectionStatus;
     }
 
     /**

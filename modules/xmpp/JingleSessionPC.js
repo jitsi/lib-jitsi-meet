@@ -971,12 +971,10 @@ export default class JingleSessionPC extends JingleSession {
         ssrcs.each((i, ssrcElement) => {
             const ssrc = Number(ssrcElement.getAttribute('ssrc'));
 
-            if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                if (ssrcElement.hasAttribute('name')) {
-                    const sourceName = ssrcElement.getAttribute('name');
+            if (ssrcElement.hasAttribute('name')) {
+                const sourceName = ssrcElement.getAttribute('name');
 
-                    this._signalingLayer.setTrackSourceName(ssrc, sourceName);
-                }
+                this._signalingLayer.setTrackSourceName(ssrc, sourceName);
             }
 
             if (this.isP2P) {
@@ -1053,7 +1051,7 @@ export default class JingleSessionPC extends JingleSession {
                     const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
 
                     videoTracks.length && videoTracks.splice(0, 1);
-                    if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length) {
+                    if (FeatureFlags.isMultiStreamSendSupportEnabled() && videoTracks.length) {
                         this.addTracks(videoTracks);
                     }
                 },
@@ -1209,7 +1207,7 @@ export default class JingleSessionPC extends JingleSession {
             // Add only 1 video track at a time. Adding 2 or more video tracks to the peerconnection at the same time
             // makes the browser go into a renegotiation loop by firing 'negotiationneeded' event after every
             // renegotiation.
-            if (FeatureFlags.isMultiStreamSupportEnabled() && videoTracks.length > 1) {
+            if (FeatureFlags.isMultiStreamSendSupportEnabled() && videoTracks.length > 1) {
                 tracks = [ ...audioTracks, videoTracks[0] ];
             }
             for (const track of tracks) {
@@ -1524,11 +1522,7 @@ export default class JingleSessionPC extends JingleSession {
         logger.info(`${this} setReceiverVideoConstraint - max frame height: ${maxFrameHeight}`
             + ` sourceReceiverConstraints: ${sourceReceiverConstraints}`);
 
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            this._sourceReceiverConstraints = sourceReceiverConstraints;
-        } else {
-            this.localRecvMaxFrameHeight = maxFrameHeight;
-        }
+        this._sourceReceiverConstraints = sourceReceiverConstraints;
 
         if (this.isP2P) {
             // Tell the remote peer about our receive constraint. If Jingle session is not yet active the state will
@@ -1817,7 +1811,7 @@ export default class JingleSessionPC extends JingleSession {
 
             // In p2p unified mode with multi-stream enabled, the new sources will have content name that doesn't exist
             // in the current remote description. Add a new m-line for this newly signaled source.
-            if (!midFound && this.isP2P && FeatureFlags.isSourceNameSignalingEnabled()) {
+            if (!midFound && this.isP2P) {
                 addSsrcInfo[name] = lines;
             }
         });
@@ -2122,7 +2116,7 @@ export default class JingleSessionPC extends JingleSession {
                 // Reject the m-line so that the browser removes the associated transceiver from the list of available
                 // transceivers. This will prevent the client from trying to re-use these inactive transceivers when
                 // additional video sources are added to the peerconnection.
-                if (mid > -1 && !this.isP2P && FeatureFlags.isMultiStreamSupportEnabled()) {
+                if (mid > -1 && !this.isP2P && FeatureFlags.isMultiStreamSendSupportEnabled()) {
                     const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
 
                     remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
@@ -2151,7 +2145,6 @@ export default class JingleSessionPC extends JingleSession {
         // Add a new m-line in the remote description if the source info for a secondary video source is recceived from
         // the remote p2p peer when multi-stream support is enabled.
         if (addSsrcInfo.length > remoteSdp.media.length
-            && FeatureFlags.isSourceNameSignalingEnabled()
             && this.isP2P
             && this.usesUnifiedPlan) {
             remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
@@ -2272,7 +2265,7 @@ export default class JingleSessionPC extends JingleSession {
      * otherwise.
      */
     addTracks(localTracks = null) {
-        if (!FeatureFlags.isMultiStreamSupportEnabled()
+        if (!FeatureFlags.isMultiStreamSendSupportEnabled()
             || !localTracks?.length
             || localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
             return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
@@ -2414,8 +2407,7 @@ export default class JingleSessionPC extends JingleSession {
 
                     return promise.then(() => {
                         // Set the source name of the new track.
-                        if (FeatureFlags.isSourceNameSignalingEnabled()
-                            && oldTrack
+                        if (oldTrack
                             && newTrack
                             && oldTrack.isVideoTrack()) {
                             newTrack.setSourceName(oldTrack.getSourceName());

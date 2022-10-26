@@ -48,7 +48,6 @@ export default class ChatRoom extends Listenable {
   sendAudioInfoPresence: ( mute: unknown, callback: ( params: unknown ) => unknown ) => void; // TODO:
   addVideoInfoToPresence: ( mute: unknown ) => void; // TODO:
   sendVideoInfoPresence: ( mute: unknown ) => void; // TODO:
-  getMediaPresenceInfo: ( endpointId: string, mediaType: MediaType ) => unknown; // TODO: what is PeerMediaInfo
   isSIPCallingSupported: () => boolean;
   dial: ( number: string ) => unknown; // TODO:
   hangup: () => unknown; // TODO:

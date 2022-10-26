@@ -11,7 +11,6 @@ export enum RTCEvents {
     DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
     ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
     DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
-    LASTN_ENDPOINT_CHANGED = 'rtc.lastn_endpoint_changed',
     FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
@@ -130,7 +129,6 @@ export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
 export const ENDPOINT_CONN_STATUS_CHANGED = RTCEvents.ENDPOINT_CONN_STATUS_CHANGED;
 export const DOMINANT_SPEAKER_CHANGED = RTCEvents.DOMINANT_SPEAKER_CHANGED;
-export const LASTN_ENDPOINT_CHANGED = RTCEvents.LASTN_ENDPOINT_CHANGED;
 export const FORWARDED_SOURCES_CHANGED = RTCEvents.FORWARDED_SOURCES_CHANGED;
 export const PERMISSIONS_CHANGED = RTCEvents.PERMISSIONS_CHANGED;
 export const SENDER_VIDEO_CONSTRAINTS_CHANGED = RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED;
