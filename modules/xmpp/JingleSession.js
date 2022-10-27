@@ -203,12 +203,5 @@ export default class JingleSession extends Listenable {
      */
     acceptOffer(jingle, success, failure) {}
 
-    /**
-     * Returns the JID of the initiator of the jingle session.
-     */
-    _getInitiatorJid() {
-        return this.isInitiator ? this.localJid : this.remoteJid;
-    }
-
     /* eslint-enable no-unused-vars, no-empty-function */
 }
