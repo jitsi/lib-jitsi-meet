@@ -148,7 +148,7 @@ Moderator.prototype.createConferenceIq = function() {
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/focus',
-        room: this.roomName,
+        room: this.options.connection.visitorTo ?? this.roomName,
         'machine-uid': machineUID
     });
 
