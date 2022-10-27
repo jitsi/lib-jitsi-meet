@@ -121,7 +121,7 @@ export default class ChatRoom extends Listenable {
         this.myroomjid = jid;
         this.password = password;
         this.replaceParticipant = false;
-        logger.info(`Joined MUC as ${this.myroomjid}`);
+        logger.info(`Joining MUC as ${this.myroomjid}`);
         this.members = {};
         this.presMap = {};
         this.presHandlers = {};
@@ -188,8 +188,9 @@ export default class ChatRoom extends Listenable {
             this.options.disableFocus
                 && logger.info(`Conference focus disabled for ${this.roomjid}`);
 
+            // there is no point of sending conference iq when in visitor mode
             const preJoin
-                = this.options.disableFocus
+                = this.options.disableFocus || this.options.hosts.visitorFocus
                     ? Promise.resolve()
                     : this.moderator.allocateConferenceFocus();
 

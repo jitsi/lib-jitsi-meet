@@ -2266,7 +2266,8 @@ JitsiConference.prototype.onIncomingCall = function(jingleSession, jingleOffer, 
     if (jingleSession.isP2P) {
         this._onIncomingCallP2P(jingleSession, jingleOffer);
     } else {
-        if (!this.isFocus(jingleSession.remoteJid)) {
+        if (!this.isFocus(jingleSession.remoteJid)
+                && jingleSession.remoteJid !== this.options.config.hosts.visitorFocus) {
             const description = 'Rejecting session-initiate from non-focus.';
 
             this._rejectIncomingCall(
