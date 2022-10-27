@@ -3110,7 +3110,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
 
 /**
  * Track the SSRCs seen so far.
- * @param {int} ssrc - SSRC.
+ * @param {number} ssrc - SSRC.
  * @return {boolean} - Whether this is a new SSRC.
  */
 TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {

@@ -86,7 +86,7 @@ class SpeakerStats {
     /**
      * Returns true if the tracked user is currently a dominant speaker.
      *
-     * @param {boolean} - If true, the user will being accumulating time
+     * @param {boolean} isNowDominantSpeaker - If true, the user will be accumulating time
      * as dominant speaker. If false, the user will not accumulate time
      * and will record any time accumulated since starting as dominant speaker.
      * @param {boolean} silence - Indecates whether the dominant speaker is silent or not.
