@@ -375,6 +375,25 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
         return;
     }
+
+    // redirect
+    if ($(error).find('>error>redirect').length) {
+        const urlTextNode = $(error).find('>error>url');
+        let url;
+
+        if (urlTextNode) {
+            url = urlTextNode.text();
+        }
+
+        const from = error.getAttribute('from')
+
+        logger.warn(`We have been redirected to: ${url} from:${from}`);
+
+        this.eventEmitter.emit(XMPPEvents.REDIRECTED, url, from);
+
+        return;
+    }
+
     const waitMs = this.getNextErrorTimeout();
     const errmsg = `Focus error, retry after ${waitMs}`;
 

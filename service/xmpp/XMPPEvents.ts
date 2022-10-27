@@ -204,6 +204,8 @@ export enum XMPPEvents {
      */
     RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
 
+    REDIRECTED = 'xmpp.redirected',
+
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS = 'xmpp.remote_stats',
