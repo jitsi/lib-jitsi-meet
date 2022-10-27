@@ -3039,8 +3039,6 @@ export default class JingleSessionPC extends JingleSession {
         // We want the two participants in a P2P call to agree on the value of
         // the "suspend" option. We use the JID of the initiator, because it is
         // both randomly selected and agreed upon by both participants.
-        const jid = this._getInitiatorJid();
-
-        return integerHash(jid) % 2 === 0;
+        return integerHash(this.initiatorJid) % 2 === 0;
     }
 }
