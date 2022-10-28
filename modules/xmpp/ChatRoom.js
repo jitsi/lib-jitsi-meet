@@ -440,8 +440,8 @@ export default class ChatRoom extends Listenable {
      * @param {Strophe.Status} status - The Strophe connection status.
      */
     onConnStatusChanged(status) {
-        // Send cached presence when the XMPP connection is re-established.
-        if (status === XmppConnection.Status.CONNECTED) {
+        // Send cached presence when the XMPP connection is re-established, only if needed
+        if (status === XmppConnection.Status.CONNECTED && this.presenceUpdateTime > this.presenceSyncTime) {
             this.sendPresence();
         }
     }
