@@ -494,12 +494,11 @@ StatsCollector.prototype._calculateBitrate = function(now, before, fieldName) {
  * Stats processing for spec-compliant RTCPeerConnection#getStats.
  */
 StatsCollector.prototype.processStatsReport = function() {
-    if (!this.previousStatsReport) {
-        return;
-    }
     const byteSentStats = {};
 
     this.currentStatsReport.forEach(now => {
+        const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
+
         // RTCIceCandidatePairStats - https://w3c.github.io/webrtc-stats/#candidatepair-dict*
         if (now.type === 'candidate-pair' && now.nominated && now.state === 'succeeded') {
             const availableIncomingBitrate = now.availableIncomingBitrate;
@@ -556,10 +555,9 @@ StatsCollector.prototype.processStatsReport = function() {
         // RTCSentRtpStreamStats
         // https://w3c.github.io/webrtc-stats/#sentrtpstats-dict*
         } else if (now.type === 'inbound-rtp' || now.type === 'outbound-rtp') {
-            const before = this.previousStatsReport.get(now.id);
             const ssrc = this.getNonNegativeValue(now.ssrc);
 
-            if (!before || !ssrc) {
+            if (!ssrc) {
                 return;
             }
 
@@ -584,18 +582,20 @@ StatsCollector.prototype.processStatsReport = function() {
                 packetsNow = 0;
             }
 
-            const packetsBefore = this.getNonNegativeValue(before[key]);
-            const packetsDiff = Math.max(0, packetsNow - packetsBefore);
+            if (before) {
+                const packetsBefore = this.getNonNegativeValue(before[key]);
+                const packetsDiff = Math.max(0, packetsNow - packetsBefore);
 
-            const packetsLostNow = this.getNonNegativeValue(now.packetsLost);
-            const packetsLostBefore = this.getNonNegativeValue(before.packetsLost);
-            const packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
+                const packetsLostNow = this.getNonNegativeValue(now.packetsLost);
+                const packetsLostBefore = this.getNonNegativeValue(before.packetsLost);
+                const packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
-            ssrcStats.setLoss({
-                packetsTotal: packetsDiff + packetsLostDiff,
-                packetsLost: packetsLostDiff,
-                isDownloadStream
-            });
+                ssrcStats.setLoss({
+                    packetsTotal: packetsDiff + packetsLostDiff,
+                    packetsLost: packetsLostDiff,
+                    isDownloadStream
+                });
+            }
 
             // Get the resolution and framerate for only remote video sources here. For the local video sources,
             // 'track' stats will be used since they have the updated resolution based on the simulcast streams
@@ -614,11 +614,13 @@ StatsCollector.prototype.processStatsReport = function() {
                 }
                 ssrcStats.setFramerate(Math.round(frameRate || 0));
 
-                ssrcStats.addBitrate({
-                    'download': this._calculateBitrate(now, before, 'bytesReceived'),
-                    'upload': 0
-                });
-            } else {
+                if (before) {
+                    ssrcStats.addBitrate({
+                        'download': this._calculateBitrate(now, before, 'bytesReceived'),
+                        'upload': 0
+                    });
+                }
+            } else if (before) {
                 byteSentStats[ssrc] = this.getNonNegativeValue(now.bytesSent);
                 ssrcStats.addBitrate({
                     'download': 0,
@@ -673,8 +675,6 @@ StatsCollector.prototype.processStatsReport = function() {
             let frameRate = now.framesPerSecond;
 
             if (!frameRate) {
-                const before = this.previousStatsReport.get(now.id);
-
                 if (before) {
                     const timeMs = now.timestamp - before.timestamp;
 
@@ -699,7 +699,10 @@ StatsCollector.prototype.processStatsReport = function() {
         }
     });
 
-    this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
+    if (Object.keys(byteSentStats).length) {
+        this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
+    }
+
     this._processAndEmitReport();
 };
 
@@ -740,4 +743,3 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         }
     });
 };
-
