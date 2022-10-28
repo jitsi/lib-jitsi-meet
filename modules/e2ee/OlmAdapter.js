@@ -155,12 +155,14 @@ export class OlmAdapter extends Listenable {
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
 
-            // Skip participants without support for E2EE.
-                if (!participant.getProperty('features_e2ee')) {
-                    // eslint-disable-next-line no-continue
-                    continue;
+            // TODO: skip those who don't support E2EE.
+            if (!olmData.session) {
+                logger.warn(`Tried to send key to participant ${pId} but we have no session`);
+
+                // eslint-disable-next-line no-continue
+                continue;
             }
-            
+
             const uuid = uuidv4();
             const data = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -226,23 +228,18 @@ export class OlmAdapter extends Listenable {
     }
 
     onChannelVerified(isVerified, participant) {
-        console.log("XXX sasVerified 229")
-        const olmData = this._getParticipantOlmData(participant);
+        if (isVerified) {
+            const olmData = this._getParticipantOlmData(participant);
+    
+            if (olmData.sas && olmData.sas.is_their_key_set() && !olmData.sasMacSent) {
+                this._sendSasMac(participant);
 
-        console.log("XXX onChannelVerified 232", olmData.sas)
-        console.log("XXX onChannelVerified 233", olmData.sas.is_their_key_set())
-        console.log("XXX onChannelVerified 234", !olmData.sasMacSent )
+                // Mark the MAC as sent so we don't send it multiple times.
+                olmData.sasMacSent = true;
 
-        if (olmData.sas && olmData.sas.is_their_key_set() && !olmData.sasMacSent) {
-            this._sendSasMac(participant);
-
-            // Mark the MAC as sent so we don't send it multiple times.
-            olmData.sasMacSent = true;
-
-            return;
+                return;
+            }
         }
-
-        logger.warn('Cannot mark SAS verified');
     }
 
     /**
