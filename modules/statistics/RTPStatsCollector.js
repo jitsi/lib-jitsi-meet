@@ -3,7 +3,6 @@ import { getLogger } from '@jitsi/logger';
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
-import FeatureFlags from '../flags/FeatureFlags';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
@@ -279,10 +278,8 @@ StatsCollector.prototype._processAndEmitReport = function() {
     const codecs = {};
     let audioBitrateDownload = 0;
     let audioBitrateUpload = 0;
-    let audioCodec;
     let videoBitrateDownload = 0;
     let videoBitrateUpload = 0;
-    let videoCodec;
 
     for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
         // process packet loss stats
@@ -300,6 +297,9 @@ StatsCollector.prototype._processAndEmitReport = function() {
         const track = this.peerconnection.getTrackBySSRC(ssrc);
 
         if (track) {
+            let audioCodec;
+            let videoCodec;
+
             if (track.isAudioTrack()) {
                 audioBitrateDownload += ssrcStats.bitrate.download;
                 audioBitrateUpload += ssrcStats.bitrate.upload;
@@ -310,67 +310,38 @@ StatsCollector.prototype._processAndEmitReport = function() {
                 videoCodec = ssrcStats.codec;
             }
 
-            if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                const sourceName = track.getSourceName();
+            const participantId = track.getParticipantId();
 
-                if (sourceName) {
-                    const resolution = ssrcStats.resolution;
+            if (participantId) {
+                const resolution = ssrcStats.resolution;
 
-                    if (resolution.width // eslint-disable-line max-depth
-                            && resolution.height
-                            && resolution.width !== -1
-                            && resolution.height !== -1) {
-                        resolutions[sourceName] = resolution;
-                    }
-                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
-                        framerates[sourceName] = ssrcStats.framerate;
-                    }
-                    if (audioCodec && videoCodec) { // eslint-disable-line max-depth
-                        const codecDesc = {
-                            'audio': audioCodec,
-                            'video': videoCodec
-                        };
+                if (resolution.width
+                        && resolution.height
+                        && resolution.width !== -1
+                        && resolution.height !== -1) {
+                    const userResolutions = resolutions[participantId] || {};
 
-                        codecs[sourceName] = codecDesc;
-                    }
-                } else {
-                    logger.error(`No source name returned by ${track}`);
+                    userResolutions[ssrc] = resolution;
+                    resolutions[participantId] = userResolutions;
                 }
+
+                if (ssrcStats.framerate !== 0) {
+                    const userFramerates = framerates[participantId] || {};
+
+                    userFramerates[ssrc] = ssrcStats.framerate;
+                    framerates[participantId] = userFramerates;
+                }
+
+                const userCodecs = codecs[participantId] ?? { };
+
+                userCodecs[ssrc] = {
+                    audio: audioCodec,
+                    video: videoCodec
+                };
+
+                codecs[participantId] = userCodecs;
             } else {
-                const participantId = track.getParticipantId();
-
-                if (participantId) {
-                    const resolution = ssrcStats.resolution;
-
-                    if (resolution.width // eslint-disable-line max-depth
-                            && resolution.height
-                            && resolution.width !== -1
-                            && resolution.height !== -1) {
-                        const userResolutions = resolutions[participantId] || {};
-
-                        userResolutions[ssrc] = resolution;
-                        resolutions[participantId] = userResolutions;
-                    }
-                    if (ssrcStats.framerate !== 0) { // eslint-disable-line max-depth
-                        const userFramerates = framerates[participantId] || {};
-
-                        userFramerates[ssrc] = ssrcStats.framerate;
-                        framerates[participantId] = userFramerates;
-                    }
-                    if (audioCodec && videoCodec) { // eslint-disable-line max-depth
-                        const codecDesc = {
-                            'audio': audioCodec,
-                            'video': videoCodec
-                        };
-
-                        const userCodecs = codecs[participantId] || {};
-
-                        userCodecs[ssrc] = codecDesc;
-                        codecs[participantId] = userCodecs;
-                    }
-                } else {
-                    logger.error(`No participant ID returned by ${track}`);
-                }
+                logger.error(`No participant ID returned by ${track}`);
             }
         }
 
