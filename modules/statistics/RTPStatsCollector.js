@@ -325,7 +325,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
                     resolutions[participantId] = userResolutions;
                 }
 
-                if (ssrcStats.framerate !== 0) {
+                if (ssrcStats.framerate > 0) {
                     const userFramerates = framerates[participantId] || {};
 
                     userFramerates[ssrc] = ssrcStats.framerate;
