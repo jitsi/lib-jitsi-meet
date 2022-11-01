@@ -40,8 +40,6 @@ const OlmAdapterEvents = {
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated'
 };
 
-const canonicalJson = "";
-
 /**
  * This class implements an End-to-End Encrypted communication channel between every two peers
  * in the conference. This channel uses libolm to achieve E2EE.
@@ -287,23 +285,17 @@ export class OlmAdapter extends Listenable {
     
         if (!olmData.sas) {
             olmData.sas = new Olm.SAS();
-    
-            const pub_key = olmData.sas.get_pubkey();
 
-            // TODO send the commitment later?
-            const olmUtil = new Olm.Utility();
-            const commitment = olmUtil.sha256(pub_key + canonicalJson);
-            olmUtil.free();
-
+            const startContent = {
+                uuid: uuidv4
+            };
+            olmData.startContent = startContent;
 
             const data = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
                     type: OLM_MESSAGE_TYPES.SAS_START,
-                    data: {
-                        commitment,
-                        uuid: uuidv4
-                    }
+                    data: startContent
                     }
             };
     
@@ -311,8 +303,7 @@ export class OlmAdapter extends Listenable {
     
             // TODO: handle failures. Reschedule?
             }
-        }
-
+    }
 
     /**
      * Publishes our own Olmn id key in presence.
@@ -562,21 +553,14 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_START: {
             if (olmData.session) {
+                console.log("XXX SAS_START")
                 if (olmData.sas) {
                     logger.warn(`SAS already created for participant ${pId}`);
 
                     return;
                 }
 
-                const { commitment: theirCommitment, uuid } = msg.data;
-
-                olmData.sasCommitment = theirCommitment;
-                olmData.sas = new Olm.SAS()
-                const pub_key = olmData.sas.get_pubkey();
-
-                const olmUtil = new Olm.Utility();
-                const commitment = olmUtil.sha256(pub_key + canonicalJson);
-                olmUtil.free();
+                const { uuid } = msg.data;
 
                 // Send ACCEPT.
                 const ack = {
@@ -584,7 +568,6 @@ export class OlmAdapter extends Listenable {
                     olm: {
                         type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
                         data: {
-                            commitment,
                             uuid
                         }
                     }
@@ -600,17 +583,12 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_ACCEPT: {
             if (olmData.session) {
+                console.log("XXX SAS_ACCEPT")
                 const { commitment, uuid } = msg.data;
                 olmData.sasCommitment = commitment;
 
+                olmData.sas = new Olm.SAS()
                 const pub_key = olmData.sas.get_pubkey();
-
-               /* const info = `${this.myId}|${pub_key}|${pId}|${key}`;
-
-                const sasBytes = olmData.sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
-                const sas = generateSas(sasBytes);
-               
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, sas);*/
 
                 // Send KEY.
                 const ack = {
@@ -635,23 +613,39 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
             if (olmData.session) {
+                console.log("XXX SAS_KEY1", olmData.sas)
+                if (!olmData.sas) {
+                    olmData.sas = new Olm.SAS();
+                }
+
                 if (olmData.sas.is_their_key_set()) {
+                    console.log("XXX SAS_KEY12")
                     logger.warn('SAS already has their key!');
 
                     return;
                 }
 
                 const { key: theirKey, isInitializer, uuid } = msg.data;
-                olmData.sas.set_their_key(theirKey);
 
-                const olmUtil = new Olm.Utility();
-                const commitment = olmUtil.sha256(theirKey + canonicalJson);
-                olmUtil.free();
+                console.log("XXX SAS_KEY2")
+                if (olmData.sasCommitment) {
+                    console.log("XXX verify commitment")
+                    const olmUtil = new Olm.Utility();
+                    console.log("XXX SAS_KEY olmData.startContent", olmData.startContent)
+                    console.log("XXX SAS_KEY olmData.theirKey", theirKey)
+                    const commitment = olmUtil.sha256(theirKey + olmData.startContent);
+                    olmUtil.free();
 
-                if (olmData.sasCommitment !== commitment) {
-                    throw new Error('OlmAdapter commitments mismatched');
+                    if (olmData.sasCommitment !== commitment) {
+                        console.log("XXX verify commitment failed1", olmData.sasCommitment);
+                        console.log("XXX verify commitment failed2", commitment);
+                        throw new Error('OlmAdapter commitments mismatched');
+                    }
                 }
 
+                olmData.sas.set_their_key(theirKey);
+
+                console.log("XXX SAS_KEY3")
                 const pub_key = olmData.sas.get_pubkey();
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -759,11 +753,11 @@ export class OlmAdapter extends Listenable {
 
                 // At this point all MACs are verified, so we can mark the user as verified.
                 // We'll now send our own MACs.
-                if (!olmData.sasMacSent) {
+               /* if (!olmData.sasMacSent) {
                     console.log("XXX MAC verified")
                     this._sendSasMac(participant);
                     olmData.sasMacSent = true;
-                }
+                }*/
 
                 console.log("XXX mac verified 706")
                 //this.eventEmitter.emit(OlmAdapterEvents.OLM_SAS_VERIFIED, pId);
