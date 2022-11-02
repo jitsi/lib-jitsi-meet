@@ -176,11 +176,46 @@ export default class BreakoutRooms {
             this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, payload.roomJid);
             break;
         case BREAKOUT_ROOM_EVENTS.UPDATE: {
-            this._rooms = payload.rooms;
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, payload);
+            const filteredPayload = this._filterUpdatePayload(payload);
+
+            this._rooms = filteredPayload.rooms;
+            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, filteredPayload);
             break;
         }
         }
+    }
+
+    /**
+     * Filters the hidden participants from the payload.
+     *
+     * @param {Object} payload - The payload of the update message.
+     * @return {Object} - The filtered payload.
+     */
+    _filterUpdatePayload(payload) {
+        const hiddenDomain = this.room.options.hiddenDomain;
+        const { rooms } = payload;
+        const filteredRooms = {};
+
+        Object.entries(rooms).forEach(([ key, room ]) => {
+            const { participants = {} } = room;
+            const filteredParticipants = {};
+
+            Object.entries(participants).forEach(([ k, participant ]) => {
+                if (Strophe.getDomainFromJid(participant.jid) !== hiddenDomain) {
+                    filteredParticipants[k] = participant;
+                }
+            });
+
+            filteredRooms[key] = {
+                ...room,
+                participants: filteredParticipants
+            };
+        });
+
+        return {
+            ...payload,
+            rooms: filteredRooms
+        };
     }
 
     /**
