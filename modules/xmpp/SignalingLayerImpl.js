@@ -125,6 +125,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @returns {void}
      */
     _bindChatRoomEventHandlers(room) {
+        // Add handlers for 'audiomuted', 'videomuted' and 'videoType' fields in presence in order to support interop
+        // with very old versions of mobile clients and jigasi that do not support source-name signaling.
         const emitAudioMutedEvent = (endpointId, muted) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
@@ -133,8 +135,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 muted);
         };
 
-        // This is needed for Jigasi endpoints that send presence in the old format even when source-name signaling
-        // is enabled by default.
         this._audioMuteHandler = (node, from) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
                 emitAudioMutedEvent(from, node.value === 'true');
@@ -142,6 +142,35 @@ export default class SignalingLayerImpl extends SignalingLayer {
         };
         room.addPresenceListener('audiomuted', this._audioMuteHandler);
 
+        const emitVideoMutedEvent = (endpointId, muted) => {
+            this.eventEmitter.emit(
+                SignalingEvents.PEER_MUTED_CHANGED,
+                endpointId,
+                MediaType.VIDEO,
+                muted);
+        };
+
+        this._videoMuteHandler = (node, from) => {
+            if (!this._doesEndpointSendNewSourceInfo(from)) {
+                emitVideoMutedEvent(from, node.value === 'true');
+            }
+        };
+        room.addPresenceListener('videomuted', this._videoMuteHandler);
+
+        const emitVideoTypeEvent = (endpointId, videoType) => {
+            this.eventEmitter.emit(
+                SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
+                endpointId, videoType);
+        };
+
+        this._videoTypeHandler = (node, from) => {
+            if (!this._doesEndpointSendNewSourceInfo(from)) {
+                emitVideoTypeEvent(from, node.value);
+            }
+        };
+        room.addPresenceListener('videoType', this._videoTypeHandler);
+
+        // Add handlers for presence in the new format.
         this._sourceInfoHandler = (node, mucNick) => {
             const endpointId = mucNick;
             const { value } = node;
