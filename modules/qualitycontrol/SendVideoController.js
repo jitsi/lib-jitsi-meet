@@ -89,8 +89,7 @@ export default class SendVideoController {
         for (const track of localVideoTracks) {
             // Propagate the sender constraint only if it has changed.
             if (track.getSourceName() === sourceName
-                && (!this._sourceSenderConstraints.has(sourceName)
-                || this._sourceSenderConstraints.get(sourceName) !== maxHeight)) {
+                && this._sourceSenderConstraints.get(sourceName) !== maxHeight) {
                 this._sourceSenderConstraints.set(
                     sourceName,
                     maxHeight === -1

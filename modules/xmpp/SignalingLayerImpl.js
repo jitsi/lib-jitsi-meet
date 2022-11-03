@@ -6,7 +6,6 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import FeatureFlags from '../flags/FeatureFlags';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';
 
@@ -108,14 +107,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 'videomuted', this._videoMuteHandler);
             oldChatRoom.removePresenceListener(
                 'videoType', this._videoTypeHandler);
-            if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                this._sourceInfoHandler
-                    && oldChatRoom.removePresenceListener(
-                        SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
-                this._memberLeftHandler
-                    && oldChatRoom.removeEventListener(
-                        XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
-            }
+            this._sourceInfoHandler
+                && oldChatRoom.removePresenceListener(SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
+            this._memberLeftHandler
+                && oldChatRoom.removeEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
         }
         if (room) {
             this._bindChatRoomEventHandlers(room);

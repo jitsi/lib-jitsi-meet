@@ -424,9 +424,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     { constraints: { video: this._constraints } }));
 
             promise = promise.then(streamsInfo => {
-                // The track kind for presenter track is video as well.
-                const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
-                const streamInfo = streamsInfo.find(info => info.track.kind === mediaType);
+                const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
 
                 if (streamInfo) {
                     this._setStream(streamInfo.stream);

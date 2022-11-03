@@ -650,7 +650,7 @@ export default class RTC extends Listenable {
     setVideoMute(value) {
         const mutePromises = [];
 
-        this.getLocalTracks(MediaType.VIDEO).concat(this.getLocalTracks(MediaType.PRESENTER))
+        this.getLocalTracks(MediaType.VIDEO)
             .forEach(videoTrack => {
                 // this is a Promise
                 mutePromises.push(value ? videoTrack.mute() : videoTrack.unmute());
