@@ -518,7 +518,9 @@ export default class JingleSessionPC extends JingleSession {
                     });
                 this._gatheringReported = true;
             }
-            this.sendIceCandidate(candidate);
+            if (this.isP2P) {
+                this.sendIceCandidate(candidate);
+            }
         };
 
         // Note there is a change in the spec about closed:
