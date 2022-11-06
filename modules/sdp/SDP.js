@@ -658,7 +658,7 @@ SDP.prototype.jingle2media = function(content) {
             if (fingerprint.hasAttribute('setup')) {
                 sdp += `a=setup:${fingerprint.getAttribute('setup')}\r\n`;
             }
-            if (fingerprint.getAttribute('cryptex') === true)  {
+            if (fingerprint.getAttribute('cryptex') === true) {
                 sdp += 'a=cryptex';
             }
         });
