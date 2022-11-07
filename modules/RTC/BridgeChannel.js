@@ -375,19 +375,11 @@ export default class BridgeChannel {
                 break;
             }
             case 'SenderSourceConstraints': {
-                const { sourceName, maxHeight } = obj;
-
-                if (typeof sourceName === 'string' && typeof maxHeight === 'number') {
-                    // eslint-disable-next-line object-property-newline
-                    logger.info(`SenderSourceConstraints: ${JSON.stringify({ sourceName, maxHeight })}`);
-                    emitter.emit(
-                        RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, {
-                            sourceName,
-                            maxHeight
-                        }
-                    );
+                if (typeof obj.sourceName === 'string' && typeof obj.maxHeight === 'number') {
+                    logger.info(`SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`);
+                    emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, obj);
                 } else {
-                    logger.error(`Invalid SenderSourceConstraints: ${JSON.stringify(obj)}`);
+                    logger.error(`Invalid SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`);
                 }
                 break;
             }

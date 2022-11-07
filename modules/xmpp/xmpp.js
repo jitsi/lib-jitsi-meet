@@ -254,10 +254,10 @@ export default class XMPP extends Listenable {
         }
 
         // Advertise source-name signaling when the endpoint supports it.
-        logger.info('Source-name signaling is enabled');
+        logger.debug('Source-name signaling is enabled');
         this.caps.addFeature('http://jitsi.org/source-name');
 
-        logger.info('Receiving multiple video streams is enabled');
+        logger.debug('Receiving multiple video streams is enabled');
         this.caps.addFeature('http://jitsi.org/receive-multiple-video-streams');
     }
 
