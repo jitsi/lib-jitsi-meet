@@ -70,8 +70,8 @@ export class OlmAdapter extends Listenable {
 
         this._conf = conference;
         this._init = new Deferred();
-        this._key = undefined;
-        this._keyIndex = -1;
+        this._mediaKey = undefined;
+        this._mediaKeyIndex = -1;
         this._reqs = new Map();
         this._sessionInitialization = undefined;
 
@@ -144,8 +144,8 @@ export class OlmAdapter extends Listenable {
      */
     async updateKey(key) {
         // Store it locally for new sessions.
-        this._key = key;
-        this._keyIndex++;
+        this._mediaKey = key;
+        this._mediaKeyIndex++;
 
         // Broadcast it.
         const promises = [];
@@ -189,7 +189,7 @@ export class OlmAdapter extends Listenable {
 
         // TODO: retry failed ones?
 
-        return this._keyIndex;
+        return this._mediaKeyIndex;
     }
 
     /**
@@ -197,10 +197,10 @@ export class OlmAdapter extends Listenable {
      * @param {Uint8Array|boolean} key - The new key.
      * @returns {number}
     */
-    updateCurrentKey(key) {
-        this._key = key;
+    updateCurrentMediaKey(key) {
+        this._mediaKey = key;
 
-        return this._keyIndex;
+        return this._mediaKeyIndex;
     }
 
     /**
@@ -339,9 +339,9 @@ export class OlmAdapter extends Listenable {
     _encryptKeyInfo(session) {
         const keyInfo = {};
 
-        if (this._key !== undefined) {
-            keyInfo.key = this._key ? base64js.fromByteArray(this._key) : false;
-            keyInfo.keyIndex = this._keyIndex;
+        if (this._mediaKey !== undefined) {
+            keyInfo.key = this._mediaKey ? base64js.fromByteArray(this._mediaKey) : false;
+            keyInfo.keyIndex = this._mediaKeyIndex;
         }
 
         return session.encrypt(JSON.stringify(keyInfo));
