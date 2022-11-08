@@ -275,48 +275,51 @@ export class OlmAdapter extends Listenable {
      * @private
      */
      startVerification(participant) {
+         console.log("XXX startVerification1")
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
     
         if (!olmData.session) {
+            console.log("XXX startVerification2")
             logger.warn(`Tried to start verification with participant ${pId} but we have no session`);
     
             return;
          }
     
-        if (!olmData.sas) {
-            olmData.sas = new Olm.SAS();
+        console.log("XXX startVerification3")
 
-            const startContent = {
-                uuid: uuidv4
-            };
-            olmData.startContent = startContent;
+        olmData.sas = new Olm.SAS();
 
-            const data = {
-                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+        const startContent = {
+            uuid: uuidv4
+        };
+            
+        olmData.startContent = startContent;
+
+        const data = {
+            [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
                     type: OLM_MESSAGE_TYPES.SAS_START,
                     data: startContent
                     }
-            };
+        };
     
-            this._sendMessage(data, pId);
-            }
+        this._sendMessage(data, pId);
     }
 
     /**
      * Publishes our own Olmn id key in presence.
      * @private
      */
-    _onIdKeysReady(idKey) {
-        logger.debug(`Olm id key ready: ${idKey}`);
+    _onIdKeysReady(idKeys) {
+        logger.debug(`Olm id key ready: ${idKeys}`);
 
         // Publish it in presence.
         for (const keyType in idKeys) {
             if (idKeys.hasOwnProperty(keyType)) {
                 const key = idKeys[keyType];
 
-                this.conference.setLocalParticipantProperty(`e2ee.idKey`, key);
+                this._conf.setLocalParticipantProperty(`e2ee.idKey.${keyType}`, key);
             }
         }
     }
@@ -552,7 +555,14 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
+                olmData.sas = new Olm.SAS();
+
                 const { uuid } = msg.data;
+
+                const pub_key = olmData.sas.get_pubkey();
+                const olmUtil = new Olm.Utility();
+                const commitment = olmUtil.sha256(pub_key + msg.data);
+                olmUtil.free();
 
                 // Send ACCEPT.
                 const ack = {
@@ -560,7 +570,8 @@ export class OlmAdapter extends Listenable {
                     olm: {
                         type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
                         data: {
-                            uuid
+                            uuid,
+                            commitment
                         }
                     }
                 };
@@ -604,10 +615,6 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
             if (olmData.session) {
-                if (!olmData.sas) {
-                    olmData.sas = new Olm.SAS();
-                }
-
                 if (olmData.sas.is_their_key_set()) {
                     logger.warn('SAS already has their key!');
 
@@ -681,15 +688,9 @@ export class OlmAdapter extends Listenable {
 
                 for (const [ keyInfo, computedMac ] of Object.entries(mac)) {
                     const keyType = keyInfo.split(':')[0];
-                    const pubKey = olmData.lastKey;
-
-                    if (!pubKey) {
-                        logger.warn(`Could not get ${keyType} public key for participant ${pId}`);
-                        return;
-                    }
 
                     const ourComputedMac = olmData.sas.calculate_mac(
-                        pubKey,
+                        olmData.ed25519,
                         baseInfo + keyInfo
                     );
 
@@ -773,6 +774,10 @@ export class OlmAdapter extends Listenable {
                     this._sendMessage(data, participantId);
                 }
             }
+            break;
+        case 'e2ee.idKey.ed25519': 
+            const olmData = this._getParticipantOlmData(participant);
+            olmData.ed25519 = newValue;
             break;
         }
     }
@@ -893,7 +898,7 @@ export class OlmAdapter extends Listenable {
         const deviceKeyId = `ed25519:${uuid}`;
 
         mac[deviceKeyId] = olmData.sas.calculate_mac(
-            this._key,
+            this._idKeys.ed25519,
             baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
     
