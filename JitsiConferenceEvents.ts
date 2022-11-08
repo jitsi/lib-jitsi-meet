@@ -224,22 +224,6 @@ export enum JitsiConferenceEvents {
     PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived',
 
     /**
-     * Event fired when JVB sends notification about interrupted/restored user's
-     * ICE connection status or we detect local problem with the video track.
-     * First argument is the ID of the participant and
-     * the seconds is a string indicating if the connection is currently
-     * - active - the connection is active
-     * - inactive - the connection is inactive, was intentionally interrupted by
-     * the bridge
-     * - interrupted - a network problem occurred
-     * - restoring - the connection was inactive and is restoring now
-     *
-     * The current status value can be obtained by calling
-     * JitsiParticipant.getConnectionStatus().
-     */
-    PARTICIPANT_CONN_STATUS_CHANGED = 'conference.participant_conn_status_changed',
-
-    /**
      * Indicates that the features of the participant has been changed.
      * TODO: there is a spelling mistake in this event name and associated constants
      */
@@ -507,7 +491,6 @@ export const NO_AUDIO_INPUT = JitsiConferenceEvents.NO_AUDIO_INPUT;
 export const NOISY_MIC = JitsiConferenceEvents.NOISY_MIC;
 export const NON_PARTICIPANT_MESSAGE_RECEIVED = JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED;
 export const PRIVATE_MESSAGE_RECEIVED = JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED;
-export const PARTICIPANT_CONN_STATUS_CHANGED = JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED;
 export const PARTCIPANT_FEATURES_CHANGED = JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED;
 export const PARTICIPANT_PROPERTY_CHANGED = JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED;
 export const P2P_STATUS = JitsiConferenceEvents.P2P_STATUS;

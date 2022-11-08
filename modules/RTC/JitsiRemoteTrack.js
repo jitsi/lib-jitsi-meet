@@ -1,7 +1,6 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
-import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -131,8 +130,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _addEventListener(event, handler) {
         super.addListener(event, handler);
 
-        if (FeatureFlags.isSourceNameSignalingEnabled()
-            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
             && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
             && !this._trackStreamingStatusImpl
         ) {
@@ -150,8 +148,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _removeEventListener(event, handler) {
         super.removeListener(event, handler);
 
-        if (FeatureFlags.isSourceNameSignalingEnabled()
-            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
             && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
         ) {
             this._disposeTrackStreamingStatus();
@@ -191,9 +188,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            this._disposeTrackStreamingStatus();
-        }
+        this._disposeTrackStreamingStatus();
 
         return super.dispose();
     }

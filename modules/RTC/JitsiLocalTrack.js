@@ -356,7 +356,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _setMuted(muted) {
         if (this.isMuted() === muted
-            && !(this.videoType === VideoType.DESKTOP && FeatureFlags.isMultiStreamSupportEnabled())) {
+            && !(this.videoType === VideoType.DESKTOP && FeatureFlags.isMultiStreamSendSupportEnabled())) {
             return Promise.resolve();
         }
 
@@ -374,7 +374,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // the desktop track when screenshare is stopped. Later when screenshare is started again, the same sender will
         // be re-used without the need for signaling a new ssrc through source-add.
         if (this.isAudioTrack()
-                || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSupportEnabled())
+                || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSendSupportEnabled())
                 || !browser.doesVideoMuteByStreamRemove()) {
             logMuteInfo();
 
@@ -424,9 +424,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     { constraints: { video: this._constraints } }));
 
             promise = promise.then(streamsInfo => {
-                // The track kind for presenter track is video as well.
-                const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
-                const streamInfo = streamsInfo.find(info => info.track.kind === mediaType);
+                const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
 
                 if (streamInfo) {
                     this._setStream(streamInfo.stream);

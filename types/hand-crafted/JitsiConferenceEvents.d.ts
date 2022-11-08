@@ -32,7 +32,6 @@ export enum JitsiConferenceEvents {
   NOISY_MIC = 'conference.noisy_mic',
   NON_PARTICIPANT_MESSAGE_RECEIVED = 'conference.non_participant_message_received',
   PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived',
-  PARTICIPANT_CONN_STATUS_CHANGED = 'conference.participant_conn_status_changed',
   PARTCIPANT_FEATURES_CHANGED = 'conference.partcipant_features_changed',
   PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed',
   P2P_STATUS = 'conference.p2pStatus',

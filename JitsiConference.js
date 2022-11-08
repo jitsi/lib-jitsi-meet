@@ -17,10 +17,7 @@ import RTC from './modules/RTC/RTC';
 import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
-import IceFailedHandling
-    from './modules/connectivity/IceFailedHandling';
-import ParticipantConnectionStatusHandler
-    from './modules/connectivity/ParticipantConnectionStatus';
+import IceFailedHandling from './modules/connectivity/IceFailedHandling';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
@@ -422,29 +419,11 @@ JitsiConference.prototype._init = function(options = {}) {
     if (!this.rtc) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            this._registerRtcListeners(this.rtc);
-        }
+        this._registerRtcListeners(this.rtc);
     }
 
     this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
     this.sendVideoController = new SendVideoController(this, this.rtc);
-
-    // Do not initialize ParticipantConnectionStatusHandler when source-name signaling is enabled.
-    if (!FeatureFlags.isSourceNameSignalingEnabled()) {
-        this.participantConnectionStatus
-        = new ParticipantConnectionStatusHandler(
-            this.rtc,
-            this,
-            {
-                // These options are not public API, leaving it here only as an entry point through config for tuning
-                // up purposes. Default values should be adjusted as soon as optimal values are discovered.
-                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
-                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                outOfLastNTimeout: config._peerConnStatusOutOfLastNTimeout
-            });
-        this.participantConnectionStatus.init();
-    }
 
     // Add the ability to enable callStats only on a percentage of users based on config.js settings.
     let enableCallStats = true;
@@ -807,11 +786,7 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
         videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
     }
 
-    if (FeatureFlags.isSourceNameSignalingEnabled() && localtrack) {
-        this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
-    } else if (!FeatureFlags.isSourceNameSignalingEnabled()) {
-        this.rtc.setVideoType(videoType);
-    }
+    localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
 };
 
 /**
@@ -1129,7 +1104,7 @@ JitsiConference.prototype.addTrack = function(track) {
 
         // Currently, only adding multiple video streams of different video types is supported.
         // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
-        if (FeatureFlags.isMultiStreamSupportEnabled()
+        if (FeatureFlags.isMultiStreamSendSupportEnabled()
             && mediaType === MediaType.VIDEO
             && !localTracks.find(t => t.getVideoType() === track.getVideoType())) {
             const sourceName = getSourceNameForJitsiTrack(
@@ -1163,7 +1138,7 @@ JitsiConference.prototype.addTrack = function(track) {
             // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
             // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
             // only be sent after a session-accept or source-add is ack'ed.
-            if (track.getVideoType() === VideoType.DESKTOP && FeatureFlags.isMultiStreamSupportEnabled()) {
+            if (track.getVideoType() === VideoType.DESKTOP && FeatureFlags.isMultiStreamSendSupportEnabled()) {
                 this._updateRoomPresence(this.getActiveMediaSession());
             }
         });
@@ -1301,22 +1276,20 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     const mediaType = oldTrack?.getType() || newTrack?.getType();
     const newVideoType = newTrack?.getVideoType();
 
-    if (FeatureFlags.isMultiStreamSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
+    if (FeatureFlags.isMultiStreamSendSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
         throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
             + ' not supported in this mode.');
     }
 
-    if (FeatureFlags.isSourceNameSignalingEnabled() && newTrack) {
-        if (oldTrack) {
-            newTrack.setSourceName(oldTrack.getSourceName());
-        } else {
-            const sourceName = getSourceNameForJitsiTrack(
+    if (newTrack) {
+        const sourceName = oldTrack
+            ? oldTrack.getSourceName()
+            : getSourceNameForJitsiTrack(
                 this.myUserId(),
                 mediaType,
                 this.getLocalTracks(mediaType)?.length);
 
-            newTrack.setSourceName(sourceName);
-        }
+        newTrack.setSourceName(sourceName);
     }
     const oldTrackBelongsToConference = this === oldTrack?.conference;
 
@@ -1422,7 +1395,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     }
 
     // Create a source name for this track if it doesn't exist.
-    if (FeatureFlags.isSourceNameSignalingEnabled() && !newTrack.getSourceName()) {
+    if (!newTrack.getSourceName()) {
         const sourceName = getSourceNameForJitsiTrack(
             this.myUserId(),
             mediaType,
@@ -1455,25 +1428,8 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 JitsiConference.prototype._setNewVideoType = function(track) {
     let videoTypeChanged = false;
 
-    if (FeatureFlags.isSourceNameSignalingEnabled() && track) {
+    if (track) {
         videoTypeChanged = this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
-    }
-
-    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
-        const videoTypeTagName = 'videoType';
-
-        // If track is missing we revert to default type Camera, the case where we screenshare and
-        // we return to be video muted.
-        const trackVideoType = track ? track.videoType : VideoType.CAMERA;
-
-        // If video type is camera and there is no videoType in presence, we skip adding it, as this is the default one
-        if (trackVideoType !== VideoType.CAMERA || this.room.getFromPresence(videoTypeTagName)) {
-            // We will not use this.sendCommand here to avoid sending the presence immediately, as later we may also
-            // set the mute status.
-            const legacyTypeChanged = this.room.addOrReplaceInPresence(videoTypeTagName, { value: trackVideoType });
-
-            videoTypeChanged = videoTypeChanged || legacyTypeChanged;
-        }
     }
 
     return videoTypeChanged;
@@ -1490,26 +1446,8 @@ JitsiConference.prototype._setNewVideoType = function(track) {
 JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
     let presenceChanged = false;
 
-    if (FeatureFlags.isSourceNameSignalingEnabled() && localTrack) {
+    if (localTrack) {
         presenceChanged = this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
-    }
-
-    // Add the 'audioMuted' and 'videoMuted' tags when source name signaling is enabled for backward compatibility.
-    // It won't be used anymore when multiple stream support is enabled.
-    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
-        let audioMuteChanged, videoMuteChanged;
-
-        if (!this.room) {
-            return false;
-        }
-
-        if (mediaType === MediaType.AUDIO) {
-            audioMuteChanged = this.room.addAudioInfoToPresence(isMuted);
-        } else {
-            videoMuteChanged = this.room.addVideoInfoToPresence(isMuted);
-        }
-
-        presenceChanged = presenceChanged || audioMuteChanged || videoMuteChanged;
     }
 
     return presenceChanged;
@@ -1703,20 +1641,6 @@ JitsiConference.prototype.setLastN = function(lastN) {
                     error);
             });
     }
-};
-
-/**
- * Checks if the participant given by participantId is currently included in
- * the last N.
- * @param {string} participantId the identifier of the participant we would
- * like to check.
- * @return {boolean} true if the participant with id is in the last N set or
- * if there's no last N set, false otherwise.
- * @deprecated this method should never be used to figure out the UI, but
- * {@link ParticipantConnectionStatus} should be used instead.
- */
-JitsiConference.prototype.isInLastN = function(participantId) {
-    return this.rtc.isInLastN(participantId);
 };
 
 /**
@@ -3691,8 +3615,6 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
     let presenceChanged = false;
     let muteStatusChanged, videoTypeChanged;
     const localTracks = jingleSession.peerconnection.getLocalTracks();
-    const localAudioTracks = localTracks.filter(track => track.getType() === MediaType.AUDIO);
-    const localVideoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
 
     // Set presence for all the available local tracks.
     for (const track of localTracks) {
@@ -3701,21 +3623,6 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
             videoTypeChanged = this._setNewVideoType(track);
         }
         presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
-    }
-
-    // Set the presence in the legacy format if there are no local tracks and multi stream support is not enabled.
-    if (!FeatureFlags.isMultiStreamSupportEnabled()) {
-        let audioMuteStatusChanged, videoMuteStatusChanged;
-
-        if (!localAudioTracks?.length) {
-            audioMuteStatusChanged = this._setTrackMuteStatus(MediaType.AUDIO, undefined, true);
-        }
-        if (!localVideoTracks?.length) {
-            videoMuteStatusChanged = this._setTrackMuteStatus(MediaType.VIDEO, undefined, true);
-            videoTypeChanged = this._setNewVideoType();
-        }
-
-        presenceChanged = presenceChanged || audioMuteStatusChanged || videoMuteStatusChanged || videoTypeChanged;
     }
 
     presenceChanged && this.room.sendPresence();

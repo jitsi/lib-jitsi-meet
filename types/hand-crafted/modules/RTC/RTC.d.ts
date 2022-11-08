@@ -43,7 +43,6 @@ export default class RTC extends Listenable {
   setAudioLevel: ( tpc: TraceablePeerConnection, ssrc: number, audioLevel: number, isLocal: boolean ) => void;
   sendChannelMessage: ( to: string, payload: unknown ) => void; // TODO:
   setLastN: ( value: number ) => void;
-  isInLastN: ( id: string ) => boolean;
   isInForwardedSources: ( sourceName: string ) => boolean;
   setNewReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
   setVideoType: ( videoType: string ) => void;

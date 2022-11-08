@@ -89,37 +89,4 @@ describe('ReceiveVideoController', () => {
             }
         });
     });
-
-    describe('when sourceNameSignaling is disabled', () => {
-        beforeEach(() => {
-            FeatureFlags.init({ sourceNameSignaling: false });
-        });
-
-        it('should call setNewReceiverVideoConstraints with the endpoints format.', () => {
-            const rtcSpy = spyOn(rtc, 'setNewReceiverVideoConstraints');
-            const constraints = {
-                onStageEndpoints: [ 'A', 'B', 'C' ],
-                selectedEndpoints: [ 'A' ]
-            };
-
-            receiveVideoController.setReceiverConstraints(constraints);
-            expect(rtcSpy).toHaveBeenCalledWith(constraints);
-        });
-
-        it('should not allow the source names format.', () => {
-            const constraints = {
-                onStageSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
-                selectedSources: [ 'A_camera_1' ]
-            };
-
-            try {
-                receiveVideoController.setReceiverConstraints(constraints);
-                fail();
-            } catch (error) {
-                expect(error).toEqual(new Error(
-                    '"onStageSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
-                ));
-            }
-        });
-    });
 });

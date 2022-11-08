@@ -39,7 +39,6 @@ describe( "/JitsiConferenceEvents members", () => {
         NOISY_MIC,
         NON_PARTICIPANT_MESSAGE_RECEIVED,
         PRIVATE_MESSAGE_RECEIVED,
-        PARTICIPANT_CONN_STATUS_CHANGED,
         PARTCIPANT_FEATURES_CHANGED,
         PARTICIPANT_PROPERTY_CHANGED,
         P2P_STATUS,
@@ -117,7 +116,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( NOISY_MIC ).toBe( 'conference.noisy_mic' );
         expect( NON_PARTICIPANT_MESSAGE_RECEIVED ).toBe( 'conference.non_participant_message_received' );
         expect( PRIVATE_MESSAGE_RECEIVED ).toBe( 'conference.privateMessageReceived' );
-        expect( PARTICIPANT_CONN_STATUS_CHANGED ).toBe( 'conference.participant_conn_status_changed' );
         expect( PARTCIPANT_FEATURES_CHANGED ).toBe( 'conference.partcipant_features_changed' );
         expect( PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( P2P_STATUS ).toBe( 'conference.p2pStatus' );
@@ -193,7 +191,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.NOISY_MIC ).toBe( 'conference.noisy_mic' );
         expect( JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED ).toBe( 'conference.non_participant_message_received' );
         expect( JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED ).toBe( 'conference.privateMessageReceived' );
-        expect( JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED ).toBe( 'conference.participant_conn_status_changed' );
         expect( JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED ).toBe( 'conference.partcipant_features_changed' );
         expect( JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( JitsiConferenceEvents.P2P_STATUS ).toBe( 'conference.p2pStatus' );

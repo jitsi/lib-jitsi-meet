@@ -211,27 +211,26 @@ export default class LocalSdpMunger {
                     let streamId = streamAndTrackIDs[0];
                     const trackId = streamAndTrackIDs[1];
 
-                    if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                        // Always overwrite streamId since we want the msid to be in this format even if the browser
-                        // generates one (in p2p mode).
-                        streamId = `${this.localEndpointId}-${mediaType}`;
+                    // Always overwrite streamId since we want the msid to be in this format even if the browser
+                    // generates one (in p2p mode).
+                    streamId = `${this.localEndpointId}-${mediaType}`;
 
+                    // eslint-disable-next-line max-depth
+                    if (mediaType === MediaType.VIDEO) {
                         // eslint-disable-next-line max-depth
-                        if (mediaType === MediaType.VIDEO) {
-                            // eslint-disable-next-line max-depth
-                            if (!this.videoSourcesToMsidMap.has(trackId)) {
-                                streamId = `${streamId}-${this.videoSourcesToMsidMap.size}`;
-                                this.videoSourcesToMsidMap.set(trackId, streamId);
-                            }
-                        } else if (!this.audioSourcesToMsidMap.has(trackId)) {
-                            streamId = `${streamId}-${this.audioSourcesToMsidMap.size}`;
-                            this.audioSourcesToMsidMap.set(trackId, streamId);
+                        if (!this.videoSourcesToMsidMap.has(trackId)) {
+                            streamId = `${streamId}-${this.videoSourcesToMsidMap.size}`;
+                            this.videoSourcesToMsidMap.set(trackId, streamId);
                         }
-
-                        streamId = mediaType === MediaType.VIDEO
-                            ? this.videoSourcesToMsidMap.get(trackId)
-                            : this.audioSourcesToMsidMap.get(trackId);
+                    } else if (!this.audioSourcesToMsidMap.has(trackId)) {
+                        streamId = `${streamId}-${this.audioSourcesToMsidMap.size}`;
+                        this.audioSourcesToMsidMap.set(trackId, streamId);
                     }
+
+                    streamId = mediaType === MediaType.VIDEO
+                        ? this.videoSourcesToMsidMap.get(trackId)
+                        : this.audioSourcesToMsidMap.get(trackId);
+
                     ssrcLine.value = this._generateMsidAttribute(mediaType, trackId, streamId);
                 } else {
                     logger.warn(`Unable to munge local MSID - weird format detected: ${ssrcLine.value}`);
@@ -344,7 +343,7 @@ export default class LocalSdpMunger {
 
         const videoMlines = transformer.selectMedia(MediaType.VIDEO);
 
-        if (!FeatureFlags.isMultiStreamSupportEnabled()) {
+        if (!FeatureFlags.isMultiStreamSendSupportEnabled()) {
             videoMlines.splice(1);
         }
 
@@ -355,7 +354,7 @@ export default class LocalSdpMunger {
 
         // Plan-b clients generate new SSRCs and trackIds whenever tracks are removed and added back to the
         // peerconnection, therefore local track based map for msids needs to be reset after every transformation.
-        if (FeatureFlags.isSourceNameSignalingEnabled() && !this.tpc._usesUnifiedPlan) {
+        if (!this.tpc._usesUnifiedPlan) {
             this.audioSourcesToMsidMap.clear();
             this.videoSourcesToMsidMap.clear();
         }
@@ -377,10 +376,6 @@ export default class LocalSdpMunger {
      * @private
      */
     _injectSourceNames(mediaSection) {
-        if (!FeatureFlags.isSourceNameSignalingEnabled()) {
-            return;
-        }
-
         const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
         const mediaType = mediaSection.mLine?.type;
 

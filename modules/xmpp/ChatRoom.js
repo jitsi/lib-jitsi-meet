@@ -4,8 +4,6 @@ import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
-import { MediaType } from '../../service/RTC/MediaType';
-import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -1591,95 +1589,6 @@ export default class ChatRoom extends Listenable {
         }
 
         return null;
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    addAudioInfoToPresence(mute) {
-        const audioMutedTagName = 'audiomuted';
-
-        // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(audioMutedTagName)) {
-            return false;
-        }
-
-        return this.addOrReplaceInPresence(
-            audioMutedTagName,
-            {
-                value: mute.toString()
-            });
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    addVideoInfoToPresence(mute) {
-        const videoMutedTagName = 'videomuted';
-
-        // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(videoMutedTagName)) {
-            return false;
-        }
-
-        return this.addOrReplaceInPresence(
-            videoMutedTagName,
-            {
-                value: mute.toString()
-            });
-    }
-
-    /**
-     * Obtains the info about given media advertised in the MUC presence of
-     * the participant identified by the given endpoint JID.
-     * @param {string} endpointId the endpoint ID mapped to the participant
-     * which corresponds to MUC nickname.
-     * @param {MediaType} mediaType the type of the media for which presence
-     * info will be obtained.
-     * @return {PeerMediaInfo} presenceInfo an object with media presence
-     * info or <tt>null</tt> either if there is no presence available or if
-     * the media type given is invalid.
-     */
-    getMediaPresenceInfo(endpointId, mediaType) {
-        // Will figure out current muted status by looking up owner's presence
-        const pres = this.lastPresences[`${this.roomjid}/${endpointId}`];
-
-        if (!pres) {
-            // No presence available
-            return null;
-        }
-        const data = {
-            muted: true, // muted by default
-            videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
-        };
-        let mutedNode = null;
-
-        if (mediaType === MediaType.AUDIO) {
-            mutedNode = filterNodeFromPresenceJSON(pres, 'audiomuted');
-        } else if (mediaType === MediaType.VIDEO) {
-            mutedNode = filterNodeFromPresenceJSON(pres, 'videomuted');
-            const codecTypeNode = filterNodeFromPresenceJSON(pres, 'jitsi_participant_codecType');
-            const videoTypeNode = filterNodeFromPresenceJSON(pres, 'videoType');
-
-            if (videoTypeNode.length > 0) {
-                data.videoType = videoTypeNode[0].value;
-            }
-            if (codecTypeNode.length > 0) {
-                data.codecType = codecTypeNode[0].value;
-            }
-        } else {
-            logger.error(`Unsupported media type: ${mediaType}`);
-
-            return null;
-        }
-
-        if (mutedNode.length > 0) {
-            data.muted = mutedNode[0].value === 'true';
-        }
-
-        return data;
     }
 
     /**

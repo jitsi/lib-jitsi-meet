@@ -3,7 +3,6 @@ import isEqual from 'lodash.isequal';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
-import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 const MAX_HEIGHT_ONSTAGE = 2160;
@@ -215,9 +214,6 @@ export default class ReceiveVideoController {
      * @returns
      */
     _getDefaultSourceReceiverConstraints(mediaSession, maxFrameHeight) {
-        if (!FeatureFlags.isSourceNameSignalingEnabled()) {
-            return null;
-        }
         const remoteVideoTracks = mediaSession.peerconnection?.getRemoteTracks(null, MediaType.VIDEO) || [];
         const receiverConstraints = new Map();
 
@@ -334,20 +330,12 @@ export default class ReceiveVideoController {
      * @param {Object} constraints The video constraints.
      */
     setReceiverConstraints(constraints) {
-        if (!this._receiverVideoConstraints) {
-            this._receiverVideoConstraints = new ReceiverVideoConstraints();
+        if (!constraints) {
+            return;
         }
-
         const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
-        const isSourcesFormat = Object.keys(constraints).includes('onStageSources', 'selectedSources');
 
-        if (!FeatureFlags.isSourceNameSignalingEnabled() && isSourcesFormat) {
-            throw new Error(
-                '"onStageSources" and "selectedSources" are not supported when sourceNameSignaling is disabled.'
-            );
-        }
-
-        if (FeatureFlags.isSourceNameSignalingEnabled() && isEndpointsFormat) {
+        if (isEndpointsFormat) {
             throw new Error(
                 '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
             );
@@ -365,26 +353,17 @@ export default class ReceiveVideoController {
                 return;
             }
 
-            if (FeatureFlags.isSourceNameSignalingEnabled()) {
-                const mappedConstraints = Array.from(Object.entries(constraints.constraints))
-                    .map(constraint => {
-                        constraint[1] = constraint[1].maxHeight;
+            const mappedConstraints = Array.from(Object.entries(constraints.constraints))
+                .map(constraint => {
+                    constraint[1] = constraint[1].maxHeight;
 
-                        return constraint;
-                    });
+                    return constraint;
+                });
 
-                this._sourceReceiverConstraints = new Map(mappedConstraints);
+            this._sourceReceiverConstraints = new Map(mappedConstraints);
 
-                // Send the receiver constraints to the peer through a "content-modify" message.
-                p2pSession.setReceiverVideoConstraint(null, this._sourceReceiverConstraints);
-            } else {
-                let maxFrameHeight = Object.values(constraints.constraints)[0]?.maxHeight;
-
-                if (!maxFrameHeight) {
-                    maxFrameHeight = constraints.defaultConstraints?.maxHeight;
-                }
-                maxFrameHeight && p2pSession.setReceiverVideoConstraint(maxFrameHeight);
-            }
+            // Send the receiver constraints to the peer through a "content-modify" message.
+            p2pSession.setReceiverVideoConstraint(null, this._sourceReceiverConstraints);
         }
     }
 }

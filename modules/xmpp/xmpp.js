@@ -8,7 +8,6 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
-import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -255,14 +254,11 @@ export default class XMPP extends Listenable {
         }
 
         // Advertise source-name signaling when the endpoint supports it.
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            logger.info('Source-name signaling is enabled');
-            this.caps.addFeature('http://jitsi.org/source-name');
-        }
-        if (FeatureFlags.isReceiveMultipleVideoStreamsSupported()) {
-            logger.info('Receiving multiple video streams is enabled');
-            this.caps.addFeature('http://jitsi.org/receive-multiple-video-streams');
-        }
+        logger.debug('Source-name signaling is enabled');
+        this.caps.addFeature('http://jitsi.org/source-name');
+
+        logger.debug('Receiving multiple video streams is enabled');
+        this.caps.addFeature('http://jitsi.org/receive-multiple-video-streams');
     }
 
     /**

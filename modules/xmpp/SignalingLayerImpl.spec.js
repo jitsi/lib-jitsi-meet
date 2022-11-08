@@ -121,7 +121,6 @@ describe('SignalingLayerImpl', () => {
         let chatRoom = createMockChatRoom();
 
         beforeEach(() => {
-            FeatureFlags.init({ sourceNameSignaling: true });
             signalingLayer = new SignalingLayerImpl();
             chatRoom = createMockChatRoom();
             signalingLayer.setChatRoom(chatRoom);
@@ -160,7 +159,6 @@ describe('SignalingLayerImpl', () => {
             let chatRoom = createMockChatRoom();
 
             beforeEach(() => {
-                FeatureFlags.init({ sourceNameSignaling: true });
                 signalingLayer = new SignalingLayerImpl();
                 chatRoom = createMockChatRoom();
                 signalingLayer.setChatRoom(chatRoom);
@@ -206,29 +204,6 @@ describe('SignalingLayerImpl', () => {
                 );
             });
         });
-        describe('with:  sourceNameSignaling: false', () => {
-            let signalingLayer;
-            let chatRoom;
-
-            beforeEach(() => {
-                FeatureFlags.init({ sourceNameSignaling: false });
-                signalingLayer = new SignalingLayerImpl();
-                chatRoom = createMockChatRoom();
-                signalingLayer.setChatRoom(chatRoom);
-            });
-            it('does not react to SourceInfo', () => {
-                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
-                const sourceInfo = {
-                    '12345678-a0': {
-                        muted: true
-                    }
-                };
-
-                chatRoom.mockSourceInfoPresence('endpoint1', sourceInfo);
-
-                expect(emitterSpy).not.toHaveBeenCalled();
-            });
-        });
     });
     describe('getPeerMediaInfo', () => {
         describe('with:  sourceNameSignaling: true', () => {
@@ -236,7 +211,6 @@ describe('SignalingLayerImpl', () => {
             let chatRoom;
 
             beforeEach(() => {
-                FeatureFlags.init({ sourceNameSignaling: true });
                 signalingLayer = new SignalingLayerImpl();
                 chatRoom = createMockChatRoom();
                 signalingLayer.setChatRoom(chatRoom);
@@ -268,9 +242,12 @@ describe('SignalingLayerImpl', () => {
 
                     chatRoom.mockSourceInfoPresence(endpointId, sourceInfo);
 
-                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endpointId, MediaType.AUDIO);
+                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endpointId, MediaType.AUDIO, '12345678-a0');
 
-                    expect(peerMediaInfo).toEqual({ muted: true });
+                    expect(peerMediaInfo).toEqual({
+                        muted: true,
+                        sourceName: '12345678-a0'
+                    });
                 });
                 it('for video', () => {
                     const endointId = '12345678';
@@ -283,88 +260,14 @@ describe('SignalingLayerImpl', () => {
 
                     chatRoom.mockSourceInfoPresence(endointId, sourceInfo);
 
-                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endointId, MediaType.VIDEO);
+                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endointId, MediaType.VIDEO, '12345678-v0');
 
                     expect(peerMediaInfo).toEqual({
                         muted: true,
+                        sourceName: '12345678-v0',
                         videoType: 'desktop'
                     });
                 });
-            });
-            describe('if there\'s no SourceInfo then will read from the legacy element', () => {
-                const endointId = '12345678';
-
-                it('for audio', () => {
-                    // There's no 'SourceInfo' in the presence
-                    chatRoom.getLastPresence = () => [ { } ];
-
-                    // This test is very implementation specific and relies on the fact that the backwards compat logic
-                    // is supposed to call into 'chatRoom.getMediaPresenceInfo' and return whatever it returns.
-                    // To be removed once legacy signaling is deprecated.
-                    chatRoom.getMediaPresenceInfo = () => {
-                        return {
-                            muted: true
-                        };
-                    };
-
-                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endointId, MediaType.AUDIO);
-
-                    expect(peerMediaInfo).toEqual({ muted: true });
-                });
-                it('for video', () => {
-                    // There's no 'SourceInfo' in the presence
-                    chatRoom.getLastPresence = () => [ { } ];
-
-                    // This test is very implementation specific and relies on the fact that the backwards compat logic
-                    // is supposed to call into 'chatRoom.getMediaPresenceInfo' and return whatever it returns.
-                    // To be removed once legacy signaling is deprecated.
-                    chatRoom.getMediaPresenceInfo = () => {
-                        return {
-                            muted: true,
-                            videoType: 'desktop'
-                        };
-                    };
-
-                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endointId, MediaType.VIDEO);
-
-                    expect(peerMediaInfo).toEqual({
-                        muted: true,
-                        videoType: 'desktop'
-                    });
-                });
-            });
-        });
-        describe('with:  sourceNameSignaling: false', () => {
-            beforeEach(() => {
-                FeatureFlags.init({ sourceNameSignaling: false });
-            });
-            it('should not read from SourceInfo element', () => {
-                const signalingLayer = new SignalingLayerImpl();
-                const chatRoom = createMockChatRoom();
-
-                signalingLayer.setChatRoom(chatRoom);
-
-                const endointId = '12345678';
-                const sourceInfo = {
-                    '12345678-v0': {
-                        muted: true,
-                        videoType: 'desktop'
-                    }
-                };
-
-                chatRoom.mockSourceInfoPresence(endointId, sourceInfo);
-
-                // This is the value the legacy flow will use (the values are different that the SourceInfo one).
-                const legacyMediaInfoValue = {
-                    muted: false,
-                    videoType: 'camera'
-                };
-
-                chatRoom.getMediaPresenceInfo = () => legacyMediaInfoValue;
-
-                const peerMediaInfo = signalingLayer.getPeerMediaInfo(endointId, MediaType.VIDEO);
-
-                expect(peerMediaInfo).toEqual(legacyMediaInfoValue);
             });
         });
     });
@@ -374,8 +277,6 @@ describe('SignalingLayerImpl', () => {
         const endpointId = '12345678';
 
         beforeEach(() => {
-            FeatureFlags.init({ sourceNameSignaling: true });
-
             signalingLayer = new SignalingLayerImpl();
             chatRoom = createMockChatRoom();
 

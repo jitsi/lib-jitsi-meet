@@ -5,11 +5,6 @@ export enum MediaType {
     AUDIO = 'audio',
 
     /**
-     * The presenter type.
-     */
-    PRESENTER = 'presenter',
-
-    /**
      * The video type.
      */
     VIDEO = 'video'

@@ -14,8 +14,6 @@ import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
-import { ParticipantConnectionStatus }
-    from './modules/connectivity/ParticipantConnectionStatus';
 import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
@@ -83,11 +81,7 @@ interface IJitsiMeetJSOptions {
     enableWindowOnErrorHandler?: boolean;
     externalStorage?: Storage;
     flags?: {
-        enableUnifiedOnChrome?: boolean;
-        receiveMultipleVideoStreams?: boolean;
         runInLiteMode?: boolean;
-        sendMultipleVideoStreams?: boolean;
-        sourceNameSignaling?: boolean;
         ssrcRewritingEnabled?: boolean;
     }
 }
@@ -111,7 +105,6 @@ export default {
     ProxyConnectionService,
 
     constants: {
-        participantConnectionStatus: ParticipantConnectionStatus,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         transcriptionStatus: JitsiTranscriptionStatus,
@@ -141,12 +134,6 @@ export default {
         Settings.init(options.externalStorage);
         Statistics.init(options);
         const flags = options.flags || {};
-
-        // Multi-stream is supported only on endpoints running in Unified plan mode and the flag to disable unified
-        // plan also needs to be taken into consideration.
-        if (typeof options.enableUnifiedOnChrome !== 'undefined') {
-            flags.enableUnifiedOnChrome = options.enableUnifiedOnChrome;
-        }
 
         // Configure the feature flags.
         FeatureFlags.init(flags);

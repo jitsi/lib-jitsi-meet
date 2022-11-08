@@ -322,18 +322,13 @@ export class TPCUtils {
     calculateEncodingsBitrates(localVideoTrack) {
         const videoType = localVideoTrack.getVideoType();
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
-        const presenterEnabled = localVideoTrack._originalStream
-            && localVideoTrack._originalStream.id !== localVideoTrack.getStreamId();
         const lowFpsScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP
             && this.pc._capScreenshareBitrate
             && !browser.isWebKitBased();
         const encodingsBitrates = this.localStreamEncodingsConfig
         .map(encoding => {
             const bitrate = lowFpsScreenshare
-
-                // For low fps screensharing, set a max bitrate of 500 Kbps when presenter is not turned on, 2500 Kbps
-                // otherwise.
-                ? presenterEnabled ? HD_BITRATE : desktopShareBitrate
+                ? desktopShareBitrate
 
                 // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
                 // if simulcast is enabled for screen and maxBitrates are set then Chrome will not send the
@@ -359,7 +354,7 @@ export class TPCUtils {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const localTracks = this.pc.getLocalTracks(mediaType);
         const track = newTrack?.getTrack() ?? null;
-        const isNewLocalSource = FeatureFlags.isMultiStreamSupportEnabled()
+        const isNewLocalSource = FeatureFlags.isMultiStreamSendSupportEnabled()
             && localTracks?.length
             && !oldTrack
             && newTrack
