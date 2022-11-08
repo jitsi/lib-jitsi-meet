@@ -275,23 +275,20 @@ export class OlmAdapter extends Listenable {
      * @private
      */
      startVerification(participant) {
-         console.log("XXX startVerification1")
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
     
         if (!olmData.session) {
-            console.log("XXX startVerification2")
             logger.warn(`Tried to start verification with participant ${pId} but we have no session`);
     
             return;
          }
-    
-        console.log("XXX startVerification3")
 
         olmData.sas = new Olm.SAS();
+        olmData.uuid = uuidv4();
 
         const startContent = {
-            uuid: uuidv4
+            uuid: olmData.uuid
         };
             
         olmData.startContent = startContent;
@@ -558,6 +555,7 @@ export class OlmAdapter extends Listenable {
                 olmData.sas = new Olm.SAS();
 
                 const { uuid } = msg.data;
+                olmData.uuid = uuid;
 
                 const pub_key = olmData.sas.get_pubkey();
                 const olmUtil = new Olm.Utility();
@@ -589,7 +587,6 @@ export class OlmAdapter extends Listenable {
                 const { commitment, uuid } = msg.data;
                 olmData.sasCommitment = commitment;
 
-                olmData.sas = new Olm.SAS()
                 const pub_key = olmData.sas.get_pubkey();
 
                 // Send KEY.
@@ -629,7 +626,7 @@ export class OlmAdapter extends Listenable {
                     olmUtil.free();
 
                     if (olmData.sasCommitment !== commitment) {
-                        throw new Error('OlmAdapter commitments mismatched');
+                        this._sendError(participant, 'OlmAdapter commitments mismatched');
                     }
                 }
 
@@ -888,14 +885,14 @@ export class OlmAdapter extends Listenable {
     _sendSasMac(participant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
-        const uuid = uuidv4();
+        const uuid = olmData.uuid;
     
         // Calculate and send MAC with the keys to be verified.
         const mac = {};
         const keyList = [];
         const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${this.myId}${pId}${uuid}`;
 
-        const deviceKeyId = `ed25519:${uuid}`;
+        const deviceKeyId = `ed25519:${pId}`;
 
         mac[deviceKeyId] = olmData.sas.calculate_mac(
             this._idKeys.ed25519,
