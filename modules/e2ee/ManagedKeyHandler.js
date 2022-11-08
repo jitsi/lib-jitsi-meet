@@ -60,15 +60,8 @@ export class ManagedKeyHandler extends KeyHandler {
                 });
     }
 
-    startVerification(participant) {
-        this._olmAdapter.startVerification(participant);
-    }
-
-    markChannelVerified(isVerified, participant) {
-        this._olmAdapter.onChannelVerified(isVerified, participant);
-    }
-
-    markVerified(participant) {
+    get sasVerification() {
+        return this._olmAdapter;
     }
 
     /**

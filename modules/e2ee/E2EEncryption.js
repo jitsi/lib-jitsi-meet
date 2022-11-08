@@ -73,13 +73,10 @@ export class E2EEncryption {
     }
 
     startVerification(participant) {
-        this._keyHandler.startVerification(participant);
+        this._keyHandler.sasVerification?.startVerification(participant);
     }
 
     markChannelVerified(isVerified, participant) {
-        this._keyHandler.markChannelVerified(isVerified, participant);
-    }
-
-    markVerified(participant) {
+        this._keyHandler.sasVerification?.markChannelVerified(isVerified, participant);
     }
 }

@@ -226,7 +226,7 @@ export class OlmAdapter extends Listenable {
         }
     }
 
-    onChannelVerified(isVerified, participant) {
+    markChannelVerified(isVerified, participant) {
         if (isVerified) {
             const olmData = this._getParticipantOlmData(participant);
     
