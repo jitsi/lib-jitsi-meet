@@ -101,7 +101,7 @@ describe('SDP', () => {
             expect(videoSources.length).toBe(2);
         });
         it('put source names as source element attributes', () => {
-            FeatureFlags.init({ sourceNameSignaling: true });
+            FeatureFlags.init({ });
 
             const sdp = new SDP(testSdp);
             const accept = $iq({

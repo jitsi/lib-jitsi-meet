@@ -65,7 +65,7 @@ describe('JingleSessionPC', () => {
 
     describe('send/receive video constraints w/ source-name', () => {
         beforeEach(() => {
-            FeatureFlags.init({ sourceNameSignaling: true });
+            FeatureFlags.init({ });
         });
 
         it('sends content-modify with recv frame size', () => {

@@ -59,7 +59,7 @@ describe('ReceiveVideoController', () => {
 
     describe('when sourceNameSignaling is enabled', () => {
         beforeEach(() => {
-            FeatureFlags.init({ sourceNameSignaling: true });
+            FeatureFlags.init({ });
         });
 
         it('should call setNewReceiverVideoConstraints with the source names format.', () => {

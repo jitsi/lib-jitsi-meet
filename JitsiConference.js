@@ -609,10 +609,6 @@ JitsiConference.prototype.isP2PTestModeEnabled = function() {
  * @returns {Promise}
  */
 JitsiConference.prototype.leave = async function(reason) {
-    if (this.participantConnectionStatus) {
-        this.participantConnectionStatus.dispose();
-        this.participantConnectionStatus = null;
-    }
     if (this.avgRtpStatsReporter) {
         this.avgRtpStatsReporter.dispose();
         this.avgRtpStatsReporter = null;

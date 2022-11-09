@@ -68,7 +68,7 @@ describe('SignalingLayerImpl', () => {
             let chatRoom;
 
             beforeEach(() => {
-                FeatureFlags.init({ sourceNameSignaling: true });
+                FeatureFlags.init({ });
                 signalingLayer = new SignalingLayerImpl();
                 chatRoom = createMockChatRoom();
                 signalingLayer.setChatRoom(chatRoom);
