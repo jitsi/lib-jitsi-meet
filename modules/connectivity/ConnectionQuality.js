@@ -277,8 +277,7 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.PROPERTIES_CHANGED,
             properties => {
-                this._localStats.bridgeCount
-                    = Number((properties || {})['bridge-count']);
+                this._localStats.bridgeCount = (properties || {})['bridge-count'];
             }
         );
     }
