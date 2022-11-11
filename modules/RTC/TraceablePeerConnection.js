@@ -1648,7 +1648,11 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     for (const mLine of mLines) {
-        if (this.codecPreference.enable) {
+        if (this.codecPreference.disabledCodecMimeType) {
+            SDPUtil.stripCodec(mLine, this.codecPreference.disabledCodecMimeType);
+        }
+
+        if (this.codecPreference.mimeType !== this.codecPreference.disabledCodecMimeType) {
             SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
             // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
@@ -1658,8 +1662,6 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
             if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
                 SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
             }
-        } else {
-            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
         }
     }
 
@@ -1886,17 +1888,14 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  */
 TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec = null, disabledCodec = null) {
     // If both enable and disable are set, disable settings will prevail.
-    const enable = disabledCodec === null;
-    const mimeType = disabledCodec ? disabledCodec : preferredCodec;
-
     if (this.codecPreference && (preferredCodec || disabledCodec)) {
-        this.codecPreference.enable = enable;
-        this.codecPreference.mimeType = mimeType;
+        this.codecPreference.mimeType = preferredCodec;
+        this.codecPreference.disabledCodecMimeType = disabledCodec;
     } else if (preferredCodec || disabledCodec) {
         this.codecPreference = {
-            enable,
             mediaType: MediaType.VIDEO,
-            mimeType
+            mimeType: preferredCodec,
+            disabledCodecMimeType: disabledCodec
         };
     } else {
         logger.warn(`${this} Invalid codec settings[preferred=${preferredCodec},disabled=${disabledCodec}],
@@ -2965,18 +2964,20 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
         if (transceiver) {
             let capabilities = RTCRtpReceiver.getCapabilities(MediaType.VIDEO)?.codecs;
+            const disabledCodecMimeType = this.codecPreference?.disabledCodecMimeType;
             const mimeType = this.codecPreference?.mimeType;
-            const enable = this.codecPreference?.enable;
 
-            if (capabilities && mimeType && enable) {
+            if (capabilities && disabledCodecMimeType) {
+                capabilities = capabilities
+                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${disabledCodecMimeType}`);
+            }
+
+            if (capabilities && mimeType && mimeType !== disabledCodecMimeType) {
                 // Move the desired codec (all variations of it as well) to the beginning of the list.
                 /* eslint-disable-next-line arrow-body-style */
                 capabilities.sort(caps => {
                     return caps.mimeType.toLowerCase() === `${MediaType.VIDEO}/${mimeType}` ? -1 : 1;
                 });
-            } else if (capabilities && mimeType) {
-                capabilities = capabilities
-                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${mimeType}`);
             }
 
             // Disable ulpfec on Google Chrome and derivatives because
@@ -2989,7 +2990,8 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
             try {
                 transceiver.setCodecPreferences(capabilities);
             } catch (err) {
-                logger.warn(`${this} Setting codec[preference=${mimeType},enable=${enable}] failed`, err);
+                logger.warn(`${this} Setting codec[preference=${mimeType},disabledCodecMimeType=${
+                    disabledCodecMimeType}] failed`, err);
             }
         }
     }
