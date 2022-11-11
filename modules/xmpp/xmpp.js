@@ -951,7 +951,8 @@ export default class XMPP extends Listenable {
             xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
             faceExpression: payload.faceExpression,
-            timestamp: payload.timestamp
+            timestamp: payload.timestamp,
+            duration: payload.duration
         }).up();
 
         this.connection.send(msg);
