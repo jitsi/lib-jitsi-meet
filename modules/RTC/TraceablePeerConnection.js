@@ -2358,12 +2358,15 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
  */
 TraceablePeerConnection.prototype._mungeInactive = function(description) {
     const parsedSdp = transform.parse(description.sdp);
-    const mLines = parsedSdp.media;
+
+    // Change the direction to inactive on all the m-lines that are not associated with the bridge SSRCs so that the
+    // browser stops decoding the media (when the client is running in lite mode).
+    const firstAudioMid = parsedSdp.media.find(mLine => mLine.type === MediaType.AUDIO)?.mid;
+    const firstVideoMid = parsedSdp.media.find(mLine => mLine.type === MediaType.VIDEO)?.mid;
+    const mLines = parsedSdp.media.filter(mLine => mLine.mid !== firstAudioMid && mLine.mid !== firstVideoMid);
 
     for (const mLine of mLines) {
         mLine.direction = MediaDirection.INACTIVE;
-        mLine.ssrcs = undefined;
-        mLine.ssrcGroups = undefined;
     }
 
     return new RTCSessionDescription({
