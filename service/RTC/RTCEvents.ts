@@ -9,6 +9,7 @@ export enum RTCEvents {
      */
     CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
     DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
+    DATA_CHANNEL_CLOSED = 'rtc.data_channel_closed',
     ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
     DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
     FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
@@ -127,6 +128,7 @@ export enum RTCEvents {
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
 export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
+export const DATA_CHANNEL_CLOSED = RTCEvents.DATA_CHANNEL_CLOSED;
 export const ENDPOINT_CONN_STATUS_CHANGED = RTCEvents.ENDPOINT_CONN_STATUS_CHANGED;
 export const DOMINANT_SPEAKER_CHANGED = RTCEvents.DOMINANT_SPEAKER_CHANGED;
 export const FORWARDED_SOURCES_CHANGED = RTCEvents.FORWARDED_SOURCES_CHANGED;

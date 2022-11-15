@@ -18,6 +18,7 @@ describe( "/JitsiConferenceEvents members", () => {
         CONNECTION_INTERRUPTED,
         CONNECTION_RESTORED,
         DATA_CHANNEL_OPENED,
+        DATA_CHANNEL_CLOSED,
         DISPLAY_NAME_CHANGED,
         DOMINANT_SPEAKER_CHANGED,
         CONFERENCE_CREATED_TIMESTAMP,
@@ -95,6 +96,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( CONNECTION_INTERRUPTED ).toBe( 'conference.connectionInterrupted' );
         expect( CONNECTION_RESTORED ).toBe( 'conference.connectionRestored' );
         expect( DATA_CHANNEL_OPENED ).toBe( 'conference.dataChannelOpened' );
+        expect( DATA_CHANNEL_CLOSED ).toBe( 'conference.dataChannelClosed' );
         expect( DISPLAY_NAME_CHANGED ).toBe( 'conference.displayNameChanged' );
         expect( DOMINANT_SPEAKER_CHANGED ).toBe( 'conference.dominantSpeaker' );
         expect( CONFERENCE_CREATED_TIMESTAMP ).toBe( 'conference.createdTimestamp' );
@@ -170,6 +172,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.CONNECTION_INTERRUPTED ).toBe( 'conference.connectionInterrupted' );
         expect( JitsiConferenceEvents.CONNECTION_RESTORED ).toBe( 'conference.connectionRestored' );
         expect( JitsiConferenceEvents.DATA_CHANNEL_OPENED ).toBe( 'conference.dataChannelOpened' );
+        expect( JitsiConferenceEvents.DATA_CHANNEL_CLOSED ).toBe( 'conference.dataChannelClosed' );
         expect( JitsiConferenceEvents.DISPLAY_NAME_CHANGED ).toBe( 'conference.displayNameChanged' );
         expect( JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED ).toBe( 'conference.dominantSpeaker' );
         expect( JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP ).toBe( 'conference.createdTimestamp' );

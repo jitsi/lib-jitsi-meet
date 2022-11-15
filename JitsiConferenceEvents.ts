@@ -84,6 +84,12 @@ export enum JitsiConferenceEvents {
     DATA_CHANNEL_OPENED = 'conference.dataChannelOpened',
 
     /**
+     * A connection to the video bridge's data channel has been closed.
+     * This event is only emitted in 
+     */
+    DATA_CHANNEL_CLOSED = 'conference.dataChannelClosed',
+
+    /**
      * A user has changed it display name
      */
     DISPLAY_NAME_CHANGED = 'conference.displayNameChanged',
@@ -470,6 +476,7 @@ export const CONNECTION_ESTABLISHED = JitsiConferenceEvents.CONNECTION_ESTABLISH
 export const CONNECTION_INTERRUPTED = JitsiConferenceEvents.CONNECTION_INTERRUPTED;
 export const CONNECTION_RESTORED = JitsiConferenceEvents.CONNECTION_RESTORED;
 export const DATA_CHANNEL_OPENED = JitsiConferenceEvents.DATA_CHANNEL_OPENED;
+export const DATA_CHANNEL_CLOSED = JitsiConferenceEvents.DATA_CHANNEL_CLOSED;
 export const DISPLAY_NAME_CHANGED = JitsiConferenceEvents.DISPLAY_NAME_CHANGED;
 export const DOMINANT_SPEAKER_CHANGED = JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED;
 export const CONFERENCE_CREATED_TIMESTAMP = JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP;
