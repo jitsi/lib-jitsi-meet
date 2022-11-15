@@ -414,9 +414,19 @@ export default class BridgeChannel {
 
             if (this._mode === 'websocket') {
                 if (!this._closedFromClient) {
-                    logger.error(`Channel closed: ${event.code} ${event.reason}`);
                     this._retryWebSocketConnection(event);
                 }
+            }
+
+            if (!this._closedFromClient) {
+                const { code, reason } = event;
+
+                logger.error(`Channel closed: ${code} ${reason}`);
+
+                emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
+                    code,
+                    reason
+                });
             }
 
             // Remove the channel.

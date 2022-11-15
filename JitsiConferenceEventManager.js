@@ -565,6 +565,10 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 
+    rtc.addListener(RTCEvents.DATA_CHANNEL_CLOSED, ev => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_CLOSED, ev);
+    });
+
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
         const sess = this.conference.getActiveMediaSession();
 
