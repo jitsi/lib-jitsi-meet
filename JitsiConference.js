@@ -3903,7 +3903,7 @@ JitsiConference.prototype.setMediaEncryptionKey = function(keyInfo) {
  * @param {string} participantId The participant which will be marked as verified.
  * @returns {void}
  */
- JitsiConference.prototype.startVerification = function(participantId) {
+JitsiConference.prototype.startVerification = function(participantId) {
     const participant = this.getParticipantById(participantId);
 
     if (!participant) {
@@ -3930,7 +3930,7 @@ JitsiConference.prototype.markParticipantChannelVerified = function(isVerified, 
  * @param {string} participantId The participant which will be marked as verified.
  * @returns {void}
  */
- JitsiConference.prototype.markParticipantVerified = function(participantId) {
+JitsiConference.prototype.markParticipantVerified = function(participantId) {
     const participant = this.getParticipantById(participantId);
 
     if (!participant) {

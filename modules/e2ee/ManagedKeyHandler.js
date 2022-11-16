@@ -179,6 +179,14 @@ export class ManagedKeyHandler extends KeyHandler {
         this.e2eeCtx.setKey(id, key, index);
     }
 
+    /**
+     * Handles an update in a participant's key.
+     *
+     * @param {string} pId - The participant ID.
+     * @param {Uint8Array | boolean} key - The new key for the participant.
+     * @param {Number} index - The new key's index.
+     * @private
+     */
     _onParticipantSasReady(pId, sas) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_READY, pId, sas);
     }

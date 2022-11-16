@@ -72,10 +72,23 @@ export class E2EEncryption {
         this._keyHandler.setKey(keyInfo);
     }
 
+    /**
+     * Starts the verification process of the participant
+     *
+     * @param {Participant} - participant to be verified.
+     * @returns {void}
+     */
     startVerification(participant) {
         this._keyHandler.sasVerification?.startVerification(participant);
     }
 
+    /**
+     * Marks the channel as verified
+     *
+     * @param {boolean} isVerified - whether the verification was succesfull.
+     * @param {Participant} - participant to be verified.
+     * @returns {void}
+     */
     markChannelVerified(isVerified, participant) {
         this._keyHandler.sasVerification?.markChannelVerified(isVerified, participant);
     }
