@@ -39,6 +39,10 @@ export default class BridgeChannel {
         // @type {RTCDataChannel|WebSocket}
         this._channel = null;
 
+        // Whether the channel is connected or not. It will start as undefined
+        // for the first connection attempt. Then transition to either true or false.
+        this._connected = undefined;
+
         // @type {EventEmitter}
         this._eventEmitter = emitter;
 
@@ -298,11 +302,7 @@ export default class BridgeChannel {
         channel.onopen = () => {
             logger.info(`${this._mode} channel opened`);
 
-            // Code sample for sending string and/or binary data.
-            // Sends string message to the bridge:
-            //     channel.send("Hello bridge!");
-            // Sends 12 bytes binary message to the bridge:
-            //     channel.send(new ArrayBuffer(12));
+            this._connected = true;
 
             emitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
         };
@@ -423,10 +423,15 @@ export default class BridgeChannel {
 
                 logger.error(`Channel closed: ${code} ${reason}`);
 
-                emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
-                    code,
-                    reason
-                });
+                // We only want to send this event the first time the failure happens.
+                if (typeof this._connected === 'undefined' || this._connected) {
+                    this._connected = false;
+
+                    emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
+                        code,
+                        reason
+                    });
+                }
             }
 
             // Remove the channel.
