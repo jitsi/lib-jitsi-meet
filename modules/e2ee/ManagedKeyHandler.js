@@ -60,6 +60,11 @@ export class ManagedKeyHandler extends KeyHandler {
                 });
     }
 
+    /**
+     * Returns the sasVerficiation object.
+     *
+     * @returns {Object}
+     */
     get sasVerification() {
         return this._olmAdapter;
     }
@@ -180,17 +185,23 @@ export class ManagedKeyHandler extends KeyHandler {
     }
 
     /**
-     * Handles an update in a participant's key.
+     * Handles the SAS ready event.
      *
      * @param {string} pId - The participant ID.
-     * @param {Uint8Array | boolean} key - The new key for the participant.
-     * @param {Number} index - The new key's index.
+     * @param {Uint8Array} sas - The bytes from sas.generate_bytes..
      * @private
      */
     _onParticipantSasReady(pId, sas) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_READY, pId, sas);
     }
 
+    /**
+     * Handles the SAS completed event.
+     *
+     * @param {string} pId - The participant ID.
+     * @param {boolean} success - Wheter the verification was succesfull.
+     * @private
+     */
     _onParticipantSasCompleted(pId, success) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_COMPLETED, pId, success);
     }
