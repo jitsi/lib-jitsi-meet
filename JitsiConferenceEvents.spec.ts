@@ -22,6 +22,8 @@ describe( "/JitsiConferenceEvents members", () => {
         DOMINANT_SPEAKER_CHANGED,
         CONFERENCE_CREATED_TIMESTAMP,
         DTMF_SUPPORT_CHANGED,
+        E2EE_SAS_READY,
+        E2EE_SAS_COMPLETED,
         ENDPOINT_MESSAGE_RECEIVED,
         ENDPOINT_STATS_RECEIVED,
         JVB121_STATUS,
@@ -228,6 +230,8 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( JitsiConferenceEvents.METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
+        expect( JitsiConferenceEvents.E2EE_SAS_READY ).toBe( 'conference.e2ee.sas.ready' );
+        expect( JitsiConferenceEvents.E2EE_SAS_COMPLETED ).toBe( 'conference.e2ee.sas.completed' );
     } );
 
 it( "unknown members", () => {
