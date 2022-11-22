@@ -935,11 +935,11 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Sends face expressions to speaker stats component.
+     * Sends face landmarks to speaker stats component.
      * @param {String} roomJid - The room jid where the speaker event occurred.
      * @param {Object} payload - The expression to be sent to the speaker stats.
      */
-    sendFaceExpressionEvent(roomJid, payload) {
+    sendFaceLandmarksEvent(roomJid, payload) {
         // no speaker stats component advertised
         if (!this.speakerStatsComponentAddress || !roomJid) {
             return;
@@ -947,10 +947,11 @@ export default class XMPP extends Listenable {
 
         const msg = $msg({ to: this.speakerStatsComponentAddress });
 
-        msg.c('faceExpression', {
+        msg.c('faceLandmarks', {
             xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
-            expression: payload.faceExpression,
+            faceExpression: payload.faceExpression,
+            timestamp: payload.timestamp,
             duration: payload.duration
         }).up();
 
