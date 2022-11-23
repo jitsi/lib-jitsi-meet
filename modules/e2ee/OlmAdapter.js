@@ -288,14 +288,16 @@ export class OlmAdapter extends Listenable {
             return;
         }
 
-        olmData.sas = new Olm.SAS();
-        olmData.uuid = uuidv4();
-
-        const startContent = {
-            uuid: olmData.uuid
+        olmData.sasVerification = {
+            sas: new Olm.SAS(),
+            uuid: uuidv4()
         };
 
-        olmData.startContent = startContent;
+        const startContent = {
+            uuid: olmData.sasVerification.uuid
+        };
+
+        olmData.sasVerification.startContent = startContent;
 
         const data = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -550,19 +552,20 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_START: {
             if (olmData.session) {
-                if (olmData.sas) {
+                if (olmData.sasVerification.sas) {
                     logger.warn(`SAS already created for participant ${pId}`);
 
                     return;
                 }
 
-                olmData.sas = new Olm.SAS();
-
                 const { uuid } = msg.data;
 
-                olmData.uuid = uuid;
+                olmData.sasVerification = {
+                    sas: new Olm.SAS(),
+                    uuid: uuid
+                };
 
-                const pubKey = olmData.sas.get_pubkey();
+                const pubKey = olmData.sasVerification.sas.get_pubkey();
                 const olmUtil = new Olm.Utility();
                 const commitment = olmUtil.sha256(pubKey + msg.data);
 
@@ -592,9 +595,9 @@ export class OlmAdapter extends Listenable {
             if (olmData.session) {
                 const { commitment, uuid } = msg.data;
 
-                olmData.sasCommitment = commitment;
+                olmData.sasVerification.sasCommitment = commitment;
 
-                const pubKey = olmData.sas.get_pubkey();
+                const pubKey = olmData.sasVerification.sas.get_pubkey();
 
                 // Send KEY.
                 const ack = {
@@ -619,7 +622,7 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
             if (olmData.session) {
-                if (olmData.sas.is_their_key_set()) {
+                if (olmData.sasVerification.sas.is_their_key_set()) {
                     logger.warn('SAS already has their key!');
 
                     return;
@@ -627,20 +630,23 @@ export class OlmAdapter extends Listenable {
 
                 const { key: theirKey, isInitializer, uuid } = msg.data;
 
-                if (olmData.sasCommitment) {
+                const { sas, sasCommitment, startContent } = olmData.sasVerification;
+                if (sasCommitment) {
                     const olmUtil = new Olm.Utility();
-                    const commitment = olmUtil.sha256(theirKey + olmData.startContent);
+                    const commitment = olmUtil.sha256(theirKey + startContent);
 
                     olmUtil.free();
 
-                    if (olmData.sasCommitment !== commitment) {
+                    if (sasCommitment !== commitment) {
                         this._sendError(participant, 'OlmAdapter commitments mismatched');
+                        olmData.sasVerification.free();
+                        return;
                     }
                 }
 
-                olmData.sas.set_their_key(theirKey);
+                sas.set_their_key(theirKey);
 
-                const pubKey = olmData.sas.get_pubkey();
+                const pubKey = sas.get_pubkey();
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
@@ -659,10 +665,10 @@ export class OlmAdapter extends Listenable {
 
                 const info = isInitializer ? `${myInfo}|${theirInfo}` : `${theirInfo}|${myInfo}`;
 
-                const sasBytes = olmData.sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
-                const sas = generateSas(sasBytes);
+                const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
+                const generatedSas = generateSas(sasBytes);
 
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, sas);
+                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
             } else {
                 logger.debug(`Received sas key message from ${pId} but we have no session for them!`);
 
@@ -680,9 +686,11 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
+                const { sas } = olmData.sasVerification;
+
                 // Verify the received MACs.
                 const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${pId}${this.myId}${uuid}`;
-                const keysMac = olmData.sas.calculate_mac(
+                const keysMac = sas.calculate_mac(
                     Object.keys(mac).sort().join(','), // eslint-disable-line newline-per-chained-call
                     baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
                 );
@@ -695,7 +703,7 @@ export class OlmAdapter extends Listenable {
                 }
 
                 for (const [ keyInfo, computedMac ] of Object.entries(mac)) {
-                    const ourComputedMac = olmData.sas.calculate_mac(
+                    const ourComputedMac = sas.calculate_mac(
                         olmData.ed25519,
                         baseInfo + keyInfo
                     );
@@ -894,7 +902,7 @@ export class OlmAdapter extends Listenable {
     _sendSasMac(participant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
-        const uuid = olmData.uuid;
+        const { sas, uuid } = olmData.sasVerification;
 
         // Calculate and send MAC with the keys to be verified.
         const mac = {};
@@ -903,12 +911,12 @@ export class OlmAdapter extends Listenable {
 
         const deviceKeyId = `ed25519:${pId}`;
 
-        mac[deviceKeyId] = olmData.sas.calculate_mac(
+        mac[deviceKeyId] = sas.calculate_mac(
             this._idKeys.ed25519,
             baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
-        const keys = olmData.sas.calculate_mac(
+        const keys = sas.calculate_mac(
             keyList.sort().join(','),
             baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
         );
