@@ -231,14 +231,17 @@ export class OlmAdapter extends Listenable {
      *
      */
     markParticipantVerified(isVerified, participant) {
+        console.log("XXXX OlmAdaptermarkParticipantVerified")
         if (isVerified) {
             const olmData = this._getParticipantOlmData(participant);
 
-            if (olmData.sas && olmData.sas.is_their_key_set() && !olmData.sasMacSent) {
+            const { sas , sasMacSent } = olmData.sasVerification;
+
+            if (sas && sas.is_their_key_set() && !sasMacSent) {
                 this._sendSasMac(participant);
 
                 // Mark the MAC as sent so we don't send it multiple times.
-                olmData.sasMacSent = true;
+                olmData.sasVerification.sasMacSent = true;
 
                 return;
             }
@@ -288,10 +291,8 @@ export class OlmAdapter extends Listenable {
             return;
         }
 
-        olmData.sasVerification = {
-            sas: new Olm.SAS(),
-            uuid: uuidv4()
-        };
+        olmData.sasVerification.sas = new Olm.SAS();
+        olmData.sasVerification.uuid = uuidv4();
 
         const startContent = {
             uuid: olmData.sasVerification.uuid
@@ -552,7 +553,7 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_START: {
             if (olmData.session) {
-                if (olmData.sasVerification.sas) {
+                if (olmData.sasVerification?.sas) {
                     logger.warn(`SAS already created for participant ${pId}`);
 
                     return;
@@ -560,10 +561,8 @@ export class OlmAdapter extends Listenable {
 
                 const { uuid } = msg.data;
 
-                olmData.sasVerification = {
-                    sas: new Olm.SAS(),
-                    uuid: uuid
-                };
+                olmData.sasVerification.sas = new Olm.SAS()
+                olmData.sasVerification.uuid = uuid;
 
                 const pubKey = olmData.sasVerification.sas.get_pubkey();
                 const olmUtil = new Olm.Utility();
@@ -622,7 +621,8 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
             if (olmData.session) {
-                if (olmData.sasVerification.sas.is_their_key_set()) {
+                const { sas, sasCommitment, startContent } = olmData.sasVerification;
+                if (sas.is_their_key_set()) {
                     logger.warn('SAS already has their key!');
 
                     return;
@@ -630,7 +630,7 @@ export class OlmAdapter extends Listenable {
 
                 const { key: theirKey, isInitializer, uuid } = msg.data;
 
-                const { sas, sasCommitment, startContent } = olmData.sasVerification;
+                
                 if (sasCommitment) {
                     const olmUtil = new Olm.Utility();
                     const commitment = olmUtil.sha256(theirKey + startContent);
@@ -678,6 +678,7 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_MAC: {
             if (olmData.session) {
+                console.log("XXX SAS_MAC");
                 const { keys, mac, uuid } = msg.data;
 
                 if (!mac || !keys) {
@@ -686,7 +687,12 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
-                const { sas } = olmData.sasVerification;
+                console.log("XXX SAS_MAC3", olmData.sasVerification );
+                console.log("XXX SAS_MAC32", participant);
+
+                const { sas, ed25519 } = olmData.sasVerification;
+
+                console.log("XXX SAS_MAC4");
 
                 // Verify the received MACs.
                 const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${pId}${this.myId}${uuid}`;
@@ -695,6 +701,8 @@ export class OlmAdapter extends Listenable {
                     baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
                 );
 
+                console.log("XXX SAS_MAC5");
+
                 if (keysMac !== keys) {
                     logger.error('SAS verification error: keys MAC mismatch');
                     this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
@@ -702,13 +710,19 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
+                console.log("XXX SAS_MAC6", Object.entries(mac));
+
                 for (const [ keyInfo, computedMac ] of Object.entries(mac)) {
+                    console.log("XXX SAS_MAC612",ed25519);
+                    console.log("XXX SAS_MAC613",baseInfo);
+                    console.log("XXX SAS_MAC614",keyInfo);
                     const ourComputedMac = sas.calculate_mac(
-                        olmData.ed25519,
+                        ed25519,
                         baseInfo + keyInfo
                     );
 
                     if (computedMac !== ourComputedMac) {
+                        console.log("XXX SAS verification error: MAC mismatch");
                         logger.error('SAS verification error: MAC mismatch');
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
 
@@ -716,7 +730,10 @@ export class OlmAdapter extends Listenable {
                     }
                 }
 
+                console.log("XXX SAS_MAC7");
+
                 logger.info(`SAS MAC verified for participant ${pId}`);
+                console.log("XXX SAS MAC verified for participant ${pId}");
                 this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
             } else {
                 logger.debug(`Received sas mac message from ${pId} but we have no session for them!`);
@@ -791,7 +808,15 @@ export class OlmAdapter extends Listenable {
             }
             break;
         case 'e2ee.idKey.ed25519':
-            olmData.ed25519 = newValue;
+            console.log("XXX e2ee.idKey.ed2551  1", olmData.sasVerification);
+            olmData.sasVerification = olmData.sasVerification ?? {};
+            console.log("XXX e2ee.idKey.ed2551  2", olmData.sasVerification);
+
+            olmData.sasVerification.ed25519 = newValue;
+
+            console.log("XXXX e2ee.idKey.ed2551  3", olmData.sasVerification);
+
+            console.log("XXXX e2ee.idKey.ed2551  4", participant);
             break;
         }
     }

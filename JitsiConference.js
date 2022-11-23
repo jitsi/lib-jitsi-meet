@@ -3916,10 +3916,12 @@ JitsiConference.prototype.startVerification = function(participantId) {
  * Marks the given participant as verified. After this is done, MAC verification will
  * be performed and an event will be emitted with the result.
  *
+ * @param {boolean} isVerified - whether the verification was succesfull.
  * @param {string} participantId The participant which will be marked as verified.
  * @returns {void}
  */
-JitsiConference.prototype.markParticipantVerified = function(participantId) {
+JitsiConference.prototype.markParticipantVerified = function(isVerified, participantId) {
+    console.log("XXX conference markParticipantVerified")
     const participant = this.getParticipantById(participantId);
 
     if (!participant) {
