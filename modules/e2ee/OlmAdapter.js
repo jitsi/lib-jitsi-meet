@@ -230,7 +230,7 @@ export class OlmAdapter extends Listenable {
      * Sends sacMac if channel verification waas successful.
      *
      */
-    markChannelVerified(isVerified, participant) {
+    markParticipantVerified(isVerified, participant) {
         if (isVerified) {
             const olmData = this._getParticipantOlmData(participant);
 

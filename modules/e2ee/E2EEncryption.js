@@ -89,7 +89,7 @@ export class E2EEncryption {
      * @param {Participant} - participant to be verified.
      * @returns {void}
      */
-    markChannelVerified(isVerified, participant) {
-        this._keyHandler.sasVerification?.markChannelVerified(isVerified, participant);
+    markParticipantVerified(isVerified, participant) {
+        this._keyHandler.sasVerification?.markParticipantVerified(isVerified, participant);
     }
 }

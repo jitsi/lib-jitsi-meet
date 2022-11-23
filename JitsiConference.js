@@ -3897,8 +3897,7 @@ JitsiConference.prototype.setMediaEncryptionKey = function(keyInfo) {
 };
 
 /**
- * Marks the given participant as verified. After this is done, MAC verification will
- * be performed and an event will be emitted with the result.
+ * Starts the participant verification process.
  *
  * @param {string} participantId The participant which will be marked as verified.
  * @returns {void}
@@ -3911,16 +3910,6 @@ JitsiConference.prototype.startVerification = function(participantId) {
     }
 
     this._e2eEncryption.startVerification(participant);
-};
-
-JitsiConference.prototype.markParticipantChannelVerified = function(isVerified, participantId) {
-    const participant = this.getParticipantById(participantId);
-
-    if (!participant) {
-        return;
-    }
-
-    this._e2eEncryption.markChannelVerified(isVerified, participant);
 };
 
 /**
@@ -3937,7 +3926,7 @@ JitsiConference.prototype.markParticipantVerified = function(participantId) {
         return;
     }
 
-    this._e2eEncryption.markVerified(participant);
+    this._e2eEncryption.markParticipantVerified(isVerified, participant);
 };
 
 /**
