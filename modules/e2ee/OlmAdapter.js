@@ -38,7 +38,7 @@ const OlmAdapterEvents = {
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_SAS_READY: 'olm.participant_sas_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
-    PARTICIPANT_SAS_COMPLETED: 'olm.participant_sas_completed'
+    PARTICIPANT_VERIFICATION_COMPLETED: 'olm.participant_verification_completed'
 };
 
 /**
@@ -689,7 +689,7 @@ export class OlmAdapter extends Listenable {
 
                 if (keysMac !== keys) {
                     logger.error('SAS verification error: keys MAC mismatch');
-                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_COMPLETED, pId, false);
+                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
 
                     return;
                 }
@@ -702,14 +702,14 @@ export class OlmAdapter extends Listenable {
 
                     if (computedMac !== ourComputedMac) {
                         logger.error('SAS verification error: MAC mismatch');
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_COMPLETED, pId, false);
+                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
 
                         return;
                     }
                 }
 
                 logger.info(`SAS MAC verified for participant ${pId}`);
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_COMPLETED, pId, true);
+                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
             } else {
                 logger.debug(`Received sas mac message from ${pId} but we have no session for them!`);
 

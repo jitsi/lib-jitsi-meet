@@ -41,8 +41,8 @@ export class ManagedKeyHandler extends KeyHandler {
             this._onParticipantSasReady.bind(this));
 
         this._olmAdapter.on(
-                OlmAdapter.events.PARTICIPANT_SAS_COMPLETED,
-                this._onParticipantSasCompleted.bind(this));
+                OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
+                this._onParticipantVerificationCompleted.bind(this));
 
         this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
@@ -192,7 +192,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantSasReady(pId, sas) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_READY, pId, sas);
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_READY, pId, sas);
     }
 
     /**
@@ -202,8 +202,8 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {boolean} success - Wheter the verification was succesfull.
      * @private
      */
-    _onParticipantSasCompleted(pId, success) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_SAS_COMPLETED, pId, success);
+    _onParticipantVerificationCompleted(pId, success) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED, pId, success);
     }
 
     /**
