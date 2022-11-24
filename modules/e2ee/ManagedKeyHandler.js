@@ -41,6 +41,10 @@ export class ManagedKeyHandler extends KeyHandler {
             this._onParticipantSasReady.bind(this));
 
         this._olmAdapter.on(
+                OlmAdapter.events.PARTICIPANT_SAS_KEY_AVAILABLE,
+                this._onParticipantSasKeyAvailable.bind(this));
+
+        this._olmAdapter.on(
                 OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
                 this._onParticipantVerificationCompleted.bind(this));
 
@@ -194,6 +198,18 @@ export class ManagedKeyHandler extends KeyHandler {
     _onParticipantSasReady(pId, sas) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_READY, pId, sas);
     }
+
+    /**
+     * Handles the sas available event.
+     *
+     * @param {string} pId - The participant ID.
+     * @private
+     */
+     _onParticipantSasKeyAvailable(pId) {
+        console.log("XXX _onParticipantSasKeyAvailable")
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
+    }
+
 
     /**
      * Handles the SAS completed event.

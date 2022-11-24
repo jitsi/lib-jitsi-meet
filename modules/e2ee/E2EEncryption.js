@@ -85,11 +85,11 @@ export class E2EEncryption {
     /**
      * Marks the channel as verified
      *
-     * @param {boolean} isVerified - whether the verification was succesfull.
      * @param {Participant} - participant to be verified.
+     * @param {boolean} isVerified - whether the verification was succesfull.
      * @returns {void}
      */
-    markParticipantVerified(isVerified, participant) {
-        this._keyHandler.sasVerification?.markParticipantVerified(isVerified, participant);
+    markParticipantVerified(participant, isVerified) {
+        this._keyHandler.sasVerification?.markParticipantVerified(participant, isVerified);
     }
 }

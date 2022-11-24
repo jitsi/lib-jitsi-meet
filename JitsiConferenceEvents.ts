@@ -454,9 +454,11 @@ export enum JitsiConferenceEvents {
      */
     METADATA_UPDATED = 'conference.metadata.updated',
 
-    E2EE_VERIFICATION_READY = 'conference.e2ee.sas.ready',
+    E2EE_VERIFICATION_AVAILABLE = 'conference.e2ee.verification.available',
 
-    E2EE_VERIFICATION_COMPLETED = 'conference.e2ee.sas.completed'
+    E2EE_VERIFICATION_READY = 'conference.e2ee.verification.ready',
+
+    E2EE_VERIFICATION_COMPLETED = 'conference.e2ee.verification.completed'
 };
 
 // exported for backward compatibility
@@ -480,6 +482,7 @@ export const CONFERENCE_CREATED_TIMESTAMP = JitsiConferenceEvents.CONFERENCE_CRE
 export const DTMF_SUPPORT_CHANGED = JitsiConferenceEvents.DTMF_SUPPORT_CHANGED;
 export const ENDPOINT_MESSAGE_RECEIVED = JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED;
+export const E2EE_VERIFICATION_AVAILABLE = JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE;
 export const E2EE_VERIFICATION_READY = JitsiConferenceEvents.E2EE_VERIFICATION_READY;
 export const E2EE_VERIFICATION_COMPLETED = JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED;
 export const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
