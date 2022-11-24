@@ -234,7 +234,7 @@ export class OlmAdapter extends Listenable {
         if (isVerified) {
             const olmData = this._getParticipantOlmData(participant);
 
-            const { sas , sasMacSent } = olmData.sasVerification;
+            const { sas, sasMacSent } = olmData.sasVerification;
 
             if (sas && sas.is_their_key_set() && !sasMacSent) {
                 this._sendSasMac(participant);
@@ -276,7 +276,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Starts the verification process for the given participant as described here
      * https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
-     * 
+     *
      *    |                                 |
           | m.key.verification.start        |
           |-------------------------------->|
@@ -582,7 +582,7 @@ export class OlmAdapter extends Listenable {
 
                 const { uuid } = msg.data;
 
-                olmData.sasVerification.sas = new Olm.SAS()
+                olmData.sasVerification.sas = new Olm.SAS();
                 olmData.sasVerification.uuid = uuid;
 
                 const pubKey = olmData.sasVerification.sas.get_pubkey();
@@ -655,7 +655,6 @@ export class OlmAdapter extends Listenable {
 
                 const { key: theirKey, uuid } = msg.data;
 
-                
                 if (sasCommitment) {
                     const olmUtil = new Olm.Utility();
                     const commitment = olmUtil.sha256(theirKey + startContent);
@@ -665,6 +664,7 @@ export class OlmAdapter extends Listenable {
                     if (sasCommitment !== commitment) {
                         this._sendError(participant, 'OlmAdapter commitments mismatched');
                         olmData.sasVerification.free();
+
                         return;
                     }
                 }
@@ -729,7 +729,11 @@ export class OlmAdapter extends Listenable {
 
                 if (keysMac !== keys) {
                     logger.error('SAS verification error: keys MAC mismatch');
-                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false, 'keys MAC mismatch');
+                    this.eventEmitter.emit(
+                        OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                        pId,
+                        false,
+                        'keys MAC mismatch');
 
                     return;
                 }
@@ -742,7 +746,11 @@ export class OlmAdapter extends Listenable {
 
                     if (computedMac !== ourComputedMac) {
                         logger.error('SAS verification error: MAC mismatch');
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false, 'MAC mismatch');
+                        this.eventEmitter.emit(
+                            OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                            pId,
+                            false,
+                            'MAC mismatch');
 
                         return;
                     }
@@ -934,7 +942,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Builds and sends the SAS MAC message to the given participant.
      * The second phase of the verification process, the Key verification phase
-        https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification                              |
+        https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
      */
     _sendSasMac(participant) {
         const pId = participant.getId();
