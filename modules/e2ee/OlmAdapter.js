@@ -235,9 +235,9 @@ export class OlmAdapter extends Listenable {
      *
      */
     markParticipantVerified(participant, isVerified) {
-        if (isVerified) {
-            const olmData = this._getParticipantOlmData(participant);
+        const olmData = this._getParticipantOlmData(participant);
 
+        if (isVerified) {
             const { sas, sasMacSent } = olmData.sasVerification;
 
             if (sas && sas.is_their_key_set() && !sasMacSent) {
@@ -317,11 +317,11 @@ export class OlmAdapter extends Listenable {
 
         olmData.sasVerification = {
             sas: new Olm.SAS(),
-            transaction_id: uuidv4()  
-        } ;
+            transactionId: uuidv4()
+        };
 
         const startContent = {
-            transaction_id: olmData.sasVerification.transaction_id
+            transactionId: olmData.sasVerification.transactionId
         };
 
         olmData.sasVerification.startContent = startContent;
@@ -586,11 +586,13 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
-                const { transaction_id } = msg.data;
+                const { transactionId } = msg.data;
+
+                const sas = new Olm.SAS();
 
                 olmData.sasVerification = {
-                    sas: new Olm.SAS(),
-                    transaction_id : transaction_id,
+                    sas,
+                    transactionId,
                     isInitiator: false
                 };
 
@@ -605,7 +607,7 @@ export class OlmAdapter extends Listenable {
                     olm: {
                         type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
                         data: {
-                            transaction_id,
+                            transactionId,
                             commitment
                         }
                     }
@@ -621,7 +623,7 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_ACCEPT: {
             if (olmData.session) {
-                const { commitment, transaction_id } = msg.data;
+                const { commitment, transactionId } = msg.data;
 
                 olmData.sasVerification.sasCommitment = commitment;
 
@@ -634,7 +636,7 @@ export class OlmAdapter extends Listenable {
                         type: OLM_MESSAGE_TYPES.SAS_KEY,
                         data: {
                             key: pubKey,
-                            transaction_id
+                            transactionId
                         }
                     }
                 };
@@ -659,10 +661,10 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
-                const { key: theirKey, transaction_id } = msg.data;
+                const { key: theirKey, transactionId } = msg.data;
 
                 if (sasCommitment) {
-                    const commitment = this._computeCommitment(theirKey, startContent);                    
+                    const commitment = this._computeCommitment(theirKey, startContent);
 
                     if (sasCommitment !== commitment) {
                         this._sendError(participant, 'OlmAdapter commitments mismatched');
@@ -696,7 +698,7 @@ export class OlmAdapter extends Listenable {
                         type: OLM_MESSAGE_TYPES.SAS_KEY,
                         data: {
                             key: pubKey,
-                            transaction_id
+                            transactionId
                         }
                     }
                 };
@@ -711,7 +713,7 @@ export class OlmAdapter extends Listenable {
             }
             break;
         }
-        case OLM_MESSAGE_TYPES.SAS_MAC:
+        case OLM_MESSAGE_TYPES.SAS_MAC: {
             if (!olmData.session) {
                 logger.debug(`Received sas mac message from ${pId} but we have no session for them!`);
 
@@ -719,8 +721,8 @@ export class OlmAdapter extends Listenable {
 
                 return;
             }
-            
-            const { keys, mac, transaction_id } = msg.data;
+
+            const { keys, mac, transactionId } = msg.data;
 
             if (!mac || !keys) {
                 logger.warn('Invalid SAS MAC message');
@@ -728,10 +730,10 @@ export class OlmAdapter extends Listenable {
                 return;
             }
 
-            const { sas } = olmData.sasVerification;
+            const sas = olmData.sasVerification.sas;
 
             // Verify the received MACs.
-            const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${pId}${this.myId}${transaction_id}`;
+            const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${pId}${this.myId}${transactionId}`;
             const keysMac = sas.calculate_mac(
                 Object.keys(mac).sort().join(','), // eslint-disable-line newline-per-chained-call
                 baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
@@ -770,6 +772,7 @@ export class OlmAdapter extends Listenable {
             this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
 
             break;
+        }
         }
     }
 
@@ -950,12 +953,12 @@ export class OlmAdapter extends Listenable {
     _sendSasMac(participant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
-        const { sas, transaction_id } = olmData.sasVerification;
+        const { sas, transactionId } = olmData.sasVerification;
 
         // Calculate and send MAC with the keys to be verified.
         const mac = {};
         const keyList = [];
-        const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${this.myId}${pId}${transaction_id}`;
+        const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${this.myId}${pId}${transactionId}`;
 
         const deviceKeyId = `ed25519:${pId}`;
 
@@ -976,7 +979,7 @@ export class OlmAdapter extends Listenable {
                 data: {
                     keys,
                     mac,
-                    transaction_id
+                    transactionId
                 }
             }
         };

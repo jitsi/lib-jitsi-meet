@@ -205,8 +205,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {string} pId - The participant ID.
      * @private
      */
-     _onParticipantSasKeyAvailable(pId) {
-        console.log("XXX _onParticipantSasKeyAvailable")
+    _onParticipantSasKeyAvailable(pId) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
     }
 
