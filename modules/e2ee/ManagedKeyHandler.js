@@ -202,8 +202,8 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {boolean} success - Wheter the verification was succesfull.
      * @private
      */
-    _onParticipantVerificationCompleted(pId, success) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED, pId, success);
+    _onParticipantVerificationCompleted(pId, success, message) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED, pId, success, message);
     }
 
     /**

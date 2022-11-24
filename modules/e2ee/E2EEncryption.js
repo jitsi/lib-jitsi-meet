@@ -90,7 +90,6 @@ export class E2EEncryption {
      * @returns {void}
      */
     markParticipantVerified(isVerified, participant) {
-        console.log("XXX E@EE markParticipantVerified",  this._keyHandler.sasVerification);
         this._keyHandler.sasVerification?.markParticipantVerified(isVerified, participant);
     }
 }

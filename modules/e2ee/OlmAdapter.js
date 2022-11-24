@@ -231,7 +231,6 @@ export class OlmAdapter extends Listenable {
      *
      */
     markParticipantVerified(isVerified, participant) {
-        console.log("XXXX OlmAdaptermarkParticipantVerified")
         if (isVerified) {
             const olmData = this._getParticipantOlmData(participant);
 
@@ -275,7 +274,28 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Starts the verification process for the given participant.
+     * Starts the verification process for the given participant as described here
+     * https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
+     * 
+     *    |                                 |
+          | m.key.verification.start        |
+          |-------------------------------->|
+          |                                 |
+          |       m.key.verification.accept |
+          |<--------------------------------|
+          |                                 |
+          | m.key.verification.key          |
+          |-------------------------------->|
+          |                                 |
+          |          m.key.verification.key |
+          |<--------------------------------|
+          |                                 |
+          | m.key.verification.mac          |
+          |-------------------------------->|
+          |                                 |
+          |          m.key.verification.mac |
+          |<--------------------------------|
+          |                                 |
      *
      * @param {JitsiParticipant} participant - The target participant.
      * @returns {Promise<void>}
@@ -299,6 +319,7 @@ export class OlmAdapter extends Listenable {
         };
 
         olmData.sasVerification.startContent = startContent;
+        olmData.sasVerification.isInitializer = true;
 
         const data = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -570,7 +591,9 @@ export class OlmAdapter extends Listenable {
 
                 olmUtil.free();
 
-                // Send ACCEPT.
+                /* The first phase of the verification process, the Key agreement phase
+                   https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
+                */
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
@@ -605,13 +628,14 @@ export class OlmAdapter extends Listenable {
                         type: OLM_MESSAGE_TYPES.SAS_KEY,
                         data: {
                             key: pubKey,
-                            isInitializer: true,
                             uuid
                         }
                     }
                 };
 
                 this._sendMessage(ack, pId);
+
+                olmData.sasVerification.keySent = true;
             } else {
                 logger.debug(`Received sas accept message from ${pId} but we have no session for them!`);
 
@@ -621,14 +645,15 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
             if (olmData.session) {
-                const { sas, sasCommitment, startContent } = olmData.sasVerification;
+                const { isInitializer, sas, sasCommitment, startContent, keySent } = olmData.sasVerification;
+
                 if (sas.is_their_key_set()) {
                     logger.warn('SAS already has their key!');
 
                     return;
                 }
 
-                const { key: theirKey, isInitializer, uuid } = msg.data;
+                const { key: theirKey, uuid } = msg.data;
 
                 
                 if (sasCommitment) {
@@ -647,6 +672,21 @@ export class OlmAdapter extends Listenable {
                 sas.set_their_key(theirKey);
 
                 const pubKey = sas.get_pubkey();
+
+                const myInfo = `${this.myId}|${pubKey}`;
+                const theirInfo = `${pId}|${theirKey}`;
+
+                const info = isInitializer ? `${myInfo}|${theirInfo}` : `${theirInfo}|${myInfo}`;
+
+                const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
+                const generatedSas = generateSas(sasBytes);
+
+                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
+
+                if (keySent) {
+                    return;
+                }
+
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
@@ -660,15 +700,7 @@ export class OlmAdapter extends Listenable {
 
                 this._sendMessage(ack, pId);
 
-                const myInfo = `${this.myId}|${pubKey}`;
-                const theirInfo = `${pId}|${theirKey}`;
-
-                const info = isInitializer ? `${myInfo}|${theirInfo}` : `${theirInfo}|${myInfo}`;
-
-                const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
-                const generatedSas = generateSas(sasBytes);
-
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
+                olmData.sasVerification.keySent = true;
             } else {
                 logger.debug(`Received sas key message from ${pId} but we have no session for them!`);
 
@@ -678,7 +710,6 @@ export class OlmAdapter extends Listenable {
         }
         case OLM_MESSAGE_TYPES.SAS_MAC: {
             if (olmData.session) {
-                console.log("XXX SAS_MAC");
                 const { keys, mac, uuid } = msg.data;
 
                 if (!mac || !keys) {
@@ -687,12 +718,7 @@ export class OlmAdapter extends Listenable {
                     return;
                 }
 
-                console.log("XXX SAS_MAC3", olmData.sasVerification );
-                console.log("XXX SAS_MAC32", participant);
-
                 const { sas, ed25519 } = olmData.sasVerification;
-
-                console.log("XXX SAS_MAC4");
 
                 // Verify the received MACs.
                 const baseInfo = `${OLM_KEY_VERIFICATION_MAC_INFO}${pId}${this.myId}${uuid}`;
@@ -701,39 +727,28 @@ export class OlmAdapter extends Listenable {
                     baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
                 );
 
-                console.log("XXX SAS_MAC5");
-
                 if (keysMac !== keys) {
                     logger.error('SAS verification error: keys MAC mismatch');
-                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
+                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false, 'keys MAC mismatch');
 
                     return;
                 }
 
-                console.log("XXX SAS_MAC6", Object.entries(mac));
-
                 for (const [ keyInfo, computedMac ] of Object.entries(mac)) {
-                    console.log("XXX SAS_MAC612",ed25519);
-                    console.log("XXX SAS_MAC613",baseInfo);
-                    console.log("XXX SAS_MAC614",keyInfo);
                     const ourComputedMac = sas.calculate_mac(
                         ed25519,
                         baseInfo + keyInfo
                     );
 
                     if (computedMac !== ourComputedMac) {
-                        console.log("XXX SAS verification error: MAC mismatch");
                         logger.error('SAS verification error: MAC mismatch');
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false);
+                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, false, 'MAC mismatch');
 
                         return;
                     }
                 }
 
-                console.log("XXX SAS_MAC7");
-
                 logger.info(`SAS MAC verified for participant ${pId}`);
-                console.log("XXX SAS MAC verified for participant ${pId}");
                 this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
             } else {
                 logger.debug(`Received sas mac message from ${pId} but we have no session for them!`);
@@ -808,15 +823,10 @@ export class OlmAdapter extends Listenable {
             }
             break;
         case 'e2ee.idKey.ed25519':
-            console.log("XXX e2ee.idKey.ed2551  1", olmData.sasVerification);
             olmData.sasVerification = olmData.sasVerification ?? {};
-            console.log("XXX e2ee.idKey.ed2551  2", olmData.sasVerification);
 
             olmData.sasVerification.ed25519 = newValue;
 
-            console.log("XXXX e2ee.idKey.ed2551  3", olmData.sasVerification);
-
-            console.log("XXXX e2ee.idKey.ed2551  4", participant);
             break;
         }
     }
@@ -923,6 +933,8 @@ export class OlmAdapter extends Listenable {
 
     /**
      * Builds and sends the SAS MAC message to the given participant.
+     * The second phase of the verification process, the Key verification phase
+        https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification                              |
      */
     _sendSasMac(participant) {
         const pId = participant.getId();

@@ -3921,7 +3921,6 @@ JitsiConference.prototype.startVerification = function(participantId) {
  * @returns {void}
  */
 JitsiConference.prototype.markParticipantVerified = function(isVerified, participantId) {
-    console.log("XXX conference markParticipantVerified")
     const participant = this.getParticipantById(participantId);
 
     if (!participant) {
