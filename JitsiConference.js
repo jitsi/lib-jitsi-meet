@@ -1303,6 +1303,9 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     // Now replace the stream at the lower levels
     return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
         .then(() => {
+            if (oldTrackBelongsToConference && !oldTrack.isMuted() && !newTrack) {
+                oldTrack._sendMuteStatus(true);
+            }
             oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
             newTrack && this._setupNewTrack(newTrack);
 
