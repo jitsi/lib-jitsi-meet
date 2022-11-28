@@ -41,12 +41,12 @@ export class ManagedKeyHandler extends KeyHandler {
             this._onParticipantSasReady.bind(this));
 
         this._olmAdapter.on(
-                OlmAdapter.events.PARTICIPANT_SAS_KEY_AVAILABLE,
-                this._onParticipantSasKeyAvailable.bind(this));
+            OlmAdapter.events.PARTICIPANT_SAS_AVAILABLE,
+            this._onParticipantSasAvailable.bind(this));
 
         this._olmAdapter.on(
-                OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
-                this._onParticipantVerificationCompleted.bind(this));
+            OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
+            this._onParticipantVerificationCompleted.bind(this));
 
         this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
@@ -205,7 +205,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {string} pId - The participant ID.
      * @private
      */
-    _onParticipantSasKeyAvailable(pId) {
+    _onParticipantSasAvailable(pId) {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
     }
 

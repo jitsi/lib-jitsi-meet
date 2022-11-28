@@ -10,6 +10,7 @@ import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
+import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
 
 const logger = getLogger(__filename);
@@ -36,14 +37,11 @@ const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
-    PARTICIPANT_SAS_KEY_AVAILABLE: 'olm.participant_sas_key_available',
+    PARTICIPANT_SAS_AVAILABLE: 'olm.participant_sas_available',
     PARTICIPANT_SAS_READY: 'olm.participant_sas_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_VERIFICATION_COMPLETED: 'olm.participant_verification_completed'
 };
-
-const keysMacMismatchedError = 'keys MAC mismatch';
-const macMismatchedError = 'MAC mismatch';
 
 /**
  * This class implements an End-to-End Encrypted communication channel between every two peers
@@ -315,6 +313,12 @@ export class OlmAdapter extends Listenable {
             return;
         }
 
+        if (olmData.sasVerification) {
+            logger.warn(`There is already a verification in progress with participant ${pId}`);
+
+            return;
+        }
+
         olmData.sasVerification = {
             sas: new Olm.SAS(),
             transactionId: uuidv4()
@@ -579,138 +583,157 @@ export class OlmAdapter extends Listenable {
             break;
         }
         case OLM_MESSAGE_TYPES.SAS_START: {
-            if (olmData.session) {
-                if (olmData.sasVerification?.sas) {
-                    logger.warn(`SAS already created for participant ${pId}`);
-
-                    return;
-                }
-
-                const { transactionId } = msg.data;
-
-                const sas = new Olm.SAS();
-
-                olmData.sasVerification = {
-                    sas,
-                    transactionId,
-                    isInitiator: false
-                };
-
-                const pubKey = olmData.sasVerification.sas.get_pubkey();
-                const commitment = this._computeCommitment(pubKey, msg.data);
-
-                /* The first phase of the verification process, the Key agreement phase
-                   https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
-                */
-                const acceptMessage = {
-                    [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                    olm: {
-                        type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
-                        data: {
-                            transactionId,
-                            commitment
-                        }
-                    }
-                };
-
-                this._sendMessage(acceptMessage, pId);
-            } else {
+            if (!olmData.session) {
                 logger.debug(`Received sas init message from ${pId} but we have no session for them!`);
 
                 this._sendError(participant, 'No session found while processing sas-init');
+
+                return;
             }
+
+            if (olmData.sasVerification?.sas) {
+                logger.warn(`SAS already created for participant ${pId}`);
+
+                return;
+            }
+
+            const { transactionId } = msg.data;
+
+            const sas = new Olm.SAS();
+
+            olmData.sasVerification = {
+                sas,
+                transactionId,
+                isInitiator: false
+            };
+
+            const pubKey = olmData.sasVerification.sas.get_pubkey();
+            const commitment = this._computeCommitment(pubKey, msg.data);
+
+            /* The first phase of the verification process, the Key agreement phase
+                https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
+            */
+            const acceptMessage = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
+                    data: {
+                        transactionId,
+                        commitment
+                    }
+                }
+            };
+
+            this._sendMessage(acceptMessage, pId);
             break;
         }
         case OLM_MESSAGE_TYPES.SAS_ACCEPT: {
-            if (olmData.session) {
-                const { commitment, transactionId } = msg.data;
-
-                olmData.sasVerification.sasCommitment = commitment;
-
-                const pubKey = olmData.sasVerification.sas.get_pubkey();
-
-                // Send KEY.
-                const keyMessage = {
-                    [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                    olm: {
-                        type: OLM_MESSAGE_TYPES.SAS_KEY,
-                        data: {
-                            key: pubKey,
-                            transactionId
-                        }
-                    }
-                };
-
-                this._sendMessage(keyMessage, pId);
-
-                olmData.sasVerification.keySent = true;
-            } else {
+            if (!olmData.session) {
                 logger.debug(`Received sas accept message from ${pId} but we have no session for them!`);
 
                 this._sendError(participant, 'No session found while processing sas-accept');
+
+                return;
             }
+
+            const { commitment, transactionId } = msg.data;
+
+            if (olmData.sasVerification.sasCommitment) {
+                logger.debug(`Already received sas commitment message from ${pId}!`);
+
+                this._sendError(participant, 'Already received sas commitment message from ${pId}!');
+
+                return;
+            }
+
+            olmData.sasVerification.sasCommitment = commitment;
+
+            const pubKey = olmData.sasVerification.sas.get_pubkey();
+
+            // Send KEY.
+            const keyMessage = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    type: OLM_MESSAGE_TYPES.SAS_KEY,
+                    data: {
+                        key: pubKey,
+                        transactionId
+                    }
+                }
+            };
+
+            this._sendMessage(keyMessage, pId);
+
+            olmData.sasVerification.keySent = true;
             break;
         }
         case OLM_MESSAGE_TYPES.SAS_KEY: {
-            if (olmData.session) {
-                const { isInitiator, sas, sasCommitment, startContent, keySent } = olmData.sasVerification;
-
-                if (sas.is_their_key_set()) {
-                    logger.warn('SAS already has their key!');
-
-                    return;
-                }
-
-                const { key: theirKey, transactionId } = msg.data;
-
-                if (sasCommitment) {
-                    const commitment = this._computeCommitment(theirKey, startContent);
-
-                    if (sasCommitment !== commitment) {
-                        this._sendError(participant, 'OlmAdapter commitments mismatched');
-                        olmData.sasVerification.free();
-
-                        return;
-                    }
-                }
-
-                sas.set_their_key(theirKey);
-
-                const pubKey = sas.get_pubkey();
-
-                const myInfo = `${this.myId}|${pubKey}`;
-                const theirInfo = `${pId}|${theirKey}`;
-
-                const info = isInitiator ? `${myInfo}|${theirInfo}` : `${theirInfo}|${myInfo}`;
-
-                const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
-                const generatedSas = generateSas(sasBytes);
-
-                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
-
-                if (keySent) {
-                    return;
-                }
-
-                const keyMessage = {
-                    [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                    olm: {
-                        type: OLM_MESSAGE_TYPES.SAS_KEY,
-                        data: {
-                            key: pubKey,
-                            transactionId
-                        }
-                    }
-                };
-
-                this._sendMessage(keyMessage, pId);
-
-                olmData.sasVerification.keySent = true;
-            } else {
+            if (!olmData.session) {
                 logger.debug(`Received sas key message from ${pId} but we have no session for them!`);
 
                 this._sendError(participant, 'No session found while processing sas-key');
+
+                return;
             }
+
+            const { isInitiator, sas, sasCommitment, startContent, keySent } = olmData.sasVerification;
+
+            if (sas.is_their_key_set()) {
+                logger.warn('SAS already has their key!');
+
+                return;
+            }
+
+            const { key: theirKey, transactionId } = msg.data;
+
+            if (sasCommitment) {
+                const commitment = this._computeCommitment(theirKey, startContent);
+
+                if (sasCommitment !== commitment) {
+                    this._sendError(participant, 'OlmAdapter commitments mismatched');
+                    this.eventEmitter.emit(
+                        OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                        pId,
+                        false,
+                        E2EEErrors.E2EE_SAS_COMMITMENT_MISMATCHED);
+                    olmData.sasVerification.free();
+
+                    return;
+                }
+            }
+
+            sas.set_their_key(theirKey);
+
+            const pubKey = sas.get_pubkey();
+
+            const myInfo = `${this.myId}|${pubKey}`;
+            const theirInfo = `${pId}|${theirKey}`;
+
+            const info = isInitiator ? `${myInfo}|${theirInfo}` : `${theirInfo}|${myInfo}`;
+
+            const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
+            const generatedSas = generateSas(sasBytes);
+
+            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
+
+            if (keySent) {
+                return;
+            }
+
+            const keyMessage = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    type: OLM_MESSAGE_TYPES.SAS_KEY,
+                    data: {
+                        key: pubKey,
+                        transactionId
+                    }
+                }
+            };
+
+            this._sendMessage(keyMessage, pId);
+
+            olmData.sasVerification.keySent = true;
             break;
         }
         case OLM_MESSAGE_TYPES.SAS_MAC: {
@@ -745,7 +768,19 @@ export class OlmAdapter extends Listenable {
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
-                    keysMacMismatchedError);
+                    E2EEErrors.E2EE_SAS_KEYS_MAC_MISMATCH);
+
+                return;
+            }
+
+            if (!olmData.ed25519) {
+                logger.warn('SAS verification error: Missing ed25519 key');
+
+                this.eventEmitter.emit(
+                    OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                    pId,
+                    false,
+                    E2EEErrors.E2EE_SAS_MISSING_KEY);
 
                 return;
             }
@@ -762,7 +797,7 @@ export class OlmAdapter extends Listenable {
                         OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                         pId,
                         false,
-                        macMismatchedError);
+                        E2EEErrors.E2EE_SAS_MAC_MISMATCH);
 
                     return;
                 }
@@ -840,7 +875,7 @@ export class OlmAdapter extends Listenable {
             break;
         case 'e2ee.idKey.ed25519':
             olmData.ed25519 = newValue;
-            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_KEY_AVAILABLE, participantId);
+            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_AVAILABLE, participantId);
             break;
         }
     }
@@ -992,7 +1027,7 @@ export class OlmAdapter extends Listenable {
      */
     _computeCommitment(pubKey, data) {
         const olmUtil = new Olm.Utility();
-        const commitment = olmUtil.sha256(pubKey + safeJsonParse(data));
+        const commitment = olmUtil.sha256(pubKey + JSON.stringify(data));
 
         olmUtil.free();
 
