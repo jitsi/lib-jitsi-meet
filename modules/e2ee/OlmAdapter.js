@@ -235,17 +235,38 @@ export class OlmAdapter extends Listenable {
     markParticipantVerified(participant, isVerified) {
         const olmData = this._getParticipantOlmData(participant);
 
-        if (isVerified) {
-            const { sas, sasMacSent } = olmData.sasVerification;
+        const pId = participant.getId();
 
-            if (sas && sas.is_their_key_set() && !sasMacSent) {
-                this._sendSasMac(participant);
-
-                // Mark the MAC as sent so we don't send it multiple times.
-                olmData.sasVerification.sasMacSent = true;
-            }
-        } else {
+        if (!isVerified) {
             olmData.sasVerification = undefined;
+            logger.warn(`Verification failed for participant ${pId}`);
+            this.eventEmitter.emit(
+                OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                pId,
+                false,
+                E2EEErrors.E2EE_SAS_CHANNEL_VERIFICATION_FAILED);
+
+            return;
+        }
+
+        if (!olmData.sasVerification) {
+            logger.warn(`Participant ${pId} does not have valid sasVerification`);
+            this.eventEmitter.emit(
+                OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                pId,
+                false,
+                E2EEErrors.E2EE_SAS_INVALID_SAS_VERIFICATION);
+
+            return;
+        }
+
+        const { sas, sasMacSent } = olmData.sasVerification;
+
+        if (sas && sas.is_their_key_set() && !sasMacSent) {
+            this._sendSasMac(participant);
+
+            // Mark the MAC as sent so we don't send it multiple times.
+            olmData.sasVerification.sasMacSent = true;
         }
     }
 
@@ -593,6 +614,11 @@ export class OlmAdapter extends Listenable {
 
             if (olmData.sasVerification?.sas) {
                 logger.warn(`SAS already created for participant ${pId}`);
+                this.eventEmitter.emit(
+                    OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                    pId,
+                    false,
+                    E2EEErrors.E2EE_SAS_INVALID_SAS_VERIFICATION);
 
                 return;
             }
@@ -638,6 +664,18 @@ export class OlmAdapter extends Listenable {
 
             const { commitment, transactionId } = msg.data;
 
+
+            if (!olmData.sasVerification) {
+                logger.warn(`SAS_ACCEPT Participant ${pId} does not have valid sasVerification`);
+                this.eventEmitter.emit(
+                    OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                    pId,
+                    false,
+                    E2EEErrors.E2EE_SAS_INVALID_SAS_VERIFICATION);
+
+                return;
+            }
+
             if (olmData.sasVerification.sasCommitment) {
                 logger.debug(`Already received sas commitment message from ${pId}!`);
 
@@ -672,6 +710,17 @@ export class OlmAdapter extends Listenable {
                 logger.debug(`Received sas key message from ${pId} but we have no session for them!`);
 
                 this._sendError(participant, 'No session found while processing sas-key');
+
+                return;
+            }
+
+            if (!olmData.sasVerification) {
+                logger.warn(`SAS_KEY Participant ${pId} does not have valid sasVerification`);
+                this.eventEmitter.emit(
+                    OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                    pId,
+                    false,
+                    E2EEErrors.E2EE_SAS_INVALID_SAS_VERIFICATION);
 
                 return;
             }
@@ -749,6 +798,12 @@ export class OlmAdapter extends Listenable {
 
             if (!mac || !keys) {
                 logger.warn('Invalid SAS MAC message');
+
+                return;
+            }
+
+            if (!olmData.sasVerification) {
+                logger.warn(`SAS_MAC Participant ${pId} does not have valid sasVerification`);
 
                 return;
             }
