@@ -36,6 +36,18 @@ export class ManagedKeyHandler extends KeyHandler {
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
 
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_SAS_READY,
+            this._onParticipantSasReady.bind(this));
+
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_SAS_AVAILABLE,
+            this._onParticipantSasAvailable.bind(this));
+
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
+            this._onParticipantVerificationCompleted.bind(this));
+
         this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
             this._onParticipantPropertyChanged.bind(this));
@@ -50,6 +62,15 @@ export class ManagedKeyHandler extends KeyHandler {
                 () => {
                     this._conferenceJoined = true;
                 });
+    }
+
+    /**
+     * Returns the sasVerficiation object.
+     *
+     * @returns {Object}
+     */
+    get sasVerification() {
+        return this._olmAdapter;
     }
 
     /**
@@ -165,6 +186,39 @@ export class ManagedKeyHandler extends KeyHandler {
         logger.debug(`Participant ${id} updated their key`);
 
         this.e2eeCtx.setKey(id, key, index);
+    }
+
+    /**
+     * Handles the SAS ready event.
+     *
+     * @param {string} pId - The participant ID.
+     * @param {Uint8Array} sas - The bytes from sas.generate_bytes..
+     * @private
+     */
+    _onParticipantSasReady(pId, sas) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_READY, pId, sas);
+    }
+
+    /**
+     * Handles the sas available event.
+     *
+     * @param {string} pId - The participant ID.
+     * @private
+     */
+    _onParticipantSasAvailable(pId) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
+    }
+
+
+    /**
+     * Handles the SAS completed event.
+     *
+     * @param {string} pId - The participant ID.
+     * @param {boolean} success - Wheter the verification was succesfull.
+     * @private
+     */
+    _onParticipantVerificationCompleted(pId, success, message) {
+        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED, pId, success, message);
     }
 
     /**
