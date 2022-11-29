@@ -375,6 +375,21 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
         return;
     }
+
+    // redirect
+    if ($(error).find('>error>redirect').length) {
+        const conferenceIQError = $(error).find('conference');
+
+        const vnode = conferenceIQError.attr('vnode');
+        const focusJid = conferenceIQError.attr('focusjid');
+
+        logger.warn(`We have been redirected to: ${vnode} new focus Jid:${focusJid}`);
+
+        this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, focusJid);
+
+        return;
+    }
+
     const waitMs = this.getNextErrorTimeout();
     const errmsg = `Focus error, retry after ${waitMs}`;
 
