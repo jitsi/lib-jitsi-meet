@@ -99,6 +99,11 @@ export enum JitsiConferenceErrors {
     PASSWORD_REQUIRED = 'conference.passwordRequired',
 
     /**
+     * The conference is redirected to a visitor node.
+     */
+    REDIRECTED = 'conference.redirected',
+
+    /**
      * Indicates that reservation system returned error.
      */
     RESERVATION_ERROR = 'conference.reservationError',
@@ -128,5 +133,6 @@ export const INCOMPATIBLE_SERVER_VERSIONS = JitsiConferenceErrors.INCOMPATIBLE_S
 export const OFFER_ANSWER_FAILED = JitsiConferenceErrors.OFFER_ANSWER_FAILED;
 export const PASSWORD_NOT_SUPPORTED = JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED;
 export const PASSWORD_REQUIRED = JitsiConferenceErrors.PASSWORD_REQUIRED;
+export const REDIRECTED = JitsiConferenceErrors.REDIRECTED;
 export const RESERVATION_ERROR = JitsiConferenceErrors.RESERVATION_ERROR;
 export const VIDEOBRIDGE_NOT_AVAILABLE = JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE;
