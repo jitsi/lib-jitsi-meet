@@ -89,7 +89,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.addEventListener = this.on = this._addEventListener.bind(this);
         this.removeEventListener = this.off = this._removeEventListener.bind(this);
 
-        logger.debug(`New remote track added: ${this}`);
+        logger.debug(`New remote track created: ${this}`);
 
         // we want to mark whether the track has been ever muted
         // to detect ttfm events for startmuted conferences, as it can

@@ -1804,15 +1804,22 @@ JitsiConference.prototype.onMemberJoined = function(
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
-
-    const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
+    const participant = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
     participant.setConnectionJid(fullJid);
     participant.setRole(role);
     participant.setBotType(botType);
     participant.setFeatures(features);
     participant.setIsReplacing(isReplaceParticipant);
+
+    // Set remote tracks on the participant if source signaling was received before presence.
+    const remoteTracks = this.isP2PActive()
+        ? this.p2pJingleSession?.peerconnection.getRemoteTracks(id) ?? []
+        : this.jvbJingleSession?.peerconnection.getRemoteTracks(id) ?? [];
+
+    for (const track of remoteTracks) {
+        participant._tracks.push(track);
+    }
 
     this.participants[id] = participant;
     this.eventEmitter.emit(
@@ -2042,14 +2049,12 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
 
-    if (!participant) {
-        logger.error(`No participant found for id: ${id}`);
-
-        return;
-    }
-
     // Add track to JitsiParticipant.
-    participant._tracks.push(track);
+    if (participant) {
+        participant._tracks.push(track);
+    } else {
+        logger.info(`Source signaling received before presence for ${id}`);
+    }
 
     if (this.transcriber) {
         this.transcriber.addTrack(track);

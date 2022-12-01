@@ -7,10 +7,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import {
-    getSourceIndexFromSourceName,
-    getSourceNameForJitsiTrack
-} from '../../service/RTC/SignalingLayer';
+import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -850,9 +847,8 @@ TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     const streamId = stream.id;
 
+    // Do not create remote tracks for 'mixed' JVB SSRCs (used by JVB for RTCP termination).
     if (!RTC.isUserStreamById(streamId)) {
-        logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
-
         return;
     }
 
@@ -895,64 +891,58 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const streamId = stream.id;
     const mediaType = track.kind;
 
+    // Do not create remote tracks for 'mixed' JVB SSRCs (used by JVB for RTCP termination).
     if (!this.isP2P && !RTC.isUserStreamById(streamId)) {
-        logger.info(`${this} ignored remote 'stream added' event for non-user stream[id=${streamId}]`);
-
         return;
     }
-    logger.info(`${this} adding remote track for stream[id=${streamId},type=${mediaType}]`);
+    logger.info(`${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`);
 
     // look up an associated JID for a stream id
     if (!mediaType) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error(
-                `MediaType undefined for remote track, stream id: ${streamId}`
-            ));
+            new Error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`));
 
-        // Abort
         return;
     }
 
     const remoteSDP = this._usesUnifiedPlan
         ? new SDP(this.peerconnection.remoteDescription.sdp)
         : new SDP(this.remoteDescription.sdp);
-    let mediaLines;
+    let mediaLine;
 
-    // In unified plan mode, find the matching mline using 'mid' if its availble, otherwise use the
-    // 'msid' attribute of the stream.
+    // In unified plan mode, find the matching mline using 'mid' or the 'msid' attr of the stream.
     if (this._usesUnifiedPlan) {
-        if (transceiver && transceiver.mid) {
+        if (transceiver?.mid) {
             const mid = transceiver.mid;
 
-            mediaLines = remoteSDP.media.filter(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
+            mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
         } else {
-            mediaLines = remoteSDP.media.filter(mls => {
+            mediaLine = remoteSDP.media.find(mls => {
                 const msid = SDPUtil.findLine(mls, 'a=msid:');
 
                 return typeof msid === 'string' && streamId === msid.substring(7).split(' ')[0];
             });
         }
     } else {
-        mediaLines = remoteSDP.media.filter(mls => mls.startsWith(`m=${mediaType}`));
+        mediaLine = remoteSDP.media.find(mls => mls.startsWith(`m=${mediaType}`));
     }
 
-    if (!mediaLines.length) {
+    if (!mediaLine) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error(`No media lines found in remote SDP for remote stream[id=${streamId},type=${mediaType}]`));
+            new Error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
+                + 'track creation failed!'));
 
-        // Abort
         return;
     }
 
-    let ssrcLines = SDPUtil.findLines(mediaLines[0], 'a=ssrc:');
+    let ssrcLines = SDPUtil.findLines(mediaLine, 'a=ssrc:');
 
-    ssrcLines
-        = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
+    ssrcLines = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
     if (!ssrcLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`));
+            new Error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
+                + 'track creation failed!'));
 
-        // Abort
         return;
     }
 
@@ -964,47 +954,34 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
 
     if (isNaN(trackSsrc) || trackSsrc < 0) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error(
-                `Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`));
+            new Error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+                + 'track creation failed!'));
 
-        // Abort
         return;
     } else if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error(
-                `No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`));
+            new Error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+            + 'track creation failed!'));
 
-        // Abort
         return;
     }
 
-    let sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
-
-    // If source name was not signaled, we'll generate one which allows testing signaling
-    // when mixing legacy(mobile) with new clients.
-    if (!sourceName) {
-        sourceName = getSourceNameForJitsiTrack(ownerEndpointId, mediaType, 0);
-    }
-
-    // eslint-disable-next-line no-undef
-    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${trackSsrc},`
-        + `type=${mediaType},sourceName=${sourceName}]`);
-
+    const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
     const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
 
-    if (!peerMediaInfo) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`${this}: no peer media info available for ${ownerEndpointId}`));
+    // Assume default presence state for remote source. Presence can be received after source signaling. This shouldn't
+    // prevent the endpoint from creating a remote track for the source.
+    let muted = true;
+    let videoType = VideoType.CAMERA;
 
-        return;
+    if (peerMediaInfo) {
+        muted = peerMediaInfo.muted;
+        videoType = peerMediaInfo.videoType; // can be undefined
+    } else {
+        logger.info(`${this}: no source-info available for ${ownerEndpointId}:${sourceName}, assuming default state`);
     }
 
-    const muted = peerMediaInfo.muted;
-    const videoType = peerMediaInfo.videoType; // can be undefined
-
-    // eslint-disable-next-line no-undef
-    this._createRemoteTrack(
-        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
+    this._createRemoteTrack(ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
 
 // FIXME cleanup params
@@ -1032,6 +1009,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         ssrc,
         muted,
         sourceName) {
+    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},`
+        + `type=${mediaType},sourceName=${sourceName}]`);
     let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
     if (!remoteTracksMap) {
@@ -1068,8 +1047,6 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
     userTracksByMediaType.add(remoteTrack);
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
 };
-
-/* eslint-enable max-params */
 
 /**
  * Handles remote stream removal.
