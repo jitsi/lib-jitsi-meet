@@ -295,6 +295,11 @@ export default function JitsiConference(options) {
      * again by Jicofo.
      */
     this._videoSenderLimitReached = undefined;
+
+    /**
+     * Bind functions.
+     */
+    this._shouldUseTrackOnInit = this._shouldUseTrackOnInit.bind(this);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -1200,30 +1205,25 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
 };
 
 /**
- * Returns the list of local tracks that need to be added to the peerconnection on join.
- * This takes the startAudioMuted/startVideoMuted flags into consideration since we do not
- * want to add the tracks if the user joins the call audio/video muted. The tracks will be
- * added when the user unmutes for the first time.
- * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
+ * Returns true if we need to use the track on init and flase otherwise.
+ * @param {JitsiLocalTrack} track - The track
+ * @returns {boolean}
  */
-JitsiConference.prototype._getInitialLocalTracks = function() {
+JitsiConference.prototype._shouldUseTrackOnInit = function(track) {
+    const trackType = track.getType();
+
     // Always add the audio track on certain platforms:
     //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
     //    if the user joins audio and video muted.
     //  * React Native: after iOS 15, if a user joins muted they won't be able to unmute.
-    return this.getLocalTracks()
-        .filter(track => {
-            const trackType = track.getType();
+    if (trackType === MediaType.AUDIO
+            && (!this.isStartAudioMuted() || browser.isWebKitBased() || browser.isReactNative())) {
+        return true;
+    } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted()) {
+        return true;
+    }
 
-            if (trackType === MediaType.AUDIO
-                    && (!this.isStartAudioMuted() || browser.isWebKitBased() || browser.isReactNative())) {
-                return true;
-            } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted()) {
-                return true;
-            }
-
-            return false;
-        });
+    return false;
 };
 
 /**
@@ -1273,8 +1273,8 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     const newVideoType = newTrack?.getVideoType();
 
     if (FeatureFlags.isMultiStreamSendSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
-        throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
-            + ' not supported in this mode.');
+        return Promise.reject(new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${
+            newVideoType} is not supported in this mode.`));
     }
 
     if (newTrack) {
@@ -2211,6 +2211,19 @@ JitsiConference.prototype.onIncomingCall = function(jingleSession, jingleOffer, 
 };
 
 /**
+ * Removes all tracks that don't match the criteria to be added to the peerconnection on init.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._removeUnusedTracksOnInit = function() {
+    this.getLocalTracks().forEach(track => {
+        if (!this._shouldUseTrackOnInit(track)) {
+            this.removeTrack(track);
+        }
+    });
+};
+
+/**
  * Accepts an incoming call event for the JVB jingle session.
  */
 JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingleOffer, now) {
@@ -2258,7 +2271,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    const localTracks = this._getInitialLocalTracks();
+    const localTracks = this.getLocalTracks().filter(this._shouldUseTrackOnInit);
 
     try {
         jingleSession.acceptOffer(

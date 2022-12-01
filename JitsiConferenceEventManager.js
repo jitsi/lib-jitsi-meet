@@ -745,6 +745,10 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
                 }
             });
 
+            // Remove the tracks that won't be added to the peerconnection because otherwise they won't be able to be
+            // removed ever beacase fail replaceTrack calls when there is no transciever for the old track.
+            conference._removeUnusedTracksOnInit();
+
             conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
         });
 
