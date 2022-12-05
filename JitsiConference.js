@@ -1020,15 +1020,17 @@ JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
         const nickKey = 'nick';
 
-        // if there is no display name already set, avoid setting an empty one
-        if (!name && !this.room.getFromPresence(nickKey)) {
-            return;
+        if (name) {
+            this.room.addOrReplaceInPresence(nickKey, {
+                attributes: { xmlns: 'http://jabber.org/protocol/nick' },
+                value: name
+            }) && this.room.sendPresence();
+        } else {
+            if (this.room.getFromPresence(nickKey)) {
+                this.room.removeFromPresence(nickKey);
+                this.room.sendPresence();
+            }
         }
-
-        this.room.addOrReplaceInPresence(nickKey, {
-            attributes: { xmlns: 'http://jabber.org/protocol/nick' },
-            value: name
-        }) && this.room.sendPresence();
     }
 };
 
