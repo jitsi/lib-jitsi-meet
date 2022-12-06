@@ -969,17 +969,15 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
     const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
 
-    // Assume default presence state for remote source. Presence can be received after source signaling. This shouldn't
-    // prevent the endpoint from creating a remote track for the source.
-    let muted = true;
-    let videoType = VideoType.CAMERA;
+    if (!peerMediaInfo) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(`${this}: no sourceInfo available for ${ownerEndpointId}:${sourceName} track creation failed!`));
 
-    if (peerMediaInfo) {
-        muted = peerMediaInfo.muted;
-        videoType = peerMediaInfo.videoType; // can be undefined
-    } else {
-        logger.info(`${this}: no source-info available for ${ownerEndpointId}:${sourceName}, assuming default state`);
+        return;
     }
+
+    const muted = peerMediaInfo.muted;
+    const videoType = peerMediaInfo.videoType; // can be undefined
 
     this._createRemoteTrack(ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
