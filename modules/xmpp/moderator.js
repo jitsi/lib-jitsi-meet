@@ -156,12 +156,6 @@ Moderator.prototype.createConferenceIq = function() {
         elem.attrs({ 'session-id': sessionId });
     }
 
-    elem.c(
-        'property', {
-            name: 'disableRtx',
-            value: Boolean(config.disableRtx)
-        }).up();
-
     if (config.audioPacketDelay !== undefined) {
         elem.c(
             'property', {
