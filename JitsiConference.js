@@ -1025,11 +1025,9 @@ JitsiConference.prototype.setDisplayName = function(name) {
                 attributes: { xmlns: 'http://jabber.org/protocol/nick' },
                 value: name
             }) && this.room.sendPresence();
-        } else {
-            if (this.room.getFromPresence(nickKey)) {
-                this.room.removeFromPresence(nickKey);
-                this.room.sendPresence();
-            }
+        } else if (this.room.getFromPresence(nickKey)) {
+            this.room.removeFromPresence(nickKey);
+            this.room.sendPresence();
         }
     }
 };
