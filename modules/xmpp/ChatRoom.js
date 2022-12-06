@@ -190,12 +190,12 @@ export default class ChatRoom extends Listenable {
 
             // there is no point of sending conference iq when in visitor mode
             const preJoin
-                = this.options.disableFocus || this.options.hosts.visitorFocus
+                = this.options.disableFocus || this.xmpp.options.hosts.visitorFocus
                     ? Promise.resolve()
                     : this.moderator.allocateConferenceFocus();
 
-            if (this.options.hosts.visitorFocus) {
-                this.moderator.setFocusUserJid(this.options.hosts.visitorFocus);
+            if (this.xmpp.options.hosts.visitorFocus) {
+                this.moderator.setFocusUserJid(this.xmpp.options.hosts.visitorFocus);
             }
 
             preJoin.then(() => {
