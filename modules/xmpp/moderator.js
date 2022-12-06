@@ -156,13 +156,6 @@ Moderator.prototype.createConferenceIq = function() {
         elem.attrs({ 'session-id': sessionId });
     }
 
-    if (config.audioPacketDelay !== undefined) {
-        elem.c(
-            'property', {
-                name: 'audioPacketDelay',
-                value: config.audioPacketDelay
-            }).up();
-    }
     if (config.startBitrate) {
         elem.c(
             'property', {
