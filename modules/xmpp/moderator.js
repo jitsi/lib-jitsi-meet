@@ -345,20 +345,6 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         return;
     }
 
-    // redirect
-    if ($(error).find('>error>redirect').length) {
-        const conferenceIQError = $(error).find('conference');
-
-        const vnode = conferenceIQError.attr('vnode');
-        const focusJid = conferenceIQError.attr('focusjid');
-
-        logger.warn(`We have been redirected to: ${vnode} new focus Jid:${focusJid}`);
-
-        this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, focusJid);
-
-        return;
-    }
-
     const waitMs = this.getNextErrorTimeout();
     const errmsg = `Focus error, retry after ${waitMs}`;
 
@@ -408,6 +394,17 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
     if ($(result).find('conference').attr('ready') === 'true') {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
+
+        const vnode = $(result).find('conference')
+            .attr('vnode');
+
+        if (vnode) {
+            logger.warn(`We have been redirected to: ${vnode} new focus Jid:${this.getFocusUserJid()}`);
+
+            this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, this.getFocusUserJid());
+
+            return;
+        }
 
         // Exec callback
         callback();
