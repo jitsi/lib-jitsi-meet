@@ -2525,10 +2525,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
             remoteDescription = this.interop.toUnifiedPlan(remoteDescription, currentDescription);
             this.trace('setRemoteDescription::postTransform (Unified)', dumpSDP(remoteDescription));
-
-            if (FeatureFlags.isRunInLiteModeEnabled()) {
-                remoteDescription = this._mungeInactive(remoteDescription);
-            }
         }
         if (this.isSimulcastOn()) {
             remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
