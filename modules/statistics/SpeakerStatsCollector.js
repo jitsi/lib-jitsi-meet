@@ -190,7 +190,9 @@ export default class SpeakerStatsCollector {
                 speakerStatsToUpdate.totalDominantSpeakerTime
                     = newStats[userId].totalDominantSpeakerTime;
 
-                speakerStatsToUpdate.setFaceLandmarks(newStats[userId].faceLandmarks);
+                if (Array.isArray(newStats[userId].faceLandmarks)) {
+                    speakerStatsToUpdate.setFaceLandmarks(newStats[userId].faceLandmarks);
+                }
             }
         }
     }
