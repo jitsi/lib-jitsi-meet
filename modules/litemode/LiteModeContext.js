@@ -42,7 +42,7 @@ export class LiteModeContext {
         const receiver = tpc.findReceiverForTrack(track.track);
 
         if (!receiver) {
-            logger.warn(`Could set up lite mode for ${track}: receiver not found in: ${tpc}`);
+            logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
 
             return;
         }
@@ -54,25 +54,12 @@ export class LiteModeContext {
 
         const receiverStreams = receiver.createEncodedStreams();
 
-        this._setupLiteMode(receiverStreams.readable, receiverStreams.writable);
-    }
-
-    /**
-     * Setup lite mode for receiver streams
-     */
-    _setupLiteMode(readableStream, writableStream) {
         const transformStream = new TransformStream({
-            transform: this.dropAll
+            transform: () => {
+                // Don't call controller.enqueue(encodedFrame), and so drop everything
+            }
         });
 
-        readableStream.pipeThrough(transformStream).pipeTo(writableStream);
-    }
-
-    /**
-     * Drop all encoded media received
-     * Function that will be injected in a stream and will encrypt the given encoded frames.
-     */
-    dropAll() {
-        // Don't call controller.enqueue(encodedFrame), and so drop everything
+        receiverStreams.readable.pipeThrough(transformStream).pipeTo(receiverStreams.writable);
     }
 }
