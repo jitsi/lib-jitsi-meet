@@ -420,6 +420,10 @@ export default class BridgeChannel {
         };
 
         channel.onclose = event => {
+            if (channel !== this._channel) {
+                return;
+            }
+
             logger.info(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
 
             if (this._mode === 'websocket') {
