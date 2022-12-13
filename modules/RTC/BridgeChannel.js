@@ -100,6 +100,16 @@ export default class BridgeChannel {
         let timeoutS = 1;
 
         const reload = () => {
+            const isConnecting = this._channel && (this._channel.readyState === 'connecting'
+                    || this._channel.readyState === WebSocket.CONNECTING);
+
+            // Should not spawn new websockets while one is already trying to connect.
+            if (isConnecting) {
+                this._retryTimeout = setTimeout(reload, timeoutS * 1000);
+
+                return;
+            }
+
             if (this.isOpen()) {
                 return;
             }
