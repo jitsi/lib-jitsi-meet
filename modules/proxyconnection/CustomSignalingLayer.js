@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 
 /**

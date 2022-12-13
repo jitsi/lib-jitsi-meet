@@ -6,7 +6,7 @@ import { Strophe } from 'strophe.js';
 
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * This is the last HTTP error status captured from Strophe debug logs.

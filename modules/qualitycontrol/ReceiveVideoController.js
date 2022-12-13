@@ -4,7 +4,7 @@ import isEqual from 'lodash.isequal';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 const MAX_HEIGHT_ONSTAGE = 2160;
 const MAX_HEIGHT_THUMBNAIL = 180;
 const LASTN_UNLIMITED = -1;

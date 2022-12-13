@@ -6,7 +6,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import SDPUtil from './SDPUtil';
 import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Begin helper functions

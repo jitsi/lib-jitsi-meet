@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';

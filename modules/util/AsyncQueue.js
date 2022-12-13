@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { queue } from 'async';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * A queue for async task execution.

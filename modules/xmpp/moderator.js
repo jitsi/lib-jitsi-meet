@@ -9,7 +9,7 @@ const AuthenticationEvents
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  *

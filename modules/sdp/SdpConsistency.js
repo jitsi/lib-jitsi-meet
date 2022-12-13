@@ -8,7 +8,7 @@ import {
     parseSecondarySSRC
 } from './SdpTransformUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Handles the work of keeping video ssrcs consistent across multiple

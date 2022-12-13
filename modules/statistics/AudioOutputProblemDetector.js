@@ -7,7 +7,7 @@ import { createAudioOutputProblemEvent } from '../../service/statistics/Analytic
 
 import Statistics from './statistics';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Number of local samples that will be used for comparison before and after the remote sample is received.

@@ -4,7 +4,7 @@ import { $build } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].

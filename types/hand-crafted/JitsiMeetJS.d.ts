@@ -150,3 +150,7 @@ export type JitsiMeetJSType = {
 
 declare var _default: JitsiMeetJSType;
 export default _default;
+
+export { default as JitsiConnection } from './JitsiConnection';
+
+export { default as JitsiConference } from './JitsiConference';

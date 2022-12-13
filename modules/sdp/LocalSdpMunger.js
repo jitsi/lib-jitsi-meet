@@ -9,7 +9,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Fakes local SDP exposed to {@link JingleSessionPC} through the local

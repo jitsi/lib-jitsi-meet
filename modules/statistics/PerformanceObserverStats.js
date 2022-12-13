@@ -4,7 +4,7 @@ import { getLogger } from '@jitsi/logger';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import { RunningAverage } from '../util/MathUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 const MILLI_SECONDS = 1000;
 const SECONDS = 60;
 

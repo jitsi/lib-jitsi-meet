@@ -5,7 +5,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import JibriSession from './JibriSession';
 import recordingXMLUtils from './recordingXMLUtils';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * A class responsible for starting and stopping recording sessions and emitting

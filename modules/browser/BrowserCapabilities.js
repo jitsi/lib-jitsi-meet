@@ -1,7 +1,7 @@
 import { BrowserDetection } from '@jitsi/js-utils';
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;

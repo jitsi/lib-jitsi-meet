@@ -46,7 +46,7 @@ type StreamingStatusMap = {
     value?: number
 };
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Default value of 500 milliseconds for {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.

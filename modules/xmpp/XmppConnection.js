@@ -8,7 +8,7 @@ import ResumeTask from './ResumeTask';
 import LastSuccessTracker from './StropheLastSuccess';
 import PingConnectionPlugin from './strophe.ping';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.

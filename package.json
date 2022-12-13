@@ -1,5 +1,6 @@
 {
   "name": "lib-jitsi-meet",
+  "types": "types/hand-crafted/JitsiMeetJS.d.ts",
   "version": "0.0.0",
   "description": "JS library for accessing Jitsi server side deployments",
   "repository": {

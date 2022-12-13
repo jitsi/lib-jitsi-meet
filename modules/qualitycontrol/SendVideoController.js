@@ -4,7 +4,7 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 const MAX_LOCAL_RESOLUTION = 2160;
 
 /**

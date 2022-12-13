@@ -9,7 +9,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
 

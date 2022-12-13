@@ -22,7 +22,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Setups all event listeners related to conference

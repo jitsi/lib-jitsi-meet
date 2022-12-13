@@ -6,7 +6,7 @@ import {
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * The class contains the logic for triggering connection resume via XEP-0198 stream management.

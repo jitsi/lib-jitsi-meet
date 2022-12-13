@@ -17,7 +17,7 @@ import ConnectionPlugin from './ConnectionPlugin';
 import { expandSourcesFromJson } from './JingleHelperFunctions';
 import JingleSessionPC from './JingleSessionPC';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 // XXX Strophe is build around the idea of chaining function calls so allow long
 // function call chains.

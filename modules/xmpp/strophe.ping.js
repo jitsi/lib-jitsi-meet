@@ -6,7 +6,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import ConnectionPlugin from './ConnectionPlugin';
 
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Default ping every 10 sec

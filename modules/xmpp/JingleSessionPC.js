@@ -27,7 +27,7 @@ import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout

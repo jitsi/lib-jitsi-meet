@@ -14,7 +14,7 @@ const BREAKOUT_ROOM_EVENTS = {
     UPDATE: `${FEATURE_KEY}/update`
 };
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Helper class for handling breakout rooms.

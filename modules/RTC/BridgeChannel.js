@@ -5,7 +5,7 @@ import { createBridgeChannelClosedEvent } from '../../service/statistics/Analyti
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Handles a WebRTC RTCPeerConnection or a WebSocket instance to communicate

@@ -4,7 +4,7 @@ import { $msg } from 'strophe.js';
 import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * The AVModeration logic.

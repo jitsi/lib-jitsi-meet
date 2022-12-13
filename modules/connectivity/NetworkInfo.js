@@ -4,7 +4,7 @@ import Listenable from '../util/Listenable';
 
 export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Module provides information about the current status of the internet

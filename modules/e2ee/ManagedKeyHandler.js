@@ -7,7 +7,7 @@ import { KeyHandler } from './KeyHandler';
 import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 // Period which we'll wait before updating / rotating our keys when a participant
 // joins or leaves.

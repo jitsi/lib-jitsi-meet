@@ -8,7 +8,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 const DESKTOP_SHARE_RATE = 500000;
 const LD_BITRATE = 200000;
 const SD_BITRATE = 700000;

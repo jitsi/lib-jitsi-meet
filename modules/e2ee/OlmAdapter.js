@@ -13,7 +13,7 @@ import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 const REQ_TIMEOUT = 5 * 1000;
 const OLM_MESSAGE_TYPE = 'olm';

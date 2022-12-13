@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Emits {@link JitsiConferenceEvents.JVB121_STATUS} events based on the current

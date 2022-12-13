@@ -1,7 +1,7 @@
 import { jitsiLocalStorage } from '@jitsi/js-utils';
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 import UsernameGenerator from '../util/UsernameGenerator';
 

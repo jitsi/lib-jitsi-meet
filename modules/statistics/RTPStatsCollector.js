@@ -6,7 +6,7 @@ import browser from '../browser';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Calculates packet lost percent using the number of lost packets and the

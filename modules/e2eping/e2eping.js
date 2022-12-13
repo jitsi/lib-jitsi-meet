@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiE2EPingEvents from '../../service/e2eping/E2ePingEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * The 'type' of a message which designates an e2e ping request.

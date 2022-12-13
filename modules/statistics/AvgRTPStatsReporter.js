@@ -15,7 +15,7 @@ import browser from '../browser';
 import Statistics from './statistics';
 
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * This will calculate an average for one, named stat and submit it to

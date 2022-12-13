@@ -4,7 +4,7 @@ import EventEmitter from 'events';
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 /**
  * Sample rate used by TrackVADEmitter, this value determines how often the ScriptProcessorNode is going to call the

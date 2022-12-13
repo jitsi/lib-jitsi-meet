@@ -17,7 +17,7 @@ import Listenable from '../util/Listenable';
 
 import screenObtainer from './ScreenObtainer';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 const eventEmitter = new EventEmitter();
 

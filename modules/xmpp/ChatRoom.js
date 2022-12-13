@@ -17,7 +17,7 @@ import RoomMetadata from './RoomMetadata';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
 
-const logger = getLogger(__filename);
+const logger = getLogger('jitsi__filename');
 
 export const parser = {
     packet2JSON(xmlElement, nodes) {
