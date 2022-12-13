@@ -28,13 +28,13 @@ class FeatureFlags {
 
     /**
      * Checks if the run in lite mode is enabled.
-     * This will cause any media to be received and not decoded. (Directions are inactive and no ssrc and ssrc-groups
-     * are added to the remote description). This can be used for various test scenarios.
+     * This will cause any media to be received and not decoded. (Insertable streams are used to discard
+     * all media before it is decoded). This can be used for various test scenarios.
      *
      * @returns {boolean}
      */
     isRunInLiteModeEnabled() {
-        return this._runInLiteMode;
+        return this._runInLiteMode && browser.supportsInsertableStreams();
     }
 
     /**
