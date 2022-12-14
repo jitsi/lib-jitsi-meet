@@ -61,6 +61,19 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
+    removeSSRCOwners(ssrcList) {
+        if (!ssrcList?.length) {
+            return;
+        }
+
+        for (const ssrc of ssrcList) {
+            this.ssrcOwners.delete(ssrc);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     setSSRCOwner(ssrc, endpointId) {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
@@ -101,5 +114,20 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * @inheritDoc
      */
     setTrackSourceName(ssrc, sourceName) { // eslint-disable-line no-unused-vars
+    }
+
+    /**
+     * @inheritDoc
+     */
+    updateSsrcOwnersOnLeave(id) {
+        const ssrcs = Array.from(this.ssrcOwners)
+            .filter(entry => entry[1] === id)
+            .map(entry => entry[0]);
+
+        if (!ssrcs?.length) {
+            return;
+        }
+
+        this.removeSSRCOwners(ssrcs);
     }
 }

@@ -1855,6 +1855,9 @@ export default class JingleSessionPC extends JingleSession {
                 if (track) {
                     logger.debug(`Existing SSRC ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
 
+                    // Update the SSRC owner.
+                    this._signalingLayer.setSSRCOwner(s.ssrc, s.owner);
+
                     if (s.videoType === 'CAMERA') {
                         track._setVideoType('camera');
                     } else if (s.videoType === 'DESKTOP') {
@@ -2086,11 +2089,14 @@ export default class JingleSessionPC extends JingleSession {
         const remoteSdp = this.usesUnifiedPlan
             ? new SDP(this.peerconnection.peerconnection.remoteDescription.sdp)
             : new SDP(this.peerconnection.remoteDescription.sdp);
+        let ssrcs;
 
         removeSsrcInfo.forEach((lines, idx) => {
             // eslint-disable-next-line no-param-reassign
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
+            ssrcs = lines.map(line => Number(line.split('a=ssrc:')[1]?.split(' ')[0]));
+
             if (this.usesUnifiedPlan) {
                 let mid;
 
@@ -2129,6 +2135,10 @@ export default class JingleSessionPC extends JingleSession {
                 });
             }
         });
+
+        // Update the ssrc owners list.
+        ssrcs?.length && this._signalingLayer.removeSSRCOwners(ssrcs);
+
         remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
 
         return remoteSdp;

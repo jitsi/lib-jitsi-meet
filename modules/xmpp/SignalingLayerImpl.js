@@ -6,6 +6,7 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';
 
@@ -325,6 +326,19 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
+    removeSSRCOwners(ssrcList) {
+        if (!ssrcList?.length) {
+            return;
+        }
+
+        for (const ssrc of ssrcList) {
+            this.ssrcOwners.delete(ssrc);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     setSSRCOwner(ssrc, endpointId) {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
@@ -335,7 +349,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const existingOwner = this.ssrcOwners.get(ssrc);
 
         if (existingOwner && existingOwner !== endpointId) {
-            logger.error(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
+            !FeatureFlags.isSsrcRewritingSupported()
+                && logger.error(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
         }
         this.ssrcOwners.set(ssrc, endpointId);
     }
@@ -399,6 +414,21 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         this._sourceNames.set(ssrc, sourceName);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    updateSsrcOwnersOnLeave(id) {
+        const ssrcs = Array.from(this.ssrcOwners)
+            .filter(entry => entry[1] === id)
+            .map(entry => entry[0]);
+
+        if (!ssrcs?.length) {
+            return;
+        }
+
+        this.removeSSRCOwners(ssrcs);
     }
 
 }
