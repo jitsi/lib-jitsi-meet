@@ -54,8 +54,8 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     this.externalAuthEnabled = false;
     this.options = options;
 
-    // Whether SIP gateway (jigasi) support is enabled. This is set
-    // based on conference properties received in presence.
+    // Whether SIP gateway (jigasi) support is enabled. TODO: use presence so it can be changed based on jigasi
+    // availability.
     this.sipGatewayEnabled = false;
 
     this.eventEmitter = emitter;
@@ -111,7 +111,10 @@ Moderator.prototype.getFocusUserJid = function() {
     return this.focusUserJid;
 };
 
-Moderator.prototype.getFocusComponent = function() {
+/**
+ * This is the JID to which "conference" IQs are sent (which is not the same as focusUserJid)
+ */
+Moderator.prototype._getFocusComponent = function() {
     // Get focus component address
     let focusComponent = this.options.connection.hosts.focus;
 
@@ -124,9 +127,9 @@ Moderator.prototype.getFocusComponent = function() {
     return focusComponent;
 };
 
-Moderator.prototype.createConferenceIq = function() {
+Moderator.prototype._createConferenceIq = function() {
     // Generate create conference IQ
-    const elem = $iq({ to: this.getFocusComponent(),
+    const elem = $iq({ to: this._getFocusComponent(),
         type: 'set' });
 
     // Session Id used for authentication
@@ -196,7 +199,7 @@ Moderator.prototype.createConferenceIq = function() {
 };
 
 
-Moderator.prototype.parseSessionId = function(resultIq) {
+Moderator.prototype._parseSessionId = function(resultIq) {
     // eslint-disable-next-line newline-per-chained-call
     const sessionId = $(resultIq).find('conference').attr('session-id');
 
@@ -206,7 +209,7 @@ Moderator.prototype.parseSessionId = function(resultIq) {
     }
 };
 
-Moderator.prototype.parseConfigOptions = function(resultIq) {
+Moderator.prototype._parseConfigOptions = function(resultIq) {
     // eslint-disable-next-line newline-per-chained-call
     this.setFocusUserJid($(resultIq).find('conference').attr('focusjid'));
 
@@ -226,7 +229,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
 
     if (!this.externalAuthEnabled) {
         // We expect to receive sessionId in 'internal' authentication mode
-        this.parseSessionId(resultIq);
+        this._parseSessionId(resultIq);
     }
 
     // eslint-disable-next-line newline-per-chained-call
@@ -262,7 +265,7 @@ Moderator.prototype.allocateConferenceFocus = function() {
 
         // Send create conference IQ
         this.connection.sendIQ(
-            this.createConferenceIq(),
+            this._createConferenceIq(),
             result => this._allocateConferenceFocusSuccess(result, resolve),
             error => this._allocateConferenceFocusError(error, resolve));
 
@@ -342,7 +345,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     logger.error(errmsg, error);
 
     // Show message
-    const focusComponent = this.getFocusComponent();
+    const focusComponent = this._getFocusComponent();
     const retrySec = waitMs / 1000;
 
     // FIXME: message is duplicated ? Do not show in case of session invalid
@@ -375,7 +378,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         result,
         callback) {
     // Setup config options
-    this.parseConfigOptions(result);
+    this._parseConfigOptions(result);
 
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
@@ -411,9 +414,9 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
 Moderator.prototype.authenticate = function() {
     return new Promise((resolve, reject) => {
         this.connection.sendIQ(
-            this.createConferenceIq(),
+            this._createConferenceIq(),
             result => {
-                this.parseSessionId(result);
+                this._parseSessionId(result);
                 resolve();
             },
             errorIq => reject({
@@ -438,7 +441,7 @@ Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
  * @param failureCb
  */
 Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
-    const iq = $iq({ to: this.getFocusComponent(),
+    const iq = $iq({ to: this._getFocusComponent(),
         type: 'get' });
     const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -488,7 +491,7 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 };
 
 Moderator.prototype.logout = function(callback) {
-    const iq = $iq({ to: this.getFocusComponent(),
+    const iq = $iq({ to: this._getFocusComponent(),
         type: 'set' });
     const { sessionId } = Settings;
 
