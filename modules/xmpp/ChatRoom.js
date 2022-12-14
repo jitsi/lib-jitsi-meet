@@ -971,7 +971,12 @@ export default class ChatRoom extends Listenable {
 
         this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
 
-        this.moderator.onMucMemberLeft(jid);
+        const resource = Strophe.getResourceFromJid(jid);
+
+        if (resource === 'focus') {
+            logger.info('Focus has left the room - leaving conference');
+            this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
+        }
     }
 
     /**

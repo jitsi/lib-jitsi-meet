@@ -100,16 +100,6 @@ Moderator.prototype.isSipGatewayEnabled = function() {
     return this.sipGatewayEnabled;
 };
 
-Moderator.prototype.onMucMemberLeft = function(jid) {
-    const resource = Strophe.getResourceFromJid(jid);
-
-    if (resource === 'focus') {
-        logger.info(
-            'Focus has left the room - leaving conference');
-        this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
-    }
-};
-
 Moderator.prototype.setFocusUserJid = function(focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
