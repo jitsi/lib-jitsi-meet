@@ -46,7 +46,6 @@ function createExpBackoffTimer(step) {
  */
 export default function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
-    this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
     this.getNextErrorTimeout = createExpBackoffTimer(1000);
 
@@ -60,7 +59,14 @@ export default function Moderator(roomName, xmpp, emitter, options) {
 
     this.eventEmitter = emitter;
 
-    this.connection = this.xmppService.connection;
+    this.connection = xmpp.connection;
+
+    this.focusComponent = this.options.connection?.hosts?.focus;
+
+    // If not specified default to 'focus.domain'
+    if (!this.focusComponent) {
+        this.focusComponent = `focus.${this.options.connection?.hosts?.domain}`;
+    }
 
     // FIXME: Message listener that talks to POPUP window
     /**
@@ -70,9 +76,7 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
-                logger.warn(
-                    `Ignoring sessionId from different origin: ${
-                        event.origin}`);
+                logger.warn(`Ignoring sessionId from different origin: ${event.origin}`);
 
                 return;
             }
@@ -112,71 +116,40 @@ Moderator.prototype.getFocusUserJid = function() {
 };
 
 /**
- * This is the JID to which "conference" IQs are sent (which is not the same as focusUserJid)
+ * Create a conference request based on the configured options and saved Settings.
+ *
+ * A conference request has the following format:
+ * {
+ *   room: "room@example.com",
+ *   sessionId: "foo", // optional
+ *   machineUdi: "bar", // optional
+ *   identity: "baz", // optional
+ *   properties: { } // map string to string
+ * }
+ *
+ * It can be encoded in either JSON or and IQ.
+ *
+ * @returns the created conference request.
  */
-Moderator.prototype._getFocusComponent = function() {
-    // Get focus component address
-    let focusComponent = this.options.connection.hosts.focus;
-
-    // If not specified use default:  'focus.domain'
-
-    if (!focusComponent) {
-        focusComponent = `focus.${this.options.connection.hosts.domain}`;
-    }
-
-    return focusComponent;
-};
-
-Moderator.prototype._createConferenceIq = function() {
-    // Generate create conference IQ
-    const elem = $iq({ to: this._getFocusComponent(),
-        type: 'set' });
+Moderator.prototype._createConferenceRequest = function() {
 
     // Session Id used for authentication
-    const { sessionId } = Settings;
-    const machineUID = Settings.machineId;
+    const { sessionId, machineUID } = Settings;
     const config = this.options.conference;
-
-    logger.info(`Session ID: ${sessionId} machine UID: ${machineUID}`);
-
-    elem.c('conference', {
-        xmlns: 'http://jitsi.org/protocol/focus',
-        room: this.roomName,
-        'machine-uid': machineUID
-    });
-
-    if (sessionId) {
-        elem.attrs({ 'session-id': sessionId });
-    }
+    const properties = {};
 
     if (config.startBitrate) {
-        elem.c(
-            'property', {
-                name: 'startBitrate',
-                value: config.startBitrate
-            }).up();
+        properties.startBitrate = config.startBitrate;
     }
     if (config.minBitrate) {
-        elem.c(
-            'property', {
-                name: 'minBitrate',
-                value: config.minBitrate
-            }).up();
+        properties.minBitrate = config.minBitrate;
     }
 
     if (this.options.conference.startAudioMuted !== undefined) {
-        elem.c(
-            'property', {
-                name: 'startAudioMuted',
-                value: this.options.conference.startAudioMuted
-            }).up();
+        properties.startAudioMuted = this.options.conference.startAudioMuted;
     }
     if (this.options.conference.startVideoMuted !== undefined) {
-        elem.c(
-            'property', {
-                name: 'startVideoMuted',
-                value: this.options.conference.startVideoMuted
-            }).up();
+        properties.startVideoMuted = this.options.conference.startVideoMuted;
     }
 
     // this flag determines whether the bridge will include this call in its
@@ -188,11 +161,50 @@ Moderator.prototype._createConferenceIq = function() {
     const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? false;
 
     if (!rtcstatsEnabled) {
-        elem.c(
-            'property', {
-                name: 'rtcstatsEnabled',
-                value: false
-            }).up();
+        properties.rtcstatsEnabled = false;
+    }
+
+    const conferenceRequest = {
+        properties,
+        machineUid: machineUID,
+        room: this.roomName
+    };
+
+    if (sessionId) {
+        conferenceRequest.sessionId = sessionId;
+    }
+
+    return conferenceRequest;
+};
+
+/**
+ * Create a conference request and encode it as an IQ.
+ */
+Moderator.prototype._createConferenceIq = function() {
+    const conferenceRequest = this._createConferenceRequest();
+
+    // Generate create conference IQ
+    const elem = $iq({ to: this.focusComponent,
+        type: 'set' });
+
+    elem.c('conference', {
+        xmlns: 'http://jitsi.org/protocol/focus',
+        room: this.roomName,
+        'machine-uid': conferenceRequest.machineUid
+    });
+
+    if (conferenceRequest.sessionId) {
+        elem.attrs({ 'session-id': conferenceRequest.sessionId });
+    }
+
+    for (const k in conferenceRequest.properties) {
+        if (conferenceRequest.properties.hasOwnProperty(k)) {
+            elem.c(
+                'property', {
+                    name: k,
+                    value: conferenceRequest.properties[k]
+                }).up();
+        }
     }
 
     return elem;
@@ -345,7 +357,6 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     logger.error(errmsg, error);
 
     // Show message
-    const focusComponent = this._getFocusComponent();
     const retrySec = waitMs / 1000;
 
     // FIXME: message is duplicated ? Do not show in case of session invalid
@@ -354,7 +365,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     if (!invalidSession) {
         this.eventEmitter.emit(
             XMPPEvents.FOCUS_DISCONNECTED,
-            focusComponent,
+            this.focusComponent,
             retrySec);
     }
 
@@ -441,7 +452,7 @@ Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
  * @param failureCb
  */
 Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
-    const iq = $iq({ to: this._getFocusComponent(),
+    const iq = $iq({ to: this.focusComponent,
         type: 'get' });
     const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -491,7 +502,7 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 };
 
 Moderator.prototype.logout = function(callback) {
-    const iq = $iq({ to: this._getFocusComponent(),
+    const iq = $iq({ to: this.focusComponent,
         type: 'set' });
     const { sessionId } = Settings;
 
