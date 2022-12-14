@@ -962,7 +962,7 @@ export default class ChatRoom extends Listenable {
      * whether this is the focus that left
      * @param reason the reason for leaving (optional).
      */
-    onParticipantLeft(jid, skipEvents, reason) {
+    onParticipantLeft(jid, skipEvents, reason, isFocus) {
         delete this.lastPresences[jid];
 
         if (skipEvents) {
@@ -971,9 +971,7 @@ export default class ChatRoom extends Listenable {
 
         this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
 
-        const resource = Strophe.getResourceFromJid(jid);
-
-        if (resource === 'focus') {
+        if (isFocus) {
             logger.info('Focus has left the room - leaving conference');
             this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
         }
@@ -1066,7 +1064,7 @@ export default class ChatRoom extends Listenable {
                 const member = this.members[jid];
 
                 delete this.members[jid];
-                this.onParticipantLeft(jid, member.isFocus);
+                this.onParticipantLeft(jid, member.isFocus, null, member.isFocus);
             });
             this.connection.emuc.doLeave(this.roomjid);
 
@@ -1084,7 +1082,7 @@ export default class ChatRoom extends Listenable {
             }
 
             delete this.members[from];
-            this.onParticipantLeft(from, false, reason);
+            this.onParticipantLeft(from, false, reason, member.isFocus);
         }
     }
 
