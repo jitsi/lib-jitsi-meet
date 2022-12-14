@@ -61,11 +61,11 @@ export default function Moderator(roomName, xmpp, emitter, options) {
 
     this.connection = xmpp.connection;
 
-    this.focusComponent = this.options.connection?.hosts?.focus;
+    this.focusComponent = this.options.hosts?.focus;
 
     // If not specified default to 'focus.domain'
     if (!this.focusComponent) {
-        this.focusComponent = `focus.${this.options.connection?.hosts?.domain}`;
+        this.focusComponent = `focus.${this.options.hosts?.domain}`;
     }
 
     // FIXME: Message listener that talks to POPUP window
@@ -135,7 +135,7 @@ Moderator.prototype._createConferenceRequest = function() {
 
     // Session Id used for authentication
     const { sessionId, machineUID } = Settings;
-    const config = this.options.conference;
+    const config = this.options;
     const properties = {};
 
     if (config.startBitrate) {
@@ -145,11 +145,11 @@ Moderator.prototype._createConferenceRequest = function() {
         properties.minBitrate = config.minBitrate;
     }
 
-    if (this.options.conference.startAudioMuted !== undefined) {
-        properties.startAudioMuted = this.options.conference.startAudioMuted;
+    if (config.startAudioMuted !== undefined) {
+        properties.startAudioMuted = config.startAudioMuted;
     }
-    if (this.options.conference.startVideoMuted !== undefined) {
-        properties.startVideoMuted = this.options.conference.startVideoMuted;
+    if (config.startVideoMuted !== undefined) {
+        properties.startVideoMuted = config.startVideoMuted;
     }
 
     // this flag determines whether the bridge will include this call in its
@@ -158,7 +158,7 @@ Moderator.prototype._createConferenceRequest = function() {
     // react/features/rtcstats/functions.js in jitsi-meet). The server-side
     // components default to true to match the pre-existing behavior so we only
     // signal if false.
-    const rtcstatsEnabled = this.options.conference?.analytics?.rtcstatsEnabled ?? false;
+    const rtcstatsEnabled = config?.analytics?.rtcstatsEnabled ?? false;
 
     if (!rtcstatsEnabled) {
         properties.rtcstatsEnabled = false;
@@ -272,8 +272,8 @@ Moderator.prototype._parseConfigOptions = function(resultIq) {
  */
 Moderator.prototype.allocateConferenceFocus = function() {
     return new Promise(resolve => {
-        // Try to use focus user JID from the config
-        this.setFocusUserJid(this.options.connection.focusUserJid);
+        // Try to use focus user JID from the config. TODO why do we override this just prior to sending a request?
+        this.setFocusUserJid(this.options.focusUserJid);
 
         // Send create conference IQ
         this.connection.sendIQ(
@@ -340,7 +340,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         logger.warn('Unauthorized to start the conference', error);
         const toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
 
-        if (toDomain !== this.options.connection.hosts.anonymousdomain) {
+        if (toDomain !== this.options.hosts.anonymousdomain) {
             // FIXME "is external" should come either from the focus or
             // config.js
             this.externalAuthEnabled = true;

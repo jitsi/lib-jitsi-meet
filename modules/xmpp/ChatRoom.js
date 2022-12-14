@@ -132,11 +132,7 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator
-            = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, {
-                connection: this.xmpp.options,
-                conference: this.options
-            });
+        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, options);
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
