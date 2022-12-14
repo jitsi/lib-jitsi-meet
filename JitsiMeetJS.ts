@@ -144,26 +144,6 @@ export default {
             window.connectionTimes = {};
         }
 
-        if (options.enableAnalyticsLogging !== true) {
-            logger.warn('Analytics disabled, disposing.');
-            this.analytics.dispose();
-        }
-
-        if (options.enableWindowOnErrorHandler) {
-            GlobalOnErrorHandler.addHandler(
-                this.getGlobalOnErrorHandler.bind(this));
-        }
-
-        if (this.version) {
-            const logObject = {
-                id: 'component_version',
-                component: 'lib-jitsi-meet',
-                version: this.version
-            };
-
-            Statistics.sendLog(JSON.stringify(logObject));
-        }
-
         return RTC.init(options);
     },
 
