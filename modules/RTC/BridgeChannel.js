@@ -105,6 +105,8 @@ export default class BridgeChannel {
 
             // Should not spawn new websockets while one is already trying to connect.
             if (isConnecting) {
+                // Timeout is still required as there is flag `_areRetriesEnabled` that
+                // blocks new retrying cycles until any channel opens in current cycle.
                 this._retryTimeout = setTimeout(reload, timeoutS * 1000);
 
                 return;
