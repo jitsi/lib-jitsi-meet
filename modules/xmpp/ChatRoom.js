@@ -956,28 +956,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Called when participant leaves.
-     * @param jid the jid of the participant that leaves
-     * @param skipEvents optional params to skip any events, including check
-     * whether this is the focus that left
-     * @param reason the reason for leaving (optional).
-     */
-    onParticipantLeft(jid, skipEvents, reason, isFocus) {
-        delete this.lastPresences[jid];
-
-        if (skipEvents) {
-            return;
-        }
-
-        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
-
-        if (isFocus) {
-            logger.info('Focus has left the room - leaving conference');
-            this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
-        }
-    }
-
-    /**
      *
      * @param pres
      * @param from
@@ -1064,7 +1042,10 @@ export default class ChatRoom extends Listenable {
                 const member = this.members[jid];
 
                 delete this.members[jid];
-                this.onParticipantLeft(jid, member.isFocus, null, member.isFocus);
+                delete this.lastPresences[member.jid];
+                if (!member.isFocus) {
+                    this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, member.jid);
+                }
             });
             this.connection.emuc.doLeave(this.roomjid);
 
@@ -1075,6 +1056,7 @@ export default class ChatRoom extends Listenable {
             }
         } else {
             const reasonSelect = $(pres).find('>status');
+            const member = this.members[from];
             let reason;
 
             if (reasonSelect.length) {
@@ -1082,7 +1064,14 @@ export default class ChatRoom extends Listenable {
             }
 
             delete this.members[from];
-            this.onParticipantLeft(from, false, reason, member.isFocus);
+            delete this.lastPresences[from];
+
+            // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
+            this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, member.jid, reason);
+            if (member.isFocus) {
+                logger.info('Focus has left the room - leaving conference');
+                this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
+            }
         }
     }
 
