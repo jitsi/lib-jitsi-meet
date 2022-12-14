@@ -776,8 +776,6 @@ Statistics.prototype.sendAddIceCandidateFailed = function(e, tpc) {
 Statistics.sendLog = function(m) {
     const globalSubSet = new Set();
 
-    logger.log(m);
-
     // FIXME we don't want to duplicate logs over P2P instance, but
     // here we should go over instances and call this method for each
     // unique conference ID rather than selecting the first one.
