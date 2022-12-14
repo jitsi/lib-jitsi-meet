@@ -1650,17 +1650,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Returns true if the SIP calls are supported and false otherwise
-     */
-    isSIPCallingSupported() {
-        if (this.moderator) {
-            return this.moderator.isSipGatewayEnabled();
-        }
-
-        return false;
-    }
-
-    /**
      * Dials a number.
      * @param number the number
      */
