@@ -186,13 +186,9 @@ export default class ChatRoom extends Listenable {
 
             // there is no point of sending conference iq when in visitor mode
             const preJoin
-                = this.options.disableFocus || this.options.hosts?.visitorFocus
+                = this.options.disableFocus
                     ? Promise.resolve()
                     : this.moderator.allocateConferenceFocus();
-
-            if (this.options.hosts?.visitorFocus) {
-                this.moderator.setFocusUserJid(this.options.hosts.visitorFocus);
-            }
 
             preJoin.then(() => {
                 this.sendPresence(true);
@@ -478,8 +474,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
-        member.isFocus
-            = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
+        member.isFocus = this.moderator.isFocusJid(jid);
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain

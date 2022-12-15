@@ -68,6 +68,19 @@ export default function Moderator(roomName, xmpp, emitter, options) {
         this.focusComponent = `focus.${this.options.hosts?.domain}`;
     }
 
+    // The set of JIDs known to belong to jicofo. Populated from configuration
+    // and responses from conference requests.
+    this.focusUserJids = new Set();
+
+    if (options.focusUserJid) {
+        this.focusUserJids.add(options.focusUserJid);
+    }
+
+    // TODO: this one is redundant, we can use the one above instead.
+    if (options.hosts?.visitorFocus) {
+        this.focusUserJids.add(options.hosts?.visitorFocus);
+    }
+
     // FIXME: Message listener that talks to POPUP window
     /**
      *
@@ -94,6 +107,21 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     }
 }
 
+Moderator.prototype.isFocusJid = function(jid) {
+    if (!jid) {
+        return false;
+    }
+
+    for (const focusJid of this.focusUserJids) {
+        // jid may be a full JID, and focusUserJids may be bare JIDs
+        if (jid.indexOf(`${focusJid}/`) === 0) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 /* eslint-enable max-params */
 
 Moderator.prototype.isExternalAuthEnabled = function() {
@@ -102,17 +130,6 @@ Moderator.prototype.isExternalAuthEnabled = function() {
 
 Moderator.prototype.isSipGatewayEnabled = function() {
     return this.sipGatewayEnabled;
-};
-
-Moderator.prototype.setFocusUserJid = function(focusJid) {
-    if (!this.focusUserJid) {
-        this.focusUserJid = focusJid;
-        logger.info(`Focus jid set to:  ${this.focusUserJid}`);
-    }
-};
-
-Moderator.prototype.getFocusUserJid = function() {
-    return this.focusUserJid;
 };
 
 /**
@@ -223,7 +240,13 @@ Moderator.prototype._parseSessionId = function(resultIq) {
 
 Moderator.prototype._parseConfigOptions = function(resultIq) {
     // eslint-disable-next-line newline-per-chained-call
-    this.setFocusUserJid($(resultIq).find('conference').attr('focusjid'));
+    const focusJid = $(resultIq).find('conference').attr('focusjid');
+
+    if (focusJid) {
+        this.focusUserJids.add(focusJid);
+    } else {
+        logger.warn('Conference request response contained no focusJid.');
+    }
 
     const authenticationEnabled
         = $(resultIq).find(
@@ -272,9 +295,6 @@ Moderator.prototype._parseConfigOptions = function(resultIq) {
  */
 Moderator.prototype.allocateConferenceFocus = function() {
     return new Promise(resolve => {
-        // Try to use focus user JID from the config. TODO why do we override this just prior to sending a request?
-        this.setFocusUserJid(this.options.focusUserJid);
-
         // Send create conference IQ
         this.connection.sendIQ(
             this._createConferenceIq(),
@@ -401,11 +421,13 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
 
         const vnode = $(result).find('conference')
             .attr('vnode');
+        const newFocusJid = $(result).find('conference')
+            .attr('focusjid');
 
         if (vnode) {
-            logger.warn(`We have been redirected to: ${vnode} new focus Jid:${this.getFocusUserJid()}`);
+            logger.warn(`We have been redirected to: ${vnode} with focusJid ${newFocusJid} }`);
 
-            this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, this.getFocusUserJid());
+            this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, newFocusJid);
 
             return;
         }
