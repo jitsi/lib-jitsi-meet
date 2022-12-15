@@ -422,10 +422,10 @@ export default class BridgeChannel {
         };
 
         channel.onclose = event => {
-            logger.info(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
+            logger.debug(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
 
             if (channel !== this._channel) {
-                logger.info('Skip close handler, channel instance is not equal to stored one');
+                logger.debug('Skip close handler, channel instance is not equal to stored one');
 
                 return;
             }
