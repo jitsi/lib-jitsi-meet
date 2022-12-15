@@ -430,27 +430,30 @@ export default class BridgeChannel {
                 return;
             }
 
-            if (this._mode === 'websocket') {
-                if (!this._closedFromClient) {
-                    this._retryWebSocketConnection(event);
-                }
-            }
+            // When the JVB closes the connection gracefully due to the participant being alone in
+            // the meeting it uses code 1001, so treat that as a graceful close and don't say
+            // anything.
+            const isGracefulClose = this._closedFromClient || event.code === 1001;
 
-            if (!this._closedFromClient) {
+            if (!isGracefulClose) {
                 const { code, reason } = event;
 
                 logger.error(`Channel closed: ${code} ${reason}`);
 
-                // We only want to send this event the first time the failure happens.
-                if (typeof this._connected === 'undefined' || this._connected) {
-                    this._connected = false;
+                if (this._mode === 'websocket') {
+                    this._retryWebSocketConnection(event);
+                }
 
+                // We only want to send this event the first time the failure happens.
+                if (this._connected !== false) {
                     emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
                         code,
                         reason
                     });
                 }
             }
+
+            this._connected = false;
 
             // Remove the channel.
             this._channel = null;
