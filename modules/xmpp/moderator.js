@@ -372,24 +372,20 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     }
 
     const waitMs = this.getNextErrorTimeout();
-    const errmsg = `Focus error, retry after ${waitMs}`;
 
-    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-    logger.error(errmsg, error);
+    if (invalidSession && waitMs < 60000) {
+        // If the session is invalid, retry a limited number of times and then fire an error.
+        logger.info(`Invalid session, will retry after ${waitMs} ms.`)
+        this.getNextTimeout(true);
+        window.setTimeout(() => this.allocateConferenceFocus().then(callback), waitMs);
+    } else {
+        const errmsg = `Focus error, retry after ${waitMs}`;
 
-    // FIXME: message is duplicated ? Do not show in case of session invalid
-    // which means just a retry
-
-    if (!invalidSession) {
-        // This used to include the target JID as a second parameter, so I preserved the API.
-        this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED, null, waitMs / 1000);
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        logger.error(errmsg, error);
+        this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
+        // Do we need to resolve()? Or throw an error?
     }
-
-    // Reset response timeout
-    this.getNextTimeout(true);
-    window.setTimeout(
-        () => this.allocateConferenceFocus().then(callback),
-        waitMs);
 };
 
 /**
