@@ -77,11 +77,6 @@ export default function Moderator(roomName, xmpp, emitter, options) {
         this.focusUserJids.add(options.focusUserJid);
     }
 
-    // TODO: this one is redundant, we can use the one above instead.
-    if (options.hosts?.visitorFocus) {
-        this.focusUserJids.add(options.hosts?.visitorFocus);
-    }
-
     // FIXME: Message listener that talks to POPUP window
     /**
      *
@@ -122,8 +117,6 @@ Moderator.prototype.isFocusJid = function(jid) {
 
     return false;
 };
-
-/* eslint-enable max-params */
 
 Moderator.prototype.isExternalAuthEnabled = function() {
     return this.externalAuthEnabled;
