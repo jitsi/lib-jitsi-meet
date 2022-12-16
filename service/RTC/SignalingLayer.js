@@ -88,16 +88,6 @@ export function getSourceIndexFromSourceName(sourceName) {
  * @interface SignalingLayer
  */
 export default class SignalingLayer extends Listenable {
-
-    /**
-     * Obtains the endpoint ID for given SSRC.
-     * @param {number} ssrc the SSRC number.
-     * @return {string|null} the endpoint ID for given media SSRC.
-     */
-    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
-    }
-
     /**
      * Obtains the info about given media advertised in the MUC presence of
      * the participant identified by the given MUC JID.
@@ -127,6 +117,15 @@ export default class SignalingLayer extends Listenable {
     }
 
     /**
+     * Obtains the endpoint ID for given SSRC.
+     * @param {number} ssrc the SSRC number.
+     * @return {string|null} the endpoint ID for given media SSRC.
+     */
+    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
+        throw new Error('not implemented');
+    }
+
+    /**
      * Obtains the source name for given SSRC.
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
@@ -151,7 +150,6 @@ export default class SignalingLayer extends Listenable {
      */
     setSSRCOwner(ssrc, endpointId) { // eslint-disable-line no-unused-vars
     }
-
 
     /**
      * Adjusts muted status of given track.

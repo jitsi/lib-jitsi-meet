@@ -2,9 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 
-
 const logger = getLogger(__filename);
-
 
 /**
  * Custom semi-mock implementation for the Proxy connection service.
@@ -27,14 +25,6 @@ export default class CustomSignalingLayer extends SignalingLayer {
          * @type {ChatRoom|null}
          */
         this.chatRoom = null;
-    }
-
-    /**
-     * Sets the <tt>ChatRoom</tt> instance used.
-     * @param {ChatRoom} room
-     */
-    setChatRoom(room) {
-        this.chatRoom = room;
     }
 
     /**
@@ -61,6 +51,13 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
+    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+        return undefined;
+    }
+
+    /**
+     * @inheritDoc
+     */
     removeSSRCOwners(ssrcList) {
         if (!ssrcList?.length) {
             return;
@@ -69,6 +66,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
         for (const ssrc of ssrcList) {
             this.ssrcOwners.delete(ssrc);
         }
+    }
+
+    /**
+     * Sets the <tt>ChatRoom</tt> instance used.
+     * @param {ChatRoom} room
+     */
+    setChatRoom(room) {
+        this.chatRoom = room;
     }
 
     /**
@@ -101,13 +106,6 @@ export default class CustomSignalingLayer extends SignalingLayer {
      */
     setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
         return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
-        return undefined;
     }
 
     /**

@@ -81,45 +81,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Check is given endpoint has advertised <SourceInfo/> in it's presence which means that the source name signaling
-     * is used by this endpoint.
-     *
-     * @param {EndpointId} endpointId
-     * @returns {boolean}
-     */
-    _doesEndpointSendNewSourceInfo(endpointId) {
-        const presence = this.chatRoom?.getLastPresence(endpointId);
-
-        return Boolean(presence && presence.find(node => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
-    }
-
-    /**
-     * Sets the <tt>ChatRoom</tt> instance used and binds presence listeners.
-     * @param {ChatRoom} room
-     */
-    setChatRoom(room) {
-        const oldChatRoom = this.chatRoom;
-
-        this.chatRoom = room;
-        if (oldChatRoom) {
-            oldChatRoom.removePresenceListener(
-                'audiomuted', this._audioMuteHandler);
-            oldChatRoom.removePresenceListener(
-                'videomuted', this._videoMuteHandler);
-            oldChatRoom.removePresenceListener(
-                'videoType', this._videoTypeHandler);
-            this._sourceInfoHandler
-                && oldChatRoom.removePresenceListener(SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
-            this._memberLeftHandler
-                && oldChatRoom.removeEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
-        }
-        if (room) {
-            this._bindChatRoomEventHandlers(room);
-            this._addLocalSourceInfoToPresence();
-        }
-    }
-
-    /**
      * Binds event listeners to the chat room instance.
      * @param {ChatRoom} room
      * @private
@@ -236,28 +197,16 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
-     * Finds the first source of given media type for the given endpoint.
-     * @param endpointId
-     * @param mediaType
-     * @returns {SourceInfo|null}
-     * @private
+     * Check is given endpoint has advertised <SourceInfo/> in it's presence which means that the source name signaling
+     * is used by this endpoint.
+     *
+     * @param {EndpointId} endpointId
+     * @returns {boolean}
      */
-    _findEndpointSourceInfoForMediaType(endpointId, mediaType) {
-        const remoteSourceState = this._remoteSourceState[endpointId];
+    _doesEndpointSendNewSourceInfo(endpointId) {
+        const presence = this.chatRoom?.getLastPresence(endpointId);
 
-        if (!remoteSourceState) {
-            return null;
-        }
-
-        for (const sourceInfo of Object.values(remoteSourceState)) {
-            const _mediaType = getMediaTypeFromSourceName(sourceInfo.sourceName);
-
-            if (_mediaType === mediaType) {
-                return sourceInfo;
-            }
-        }
-
-        return null;
+        return Boolean(presence && presence.find(node => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
     }
 
     /**
@@ -326,6 +275,13 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
+    getTrackSourceName(ssrc) {
+        return this._sourceNames.get(ssrc);
+    }
+
+    /**
+     * @inheritDoc
+     */
     removeSSRCOwners(ssrcList) {
         if (!ssrcList?.length) {
             return;
@@ -333,6 +289,32 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         for (const ssrc of ssrcList) {
             this.ssrcOwners.delete(ssrc);
+        }
+    }
+
+    /**
+     * Sets the <tt>ChatRoom</tt> instance used and binds presence listeners.
+     * @param {ChatRoom} room
+     */
+    setChatRoom(room) {
+        const oldChatRoom = this.chatRoom;
+
+        this.chatRoom = room;
+        if (oldChatRoom) {
+            oldChatRoom.removePresenceListener(
+                'audiomuted', this._audioMuteHandler);
+            oldChatRoom.removePresenceListener(
+                'videomuted', this._videoMuteHandler);
+            oldChatRoom.removePresenceListener(
+                'videoType', this._videoTypeHandler);
+            this._sourceInfoHandler
+                && oldChatRoom.removePresenceListener(SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
+            this._memberLeftHandler
+                && oldChatRoom.removeEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
+        }
+        if (room) {
+            this._bindChatRoomEventHandlers(room);
+            this._addLocalSourceInfoToPresence();
         }
     }
 
@@ -375,31 +357,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackVideoType(sourceName, videoType) {
-        if (!this._localSourceState[sourceName]) {
-            this._localSourceState[sourceName] = {};
-        }
-
-        if (this._localSourceState[sourceName].videoType !== videoType) {
-            // Include only if not a camera (default)
-            this._localSourceState[sourceName].videoType = videoType === VideoType.CAMERA ? undefined : videoType;
-
-            return this._addLocalSourceInfoToPresence();
-        }
-
-        return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    getTrackSourceName(ssrc) {
-        return this._sourceNames.get(ssrc);
-    }
-
-    /**
-     * @inheritDoc
-     */
     setTrackSourceName(ssrc, sourceName) {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
@@ -414,6 +371,24 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         this._sourceNames.set(ssrc, sourceName);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    setTrackVideoType(sourceName, videoType) {
+        if (!this._localSourceState[sourceName]) {
+            this._localSourceState[sourceName] = {};
+        }
+
+        if (this._localSourceState[sourceName].videoType !== videoType) {
+            // Include only if not a camera (default)
+            this._localSourceState[sourceName].videoType = videoType === VideoType.CAMERA ? undefined : videoType;
+
+            return this._addLocalSourceInfoToPresence();
+        }
+
+        return false;
     }
 
     /**
