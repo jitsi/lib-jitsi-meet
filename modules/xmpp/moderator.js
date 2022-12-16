@@ -48,10 +48,10 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
     this.getNextTimeout = createExpBackoffTimer(1000);
     this.getNextErrorTimeout = createExpBackoffTimer(1000);
+    this.options = options;
 
     // External authentication stuff
     this.externalAuthEnabled = false;
-    this.options = options;
 
     // Whether SIP gateway (jigasi) support is enabled. TODO: use presence so it can be changed based on jigasi
     // availability.
@@ -61,11 +61,12 @@ export default function Moderator(roomName, xmpp, emitter, options) {
 
     this.connection = xmpp.connection;
 
-    this.focusComponent = this.options.hosts?.focus;
+    // The JID to which conference-iq requests are sent over XMPP.
+    this.targetJid = this.options.hosts?.focus
 
     // If not specified default to 'focus.domain'
-    if (!this.focusComponent) {
-        this.focusComponent = `focus.${this.options.hosts?.domain}`;
+    if (!this.targetJid) {
+        this.targetJid = `focus.${this.options.hosts?.domain}`;
     }
 
     // The set of JIDs known to belong to jicofo. Populated from configuration
@@ -201,7 +202,7 @@ Moderator.prototype._createConferenceIq = function() {
     const conferenceRequest = this._createConferenceRequest();
 
     // Generate create conference IQ
-    const elem = $iq({ to: this.focusComponent,
+    const elem = $iq({ to: this.targetJid,
         type: 'set' });
 
     elem.c('conference', {
@@ -376,17 +377,12 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
 
-    // Show message
-    const retrySec = waitMs / 1000;
-
     // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
 
     if (!invalidSession) {
-        this.eventEmitter.emit(
-            XMPPEvents.FOCUS_DISCONNECTED,
-            this.focusComponent,
-            retrySec);
+        // This used to include the target JID as a second parameter, so I preserved the API.
+        this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED, null, waitMs / 1000);
     }
 
     // Reset response timeout
@@ -474,7 +470,7 @@ Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
  * @param failureCb
  */
 Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
-    const iq = $iq({ to: this.focusComponent,
+    const iq = $iq({ to: this.targetJid,
         type: 'get' });
     const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -524,7 +520,7 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 };
 
 Moderator.prototype.logout = function(callback) {
-    const iq = $iq({ to: this.focusComponent,
+    const iq = $iq({ to: this.targetJid,
         type: 'set' });
     const { sessionId } = Settings;
 
