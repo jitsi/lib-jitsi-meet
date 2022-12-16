@@ -100,6 +100,18 @@ export default class BridgeChannel {
         let timeoutS = 1;
 
         const reload = () => {
+            const isConnecting = this._channel && (this._channel.readyState === 'connecting'
+                    || this._channel.readyState === WebSocket.CONNECTING);
+
+            // Should not spawn new websockets while one is already trying to connect.
+            if (isConnecting) {
+                // Timeout is still required as there is flag `_areRetriesEnabled` that
+                // blocks new retrying cycles until any channel opens in current cycle.
+                this._retryTimeout = setTimeout(reload, timeoutS * 1000);
+
+                return;
+            }
+
             if (this.isOpen()) {
                 return;
             }
@@ -410,7 +422,13 @@ export default class BridgeChannel {
         };
 
         channel.onclose = event => {
-            logger.info(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
+            logger.debug(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
+
+            if (channel !== this._channel) {
+                logger.debug('Skip close handler, channel instance is not equal to stored one');
+
+                return;
+            }
 
             if (this._mode === 'websocket') {
                 if (!this._closedFromClient) {
