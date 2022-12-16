@@ -156,7 +156,12 @@ export default function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
-    this.participants = {};
+
+    /**
+     * List of all the participants in the conference.
+     * @type {Map<string, JitsiParticipant>};
+     */
+    this.participants = new Map();
 
     /**
      * The signaling layer instance.
@@ -1199,11 +1204,11 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     if (this.mutedByFocusActor && track.isAudioTrack()) {
         const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
 
-        actorParticipant = this.participants[actorId];
+        actorParticipant = this.participants.get(actorId);
     } else if (this.mutedVideoByFocusActor && track.isVideoTrack()) {
         const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
 
-        actorParticipant = this.participants[actorId];
+        actorParticipant = this.participants.get(actorId);
     }
 
     // Send the video type message to the bridge if the track is not removed/added to the pc as part of
@@ -1632,11 +1637,10 @@ JitsiConference.prototype.setLastN = function(lastN) {
 };
 
 /**
- * @return Array<JitsiParticipant> an array of all participants in this
- * conference.
+ * @return Array<JitsiParticipant> an array of all participants in this conference.
  */
 JitsiConference.prototype.getParticipants = function() {
-    return Object.values(this.participants);
+    return Array.from(this.participants.values());
 };
 
 /**
@@ -1662,7 +1666,7 @@ JitsiConference.prototype.getParticipantCount = function(countHidden = false) {
  * @param id the id of the participant.
  */
 JitsiConference.prototype.getParticipantById = function(id) {
-    return this.participants[id];
+    return this.participants.get(id);
 };
 
 /**
@@ -1810,7 +1814,7 @@ JitsiConference.prototype.onMemberJoined = function(
         participant._tracks.push(track);
     }
 
-    this.participants[id] = participant;
+    this.participants.set(id, participant);
     this.eventEmitter.emit(
         JitsiConferenceEvents.USER_JOINED,
         id,
@@ -1923,10 +1927,10 @@ JitsiConference.prototype.onMemberLeft = function(jid, reason) {
         });
     }
 
-    const participant = this.participants[id];
+    const participant = this.participants.get(id);
 
     if (participant) {
-        delete this.participants[id];
+        this.participants.delete(id);
         this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
     }
 
@@ -1963,7 +1967,7 @@ JitsiConference.prototype.onMemberKicked = function(
         return;
     }
 
-    const actorParticipant = this.participants[actorId];
+    const actorParticipant = this.participants.get(actorId);
 
     if (isSelfPresence) {
         this.eventEmitter.emit(
@@ -1974,7 +1978,7 @@ JitsiConference.prototype.onMemberKicked = function(
         return;
     }
 
-    const kickedParticipant = this.participants[kickedParticipantId];
+    const kickedParticipant = this.participants.get(kickedParticipantId);
 
     kickedParticipant.setIsReplaced(isReplaceParticipant);
 
@@ -3000,7 +3004,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
 
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
-    const participant = this.participants[remoteID];
+    const participant = this.participants.get(remoteID);
 
     if (participant) {
         remoteID = participant.getStatsID() || remoteID;
@@ -3368,7 +3372,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
 
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
-    const participant = this.participants[remoteID];
+    const participant = this.participants.get(remoteID);
 
     if (participant) {
         remoteID = participant.getStatsID() || remoteID;
