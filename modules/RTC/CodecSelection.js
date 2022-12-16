@@ -85,9 +85,9 @@ export class CodecSelection {
      * @private
      */
     _isCodecSupported(preferredCodec) {
-        // Skip the check on FF and RN because they do not support the getCapabilities API.
+        // Skip the check on FF because it does not support the getCapabilities API.
         // It is safe to assume both of them support all the codecs supported by Chrome.
-        if (browser.isFirefox() || browser.isReactNative()) {
+        if (browser.isFirefox()) {
             return true;
         }
 
