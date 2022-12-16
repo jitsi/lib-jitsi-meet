@@ -2584,11 +2584,6 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
 
-    // XXX: This is not yet supported on mobile.
-    if (browser.isReactNative()) {
-        return Promise.resolve();
-    }
-
     const sourceName = localVideoTrack.getSourceName();
 
     if (this._senderMaxHeights.get(sourceName) === frameHeight) {
