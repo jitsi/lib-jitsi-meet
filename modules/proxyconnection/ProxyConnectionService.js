@@ -3,6 +3,7 @@ import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import RTC from '../RTC/RTC';
 
@@ -136,6 +137,12 @@ export default class ProxyConnectionService {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
+        });
+
+        localTracks.forEach((localTrack, localTrackIndex) => {
+            const localSourceNameTrack = getSourceNameForJitsiTrack('peer', localTrack.getType(), localTrackIndex);
+
+            localTrack.setSourceName(localSourceNameTrack);
         });
 
         this._peerConnection.start(localTracks);
