@@ -323,11 +323,6 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         logger.info('Session expired! - removing');
         Settings.sessionId = undefined;
     }
-    if ($(error).find('>error>graceful-shutdown').length) {
-        this.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
-
-        return;
-    }
 
     // Check for error returned by the reservation system
     const reservationErr = $(error).find('>error>reservation-error');
