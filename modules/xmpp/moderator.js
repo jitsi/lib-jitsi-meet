@@ -18,6 +18,7 @@ const logger = getLogger(__filename);
  */
 function createExpBackoffTimer(step) {
     let count = 1;
+    const maxTimeout = 120000;
 
     return function(reset) {
         // Reset call
@@ -32,7 +33,7 @@ function createExpBackoffTimer(step) {
 
         count += 1;
 
-        return timeout * step;
+        return Math.min(timeout * step, maxTimeout);
     };
 }
 
