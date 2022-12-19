@@ -233,7 +233,7 @@ Moderator.prototype._parseConferenceIq = function(resultIq) {
     conferenceRequest.focusJid = $(resultIq).find('conference').attr('focusjid');
     conferenceRequest.sessionId = $(resultIq).find('conference').attr('session-id');
     conferenceRequest.identity = $(resultIq).find('>conference').attr('identity');
-    conferenceRequest.ready = $(resultIq).find('conference').attr('ready');
+    conferenceRequest.ready = $(resultIq).find('conference').attr('ready') === 'true';
     conferenceRequest.vnode = $(resultIq).find('conference').attr('vnode');
 
     if ($(resultIq).find('>conference>property[name=\'authentication\'][value=\'true\']').length > 0) {
@@ -288,7 +288,7 @@ Moderator.prototype.sendConferenceRequest = function() {
                 if (!response.ok) {
                     response.text().then(text => {
                         logger.warn(`Received HTTP ${response.status} ${response.statusText}. Body: ${text}`);
-                        const sessionError = response.status === 400 && text === 'invalid-session';
+                        const sessionError = response.status === 400 && text.indexOf('400 invalid-session') > 0;
                         const notAuthorized = response.status === 403;
 
                         this._handleError(sessionError, notAuthorized, resolve);
@@ -297,10 +297,12 @@ Moderator.prototype.sendConferenceRequest = function() {
                         logger.warn(`Error: ${error}`);
                         this._handleError();
                     });
+
+                    // _handleError has either scheduled a retry or fired an event indicating failure.
+                    return;
                 }
                 response.json().then(resultJson => {
-                    this._handleSuccess(resultJson);
-                    resolve();
+                    this._handleSuccess(resultJson, resolve);
                 });
             })
             .catch(error => {
@@ -338,7 +340,7 @@ Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
     this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED, authenticationEnabled, conferenceRequest.identity);
 
     this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
-    logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
+    logger.info(`Sip gateway enabled: ${this.sipGatewayEnabled}`);
 
     if (conferenceRequest.ready) {
         // Reset the non-error timeout (because we've succeeded here).
@@ -352,7 +354,7 @@ Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
             return;
         }
 
-        // We're ready to go!
+        logger.info('Conference-request successful, ready to join the MUC.');
         callback();
     } else {
         const waitMs = this.getNextTimeout();
@@ -394,6 +396,7 @@ Moderator.prototype._handleError = function(sessionError, notAuthorized, callbac
 
         logger.error(errmsg, error);
         GlobalOnErrorHandler.callErrorHandler(error);
+
         // This is a "fatal" error and the user of the lib should handle it accordingly.
         // TODO: change the event name to something accurate.
         this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
@@ -432,8 +435,8 @@ Moderator.prototype._handleIqError = function(error, callback) {
     }
 
     const invalidSession
-        = $(error).find('>error>session-invalid').length
-            || $(error).find('>error>not-acceptable').length;
+        = Boolean($(error).find('>error>session-invalid').length
+            || $(error).find('>error>not-acceptable').length);
 
     // Not authorized to create new room
     const notAuthorized = $(error).find('>error>not-authorized').length > 0;
