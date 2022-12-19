@@ -1,3 +1,4 @@
+/* eslint-disable newline-per-chained-call */
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq } from 'strophe.js';
@@ -34,8 +35,6 @@ function createExpBackoffTimer(step) {
         return timeout * step;
     };
 }
-
-/* eslint-disable max-params */
 
 /**
  *
@@ -230,16 +229,11 @@ Moderator.prototype._createConferenceIq = function() {
 Moderator.prototype._parseConferenceIq = function(resultIq) {
     const conferenceRequest = { properties: {} };
 
-    conferenceRequest.focusJid = $(resultIq).find('conference')
-        .attr('focusjid');
-    conferenceRequest.sessionId = $(resultIq).find('conference')
-        .attr('session-id');
-    conferenceRequest.identity = $(resultIq).find('>conference')
-        .attr('identity');
-    conferenceRequest.ready = $(resultIq).find('conference')
-        .attr('ready');
-    conferenceRequest.vnode = $(resultIq).find('conference')
-        .attr('vnode');
+    conferenceRequest.focusJid = $(resultIq).find('conference').attr('focusjid');
+    conferenceRequest.sessionId = $(resultIq).find('conference').attr('session-id');
+    conferenceRequest.identity = $(resultIq).find('>conference').attr('identity');
+    conferenceRequest.ready = $(resultIq).find('conference').attr('ready');
+    conferenceRequest.vnode = $(resultIq).find('conference').attr('vnode');
 
     if ($(resultIq).find('>conference>property[name=\'authentication\'][value=\'true\']').length > 0) {
         conferenceRequest.properties.authentication = 'true';
@@ -345,7 +339,6 @@ Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
     this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
     logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
 
-    // eslint-disable-next-line newline-per-chained-call
     if (conferenceRequest.ready) {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
@@ -395,14 +388,14 @@ Moderator.prototype._handleError = function(sessionError, notAuthorized, callbac
         this.getNextTimeout(true);
         window.setTimeout(() => this.sendConferenceRequest().then(callback), waitMs);
     } else {
-        const errmsg = `Focus error, retry after ${waitMs}`;
+        const errmsg = 'Failed to get a successful response, giving up.';
         const error = new Error(errmsg);
 
         logger.error(errmsg, error);
         GlobalOnErrorHandler.callErrorHandler(error);
+        // This is a "fatal" error and the user of the lib should handle it accordingly.
+        // TODO: change the event name to something accurate.
         this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
-
-        // Do we need to resolve()? Or throw an error?
     }
 };
 
@@ -469,8 +462,7 @@ Moderator.prototype.authenticate = function() {
         this.connection.sendIQ(
             this._createConferenceIq(),
             result => {
-                const sessionId = $(result).find('conference')
-                    .attr('session-id');
+                const sessionId = $(result).find('conference').attr('session-id');
 
                 if (sessionId) {
                     logger.info(`Received sessionId:  ${sessionId}`);
@@ -482,10 +474,8 @@ Moderator.prototype.authenticate = function() {
                 resolve();
             },
             errorIq => reject({
-                error: $(errorIq).find('iq>error :first')
-                    .prop('tagName'),
-                message: $(errorIq).find('iq>error>text')
-                    .text()
+                error: $(errorIq).find('iq>error :first').prop('tagName'),
+                message: $(errorIq).find('iq>error>text').text()
             })
         );
     });
@@ -533,7 +523,6 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     this.connection.sendIQ(
         iq,
         result => {
-            // eslint-disable-next-line newline-per-chained-call
             let url = $(result).find('login-url').attr('url');
 
             url = decodeURIComponent(url);
@@ -569,7 +558,6 @@ Moderator.prototype.logout = function(callback) {
     this.connection.sendIQ(
         iq,
         result => {
-            // eslint-disable-next-line newline-per-chained-call
             let logoutUrl = $(result).find('logout').attr('logout-url');
 
             if (logoutUrl) {
