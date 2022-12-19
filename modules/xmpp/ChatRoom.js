@@ -188,7 +188,7 @@ export default class ChatRoom extends Listenable {
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.moderator.allocateConferenceFocus();
+                    : this.moderator.sendConferenceRequest();
 
             preJoin.then(() => {
                 this.sendPresence(true);

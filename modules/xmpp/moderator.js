@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import { $iq, Strophe } from 'strophe.js';
+import { $iq } from 'strophe.js';
 
 import Settings from '../settings/Settings';
 
@@ -62,12 +62,18 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     this.connection = xmpp.connection;
 
     // The JID to which conference-iq requests are sent over XMPP.
-    this.targetJid = this.options.hosts?.focus
+    this.targetJid = this.options.hosts?.focus;
 
     // If not specified default to 'focus.domain'
     if (!this.targetJid) {
         this.targetJid = `focus.${this.options.hosts?.domain}`;
     }
+
+    this.targetUrl = this.options.conferenceRequestUrl;
+
+    // Whether to send conference requests over HTTP or XMPP
+    this.mode = this.targetUrl ? 'http' : 'xmpp';
+    logger.info(`Using ${this.mode} for conference requests.`);
 
     // The set of JIDs known to belong to jicofo. Populated from configuration
     // and responses from conference requests.
@@ -221,60 +227,34 @@ Moderator.prototype._createConferenceIq = function() {
     return elem;
 };
 
+Moderator.prototype._parseConferenceIq = function(resultIq) {
+    const conferenceRequest = { properties: {} };
 
-Moderator.prototype._parseSessionId = function(resultIq) {
-    // eslint-disable-next-line newline-per-chained-call
-    const sessionId = $(resultIq).find('conference').attr('session-id');
+    conferenceRequest.focusJid = $(resultIq).find('conference')
+        .attr('focusjid');
+    conferenceRequest.sessionId = $(resultIq).find('conference')
+        .attr('session-id');
+    conferenceRequest.identity = $(resultIq).find('>conference')
+        .attr('identity');
+    conferenceRequest.ready = $(resultIq).find('conference')
+        .attr('ready');
+    conferenceRequest.vnode = $(resultIq).find('conference')
+        .attr('vnode');
 
-    if (sessionId) {
-        logger.info(`Received sessionId:  ${sessionId}`);
-        Settings.sessionId = sessionId;
-    }
-};
-
-Moderator.prototype._parseConfigOptions = function(resultIq) {
-    // eslint-disable-next-line newline-per-chained-call
-    const focusJid = $(resultIq).find('conference').attr('focusjid');
-
-    if (focusJid) {
-        this.focusUserJids.add(focusJid);
-    } else {
-        logger.warn('Conference request response contained no focusJid.');
+    if ($(resultIq).find('>conference>property[name=\'authentication\'][value=\'true\']').length > 0) {
+        conferenceRequest.properties.authentication = 'true';
     }
 
-    const authenticationEnabled
-        = $(resultIq).find(
-            '>conference>property'
-            + '[name=\'authentication\'][value=\'true\']').length > 0;
-
-    logger.info(`Authentication enabled: ${authenticationEnabled}`);
-
-    this.externalAuthEnabled = $(resultIq).find(
-        '>conference>property'
-            + '[name=\'externalAuth\'][value=\'true\']').length > 0;
-
-    logger.info(
-        `External authentication enabled: ${this.externalAuthEnabled}`);
-
-    if (!this.externalAuthEnabled) {
-        // We expect to receive sessionId in 'internal' authentication mode
-        this._parseSessionId(resultIq);
+    if ($(resultIq).find('>conference>property[name=\'externalAuth\'][value=\'true\']').length > 0) {
+        conferenceRequest.properties.externalAuth = 'true';
     }
-
-    // eslint-disable-next-line newline-per-chained-call
-    const authIdentity = $(resultIq).find('>conference').attr('identity');
-
-    this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
-        authenticationEnabled, authIdentity);
 
     // Check if jicofo has jigasi support enabled.
-    if ($(resultIq).find(
-        '>conference>property'
-        + '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
-        this.sipGatewayEnabled = true;
+    if ($(resultIq).find('>conference>property[name=\'sipGatewayEnabled\'][value=\'true\']').length > 0) {
+        conferenceRequest.properties.sipGatewayEnabled = 'true';
     }
 
-    logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
+    return conferenceRequest;
 };
 
 // FIXME We need to show the fact that we're waiting for the focus to the user
@@ -287,43 +267,156 @@ Moderator.prototype._parseConfigOptions = function(resultIq) {
  * @returns {Promise} - Resolved when Jicofo allows to join the room. It's never
  * rejected and it'll keep on pinging Jicofo forever.
  */
-Moderator.prototype.allocateConferenceFocus = function() {
+Moderator.prototype.sendConferenceRequest = function() {
     return new Promise(resolve => {
-        // Send create conference IQ
-        this.connection.sendIQ(
-            this._createConferenceIq(),
-            result => this._allocateConferenceFocusSuccess(result, resolve),
-            error => this._allocateConferenceFocusError(error, resolve));
+        if (this.mode === 'xmpp') {
+            logger.info(`Sending conference request over XMPP to ${this.targetJid}`);
 
-        // XXX We're pressed for time here because we're beginning a complex
-        // and/or lengthy conference-establishment process which supposedly
-        // involves multiple RTTs. We don't have the time to wait for Strophe to
-        // decide to send our IQ.
-        this.connection.flush();
+            this.connection.sendIQ(
+                this._createConferenceIq(),
+                result => this._handleIqSuccess(result, resolve),
+                error => this._handleIqError(error, resolve));
+
+            // XXX We're pressed for time here because we're beginning a complex
+            // and/or lengthy conference-establishment process which supposedly
+            // involves multiple RTTs. We don't have the time to wait for Strophe to
+            // decide to send our IQ.
+            this.connection.flush();
+        } else {
+            logger.info(`Sending conference request over HTTP to ${this.targetUrl}`);
+            fetch(this.targetUrl, {
+                method: 'POST',
+                body: JSON.stringify(this._createConferenceRequest()),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    response.text().then(text => {
+                        logger.warn(`Received HTTP ${response.status} ${response.statusText}. Body: ${text}`);
+                        const sessionError = response.status === 400 && text === 'invalid-session';
+                        const notAuthorized = response.status === 403;
+
+                        this._handleError(sessionError, notAuthorized, resolve);
+                    })
+                    .catch(error => {
+                        logger.warn(`Error: ${error}`);
+                        this._handleError();
+                    });
+                }
+                response.json().then(resultJson => {
+                    this._handleSuccess(resultJson);
+                    resolve();
+                });
+            })
+            .catch(error => {
+                logger.warn(`Error: ${error}`);
+                this._handleError();
+            });
+        }
     });
 };
 
-/**
- * Invoked by {@link #allocateConferenceFocus} upon its request receiving an
- * error result.
- *
- * @param error - the error result of the request that
- * {@link #allocateConferenceFocus} sent
- * @param {Function} callback - the function to be called back upon the
- * successful allocation of the conference focus
- */
-Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
+Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
+
+    // Reset the error timeout (because we haven't failed here).
+    this.getNextErrorTimeout(true);
+
+    if (conferenceRequest.focusJid) {
+        logger.info(`Adding focus JID: ${conferenceRequest.focusJid}`);
+        this.focusUserJids.add(conferenceRequest.focusJid);
+    } else {
+        logger.warn('Conference request response contained no focusJid.');
+    }
+
+    const authenticationEnabled = conferenceRequest.properties.authentication === 'true';
+
+    logger.info(`Authentication enabled: ${authenticationEnabled}`);
+
+    this.externalAuthEnabled = conferenceRequest.properties.externalAuth === 'true';
+    logger.info(`External authentication enabled: ${this.externalAuthEnabled}`);
+
+    if (!this.externalAuthEnabled && conferenceRequest.sessionId) {
+        logger.info(`Received sessionId: ${conferenceRequest.sessionId}`);
+        Settings.sessionId = conferenceRequest.sessionId;
+    }
+
+    this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED, authenticationEnabled, conferenceRequest.identity);
+
+    this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
+    logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
+
+    // eslint-disable-next-line newline-per-chained-call
+    if (conferenceRequest.ready) {
+        // Reset the non-error timeout (because we've succeeded here).
+        this.getNextTimeout(true);
+
+        if (conferenceRequest.vnode) {
+            logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid} }`);
+
+            this.eventEmitter.emit(XMPPEvents.REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
+
+            return;
+        }
+
+        // We're ready to go!
+        callback();
+    } else {
+        const waitMs = this.getNextTimeout();
+
+        // This was a successful response, but the "ready" flag is not set. Retry after a timeout.
+        logger.info(`Not ready yet, will retry in ${waitMs} ms.`);
+        window.setTimeout(
+            () => this.sendConferenceRequest().then(callback),
+            waitMs);
+    }
+};
+
+Moderator.prototype._handleError = function(sessionError, notAuthorized, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
-    const invalidSession
-        = $(error).find('>error>session-invalid').length
-            || $(error).find('>error>not-acceptable').length;
-
-    if (invalidSession) {
+    if (sessionError) {
         logger.info('Session expired! - removing');
         Settings.sessionId = undefined;
     }
 
+    // Not authorized to create new room
+    if (notAuthorized) {
+        logger.warn('Unauthorized to start the conference');
+        this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
+
+        return;
+    }
+
+    const waitMs = this.getNextErrorTimeout();
+
+    if (sessionError && waitMs < 60000) {
+        // If the session is invalid, retry a limited number of times and then fire an error.
+        logger.info(`Invalid session, will retry after ${waitMs} ms.`);
+        this.getNextTimeout(true);
+        window.setTimeout(() => this.sendConferenceRequest().then(callback), waitMs);
+    } else {
+        const errmsg = `Focus error, retry after ${waitMs}`;
+        const error = new Error(errmsg);
+
+        logger.error(errmsg, error);
+        GlobalOnErrorHandler.callErrorHandler(error);
+        this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
+
+        // Do we need to resolve()? Or throw an error?
+    }
+};
+
+/**
+ * Invoked by {@link #sendConferenecRequest} upon its request receiving an
+ * error result.
+ *
+ * @param error - the error result of the request that {@link sendConferenceRequest} sent
+ * @param {Function} callback - the function to be called back upon the
+ * successful allocation of the conference focus
+ */
+Moderator.prototype._handleIqError = function(error, callback) {
+
+    // The reservation system only works over XMPP. Handle the error separately.
     // Check for error returned by the reservation system
     const reservationErr = $(error).find('>error>reservation-error');
 
@@ -344,84 +437,31 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         return;
     }
 
+    const invalidSession
+        = $(error).find('>error>session-invalid').length
+            || $(error).find('>error>not-acceptable').length;
+
     // Not authorized to create new room
-    if ($(error).find('>error>not-authorized').length) {
-        logger.warn('Unauthorized to start the conference', error);
-        const toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+    const notAuthorized = $(error).find('>error>not-authorized').length > 0;
 
-        if (toDomain !== this.options.hosts.anonymousdomain) {
-            // FIXME "is external" should come either from the focus or
-            // config.js
-            this.externalAuthEnabled = true;
-        }
-        this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
-
-        return;
-    }
-
-    const waitMs = this.getNextErrorTimeout();
-
-    if (invalidSession && waitMs < 60000) {
-        // If the session is invalid, retry a limited number of times and then fire an error.
-        logger.info(`Invalid session, will retry after ${waitMs} ms.`)
-        this.getNextTimeout(true);
-        window.setTimeout(() => this.allocateConferenceFocus().then(callback), waitMs);
-    } else {
-        const errmsg = `Focus error, retry after ${waitMs}`;
-
-        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-        logger.error(errmsg, error);
-        this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
-        // Do we need to resolve()? Or throw an error?
-    }
+    this._handleError(invalidSession, notAuthorized, callback);
 };
 
 /**
- * Invoked by {@link #allocateConferenceFocus} upon its request receiving a
+ * Invoked by {@link #sendConferenecRequest} upon its request receiving a
  * success (i.e. non-error) result.
  *
- * @param result - the success (i.e. non-error) result of the request that
- * {@link #allocateConferenceFocus} sent
+ * @param result - the success (i.e. non-error) result of the request that {@link #sendConferenecRequest} sent
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._allocateConferenceFocusSuccess = function(
+Moderator.prototype._handleIqSuccess = function(
         result,
         callback) {
     // Setup config options
-    this._parseConfigOptions(result);
+    const conferenceRequest = this._parseConferenceIq(result);
 
-    // Reset the error timeout (because we haven't failed here).
-    this.getNextErrorTimeout(true);
-
-    // eslint-disable-next-line newline-per-chained-call
-    if ($(result).find('conference').attr('ready') === 'true') {
-        // Reset the non-error timeout (because we've succeeded here).
-        this.getNextTimeout(true);
-
-        const vnode = $(result).find('conference')
-            .attr('vnode');
-        const newFocusJid = $(result).find('conference')
-            .attr('focusjid');
-
-        if (vnode) {
-            logger.warn(`We have been redirected to: ${vnode} with focusJid ${newFocusJid} }`);
-
-            this.eventEmitter.emit(XMPPEvents.REDIRECTED, vnode, newFocusJid);
-
-            return;
-        }
-
-        // Exec callback
-        callback();
-    } else {
-        const waitMs = this.getNextTimeout();
-
-        logger.info(`Waiting for the focus... ${waitMs}`);
-        window.setTimeout(
-            () => this.allocateConferenceFocus().then(callback),
-            waitMs);
-    }
+    this._handleSuccess(conferenceRequest, callback);
 };
 
 Moderator.prototype.authenticate = function() {
@@ -429,7 +469,16 @@ Moderator.prototype.authenticate = function() {
         this.connection.sendIQ(
             this._createConferenceIq(),
             result => {
-                this._parseSessionId(result);
+                const sessionId = $(result).find('conference')
+                    .attr('session-id');
+
+                if (sessionId) {
+                    logger.info(`Received sessionId:  ${sessionId}`);
+                    Settings.sessionId = sessionId;
+                } else {
+                    logger.warn('Response did not contain a session-id');
+                }
+
                 resolve();
             },
             errorIq => reject({
