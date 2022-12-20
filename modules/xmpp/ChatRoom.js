@@ -1059,7 +1059,7 @@ export default class ChatRoom extends Listenable {
 
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
             this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
-            if (member.isFocus) {
+            if (member?.isFocus) {
                 logger.info('Focus has left the room - leaving conference');
                 this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
             }
