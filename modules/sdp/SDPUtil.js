@@ -645,6 +645,8 @@ const SDPUtil = {
                 payloadTypes.unshift(pt);
             }
             mline.payloads = payloadTypes.join(' ');
+        } else {
+            logger.error(`No matching RTP payload type found for ${codecName}, failed to set preferred codecs`);
         }
     },
 

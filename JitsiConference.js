@@ -81,6 +81,21 @@ const logger = getLogger(__filename);
 const JINGLE_SI_TIMEOUT = 5000;
 
 /**
+ * Checks if a given string is a valid video codec mime type.
+ *
+ * @param {string} codec the codec string that needs to be validated.
+ * @returns {CodecMimeType|null} mime type if valid, null otherwise.
+ * @private
+ */
+function _getCodecMimeType(codec) {
+    if (typeof codec === 'string') {
+        return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+    }
+
+    return null;
+}
+
+/**
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
  * created using JitsiConnection.createConference).
@@ -355,18 +370,12 @@ JitsiConference.prototype._init = function(options = {}) {
     const { config } = this.options;
 
     // Get the codec preference settings from config.js.
-    // 'preferH264' and 'disableH264' settings have been deprecated for a while,
-    // 'preferredCodec' and 'disabledCodec' will have precedence over them.
     const codecSettings = {
-        disabledCodec: config.videoQuality
-            ? config.videoQuality.disabledCodec
-            : config.p2p && config.p2p.disableH264 && CodecMimeType.H264,
-        enforcePreferredCodec: config.videoQuality && config.videoQuality.enforcePreferredCodec,
-        jvbCodec: (config.videoQuality && config.videoQuality.preferredCodec)
-            || (config.preferH264 && CodecMimeType.H264),
-        p2pCodec: config.p2p
-            ? config.p2p.preferredCodec || (config.p2p.preferH264 && CodecMimeType.H264)
-            : CodecMimeType.VP8
+        jvbDisabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
+        p2pDisabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
+        enforcePreferredCodec: config.videoQuality?.enforcePreferredCodec,
+        jvbPreferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
+        p2pPreferredCodec: _getCodecMimeType(config.p2p?.preferredCodec)
     };
 
     this.codecSelection = new CodecSelection(this, codecSettings);

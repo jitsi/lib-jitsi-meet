@@ -90,7 +90,6 @@ function _addSourceElement(description, s, ssrc_, msid) {
  * @property {Object} abTesting - A/B testing related options (ask George).
  * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
  * video test ?(ask George).
- * @property {boolean} disableH264 - Described in the config.js[1].
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
  * @property {boolean} enableInsertableStreams - Set to true when the insertable streams constraints is to be enabled
@@ -443,11 +442,9 @@ export default class JingleSessionPC extends JingleSession {
                 pcOptions.abtestSuspendVideo = abtestSuspendVideo;
             }
         } else {
-            // H264 does not support simulcast, so it needs to be disabled.
+            // H264 scalability is not supported on jvb, so simulcast needs to be disabled when H264 is preferred.
             pcOptions.disableSimulcast
-                = options.disableSimulcast
-                    || (options.preferH264 && !options.disableH264)
-                    || (options.videoQuality && options.videoQuality.preferredCodec === CodecMimeType.H264);
+                = options.disableSimulcast || options.videoQuality?.preferredCodec === CodecMimeType.H264;
 
             // Disable simulcast for low fps screenshare and enable it for high fps screenshare.
             // testing.capScreenshareBitrate config.js setting has now been deprecated.
@@ -1285,10 +1282,8 @@ export default class JingleSessionPC extends JingleSession {
      * @param {CodecMimeType} disabled the codec that needs to be disabled.
      */
     setVideoCodecs(preferred = null, disabled = null) {
-        const current = this.peerconnection.getConfiguredVideoCodec();
-
-        if (this._assertNotEnded() && preferred !== current) {
-            logger.info(`${this} Switching video codec from ${current} to ${preferred}`);
+        if (this._assertNotEnded()) {
+            logger.info(`${this} setVideoCodecs: preferred=${preferred}, disabled=${disabled}`);
             this.peerconnection.setVideoCodecs(preferred, disabled);
 
             // Initiate a renegotiate for the codec setting to take effect.
