@@ -43,6 +43,7 @@ export default class JitsiParticipant {
         this._isReplacing = isReplacing;
         this._isReplaced = isReplaced;
         this._features = new Set();
+        this._sources = new Map();
     }
 
     /**
@@ -59,6 +60,32 @@ export default class JitsiParticipant {
             (muted, track) =>
                 muted && (track.getType() !== mediaType || track.isMuted()),
             true);
+    }
+
+    /**
+     * Sets source info.
+     * @param {MediaType} mediaType The media type, 'audio' or 'video'.
+     * @param {boolean} muted The new muted state.
+     * @param {string} sourceName The name of the source.
+     * @param {string} videoType The video type of the source.
+     * @returns {void}
+     */
+    _setSources(mediaType, muted, sourceName, videoType) {
+        let sourceByMediaType = this._sources.get(mediaType);
+        const sourceInfo = {
+            muted,
+            videoType
+        };
+
+        if (sourceByMediaType?.size) {
+            sourceByMediaType.set(sourceName, sourceInfo);
+
+            return;
+        }
+
+        sourceByMediaType = new Map();
+        sourceByMediaType.set(sourceName, sourceInfo);
+        this._sources.set(mediaType, sourceByMediaType);
     }
 
     /**
@@ -128,6 +155,19 @@ export default class JitsiParticipant {
      */
     getRole() {
         return this._role;
+    }
+
+    /**
+     * Returns the sources for a given media type.
+     * @param {string} mediaType The type of media, 'audio' or 'video'.
+     * @returns {Map<string, Object>}
+     */
+    getSources(mediaType) {
+        if (!mediaType) {
+            return this._sources;
+        }
+
+        return this._sources.get(mediaType);
     }
 
     /**

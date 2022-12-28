@@ -31,6 +31,7 @@ describe( "/JitsiConferenceEvents members", () => {
         JVB121_STATUS,
         KICKED,
         PARTICIPANT_KICKED,
+        PARTICIPANT_SOURCE_UPDATED,
         LAST_N_ENDPOINTS_CHANGED,
         FORWARDED_SOURCES_CHANGED,
         LOCK_STATE_CHANGED,
@@ -108,6 +109,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JVB121_STATUS ).toBe( 'conference.jvb121Status' );
         expect( KICKED ).toBe( 'conference.kicked' );
         expect( PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
+        expect( PARTICIPANT_SOURCE_UPDATED ).toBe( 'conference.participant_source_updated' );
         expect( LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );
         expect( FORWARDED_SOURCES_CHANGED ).toBe( 'conference.forwardedSourcesChanged' );
         expect( LOCK_STATE_CHANGED ).toBe( 'conference.lock_state_changed' );

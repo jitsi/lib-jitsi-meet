@@ -196,12 +196,19 @@ describe('SignalingLayerImpl', () => {
                 }, 'endpoint1');
 
                 // Just once event though the legacy presence is there as well
-                expect(emitterSpy).toHaveBeenCalledTimes(1);
-                expect(emitterSpy).toHaveBeenCalledWith(
+                expect(emitterSpy).toHaveBeenCalledTimes(2);
+                expect(emitterSpy.calls.argsFor(0)).toEqual([
                     SignalingEvents.SOURCE_MUTED_CHANGED,
                     '12345678-a0',
                     true
-                );
+                ]);
+                expect(emitterSpy.calls.argsFor(1)).toEqual([
+                    SignalingEvents.SOURCE_UPDATED,
+                    '12345678-a0',
+                    'endpoint1',
+                    true,
+                    undefined
+                ]);
             });
         });
     });

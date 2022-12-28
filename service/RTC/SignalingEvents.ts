@@ -25,6 +25,16 @@ export enum SignalingEvents {
     SOURCE_MUTED_CHANGED = 'signaling.sourceMuted',
 
     /**
+     * Event triggered when presence for a source is received.
+     *
+     * @param {string} sourceName - The name of the source.
+     * @param {string} endpointId - The endpoint id.
+     * @param {boolean} muted - The new muted state.
+     * @param {string} videoType - The video type of the source.
+     */
+    SOURCE_UPDATED = 'signaling.sourceUpdated',
+
+    /**
      * Event triggered when source's video type changes.
      *
      * @param {string} source - The name of the source.
@@ -37,4 +47,5 @@ export enum SignalingEvents {
 export const PEER_MUTED_CHANGED = SignalingEvents.PEER_MUTED_CHANGED;
 export const PEER_VIDEO_TYPE_CHANGED = SignalingEvents.PEER_VIDEO_TYPE_CHANGED;
 export const SOURCE_MUTED_CHANGED = SignalingEvents.SOURCE_MUTED_CHANGED;
+export const SOURCE_UPDATED = SignalingEvents.SOURCE_UPDATED;
 export const SOURCE_VIDEO_TYPE_CHANGED = SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED;

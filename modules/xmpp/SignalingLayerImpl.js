@@ -142,12 +142,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 = this._remoteSourceState[endpointId] || (this._remoteSourceState[endpointId] = {});
 
             for (const sourceName of Object.keys(sourceInfoJSON)) {
+                let sourceChanged = false;
                 const mediaType = getMediaTypeFromSourceName(sourceName);
                 const newMutedState = Boolean(sourceInfoJSON[sourceName].muted);
                 const oldSourceState = endpointSourceState[sourceName]
                     || (endpointSourceState[sourceName] = { sourceName });
 
                 if (oldSourceState.muted !== newMutedState) {
+                    sourceChanged = true;
                     oldSourceState.muted = newMutedState;
                     if (emitEventsFromHere && !this._localSourceState[sourceName]) {
                         this.eventEmitter.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
@@ -161,12 +163,22 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
+                    sourceChanged = true;
 
                     // Since having a mix of eps that do/don't support multi-stream in the same call is supported, emit
                     // SOURCE_VIDEO_TYPE_CHANGED event when the remote source changes videoType.
                     if (emitEventsFromHere && !this._localSourceState[sourceName]) {
                         this.eventEmitter.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
                     }
+                }
+
+                if (sourceChanged) {
+                    this.eventEmitter.emit(
+                        SignalingEvents.SOURCE_UPDATED,
+                        sourceName,
+                        mucNick,
+                        newMutedState,
+                        newVideoType);
                 }
             }
 

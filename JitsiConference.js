@@ -53,7 +53,8 @@ import BridgeVideoType from './service/RTC/BridgeVideoType';
 import CodecMimeType from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
-import { getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
+import { SignalingEvents } from './service/RTC/SignalingEvents';
+import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
 import {
     ACTION_JINGLE_RESTART,
@@ -394,6 +395,17 @@ JitsiConference.prototype._init = function(options = {}) {
     );
 
     this._signalingLayer.setChatRoom(this.room);
+    this._signalingLayer.on(
+        SignalingEvents.SOURCE_UPDATED,
+        (sourceName, endpointId, muted, videoType) => {
+            const participant = this.participants.get(endpointId);
+            const mediaType = getMediaTypeFromSourceName(sourceName);
+
+            if (participant) {
+                participant._setSources(mediaType, muted, sourceName, videoType);
+                this.eventEmitter.emit(JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED, participant);
+            }
+        });
 
     // Connection interrupted/restored listeners
     this._onIceConnectionInterrupted

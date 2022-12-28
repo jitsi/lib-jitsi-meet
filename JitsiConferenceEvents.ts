@@ -242,6 +242,11 @@ export enum JitsiConferenceEvents {
     PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed',
 
     /**
+     * Indicates the state of sources attached to a given remote participant has changed.
+     */
+    PARTICIPANT_SOURCE_UPDATED = 'conference.participant_source_updated',
+
+    /**
      * Indicates that the conference has switched between JVB and P2P connections.
      * The first argument of this event is a <tt>boolean</tt> which when set to
      * <tt>true</tt> means that the conference is running on the P2P connection.
@@ -490,6 +495,7 @@ export const E2EE_VERIFICATION_COMPLETED = JitsiConferenceEvents.E2EE_VERIFICATI
 export const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
 export const KICKED = JitsiConferenceEvents.KICKED;
 export const PARTICIPANT_KICKED = JitsiConferenceEvents.PARTICIPANT_KICKED;
+export const PARTICIPANT_SOURCE_UPDATED = JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED;
 export const LAST_N_ENDPOINTS_CHANGED = JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED;
 export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
 export const LOCK_STATE_CHANGED = JitsiConferenceEvents.LOCK_STATE_CHANGED;
