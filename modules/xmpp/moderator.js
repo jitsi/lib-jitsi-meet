@@ -155,13 +155,6 @@ Moderator.prototype._createConferenceRequest = function() {
     const config = this.options;
     const properties = {};
 
-    if (config.startBitrate) {
-        properties.startBitrate = config.startBitrate;
-    }
-    if (config.minBitrate) {
-        properties.minBitrate = config.minBitrate;
-    }
-
     if (config.startAudioMuted !== undefined) {
         properties.startAudioMuted = config.startAudioMuted;
     }
