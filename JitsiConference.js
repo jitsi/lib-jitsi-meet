@@ -2541,11 +2541,7 @@ JitsiConference.prototype.stopRecording = function(sessionID) {
  * Returns true if the SIP calls are supported and false otherwise
  */
 JitsiConference.prototype.isSIPCallingSupported = function() {
-    if (this.room) {
-        return this.room.isSIPCallingSupported();
-    }
-
-    return false;
+    return this.room?.moderator?.isSipGatewayEnabled() ?? false;
 };
 
 /**

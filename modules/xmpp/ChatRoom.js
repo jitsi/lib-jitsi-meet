@@ -132,11 +132,7 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator
-            = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, {
-                connection: this.xmpp.options,
-                conference: this.options
-            });
+        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, options);
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
@@ -190,13 +186,9 @@ export default class ChatRoom extends Listenable {
 
             // there is no point of sending conference iq when in visitor mode
             const preJoin
-                = this.options.disableFocus || this.options.hosts?.visitorFocus
+                = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.moderator.allocateConferenceFocus();
-
-            if (this.options.hosts?.visitorFocus) {
-                this.moderator.setFocusUserJid(this.options.hosts.visitorFocus);
-            }
+                    : this.moderator.sendConferenceRequest();
 
             preJoin.then(() => {
                 this.sendPresence(true);
@@ -482,8 +474,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
-        member.isFocus
-            = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
+        member.isFocus = this.moderator.isFocusJid(jid);
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
@@ -956,25 +947,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Called when participant leaves.
-     * @param jid the jid of the participant that leaves
-     * @param skipEvents optional params to skip any events, including check
-     * whether this is the focus that left
-     * @param reason the reason for leaving (optional).
-     */
-    onParticipantLeft(jid, skipEvents, reason) {
-        delete this.lastPresences[jid];
-
-        if (skipEvents) {
-            return;
-        }
-
-        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
-
-        this.moderator.onMucMemberLeft(jid);
-    }
-
-    /**
      *
      * @param pres
      * @param from
@@ -1061,7 +1033,10 @@ export default class ChatRoom extends Listenable {
                 const member = this.members[jid];
 
                 delete this.members[jid];
-                this.onParticipantLeft(jid, member.isFocus);
+                delete this.lastPresences[jid];
+                if (!member.isFocus) {
+                    this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
+                }
             });
             this.connection.emuc.doLeave(this.roomjid);
 
@@ -1072,6 +1047,7 @@ export default class ChatRoom extends Listenable {
             }
         } else {
             const reasonSelect = $(pres).find('>status');
+            const member = this.members[from];
             let reason;
 
             if (reasonSelect.length) {
@@ -1079,7 +1055,14 @@ export default class ChatRoom extends Listenable {
             }
 
             delete this.members[from];
-            this.onParticipantLeft(from, false, reason);
+            delete this.lastPresences[from];
+
+            // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
+            this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
+            if (member?.isFocus) {
+                logger.info('Focus has left the room - leaving conference');
+                this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
+            }
         }
     }
 
@@ -1655,17 +1638,6 @@ export default class ChatRoom extends Listenable {
      */
     getLastPresence(mucNick) {
         return this.lastPresences[`${this.roomjid}/${mucNick}`];
-    }
-
-    /**
-     * Returns true if the SIP calls are supported and false otherwise
-     */
-    isSIPCallingSupported() {
-        if (this.moderator) {
-            return this.moderator.isSipGatewayEnabled();
-        }
-
-        return false;
     }
 
     /**
