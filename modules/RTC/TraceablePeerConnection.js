@@ -244,7 +244,7 @@ export default function TraceablePeerConnection(
     this.statsinterval = null;
 
     /**
-     * Flag used to indicate if simulcast is turned off and a cap of 500 Kbps is applied on screensharing.
+     * Flag used to indicate if low fps screenshare is desired.
      */
     this._capScreenshareBitrate = this.options.capScreenshareBitrate;
 
