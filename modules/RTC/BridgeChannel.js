@@ -233,41 +233,11 @@ export default class BridgeChannel {
     }
 
     /**
-     * Sends a "selected endpoints changed" message via the channel.
-     *
-     * @param {Array<string>} endpointIds - The ids of the selected endpoints.
-     * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
-     * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
-     * or from WebSocket#send or Error with "No opened channel" message.
-     */
-    sendSelectedEndpointsMessage(endpointIds) {
-        logger.log(`Sending selected endpoints: ${endpointIds}.`);
-
-        this._send({
-            colibriClass: 'SelectedEndpointsChangedEvent',
-            selectedEndpoints: endpointIds
-        });
-    }
-
-    /**
-     * Sends a "receiver video constraint" message via the channel.
-     * @param {Number} maxFrameHeightPixels the maximum frame height,
-     * in pixels, this receiver is willing to receive
-     */
-    sendReceiverVideoConstraintMessage(maxFrameHeightPixels) {
-        logger.log(`Sending ReceiverVideoConstraint with maxFrameHeight=${maxFrameHeightPixels}px`);
-        this._send({
-            colibriClass: 'ReceiverVideoConstraint',
-            maxFrameHeight: maxFrameHeightPixels
-        });
-    }
-
-    /**
      * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
      *
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
-    sendNewReceiverVideoConstraintsMessage(constraints) {
+    sendReceiverVideoConstraintsMessage(constraints) {
         logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',
@@ -276,21 +246,7 @@ export default class BridgeChannel {
     }
 
     /**
-     * Sends a 'VideoTypeMessage' message via the bridge channel.
-     *
-     * @param {string} videoType 'camera', 'desktop' or 'none'.
-     * @deprecated to be replaced with sendSourceVideoTypeMessage
-     */
-    sendVideoTypeMessage(videoType) {
-        logger.debug(`Sending VideoTypeMessage with video type as ${videoType}`);
-        this._send({
-            colibriClass: 'VideoTypeMessage',
-            videoType
-        });
-    }
-
-    /**
-     * Sends a 'VideoTypeMessage' message via the bridge channel.
+     * Sends a 'SourceVideoTypeMessage' message via the bridge channel.
      *
      * @param {BridgeVideoType} videoType - the video type.
      * @param {SourceName} sourceName - the source name of the video track.
@@ -375,15 +331,6 @@ export default class BridgeChannel {
                 logger.info(`New forwarded sources: ${forwardedSources}`);
                 emitter.emit(RTCEvents.FORWARDED_SOURCES_CHANGED, forwardedSources);
 
-                break;
-            }
-            case 'SenderVideoConstraints': {
-                const videoConstraints = obj.videoConstraints;
-
-                if (videoConstraints) {
-                    logger.info(`SenderVideoConstraints: ${JSON.stringify(videoConstraints)}`);
-                    emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, videoConstraints);
-                }
                 break;
             }
             case 'SenderSourceConstraints': {

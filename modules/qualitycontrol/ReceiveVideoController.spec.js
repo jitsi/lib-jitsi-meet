@@ -40,8 +40,7 @@ export class MockRTC extends Listenable {
     }
 
     // eslint-disable-next-line no-empty-function
-    setNewReceiverVideoConstraints() {
-
+    setReceiverVideoConstraints() {
     }
 }
 
@@ -62,8 +61,8 @@ describe('ReceiveVideoController', () => {
             FeatureFlags.init({ });
         });
 
-        it('should call setNewReceiverVideoConstraints with the source names format.', () => {
-            const rtcSpy = spyOn(rtc, 'setNewReceiverVideoConstraints');
+        it('should call setReceiverVideoConstraints with the source names format.', () => {
+            const rtcSpy = spyOn(rtc, 'setReceiverVideoConstraints');
             const constraints = {
                 onStageSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
                 selectedSources: [ 'A_camera_1' ]

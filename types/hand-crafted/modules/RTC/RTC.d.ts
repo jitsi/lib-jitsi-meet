@@ -12,8 +12,6 @@ export default class RTC extends Listenable {
   initializeBridgeChannel: ( perrconnection: RTCPeerConnection, wsUrl: string ) => void;
   onCallEnded: () => void;
   setDesktopSharingFrameRate: (maxFps: number) => void;
-  setReceiverVideoConstraint: ( maxFrameHeight: number ) => void;
-  selectEndpoints: ( ids: string[] ) => void;
   static addListener: ( eventType: string, listener: unknown ) => void; // TODO: this should be typed to an enum of eventTypes with appropriate definition for the listeners
   static removeListener: ( eventType: string, listener: unknown ) => void; // TODO: this should be typed to an enum of eventTypes with appropriate definition for the listeners
   static init: ( options: unknown ) => unknown; // TODO:
@@ -44,8 +42,7 @@ export default class RTC extends Listenable {
   sendChannelMessage: ( to: string, payload: unknown ) => void; // TODO:
   setLastN: ( value: number ) => void;
   isInForwardedSources: ( sourceName: string ) => boolean;
-  setNewReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
-  setVideoType: ( videoType: string ) => void;
+  setReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
   setVideoMute: ( value: unknown ) => Promise<unknown>; // TODO:
   arePermissionsGrantedForAvailableDevices: () => boolean;
   sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:

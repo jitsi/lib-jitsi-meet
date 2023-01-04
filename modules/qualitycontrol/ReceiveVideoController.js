@@ -194,7 +194,7 @@ export default class ReceiveVideoController {
             this._receiverVideoConstraints = new ReceiverVideoConstraints();
             const lastNUpdated = this._receiverVideoConstraints.updateLastN(this._lastN);
 
-            lastNUpdated && this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            lastNUpdated && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
         } else {
             this._rtc.setLastN(this._lastN);
         }
@@ -237,7 +237,7 @@ export default class ReceiveVideoController {
             mediaSession.setReceiverVideoConstraint(this._maxFrameHeight, this._sourceReceiverConstraints);
         } else {
             this._receiverVideoConstraints.updateReceiveResolution(this._maxFrameHeight);
-            this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
         }
     }
 
@@ -270,7 +270,7 @@ export default class ReceiveVideoController {
 
             // Send bridge message only when the constraints change.
             if (!isEqual(newConstraints, oldConstraints)) {
-                this._rtc.setNewReceiverVideoConstraints(newConstraints);
+                this._rtc.setReceiverVideoConstraints(newConstraints);
             }
 
             return;
@@ -293,7 +293,7 @@ export default class ReceiveVideoController {
                 const lastNUpdated = this._receiverVideoConstraints.updateLastN(value);
 
                 // Send out the message on the bridge channel if lastN was updated.
-                lastNUpdated && this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+                lastNUpdated && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
 
                 return;
             }
@@ -319,7 +319,7 @@ export default class ReceiveVideoController {
                 const resolutionUpdated = this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight);
 
                 resolutionUpdated
-                    && this._rtc.setNewReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+                    && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
             }
         }
     }
@@ -345,7 +345,7 @@ export default class ReceiveVideoController {
         if (constraintsChanged) {
             this._lastN = constraints.lastN ?? this._lastN;
             this._selectedEndpoints = constraints.selectedEndpoints ?? this._selectedEndpoints;
-            this._rtc.setNewReceiverVideoConstraints(constraints);
+            this._rtc.setReceiverVideoConstraints(constraints);
 
             const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
 
