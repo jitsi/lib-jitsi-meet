@@ -1856,7 +1856,8 @@ export default class JingleSessionPC extends JingleSession {
                         track._setVideoType('desktop');
                     }
 
-                    track.setNewSource(s.owner, s.source);
+                    track.setSourceName(s.source);
+                    track.setOwner(s.owner);
                 } else {
                     logger.error(`Remapped SSRC ${s.ssrc} not found`);
                 }
