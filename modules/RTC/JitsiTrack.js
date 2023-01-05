@@ -304,6 +304,14 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Returns the source name of the track.
+     * @returns {String|undefined}
+     */
+    getSourceName() { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
+    }
+
+    /**
      * Returns the ID of the underlying WebRTC Media Stream(if any)
      * @returns {String|null}
      */
@@ -496,5 +504,14 @@ export default class JitsiTrack extends EventEmitter {
                         JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
                         audioOutputDeviceId);
                 }));
+    }
+
+    /**
+     * Assigns the source name to a track.
+     * @param {String} name - The name to be assigned to the track.
+     * @returns {void}
+     */
+    setSourceName(name) { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
     }
 }
