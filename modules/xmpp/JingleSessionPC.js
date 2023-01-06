@@ -136,18 +136,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Parses the video max frame height value out of the 'content-modify' IQ.
-     *
-     * @param {jQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
-     * @returns {Number|null}
-     */
-    static parseMaxFrameHeight(jingleContents) {
-        const maxFrameHeightSel = jingleContents.find('>content[name="video"]>max-frame-height');
-
-        return maxFrameHeightSel.length ? Number(maxFrameHeightSel.text()) : null;
-    }
-
-    /**
      * Parses the source-name and max frame height value of the 'content-modify' IQ when source-name signaling
      * is enabled.
      *
@@ -255,15 +243,7 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringStartedTimestamp = null;
 
         /**
-         * Local preference for the receive video max frame height.
-         *
-         * @type {Number|undefined}
-         */
-        this.localRecvMaxFrameHeight = undefined;
-
-        /**
-         * Receiver constraints (max height) set by the application per remote source. Will be used for p2p connection
-         * in lieu of localRecvMaxFrameHeight when source-name signaling is enabled.
+         * Receiver constraints (max height) set by the application per remote source. Will be used for p2p connection.
          *
          * @type {Map<string, number>}
          */
@@ -1242,9 +1222,7 @@ export default class JingleSessionPC extends JingleSession {
                         // up our SDP translation chain (simulcast, video mute, RTX etc.)
                         // #2 Sends the max frame height if it was set, before the session-initiate/accept
                         if (this.isP2P
-                            && (!this._localVideoActive
-                                || this.localRecvMaxFrameHeight
-                                || this._sourceReceiverConstraints)) {
+                            && (!this._localVideoActive || this._sourceReceiverConstraints)) {
                             this.sendContentModify();
                         }
                     }
@@ -1458,10 +1436,8 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     sendContentModify() {
-        const maxFrameHeight = this.localRecvMaxFrameHeight;
         const senders = this._localVideoActive ? 'both' : 'none';
-
-        let sessionModify
+        const sessionModify
             = $iq({
                 to: this.remoteJid,
                 type: 'set'
@@ -1476,14 +1452,6 @@ export default class JingleSessionPC extends JingleSession {
                     name: MediaType.VIDEO,
                     senders
                 });
-
-        if (typeof maxFrameHeight !== 'undefined') {
-            sessionModify = sessionModify
-                .c('max-frame-height', { xmlns: 'http://jitsi.org/jitmeet/video' })
-                .t(maxFrameHeight);
-            logger.info(`${this} sending content-modify, video senders: ${senders},`
-                + ` max frame height: ${maxFrameHeight}`);
-        }
 
         if (typeof this._sourceReceiverConstraints !== 'undefined') {
             this._sourceReceiverConstraints.forEach((maxHeight, sourceName) => {
@@ -1510,15 +1478,12 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Adjust the preference for max video frame height that the local party is willing to receive. Signals
-     * the remote party.
+     * the remote p2p peer.
      *
-     * @param {Number} maxFrameHeight - the new value to set.
      * @param {Map<string, number>} sourceReceiverConstraints - The receiver constraints per source.
      */
-    setReceiverVideoConstraint(maxFrameHeight, sourceReceiverConstraints) {
-        logger.info(`${this} setReceiverVideoConstraint - max frame height: ${maxFrameHeight}`
-            + ` sourceReceiverConstraints: ${sourceReceiverConstraints}`);
-
+    setReceiverVideoConstraint(sourceReceiverConstraints) {
+        logger.info(`${this} setReceiverVideoConstraint - constraints: ${JSON.stringify(sourceReceiverConstraints)}`);
         this._sourceReceiverConstraints = sourceReceiverConstraints;
 
         if (this.isP2P) {
@@ -2727,15 +2692,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     modifyContents(jingleContents) {
         const newVideoSenders = JingleSessionPC.parseVideoSenders(jingleContents);
-        const newMaxFrameHeight = JingleSessionPC.parseMaxFrameHeight(jingleContents);
         const sourceMaxFrameHeights = JingleSessionPC.parseSourceMaxFrameHeight(jingleContents);
-
-        // frame height is optional in our content-modify protocol
-        if (newMaxFrameHeight) {
-            logger.info(`${this} received remote max frame height: ${newMaxFrameHeight}`);
-            this.remoteRecvMaxFrameHeight = newMaxFrameHeight;
-            this.eventEmitter.emit(MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
-        }
 
         if (sourceMaxFrameHeights) {
             this.remoteSourceMaxFrameHeights = sourceMaxFrameHeights;

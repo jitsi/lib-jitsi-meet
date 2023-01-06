@@ -5,13 +5,11 @@ import { default as exported } from "./MediaSessionEvents";
 describe( "/modules/xmpp/MediaSessionEvents members", () => {
     const {
         REMOTE_SOURCE_CONSTRAINTS_CHANGED,
-        REMOTE_VIDEO_CONSTRAINTS_CHANGED,
         ...others
     } = exported;
 
     it( "known members", () => {
         expect( REMOTE_SOURCE_CONSTRAINTS_CHANGED ).toBe( 'media_session.REMOTE_SOURCE_CONSTRAINTS_CHANGED' );
-        expect( REMOTE_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'media_session.REMOTE_VIDEO_CONSTRAINTS_CHANGED' );
     } );
 
     it( "unknown members", () => {

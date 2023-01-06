@@ -75,7 +75,7 @@ describe('JingleSessionPC', () => {
             sourceConstraints.set('8d519815-v0', 180);
             sourceConstraints.set('8d519815-v1', 2160);
 
-            jingleSession.setReceiverVideoConstraint(null, sourceConstraints);
+            jingleSession.setReceiverVideoConstraint(sourceConstraints);
 
             expect(jingleSession.getState()).toBe(JingleSessionState.PENDING);
 
