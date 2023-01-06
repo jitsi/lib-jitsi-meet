@@ -5,8 +5,7 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 
 const logger = getLogger(__filename);
-const MAX_HEIGHT_ONSTAGE = 2160;
-const MAX_HEIGHT_THUMBNAIL = 180;
+const MAX_HEIGHT = 2160;
 const LASTN_UNLIMITED = -1;
 
 /**
@@ -16,75 +15,35 @@ const LASTN_UNLIMITED = -1;
 class ReceiverVideoConstraints {
     /**
      * Creates a new instance.
+     *
+     * @param {number} lastN - Number of videos to be requested from the bridge.
      */
-    constructor() {
-        // Default constraints used for endpoints that are not explicitly included in constraints.
-        // These constraints are used for endpoints that are thumbnails in the stage view.
-        this._defaultConstraints = { 'maxHeight': MAX_HEIGHT_THUMBNAIL };
-
+    constructor(lastN) {
         // The number of videos requested from the bridge.
-        this._lastN = LASTN_UNLIMITED;
+        this._lastN = lastN ?? LASTN_UNLIMITED;
 
-        // The number representing the maximum video height the local client should receive from the bridge.
-        this._maxFrameHeight = MAX_HEIGHT_ONSTAGE;
-
-        // The endpoint IDs of the participants that are currently selected.
-        this._selectedEndpoints = [];
+        // The number representing the maximum video height the local client should receive from the bridge/peer.
+        this._maxFrameHeight = MAX_HEIGHT;
 
         this._receiverVideoConstraints = {
             constraints: {},
-            defaultConstraints: this.defaultConstraints,
-            lastN: this._lastN,
-            onStageEndpoints: [],
-            selectedEndpoints: this._selectedEndpoints
+            defaultConstraints: { 'maxHeight': this._maxFrameHeight },
+            lastN: this._lastN
         };
     }
 
     /**
-     * Returns the receiver video constraints that need to be sent on the bridge channel.
+     * Returns the receiver video constraints that need to be sent on the bridge channel or to the remote peer.
      */
     get constraints() {
         this._receiverVideoConstraints.lastN = this._lastN;
-
-        if (!this._selectedEndpoints.length) {
-            return this._receiverVideoConstraints;
-        }
-
-        // The client is assumed to be in TileView if it has selected more than one endpoint, otherwise it is
-        // assumed to be in StageView.
-        this._receiverVideoConstraints.constraints = {};
-        if (this._selectedEndpoints.length > 1) {
-            /**
-             * Tile view.
-             * Only the default constraints are specified here along with lastN (if it is set).
-             * {
-             *  'colibriClass': 'ReceiverVideoConstraints',
-             *  'defaultConstraints': { 'maxHeight': 360 }
-             * }
-             */
-            this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
-            this._receiverVideoConstraints.onStageEndpoints = [];
-            this._receiverVideoConstraints.selectedEndpoints = [];
+        if (Object.keys(this._receiverVideoConstraints.constraints)?.length) {
+            /* eslint-disable no-unused-vars */
+            for (const [ key, value ] of Object.entries(this._receiverVideoConstraints.constraints)) {
+                value.maxHeight = this._maxFrameHeight;
+            }
         } else {
-            /**
-             * Stage view.
-             * The participant on stage is specified in onStageEndpoints and a higher maxHeight is specified
-             * for that endpoint while a default maxHeight of 180 is applied to all the other endpoints.
-             * {
-             *  'colibriClass': 'ReceiverVideoConstraints',
-             *  'onStageEndpoints': ['A'],
-             *  'defaultConstraints': { 'maxHeight':  180 },
-             *  'constraints': {
-             *      'A': { 'maxHeight': 720 }
-             *   }
-             * }
-             */
-            this._receiverVideoConstraints.constraints[this._selectedEndpoints[0]] = {
-                'maxHeight': this._maxFrameHeight
-            };
-            this._receiverVideoConstraints.defaultConstraints = this._defaultConstraints;
-            this._receiverVideoConstraints.onStageEndpoints = this._selectedEndpoints;
-            this._receiverVideoConstraints.selectedEndpoints = [];
+            this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
         }
 
         return this._receiverVideoConstraints;
@@ -141,17 +100,6 @@ class ReceiverVideoConstraints {
 
         return changed;
     }
-
-    /**
-     * Updates the list of selected endpoints.
-     *
-     * @param {Array<string>} ids
-     * @returns {void}
-     */
-    updateSelectedEndpoints(ids) {
-        logger.debug(`Updating selected endpoints: ${JSON.stringify(ids)}`);
-        this._selectedEndpoints = ids;
-    }
 }
 
 /**
@@ -170,37 +118,23 @@ export default class ReceiveVideoController {
     constructor(conference, rtc) {
         this._conference = conference;
         this._rtc = rtc;
-
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
         this._lastN = config?.startLastN ?? (config?.channelLastN || LASTN_UNLIMITED);
 
         // The number representing the maximum video height the local client should receive from the bridge.
-        this._maxFrameHeight = MAX_HEIGHT_ONSTAGE;
+        this._maxFrameHeight = MAX_HEIGHT;
 
         /**
-         * The map that holds the max frame height requested for each remote source when source-name signaling is
-         * enabled.
+         * The map that holds the max frame height requested per remote source for p2p connection.
          *
          * @type Map<string, number>
          */
         this._sourceReceiverConstraints = new Map();
 
-        // Enable new receiver constraints by default unless it is explicitly disabled through config.js.
-        const useNewReceiverConstraints = config?.useNewBandwidthAllocationStrategy ?? true;
-
-        if (useNewReceiverConstraints) {
-            this._receiverVideoConstraints = new ReceiverVideoConstraints();
-            const lastNUpdated = this._receiverVideoConstraints.updateLastN(this._lastN);
-
-            lastNUpdated && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
-        } else {
-            this._rtc.setLastN(this._lastN);
-        }
-
-        // The endpoint IDs of the participants that are currently selected.
-        this._selectedEndpoints = [];
+        // The default receiver video constraints.
+        this._receiverVideoConstraints = new ReceiverVideoConstraints(this._lastN);
 
         this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
@@ -210,15 +144,17 @@ export default class ReceiveVideoController {
     /**
      * Returns a map of all the remote source names and the corresponding max frame heights.
      *
-     * @param {number} maxFrameHeight
+     * @param {JingleSessionPC} mediaSession - the media session.
+     * @param {number} maxFrameHeight - the height to be requested for remote sources.
      * @returns
      */
     _getDefaultSourceReceiverConstraints(mediaSession, maxFrameHeight) {
+        const height = maxFrameHeight ?? MAX_HEIGHT;
         const remoteVideoTracks = mediaSession.peerconnection?.getRemoteTracks(null, MediaType.VIDEO) || [];
         const receiverConstraints = new Map();
 
         for (const track of remoteVideoTracks) {
-            receiverConstraints.set(track.getSourceName(), maxFrameHeight);
+            receiverConstraints.set(track.getSourceName(), height);
         }
 
         return receiverConstraints;
@@ -233,10 +169,9 @@ export default class ReceiveVideoController {
      * @private
      */
     _onMediaSessionStarted(mediaSession) {
-        if (mediaSession.isP2P || !this._receiverVideoConstraints) {
-            mediaSession.setReceiverVideoConstraint(this._maxFrameHeight, this._sourceReceiverConstraints);
+        if (mediaSession.isP2P) {
+            mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
         } else {
-            this._receiverVideoConstraints.updateReceiveResolution(this._maxFrameHeight);
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
         }
     }
@@ -251,34 +186,6 @@ export default class ReceiveVideoController {
     }
 
     /**
-     * Elects the participants with the given ids to be the selected participants in order to always receive video
-     * for this participant (even when last n is enabled).
-     *
-     * @param {Array<string>} ids - The user ids.
-     * @returns {void}
-     */
-    selectEndpoints(ids) {
-        this._selectedEndpoints = ids;
-
-        if (this._receiverVideoConstraints) {
-            // Filter out the local endpointId from the list of selected endpoints.
-            const remoteEndpointIds = ids.filter(id => id !== this._conference.myUserId());
-            const oldConstraints = JSON.parse(JSON.stringify(this._receiverVideoConstraints.constraints));
-
-            remoteEndpointIds.length && this._receiverVideoConstraints.updateSelectedEndpoints(remoteEndpointIds);
-            const newConstraints = this._receiverVideoConstraints.constraints;
-
-            // Send bridge message only when the constraints change.
-            if (!isEqual(newConstraints, oldConstraints)) {
-                this._rtc.setReceiverVideoConstraints(newConstraints);
-            }
-
-            return;
-        }
-        this._rtc.selectEndpoints(ids);
-    }
-
-    /**
      * Selects a new value for "lastN". The requested amount of videos are going to be delivered after the value is
      * in effect. Set to -1 for unlimited or all available videos.
      *
@@ -288,16 +195,9 @@ export default class ReceiveVideoController {
     setLastN(value) {
         if (this._lastN !== value) {
             this._lastN = value;
-
-            if (this._receiverVideoConstraints) {
-                const lastNUpdated = this._receiverVideoConstraints.updateLastN(value);
-
-                // Send out the message on the bridge channel if lastN was updated.
-                lastNUpdated && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
-
-                return;
+            if (this._receiverVideoConstraints.updateLastN(value)) {
+                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
             }
-            this._rtc.setLastN(value);
         }
     }
 
@@ -311,15 +211,10 @@ export default class ReceiveVideoController {
         this._maxFrameHeight = maxFrameHeight;
 
         for (const session of this._conference.getMediaSessions()) {
-            if (session.isP2P || !this._receiverVideoConstraints) {
-                session.setReceiverVideoConstraint(
-                    maxFrameHeight,
-                    this._getDefaultSourceReceiverConstraints(this._maxFrameHeight));
-            } else {
-                const resolutionUpdated = this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight);
-
-                resolutionUpdated
-                    && this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            if (session.isP2P) {
+                session.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(session, maxFrameHeight));
+            } else if (this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight)) {
+                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
             }
         }
     }
@@ -344,7 +239,8 @@ export default class ReceiveVideoController {
 
         if (constraintsChanged) {
             this._lastN = constraints.lastN ?? this._lastN;
-            this._selectedEndpoints = constraints.selectedEndpoints ?? this._selectedEndpoints;
+
+            // Send the contraints on the bridge channel.
             this._rtc.setReceiverVideoConstraints(constraints);
 
             const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
@@ -363,7 +259,7 @@ export default class ReceiveVideoController {
             this._sourceReceiverConstraints = new Map(mappedConstraints);
 
             // Send the receiver constraints to the peer through a "content-modify" message.
-            p2pSession.setReceiverVideoConstraint(null, this._sourceReceiverConstraints);
+            p2pSession.setReceiverVideoConstraint(this._sourceReceiverConstraints);
         }
     }
 }
