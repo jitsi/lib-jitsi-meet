@@ -2395,7 +2395,19 @@ export default class JingleSessionPC extends JingleSession {
                     if (shouldRenegotiate
                         && (oldTrack || newTrack)
                         && this.state === JingleSessionState.ACTIVE) {
-                        promise = this._renegotiate().then(() => {
+                        const remoteSdp = this.peerconnection.remoteDescription.sdp;
+                        const remoteDescription = new RTCSessionDescription({
+                            type: 'offer',
+                            sdp: remoteSdp
+                        });
+
+                        // Always initiate a sRD->cA->sLD cycle since renegotiation fails in the following scenario.
+                        // In a p2p call when channelLastN=0, the direction on the video tranceiver is set to
+                        // 'inactive'. At this point, if the user unmutes, the track is replaced on the video sender.
+                        // If a cO->sLD->sRD is triggered, the browser adds a third m-line which isn't expected and
+                        // possibly is a bug. All renegotiations fail as a result. However, the browser does not add a
+                        // third m-line in the answer it generates and renegotiation succeeds.
+                        promise = this._responderRenegotiate(remoteDescription).then(() => {
                             const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
 
                             this.notifyMySSRCUpdate(new SDP(oldLocalSdp), newLocalSDP);
