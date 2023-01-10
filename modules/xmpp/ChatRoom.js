@@ -113,9 +113,9 @@ export default class ChatRoom extends Listenable {
      * @param {boolean} options.hiddenFromRecorderFeatureEnabled - when set to {@code true} we will check identity tag
      * for node presence.
      */
-    constructor(connection, jid, password, XMPP, options) {
+    constructor(connection, jid, password, xmpp, options) {
         super();
-        this.xmpp = XMPP;
+        this.xmpp = xmpp;
         this.connection = connection;
         this.roomjid = Strophe.getBareJidFromJid(jid);
         this.myroomjid = jid;
@@ -132,7 +132,7 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, options);
+        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, xmpp.options);
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
