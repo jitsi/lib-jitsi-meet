@@ -210,6 +210,21 @@ export default class SignalingLayerImpl extends SignalingLayer {
     }
 
     /**
+     * Logs a debug or error message to console depending on whether SSRC rewriting is enabled or not.
+     * Owner changes are permitted only when SSRC rewriting is enabled.
+     *
+     * @param {string} message - The message to be logged.
+     * @returns {void}
+     */
+    _logOwnerChangedMessage(message) {
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            logger.debug(message);
+        } else {
+            logger.error(message);
+        }
+    }
+
+    /**
      * @inheritDoc
      */
     getPeerMediaInfo(owner, mediaType, sourceName) {
@@ -331,8 +346,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const existingOwner = this.ssrcOwners.get(ssrc);
 
         if (existingOwner && existingOwner !== endpointId) {
-            !FeatureFlags.isSsrcRewritingSupported()
-                && logger.error(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
+            this._logOwnerChangedMessage(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
         }
         this.ssrcOwners.set(ssrc, endpointId);
     }
@@ -367,7 +381,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const existingName = this._sourceNames.get(ssrc);
 
         if (existingName && existingName !== sourceName) {
-            logger.error(`SSRC(${ssrc}) sourceName re-assigned from ${existingName} to ${sourceName}`);
+            this._logOwnerChangedMessage(`SSRC(${ssrc}) sourceName re-assigned from ${existingName} to ${sourceName}`);
         }
 
         this._sourceNames.set(ssrc, sourceName);
