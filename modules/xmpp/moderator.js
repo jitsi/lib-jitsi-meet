@@ -151,7 +151,7 @@ Moderator.prototype.isSipGatewayEnabled = function() {
 Moderator.prototype._createConferenceRequest = function() {
 
     // Session Id used for authentication
-    const { sessionId, machineUID } = Settings;
+    const { sessionId } = Settings;
     const config = this.options;
     const properties = {};
 
@@ -176,7 +176,7 @@ Moderator.prototype._createConferenceRequest = function() {
 
     const conferenceRequest = {
         properties,
-        machineUid: machineUID,
+        machineUid: Settings.machineId,
         room: this.roomName
     };
 
