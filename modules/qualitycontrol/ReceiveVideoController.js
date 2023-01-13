@@ -171,8 +171,6 @@ export default class ReceiveVideoController {
     _onMediaSessionStarted(mediaSession) {
         if (mediaSession.isP2P) {
             mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
-        } else {
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
         }
     }
 
@@ -209,8 +207,15 @@ export default class ReceiveVideoController {
      */
     setPreferredReceiveMaxFrameHeight(maxFrameHeight) {
         this._maxFrameHeight = maxFrameHeight;
+        const sessions = this._conference.getMediaSessions();
 
-        for (const session of this._conference.getMediaSessions()) {
+        if (!sessions?.length) {
+            this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight);
+
+            return;
+        }
+
+        for (const session of sessions) {
             if (session.isP2P) {
                 session.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(session, maxFrameHeight));
             } else if (this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight)) {
