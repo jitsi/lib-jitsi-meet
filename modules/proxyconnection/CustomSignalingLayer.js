@@ -2,9 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 
-
 const logger = getLogger(__filename);
-
 
 /**
  * Custom semi-mock implementation for the Proxy connection service.
@@ -30,14 +28,6 @@ export default class CustomSignalingLayer extends SignalingLayer {
     }
 
     /**
-     * Sets the <tt>ChatRoom</tt> instance used.
-     * @param {ChatRoom} room
-     */
-    setChatRoom(room) {
-        this.chatRoom = room;
-    }
-
-    /**
      * @inheritDoc
      */
     getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
@@ -56,6 +46,34 @@ export default class CustomSignalingLayer extends SignalingLayer {
      */
     getSSRCOwner(ssrc) {
         return this.ssrcOwners.get(ssrc);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+        return undefined;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    removeSSRCOwners(ssrcList) {
+        if (!ssrcList?.length) {
+            return;
+        }
+
+        for (const ssrc of ssrcList) {
+            this.ssrcOwners.delete(ssrc);
+        }
+    }
+
+    /**
+     * Sets the <tt>ChatRoom</tt> instance used.
+     * @param {ChatRoom} room
+     */
+    setChatRoom(room) {
+        this.chatRoom = room;
     }
 
     /**
@@ -93,13 +111,21 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
-        return undefined;
+    setTrackSourceName(ssrc, sourceName) { // eslint-disable-line no-unused-vars
     }
 
     /**
      * @inheritDoc
      */
-    setTrackSourceName(ssrc, sourceName) { // eslint-disable-line no-unused-vars
+    updateSsrcOwnersOnLeave(id) {
+        const ssrcs = Array.from(this.ssrcOwners)
+            .filter(entry => entry[1] === id)
+            .map(entry => entry[0]);
+
+        if (!ssrcs?.length) {
+            return;
+        }
+
+        this.removeSSRCOwners(ssrcs);
     }
 }

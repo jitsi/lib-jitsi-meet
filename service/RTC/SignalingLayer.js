@@ -88,16 +88,6 @@ export function getSourceIndexFromSourceName(sourceName) {
  * @interface SignalingLayer
  */
 export default class SignalingLayer extends Listenable {
-
-    /**
-     * Obtains the endpoint ID for given SSRC.
-     * @param {number} ssrc the SSRC number.
-     * @return {string|null} the endpoint ID for given media SSRC.
-     */
-    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
-    }
-
     /**
      * Obtains the info about given media advertised in the MUC presence of
      * the participant identified by the given MUC JID.
@@ -127,12 +117,29 @@ export default class SignalingLayer extends Listenable {
     }
 
     /**
+     * Obtains the endpoint ID for given SSRC.
+     * @param {number} ssrc the SSRC number.
+     * @return {string|null} the endpoint ID for given media SSRC.
+     */
+    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
+        throw new Error('not implemented');
+    }
+
+    /**
      * Obtains the source name for given SSRC.
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
      */
     getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
+    }
+
+    /**
+     * Removes the association between a given SSRC and its current owner so that it can re-used when the SSRC gets
+     * remapped to another source from a different endpoint.
+     * @param {number} ssrc a list of SSRCs.
+     */
+    removeSSRCOwners(ssrcList) { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -143,7 +150,6 @@ export default class SignalingLayer extends Listenable {
      */
     setSSRCOwner(ssrc, endpointId) { // eslint-disable-line no-unused-vars
     }
-
 
     /**
      * Adjusts muted status of given track.
@@ -171,5 +177,14 @@ export default class SignalingLayer extends Listenable {
      * @returns {boolean}
      */
     setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    }
+
+    /**
+     * Removes the SSRCs associated with a given endpoint from the SSRC owners.
+     *
+     * @param {string} id endpoint id of the participant leaving the call.
+     * @returns {void}
+     */
+    updateSsrcOwnersOnLeave(id) { // eslint-disable-line no-unused-vars
     }
 }

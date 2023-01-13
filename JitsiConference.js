@@ -1910,6 +1910,9 @@ JitsiConference.prototype.onMemberLeft = function(jid, reason) {
 
             remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
 
+            // Update the SSRC owners list.
+            session._signalingLayer.updateSsrcOwnersOnLeave(id);
+
             // Remove the ssrcs from the remote description and renegotiate.
             session.removeRemoteStreamsOnLeave(id);
         }

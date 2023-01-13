@@ -7,5 +7,7 @@ declare class SignalingLayerImpl extends SignalingLayer {
   setChatRoom: ( room: ChatRoom ) => void;
   getPeerMediaInfo: ( owner: string, mediaType: MediaType ) => PeerMediaInfo | null;
   getSSRCOwner: ( ssrc: number ) => string | null;
+  removeSSRCOwners: (ssrcList: Array<number> ) => void;
   setSSRCOwner: ( ssrc: number, endpointId: string ) => void;
+  updateSsrcOwnersOnLeave: ( id: string ) => void;
 }

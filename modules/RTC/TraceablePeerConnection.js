@@ -958,7 +958,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
                 + 'track creation failed!'));
 
         return;
-    } else if (!ownerEndpointId) {
+    }
+
+    if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
             + 'track creation failed!'));
@@ -969,15 +971,17 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
     const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
 
-    if (!peerMediaInfo) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`${this}: no sourceInfo available for ${ownerEndpointId}:${sourceName} track creation failed!`));
+    // Assume default presence state for remote source. Presence can be received after source signaling. This shouldn't
+    // prevent the endpoint from creating a remote track for the source.
+    let muted = true;
+    let videoType = VideoType.CAMERA;
 
-        return;
+    if (peerMediaInfo) {
+        muted = peerMediaInfo.muted;
+        videoType = peerMediaInfo.videoType; // can be undefined
+    } else {
+        logger.info(`${this}: no source-info available for ${ownerEndpointId}:${sourceName}, assuming default state`);
     }
-
-    const muted = peerMediaInfo.muted;
-    const videoType = peerMediaInfo.videoType; // can be undefined
 
     this._createRemoteTrack(ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
 };
@@ -1082,9 +1086,8 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     const streamId = stream.id;
     const trackId = track?.id;
 
+    // Ignore stream removed events for JVB "mixed" sources (used for RTCP termination).
     if (!RTC.isUserStreamById(streamId)) {
-        logger.info(`${this} ignored remote 'stream removed' event for non-user stream[id=${streamId}]`);
-
         return;
     }
 
@@ -1101,8 +1104,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     }
 
     const toBeRemoved = this.getRemoteTracks().find(
-        remoteTrack => remoteTrack.getStreamId() === streamId
-        && remoteTrack.getTrackId() === trackId);
+        remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
 
     if (!toBeRemoved) {
         GlobalOnErrorHandler.callErrorHandler(new Error(`${this} remote track removal failed - track not found`));
@@ -1110,7 +1112,6 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
         return;
     }
 
-    logger.info(`${this} remote track removed stream[id=${streamId},trackId=${trackId}]`);
     this._removeRemoteTrack(toBeRemoved);
 };
 
@@ -1141,6 +1142,9 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
+    logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
+        + `trackId=${toBeRemoved.getTrackId()}]`);
+
     toBeRemoved.dispose();
     const participantId = toBeRemoved.getParticipantId();
     const userTracksByMediaType = this.remoteTracks.get(participantId);
