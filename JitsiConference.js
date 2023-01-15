@@ -2311,7 +2311,7 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
             .first();
 
     if (webSocket.length === 1) {
-        wsUrl = webSocket[0].getAttribute('url');
+        wsUrl = `${webSocket[0].getAttribute('url')}&room=${this.options.name}`;
     }
 
     if (wsUrl) {
