@@ -574,15 +574,15 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     });
 
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
-        const sess = this.conference.getActiveMediaSession();
-
-        sess.videoSsrcsRemapped(msg);
+        for (const session of this.conference.getMediaSessions()) {
+            session.processSourceMap(msg, MediaType.VIDEO);
+        }
     });
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
-        const sess = this.conference.getActiveMediaSession();
-
-        sess.audioSsrcsRemapped(msg);
+        for (const session of this.conference.getMediaSessions()) {
+            session.processSourceMap(msg, MediaType.AUDIO);
+        }
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
