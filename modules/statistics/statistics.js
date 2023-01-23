@@ -71,7 +71,6 @@ function _initCallStatsBackend(options) {
         userName: options.userName,
         aliasName: options.aliasName,
         applicationName: options.applicationName,
-        getWiFiStatsMethod: options.getWiFiStatsMethod,
         confID: options.confID,
         siteID: options.siteID,
         configParams: options.configParams
