@@ -172,7 +172,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
                     }
                 }
 
-                if (sourceChanged) {
+                if (sourceChanged && FeatureFlags.isSsrcRewritingSupported()) {
                     this.eventEmitter.emit(
                         SignalingEvents.SOURCE_UPDATED,
                         sourceName,
