@@ -1,7 +1,7 @@
 /* eslint-disable newline-per-chained-call */
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import { $iq } from 'strophe.js';
+import { $iq, Strophe } from 'strophe.js';
 
 import Settings from '../settings/Settings';
 
@@ -433,6 +433,12 @@ Moderator.prototype._handleIqError = function(error, callback) {
 
     // Not authorized to create new room
     const notAuthorized = $(error).find('>error>not-authorized').length > 0;
+
+    if (notAuthorized && Strophe.getDomainFromJid(error.getAttribute('to')) !== this.options.hosts.anonymousdomain) {
+        // FIXME "is external" should come either from the focus or
+        // config.js
+        this.externalAuthEnabled = true;
+    }
 
     this._handleError(invalidSession, notAuthorized, callback);
 };
