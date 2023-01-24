@@ -180,6 +180,7 @@ describe('SignalingLayerImpl', () => {
                 );
             });
             it('from a user with SourceInfo and ssrc-rewriting disabled', () => {
+                FeatureFlags.init({ });
                 const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
                 const sourceInfo = {
                     '12345678-a0': {

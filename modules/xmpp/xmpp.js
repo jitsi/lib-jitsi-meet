@@ -8,6 +8,7 @@ import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
+import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
@@ -259,6 +260,11 @@ export default class XMPP extends Listenable {
 
         logger.debug('Receiving multiple video streams is enabled');
         this.caps.addFeature('http://jitsi.org/receive-multiple-video-streams');
+
+        // Advertise support for ssrc-rewriting.
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            this.caps.addFeature('http://jitsi.org/ssrc-rewriting-1');
+        }
     }
 
     /**
