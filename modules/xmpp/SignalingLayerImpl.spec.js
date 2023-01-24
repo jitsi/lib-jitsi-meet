@@ -179,7 +179,7 @@ describe('SignalingLayerImpl', () => {
                     true
                 );
             });
-            it('from a user with SourceInfo', () => {
+            it('from a user with SourceInfo and ssrc-rewriting disabled', () => {
                 const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
                 const sourceInfo = {
                     '12345678-a0': {
@@ -202,6 +202,33 @@ describe('SignalingLayerImpl', () => {
                     '12345678-a0',
                     true
                 );
+            });
+
+            it('from a user with sourceInfo and ssrc-rewriting enabled', () => {
+                FeatureFlags.init({ ssrcRewritingEnabled: true });
+                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+                const sourceInfo = {
+                    '12345678-a0': {
+                        muted: true
+                    }
+                };
+
+                chatRoom.mockSourceInfoPresence('endpoint1', sourceInfo);
+
+                // <audiomuted/> still included for backwards compat and ChatRoom will emit the presence event
+                chatRoom.emitPresenceListener({
+                    tagName: 'audiomuted',
+                    value: 'true'
+                }, 'endpoint1');
+
+                expect(emitterSpy).toHaveBeenCalledTimes(2);
+                expect(emitterSpy.calls.argsFor(1)).toEqual([
+                    SignalingEvents.SOURCE_UPDATED,
+                    '12345678-a0',
+                    'endpoint1',
+                    true,
+                    undefined
+                ]);
             });
         });
     });

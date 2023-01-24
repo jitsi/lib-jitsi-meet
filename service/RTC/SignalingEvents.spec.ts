@@ -7,6 +7,7 @@ describe( "/service/RTC/SignalingEvents members", () => {
         PEER_MUTED_CHANGED,
         PEER_VIDEO_TYPE_CHANGED,
         SOURCE_MUTED_CHANGED,
+        SOURCE_UPDATED,
         SOURCE_VIDEO_TYPE_CHANGED,
         SignalingEvents,
         ...others
@@ -16,6 +17,7 @@ describe( "/service/RTC/SignalingEvents members", () => {
         expect( PEER_MUTED_CHANGED ).toBe( 'signaling.peerMuted' );
         expect( PEER_VIDEO_TYPE_CHANGED ).toBe( 'signaling.peerVideoType' );
         expect( SOURCE_MUTED_CHANGED ).toBe( 'signaling.sourceMuted');
+        expect( SOURCE_UPDATED ).toBe( 'signaling.sourceUpdated' );
         expect( SOURCE_VIDEO_TYPE_CHANGED ).toBe( 'signaling.sourceVideoType');
 
         expect( SignalingEvents ).toBeDefined();

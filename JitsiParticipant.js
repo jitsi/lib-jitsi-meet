@@ -43,6 +43,19 @@ export default class JitsiParticipant {
         this._isReplacing = isReplacing;
         this._isReplaced = isReplaced;
         this._features = new Set();
+
+        /**
+         * Remote sources associated with the participant in the following format.
+         * Map<mediaType, Map<sourceName, sourceInfo>>
+         *
+         * mediaType - 'audio' or 'video'.
+         * sourceName - name of the remote source.
+         * sourceInfo: {
+         *   muted: boolean;
+         *   videoType: string;
+         * }
+         */
+        this._sources = new Map();
     }
 
     /**
@@ -59,6 +72,32 @@ export default class JitsiParticipant {
             (muted, track) =>
                 muted && (track.getType() !== mediaType || track.isMuted()),
             true);
+    }
+
+    /**
+     * Sets source info.
+     * @param {MediaType} mediaType The media type, 'audio' or 'video'.
+     * @param {boolean} muted The new muted state.
+     * @param {string} sourceName The name of the source.
+     * @param {string} videoType The video type of the source.
+     * @returns {void}
+     */
+    _setSources(mediaType, muted, sourceName, videoType) {
+        let sourceByMediaType = this._sources.get(mediaType);
+        const sourceInfo = {
+            muted,
+            videoType
+        };
+
+        if (sourceByMediaType?.size) {
+            sourceByMediaType.set(sourceName, sourceInfo);
+
+            return;
+        }
+
+        sourceByMediaType = new Map();
+        sourceByMediaType.set(sourceName, sourceInfo);
+        this._sources.set(mediaType, sourceByMediaType);
     }
 
     /**
@@ -128,6 +167,14 @@ export default class JitsiParticipant {
      */
     getRole() {
         return this._role;
+    }
+
+    /**
+     * Returns the sources associated with this participant.
+     * @returns Map<string, Map<string, Object>>
+     */
+    getSources() {
+        return this._sources;
     }
 
     /**

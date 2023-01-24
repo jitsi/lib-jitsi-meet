@@ -6,6 +6,7 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
@@ -1793,115 +1794,88 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Filter remapped SSRCs.
-     * Process owner change for existing SSRCs.
-     * Return new ones for further processing.
+     * Processes the source map message received from the bridge and creates a new remote track for newly signaled
+     * SSRCs or updates the source-name and owner on the remote track for an existing SSRC.
+     *
+     * @param {Object} message - The source map message.
+     * @param {string} mediaType - The media type, 'audio' or 'video'.
+     * @returns {void}
      */
-    getNewSources(msg) {
+    processSourceMap(message, mediaType) {
         const newSources = [];
 
-        for (const s of msg.mappedSources) {
-            if (this.peerconnection.addRemoteSsrc(s.ssrc)) {
-                logger.debug(`New SSRC ${s.ssrc}`);
-                newSources[newSources.length] = s;
+        for (const src of message.mappedSources) {
+            if (this.peerconnection.addRemoteSsrc(src.ssrc)) {
+                newSources.push(src);
             } else {
-                const track = this.peerconnection.getTrackBySSRC(s.ssrc);
+                const { owner, source, ssrc, videoType } = src;
+                const track = this.peerconnection.getTrackBySSRC(ssrc);
 
                 if (track) {
-                    logger.debug(`Existing SSRC ${s.ssrc}: new owner ${s.owner}. name=${s.source}`);
+                    logger.debug(`Existing SSRC ${ssrc}: new owner=${owner}, source-name=${source}`);
 
                     // Update the SSRC owner.
-                    this._signalingLayer.setSSRCOwner(s.ssrc, s.owner);
+                    this._signalingLayer.setSSRCOwner(ssrc, owner);
 
-                    if (s.videoType === 'CAMERA') {
-                        track._setVideoType('camera');
-                    } else if (s.videoType === 'DESKTOP') {
-                        track._setVideoType('desktop');
+                    // Update the track with all the relevant info.
+                    track.setSourceName(source);
+                    track.setOwner(owner);
+                    if (mediaType === MediaType.VIDEO) {
+                        const type = videoType === 'CAMERA' ? VideoType.CAMERA : VideoType.DESKTOP;
+
+                        track._setVideoType(type);
                     }
-
-                    track.setSourceName(s.source);
-                    track.setOwner(s.owner);
                 } else {
-                    logger.error(`Remapped SSRC ${s.ssrc} not found`);
+                    logger.error(`Remote track attached to a remote SSRC=${ssrc} not found`);
                 }
             }
         }
 
-        return newSources;
-    }
-
-    /**
-     * Process SSRC remappings for video sources.
-     */
-    videoSsrcsRemapped(msg) {
-        const newSources = this.getNewSources(msg);
-
-        if (newSources.length > 0) {
-
+        // Add the new SSRCs to the remote description by generating a source message.
+        if (newSources.length) {
             let node = $build('content', {
                 xmlns: 'urn:xmpp:jingle:1',
-                name: 'video'
+                name: mediaType
             }).c('description', {
                 xmlns: 'urn:xmpp:jingle:apps:rtp:1',
-                media: MediaType.VIDEO
+                media: mediaType
             });
 
-            for (const s of newSources) {
-                const idx = ++this.numRemoteVideoSources;
-                const msid = `remote-video-${idx} remote-video-${idx}`;
+            for (const src of newSources) {
+                const { rtx, ssrc } = src;
+                let msid;
 
-                _addSourceElement(node, s, s.ssrc, msid);
-                if (s.rtx !== '-1') {
-                    _addSourceElement(node, s, s.rtx, msid);
-                    node.c('ssrc-group', {
-                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                        semantics: 'FID'
-                    })
-                        .c('source', {
+                if (mediaType === MediaType.VIDEO) {
+                    const idx = ++this.numRemoteVideoSources;
+
+                    msid = `remote-video-${idx} remote-video-${idx}`;
+
+                    if (rtx !== '-1') {
+                        _addSourceElement(node, src, rtx, msid);
+                        node.c('ssrc-group', {
                             xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                            ssrc: s.ssrc
+                            semantics: 'FID'
                         })
-                        .up()
-                        .c('source', {
-                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
-                            ssrc: s.rtx
-                        })
-                        .up()
-                        .up();
+                            .c('source', {
+                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                                ssrc
+                            })
+                            .up()
+                            .c('source', {
+                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                                ssrc: rtx
+                            })
+                            .up()
+                            .up();
+                    }
+                } else {
+                    const idx = ++this.numRemoteAudioSources;
+
+                    msid = `remote-audio-${idx} remote-audio-${idx}`;
                 }
+                _addSourceElement(node, src, ssrc, msid);
             }
-
             node = node.up();
-
-            this._addOrRemoveRemoteStream(true /* add */, node.node);
-        }
-    }
-
-    /**
-     * Process SSRC remappings for audio sources.
-     */
-    audioSsrcsRemapped(msg) {
-        const newSources = this.getNewSources(msg);
-
-        if (newSources.length > 0) {
-
-            let node = $build('content', {
-                xmlns: 'urn:xmpp:jingle:1',
-                name: 'audio'
-            }).c('description', {
-                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
-                media: MediaType.AUDIO
-            });
-
-            for (const s of newSources) {
-                const idx = ++this.numRemoteAudioSources;
-                const msid = `remote-audio-${idx} remote-audio-${idx}`;
-
-                _addSourceElement(node, s, s.ssrc, msid);
-            }
-
-            node = node.up();
-
             this._addOrRemoveRemoteStream(true /* add */, node.node);
         }
     }
