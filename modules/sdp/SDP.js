@@ -575,6 +575,10 @@ SDP.prototype.fromJingle = function(jingle) {
         });
     }
 
+    if ($(jingle).find('>extmap-allow-mixed[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]').length) {
+        this.raw += 'a=extmap-allow-mixed\r\n';
+    }
+
     this.session = this.raw;
     jingle.find('>content').each((_, content) => {
         const m = this.jingle2media($(content));
