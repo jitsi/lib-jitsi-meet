@@ -353,6 +353,12 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 // TODO: handle params
                 elem.up();
             }
+
+            if (SDPUtil.findLine(this.media[i], 'a=extmap-allow-mixed', this.session)) {
+                elem.c('extmap-allow-mixed', {
+                    xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'
+                })
+            }
             elem.up(); // end of description
         }
 
@@ -726,6 +732,11 @@ SDP.prototype.jingle2media = function(content) {
                 += `a=extmap:${hdrExt.getAttribute('id')} ${
                     hdrExt.getAttribute('uri')}\r\n`;
         });
+    if (desc
+        .find('>extmap-allow-mixed[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]')
+        .length > 0) {
+            sdp += 'a=extmap-allow-mixed\r\n';
+        }
 
     // XEP-0339 handle ssrc-group attributes
     desc
