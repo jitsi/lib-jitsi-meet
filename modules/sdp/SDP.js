@@ -358,6 +358,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.c('extmap-allow-mixed', {
                     xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'
                 });
+                elem.up();
             }
             elem.up(); // end of description
         }
