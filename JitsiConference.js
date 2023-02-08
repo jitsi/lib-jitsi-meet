@@ -2319,14 +2319,29 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
  * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
+    const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
     let wsUrl = null;
-    const webSocket
-        = $(offerIq)
-            .find('>content>transport>web-socket')
+
+    $(offerIq).find('>content>transport>web-socket')
+        .toArray()
+        .map(e => e.getAttribute('url'))
+        .forEach(url => {
+            if (!wsUrl && (!ignoreDomain || ignoreDomain !== new URL(url).hostname)) {
+                wsUrl = url;
+                logger.info(`Using colibri-ws url ${url}`);
+            } else if (!wsUrl) {
+                logger.info(`Ignoring colibri-ws url with domain ${ignoreDomain}`);
+            }
+        });
+
+    if (!wsUrl) {
+        const firstWsUrl = $(offerIq).find('>content>transport>web-socket')
             .first();
 
-    if (webSocket.length === 1) {
-        wsUrl = webSocket[0].getAttribute('url');
+        if (firstWsUrl.length === 1) {
+            wsUrl = firstWsUrl[0].getAttribute('url');
+            logger.info(`Falling back to ${wsUrl}`);
+        }
     }
 
     if (wsUrl) {
@@ -2334,6 +2349,7 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
         this.rtc.initializeBridgeChannel(null, wsUrl);
     } else {
         // Otherwise, fall back to an attempt to use SCTP.
+        logger.info('No colibri-ws found.');
         this.rtc.initializeBridgeChannel(pc, null);
     }
 };
