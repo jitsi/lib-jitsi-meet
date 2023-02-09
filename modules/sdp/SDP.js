@@ -319,7 +319,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             this.rtcpFbToJingle(i, elem, '*');
 
             // XEP-0294
-            const extmapLines = SDPUtil.findLines(this.media[i], 'a=extmap:');
+            const extmapLines = SDPUtil.findLines(this.media[i], 'a=extmap:', this.session);
 
             for (let j = 0; j < extmapLines.length; j++) {
                 const extmap = SDPUtil.parseExtmap(extmapLines[j]);
