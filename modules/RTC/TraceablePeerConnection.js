@@ -2396,11 +2396,12 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
         if (this.codecPreference.mimeType === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
+            const ssHdBitrate = bitrates.ssHigh ? bitrates.ssHigh : HD_BITRATE;
             const mid = mLine.mid;
             const isSharingScreen = FeatureFlags.isMultiStreamSendSupportEnabled()
                 ? mid === this._getDesktopTrackMid()
                 : this._isSharingScreen();
-            const limit = Math.floor((isSharingScreen ? HD_BITRATE : hdBitrate) / 1000);
+            const limit = Math.floor((isSharingScreen ? ssHdBitrate : hdBitrate) / 1000);
 
             // Use only the HD bitrate for now as there is no API available yet for configuring
             // the bitrates on the individual SVC layers.

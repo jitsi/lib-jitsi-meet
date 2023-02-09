@@ -38,7 +38,8 @@ export class TPCUtils {
         const standardBitrates = {
             low: LD_BITRATE,
             standard: SD_BITRATE,
-            high: HD_BITRATE
+            high: HD_BITRATE,
+            ssHigh: HD_BITRATE
         };
 
         // Check if the max. bitrates for video are specified through config.js videoQuality settings.
