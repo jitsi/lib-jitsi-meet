@@ -47,28 +47,6 @@ export class TPCUtils {
         // configured on the SDP using b:AS line.
         this.videoBitrates = bitrateSettings ?? standardBitrates;
         this.encodingBitrates = this.videoBitrates.VP8 ?? this.videoBitrates;
-
-
-        this.localStreamEncodingsConfig = [
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? encodingBitrates.high : encodingBitrates.low,
-                rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: encodingBitrates.standard,
-                rid: SIM_LAYER_2_RID,
-                scaleResolutionDownBy: SD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? encodingBitrates.low : encodingBitrates.high,
-                rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
-            }
-        ];
     }
 
     /**
