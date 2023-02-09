@@ -43,6 +43,7 @@ describe('SDP', () => {
             'a=ssrc:2002 cname:juejgy8a01\r\n',
             'a=ssrc:2002 name:a8f7g30-a0\r\n',
             'a=rtcp-mux\r\n',
+            'a=extmap-allow-mixed\r\n',
             'm=video 9 UDP/TLS/RTP/SAVPF 107 100 99 96\r\n',
             'c=IN IP4 0.0.0.0\r\n',
             'a=rtpmap:107 h264/90000\r\n',
@@ -61,6 +62,7 @@ describe('SDP', () => {
             'a=rtcp-fb:100 nack pli\r\n',
             'a=rtcp-fb:100 goog-remb\r\n',
             'a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n',
+            'a=extmap-allow-mixed\r\n',
             'a=setup:active\r\n',
             'a=mid:video\r\n',
             'a=msid:7C0035E5-2DA1-4AEA-804A-9E75BF9B3768 225E9CDA-0384-4C92-92DD-E74C1153EC68\r\n',
@@ -151,6 +153,7 @@ describe('SDP', () => {
             </payload-type>
             <rtp-hdrext uri='urn:ietf:params:rtp-hdrext:ssrc-audio-level' id='1' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtp-hdrext uri='http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01' id='5' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
+            <extmap-allow-mixed xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtcp-mux/>
             <source ssrc='4039389863' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>
                 <parameter name='cname' value='mixed'/>
@@ -183,6 +186,7 @@ describe('SDP', () => {
             </payload-type>
             <rtp-hdrext uri='http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time' id='3' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtp-hdrext uri='http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01' id='5' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
+            <extmap-allow-mixed xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtcp-mux/>
             <source ssrc='3758540092' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>
                 <parameter name='cname' value='mixed'/>
@@ -228,6 +232,7 @@ a=rtpmap:126 telephone-event/8000
 a=fmtp:126 0-15
 a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap-allow-mixed
 a=ssrc:4039389863 cname:mixed
 a=ssrc:4039389863 label:mixedlabelaudio0
 a=ssrc:4039389863 msid:mixedmslabel mixedlabelaudio0
@@ -258,6 +263,7 @@ a=rtcp-fb:96 nack
 a=rtcp-fb:96 nack pli
 a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap-allow-mixed
 a=ssrc:3758540092 cname:mixed
 a=ssrc:3758540092 label:mixedlabelvideo0
 a=ssrc:3758540092 msid:mixedmslabel mixedlabelvideo0
