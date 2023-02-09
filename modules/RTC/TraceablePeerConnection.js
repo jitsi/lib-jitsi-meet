@@ -2642,7 +2642,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
                 }
             }
         }
-        this.tpcUtils.updateEncodingsResolution(parameters);
+        this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
 
     // For p2p and cases and where simulcast is explicitly disabled.
     } else if (frameHeight > 0) {
