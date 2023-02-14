@@ -50,47 +50,6 @@ export class TPCUtils {
     }
 
     /**
-     * The startup configuration for the stream encodings that are applicable to
-     * the video stream when a new sender is created on the peerconnection. The initial
-     * config takes into account the differences in browser's simulcast implementation.
-     *
-     * Encoding parameters:
-     * active - determine the on/off state of a particular encoding.
-     * maxBitrate - max. bitrate value to be applied to that particular encoding
-     *  based on the encoding's resolution and config.js videoQuality settings if applicable.
-     * rid - Rtp Stream ID that is configured for a particular simulcast stream.
-     * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
-     *  original resolution of the captured video.
-     *
-     *  @param {VideoType} videoType
-     */
-    _getVideoStreamEncodings(videoType) {
-        const maxVideoRate = videoType === VideoType.DESKTOP
-            ? this.encodingBitrates.ssHigh : this.encodingBitrates.high;
-
-        return [
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? maxVideoRate : this.encodingBitrates.low,
-                rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: this.encodingBitrates.standard,
-                rid: SIM_LAYER_2_RID,
-                scaleResolutionDownBy: SD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? this.encodingBitrates.low : maxVideoRate,
-                rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
-            }
-        ];
-    }
-
-    /**
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
@@ -106,6 +65,47 @@ export class TPCUtils {
                 maxBitrate: this.videoBitrates.high
             } ]
             : [ { active: true } ];
+    }
+
+    /**
+     * The startup configuration for the stream encodings that are applicable to
+     * the video stream when a new sender is created on the peerconnection. The initial
+     * config takes into account the differences in browser's simulcast implementation.
+     *
+     * Encoding parameters:
+     * active - determine the on/off state of a particular encoding.
+     * maxBitrate - max. bitrate value to be applied to that particular encoding
+     *  based on the encoding's resolution and config.js videoQuality settings if applicable.
+     * rid - Rtp Stream ID that is configured for a particular simulcast stream.
+     * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
+     *  original resolution of the captured video.
+     *
+     *  @param {VideoType} videoType
+     */
+    _getVideoStreamEncodings(videoType) {
+        const maxVideoBitrate = videoType === VideoType.DESKTOP && this.encodingBitrates.ssHigh
+            ? this.encodingBitrates.ssHigh : this.encodingBitrates.high;
+
+        return [
+            {
+                active: true,
+                maxBitrate: browser.isFirefox() ? maxVideoBitrate : this.encodingBitrates.low,
+                rid: SIM_LAYER_1_RID,
+                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
+            },
+            {
+                active: true,
+                maxBitrate: this.encodingBitrates.standard,
+                rid: SIM_LAYER_2_RID,
+                scaleResolutionDownBy: SD_SCALE_FACTOR
+            },
+            {
+                active: true,
+                maxBitrate: browser.isFirefox() ? this.encodingBitrates.low : maxVideoBitrate,
+                rid: SIM_LAYER_3_RID,
+                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
+            }
+        ];
     }
 
     /**
