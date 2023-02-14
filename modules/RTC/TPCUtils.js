@@ -38,48 +38,15 @@ export class TPCUtils {
         const standardBitrates = {
             low: LD_BITRATE,
             standard: SD_BITRATE,
-            high: HD_BITRATE
+            high: HD_BITRATE,
+            ssHigh: HD_BITRATE
         };
 
         // Check if the max. bitrates for video are specified through config.js videoQuality settings.
         // Right now only VP8 bitrates are configured on the simulcast encodings, VP9 bitrates have to be
         // configured on the SDP using b:AS line.
         this.videoBitrates = bitrateSettings ?? standardBitrates;
-        const encodingBitrates = this.videoBitrates.VP8 ?? this.videoBitrates;
-
-        /**
-         * The startup configuration for the stream encodings that are applicable to
-         * the video stream when a new sender is created on the peerconnection. The initial
-         * config takes into account the differences in browser's simulcast implementation.
-         *
-         * Encoding parameters:
-         * active - determine the on/off state of a particular encoding.
-         * maxBitrate - max. bitrate value to be applied to that particular encoding
-         *  based on the encoding's resolution and config.js videoQuality settings if applicable.
-         * rid - Rtp Stream ID that is configured for a particular simulcast stream.
-         * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
-         *  original resolution of the captured video.
-         */
-        this.localStreamEncodingsConfig = [
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? encodingBitrates.high : encodingBitrates.low,
-                rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: encodingBitrates.standard,
-                rid: SIM_LAYER_2_RID,
-                scaleResolutionDownBy: SD_SCALE_FACTOR
-            },
-            {
-                active: true,
-                maxBitrate: browser.isFirefox() ? encodingBitrates.low : encodingBitrates.high,
-                rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
-            }
-        ];
+        this.encodingBitrates = this.videoBitrates.VP8 ?? this.videoBitrates;
     }
 
     /**
@@ -89,7 +56,7 @@ export class TPCUtils {
      */
     _getStreamEncodings(localTrack) {
         if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
-            return this.localStreamEncodingsConfig;
+            return this._getVideoStreamEncodings(localTrack.getVideoType());
         }
 
         return localTrack.isVideoTrack()
@@ -98,6 +65,47 @@ export class TPCUtils {
                 maxBitrate: this.videoBitrates.high
             } ]
             : [ { active: true } ];
+    }
+
+    /**
+     * The startup configuration for the stream encodings that are applicable to
+     * the video stream when a new sender is created on the peerconnection. The initial
+     * config takes into account the differences in browser's simulcast implementation.
+     *
+     * Encoding parameters:
+     * active - determine the on/off state of a particular encoding.
+     * maxBitrate - max. bitrate value to be applied to that particular encoding
+     *  based on the encoding's resolution and config.js videoQuality settings if applicable.
+     * rid - Rtp Stream ID that is configured for a particular simulcast stream.
+     * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
+     *  original resolution of the captured video.
+     *
+     *  @param {VideoType} videoType
+     */
+    _getVideoStreamEncodings(videoType) {
+        const maxVideoBitrate = videoType === VideoType.DESKTOP && this.encodingBitrates.ssHigh
+            ? this.encodingBitrates.ssHigh : this.encodingBitrates.high;
+
+        return [
+            {
+                active: true,
+                maxBitrate: browser.isFirefox() ? maxVideoBitrate : this.encodingBitrates.low,
+                rid: SIM_LAYER_1_RID,
+                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
+            },
+            {
+                active: true,
+                maxBitrate: this.encodingBitrates.standard,
+                rid: SIM_LAYER_2_RID,
+                scaleResolutionDownBy: SD_SCALE_FACTOR
+            },
+            {
+                active: true,
+                maxBitrate: browser.isFirefox() ? this.encodingBitrates.low : maxVideoBitrate,
+                rid: SIM_LAYER_3_RID,
+                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
+            }
+        ];
     }
 
     /**
@@ -277,7 +285,8 @@ export class TPCUtils {
     calculateEncodingsActiveState(localVideoTrack, newHeight) {
         const localTrack = localVideoTrack.getTrack();
         const { height } = localTrack.getSettings();
-        const encodingsState = this.localStreamEncodingsConfig
+        const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack.getVideoType());
+        const encodingsState = videoStreamEncodings
         .map(encoding => height / encoding.scaleResolutionDownBy)
         .map((frameHeight, idx) => {
             let active = localVideoTrack.getVideoType() === VideoType.CAMERA
@@ -286,7 +295,7 @@ export class TPCUtils {
                 // resolution. This can happen when camera is captured at resolutions higher than 720p but the
                 // requested resolution is 180. Since getParameters doesn't give us information about the resolutions
                 // of the simulcast encodings, we have to rely on our initial config for the simulcast streams.
-                ? newHeight > 0 && this.localStreamEncodingsConfig[idx]?.scaleResolutionDownBy === LD_SCALE_FACTOR
+                ? newHeight > 0 && videoStreamEncodings[idx]?.scaleResolutionDownBy === LD_SCALE_FACTOR
                     ? true
                     : frameHeight <= newHeight
 
@@ -302,7 +311,7 @@ export class TPCUtils {
                 && this.pc._capScreenshareBitrate
                 && this.pc.usesUnifiedPlan()
                 && !browser.isWebKitBased()
-                && this.localStreamEncodingsConfig[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
+                && videoStreamEncodings[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
                 active = false;
             }
 
@@ -325,7 +334,7 @@ export class TPCUtils {
         const lowFpsScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP
             && this.pc._capScreenshareBitrate
             && !browser.isWebKitBased();
-        const encodingsBitrates = this.localStreamEncodingsConfig
+        const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack.getVideoType())
         .map(encoding => {
             const bitrate = lowFpsScreenshare
                 ? desktopShareBitrate
@@ -491,10 +500,11 @@ export class TPCUtils {
      * that were configured on the RTCRtpSender when the source was added to the peerconnection.
      * This should prevent us from overriding the default values if the browser returns
      * erroneous values when RTCRtpSender.getParameters is used for getting the encodings info.
+     * @param {JitsiLocalTrack} localVideoTrack The local video track.
      * @param {Object} parameters - the RTCRtpEncodingParameters obtained from the browser.
      * @returns {void}
      */
-    updateEncodingsResolution(parameters) {
+    updateEncodingsResolution(localVideoTrack, parameters) {
         if (!(browser.isWebKitBased() && parameters.encodings && Array.isArray(parameters.encodings))) {
             return;
         }
@@ -504,8 +514,10 @@ export class TPCUtils {
 
         // Implement the workaround only when all the encodings report the same resolution.
         if (allEqualEncodings(parameters.encodings)) {
+            const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack.getVideoType());
+
             parameters.encodings.forEach((encoding, idx) => {
-                encoding.scaleResolutionDownBy = this.localStreamEncodingsConfig[idx].scaleResolutionDownBy;
+                encoding.scaleResolutionDownBy = videoStreamEncodings[idx].scaleResolutionDownBy;
             });
         }
     }
