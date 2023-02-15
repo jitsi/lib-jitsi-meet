@@ -2664,7 +2664,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
             let bitrate = this.getTargetVideoBitrates()?.high;
 
             if (videoType === VideoType.CAMERA) {
-                bitrate = this.tpcUtils.localStreamEncodingsConfig
+                bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType())
                     .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate ?? bitrate;
             }
             parameters.encodings[0].maxBitrate = bitrate;
