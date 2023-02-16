@@ -26,15 +26,7 @@ class SpeakerStats {
         this._isDominantSpeaker = false;
         this._isSilent = false;
         this._hasLeft = false;
-        this._faceExpressions = {
-            happy: 0,
-            neutral: 0,
-            surprised: 0,
-            angry: 0,
-            fearful: 0,
-            disgusted: 0,
-            sad: 0
-        };
+        this._faceLandmarks = [];
     }
 
     /**
@@ -154,32 +146,32 @@ class SpeakerStats {
     }
 
     /**
-     * Gets the face expressions of the user.
+     * Gets the face landmarks of the user.
      *
      * @returns {Object}
      */
-    getFaceExpressions() {
-        return this._faceExpressions;
+    getFaceLandmarks() {
+        return this._faceLandmarks;
     }
 
     /**
-     * Sets the face expressions of the user.
+     * Sets the face landmarks of the user.
      *
-     * @param {Object} faceExpressions - object with face expressions.
+     * @param {Object} faceLandmarks - object with face expressions.
      * @returns {void}
      */
-    setFaceExpressions(faceExpressions) {
-        this._faceExpressions = faceExpressions;
+    setFaceLandmarks(faceLandmarks) {
+        this._faceLandmarks = faceLandmarks;
     }
 
     /**
-     * Adds a new face expression to speaker stats.
+     * Adds new face landmarks to speaker stats.
      *
      * @param  {string} faceExpression
      * @param {number} duration
      */
-    addFaceExpression(faceExpression, duration) {
-        this._faceExpressions[faceExpression] += duration;
+    addFaceLandmarks(faceLandmarks) {
+        this._faceLandmarks.push(faceLandmarks);
     }
 }
 

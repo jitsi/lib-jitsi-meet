@@ -1,7 +1,6 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
-import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -90,7 +89,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.addEventListener = this.on = this._addEventListener.bind(this);
         this.removeEventListener = this.off = this._removeEventListener.bind(this);
 
-        logger.debug(`New remote track added: ${this}`);
+        logger.debug(`New remote track created: ${this}`);
 
         // we want to mark whether the track has been ever muted
         // to detect ttfm events for startmuted conferences, as it can
@@ -131,8 +130,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _addEventListener(event, handler) {
         super.addListener(event, handler);
 
-        if (FeatureFlags.isSourceNameSignalingEnabled()
-            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
             && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
             && !this._trackStreamingStatusImpl
         ) {
@@ -150,8 +148,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _removeEventListener(event, handler) {
         super.removeListener(event, handler);
 
-        if (FeatureFlags.isSourceNameSignalingEnabled()
-            && event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
+        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
             && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
         ) {
             this._disposeTrackStreamingStatus();
@@ -191,9 +188,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
-        if (FeatureFlags.isSourceNameSignalingEnabled()) {
-            this._disposeTrackStreamingStatus();
-        }
+        this._disposeTrackStreamingStatus();
 
         return super.dispose();
     }
@@ -270,12 +265,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Update the properties when the track is remapped to another source.
      *
      * @param {string} owner The endpoint ID of the new owner.
-     * @param {string} name The new source name.
      */
-    setNewSource(owner, name) {
+    setOwner(owner) {
         this.ownerEndpointId = owner;
-        this._sourceName = name;
         this.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, owner);
+    }
+
+    /**
+     * Sets the name of the source associated with the remtoe track.
+     *
+     * @param {string} name - The source name to be associated with the track.
+     */
+    setSourceName(name) {
+        this._sourceName = name;
     }
 
     /**

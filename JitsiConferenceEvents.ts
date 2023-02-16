@@ -84,6 +84,12 @@ export enum JitsiConferenceEvents {
     DATA_CHANNEL_OPENED = 'conference.dataChannelOpened',
 
     /**
+     * A connection to the video bridge's data channel has been closed.
+     * This event is only emitted in 
+     */
+    DATA_CHANNEL_CLOSED = 'conference.dataChannelClosed',
+
+    /**
      * A user has changed it display name
      */
     DISPLAY_NAME_CHANGED = 'conference.displayNameChanged',
@@ -224,22 +230,6 @@ export enum JitsiConferenceEvents {
     PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived',
 
     /**
-     * Event fired when JVB sends notification about interrupted/restored user's
-     * ICE connection status or we detect local problem with the video track.
-     * First argument is the ID of the participant and
-     * the seconds is a string indicating if the connection is currently
-     * - active - the connection is active
-     * - inactive - the connection is inactive, was intentionally interrupted by
-     * the bridge
-     * - interrupted - a network problem occurred
-     * - restoring - the connection was inactive and is restoring now
-     *
-     * The current status value can be obtained by calling
-     * JitsiParticipant.getConnectionStatus().
-     */
-    PARTICIPANT_CONN_STATUS_CHANGED = 'conference.participant_conn_status_changed',
-
-    /**
      * Indicates that the features of the participant has been changed.
      * TODO: there is a spelling mistake in this event name and associated constants
      */
@@ -250,6 +240,11 @@ export enum JitsiConferenceEvents {
      * has changed.
      */
     PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed',
+
+    /**
+     * Indicates the state of sources attached to a given remote participant has changed.
+     */
+    PARTICIPANT_SOURCE_UPDATED = 'conference.participant_source_updated',
 
     /**
      * Indicates that the conference has switched between JVB and P2P connections.
@@ -451,11 +446,6 @@ export enum JitsiConferenceEvents {
     AV_MODERATION_PARTICIPANT_REJECTED = 'conference.av_moderation.participant.rejected',
 
     /**
-     * A new face landmark object is added for a participant
-     */
-    FACE_LANDMARK_ADDED = 'conference.face_landmark.added',
-
-    /**
      * Event fired when a participant is requested to join a given (breakout) room.
      */
     BREAKOUT_ROOMS_MOVE_TO_ROOM = 'conference.breakout-rooms.move-to-room',
@@ -468,7 +458,13 @@ export enum JitsiConferenceEvents {
     /**
      * Event fired when the conference metadata is updated.
      */
-    METADATA_UPDATED = 'conference.metadata.updated'
+    METADATA_UPDATED = 'conference.metadata.updated',
+
+    E2EE_VERIFICATION_AVAILABLE = 'conference.e2ee.verification.available',
+
+    E2EE_VERIFICATION_READY = 'conference.e2ee.verification.ready',
+
+    E2EE_VERIFICATION_COMPLETED = 'conference.e2ee.verification.completed'
 };
 
 // exported for backward compatibility
@@ -486,15 +482,20 @@ export const CONNECTION_ESTABLISHED = JitsiConferenceEvents.CONNECTION_ESTABLISH
 export const CONNECTION_INTERRUPTED = JitsiConferenceEvents.CONNECTION_INTERRUPTED;
 export const CONNECTION_RESTORED = JitsiConferenceEvents.CONNECTION_RESTORED;
 export const DATA_CHANNEL_OPENED = JitsiConferenceEvents.DATA_CHANNEL_OPENED;
+export const DATA_CHANNEL_CLOSED = JitsiConferenceEvents.DATA_CHANNEL_CLOSED;
 export const DISPLAY_NAME_CHANGED = JitsiConferenceEvents.DISPLAY_NAME_CHANGED;
 export const DOMINANT_SPEAKER_CHANGED = JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED;
 export const CONFERENCE_CREATED_TIMESTAMP = JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP;
 export const DTMF_SUPPORT_CHANGED = JitsiConferenceEvents.DTMF_SUPPORT_CHANGED;
 export const ENDPOINT_MESSAGE_RECEIVED = JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED;
+export const E2EE_VERIFICATION_AVAILABLE = JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE;
+export const E2EE_VERIFICATION_READY = JitsiConferenceEvents.E2EE_VERIFICATION_READY;
+export const E2EE_VERIFICATION_COMPLETED = JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED;
 export const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
 export const KICKED = JitsiConferenceEvents.KICKED;
 export const PARTICIPANT_KICKED = JitsiConferenceEvents.PARTICIPANT_KICKED;
+export const PARTICIPANT_SOURCE_UPDATED = JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED;
 export const LAST_N_ENDPOINTS_CHANGED = JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED;
 export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
 export const LOCK_STATE_CHANGED = JitsiConferenceEvents.LOCK_STATE_CHANGED;
@@ -507,7 +508,6 @@ export const NO_AUDIO_INPUT = JitsiConferenceEvents.NO_AUDIO_INPUT;
 export const NOISY_MIC = JitsiConferenceEvents.NOISY_MIC;
 export const NON_PARTICIPANT_MESSAGE_RECEIVED = JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED;
 export const PRIVATE_MESSAGE_RECEIVED = JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED;
-export const PARTICIPANT_CONN_STATUS_CHANGED = JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED;
 export const PARTCIPANT_FEATURES_CHANGED = JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED;
 export const PARTICIPANT_PROPERTY_CHANGED = JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED;
 export const P2P_STATUS = JitsiConferenceEvents.P2P_STATUS;
@@ -541,7 +541,6 @@ export const AV_MODERATION_REJECTED = JitsiConferenceEvents.AV_MODERATION_REJECT
 export const AV_MODERATION_CHANGED = JitsiConferenceEvents.AV_MODERATION_CHANGED;
 export const AV_MODERATION_PARTICIPANT_APPROVED = JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_APPROVED;
 export const AV_MODERATION_PARTICIPANT_REJECTED = JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_REJECTED;
-export const FACE_LANDMARK_ADDED = JitsiConferenceEvents.FACE_LANDMARK_ADDED;
 export const BREAKOUT_ROOMS_MOVE_TO_ROOM = JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM;
 export const BREAKOUT_ROOMS_UPDATED = JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED;
 export const METADATA_UPDATED = JitsiConferenceEvents.METADATA_UPDATED;

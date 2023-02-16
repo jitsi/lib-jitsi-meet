@@ -4,7 +4,6 @@ import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
-import browser from '../browser';
 
 const Resolutions = require('../../service/RTC/Resolutions');
 const { VideoType } = require('../../service/RTC/VideoType');
@@ -18,43 +17,31 @@ const logger = getLogger(__filename);
  */
 const STATS_MESSAGE_TYPE = 'stats';
 
-/**
- * The value to use for the "type" field for messages sent
- * over the data channel that contain a face landmark.
- */
-const FACE_LANDMARK_MESSAGE_TYPE = 'face_landmark';
-
 const kSimulcastFormats = [
     { width: 1920,
         height: 1080,
         layers: 3,
-        target: 'high',
-        targetRN: 4000000 },
+        target: 'high' },
     { width: 1280,
         height: 720,
         layers: 3,
-        target: 'high',
-        targetRN: 2500000 },
+        target: 'high' },
     { width: 960,
         height: 540,
         layers: 3,
-        target: 'standard',
-        targetRN: 900000 },
+        target: 'standard' },
     { width: 640,
         height: 360,
         layers: 2,
-        target: 'standard',
-        targetRN: 500000 },
+        target: 'standard' },
     { width: 480,
         height: 270,
         layers: 2,
-        target: 'low',
-        targetRN: 350000 },
+        target: 'low' },
     { width: 320,
         height: 180,
         layers: 1,
-        target: 'low',
-        targetRN: 150000 }
+        target: 'low' }
 ];
 
 /**
@@ -91,9 +78,7 @@ function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings
 
             simulcastFormat = kSimulcastFormats.find(f => f.height === targetHeight);
             if (simulcastFormat) {
-                target += browser.isReactNative()
-                    ? simulcastFormat.targetRN
-                    : videoQualitySettings[simulcastFormat.target];
+                target += videoQualitySettings[simulcastFormat.target];
             } else {
                 break;
             }
@@ -101,9 +86,7 @@ function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings
     } else if (simulcastFormat) {
         // For VP9 SVC, H.264 (simulcast automatically disabled) and p2p, target bitrate will be
         // same as that of the individual stream bitrate.
-        target = browser.isReactNative()
-            ? simulcastFormat.targetRN
-            : videoQualitySettings[simulcastFormat.target];
+        target = videoQualitySettings[simulcastFormat.target];
     }
 
     // Allow for an additional 1 second for ramp up -- delay any initial drop
@@ -227,17 +210,6 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
             (participant, payload) => {
                 this._updateRemoteStats(participant.getId(), payload);
-            });
-
-        conference.on(
-            ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            (participant, payload) => {
-                if (payload.type === FACE_LANDMARK_MESSAGE_TYPE) {
-                    this.eventEmitter.emit(
-                        ConferenceEvents.FACE_LANDMARK_ADDED,
-                        participant.getId(),
-                        payload);
-                }
             });
 
         // Listen to local statistics events originating from the RTC module and update the _localStats field.

@@ -12,7 +12,6 @@ describe( "/service/RTC/MediaType members", () => {
         expect( MediaType ).toBeDefined();
 
         expect( MediaType.AUDIO ).toBe( 'audio' );
-        expect( MediaType.PRESENTER ).toBe( 'presenter' );
         expect( MediaType.VIDEO ).toBe( 'video' );
     } );
 

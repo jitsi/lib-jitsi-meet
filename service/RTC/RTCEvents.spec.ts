@@ -7,9 +7,9 @@ describe( "/service/RTC/RTCEvents members", () => {
         CREATE_ANSWER_FAILED,
         CREATE_OFFER_FAILED,
         DATA_CHANNEL_OPEN,
+        DATA_CHANNEL_CLOSED,
         ENDPOINT_CONN_STATUS_CHANGED,
         DOMINANT_SPEAKER_CHANGED,
-        LASTN_ENDPOINT_CHANGED,
         FORWARDED_SOURCES_CHANGED,
         PERMISSIONS_CHANGED,
         SENDER_VIDEO_CONSTRAINTS_CHANGED,
@@ -42,9 +42,9 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
         expect( CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
         expect( DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
+        expect( DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
         expect( ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
         expect( DOMINANT_SPEAKER_CHANGED ).toBe( 'rtc.dominant_speaker_changed' );
-        expect( LASTN_ENDPOINT_CHANGED ).toBe( 'rtc.lastn_endpoint_changed' );
         expect( FORWARDED_SOURCES_CHANGED ).toBe( 'rtc.forwarded_sources_changed' );
         expect( PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
@@ -73,9 +73,9 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEvents.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
             expect( RTCEvents.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEvents.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
+            expect( RTCEvents.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
             expect( RTCEvents.ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
             expect( RTCEvents.DOMINANT_SPEAKER_CHANGED ).toBe( 'rtc.dominant_speaker_changed' );
-            expect( RTCEvents.LASTN_ENDPOINT_CHANGED ).toBe( 'rtc.lastn_endpoint_changed' );
             expect( RTCEvents.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
             expect( RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
             expect( RTCEvents.LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );
@@ -104,9 +104,9 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEventsDefault.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
             expect( RTCEventsDefault.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEventsDefault.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
+            expect( RTCEventsDefault.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
             expect( RTCEventsDefault.ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
             expect( RTCEventsDefault.DOMINANT_SPEAKER_CHANGED ).toBe( 'rtc.dominant_speaker_changed' );
-            expect( RTCEventsDefault.LASTN_ENDPOINT_CHANGED ).toBe( 'rtc.lastn_endpoint_changed' );
             expect( RTCEventsDefault.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
             expect( RTCEventsDefault.SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
             expect( RTCEventsDefault.LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );

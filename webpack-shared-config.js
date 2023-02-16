@@ -28,7 +28,7 @@ module.exports = (minimize, analyzeBundle) => {
                         process.env.LIB_JITSI_MEET_COMMIT_HASH || 'development',
                     search: '{#COMMIT_HASH#}'
                 },
-                test: path.join(__dirname, 'JitsiMeetJS.js')
+                test: path.join(__dirname, 'JitsiMeetJS.ts')
             }, {
                 // Transpile ES2015 (aka ES6) to ES5.
 

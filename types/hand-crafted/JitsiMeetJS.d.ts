@@ -11,7 +11,6 @@ import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import { JitsiTranscriptionStatus } from './JitsiTranscriptionStatus';
 import BrowserCapabilities from './modules/browser/BrowserCapabilities';
-import { ParticipantConnectionStatus } from './modules/connectivity/ParticipantConnectionStatus';
 import { DetectionEvents } from './modules/detection/DetectionEvents';
 import TrackVADEmitter, { VADProcessor } from './modules/detection/TrackVADEmitter';
 import RecordingConstants from './modules/recording/recordingConstants';
@@ -69,7 +68,6 @@ export type JitsiMeetJSType = {
   //USER_MEDIA_SLOW_PROMISE_TIMEOUT: 1000;
 
   constants: {
-    participantConnectionStatus: typeof ParticipantConnectionStatus,
     recording: typeof RecordingConstants,
     sipVideoGW: typeof VideoSIPGWConstants,
     transcriptionStatus: typeof JitsiTranscriptionStatus,

@@ -41,7 +41,7 @@ describe('SDPDiffer', () => {
         /* eslint-enable max-len*/
 
         it('should include source names in added/removed sources', () => {
-            FeatureFlags.init({ sourceNameSignaling: true });
+            FeatureFlags.init({ });
 
             const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
             const sourceRemoveIq = $iq({})

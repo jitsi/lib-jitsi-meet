@@ -216,33 +216,30 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        const { desktopSharingFrameRate } = this.options;
-        const setScreenSharingResolutionConstraints = browser.isChromiumBased()
-            && this.options?.testing?.setScreenSharingResolutionConstraints;
+        const audio = this._getAudioConstraints();
         let video = {};
-
-        // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
-        if (browser.isChromiumBased() && browser.isVersionGreaterThan(106)) {
-            video.surfaceSwitching = 'include';
-        }
+        const { desktopSharingFrameRate } = this.options;
 
         if (typeof desktopSharingFrameRate === 'object') {
             video.frameRate = desktopSharingFrameRate;
         }
 
-        // Capturing the screenshare at very high resolutions restricts the framerate. Therefore, skip this hack when
-        // the capture framerate is > 5 fps.
-        if (setScreenSharingResolutionConstraints && !(desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE)) {
-            // Set bogus resolution constraints to work around
-            // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311
-            video.height = 99999;
-            video.width = 99999;
-        }
-
-        const audio = this._getAudioConstraints();
-
-        // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia.
+        // At the time of this writing 'min' constraint for fps is not supported by getDisplayMedia on any of the
+        // browsers. getDisplayMedia will fail with an error "invalid constraints" in this case.
         video.frameRate && delete video.frameRate.min;
+
+        if (browser.isChromiumBased()) {
+            // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
+            browser.isVersionGreaterThan(106) && (video.surfaceSwitching = 'include');
+
+            // Set bogus resolution constraints to work around
+            // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311 for low fps screenshare. Capturing SS at
+            // very high resolutions restricts the framerate. Therefore, skip this hack when capture fps > 5 fps.
+            if (desktopSharingFrameRate?.max <= SS_DEFAULT_FRAME_RATE) {
+                video.height = 99999;
+                video.width = 99999;
+            }
+        }
 
         if (Object.keys(video).length === 0) {
             video = true;

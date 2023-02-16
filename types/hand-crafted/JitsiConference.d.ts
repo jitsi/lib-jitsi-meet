@@ -70,11 +70,8 @@ export default class JitsiConference {
   isModerator: () => boolean | null;
   lock: ( password: string ) => Promise<unknown | Error>;
   unlock: () => Promise<unknown | Error>;
-  selectParticipant: ( participantId: string ) => void;
-  selectParticipants: ( participantIds: string[] ) => void;
   getLastN: () => number;
   setLastN: ( lastN: number ) => void;
-  isInLastN: ( participantId: string ) => boolean;
   getParticipants: () => JitsiParticipant[];
   getParticipantCount: ( countHidden?: boolean ) => number;
   getParticipantById: ( id: string ) => JitsiParticipant;

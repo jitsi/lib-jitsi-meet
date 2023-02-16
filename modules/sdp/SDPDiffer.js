@@ -1,4 +1,3 @@
-import FeatureFlags from '../flags/FeatureFlags';
 
 import SDPUtil from './SDPUtil';
 
@@ -175,7 +174,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({
-                name: FeatureFlags.isSourceNameSignalingEnabled() ? sourceName : undefined,
+                name: sourceName,
                 videoType,
                 ssrc: mediaSsrc.ssrc
             });

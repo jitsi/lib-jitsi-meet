@@ -18,15 +18,20 @@ describe( "/JitsiConferenceEvents members", () => {
         CONNECTION_INTERRUPTED,
         CONNECTION_RESTORED,
         DATA_CHANNEL_OPENED,
+        DATA_CHANNEL_CLOSED,
         DISPLAY_NAME_CHANGED,
         DOMINANT_SPEAKER_CHANGED,
         CONFERENCE_CREATED_TIMESTAMP,
         DTMF_SUPPORT_CHANGED,
+        E2EE_VERIFICATION_AVAILABLE,
+        E2EE_VERIFICATION_READY,
+        E2EE_VERIFICATION_COMPLETED,
         ENDPOINT_MESSAGE_RECEIVED,
         ENDPOINT_STATS_RECEIVED,
         JVB121_STATUS,
         KICKED,
         PARTICIPANT_KICKED,
+        PARTICIPANT_SOURCE_UPDATED,
         LAST_N_ENDPOINTS_CHANGED,
         FORWARDED_SOURCES_CHANGED,
         LOCK_STATE_CHANGED,
@@ -39,7 +44,6 @@ describe( "/JitsiConferenceEvents members", () => {
         NOISY_MIC,
         NON_PARTICIPANT_MESSAGE_RECEIVED,
         PRIVATE_MESSAGE_RECEIVED,
-        PARTICIPANT_CONN_STATUS_CHANGED,
         PARTCIPANT_FEATURES_CHANGED,
         PARTICIPANT_PROPERTY_CHANGED,
         P2P_STATUS,
@@ -73,7 +77,6 @@ describe( "/JitsiConferenceEvents members", () => {
         AV_MODERATION_CHANGED,
         AV_MODERATION_PARTICIPANT_APPROVED,
         AV_MODERATION_PARTICIPANT_REJECTED,
-        FACE_LANDMARK_ADDED,
         BREAKOUT_ROOMS_MOVE_TO_ROOM,
         BREAKOUT_ROOMS_UPDATED,
         METADATA_UPDATED,
@@ -96,6 +99,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( CONNECTION_INTERRUPTED ).toBe( 'conference.connectionInterrupted' );
         expect( CONNECTION_RESTORED ).toBe( 'conference.connectionRestored' );
         expect( DATA_CHANNEL_OPENED ).toBe( 'conference.dataChannelOpened' );
+        expect( DATA_CHANNEL_CLOSED ).toBe( 'conference.dataChannelClosed' );
         expect( DISPLAY_NAME_CHANGED ).toBe( 'conference.displayNameChanged' );
         expect( DOMINANT_SPEAKER_CHANGED ).toBe( 'conference.dominantSpeaker' );
         expect( CONFERENCE_CREATED_TIMESTAMP ).toBe( 'conference.createdTimestamp' );
@@ -105,6 +109,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JVB121_STATUS ).toBe( 'conference.jvb121Status' );
         expect( KICKED ).toBe( 'conference.kicked' );
         expect( PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
+        expect( PARTICIPANT_SOURCE_UPDATED ).toBe( 'conference.participant_source_updated' );
         expect( LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );
         expect( FORWARDED_SOURCES_CHANGED ).toBe( 'conference.forwardedSourcesChanged' );
         expect( LOCK_STATE_CHANGED ).toBe( 'conference.lock_state_changed' );
@@ -117,7 +122,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( NOISY_MIC ).toBe( 'conference.noisy_mic' );
         expect( NON_PARTICIPANT_MESSAGE_RECEIVED ).toBe( 'conference.non_participant_message_received' );
         expect( PRIVATE_MESSAGE_RECEIVED ).toBe( 'conference.privateMessageReceived' );
-        expect( PARTICIPANT_CONN_STATUS_CHANGED ).toBe( 'conference.participant_conn_status_changed' );
         expect( PARTCIPANT_FEATURES_CHANGED ).toBe( 'conference.partcipant_features_changed' );
         expect( PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( P2P_STATUS ).toBe( 'conference.p2pStatus' );
@@ -151,7 +155,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( AV_MODERATION_CHANGED ).toBe( 'conference.av_moderation.changed' );
         expect( AV_MODERATION_PARTICIPANT_APPROVED ).toBe( 'conference.av_moderation.participant.approved' );
         expect( AV_MODERATION_PARTICIPANT_REJECTED ).toBe( 'conference.av_moderation.participant.rejected' );
-        expect( FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
@@ -172,6 +175,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.CONNECTION_INTERRUPTED ).toBe( 'conference.connectionInterrupted' );
         expect( JitsiConferenceEvents.CONNECTION_RESTORED ).toBe( 'conference.connectionRestored' );
         expect( JitsiConferenceEvents.DATA_CHANNEL_OPENED ).toBe( 'conference.dataChannelOpened' );
+        expect( JitsiConferenceEvents.DATA_CHANNEL_CLOSED ).toBe( 'conference.dataChannelClosed' );
         expect( JitsiConferenceEvents.DISPLAY_NAME_CHANGED ).toBe( 'conference.displayNameChanged' );
         expect( JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED ).toBe( 'conference.dominantSpeaker' );
         expect( JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP ).toBe( 'conference.createdTimestamp' );
@@ -193,7 +197,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.NOISY_MIC ).toBe( 'conference.noisy_mic' );
         expect( JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED ).toBe( 'conference.non_participant_message_received' );
         expect( JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED ).toBe( 'conference.privateMessageReceived' );
-        expect( JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED ).toBe( 'conference.participant_conn_status_changed' );
         expect( JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED ).toBe( 'conference.partcipant_features_changed' );
         expect( JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( JitsiConferenceEvents.P2P_STATUS ).toBe( 'conference.p2pStatus' );
@@ -227,10 +230,12 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.AV_MODERATION_CHANGED ).toBe( 'conference.av_moderation.changed' );
         expect( JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_APPROVED ).toBe( 'conference.av_moderation.participant.approved' );
         expect( JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_REJECTED ).toBe( 'conference.av_moderation.participant.rejected' );
-        expect( JitsiConferenceEvents.FACE_LANDMARK_ADDED ).toBe( 'conference.face_landmark.added' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( JitsiConferenceEvents.METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
+        expect( JitsiConferenceEvents.E2EE_VERIFICATION_READY ).toBe( 'conference.e2ee.verification.ready' );
+        expect( JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED ).toBe( 'conference.e2ee.verification.completed' );
+        expect( JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE ).toBe( 'conference.e2ee.verification.available' );
     } );
 
 it( "unknown members", () => {

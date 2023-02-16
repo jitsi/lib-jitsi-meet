@@ -113,15 +113,15 @@ export default class ChatRoom extends Listenable {
      * @param {boolean} options.hiddenFromRecorderFeatureEnabled - when set to {@code true} we will check identity tag
      * for node presence.
      */
-    constructor(connection, jid, password, XMPP, options) {
+    constructor(connection, jid, password, xmpp, options) {
         super();
-        this.xmpp = XMPP;
+        this.xmpp = xmpp;
         this.connection = connection;
         this.roomjid = Strophe.getBareJidFromJid(jid);
         this.myroomjid = jid;
         this.password = password;
         this.replaceParticipant = false;
-        logger.info(`Joined MUC as ${this.myroomjid}`);
+        logger.info(`Joining MUC as ${this.myroomjid}`);
         this.members = {};
         this.presMap = {};
         this.presHandlers = {};
@@ -132,11 +132,7 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator
-            = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, {
-                connection: this.xmpp.options,
-                conference: this.options
-            });
+        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, xmpp.options);
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
@@ -188,10 +184,11 @@ export default class ChatRoom extends Listenable {
             this.options.disableFocus
                 && logger.info(`Conference focus disabled for ${this.roomjid}`);
 
+            // there is no point of sending conference iq when in visitor mode
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.moderator.allocateConferenceFocus();
+                    : this.moderator.sendConferenceRequest();
 
             preJoin.then(() => {
                 this.sendPresence(true);
@@ -477,8 +474,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
-        member.isFocus
-            = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
+        member.isFocus = this.moderator.isFocusJid(jid);
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
@@ -951,25 +947,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Called when participant leaves.
-     * @param jid the jid of the participant that leaves
-     * @param skipEvents optional params to skip any events, including check
-     * whether this is the focus that left
-     * @param reason the reason for leaving (optional).
-     */
-    onParticipantLeft(jid, skipEvents, reason) {
-        delete this.lastPresences[jid];
-
-        if (skipEvents) {
-            return;
-        }
-
-        this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid, reason);
-
-        this.moderator.onMucMemberLeft(jid);
-    }
-
-    /**
      *
      * @param pres
      * @param from
@@ -1056,7 +1033,10 @@ export default class ChatRoom extends Listenable {
                 const member = this.members[jid];
 
                 delete this.members[jid];
-                this.onParticipantLeft(jid, member.isFocus);
+                delete this.lastPresences[jid];
+                if (!member.isFocus) {
+                    this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
+                }
             });
             this.connection.emuc.doLeave(this.roomjid);
 
@@ -1067,6 +1047,7 @@ export default class ChatRoom extends Listenable {
             }
         } else {
             const reasonSelect = $(pres).find('>status');
+            const member = this.members[from];
             let reason;
 
             if (reasonSelect.length) {
@@ -1074,7 +1055,14 @@ export default class ChatRoom extends Listenable {
             }
 
             delete this.members[from];
-            this.onParticipantLeft(from, false, reason);
+            delete this.lastPresences[from];
+
+            // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
+            this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
+            if (member?.isFocus) {
+                logger.info('Focus has left the room - leaving conference');
+                this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
+            }
         }
     }
 
@@ -1582,65 +1570,14 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Obtains the info about given media advertised (in legacy format) in the MUC presence of the participant
+     * identified by the given endpoint JID. This is for mantining interop with endpoints that do not support
+     * source-name signaling (Jigasi and very old mobile clients).
      *
-     * @param peerJid
-     */
-    getMemberRole(peerJid) {
-        if (this.members[peerJid]) {
-            return this.members[peerJid].role;
-        }
-
-        return null;
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    addAudioInfoToPresence(mute) {
-        const audioMutedTagName = 'audiomuted';
-
-        // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(audioMutedTagName)) {
-            return false;
-        }
-
-        return this.addOrReplaceInPresence(
-            audioMutedTagName,
-            {
-                value: mute.toString()
-            });
-    }
-
-    /**
-     *
-     * @param mute
-     */
-    addVideoInfoToPresence(mute) {
-        const videoMutedTagName = 'videomuted';
-
-        // we skip adding it as muted is default value
-        if (mute && !this.getFromPresence(videoMutedTagName)) {
-            return false;
-        }
-
-        return this.addOrReplaceInPresence(
-            videoMutedTagName,
-            {
-                value: mute.toString()
-            });
-    }
-
-    /**
-     * Obtains the info about given media advertised in the MUC presence of
-     * the participant identified by the given endpoint JID.
-     * @param {string} endpointId the endpoint ID mapped to the participant
-     * which corresponds to MUC nickname.
-     * @param {MediaType} mediaType the type of the media for which presence
-     * info will be obtained.
-     * @return {PeerMediaInfo} presenceInfo an object with media presence
-     * info or <tt>null</tt> either if there is no presence available or if
-     * the media type given is invalid.
+     * @param {string} endpointId the endpoint ID mapped to the participant which corresponds to MUC nickname.
+     * @param {MediaType} mediaType the type of the media for which presence info will be obtained.
+     * @return {PeerMediaInfo} presenceInfo an object with media presence info or <tt>null</tt> either if there
+     * is no presence available or if the media type given is invalid.
      */
     getMediaPresenceInfo(endpointId, mediaType) {
         // Will figure out current muted status by looking up owner's presence
@@ -1683,23 +1620,24 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     *
+     * @param peerJid
+     */
+    getMemberRole(peerJid) {
+        if (this.members[peerJid]) {
+            return this.members[peerJid].role;
+        }
+
+        return null;
+    }
+
+    /**
      * Returns the last presence advertised by a MUC member.
      * @param {string} mucNick
      * @returns {*}
      */
     getLastPresence(mucNick) {
         return this.lastPresences[`${this.roomjid}/${mucNick}`];
-    }
-
-    /**
-     * Returns true if the SIP calls are supported and false otherwise
-     */
-    isSIPCallingSupported() {
-        if (this.moderator) {
-            return this.moderator.isSipGatewayEnabled();
-        }
-
-        return false;
     }
 
     /**

@@ -6,7 +6,6 @@ import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 
 export default class JingleSessionPC extends JingleSession {
   static parseVideoSenders: ( jingleContents: JQuery ) => string | null;
-  static parseMaxFrameHeight: ( jingleContents: JQuery ) => number | null;
   constructor( sid: string, localJid: string, remoteJid: string, connection: XmppConnection, mediaConstraints: unknown, iceConfig: unknown, isP2P: boolean, isInitiator: boolean ); // TODO:
   doInitialize: ( options: {} ) => void;
   getRemoteRecvMaxFrameHeight: () => number | undefined;
