@@ -468,6 +468,10 @@ export class TPCUtils {
 
         logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
         transceivers.forEach(transceiver => {
+            if (transceiver.stopped) {
+                return;
+            }
+
             if (active) {
                 const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
 
