@@ -79,7 +79,6 @@
   "files": [
     "dist",
     "types",
-    "connection_optimization/external_connect.js",
     "modules/browser/capabilities.json"
   ],
   "license": "Apache-2.0"
