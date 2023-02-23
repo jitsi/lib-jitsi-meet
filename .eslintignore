@@ -11,6 +11,3 @@ doc/example/libs/*
 # not seem to be a reason why we will want to risk being inconsistent with our
 # remaining JavaScript source code.
 !.eslintrc.js
-
-# Source code written in ES5 which is not processed through Babel.
-connection_optimization/external_connect.js
