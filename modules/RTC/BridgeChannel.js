@@ -21,8 +21,9 @@ export default class BridgeChannel {
      * instance.
      * @param {string} [wsUrl] WebSocket URL.
      * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
+     * @param {JitsiConference} conference the conference instance.
      */
-    constructor(peerconnection, wsUrl, emitter) {
+    constructor(peerconnection, wsUrl, emitter, conference) {
         if (!peerconnection && !wsUrl) {
             throw new TypeError('At least peerconnection or wsUrl must be given');
         } else if (peerconnection && wsUrl) {
@@ -38,6 +39,9 @@ export default class BridgeChannel {
         // The underlying WebRTC RTCDataChannel or WebSocket instance.
         // @type {RTCDataChannel|WebSocket}
         this._channel = null;
+
+        // The conference that uses this bridge channel.
+        this._conference = conference;
 
         // Whether the channel is connected or not. It will start as undefined
         // for the first connection attempt. Then transition to either true or false.
@@ -377,10 +381,12 @@ export default class BridgeChannel {
                 return;
             }
 
-            // When the JVB closes the connection gracefully due to the participant being alone in
-            // the meeting it uses code 1001, so treat that as a graceful close and don't say
-            // anything.
-            const isGracefulClose = this._closedFromClient || event.code === 1001;
+            // When the JVB closes the connection gracefully due to the participant being alone in the meeting it uses
+            // code 1001. However, the same code is also used by Cloudflare when it terminates the ws. Therefore, check
+            // for the number of remote participants in the call and abort retries only when the endpoint is the only
+            // endpoint in the call.
+            const isGracefulClose = this._closedFromClient
+                || (event.code === 1001 && this._conference.getParticipantCount() === 1);
 
             if (!isGracefulClose) {
                 const { code, reason } = event;

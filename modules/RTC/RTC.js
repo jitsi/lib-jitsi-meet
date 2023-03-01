@@ -193,7 +193,7 @@ export default class RTC extends Listenable {
      * @param {string} [wsUrl] WebSocket URL.
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
-        this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter);
+        this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter, this.conference);
 
         this._channelOpenListener = () => {
             const logError = (error, msgType, value) => {
