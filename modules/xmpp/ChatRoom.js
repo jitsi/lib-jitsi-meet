@@ -92,6 +92,40 @@ export function filterNodeFromPresenceJSON(pres, nodeName) {
 const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
 
 /**
+ * Process nodes to extract data needed for MUC_JOINED and MUC_MEMBER_JOINED events.
+ *
+ */
+function extractIdentityInformation(node, hiddenFromRecorderFeatureEnabled) {
+    const identity = {};
+    const userInfo = node.children.find(c => c.tagName === 'user');
+
+    if (userInfo) {
+        identity.user = {};
+        const tags = [ 'id', 'name', 'avatar' ];
+
+        if (hiddenFromRecorderFeatureEnabled) {
+            tags.push('hidden-from-recorder');
+        }
+
+        for (const tag of tags) {
+            const child
+                = userInfo.children.find(c => c.tagName === tag);
+
+            if (child) {
+                identity.user[tag] = child.value;
+            }
+        }
+    }
+    const groupInfo = node.children.find(c => c.tagName === 'group');
+
+    if (groupInfo) {
+        identity.group = groupInfo.value;
+    }
+
+    return identity;
+}
+
+/**
  *
  */
 export default class ChatRoom extends Listenable {
@@ -496,38 +530,6 @@ export default class ChatRoom extends Listenable {
         parser.packet2JSON(pres, nodes);
         this.lastPresences[from] = nodes;
 
-        // process nodes to extract data needed for MUC_JOINED and
-        // MUC_MEMBER_JOINED events
-        const extractIdentityInformation = node => {
-            const identity = {};
-            const userInfo = node.children.find(c => c.tagName === 'user');
-
-            if (userInfo) {
-                identity.user = {};
-                const tags = [ 'id', 'name', 'avatar' ];
-
-                if (this.options.hiddenFromRecorderFeatureEnabled) {
-                    tags.push('hidden-from-recorder');
-                }
-
-                for (const tag of tags) {
-                    const child
-                        = userInfo.children.find(c => c.tagName === tag);
-
-                    if (child) {
-                        identity.user[tag] = child.value;
-                    }
-                }
-            }
-            const groupInfo = node.children.find(c => c.tagName === 'group');
-
-            if (groupInfo) {
-                identity.group = groupInfo.value;
-            }
-
-            return identity;
-        };
-
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
 
@@ -553,7 +555,7 @@ export default class ChatRoom extends Listenable {
                 member.statsID = node.value;
                 break;
             case 'identity':
-                member.identity = extractIdentityInformation(node);
+                member.identity = extractIdentityInformation(node, this.options.hiddenFromRecorderFeatureEnabled);
                 break;
             case 'features': {
                 member.features = this._extractFeatures(node);
