@@ -128,7 +128,7 @@ const ScreenObtainer = {
      */
     obtainScreenOnElectron(onSuccess, onFailure, options = {}) {
         if (window.JitsiMeetScreenObtainer && window.JitsiMeetScreenObtainer.openDesktopPicker) {
-            const { desktopSharingFrameRate, desktopSharingSources } = this.options;
+            const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
@@ -170,8 +170,10 @@ const ScreenObtainer = {
                                     chromeMediaSourceId: streamId,
                                     minFrameRate: desktopSharingFrameRate?.min ?? SS_DEFAULT_FRAME_RATE,
                                     maxFrameRate: desktopSharingFrameRate?.max ?? SS_DEFAULT_FRAME_RATE,
-                                    maxWidth: window.screen.width,
-                                    maxHeight: window.screen.height
+                                    minWidth: desktopSharingResolution?.width?.min,
+                                    minHeight: desktopSharingResolution?.height?.min,
+                                    maxWidth: desktopSharingResolution?.width?.max ?? window.screen.width,
+                                    maxHeight: desktopSharingResolution?.height?.max ?? window.screen.height
                                 }
                             }
                         };
