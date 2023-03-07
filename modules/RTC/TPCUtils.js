@@ -353,6 +353,35 @@ export class TPCUtils {
     }
 
     /**
+     * Returns the max resolution encoded by the client for a given local video track.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
+     * @returns {number} The max encoded resolution for the given video track.
+     */
+    getEncodedResolution(localVideoTrack) {
+        const localTrack = localVideoTrack.getTrack();
+        const { height } = localTrack.getSettings();
+        const videoSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
+        let maxHeight = 0;
+
+        if (!videoSender) {
+            return maxHeight;
+        }
+        const parameters = videoSender.getParameters();
+
+        if (!parameters?.encodings?.length) {
+            return maxHeight;
+        }
+        for (const encoding of parameters.encodings) {
+            if (encoding.active) {
+                maxHeight = Math.max(maxHeight, height / encoding.scaleResolutionDownBy);
+            }
+        }
+
+        return maxHeight;
+    }
+
+    /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      *
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
@@ -420,16 +449,31 @@ export class TPCUtils {
     }
 
     /**
-    * Enables/disables audio transmission on the peer connection. When
-    * disabled the audio transceiver direction will be set to 'inactive'
-    * which means that no data will be sent nor accepted, but
-    * the connection should be kept alive.
-    * @param {boolean} active - true to enable audio media transmission or
-    * false to disable.
-    * @returns {void}
-    */
-    setAudioTransferActive(active) {
-        this.setMediaTransferActive(MediaType.AUDIO, active);
+     * Resumes or suspends media on the peerconnection by setting the active state on RTCRtpEncodingParameters
+     * associates with all the senders that have a track attached to it.
+     *
+     * @param {boolean} enable - whether media needs to be enabled or suspended.
+     * @returns {Promise} - A promise that is resolved with an array of results when the change is succesful on all the
+     * senders, rejected otherwise.
+     */
+    resumeOrSuspendMedia(enable) {
+        logger.info(`${this.pc} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
+
+        const senders = this.pc.peerconnection.getSenders().filter(s => Boolean(s.track));
+        const promises = [];
+
+        for (const sender of senders) {
+            const parameters = sender.getParameters();
+
+            if (parameters?.encodings?.length) {
+                for (const encoding of parameters.encodings) {
+                    encoding.active = enable;
+                }
+            }
+            promises.push(sender.setParameters(parameters));
+        }
+
+        return Promise.all(promises);
     }
 
     /**
@@ -455,44 +499,27 @@ export class TPCUtils {
     }
 
     /**
-     * Enables/disables media transmission on the peerconnection by changing the direction
-     * on the transceiver for the specified media type.
-     * @param {String} mediaType - 'audio' or 'video'
-     * @param {boolean} active - true to enable media transmission or false
-     * to disable.
+     * Enables/disables video media transmission on the peer connection. When disabled the SDP video media direction in
+     * the local SDP will be adjusted to 'inactive' which means that no data will be sent nor accepted, but the
+     * connection should be kept alive.
+     * @param {boolean} active - true to enable media transmission or false to disable.
      * @returns {void}
      */
-    setMediaTransferActive(mediaType, active) {
-        const transceivers = this.pc.peerconnection.getTransceivers()
-            .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
-
-        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
-        transceivers.forEach(transceiver => {
-            if (active) {
-                const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
-
-                if (localTrackMids.find(mids => mids[1] === transceiver.mid)) {
-                    transceiver.direction = MediaDirection.SENDRECV;
-                } else {
-                    transceiver.direction = MediaDirection.RECVONLY;
-                }
-            } else {
-                transceiver.direction = MediaDirection.INACTIVE;
-            }
-        });
-    }
-
-    /**
-    * Enables/disables video media transmission on the peer connection. When
-    * disabled the SDP video media direction in the local SDP will be adjusted to
-    * 'inactive' which means that no data will be sent nor accepted, but
-    * the connection should be kept alive.
-    * @param {boolean} active - true to enable video media transmission or
-    * false to disable.
-    * @returns {void}
-    */
     setVideoTransferActive(active) {
-        this.setMediaTransferActive(MediaType.VIDEO, active);
+        const transceivers = this.pc.peerconnection.getTransceivers()
+            .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === MediaType.VIDEO);
+
+        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} video media transfer.`);
+        transceivers.forEach(transceiver => {
+            const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
+            const direction = active
+                ? localTrackMids.find(mids => mids[1] === transceiver.mid)
+                    ? MediaDirection.SENDRECV : MediaDirection.RECVONLY
+                : MediaDirection.INACTIVE;
+
+            logger.debug(`Setting direction to ${direction} on mid=${transceiver.mid}`);
+            transceiver.direction = direction;
+        });
     }
 
     /**

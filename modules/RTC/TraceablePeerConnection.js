@@ -2001,7 +2001,6 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 
     if (this._usesUnifiedPlan) {
         logger.debug(`${this} TPC.replaceTrack using unified plan`);
-        const mediaType = newTrack?.getType() ?? oldTrack?.getType();
 
         return this.tpcUtils.replaceTrack(oldTrack, newTrack)
             .then(transceiver => {
@@ -2030,14 +2029,8 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                         this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
                     }
                 }
-                const mediaActive = mediaType === MediaType.AUDIO
-                    ? this.audioTransferActive
-                    : this.videoTransferActive;
 
-                // Set the transceiver direction only if media is not suspended on the connection. This happens when
-                // the client is using the p2p connection. Transceiver direction is updated when media is resumed on
-                // this connection again.
-                if (transceiver && mediaActive) {
+                if (transceiver) {
                     // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
                     // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
                     // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
@@ -2053,8 +2046,6 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     // RECVONLY if FF still sends the media even though the enabled flag is set to false.
                     transceiver.direction
                         = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
-                } else if (transceiver) {
-                    transceiver.direction = MediaDirection.INACTIVE;
                 }
 
                 // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
@@ -2486,35 +2477,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
     });
 };
 
-/**
- * Enables/disables audio media transmission on this peer connection. When
- * disabled the SDP audio media direction in the local SDP will be adjusted to
- * 'inactive' which means that no data will be sent nor accepted, but
- * the connection should be kept alive.
- * @param {boolean} active <tt>true</tt> to enable audio media transmission or
- * <tt>false</tt> to disable. If the value is not a boolean the call will have
- * no effect.
- * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
- * needs to be executed in order for the changes to take effect or
- * <tt>false</tt> if the given value was the same as the previous one.
- * @public
- */
-TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
-    logger.debug(`${this} audio transfer active: ${active}`);
-    const changed = this.audioTransferActive !== active;
-
-    this.audioTransferActive = active;
-
-    if (this._usesUnifiedPlan) {
-        this.tpcUtils.setAudioTransferActive(active);
-
-        // false means no renegotiation up the chain which is not needed in the Unified mode
-        return false;
-    }
-
-    return changed;
-};
-
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     let remoteDescription = description;
 
@@ -2588,13 +2550,16 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     if (frameHeight < 0) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
-
     const sourceName = localVideoTrack.getSourceName();
 
-    if (this._senderMaxHeights.get(sourceName) === frameHeight) {
+    this._senderMaxHeights.set(sourceName, frameHeight);
+
+    // Ignore sender constraints for the following cases -
+    // 1. If the media on the peerconnection is suspended (jvb conn when p2p is currently active).
+    // 2. If the client is already sending video of the requested resolution.
+    if (!this.videoTransferActive || this.tpcUtils.getEncodedResolution(localVideoTrack) === frameHeight) {
         return Promise.resolve();
     }
-    this._senderMaxHeights.set(sourceName, frameHeight);
 
     if (!localVideoTrack || localVideoTrack.isMuted()) {
         return Promise.resolve();
@@ -2668,6 +2633,8 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
                     .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate ?? bitrate;
             }
             parameters.encodings[0].maxBitrate = bitrate;
+        } else {
+            parameters.encodings[0].maxBitrate = undefined;
         }
     } else {
         parameters.encodings[0].active = false;

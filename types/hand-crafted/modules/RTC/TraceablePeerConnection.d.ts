@@ -103,7 +103,6 @@ export default class TraceablePeerConnection {
   removeTrackMute: ( localTrack: JitsiLocalTrack ) => Promise<boolean>;
   createDataChannel: ( label: unknown, opts: unknown ) => unknown; // TODO:
   setLocalDescription: ( description: unknown ) => Promise<unknown>;
-  setAudioTransferActive: ( active: boolean ) => boolean;
   setSenderVideoDegradationPreference: () => Promise<void>;
   setMaxBitRate: () => Promise<void>; // TODO: definite bug in the JSDocs
   setRemoteDescription: ( description: unknown ) => unknown; // TODO:
