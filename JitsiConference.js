@@ -2320,37 +2320,45 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
     const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
+    const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? false;
+    const sctpOffered = $(offerIq).find('>content[name="data"]')
+        .first().length === 1;
     let wsUrl = null;
 
-    $(offerIq).find('>content>transport>web-socket')
-        .toArray()
-        .map(e => e.getAttribute('url'))
-        .forEach(url => {
-            if (!wsUrl && (!ignoreDomain || ignoreDomain !== new URL(url).hostname)) {
-                wsUrl = url;
-                logger.info(`Using colibri-ws url ${url}`);
-            } else if (!wsUrl) {
-                logger.info(`Ignoring colibri-ws url with domain ${ignoreDomain}`);
+    logger.info(`SCTP: offered=${sctpOffered}, prefered=${preferSctp}`);
+
+    if (!(sctpOffered && preferSctp)) {
+        $(offerIq).find('>content>transport>web-socket')
+            .toArray()
+            .map(e => e.getAttribute('url'))
+            .forEach(url => {
+                if (!wsUrl && (!ignoreDomain || ignoreDomain !== new URL(url).hostname)) {
+                    wsUrl = url;
+                    logger.info(`Using colibri-ws url ${url}`);
+                } else if (!wsUrl) {
+                    logger.info(`Ignoring colibri-ws url with domain ${ignoreDomain}`);
+                }
+            });
+
+        if (!wsUrl) {
+            const firstWsUrl = $(offerIq).find('>content>transport>web-socket')
+                .first();
+
+            if (firstWsUrl.length === 1) {
+                wsUrl = firstWsUrl[0].getAttribute('url');
+                logger.info(`Falling back to ${wsUrl}`);
             }
-        });
-
-    if (!wsUrl) {
-        const firstWsUrl = $(offerIq).find('>content>transport>web-socket')
-            .first();
-
-        if (firstWsUrl.length === 1) {
-            wsUrl = firstWsUrl[0].getAttribute('url');
-            logger.info(`Falling back to ${wsUrl}`);
         }
     }
 
-    if (wsUrl) {
-        // If the offer contains a websocket use it.
+    if (wsUrl && !(sctpOffered && preferSctp)) {
+        // If the offer contains a websocket and we don't prefer SCTP use it.
         this.rtc.initializeBridgeChannel(null, wsUrl);
-    } else {
+    } else if (sctpOffered) {
         // Otherwise, fall back to an attempt to use SCTP.
-        logger.info('No colibri-ws found.');
         this.rtc.initializeBridgeChannel(pc, null);
+    } else {
+        logger.warn('Neither SCTP nor a websocket is available. Will not initialize bridge channel.');
     }
 };
 
