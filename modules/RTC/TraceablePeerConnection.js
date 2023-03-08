@@ -2557,7 +2557,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     // Ignore sender constraints for the following cases -
     // 1. If the media on the peerconnection is suspended (jvb conn when p2p is currently active).
     // 2. If the client is already sending video of the requested resolution.
-    if (!this.videoTransferActive || this.tpcUtils.getEncodedResolution(localVideoTrack) === frameHeight) {
+    if (!this.videoTransferActive || this.tpcUtils.getConfiguredEncodeResolution(localVideoTrack) === frameHeight) {
         return Promise.resolve();
     }
 

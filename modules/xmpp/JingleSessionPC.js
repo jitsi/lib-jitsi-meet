@@ -2280,14 +2280,14 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Resumes or suspends media transfer over the underlying peer connection.
      *
-     * @param {boolean} enable
+     * @param {boolean} active - <tt>true</tt> to enable media transfer or <tt>false</tt> to suspend media transmission
      * @returns {Promise}
      */
-    resumeOrSuspendMedia(enable) {
-        return this.peerconnection.tpcUtils.resumeOrSuspendMedia(enable)
+    setMediaTransferActive(active) {
+        return this.peerconnection.tpcUtils.setMediaTransferActive(active)
             .then(() => {
-                this.peerconnection.audioTransferActive = enable;
-                this.peerconnection.videoTransferActive = enable;
+                this.peerconnection.audioTransferActive = active;
+                this.peerconnection.videoTransferActive = active;
             });
     }
 
@@ -2612,13 +2612,14 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Resumes or suspends video media transfer over the underlying peer connection.
+     * Resumes or suspends video media transfer over the p2p peer connection.
+     *
      * @param {boolean} videoActive <tt>true</tt> to enable video media transfer or <tt>false</tt> to suspend video
      * media transmission.
      * @return {Promise} a <tt>Promise</tt> which will resolve once the operation is done. It will be rejected with
      * an error description as a string in case anything goes wrong.
      */
-    setMediaTransferActive(videoActive) {
+    setP2pVideoTransferActive(videoActive) {
         if (!this.peerconnection) {
             return Promise.reject('Can not modify video transfer active state,'
                     + ' before "initialize" is called');
@@ -2639,7 +2640,11 @@ export default class JingleSessionPC extends JingleSession {
             }
 
             this.peerconnection.setVideoTransferActive(this._localVideoActive && this._remoteVideoActive);
-            finishedCallback();
+
+            // Always initiate a renegotiation cycle for p2p connection when the media direction is changed.
+            this._renegotiate()
+                .then(() => finishedCallback())
+                .catch(error => finishedCallback(error));
         };
 
         return new Promise((resolve, reject) => {
