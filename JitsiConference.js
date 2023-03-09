@@ -1632,17 +1632,14 @@ JitsiConference.prototype.setLastN = function(lastN) {
     }
     this.receiveVideoController.setLastN(n);
 
-    // If the P2P session is not fully established yet, we wait until it gets
-    // established.
+    // If the P2P session is not fully established yet, we wait until it gets established.
     if (this.p2pJingleSession) {
         const isVideoActive = n !== 0;
 
         this.p2pJingleSession
-            .setMediaTransferActive(true, isVideoActive)
+            .setP2pVideoTransferActive(isVideoActive)
             .catch(error => {
-                logger.error(
-                    `Failed to adjust video transfer status (${isVideoActive})`,
-                    error);
+                logger.error(`Failed to adjust video transfer status (${isVideoActive})`, error);
             });
     }
 };
@@ -3299,14 +3296,12 @@ JitsiConference.prototype._removeRemoteTracks = function(sessionNickname, remote
  */
 JitsiConference.prototype._resumeMediaTransferForJvbConnection = function() {
     logger.info('Resuming media transfer over the JVB connection...');
-    this.jvbJingleSession.setMediaTransferActive(true, true).then(
-        () => {
+    this.jvbJingleSession.setMediaTransferActive(true)
+        .then(() => {
             logger.info('Resumed media transfer over the JVB connection!');
-        },
-        error => {
-            logger.error(
-                'Failed to resume media transfer over the JVB connection:',
-                error);
+        })
+        .catch(error => {
+            logger.error('Failed to resume media transfer over the JVB connection:', error);
         });
 };
 
@@ -3338,12 +3333,9 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
         // when the lastN value was being adjusted.
         const isVideoActive = this.getLastN() !== 0;
 
-        this.p2pJingleSession
-            .setMediaTransferActive(true, isVideoActive)
+        this.p2pJingleSession.setP2pVideoTransferActive(isVideoActive)
             .catch(error => {
-                logger.error(
-                    'Failed to sync up P2P video transfer status'
-                        + `(${isVideoActive})`, error);
+                logger.error(`Failed to sync up P2P video transfer status (${isVideoActive}), ${error}`);
             });
     } else {
         logger.info('Peer to peer connection closed!');
@@ -3428,14 +3420,12 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
  */
 JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
     logger.info('Suspending media transfer over the JVB connection...');
-    this.jvbJingleSession.setMediaTransferActive(false, false).then(
-        () => {
+    this.jvbJingleSession.setMediaTransferActive(false)
+        .then(() => {
             logger.info('Suspended media transfer over the JVB connection !');
-        },
-        error => {
-            logger.error(
-                'Failed to suspend media transfer over the JVB connection:',
-                error);
+        })
+        .catch(error => {
+            logger.error('Failed to suspend media transfer over the JVB connection:', error);
         });
 };
 

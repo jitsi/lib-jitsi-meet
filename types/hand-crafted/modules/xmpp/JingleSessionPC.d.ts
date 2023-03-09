@@ -40,7 +40,7 @@ export default class JingleSessionPC extends JingleSession {
   replaceTrack: ( oldTrack: JitsiLocalTrack | null, newTrack: JitsiLocalTrack | null ) => Promise<unknown>; // TODO:
   addTrackAsUnmute: ( track: JitsiLocalTrack ) => Promise<unknown>; // TODO:
   removeTrackAsMute: ( track: JitsiLocalTrack ) => Promise<unknown>; // TODO:
-  setMediaTransferActive: ( audioActive: boolean, videoActive: boolean ) => Promise<unknown>; // TODO:
+  setMediaTransferActive: ( videoActive: boolean ) => Promise<unknown>; // TODO:
   modifyContents: ( jingleContents: JQuery ) => void;
   notifyMySSRCUpdate: ( oldSDP: unknown, newSDP: unknown ) => void; // TODO:
   newJingleErrorHandler: ( request: unknown, failureCb: ( error: Error ) => void ) => ( this: JingleSessionPC ) => unknown; // TODO:

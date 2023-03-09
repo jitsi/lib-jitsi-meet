@@ -12,9 +12,8 @@ export default class TPCUtils {
   getLocalStreamHeightConstraints: ( localTrack: JitsiLocalTrack ) => number[];
   removeTrackMute: ( localTrack: JitsiLocalTrack ) => Promise<void>;
   replaceTrack: ( oldTrack: JitsiLocalTrack, newTrack: JitsiLocalTrack ) => Promise<void>;
-  setAudioTransferActive: ( active: boolean ) => void;
   setEncodings: ( track: JitsiLocalTrack ) => Promise<void>;
-  setMediaTransferActive: ( mediaType: MediaType, active: boolean ) => void;
+  setMediaTransferActive: ( active: boolean ) => void;
   setVideoTransferActive: ( active: boolean ) => void;
   updateEncodingsResolution: ( parameters: RTCRtpEncodingParameters ) => void;
 }

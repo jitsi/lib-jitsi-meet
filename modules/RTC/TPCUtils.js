@@ -61,10 +61,10 @@ export class TPCUtils {
 
         return localTrack.isVideoTrack()
             ? [ {
-                active: true,
+                active: this.pc.videoTransferActive,
                 maxBitrate: this.videoBitrates.high
             } ]
-            : [ { active: true } ];
+            : [ { active: this.pc.audioTransferActive } ];
     }
 
     /**
@@ -88,19 +88,19 @@ export class TPCUtils {
 
         return [
             {
-                active: true,
+                active: this.pc.videoTransferActive,
                 maxBitrate: browser.isFirefox() ? maxVideoBitrate : this.encodingBitrates.low,
                 rid: SIM_LAYER_1_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
             },
             {
-                active: true,
+                active: this.pc.videoTransferActive,
                 maxBitrate: this.encodingBitrates.standard,
                 rid: SIM_LAYER_2_RID,
                 scaleResolutionDownBy: SD_SCALE_FACTOR
             },
             {
-                active: true,
+                active: this.pc.videoTransferActive,
                 maxBitrate: browser.isFirefox() ? this.encodingBitrates.low : maxVideoBitrate,
                 rid: SIM_LAYER_3_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
@@ -353,6 +353,36 @@ export class TPCUtils {
     }
 
     /**
+     * Returns the max resolution that the client is configured to encode for a given local video track. The actual
+     * send resolution might be downscaled based on cpu and bandwidth constraints.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
+     * @returns {number} The max encoded resolution for the given video track.
+     */
+    getConfiguredEncodeResolution(localVideoTrack) {
+        const localTrack = localVideoTrack.getTrack();
+        const { height } = localTrack.getSettings();
+        const videoSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
+        let maxHeight = 0;
+
+        if (!videoSender) {
+            return maxHeight;
+        }
+        const parameters = videoSender.getParameters();
+
+        if (!parameters?.encodings?.length) {
+            return maxHeight;
+        }
+        for (const encoding of parameters.encodings) {
+            if (encoding.active) {
+                maxHeight = Math.max(maxHeight, height / encoding.scaleResolutionDownBy);
+            }
+        }
+
+        return maxHeight;
+    }
+
+    /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      *
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
@@ -420,19 +450,6 @@ export class TPCUtils {
     }
 
     /**
-    * Enables/disables audio transmission on the peer connection. When
-    * disabled the audio transceiver direction will be set to 'inactive'
-    * which means that no data will be sent nor accepted, but
-    * the connection should be kept alive.
-    * @param {boolean} active - true to enable audio media transmission or
-    * false to disable.
-    * @returns {void}
-    */
-    setAudioTransferActive(active) {
-        this.setMediaTransferActive(MediaType.AUDIO, active);
-    }
-
-    /**
      * Set the simulcast stream encoding properties on the RTCRtpSender.
      * @param {JitsiLocalTrack} track - the current track in use for which
      * the encodings are to be set.
@@ -455,44 +472,68 @@ export class TPCUtils {
     }
 
     /**
-     * Enables/disables media transmission on the peerconnection by changing the direction
-     * on the transceiver for the specified media type.
-     * @param {String} mediaType - 'audio' or 'video'
-     * @param {boolean} active - true to enable media transmission or false
-     * to disable.
-     * @returns {void}
+     * Resumes or suspends media on the peerconnection by setting the active state on RTCRtpEncodingParameters
+     * associated with all the senders that have a track attached to it.
+     *
+     * @param {boolean} enable - whether media needs to be enabled or suspended.
+     * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
+     * otherwise.
      */
-    setMediaTransferActive(mediaType, active) {
-        const transceivers = this.pc.peerconnection.getTransceivers()
-            .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
+    setMediaTransferActive(enable) {
+        logger.info(`${this.pc} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
 
-        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer.`);
-        transceivers.forEach(transceiver => {
-            if (active) {
-                const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
+        const senders = this.pc.peerconnection.getSenders().filter(s => Boolean(s.track));
+        const promises = [];
 
-                if (localTrackMids.find(mids => mids[1] === transceiver.mid)) {
-                    transceiver.direction = MediaDirection.SENDRECV;
-                } else {
-                    transceiver.direction = MediaDirection.RECVONLY;
+        for (const sender of senders) {
+            const parameters = sender.getParameters();
+
+            if (parameters?.encodings?.length) {
+                for (const encoding of parameters.encodings) {
+                    encoding.active = enable;
                 }
-            } else {
-                transceiver.direction = MediaDirection.INACTIVE;
             }
-        });
+            promises.push(sender.setParameters(parameters));
+        }
+
+        return Promise.allSettled(promises)
+            .then(settledResult => {
+                const errors = settledResult
+                    .filter(result => result.status === 'rejected')
+                    .map(result => result.reason);
+
+                if (errors.length) {
+                    return Promise.reject(new Error('Failed to change encodings on the RTCRtpSenders'
+                        + `${errors.join(' ')}`));
+                }
+
+                return Promise.resolve();
+            });
     }
 
     /**
-    * Enables/disables video media transmission on the peer connection. When
-    * disabled the SDP video media direction in the local SDP will be adjusted to
-    * 'inactive' which means that no data will be sent nor accepted, but
-    * the connection should be kept alive.
-    * @param {boolean} active - true to enable video media transmission or
-    * false to disable.
-    * @returns {void}
-    */
+     * Enables/disables video media transmission on the peer connection. When disabled the SDP video media direction in
+     * the local SDP will be adjusted to 'inactive' which means that no data will be sent nor accepted, but the
+     * connection should be kept alive. This is used for setting lastn=0 on p2p connection.
+     *
+     * @param {boolean} active - true to enable media transmission or false to disable.
+     * @returns {void}
+     */
     setVideoTransferActive(active) {
-        this.setMediaTransferActive(MediaType.VIDEO, active);
+        const transceivers = this.pc.peerconnection.getTransceivers()
+            .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === MediaType.VIDEO);
+
+        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} video media transfer.`);
+        transceivers.forEach(transceiver => {
+            const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
+            const direction = active
+                ? localTrackMids.find(mids => mids[1] === transceiver.mid)
+                    ? MediaDirection.SENDRECV : MediaDirection.RECVONLY
+                : MediaDirection.INACTIVE;
+
+            logger.debug(`Setting direction to ${direction} on mid=${transceiver.mid}`);
+            transceiver.direction = direction;
+        });
     }
 
     /**
