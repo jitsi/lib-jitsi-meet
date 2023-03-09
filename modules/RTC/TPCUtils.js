@@ -476,8 +476,8 @@ export class TPCUtils {
      * associated with all the senders that have a track attached to it.
      *
      * @param {boolean} enable - whether media needs to be enabled or suspended.
-     * @returns {Promise} - A promise that is resolved with an array of results when the change is succesful on all the
-     * senders, rejected otherwise.
+     * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
+     * otherwise.
      */
     setMediaTransferActive(enable) {
         logger.info(`${this.pc} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
@@ -496,7 +496,19 @@ export class TPCUtils {
             promises.push(sender.setParameters(parameters));
         }
 
-        return Promise.all(promises);
+        return Promise.allSettled(promises)
+            .then(settledResult => {
+                const errors = settledResult
+                    .filter(result => result.status === 'rejected')
+                    .map(result => result.reason);
+
+                if (errors.length) {
+                    return Promise.reject(new Error('Failed to change encodings on the RTCRtpSenders'
+                        + `${errors.join(' ')}`));
+                }
+
+                return Promise.resolve();
+            });
     }
 
     /**
