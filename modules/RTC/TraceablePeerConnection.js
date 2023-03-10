@@ -422,6 +422,8 @@ export default function TraceablePeerConnection(
         }, 1000);
     }
 
+    this._lastVideoSenderUpdatePromise = Promise.resolve();
+
     logger.info(`Create new ${this}`);
 }
 
@@ -2571,6 +2573,27 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     if (!localVideoTrack || localVideoTrack.isMuted()) {
         return Promise.resolve();
     }
+
+    // Updating video sender parameters as wrapped-up promise to have ability
+    // to chain promises sequentially later and avoid chrome problem with transaction id
+    // which is reset at the end of video sender setParameters method and can affect
+    // next on-fly update
+    const nextPromise = this._lastVideoSenderUpdatePromise
+        .finally(() => this._updateVideoSenderParameters(frameHeight, localVideoTrack));
+
+    this._lastVideoSenderUpdatePromise = nextPromise;
+
+    return nextPromise;
+};
+
+/**
+ * Configures the video stream with resolution / degradation / maximum bitrates
+ *
+ * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
+ * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
+ * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
+ */
+TraceablePeerConnection.prototype._updateVideoSenderParameters = function(frameHeight, localVideoTrack) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
 
     if (!videoSender) {
