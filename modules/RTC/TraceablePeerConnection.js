@@ -1847,6 +1847,22 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
 };
 
 /**
+ * Checks if the client has negotiated not to receive video encoded using the given codec, i.e., the codec has been
+ * removed from the local description.
+ */
+TraceablePeerConnection.prototype.isVideoCodecDisabled = function(codec) {
+    const sdp = this.peerconnection.localDescription?.sdp;
+
+    if (!sdp) {
+        return false;
+    }
+    const parsedSdp = transform.parse(sdp);
+    const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
+
+    return !mLine.rtp.find(r => r.codec === codec);
+};
+
+/**
  * Enables or disables simulcast for screenshare based on the frame rate requested for desktop track capture.
  *
  * @param {number} maxFps framerate to be used for desktop track capture.

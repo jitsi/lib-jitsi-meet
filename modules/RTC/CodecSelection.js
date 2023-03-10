@@ -130,7 +130,7 @@ export class CodecSelection {
                     ?? nonPreferredCodecs.find(codec => this._isCodecSupported(codec));
             }
         }
-        if (selectedCodec !== currentCodec || disabledCodec) {
+        if (selectedCodec !== currentCodec || !session?.peerconnection.isVideoCodecDisabled(disabledCodec)) {
             session.setVideoCodecs(selectedCodec, disabledCodec);
         }
     }
