@@ -1121,7 +1121,7 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
  */
 JitsiConference.prototype.addTrack = function(track) {
     if (!track) {
-        throw new Error("addTrack - a track is required");
+        throw new Error('addTrack - a track is required');
     }
 
     const mediaType = track.getType();
