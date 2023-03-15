@@ -1387,6 +1387,9 @@ export default class JingleSessionPC extends JingleSession {
         if (this.failICE) {
             localSDP.failICE = true;
         }
+        if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
+            localSDP.initialLastN = this.options.channelLastN;
+        }
         localSDP.toJingle(
             accept,
             this.initiatorJid === this.localJid ? 'initiator' : 'responder');
