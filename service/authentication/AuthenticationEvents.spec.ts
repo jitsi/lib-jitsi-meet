@@ -10,7 +10,7 @@ describe( "/service/authentication/AuthenticationEvents members", () => {
     } = exported as {
         IDENTITY_UPDATED: string,
         AuthenticationEvents: { IDENTITY_UPDATED: string },
-    } // TODO: remove cast after typescript conversion
+    }  & { [key: string]: unknown }
 
     it( "known members", () => {
         expect( IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
