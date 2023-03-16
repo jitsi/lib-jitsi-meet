@@ -62,9 +62,6 @@ export class CodecSelection {
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             () => this._selectPreferredCodec());
-        this.conference.on(
-            JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-            session => this._selectPreferredCodec(session));
     }
 
     /**

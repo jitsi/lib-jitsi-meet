@@ -400,6 +400,7 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.maxstats = DEFAULT_MAX_STATS;
         }
         pcOptions.capScreenshareBitrate = false;
+        pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.videoQuality = options.videoQuality;
         pcOptions.forceTurnRelay = options.forceTurnRelay;
