@@ -254,6 +254,11 @@ export default function TraceablePeerConnection(
     this._usesUnifiedPlan = options.usesUnifiedPlan;
 
     /**
+     * Codec preferences set for the peerconnection through config.js.
+     */
+    this.codecSettings = this.options.codecSettings;
+
+    /**
      * Flag used to indicate if RTCRtpTransceiver#setCodecPreferences is to be used instead of SDP
      * munging for codec selection.
      */
@@ -1617,31 +1622,27 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
-    if (!this.codecPreference) {
-        return description;
-    }
-
     const parsedSdp = transform.parse(description.sdp);
-    const mLines = parsedSdp.media.filter(m => m.type === this.codecPreference.mediaType);
+    const mLines = parsedSdp.media.filter(m => m.type === this.codecSettings.mediaType);
 
     if (!mLines.length) {
         return description;
     }
 
     for (const mLine of mLines) {
-        if (this.codecPreference.disabledCodecMimeType) {
-            SDPUtil.stripCodec(mLine, this.codecPreference.disabledCodecMimeType);
+        if (this.codecSettings.disabled) {
+            SDPUtil.stripCodec(mLine, this.codecSettings.disabled);
         }
 
-        if (this.codecPreference.mimeType !== this.codecPreference.disabledCodecMimeType) {
-            SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+        if (this.codecSettings.preferred) {
+            SDPUtil.preferCodec(mLine, this.codecSettings.preferred);
 
             // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
             // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
             // baseline code for the jvb connection and therefore this is not needed for jvb connection.
             // TODO - add check for mobile browsers once js-utils provides that check.
-            if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-                SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+            if (this.codecSettings.preferred === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+                SDPUtil.stripCodec(mLine, this.codecSettings.preferred, true /* high profile */);
             }
         }
     }
@@ -1883,21 +1884,9 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  * @param {CodecMimeType} disabledCodec the codec that needs to be disabled.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec = null, disabledCodec = null) {
-    // If both enable and disable are set, disable settings will prevail.
-    if (this.codecPreference && (preferredCodec || disabledCodec)) {
-        this.codecPreference.mimeType = preferredCodec;
-        this.codecPreference.disabledCodecMimeType = disabledCodec;
-    } else if (preferredCodec || disabledCodec) {
-        this.codecPreference = {
-            mediaType: MediaType.VIDEO,
-            mimeType: preferredCodec,
-            disabledCodecMimeType: disabledCodec
-        };
-    } else {
-        logger.warn(`${this} Invalid codec settings[preferred=${preferredCodec},disabled=${disabledCodec}],
-            atleast one value is needed`);
-    }
+TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec, disabledCodec) {
+    preferredCodec && (this.codecSettings.preferred = preferredCodec);
+    disabledCodec && (this.codecSettings.disabled = disabledCodec);
 };
 
 /**
@@ -2391,10 +2380,6 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
  * @returns RTCSessionDescription
  */
 TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isLocalSdp = false) {
-    if (!this.codecPreference) {
-        return description;
-    }
-
     const parsedSdp = transform.parse(description.sdp);
 
     // Find all the m-lines associated with the local sources.
@@ -2402,7 +2387,7 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
 
     for (const mLine of mLines) {
-        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
+        if (this.codecSettings.preferred === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const ssHdBitrate = bitrates.ssHigh ? bitrates.ssHigh : HD_BITRATE;
@@ -2943,39 +2928,38 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
     // Set the codec preference before creating an offer or answer so that the generated SDP will have
     // the correct preference order.
     if (this._usesTransceiverCodecPreferences) {
-        const transceiver = this.peerconnection.getTransceivers()
-            .find(t => t.receiver && t.receiver?.track?.kind === MediaType.VIDEO);
+        const { mediaType } = this.codecSettings;
+        const transceivers = this.peerconnection.getTransceivers()
+            .filter(t => t.receiver && t.receiver?.track?.kind === mediaType);
 
-        if (transceiver) {
-            let capabilities = RTCRtpReceiver.getCapabilities(MediaType.VIDEO)?.codecs;
-            const disabledCodecMimeType = this.codecPreference?.disabledCodecMimeType;
-            const mimeType = this.codecPreference?.mimeType;
+        if (transceivers.length) {
+            let capabilities = RTCRtpReceiver.getCapabilities(mediaType)?.codecs;
+            const disabledCodecMimeType = this.codecSettings?.disabled;
+            const preferredCodecMimeType = this.codecSettings?.preferred;
 
             if (capabilities && disabledCodecMimeType) {
                 capabilities = capabilities
-                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${disabledCodecMimeType}`);
+                    .filter(caps => caps.mimeType.toLowerCase() !== `${mediaType}/${disabledCodecMimeType}`);
             }
 
-            if (capabilities && mimeType && mimeType !== disabledCodecMimeType) {
+            if (capabilities && preferredCodecMimeType) {
                 // Move the desired codec (all variations of it as well) to the beginning of the list.
                 /* eslint-disable-next-line arrow-body-style */
                 capabilities.sort(caps => {
-                    return caps.mimeType.toLowerCase() === `${MediaType.VIDEO}/${mimeType}` ? -1 : 1;
+                    return caps.mimeType.toLowerCase() === `${mediaType}/${preferredCodecMimeType}` ? -1 : 1;
                 });
             }
 
             // Disable ulpfec on Google Chrome and derivatives because
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1276427
-            if (browser.isChromiumBased()) {
+            if (browser.isChromiumBased() && mediaType === MediaType.VIDEO) {
                 capabilities = capabilities
                     .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}`);
             }
 
-            try {
+            // Apply codec preference to all the transceivers associated with the given media type.
+            for (const transceiver of transceivers) {
                 transceiver.setCodecPreferences(capabilities);
-            } catch (err) {
-                logger.warn(`${this} Setting codec[preference=${mimeType},disabledCodecMimeType=${
-                    disabledCodecMimeType}] failed`, err);
             }
         }
     }
