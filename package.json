@@ -78,8 +78,7 @@
   "module": "dist/esm/JitsiMeetJS.js",
   "files": [
     "dist",
-    "types",
-    "modules/browser/capabilities.json"
+    "types"
   ],
   "license": "Apache-2.0"
 }
