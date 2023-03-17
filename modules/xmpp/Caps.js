@@ -1,8 +1,10 @@
 import $ from 'jquery';
-import { Strophe, b64_sha1 } from 'strophe.js'; // eslint-disable-line camelcase
+import { Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
+
+import sha1 from './sha1';
 
 /**
  * The property
@@ -46,7 +48,7 @@ function generateSha(identities, features) {
     const sortedFeatures = features.sort().reduce(
         (tmp, feature) => `${tmp + feature}<`, '');
 
-    return b64_sha1(sortedIdentities + sortedFeatures);
+    return sha1.b64_sha1(sortedIdentities + sortedFeatures);
 }
 
 /**
