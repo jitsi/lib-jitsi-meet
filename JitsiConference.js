@@ -3102,7 +3102,10 @@ JitsiConference.prototype._addRemoteP2PTracks = function() {
  * @private
  */
 JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
-    for (const track of remoteTracks) {
+    // Add tracks for the participants that are still in the call.
+    const existingTracks = remoteTracks.filter(t => this.participants.has(t.ownerEndpointId));
+
+    for (const track of existingTracks) {
         logger.info(`Adding remote ${logName} track: ${track}`);
         this.onRemoteTrackAdded(track);
     }
