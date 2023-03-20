@@ -1343,8 +1343,11 @@ export default class JingleSessionPC extends JingleSession {
                 this.setOfferAnswerCycle(
                     originalOffer,
                     () => {
-                        const localSDP
-                            = new SDP(this.peerconnection.localDescription.sdp);
+                        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+                        if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
+                            localSDP.initialLastN = this.options.channelLastN;
+                        }
 
                         this.sendTransportAccept(localSDP, success, failure);
 
@@ -1387,6 +1390,9 @@ export default class JingleSessionPC extends JingleSession {
         }
         if (this.failICE) {
             localSDP.failICE = true;
+        }
+        if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
+            localSDP.initialLastN = this.options.channelLastN;
         }
         localSDP.toJingle(
             accept,
