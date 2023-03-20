@@ -395,14 +395,14 @@ export default class BridgeChannel {
 
                 if (this._mode === 'websocket') {
                     this._retryWebSocketConnection(event);
-                }
 
-                // We only want to send this event the first time the failure happens.
-                if (this._connected !== false) {
-                    emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
-                        code,
-                        reason
-                    });
+                    // We only want to send this event the first time the failure happens.
+                    if (this._connected !== false) {
+                        emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
+                            code,
+                            reason
+                        });
+                    }
                 }
             }
 
