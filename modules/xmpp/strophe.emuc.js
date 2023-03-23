@@ -216,12 +216,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        // Returning false would result in the listener being deregistered by Strophe
-        if (!room) {
-            return true;
-        }
-
-        room.onVisitorIQ(iq);
+        room?.onVisitorIQ(iq);
 
         return true;
     }
