@@ -2575,12 +2575,20 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         return Promise.resolve();
     }
 
-    // Updating video sender parameters as wrapped-up promise to have ability
-    // to chain promises sequentially later and avoid chrome problem with transaction id
-    // which is reset at the end of video sender setParameters method and can affect
-    // next on-fly update
+    return this._updateVideoSenderParameters(this._updateVideoSenderEncodings(frameHeight, localVideoTrack));
+};
+
+/**
+ * Returns a wrapped-up promise so that the setParameters() call on the RTCRtpSender for video sources are chained.
+ * This is needed on Chrome as it resets the transaction id after executing setParameters() and can affect the next on
+ * the fly updates if they are not chained.
+ * https://chromium.googlesource.com/external/webrtc/+/master/pc/rtp_sender.cc#340
+ * @param {Promise} promise - The promise that needs to be chained.
+ * @returns {Promise}
+ */
+TraceablePeerConnection.prototype._updateVideoSenderParameters = function(promise) {
     const nextPromise = this._lastVideoSenderUpdatePromise
-        .finally(() => this._updateVideoSenderParameters(frameHeight, localVideoTrack));
+        .finally(() => promise);
 
     this._lastVideoSenderUpdatePromise = nextPromise;
 
@@ -2594,7 +2602,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
  * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype._updateVideoSenderParameters = function(frameHeight, localVideoTrack) {
+TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
 
     if (!videoSender) {
