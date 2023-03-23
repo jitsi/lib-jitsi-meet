@@ -43,6 +43,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
         this.connection.addHandler(this.onMuteVideo.bind(this),
             'http://jitsi.org/jitmeet/video', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onVisitors.bind(this),
+            'jitsi:visitors', 'iq', 'set', null, null);
     }
 
     /**
@@ -201,6 +203,20 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         room.onMuteVideo(iq);
+
+        return true;
+    }
+
+    /**
+     * A visitor IQ is received, pass it to the room.
+     * @param iq The received iq.
+     * @returns {boolean}
+     */
+    onVisitors(iq) {
+        const from = iq.getAttribute('from');
+        const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
+        room?.onVisitorIQ(iq);
 
         return true;
     }

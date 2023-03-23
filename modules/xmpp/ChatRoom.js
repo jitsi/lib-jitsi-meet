@@ -1572,6 +1572,23 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Redirected back.
+     * @param iq The received iq.
+     */
+    onVisitorIQ(iq) {
+        const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
+        const response = $(iq).find('response-promotion');
+
+        if (visitors.length && response.length
+            && String(response.attr('allow')).toLowerCase() === 'true') {
+            logger.warn('Redirected back to main room.');
+
+            this.eventEmitter.emit(
+                XMPPEvents.REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
+        }
+    }
+
+    /**
      * Obtains the info about given media advertised (in legacy format) in the MUC presence of the participant
      * identified by the given endpoint JID. This is for mantining interop with endpoints that do not support
      * source-name signaling (Jigasi and very old mobile clients).
