@@ -1577,7 +1577,7 @@ export default class ChatRoom extends Listenable {
      */
     onVisitorIQ(iq) {
         const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
-        const response = $(iq).find('response-promotion');
+        const response = $(iq).find('promotion-response');
 
         if (visitors.length && response.length
             && String(response.attr('allow')).toLowerCase() === 'true') {
