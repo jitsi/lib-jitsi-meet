@@ -1159,8 +1159,18 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp);
             } else if (type === 'groupchat') {
+                const nickEl = $(msg).find('>nick');
+                let nick;
+
+                if (nickEl.length > 0) {
+                    nick = nickEl.text();
+                }
+
+                // we will fire explicitly that this is a guest(isGuest:true) to the conference
+                // informing that this is probably a message from a guest to the conference (visitor)
+                // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp);
+                    from, txt, this.myroomjid, stamp, nick, Boolean(nick));
             }
         }
     }

@@ -216,6 +216,9 @@ Moderator.prototype._createConferenceIq = function() {
                 }).up();
         }
     }
+    elem.c('property', {
+        name: 'visitors-version',
+        value: 1 }).up();
 
     return elem;
 };
