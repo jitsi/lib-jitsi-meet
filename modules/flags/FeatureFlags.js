@@ -16,7 +16,7 @@ class FeatureFlags {
     init(flags) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
-        this._joinAsVisitor = Boolean(flags.enableJoinAsVisitor);
+        this._joinAsVisitor = Boolean(flags.enableJoinAsVisitor ?? true);
     }
 
     /**
