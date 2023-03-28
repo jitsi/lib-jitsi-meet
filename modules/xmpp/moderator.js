@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq, Strophe } from 'strophe.js';
 
+import FeatureFlags from '../flags/FeatureFlags';
 import Settings from '../settings/Settings';
 
 const AuthenticationEvents
@@ -216,9 +217,11 @@ Moderator.prototype._createConferenceIq = function() {
                 }).up();
         }
     }
-    elem.c('property', {
-        name: 'visitors-version',
-        value: 1 }).up();
+    if (FeatureFlags.isJoinAsVisitorSupported()) {
+        elem.c('property', {
+            name: 'visitors-version',
+            value: 1 }).up();
+    }
 
     return elem;
 };
