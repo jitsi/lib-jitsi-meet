@@ -2560,22 +2560,35 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     if (frameHeight < 0) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
+    if (!localVideoTrack) {
+        throw new Error('Local video track is missing');
+    }
     const sourceName = localVideoTrack.getSourceName();
 
-    this._senderMaxHeights.set(sourceName, frameHeight);
+    // Ignore sender constraints if the media on the peerconnection is suspended (jvb conn when p2p is currently active)
+    // or if the video track is muted.
+    if (!this.videoTransferActive || localVideoTrack.isMuted()) {
+        this._senderMaxHeights.set(sourceName, frameHeight);
 
-    // Ignore sender constraints for the following cases -
-    // 1. If the media on the peerconnection is suspended (jvb conn when p2p is currently active).
-    // 2. If the client is already sending video of the requested resolution.
-    if (!this.videoTransferActive || this.tpcUtils.getConfiguredEncodeResolution(localVideoTrack) === frameHeight) {
         return Promise.resolve();
     }
 
-    if (!localVideoTrack || localVideoTrack.isMuted()) {
+    const configuredResolution = this.tpcUtils.getConfiguredEncodeResolution(localVideoTrack);
+
+    // Ignore sender constraints if the client is already sending video of the requested resolution. Note that for
+    // screensharing sources, the max resolution will be the height of the window being captured irrespective of the
+    // height being requested by the peer.
+    if ((localVideoTrack.getVideoType() === VideoType.CAMERA && configuredResolution === frameHeight)
+        || (localVideoTrack.getVideoType() === VideoType.DESKTOP
+            && frameHeight > 0
+            && configuredResolution === localVideoTrack.getTrack()?.getSettings()?.height)) {
         return Promise.resolve();
     }
 
-    return this._updateVideoSenderParameters(this._updateVideoSenderEncodings(frameHeight, localVideoTrack));
+    return this._updateVideoSenderParameters(this._updateVideoSenderEncodings(frameHeight, localVideoTrack))
+        .then(() => {
+            this._senderMaxHeights.set(sourceName, frameHeight);
+        });
 };
 
 /**

@@ -373,9 +373,12 @@ export class TPCUtils {
         if (!parameters?.encodings?.length) {
             return maxHeight;
         }
-        for (const encoding of parameters.encodings) {
-            if (encoding.active) {
-                maxHeight = Math.max(maxHeight, height / encoding.scaleResolutionDownBy);
+        for (const encoding in parameters.encodings) {
+            if (parameters.encodings[encoding].active) {
+                const scaleResolutionDownBy
+                    = this._getVideoStreamEncodings(localVideoTrack.getVideoType())[encoding].scaleResolutionDownBy;
+
+                maxHeight = Math.max(maxHeight, height / scaleResolutionDownBy);
             }
         }
 
