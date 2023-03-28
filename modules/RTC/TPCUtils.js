@@ -376,7 +376,9 @@ export class TPCUtils {
         for (const encoding in parameters.encodings) {
             if (parameters.encodings[encoding].active) {
                 const scaleResolutionDownBy
-                    = this._getVideoStreamEncodings(localVideoTrack.getVideoType())[encoding].scaleResolutionDownBy;
+                    = this.pc.isSimulcastOn()
+                        ? this._getVideoStreamEncodings(localVideoTrack.getVideoType())[encoding].scaleResolutionDownBy
+                        : parameters.encodings[encoding].scaleResolutionDownBy;
 
                 maxHeight = Math.max(maxHeight, height / scaleResolutionDownBy);
             }
