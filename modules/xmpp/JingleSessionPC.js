@@ -666,7 +666,6 @@ export default class JingleSessionPC extends JingleSession {
                     const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
 
                     this._renegotiate()
-                        .then(() => this.peerconnection.configureSenderVideoEncodings())
                         .then(() => {
                             const newSdp = new SDP(this.peerconnection.localDescription.sdp);
 
@@ -2386,13 +2385,6 @@ export default class JingleSessionPC extends JingleSession {
                             && newTrack
                             && oldTrack.isVideoTrack()) {
                             newTrack.setSourceName(oldTrack.getSourceName());
-                        }
-
-                        if (newTrack?.isVideoTrack()) {
-                            logger.debug(`${this} replaceTrack worker: configuring video stream`);
-
-                            // Configure the video encodings after the track is replaced.
-                            return this.peerconnection.configureSenderVideoEncodings(newTrack);
                         }
                     });
                 })
