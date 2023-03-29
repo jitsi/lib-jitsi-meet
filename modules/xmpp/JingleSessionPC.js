@@ -405,15 +405,7 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.videoQuality = options.videoQuality;
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
-        pcOptions.usesUnifiedPlan = this.usesUnifiedPlan
-            = browser.supportsUnifiedPlan()
-                && (!browser.isChromiumBased()
-                    || (browser.isChromiumBased()
-
-                        // Provide a way to control the behavior for jvb and p2p connections independently.
-                        && this.isP2P
-                        ? options.p2p?.enableUnifiedOnChrome ?? true
-                        : options.enableUnifiedOnChrome ?? true));
+        pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
