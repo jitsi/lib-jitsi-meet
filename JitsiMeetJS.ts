@@ -77,7 +77,6 @@ interface ICreateLocalTrackOptions {
 
 interface IJitsiMeetJSOptions {
     enableAnalyticsLogging?: boolean;
-    enableUnifiedOnChrome?: boolean;
     enableWindowOnErrorHandler?: boolean;
     externalStorage?: Storage;
     flags?: {
