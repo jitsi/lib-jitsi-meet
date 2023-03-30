@@ -458,13 +458,6 @@ JitsiConference.prototype._init = function(options = {}) {
     this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
     this.sendVideoController = new SendVideoController(this, this.rtc);
 
-    // Add the ability to enable callStats only on a percentage of users based on config.js settings.
-    let enableCallStats = true;
-
-    if (config.testing && config.testing.callStatsThreshold) {
-        enableCallStats = (Math.random() * 100) <= config.testing.callStatsThreshold;
-    }
-
     if (!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             aliasName: this._statsCurrentId,
@@ -475,7 +468,7 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
-            enableCallStats,
+            enableCallStats: true,
             roomName: this.options.name,
             applicationName: config.applicationName,
             configParams: config.callStatsConfigParams
