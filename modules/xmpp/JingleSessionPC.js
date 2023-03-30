@@ -20,7 +20,6 @@ import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import { integerHash } from '../util/StringUtils';
 
 import browser from './../browser';
 import JingleSession from './JingleSession';
@@ -88,8 +87,6 @@ function _addSourceElement(description, s, ssrc_, msid) {
 
 /**
  * @typedef {Object} JingleSessionPCOptions
- * @property {Object} abTesting - A/B testing related options (ask George).
- * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
  * video test ?(ask George).
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
@@ -410,11 +407,6 @@ export default class JingleSessionPC extends JingleSession {
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
             pcOptions.disableSimulcast = true;
-            const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
-
-            if (typeof abtestSuspendVideo !== 'undefined') {
-                pcOptions.abtestSuspendVideo = abtestSuspendVideo;
-            }
         } else {
             // H264 scalability is not supported on jvb, so simulcast needs to be disabled when H264 is preferred.
             pcOptions.disableSimulcast
@@ -2944,22 +2936,5 @@ export default class JingleSessionPC extends JingleSession {
      */
     toString() {
         return `JingleSessionPC[session=${this.isP2P ? 'P2P' : 'JVB'},initiator=${this.isInitiator},sid=${this.sid}]`;
-    }
-
-    /**
-     * If the A/B test for suspend video is disabled according to the room's
-     * configuration, returns undefined. Otherwise returns a boolean which
-     * indicates whether the suspend video option should be enabled or disabled.
-     * @param {JingleSessionPCOptions} options - The config options.
-     */
-    _abtestSuspendVideoEnabled({ abTesting }) {
-        if (!abTesting || !abTesting.enableSuspendVideoTest) {
-            return;
-        }
-
-        // We want the two participants in a P2P call to agree on the value of
-        // the "suspend" option. We use the JID of the initiator, because it is
-        // both randomly selected and agreed upon by both participants.
-        return integerHash(this.initiatorJid) % 2 === 0;
     }
 }
