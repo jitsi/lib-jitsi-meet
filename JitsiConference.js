@@ -468,7 +468,6 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
-            enableCallStats: true,
             roomName: this.options.name,
             applicationName: config.applicationName,
             configParams: config.callStatsConfigParams

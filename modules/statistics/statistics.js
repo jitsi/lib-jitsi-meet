@@ -163,7 +163,7 @@ export default function Statistics(xmpp, options) {
     this.options = options || {};
 
     this.callStatsIntegrationEnabled
-        = this.options.callStatsID && this.options.callStatsSecret && this.options.enableCallStats
+        = this.options.callStatsID && this.options.callStatsSecret
 
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
