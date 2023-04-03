@@ -7,6 +7,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 const logger = getLogger(__filename);
 const MAX_HEIGHT = 2160;
 const LASTN_UNLIMITED = -1;
+const ASSUMED_BANDWIDTH_BPS = -1;
 
 /**
  * This class translates the legacy signaling format between the client and the bridge (that affects bandwidth
@@ -15,17 +16,24 @@ const LASTN_UNLIMITED = -1;
 class ReceiverVideoConstraints {
     /**
      * Creates a new instance.
-     *
-     * @param {number} lastN - Number of videos to be requested from the bridge.
+     * @param {Object} options - The instance options:
+     * - lastN: Number of videos to be requested from the bridge.
+     * - assumedBandwidthBps: Number of bps to be requested from the bridge.
      */
-    constructor(lastN) {
+    constructor(options) {
+        const { lastN, assumedBandwidthBps } = options;
+
         // The number of videos requested from the bridge.
         this._lastN = lastN ?? LASTN_UNLIMITED;
 
         // The number representing the maximum video height the local client should receive from the bridge/peer.
         this._maxFrameHeight = MAX_HEIGHT;
 
+        // The number representing the assumed count of bps the local client should receive from the bridge.
+        this._assumedBandwidthBps = assumedBandwidthBps ?? ASSUMED_BANDWIDTH_BPS;
+
         this._receiverVideoConstraints = {
+            assumedBandwidthBps: this._assumedBandwidthBps,
             constraints: {},
             defaultConstraints: { 'maxHeight': this._maxFrameHeight },
             lastN: this._lastN
@@ -36,6 +44,7 @@ class ReceiverVideoConstraints {
      * Returns the receiver video constraints that need to be sent on the bridge channel or to the remote peer.
      */
     get constraints() {
+        this._receiverVideoConstraints.assumedBandwidthBps = this._assumedBandwidthBps;
         this._receiverVideoConstraints.lastN = this._lastN;
         if (Object.keys(this._receiverVideoConstraints.constraints)?.length) {
             /* eslint-disable no-unused-vars */
@@ -47,6 +56,24 @@ class ReceiverVideoConstraints {
         }
 
         return this._receiverVideoConstraints;
+    }
+
+
+    /**
+     * Updates the assumed bandwidth bps of the ReceiverVideoConstraints sent to the bridge.
+     *
+     * @param {number} assumedBandwidthBps
+     * @requires {boolean} Returns true if the the value has been updated, false otherwise.
+     */
+    updateAssumedBandwidthBps(assumedBandwidthBps) {
+        const changed = this._assumedBandwidthBps !== assumedBandwidthBps;
+
+        if (changed) {
+            this._assumedBandwidthBps = assumedBandwidthBps;
+            logger.debug(`Updating receive assumedBandwidthBps: ${assumedBandwidthBps}`);
+        }
+
+        return changed;
     }
 
     /**
@@ -133,8 +160,16 @@ export default class ReceiveVideoController {
          */
         this._sourceReceiverConstraints = new Map();
 
+        /**
+         * The number of bps requested from the bridge.
+         */
+        this._assumedBandwidthBps = ASSUMED_BANDWIDTH_BPS;
+
         // The default receiver video constraints.
-        this._receiverVideoConstraints = new ReceiverVideoConstraints(this._lastN);
+        this._receiverVideoConstraints = new ReceiverVideoConstraints({
+            lastN: this._lastN,
+            assumedBandwidthBps: this._assumedBandwidthBps
+        });
 
         this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
@@ -183,6 +218,18 @@ export default class ReceiveVideoController {
      */
     getLastN() {
         return this._lastN;
+    }
+
+    /**
+     * Sets the assumed bandwidth bps the local participant should receive from remote participants.
+     *
+     * @param {number|undefined} assumedBandwidthBps - the new value.
+     * @returns {void}
+     */
+    setAssumedBandwidthBps(assumedBandwidthBps) {
+        if (this._receiverVideoConstraints.updateAssumedBandwidthBps(assumedBandwidthBps)) {
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+        }
     }
 
     /**
@@ -238,6 +285,7 @@ export default class ReceiveVideoController {
         const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
 
         if (constraintsChanged) {
+            this._assumedBandwidthBps = constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
             this._lastN = constraints.lastN ?? this._lastN;
 
             // Send the contraints on the bridge channel.
