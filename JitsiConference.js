@@ -3771,6 +3771,15 @@ JitsiConference.prototype.setReceiverConstraints = function(videoConstraints) {
 };
 
 /**
+ * Sets the assumed bandwidth bps for the video that is requested from the bridge.
+ *
+ * @param {Number} assumedBandwidthBps - The bandwidth value expressed in bits per second.
+ */
+JitsiConference.prototype.setAssumedBandwidthBps = function(assumedBandwidthBps) {
+    this.receiveVideoController.setAssumedBandwidthBps(assumedBandwidthBps);
+};
+
+/**
  * Sets the maximum video size the local participant should receive from remote
  * participants.
  *
