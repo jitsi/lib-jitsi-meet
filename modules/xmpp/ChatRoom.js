@@ -1853,11 +1853,19 @@ export default class ChatRoom extends Listenable {
                 }
             };
 
-            timeout = setTimeout(() => onMucLeft(true), 5000);
+            if (this.joined) {
+                timeout = setTimeout(() => onMucLeft(true), 5000);
 
-            this.clean();
-            this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
-            this.doLeave(reason);
+                this.clean();
+                this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
+                this.doLeave(reason);
+            } else {
+                // we are clearing up, and we haven't joined the room
+                // there is no point of sending presence unavailable and check for timeout
+                // let's just clean
+                this.connection.emuc.doLeave(this.roomjid);
+                this.clean();
+            }
         }));
 
         return Promise.allSettled(promises);
