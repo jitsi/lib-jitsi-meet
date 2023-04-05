@@ -345,7 +345,8 @@ Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
 
-        if (conferenceRequest.vnode) {
+        // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
+        if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
             logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid} }`);
 
             this.eventEmitter.emit(XMPPEvents.REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
