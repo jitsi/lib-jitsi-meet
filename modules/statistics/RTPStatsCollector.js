@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
+import FeatureFlags from '../flags/FeatureFlags';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
@@ -340,7 +341,9 @@ StatsCollector.prototype._processAndEmitReport = function() {
                 };
 
                 codecs[participantId] = userCodecs;
-            } else {
+
+            // All tracks in ssrc-rewriting mode need not have a participant associated with it.
+            } else if (!FeatureFlags.isSsrcRewritingSupported()) {
                 logger.error(`No participant ID returned by ${track}`);
             }
         }

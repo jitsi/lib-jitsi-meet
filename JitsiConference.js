@@ -1909,27 +1909,31 @@ JitsiConference.prototype.onMemberLeft = function(jid, reason) {
         return;
     }
 
-    if (!FeatureFlags.isSsrcRewritingSupported()) {
-        const mediaSessions = this.getMediaSessions();
-        let tracksToBeRemoved = [];
+    const mediaSessions = this.getMediaSessions();
+    let tracksToBeRemoved = [];
 
-        for (const session of mediaSessions) {
-            const remoteTracks = session.peerconnection.getRemoteTracks(id);
+    for (const session of mediaSessions) {
+        const remoteTracks = session.peerconnection.getRemoteTracks(id);
 
-            remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
+        remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
 
-            // Update the SSRC owners list.
-            session._signalingLayer.updateSsrcOwnersOnLeave(id);
-
+        // Update the SSRC owners list.
+        session._signalingLayer.updateSsrcOwnersOnLeave(id);
+        if (!FeatureFlags.isSsrcRewritingSupported()) {
             // Remove the ssrcs from the remote description and renegotiate.
             session.removeRemoteStreamsOnLeave(id);
         }
-
-        // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
-        tracksToBeRemoved.forEach(track => {
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-        });
     }
+
+    tracksToBeRemoved.forEach(track => {
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            track.setSourceName(null);
+            track.setOwner(null);
+        } else {
+            // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+        }
+    });
 
     const participant = this.participants.get(id);
 
