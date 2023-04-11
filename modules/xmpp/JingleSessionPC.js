@@ -1815,6 +1815,12 @@ export default class JingleSessionPC extends JingleSession {
 
                         track._setVideoType(type);
                     }
+
+                    // Update the muted state on the track since the presence for this track could have been received
+                    // before the updated source map is received on the bridge channel.
+                    const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
+
+                    peerMediaInfo && this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
                 } else {
                     logger.error(`Remote track attached to a remote SSRC=${ssrc} not found`);
                 }

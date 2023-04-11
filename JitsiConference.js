@@ -3091,18 +3091,18 @@ JitsiConference.prototype._addRemoteP2PTracks = function() {
 
 /**
  * Generates fake "remote track added" events for given Jingle session.
- * @param {string} logName the session's nickname which will appear in log
- * messages.
+ * @param {string} logName the session's nickname which will appear in log messages.
  * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be added
  * @private
  */
 JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
-    // Add tracks for the participants that are still in the call.
-    const existingTracks = remoteTracks.filter(t => this.participants.has(t.ownerEndpointId));
-
-    for (const track of existingTracks) {
-        logger.info(`Adding remote ${logName} track: ${track}`);
-        this.onRemoteTrackAdded(track);
+    for (const track of remoteTracks) {
+        // There will be orphan (with no owner) tracks when ssrc-rewriting is enabled and all of them need to be addded
+        // back to the conference.
+        if (FeatureFlags.isSsrcRewritingSupported() || this.participants.has(track.ownerEndpointId)) {
+            logger.info(`Adding remote ${logName} track: ${track}`);
+            this.onRemoteTrackAdded(track);
+        }
     }
 };
 

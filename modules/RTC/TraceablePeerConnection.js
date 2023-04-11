@@ -626,6 +626,10 @@ TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isM
     const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
 
     if (!track) {
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
+        }
+
         return;
     }
 
