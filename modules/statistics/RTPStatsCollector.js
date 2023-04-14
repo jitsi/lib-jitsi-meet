@@ -134,8 +134,6 @@ function ConferenceStats() {
  */
 export default function StatsCollector(peerconnection, audioLevelsInterval, statsInterval, eventEmitter) {
     this.peerconnection = peerconnection;
-    this.baselineAudioLevelsReport = null;
-    this.currentAudioLevelsReport = null;
     this.currentStatsReport = null;
     this.previousStatsReport = null;
     this.audioLevelReportHistory = {};
@@ -196,40 +194,23 @@ StatsCollector.prototype.errorCallback = function(error) {
  * Starts stats updates.
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
-    if (startAudioLevelStats) {
-        if (browser.supportsReceiverStats()) {
-            logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
-        }
+    if (startAudioLevelStats && browser.supportsReceiverStats()) {
         this.audioLevelsIntervalId = setInterval(
             () => {
-                if (browser.supportsReceiverStats()) {
-                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
+                const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
 
-                    for (const ssrc in audioLevels) {
-                        if (audioLevels.hasOwnProperty(ssrc)) {
-                            // Use a scaling factor of 2.5 to report the same
-                            // audio levels that getStats reports.
-                            const audioLevel = audioLevels[ssrc] * 2.5;
+                for (const ssrc in audioLevels) {
+                    if (audioLevels.hasOwnProperty(ssrc)) {
+                        // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
+                        const audioLevel = audioLevels[ssrc] * 2.5;
 
-                            this.eventEmitter.emit(
-                                StatisticsEvents.AUDIO_LEVEL,
-                                this.peerconnection,
-                                Number.parseInt(ssrc, 10),
-                                audioLevel,
-                                false /* isLocal */);
-                        }
+                        this.eventEmitter.emit(
+                            StatisticsEvents.AUDIO_LEVEL,
+                            this.peerconnection,
+                            Number.parseInt(ssrc, 10),
+                            audioLevel,
+                            false /* isLocal */);
                     }
-                } else {
-                    // Interval updates
-                    this.peerconnection.getStats()
-                        .then(report => {
-                            this.currentAudioLevelsReport = typeof report?.result === 'function'
-                                ? report.result()
-                                : report;
-                            this.processAudioLevelReport();
-                            this.baselineAudioLevelsReport = this.currentAudioLevelsReport;
-                        })
-                        .catch(error => this.errorCallback(error));
                 }
             },
             this.audioLevelsIntervalMilis
@@ -678,42 +659,4 @@ StatsCollector.prototype.processStatsReport = function() {
     }
 
     this._processAndEmitReport();
-};
-
-/**
- * Stats processing logic.
- */
-StatsCollector.prototype.processAudioLevelReport = function() {
-    if (!this.baselineAudioLevelsReport) {
-        return;
-    }
-
-    this.currentAudioLevelsReport.forEach(now => {
-        if (now.type !== 'track') {
-            return;
-        }
-
-        // Audio level
-        const audioLevel = now.audioLevel;
-
-        if (!audioLevel) {
-            return;
-        }
-
-        const trackIdentifier = now.trackIdentifier;
-        const ssrc = this.peerconnection.getSsrcByTrackId(trackIdentifier);
-
-        if (ssrc) {
-            const isLocal
-                = ssrc === this.peerconnection.getLocalSSRC(
-                this.peerconnection.getLocalTracks(MediaType.AUDIO));
-
-            this.eventEmitter.emit(
-                StatisticsEvents.AUDIO_LEVEL,
-                this.peerconnection,
-                ssrc,
-                audioLevel,
-                isLocal);
-        }
-    });
 };
