@@ -531,7 +531,7 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     // Generates events based on no audio input detector.
-    if (config.enableNoAudioDetection) {
+    if (config.enableNoAudioDetection && !config.disableAudioLevels) {
         this._noAudioSignalDetection = new NoAudioSignalDetection(this);
         this._noAudioSignalDetection.on(DetectionEvents.NO_AUDIO_INPUT, () => {
             this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT);
@@ -540,7 +540,6 @@ JitsiConference.prototype._init = function(options = {}) {
             this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE, hasAudioSignal);
         });
     }
-
 
     if ('channelLastN' in config) {
         this.setLastN(config.channelLastN);
