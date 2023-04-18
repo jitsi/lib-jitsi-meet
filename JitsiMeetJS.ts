@@ -307,7 +307,7 @@ export default {
                         'success',
                         getAnalyticsAttributesFromOptions(restOptions)));
 
-                if (!RTC.options.disableAudioLevels) {
+                if (this.isCollectingLocalStats()) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
@@ -484,8 +484,7 @@ export default {
      * @param {boolean} True if stats are being collected for local tracks.
      */
     isCollectingLocalStats() {
-        return Statistics.audioLevelsEnabled
-            && LocalStatsCollector.isLocalStatsSupported();
+        return Statistics.audioLevelsEnabled && LocalStatsCollector.isLocalStatsSupported();
     },
 
     /**
