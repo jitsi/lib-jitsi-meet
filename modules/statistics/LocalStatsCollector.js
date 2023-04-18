@@ -143,7 +143,7 @@ LocalStatsCollector.prototype.stop = function() {
  * @returns {boolean}
  */
 LocalStatsCollector.isLocalStatsSupported = function() {
-    return Boolean(window.AudioContext);
+    return Boolean(window?.AudioContext);
 };
 
 /**
