@@ -57,6 +57,9 @@ export class CodecSelection {
             + `disabled=${this.p2pDisabledCodec}`);
 
         this.conference.on(
+            JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+            session => this._selectPreferredCodec(session));
+        this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
             () => this._selectPreferredCodec());
         this.conference.on(
