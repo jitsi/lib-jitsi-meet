@@ -495,6 +495,9 @@ export default class XmppConnection extends Listenable {
      */
     send(stanza) {
         if (!this.connected) {
+            logger.error(`Trying to send stanza while not connected. Status:${this._status} Proto:${
+                this.isUsingWebSocket ? this._stropheConn?._proto?.socket?.readyState : 'bosh'
+            }`);
             throw new Error('Not connected');
         }
         this._stropheConn.send(stanza);
