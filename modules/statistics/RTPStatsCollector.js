@@ -336,7 +336,6 @@ StatsCollector.prototype._processAndEmitReport = function() {
             const localSsrcs = this.peerconnection.getLocalSSRCs(track);
 
             for (const localSsrc of localSsrcs) {
-                console.error(`SSRC stats are ${JSON.stringify(this.ssrc2stats.get(localSsrc).resolution)}`);
                 const ssrcResolution = this.ssrc2stats.get(localSsrc)?.resolution;
 
                 // The code processes resolution stats only for 'outbound-rtp' streams that are currently active.
