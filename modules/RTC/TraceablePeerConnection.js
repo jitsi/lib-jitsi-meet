@@ -681,6 +681,33 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 };
 
 /**
+ * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
+ * bridge. Currently this happens only when VP8 is the selected codec.
+ * @returns {boolean}
+ */
+TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
+    return this.isSimulcastOn() && this.getConfiguredVideoCodec() === CodecMimeType.VP8;
+};
+
+/**
+ * Returns the SSRCs associated with a given local video track.
+ *
+ * @param {JitsiLocalTrack} localTrack
+ * @returns
+ */
+TraceablePeerConnection.prototype.getLocalSSRCs = function(localTrack) {
+    const ssrcs = [];
+
+    if (!localTrack || !localTrack.isVideoTrack()) {
+        return ssrcs;
+    }
+
+    const ssrcGroup = this.isSimulcastOn() ? 'SIM' : 'FID';
+
+    return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
+};
+
+/**
  * Obtains local tracks for given {@link MediaType}. If the <tt>mediaType</tt>
  * argument is omitted the list of all local tracks will be returned.
  * @param {MediaType} [mediaType]

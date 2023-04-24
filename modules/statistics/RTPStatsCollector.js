@@ -275,61 +275,87 @@ StatsCollector.prototype._processAndEmitReport = function() {
         bitrateDownload += ssrcStats.bitrate.download;
         bitrateUpload += ssrcStats.bitrate.upload;
 
+        ssrcStats.resetBitrate();
+
         // collect resolutions and framerates
         const track = this.peerconnection.getTrackBySSRC(ssrc);
 
-        if (track) {
-            let audioCodec;
-            let videoCodec;
+        if (!track) {
+            continue; // eslint-disable-line no-continue
+        }
 
-            if (track.isAudioTrack()) {
-                audioBitrateDownload += ssrcStats.bitrate.download;
-                audioBitrateUpload += ssrcStats.bitrate.upload;
-                audioCodec = ssrcStats.codec;
-            } else {
-                videoBitrateDownload += ssrcStats.bitrate.download;
-                videoBitrateUpload += ssrcStats.bitrate.upload;
-                videoCodec = ssrcStats.codec;
-            }
+        let audioCodec;
+        let videoCodec;
 
-            const participantId = track.getParticipantId();
+        if (track.isAudioTrack()) {
+            audioBitrateDownload += ssrcStats.bitrate.download;
+            audioBitrateUpload += ssrcStats.bitrate.upload;
+            audioCodec = ssrcStats.codec;
+        } else {
+            videoBitrateDownload += ssrcStats.bitrate.download;
+            videoBitrateUpload += ssrcStats.bitrate.upload;
+            videoCodec = ssrcStats.codec;
+        }
 
-            if (participantId) {
-                const resolution = ssrcStats.resolution;
+        const participantId = track.getParticipantId();
 
-                if (resolution.width
-                        && resolution.height
-                        && resolution.width !== -1
-                        && resolution.height !== -1) {
-                    const userResolutions = resolutions[participantId] || {};
-
-                    userResolutions[ssrc] = resolution;
-                    resolutions[participantId] = userResolutions;
-                }
-
-                if (ssrcStats.framerate > 0) {
-                    const userFramerates = framerates[participantId] || {};
-
-                    userFramerates[ssrc] = ssrcStats.framerate;
-                    framerates[participantId] = userFramerates;
-                }
-
-                const userCodecs = codecs[participantId] ?? { };
-
-                userCodecs[ssrc] = {
-                    audio: audioCodec,
-                    video: videoCodec
-                };
-
-                codecs[participantId] = userCodecs;
-
+        if (!participantId) {
             // All tracks in ssrc-rewriting mode need not have a participant associated with it.
-            } else if (!FeatureFlags.isSsrcRewritingSupported()) {
+            if (!FeatureFlags.isSsrcRewritingSupported()) {
                 logger.error(`No participant ID returned by ${track}`);
+            }
+            continue; // eslint-disable-line no-continue
+        }
+
+        const userCodecs = codecs[participantId] ?? { };
+
+        userCodecs[ssrc] = {
+            audio: audioCodec,
+            video: videoCodec
+        };
+
+        codecs[participantId] = userCodecs;
+        const { resolution } = ssrcStats;
+
+        if (!track.isVideoTrack()
+            || isNaN(resolution?.height)
+            || isNaN(resolution?.width)
+            || resolution.height === -1
+            || resolution.width === -1) {
+            continue; // eslint-disable-line no-continue
+        }
+        const userResolutions = resolutions[participantId] || {};
+
+        // If simulcast (VP8) is used, there will be 3 "outbound-rtp" streams with different resolutions and 3
+        // different SSRCs. Based on the requested resolution and the current cpu and available bandwidth
+        // values, some of the streams might get suspended. Therefore the actual send resolution needs to be
+        // calculated based on the outbound-rtp streams that are currently active for the simulcast case.
+        // However for the SVC case, there will be only 1 "outbound-rtp" stream which will have the correct
+        // send resolution width and height.
+        if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast()) {
+            const localSsrcs = this.peerconnection.getLocalSSRCs(track);
+
+            for (const localSsrc of localSsrcs) {
+                console.error(`SSRC stats are ${JSON.stringify(this.ssrc2stats.get(localSsrc).resolution)}`);
+                const ssrcResolution = this.ssrc2stats.get(localSsrc)?.resolution;
+
+                // The code processes resolution stats only for 'outbound-rtp' streams that are currently active.
+                if (ssrcResolution?.height && ssrcResolution?.width) {
+                    resolution.height = Math.max(resolution.height, ssrcResolution.height);
+                    resolution.width = Math.max(resolution.width, ssrcResolution.width);
+                }
             }
         }
 
-        ssrcStats.resetBitrate();
+        userResolutions[ssrc] = resolution;
+        resolutions[participantId] = userResolutions;
+
+        if (ssrcStats.framerate > 0) {
+            const userFramerates = framerates[participantId] || {};
+
+            userFramerates[ssrc] = ssrcStats.framerate;
+            framerates[participantId] = userFramerates;
+        }
     }
 
     this.conferenceStats.bitrate = {
@@ -552,29 +578,34 @@ StatsCollector.prototype.processStatsReport = function() {
                 });
             }
 
-            // Get the resolution and framerate for only remote video sources here. For the local video sources,
-            // 'track' stats will be used since they have the updated resolution based on the simulcast streams
-            // currently being sent. Promise based getStats reports three 'outbound-rtp' streams and there will be
-            // more calculations needed to determine what is the highest resolution stream sent by the client if the
-            // 'outbound-rtp' stats are used.
-            if (now.type === 'inbound-rtp') {
-                const resolution = {
-                    height: now.frameHeight,
-                    width: now.frameWidth
-                };
-                const frameRate = now.framesPerSecond;
+            const resolution = {
+                height: now.frameHeight,
+                width: now.frameWidth
+            };
+            const frameRate = now.framesPerSecond;
 
-                if (resolution.height && resolution.width) {
-                    ssrcStats.setResolution(resolution);
-                }
+            // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
+            // Chromium based and version 112 and later since 'track' based stats are no longer available there
+            // for calculating send resolution and frame rate.
+            if (resolution.height
+                && resolution.width
+                && (now.type === 'inbound-rtp'
+                || (!browser.supportsTrackBasedStats() && now.active))) {
+                ssrcStats.setResolution(resolution);
                 ssrcStats.setFramerate(Math.round(frameRate || 0));
 
-                if (before) {
-                    ssrcStats.addBitrate({
-                        'download': this._calculateBitrate(now, before, 'bytesReceived'),
-                        'upload': 0
-                    });
-                }
+            // Reset the stats if the current stream is suspended when 'outbound-rtp' stats are used for resolution
+            // and framerate.
+            } else if (!browser.supportsTrackBasedStats()) {
+                ssrcStats.setResolution({ });
+                ssrcStats.setFramerate(0);
+            }
+
+            if (now.type === 'inbound-rtp' && before) {
+                ssrcStats.addBitrate({
+                    'download': this._calculateBitrate(now, before, 'bytesReceived'),
+                    'upload': 0
+                });
             } else if (before) {
                 byteSentStats[ssrc] = this.getNonNegativeValue(now.bytesSent);
                 ssrcStats.addBitrate({
@@ -596,10 +627,11 @@ StatsCollector.prototype.processStatsReport = function() {
                 codecShortType && ssrcStats.setCodec(codecShortType);
             }
 
-        // Use track stats for resolution and framerate of the local video source.
-        // RTCVideoHandlerStats - https://w3c.github.io/webrtc-stats/#vststats-dict*
-        // RTCMediaHandlerStats - https://w3c.github.io/webrtc-stats/#mststats-dict*
-        } else if (now.type === 'track' && now.kind === MediaType.VIDEO && !now.remoteSource) {
+        // Continue to use the 'track' based stats for Firefox and Safari and older versions of Chromium.
+        } else if (browser.supportsTrackBasedStats()
+            && now.type === 'track'
+            && now.kind === MediaType.VIDEO
+            && !now.remoteSource) {
             const resolution = {
                 height: now.frameHeight,
                 width: now.frameWidth
