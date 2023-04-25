@@ -695,7 +695,7 @@ TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
  * @param {JitsiLocalTrack} localTrack
  * @returns
  */
-TraceablePeerConnection.prototype.getLocalSSRCs = function(localTrack) {
+TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
     const ssrcs = [];
 
     if (!localTrack || !localTrack.isVideoTrack()) {
@@ -1263,6 +1263,18 @@ TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
                     }
                     groupsMap.get(primarySSRC).push(group);
                 }
+            }
+
+            const simGroup = mLine.ssrcGroups.find(group => group.semantics === 'SIM');
+
+            // Add a SIM group if its missing in the description (happens on Firefox).
+            if (!simGroup) {
+                const groupSsrcs = mLine.ssrcGroups.map(group => group.ssrcs[0]);
+
+                groupsMap.get(groupSsrcs[0]).push({
+                    semantics: 'SIM',
+                    ssrcs: groupSsrcs
+                });
             }
         }
 

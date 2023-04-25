@@ -333,7 +333,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
         // However for the SVC case, there will be only 1 "outbound-rtp" stream which will have the correct
         // send resolution width and height.
         if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast()) {
-            const localSsrcs = this.peerconnection.getLocalSSRCs(track);
+            const localSsrcs = this.peerconnection.getLocalVideoSSRCs(track);
 
             for (const localSsrc of localSsrcs) {
                 const ssrcResolution = this.ssrc2stats.get(localSsrc)?.resolution;
@@ -471,6 +471,26 @@ StatsCollector.prototype._calculateBitrate = function(now, before, fieldName) {
 };
 
 /**
+ * Calculates the frames per second rate between before and now using a supplied field name and its value in stats.
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} before the previous stats
+ * @param {string} fieldName the field to use for calculations.
+ * @returns {number} the calculated frame rate between now and before.
+ */
+StatsCollector.prototype._calculateFps = function(now, before, fieldName) {
+    const timeMs = now.timestamp - before.timestamp;
+    let frameRate = 0;
+
+    if (timeMs > 0 && now[fieldName]) {
+        const numberOfFramesSinceBefore = now[fieldName] - before[fieldName];
+
+        frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
+    }
+
+    return frameRate;
+};
+
+/**
  * Stats processing for spec-compliant RTCPeerConnection#getStats.
  */
 StatsCollector.prototype.processStatsReport = function() {
@@ -577,28 +597,31 @@ StatsCollector.prototype.processStatsReport = function() {
                 });
             }
 
-            const resolution = {
-                height: now.frameHeight,
-                width: now.frameWidth
-            };
-            const frameRate = now.framesPerSecond;
+            let resolution;
 
             // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
             // Chromium based and version 112 and later since 'track' based stats are no longer available there
             // for calculating send resolution and frame rate.
-            if (resolution.height
-                && resolution.width
-                && (now.type === 'inbound-rtp'
-                || (!browser.supportsTrackBasedStats() && now.active))) {
-                ssrcStats.setResolution(resolution);
-                ssrcStats.setFramerate(Math.round(frameRate || 0));
+            if (typeof now.frameHeight !== 'undefined' && typeof now.frameWidth !== 'undefined') {
+                // Assume the stream is active if the field is missing in the stats(Firefox)
+                const isStreamActive = now.active ?? true;
 
-            // Reset the stats if the current stream is suspended when 'outbound-rtp' stats are used for resolution
-            // and framerate.
-            } else if (!browser.supportsTrackBasedStats()) {
-                ssrcStats.setResolution({ });
-                ssrcStats.setFramerate(0);
+                if (now.type === 'inbound-rtp' || (!browser.supportsTrackBasedStats() && isStreamActive)) {
+                    resolution = {
+                        height: now.frameHeight,
+                        width: now.frameWidth
+                    };
+                }
             }
+            ssrcStats.setResolution(resolution);
+
+            let frameRate = now.framesPerSecond;
+
+            if (!frameRate && before) {
+                frameRate = this._calculateFps(now, before, 'framesSent');
+            }
+
+            ssrcStats.setFramerate(Math.round(frameRate || 0));
 
             if (now.type === 'inbound-rtp' && before) {
                 ssrcStats.addBitrate({
@@ -660,27 +683,9 @@ StatsCollector.prototype.processStatsReport = function() {
             // Therefore, it needs to be divided by the total number of active simulcast streams.
             let frameRate = now.framesPerSecond;
 
-            if (!frameRate) {
-                if (before) {
-                    const timeMs = now.timestamp - before.timestamp;
-
-                    if (timeMs > 0 && now.framesSent) {
-                        const numberOfFramesSinceBefore = now.framesSent - before.framesSent;
-
-                        frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
-                    }
-                }
-
-                if (!frameRate) {
-                    return;
-                }
+            if (!frameRate && before) {
+                frameRate = this._calculateFps(now, before, 'framesSent');
             }
-
-            // Get the number of simulcast streams currently enabled from TPC.
-            const numberOfActiveStreams = this.peerconnection.getActiveSimulcastStreams();
-
-            // Reset frame rate to 0 when video is suspended as a result of endpoint falling out of last-n.
-            frameRate = numberOfActiveStreams ? Math.round(frameRate / numberOfActiveStreams) : 0;
             ssrcStats.setFramerate(frameRate);
         }
     });

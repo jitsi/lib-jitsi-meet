@@ -225,9 +225,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsTrackBasedStats() {
-        return (this.isChromiumBased() && this.isVersionLessThan(112))
-            || this.isWebKitBased()
-            || this.isFirefox();
+        return this.isChromiumBased() && this.isVersionLessThan(112);
     }
 
     /**
