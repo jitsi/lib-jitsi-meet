@@ -220,6 +220,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if the browser supports track based statistics for the local video track. Otherwise,
+     * track resolution and framerate will be calculated based on the 'outbound-rtp' statistics.
+     * @returns {boolean}
+     */
+    supportsTrackBasedStats() {
+        return this.isChromiumBased() && this.isVersionLessThan(112);
+    }
+
+    /**
      * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Firefox and Safari
      * because of issues with rendering. Please check https://bugzilla.mozilla.org/show_bug.cgi?id=1492500,
      * https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074 for details.
