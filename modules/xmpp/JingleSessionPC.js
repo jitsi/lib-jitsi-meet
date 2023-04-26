@@ -49,6 +49,12 @@ const DEFAULT_MAX_STATS = 300;
 const ICE_CAND_GATHERING_TIMEOUT = 150;
 
 /**
+ * The amount of time to wait in the ice disconnected state before giving up and triggering a restart.
+ * @type {number} timeout in ms.
+ */
+const ICE_DISCONNECT_TIMEOUT = 5000;
+
+/**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
  * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
  * endpoint/participant.
@@ -286,6 +292,8 @@ export default class JingleSessionPC extends JingleSession {
 
         this.lasticecandidate = false;
         this.closed = false;
+        this.disconnectTimerId = 0;
+        this.iceRestartAttempts = 0;
 
         /**
          * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
@@ -527,9 +535,16 @@ export default class JingleSessionPC extends JingleSession {
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this,
                 this.peerconnection.iceConnectionState);
+
+            if (this.disconnectTimerId > 0) {
+                clearTimeout(this.disconnectTimerId);
+                this.disconnectTimerId = 0;
+            }
+
             switch (this.peerconnection.iceConnectionState) {
             case 'checking':
                 this._iceCheckingStartedTimestamp = now;
+                ++this.iceRestartAttempts;
                 break;
             case 'connected':
                 // Informs interested parties that the connection has been restored. This includes the case when
@@ -591,6 +606,7 @@ export default class JingleSessionPC extends JingleSession {
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
                 this.isReconnect = false;
+                this.iceRestartAttempts = 0;
                 break;
             case 'disconnected':
                 this.isReconnect = true;
@@ -601,8 +617,18 @@ export default class JingleSessionPC extends JingleSession {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_INTERRUPTED, this);
                 }
+
+                this.lasticecandidate = false;
+
+                this.disconnectTimerId = setTimeout(() => {
+                    this.room.eventEmitter.emit(
+                        XMPPEvents.CONNECTION_ICE_FAILED, this);
+
+                }, ICE_DISCONNECT_TIMEOUT);
                 break;
             case 'failed':
+                this.lasticecandidate = false;
+
                 this.room.eventEmitter.emit(
                     XMPPEvents.CONNECTION_ICE_FAILED, this);
                 break;
@@ -736,7 +762,6 @@ export default class JingleSessionPC extends JingleSession {
         } else {
             logger.log(`${this} sendIceCandidate: last candidate`);
 
-            // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
         }
     }
