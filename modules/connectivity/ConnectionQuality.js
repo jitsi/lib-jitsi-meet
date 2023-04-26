@@ -212,8 +212,10 @@ export default class ConnectionQuality {
                 this._updateRemoteStats(participant.getId(), payload);
             });
 
-        // Listen to local statistics events originating from the RTC module and update the _localStats field.
-        conference.statistics.addConnectionStatsListener(this._updateLocalStats.bind(this));
+        if (!this._options.config.disableLocalStats) {
+            // Listen to local statistics events originating from the RTC module and update the _localStats field.
+            conference.statistics.addConnectionStatsListener(this._updateLocalStats.bind(this));
+        }
 
         // Save the last time we were unmuted.
         conference.on(
