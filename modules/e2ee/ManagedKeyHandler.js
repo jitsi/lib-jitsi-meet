@@ -169,7 +169,7 @@ export class ManagedKeyHandler extends KeyHandler {
 
         this._key = new Uint8Array(newKey);
 
-        const index = this._olmAdapter.updateCurrentKey(this._key);
+        const index = this._olmAdapter.updateCurrentMediaKey(this._key);
 
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
