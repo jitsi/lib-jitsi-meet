@@ -35,6 +35,13 @@ export default class AsyncQueue {
     }
 
     /**
+     * Pauses the execution of the tasks on the queue.
+     */
+    pause() {
+        this._queue.pause();
+    }
+
+    /**
      * The 'task' function will be given a callback it MUST call with either:
      *  1) No arguments if it was successful or
      *  2) An error argument if there was an error
@@ -58,6 +65,13 @@ export default class AsyncQueue {
             return;
         }
         this._queue.push(task, callback);
+    }
+
+    /**
+     * Resumes the execution of the tasks on the queue.
+     */
+    resume() {
+        this._queue.resume();
     }
 
     /**
