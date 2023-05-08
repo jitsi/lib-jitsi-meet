@@ -27,7 +27,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 export function getSourceNameForJitsiTrack(endpointId, mediaType, trackIdx) {
     const firstLetterOfMediaType = mediaType.substring(0, 1);
 
-    return `${endpointId}-${firstLetterOfMediaType}${trackIdx}`;
+    return `${endpointId}-${firstLetterOfMediaType}${trackIdx || 0}`;
 }
 
 /**
