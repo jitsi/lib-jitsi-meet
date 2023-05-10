@@ -29,8 +29,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
         FeatureFlags.init({ });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
-    describe('dontStripSsrcs', () => {
-        it('shouldn\'t strip ssrcs from an sdp with no msid', () => {
+    describe('StripSsrcs', () => {
+        it('should strip ssrcs from an sdp with no msid (i.e., recvonly transceivers)', () => {
             localSdpMunger.tpc.isP2P = false;
 
             const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
@@ -43,11 +43,11 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
-            expect(audioSsrcs.length).toEqual(2);
-            expect(videoSsrcs.length).toEqual(2);
+            expect(audioSsrcs.length).toEqual(0);
+            expect(videoSsrcs.length).toEqual(0);
         });
 
-        describe('should do nothing to an sdp with msid', () => {
+        describe('should strip cname, label and mslabel from an sdp with msid', () => {
             let audioSsrcs, videoSsrcs;
 
             const transformStreamIdentifiers = () => {
@@ -66,8 +66,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             it('with source name signaling enabled (injected source name)', () => {
                 transformStreamIdentifiers();
 
-                expect(audioSsrcs.length).toEqual(4 + 1 /* injected source name */);
-                expect(videoSsrcs.length).toEqual(6 + 3 /* injected source name into each ssrc */);
+                expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
+                expect(videoSsrcs.length).toEqual(3 + 3 /* injected source name into each ssrc */);
             });
         });
     });
@@ -108,44 +108,6 @@ describe('TransformSdpsForUnifiedPlan', () => {
             const msidExists = videoSsrcs.find(s => s.attribute === 'msid');
 
             expect(msidExists).toBeDefined();
-        });
-    });
-});
-
-describe('DoNotTransformSdpForPlanB', () => {
-    let localSdpMunger;
-    const tpc = new MockPeerConnection('1', false);
-    const localEndpointId = 'sRdpsdg';
-
-    beforeEach(() => {
-        localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
-    });
-    describe('stripSsrcs', () => {
-        describe('should not strip ssrcs from an sdp with no msid', () => {
-            let audioSsrcs, videoSsrcs;
-
-            const transformStreamIdentifiers = () => {
-                localSdpMunger.tpc.isP2P = false;
-
-                const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
-                const desc = new RTCSessionDescription({
-                    type: 'offer',
-                    sdp: sdpStr
-                });
-                const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
-                const newSdp = transform.parse(transformedDesc.sdp);
-
-                audioSsrcs = getSsrcLines(newSdp, 'audio');
-                videoSsrcs = getSsrcLines(newSdp, 'video');
-            };
-
-            it('with source name signaling', () => {
-                FeatureFlags.init({ });
-                transformStreamIdentifiers();
-
-                expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
-                expect(videoSsrcs.length).toEqual(1 + 1 /* injected source name */);
-            });
         });
     });
 });
@@ -214,5 +176,28 @@ describe('Track replace operations in plan-b', () => {
         videoMsid = videoMsidLine.split(' ')[0];
 
         expect(videoMsid).toBe('sRdpsdg-video-0-1');
+    });
+});
+
+describe('Transform msids for plan-b', () => {
+    const tpc = new MockPeerConnection('1', false);
+    const localEndpointId = 'sRdpsdg';
+    let desc, newSdp, sdpStr, transformedDesc;
+    const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
+
+    it('should inject source-names', () => {
+        sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
+        desc = new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdpStr
+        });
+        transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+        newSdp = transform.parse(transformedDesc.sdp);
+
+        const audioSsrcs = getSsrcLines(newSdp, 'audio');
+        const videoSsrcs = getSsrcLines(newSdp, 'video');
+
+        expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
+        expect(videoSsrcs.length).toEqual(6 + 6 /* injected source name into each ssrc */);
     });
 });
