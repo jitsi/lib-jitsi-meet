@@ -2675,7 +2675,10 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
 
         return;
     }
-    this.startMutedPolicy = policy;
+
+    // Do not apply the startMutedPolicy locally on the moderator, the moderator should join with available local
+    // sources and the policy needs to be applied only on users that join the call after.
+    // this.startMutedPolicy = policy;
     this.room.addOrReplaceInPresence('startmuted', {
         attributes: {
             audio: policy.audio,
