@@ -324,6 +324,9 @@ export default function JitsiConference(options) {
      * again by Jicofo.
      */
     this._videoSenderLimitReached = undefined;
+
+    this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
+        && (this.options.config.testing?.enableFirefoxP2p ?? true);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -2166,7 +2169,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(jingleSession, jingleOff
             errorMsg: 'P2P across two endpoints in different SDP modes is disabled'
         };
     } else if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled())
-        || browser.isFirefox()) {
+        || (browser.isFirefox() && !this._firefoxP2pEnabled)) {
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',
@@ -3462,7 +3465,7 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     if (!this.isP2PEnabled()
             || this.isP2PTestModeEnabled()
-            || browser.isFirefox()
+            || (browser.isFirefox() && !this._firefoxP2pEnabled)
             || this.isE2EEEnabled()) {
         logger.info('Auto P2P disabled');
 
