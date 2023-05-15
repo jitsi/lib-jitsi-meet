@@ -1012,7 +1012,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     // Assume default presence state for remote source. Presence can be received after source signaling. This shouldn't
     // prevent the endpoint from creating a remote track for the source.
     let muted = true;
-    let videoType = mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
+    let videoType = mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined; // 'camera' by default
 
     if (peerMediaInfo) {
         muted = peerMediaInfo.muted;
