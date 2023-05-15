@@ -374,13 +374,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
         const m = this.media[i];
 
-        if (SDPUtil.findLine(m, `a=${MediaDirection.SENDRECV}`, this.session)) {
+        if (SDPUtil.findLine(m, `a=${MediaDirection.SENDRECV}`)) {
             elem.attrs({ senders: 'both' });
-        } else if (SDPUtil.findLine(m, `a=${MediaDirection.SENDONLY}`, this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.SENDONLY}`)) {
             elem.attrs({ senders: 'initiator' });
-        } else if (SDPUtil.findLine(m, `a=${MediaDirection.RECVONLY}`, this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.RECVONLY}`)) {
             elem.attrs({ senders: 'responder' });
-        } else if (SDPUtil.findLine(m, `a=${MediaDirection.INACTIVE}`, this.session)) {
+        } else if (SDPUtil.findLine(m, `a=${MediaDirection.INACTIVE}`)) {
             elem.attrs({ senders: 'none' });
         }
 
