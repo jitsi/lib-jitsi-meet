@@ -225,7 +225,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.REDIRECTED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.REDIRECTED);
-    chatRoom.addListener(XMPPEvents.REDIRECTED, () => conference.leave());
+    chatRoom.addListener(XMPPEvents.REDIRECTED,
+        () => conference.leave().catch(e => logger.log('Error leaving on redirected', e)));
 
     this.chatRoomForwarder.forward(XMPPEvents.BRIDGE_DOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
