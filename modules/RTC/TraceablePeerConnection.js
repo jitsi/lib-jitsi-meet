@@ -1665,6 +1665,10 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
+    if (!this.codecSettings) {
+        return description;
+    }
+
     const parsedSdp = transform.parse(description.sdp);
     const mLines = parsedSdp.media.filter(m => m.type === this.codecSettings.mediaType);
 
@@ -1928,6 +1932,9 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  * @returns {void}
  */
 TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec, disabledCodec) {
+    if (!this.codecSettings) {
+        return;
+    }
     preferredCodec && (this.codecSettings.preferred = preferredCodec);
     disabledCodec && (this.codecSettings.disabled = disabledCodec);
 };
@@ -2423,6 +2430,9 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
  * @returns RTCSessionDescription
  */
 TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isLocalSdp = false) {
+    if (!this.codecSettings) {
+        return description;
+    }
     const parsedSdp = transform.parse(description.sdp);
 
     // Find all the m-lines associated with the local sources.
@@ -2990,7 +3000,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
     // Set the codec preference before creating an offer or answer so that the generated SDP will have
     // the correct preference order.
-    if (this._usesTransceiverCodecPreferences) {
+    if (this._usesTransceiverCodecPreferences && this.codecSettings) {
         const { mediaType } = this.codecSettings;
         const transceivers = this.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver?.track?.kind === mediaType);
