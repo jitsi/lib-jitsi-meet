@@ -1802,43 +1802,53 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {void}
      */
     processSourceMap(message, mediaType) {
-        const newSources = [];
+        const newSsrcs = [];
 
         for (const src of message.mappedSources) {
-            if (this.peerconnection.addRemoteSsrc(src.ssrc)) {
-                newSources.push(src);
-            } else {
-                const { owner, source, ssrc, videoType } = src;
-                const track = this.peerconnection.getTrackBySSRC(ssrc);
+            // eslint-disable-next-line prefer-const
+            let { owner, source, ssrc, videoType } = src;
+            const isNewSsrc = this.peerconnection.addRemoteSsrc(ssrc, source);
+            let lookupSsrc = ssrc;
 
-                if (track) {
-                    logger.debug(`Existing SSRC ${ssrc}: new owner=${owner}, source-name=${source}`);
+            if (isNewSsrc) {
+                newSsrcs.push(src);
 
-                    // Update the SSRC owner.
-                    this._signalingLayer.setSSRCOwner(ssrc, owner);
+                // Check if there is an old mapping for the given source and clear the owner on the associated track.
+                const oldSsrc = this.peerconnection.remoteSources.get(source);
 
-                    // Update the track with all the relevant info.
-                    track.setSourceName(source);
-                    track.setOwner(owner);
-                    if (mediaType === MediaType.VIDEO) {
-                        const type = videoType === 'CAMERA' ? VideoType.CAMERA : VideoType.DESKTOP;
-
-                        track._setVideoType(type);
-                    }
-
-                    // Update the muted state on the track since the presence for this track could have been received
-                    // before the updated source map is received on the bridge channel.
-                    const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
-
-                    peerMediaInfo && this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
-                } else {
-                    logger.error(`Remote track attached to a remote SSRC=${ssrc} not found`);
+                if (oldSsrc) {
+                    lookupSsrc = oldSsrc;
+                    owner = undefined;
+                    source = undefined;
                 }
+            }
+            const track = this.peerconnection.getTrackBySSRC(lookupSsrc);
+
+            if (track) {
+                logger.debug(`Existing SSRC ${ssrc}: new owner=${owner}, source-name=${source}`);
+
+                // Update the SSRC owner.
+                this._signalingLayer.setSSRCOwner(ssrc, owner);
+
+                // Update the track with all the relevant info.
+                track.setSourceName(source);
+                track.setOwner(owner);
+                if (mediaType === MediaType.VIDEO) {
+                    const type = videoType === 'CAMERA' ? VideoType.CAMERA : VideoType.DESKTOP;
+
+                    track._setVideoType(type);
+                }
+
+                // Update the muted state on the track since the presence for this track could have been received
+                // before the updated source map is received on the bridge channel.
+                const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
+
+                peerMediaInfo && this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
             }
         }
 
         // Add the new SSRCs to the remote description by generating a source message.
-        if (newSources.length) {
+        if (newSsrcs.length) {
             let node = $build('content', {
                 xmlns: 'urn:xmpp:jingle:1',
                 name: mediaType
@@ -1847,8 +1857,8 @@ export default class JingleSessionPC extends JingleSession {
                 media: mediaType
             });
 
-            for (const src of newSources) {
-                const { rtx, ssrc } = src;
+            for (const src of newSsrcs) {
+                const { rtx, ssrc, source } = src;
                 let msid;
 
                 if (mediaType === MediaType.VIDEO) {
@@ -1880,6 +1890,7 @@ export default class JingleSessionPC extends JingleSession {
                     msid = `remote-audio-${idx} remote-audio-${idx}`;
                 }
                 _addSourceElement(node, src, ssrc, msid);
+                this.peerconnection.remoteSources.set(source, ssrc);
             }
             node = node.up();
             this._addOrRemoveRemoteStream(true /* add */, node.node);
