@@ -1991,7 +1991,7 @@ JitsiConference.prototype.onMemberKicked = function(
         this.eventEmitter.emit(
             JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
 
-        this.leave();
+        this.leave().finally(() => this.xmpp.disconnect());
 
         return;
     }
