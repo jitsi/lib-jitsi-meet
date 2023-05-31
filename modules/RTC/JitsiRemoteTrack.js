@@ -305,7 +305,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
         const now = window.performance.now();
 
-        console.log(`(TIME) Render ${type}:\t`, now);
+        logger.info(`(TIME) Render ${type}:\t`, now);
         this.conference.getConnectionTimes()[`${type}.render`] = now;
 
         // The conference can be started without calling GUM
@@ -324,7 +324,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             - gumDuration;
 
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
-        console.log(`(TIME) TTFM ${type}:\t`, ttfm);
+        logger.info(`(TIME) TTFM ${type}:\t`, ttfm);
 
         Statistics.sendAnalytics(createTtfmEvent(
             {
