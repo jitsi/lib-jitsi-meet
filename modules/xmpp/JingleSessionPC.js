@@ -651,14 +651,7 @@ export default class JingleSessionPC extends JingleSession {
                 logger.info(`${this} onnegotiationneeded fired on ${this.peerconnection}`);
 
                 const workFunction = finishedCallback => {
-                    const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-
                     this._renegotiate()
-                        .then(() => {
-                            const newSdp = new SDP(this.peerconnection.localDescription.sdp);
-
-                            this.notifyMySSRCUpdate(oldSdp, newSdp);
-                        })
                         .then(() => finishedCallback(), error => finishedCallback(error));
                 };
 
@@ -1908,17 +1901,10 @@ export default class JingleSessionPC extends JingleSession {
             const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
 
             if (removeSsrcInfo.length) {
-                const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
                 const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
 
                 this._renegotiate(newRemoteSdp.raw)
-                    .then(() => {
-                        const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-                        this.notifyMySSRCUpdate(oldLocalSdp, newLocalSDP);
-                        finishCallback();
-                    })
-                    .catch(err => finishCallback(err));
+                    .then(() => finishCallback(), error => finishCallback(error));
             } else {
                 finishCallback();
             }
@@ -2163,11 +2149,17 @@ export default class JingleSessionPC extends JingleSession {
             sdp: remoteSdp
         });
 
-        if (this.isInitiator) {
-            return this._initiatorRenegotiate(remoteDescription);
-        }
+        const promise = this.isInitiator
+            ? this._initiatorRenegotiate(remoteDescription)
+            : this._responderRenegotiate(remoteDescription);
+        const oldLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
 
-        return this._responderRenegotiate(remoteDescription);
+        return promise.then(() => {
+            const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+            // Send the source updates after every renegotiation cycle.
+            oldLocalSDP && this.notifyMySSRCUpdate(oldLocalSDP, newLocalSDP);
+        });
     }
 
     /**
@@ -2232,7 +2224,6 @@ export default class JingleSessionPC extends JingleSession {
 
         const replaceTracks = [];
         const workFunction = finishedCallback => {
-            const oldLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
             const recvOnlyTransceiver = this.peerconnection.peerconnection.getTransceivers()
                     .find(t => t.receiver.track.kind === MediaType.VIDEO
@@ -2267,14 +2258,7 @@ export default class JingleSessionPC extends JingleSession {
                 // Trigger a renegotiation here since renegotiations are suppressed at TPC.replaceTrack for screenshare
                 // tracks. This is done here so that presence for screenshare tracks is sent before signaling.
                 .then(() => this._renegotiate())
-                .then(() => {
-                    const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-                    // Signal the new sources to the peer.
-                    this.notifyMySSRCUpdate(oldLocalSDP, newLocalSDP);
-                    finishedCallback();
-                })
-                .catch(error => finishedCallback(error));
+                .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
         return new Promise((resolve, reject) => {
@@ -2591,10 +2575,6 @@ export default class JingleSessionPC extends JingleSession {
                                 // The results are ignored, as this check failure is not enough to fail the whole
                                 // operation. It will log an error inside for plan-b.
                                 !this.usesUnifiedPlan && this._verifyNoSSRCChanged(operationName, new SDP(oldLocalSDP));
-                                const newLocalSdp = tpc.localDescription.sdp;
-
-                                // Signal the ssrc if an unmute operation results in a new ssrc being generated.
-                                this.notifyMySSRCUpdate(new SDP(oldLocalSDP), new SDP(newLocalSdp));
                                 finishedCallback();
                             });
                     } else {
