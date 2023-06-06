@@ -12,6 +12,7 @@ import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import RTC from './modules/RTC/RTC';
+import RtcStats from './modules/RtcStats/RtcStats';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
@@ -166,6 +167,8 @@ export default {
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
+        RtcStats.init(options);
+
         return RTC.init(options);
     },
 
@@ -192,6 +195,14 @@ export default {
 
     setLogLevel(level) {
         Logger.setLogLevel(level);
+    },
+
+    getRtcStatsTrace() {
+        return RtcStats.getTrace();
+    },
+
+    setRtcStatsMeetingFqn(config) {
+        RtcStats.setMeetingFqn(config);
     },
 
     /**
