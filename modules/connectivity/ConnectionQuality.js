@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 
