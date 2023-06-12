@@ -124,6 +124,10 @@ class ReceiverVideoConstraints {
 
         if (changed) {
             this._receiverVideoConstraints = videoConstraints;
+
+            if (videoConstraints.defaultConstraints?.maxHeight) {
+                this.updateReceiveResolution(videoConstraints.defaultConstraints.maxHeight);
+            }
             logger.debug(`Updating ReceiverVideoConstraints ${JSON.stringify(videoConstraints)}`);
         }
 
