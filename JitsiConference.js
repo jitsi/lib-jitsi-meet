@@ -1490,6 +1490,7 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
 
     if (localTrack) {
         presenceChanged = this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
+        presenceChanged && logger.debug(`Mute state of ${localTrack} changed to muted=${isMuted}`);
     }
 
     return presenceChanged;
@@ -3664,9 +3665,13 @@ JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
 
     // Set presence for all the available local tracks.
     for (const track of localTracks) {
-        muteStatusChanged = this._setTrackMuteStatus(track.getType(), track, track.isMuted());
+        const muted = track.isMuted();
+
+        muteStatusChanged = this._setTrackMuteStatus(track.getType(), track, muted);
+        muteStatusChanged && logger.debug(`Updating mute state of ${track} in presence to muted=${muted}`);
         if (track.getType() === MediaType.VIDEO) {
             videoTypeChanged = this._setNewVideoType(track);
+            videoTypeChanged && logger.debug(`Updating videoType in presence to ${track.getVideoType()}`);
         }
         presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
     }

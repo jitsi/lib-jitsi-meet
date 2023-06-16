@@ -373,6 +373,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         this._localSourceState[sourceName].muted = muted;
+        logger.debug(`Mute state of ${sourceName} changed to muted=${muted}`);
 
         if (this.chatRoom) {
             return this._addLocalSourceInfoToPresence();
