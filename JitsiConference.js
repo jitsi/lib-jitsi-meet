@@ -712,7 +712,8 @@ JitsiConference.prototype.leave = async function(reason) {
     let leaveError;
 
     try {
-        await room.leave(reason);
+        await room.leave(reason)
+            .catch(() => {}); // eslint-disable-line no-empty-function
     } catch (err) {
         leaveError = err;
 

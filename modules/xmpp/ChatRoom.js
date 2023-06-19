@@ -1865,6 +1865,7 @@ export default class ChatRoom extends Listenable {
                 // let's just clean
                 this.connection.emuc.doLeave(this.roomjid);
                 this.clean();
+                resolve();
             }
         }));
 
