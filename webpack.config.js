@@ -18,7 +18,10 @@ module.exports = (_env, argv) => {
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
                 path: path.join(process.cwd(), 'dist', 'umd')
-            })
+            }),
+            performance: {
+                hints: false
+            }
         }),
         {
             entry: {
