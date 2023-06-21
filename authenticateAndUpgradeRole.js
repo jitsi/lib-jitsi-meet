@@ -99,7 +99,7 @@ export default function authenticateAndUpgradeRole({
                     onCreateResource
                 );
 
-                room.moderator.authenticate()
+                room.moderator.authenticate(room.roomjid)
                     .then(() => {
                         xmpp && xmpp.disconnect();
 
