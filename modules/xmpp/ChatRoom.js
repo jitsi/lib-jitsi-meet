@@ -168,7 +168,7 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, xmpp.options);
+        this.moderator = new Moderator(this.xmpp, this.eventEmitter, xmpp.options);
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
@@ -224,7 +224,7 @@ export default class ChatRoom extends Listenable {
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.moderator.sendConferenceRequest();
+                    : this.moderator.sendConferenceRequest(this.roomjid);
 
             preJoin.then(() => {
                 this.sendPresence(true);

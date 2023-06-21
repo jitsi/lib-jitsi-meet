@@ -877,9 +877,9 @@ JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
             return;
         }
         if (urlForPopup) {
-            this.room.moderator.getPopupLoginUrl(resolve, reject);
+            this.room.moderator.getPopupLoginUrl(this.room.roomjid, resolve, reject);
         } else {
-            this.room.moderator.getLoginUrl(resolve, reject);
+            this.room.moderator.getLoginUrl(this.room.roomjid, resolve, reject);
         }
     });
 };

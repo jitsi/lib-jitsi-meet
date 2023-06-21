@@ -40,13 +40,11 @@ function createExpBackoffTimer(step) {
 
 /**
  *
- * @param roomName
  * @param xmpp
  * @param emitter
  * @param options
  */
-export default function Moderator(roomName, xmpp, emitter, options) {
-    this.roomName = roomName;
+export default function Moderator(xmpp, emitter, options) {
     this.getNextTimeout = createExpBackoffTimer(1000);
     this.getNextErrorTimeout = createExpBackoffTimer(1000);
     this.options = options;
@@ -147,9 +145,11 @@ Moderator.prototype.isSipGatewayEnabled = function() {
  *
  * It can be encoded in either JSON or and IQ.
  *
+ * @param roomJid - The room jid for which to send conference request.
+ *
  * @returns the created conference request.
  */
-Moderator.prototype._createConferenceRequest = function() {
+Moderator.prototype._createConferenceRequest = function(roomJid) {
 
     // Session Id used for authentication
     const { sessionId } = Settings;
@@ -178,7 +178,7 @@ Moderator.prototype._createConferenceRequest = function() {
     const conferenceRequest = {
         properties,
         machineUid: Settings.machineId,
-        room: this.roomName
+        room: roomJid
     };
 
     if (sessionId) {
@@ -190,9 +190,11 @@ Moderator.prototype._createConferenceRequest = function() {
 
 /**
  * Create a conference request and encode it as an IQ.
+ *
+ * @param roomJid - The room jid for which to send conference request.
  */
-Moderator.prototype._createConferenceIq = function() {
-    const conferenceRequest = this._createConferenceRequest();
+Moderator.prototype._createConferenceIq = function(roomJid) {
+    const conferenceRequest = this._createConferenceRequest(roomJid);
 
     // Generate create conference IQ
     const elem = $iq({ to: this.targetJid,
@@ -200,7 +202,7 @@ Moderator.prototype._createConferenceIq = function() {
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/focus',
-        room: this.roomName,
+        room: roomJid,
         'machine-uid': conferenceRequest.machineUid
     });
 
@@ -255,21 +257,19 @@ Moderator.prototype._parseConferenceIq = function(resultIq) {
 // (or that the focus is not available)
 /**
  * Allocates the conference focus.
- *
- * @param {Function} callback - the function to be called back upon the
- * successful allocation of the conference focus
+ * @param roomJid - The room jid for which to send conference request.
  * @returns {Promise} - Resolved when Jicofo allows to join the room. It's never
- * rejected and it'll keep on pinging Jicofo forever.
+ * rejected, and it'll keep on pinging Jicofo forever.
  */
-Moderator.prototype.sendConferenceRequest = function() {
+Moderator.prototype.sendConferenceRequest = function(roomJid) {
     return new Promise(resolve => {
         if (this.mode === 'xmpp') {
             logger.info(`Sending conference request over XMPP to ${this.targetJid}`);
 
             this.connection.sendIQ(
-                this._createConferenceIq(),
-                result => this._handleIqSuccess(result, resolve),
-                error => this._handleIqError(error, resolve));
+                this._createConferenceIq(roomJid),
+                result => this._handleIqSuccess(roomJid, result, resolve),
+                error => this._handleIqError(roomJid, error, resolve));
 
             // XXX We're pressed for time here because we're beginning a complex
             // and/or lengthy conference-establishment process which supposedly
@@ -280,7 +280,7 @@ Moderator.prototype.sendConferenceRequest = function() {
             logger.info(`Sending conference request over HTTP to ${this.targetUrl}`);
             fetch(this.targetUrl, {
                 method: 'POST',
-                body: JSON.stringify(this._createConferenceRequest()),
+                body: JSON.stringify(this._createConferenceRequest(roomJid)),
                 headers: { 'Content-Type': 'application/json' }
             })
             .then(response => {
@@ -290,29 +290,29 @@ Moderator.prototype.sendConferenceRequest = function() {
                         const sessionError = response.status === 400 && text.indexOf('400 invalid-session') > 0;
                         const notAuthorized = response.status === 403;
 
-                        this._handleError(sessionError, notAuthorized, resolve);
+                        this._handleError(roomJid, sessionError, notAuthorized, resolve);
                     })
                     .catch(error => {
                         logger.warn(`Error: ${error}`);
-                        this._handleError();
+                        this._handleError(roomJid);
                     });
 
                     // _handleError has either scheduled a retry or fired an event indicating failure.
                     return;
                 }
                 response.json().then(resultJson => {
-                    this._handleSuccess(resultJson, resolve);
+                    this._handleSuccess(roomJid, resultJson, resolve);
                 });
             })
             .catch(error => {
                 logger.warn(`Error: ${error}`);
-                this._handleError();
+                this._handleError(roomJid);
             });
         }
     });
 };
 
-Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
+Moderator.prototype._handleSuccess = function(roomJid, conferenceRequest, callback) {
 
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
@@ -362,12 +362,12 @@ Moderator.prototype._handleSuccess = function(conferenceRequest, callback) {
         // This was a successful response, but the "ready" flag is not set. Retry after a timeout.
         logger.info(`Not ready yet, will retry in ${waitMs} ms.`);
         window.setTimeout(
-            () => this.sendConferenceRequest().then(callback),
+            () => this.sendConferenceRequest(roomJid).then(callback),
             waitMs);
     }
 };
 
-Moderator.prototype._handleError = function(sessionError, notAuthorized, callback) {
+Moderator.prototype._handleError = function(roomJid, sessionError, notAuthorized, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
     if (sessionError) {
@@ -389,7 +389,7 @@ Moderator.prototype._handleError = function(sessionError, notAuthorized, callbac
         // If the session is invalid, retry a limited number of times and then fire an error.
         logger.info(`Invalid session, will retry after ${waitMs} ms.`);
         this.getNextTimeout(true);
-        window.setTimeout(() => this.sendConferenceRequest().then(callback), waitMs);
+        window.setTimeout(() => this.sendConferenceRequest(roomJid).then(callback), waitMs);
     } else {
         const errmsg = 'Failed to get a successful response, giving up.';
         const error = new Error(errmsg);
@@ -407,11 +407,12 @@ Moderator.prototype._handleError = function(sessionError, notAuthorized, callbac
  * Invoked by {@link #sendConferenecRequest} upon its request receiving an
  * error result.
  *
+ * @param roomJid - The room jid used to send conference request.
  * @param error - the error result of the request that {@link sendConferenceRequest} sent
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._handleIqError = function(error, callback) {
+Moderator.prototype._handleIqError = function(roomJid, error, callback) {
 
     // The reservation system only works over XMPP. Handle the error separately.
     // Check for error returned by the reservation system
@@ -447,30 +448,32 @@ Moderator.prototype._handleIqError = function(error, callback) {
         this.externalAuthEnabled = true;
     }
 
-    this._handleError(invalidSession, notAuthorized, callback);
+    this._handleError(roomJid, invalidSession, notAuthorized, callback);
 };
 
 /**
  * Invoked by {@link #sendConferenecRequest} upon its request receiving a
  * success (i.e. non-error) result.
  *
+ * @param roomJid - The room jid used to send conference request.
  * @param result - the success (i.e. non-error) result of the request that {@link #sendConferenecRequest} sent
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
 Moderator.prototype._handleIqSuccess = function(
+        roomJid,
         result,
         callback) {
     // Setup config options
     const conferenceRequest = this._parseConferenceIq(result);
 
-    this._handleSuccess(conferenceRequest, callback);
+    this._handleSuccess(roomJid, conferenceRequest, callback);
 };
 
-Moderator.prototype.authenticate = function() {
+Moderator.prototype.authenticate = function(roomJid) {
     return new Promise((resolve, reject) => {
         this.connection.sendIQ(
-            this._createConferenceIq(),
+            this._createConferenceIq(roomJid),
             result => {
                 const sessionId = $(result).find('conference').attr('session-id');
 
@@ -491,23 +494,24 @@ Moderator.prototype.authenticate = function() {
     });
 };
 
-Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
-    this._getLoginUrl(/* popup */ false, urlCallback, failureCallback);
+Moderator.prototype.getLoginUrl = function(roomJid, urlCallback, failureCallback) {
+    this._getLoginUrl(roomJid, /* popup */ false, urlCallback, failureCallback);
 };
 
 /**
  *
  * @param {boolean} popup false for {@link Moderator#getLoginUrl} or true for
  * {@link Moderator#getPopupLoginUrl}
+ * @param roomJid - The room jid to use.
  * @param urlCb
  * @param failureCb
  */
-Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
+Moderator.prototype._getLoginUrl = function(roomJid, popup, urlCb, failureCb) {
     const iq = $iq({ to: this.targetJid,
         type: 'get' });
     const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
-        room: this.roomName,
+        room: roomJid,
         'machine-uid': Settings.machineId
     };
     let str = 'auth url'; // for logger
@@ -547,8 +551,8 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     );
 };
 
-Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
-    this._getLoginUrl(/* popup */ true, urlCallback, failureCallback);
+Moderator.prototype.getPopupLoginUrl = function(roomJid, urlCallback, failureCallback) {
+    this._getLoginUrl(roomJid, /* popup */ true, urlCallback, failureCallback);
 };
 
 Moderator.prototype.logout = function(callback) {
