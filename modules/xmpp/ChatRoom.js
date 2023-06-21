@@ -8,6 +8,7 @@ import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import Settings from '../settings/Settings';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
@@ -266,8 +267,10 @@ export default class ChatRoom extends Listenable {
             if (this.password) {
                 pres.c('password').t(this.password).up();
             }
-            if (this.options.billingId) {
-                pres.c('billingid').t(this.options.billingId).up();
+
+            // send the machineId with the initial presence
+            if (this.moderator.targetUrl) {
+                pres.c('billingid').t(Settings.machineId).up();
             }
 
             pres.up();
