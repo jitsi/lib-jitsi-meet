@@ -12,6 +12,7 @@ function EventEmitterForwarder(src, dest) {
     }
     this.src = src;
     this.dest = dest;
+    this.listeners = new Map();
 }
 
 /**
@@ -30,9 +31,26 @@ EventEmitterForwarder.prototype.forward = function(...args) {
     args[0] = this.dest;
 
     // Using bind.apply to pass the arguments as Array-like object ("arguments")
-    this.src.addListener(
-        srcEvent,
-        Function.prototype.bind.apply(this.dest.emit, args));
+    const newListener = Function.prototype.bind.apply(this.dest.emit, args);
+
+    this.src.addListener(srcEvent, newListener);
+    this.listeners.set(srcEvent, newListener);
+};
+
+/**
+ * Clears the listeners for the supplied events.
+ *
+ * @param args all the events which listeners to be cleaned.
+ */
+EventEmitterForwarder.prototype.removeListeners = function(...args) {
+    args.forEach(a => {
+        const l = this.listeners.get(a);
+
+        if (l) {
+            this.src.removeListener(a, l);
+            this.listeners.delete(a);
+        }
+    });
 };
 
 module.exports = EventEmitterForwarder;

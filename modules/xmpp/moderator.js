@@ -5,6 +5,7 @@ import { $iq, Strophe } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';
 import Settings from '../settings/Settings';
+import Listenable from '../util/Listenable';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
@@ -41,14 +42,15 @@ function createExpBackoffTimer(step) {
 /**
  * The moderator/focus responsible for direct communication with jicofo
  */
-export default class Moderator {
+export default class Moderator extends Listenable {
     /**
      * Constructs moderator.
      * @param xmpp The xmpp.
-     * @param emitter The emitter.
      * @param options The options.
      */
-    constructor(xmpp, emitter, options) {
+    constructor(xmpp, options) {
+        super();
+
         this.getNextTimeout = createExpBackoffTimer(1000);
         this.getNextErrorTimeout = createExpBackoffTimer(1000);
         this.options = options;
@@ -59,8 +61,6 @@ export default class Moderator {
         // Whether SIP gateway (jigasi) support is enabled. TODO: use presence so it can be changed based on jigasi
         // availability.
         this.sipGatewayEnabled = false;
-
-        this.eventEmitter = emitter;
 
         this.connection = xmpp.connection;
 
