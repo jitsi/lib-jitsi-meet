@@ -201,6 +201,10 @@ export default class Moderator {
             conferenceRequest.sessionId = sessionId;
         }
 
+        if (FeatureFlags.isJoinAsVisitorSupported()) {
+            conferenceRequest.properties['visitors-version'] = 1;
+        }
+
         return conferenceRequest;
     }
 
@@ -237,13 +241,6 @@ export default class Moderator {
                     })
                     .up();
             }
-        }
-        if (FeatureFlags.isJoinAsVisitorSupported()) {
-            elem.c('property', {
-                name: 'visitors-version',
-                value: 1
-            })
-                .up();
         }
 
         return elem;
