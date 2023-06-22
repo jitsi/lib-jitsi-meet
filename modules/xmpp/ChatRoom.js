@@ -7,8 +7,10 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
+import AuthenticationEvents from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
+import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
@@ -168,7 +170,15 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator = new Moderator(this.xmpp, this.eventEmitter, xmpp.options);
+        this.moderator = new Moderator(this.xmpp, xmpp.options);
+
+        this.eventsForwarder = new EventEmitterForwarder(this.moderator, this.eventEmitter);
+        this.eventsForwarder.forward(AuthenticationEvents.IDENTITY_UPDATED, AuthenticationEvents.IDENTITY_UPDATED);
+        this.eventsForwarder.forward(XMPPEvents.REDIRECTED, XMPPEvents.REDIRECTED);
+        this.eventsForwarder.forward(XMPPEvents.AUTHENTICATION_REQUIRED, XMPPEvents.AUTHENTICATION_REQUIRED);
+        this.eventsForwarder.forward(XMPPEvents.FOCUS_DISCONNECTED, XMPPEvents.FOCUS_DISCONNECTED);
+        this.eventsForwarder.forward(XMPPEvents.RESERVATION_ERROR, XMPPEvents.RESERVATION_ERROR);
+
         if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
@@ -1822,6 +1832,13 @@ export default class ChatRoom extends Listenable {
     clean() {
         this._removeConnListeners.forEach(remove => remove());
         this._removeConnListeners = [];
+
+        this.eventsForwarder.removeListeners(
+            AuthenticationEvents.IDENTITY_UPDATED,
+            XMPPEvents.REDIRECTED,
+            XMPPEvents.AUTHENTICATION_REQUIRED,
+            XMPPEvents.FOCUS_DISCONNECTED,
+            XMPPEvents.RESERVATION_ERROR);
 
         this.joined = false;
         this.inProgressEmitted = false;
