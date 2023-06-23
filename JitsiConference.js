@@ -382,12 +382,16 @@ JitsiConference.prototype._init = function(options = {}) {
     // Get the codec preference settings from config.js.
     const codecSettings = {
         jvb: {
-            preferenceOrder: config.videoQuality?.codecPreferenceOrder,
+            preferenceOrder: browser.isMobileDevice() && config.videoQuality?.mobileCodecPreferenceOrder
+                ? config.videoQuality.mobileCodecPreferenceOrder
+                : config.videoQuality?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
             preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec)
         },
         p2p: {
-            preferenceOrder: config.p2p?.codecPreferenceOrder,
+            preferenceOrder: browser.isMobileDevice() && config.p2p?.mobileCodecPreferenceOrder
+                ? config.p2p.mobileCodecPreferenceOrder
+                : config.p2p?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
             preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec)
         }
