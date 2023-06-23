@@ -46,14 +46,13 @@ export default class Moderator extends Listenable {
     /**
      * Constructs moderator.
      * @param xmpp The xmpp.
-     * @param options The options.
      */
-    constructor(xmpp, options) {
+    constructor(xmpp) {
         super();
 
         this.getNextTimeout = createExpBackoffTimer(1000);
         this.getNextErrorTimeout = createExpBackoffTimer(1000);
-        this.options = options;
+        this.options = xmpp.options;
 
         // External authentication stuff
         this.externalAuthEnabled = false;
@@ -82,8 +81,8 @@ export default class Moderator extends Listenable {
         // and responses from conference requests.
         this.focusUserJids = new Set();
 
-        if (options.focusUserJid) {
-            this.focusUserJids.add(options.focusUserJid);
+        if (this.options.focusUserJid) {
+            this.focusUserJids.add(this.options.focusUserJid);
         }
 
         // FIXME: Message listener that talks to POPUP window

@@ -17,6 +17,7 @@ import RandomUtil from '../util/RandomUtil';
 
 import Caps, { parseDiscoInfo } from './Caps';
 import XmppConnection from './XmppConnection';
+import Moderator from './moderator';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
@@ -163,6 +164,8 @@ export default class XMPP extends Listenable {
             xmppPing,
             shard: options.deploymentInfo.shard
         });
+
+        this.moderator = new Moderator(this);
 
         // forwards the shard changed event
         this.connection.on(XmppConnection.Events.CONN_SHARD_CHANGED, () => {
