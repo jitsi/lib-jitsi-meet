@@ -1091,7 +1091,10 @@ export default class XMPP extends Listenable {
             Statistics.analytics.addPermanentProperties({ ...logObject });
 
             logObject.id = 'deployment_info';
-            Statistics.sendLog(JSON.stringify(logObject));
+            const entry = JSON.stringify(logObject);
+
+            Statistics.sendLog(entry);
+            logger.info(entry);
         }
 
         this.sendDeploymentInfo = false;
