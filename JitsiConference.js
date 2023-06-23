@@ -860,7 +860,7 @@ JitsiConference.prototype.getAuthLogin = function() {
  * Check if external authentication is enabled for this conference.
  */
 JitsiConference.prototype.isExternalAuthEnabled = function() {
-    return this.room && this.room.moderator.isExternalAuthEnabled();
+    return this.room && this.room.xmpp.moderator.isExternalAuthEnabled();
 };
 
 /**
@@ -877,9 +877,9 @@ JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
             return;
         }
         if (urlForPopup) {
-            this.room.moderator.getPopupLoginUrl(this.room.roomjid, resolve, reject);
+            this.room.xmpp.moderator.getPopupLoginUrl(this.room.roomjid, resolve, reject);
         } else {
-            this.room.moderator.getLoginUrl(this.room.roomjid, resolve, reject);
+            this.room.xmpp.moderator.getLoginUrl(this.room.roomjid, resolve, reject);
         }
     });
 };
@@ -2569,7 +2569,7 @@ JitsiConference.prototype.stopRecording = function(sessionID) {
  * Returns true if the SIP calls are supported and false otherwise
  */
 JitsiConference.prototype.isSIPCallingSupported = function() {
-    return this.room?.moderator?.isSipGatewayEnabled() ?? false;
+    return this.room?.xmpp?.moderator?.isSipGatewayEnabled() ?? false;
 };
 
 /**

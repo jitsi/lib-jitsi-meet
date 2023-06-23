@@ -19,7 +19,6 @@ import BreakoutRooms from './BreakoutRooms';
 import Lobby from './Lobby';
 import RoomMetadata from './RoomMetadata';
 import XmppConnection from './XmppConnection';
-import Moderator from './moderator';
 
 const logger = getLogger(__filename);
 
@@ -170,9 +169,8 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
-        this.moderator = new Moderator(this.xmpp, xmpp.options);
 
-        this.eventsForwarder = new EventEmitterForwarder(this.moderator, this.eventEmitter);
+        this.eventsForwarder = new EventEmitterForwarder(this.xmpp.moderator, this.eventEmitter);
         this.eventsForwarder.forward(AuthenticationEvents.IDENTITY_UPDATED, AuthenticationEvents.IDENTITY_UPDATED);
         this.eventsForwarder.forward(XMPPEvents.REDIRECTED, XMPPEvents.REDIRECTED);
         this.eventsForwarder.forward(XMPPEvents.AUTHENTICATION_REQUIRED, XMPPEvents.AUTHENTICATION_REQUIRED);
@@ -234,7 +232,7 @@ export default class ChatRoom extends Listenable {
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.moderator.sendConferenceRequest(this.roomjid);
+                    : this.xmpp.moderator.sendConferenceRequest(this.roomjid);
 
             preJoin.then(() => {
                 this.sendPresence(true);
@@ -279,7 +277,7 @@ export default class ChatRoom extends Listenable {
             }
 
             // send the machineId with the initial presence
-            if (this.moderator.targetUrl) {
+            if (this.xmpp.moderator.targetUrl) {
                 pres.c('billingid').t(Settings.machineId).up();
             }
 
@@ -522,7 +520,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
-        member.isFocus = this.moderator.isFocusJid(jid);
+        member.isFocus = this.xmpp.moderator.isFocusJid(jid);
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
