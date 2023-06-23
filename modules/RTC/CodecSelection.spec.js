@@ -130,7 +130,7 @@ describe('Codec Selection', () => {
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'vp9', 'vp8' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(0);
 
             // Add a third user joining the call with a subset of codecs.
             participant2 = new MockParticipant('remote-2');
@@ -140,7 +140,7 @@ describe('Codec Selection', () => {
 
             // Make p2 leave the call
             conference.removeParticipant(participant2);
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(1);
         });
 
         it('and remote endpoints use the old codec selection logic (RN)', () => {
@@ -158,7 +158,7 @@ describe('Codec Selection', () => {
 
             // Make p1 leave the call
             conference.removeParticipant(participant1);
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -180,7 +180,7 @@ describe('Codec Selection', () => {
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'vp9', 'vp8', 'h264' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(0);
 
             // Add a third user joining the call with a subset of codecs.
             participant2 = new MockParticipant('remote-2');
@@ -190,7 +190,7 @@ describe('Codec Selection', () => {
 
             // Make p2 leave the call
             conference.removeParticipant(participant2);
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(1);
         });
 
         it('and remote endpoints use the old codec selection logic (RN)', () => {
@@ -208,7 +208,7 @@ describe('Codec Selection', () => {
 
             // Make p1 leave the call
             conference.removeParticipant(participant1);
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(2);
         });
     });
 });

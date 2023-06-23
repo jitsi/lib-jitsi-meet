@@ -156,8 +156,7 @@ export class CodecSelection {
         }
 
         // Reconfigure the codecs on the media session.
-        if (currentCodecOrder.length !== selectedCodecOrder.length
-            || !currentCodecOrder.every((val, index) => val === selectedCodecOrder[index])) {
+        if (!selectedCodecOrder.every((val, index) => val === currentCodecOrder[index])) {
             session.setVideoCodecs(selectedCodecOrder);
         }
     }
