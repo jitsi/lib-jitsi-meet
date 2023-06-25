@@ -73,7 +73,7 @@ interface ICreateLocalTrackOptions {
     fireSlowPromiseEvent?: boolean;
     micDeviceId?: string;
     resolution?: string;
-    contentHint? : string;
+    contentHint?: string;
 }
 
 interface IJitsiMeetJSOptions {
