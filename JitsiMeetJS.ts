@@ -73,6 +73,7 @@ interface ICreateLocalTrackOptions {
     fireSlowPromiseEvent?: boolean;
     micDeviceId?: string;
     resolution?: string;
+    contentHint? : string;
 }
 
 interface IJitsiMeetJSOptions {
@@ -333,10 +334,12 @@ export default {
 
                 // set the contentHint to "detail" for desktop tracks
                 // eslint-disable-next-line prefer-const
+                const contentHint = options.contentHint ?? 'detail';
+
                 for (const track of tracks) {
                     if (track.type === MediaType.VIDEO
                         && track.videoType === 'desktop') {
-                        this.setVideoTrackContentHints(track.track, 'detail');
+                        this.setVideoTrackContentHints(track.track, contentHint);
                     }
                 }
 
