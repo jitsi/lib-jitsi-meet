@@ -1,7 +1,4 @@
 import { BrowserDetection } from '@jitsi/js-utils';
-import { getLogger } from '@jitsi/logger';
-
-const logger = getLogger(__filename);
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
@@ -18,14 +15,6 @@ const MIN_REQUIRED_IOS_VERSION = 14;
  * Implements browser capabilities for lib-jitsi-meet.
  */
 export default class BrowserCapabilities extends BrowserDetection {
-    /**
-     * Creates new BrowserCapabilities instance.
-     */
-    constructor() {
-        super();
-        logger.info(`This appears to be ${this.getName()}, ver: ${this.getVersion()}`);
-    }
-
     /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
