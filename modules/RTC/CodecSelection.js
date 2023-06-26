@@ -40,6 +40,9 @@ export class CodecSelection {
                 selectedOrder = preferenceOrder
                     .filter(codec => supportedCodecs.has(codec.toLowerCase()));
 
+                // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
+                // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
+                // devices).
                 if (!browser.supportsVP9()) {
                     const index = selectedOrder.findIndex(codec => codec.toLowerCase() === CodecMimeType.VP9);
 

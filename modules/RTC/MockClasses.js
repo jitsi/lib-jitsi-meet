@@ -1,18 +1,12 @@
 import transform from 'sdp-transform';
 
 /* eslint-disable no-empty-function */
-/* eslint-disable no-useless-constructor */
+/* eslint-disable max-len */
 
 /**
  * MockRTCPeerConnection that return the local description sdp.
  */
 class MockRTCPeerConnection {
-    /**
-     * A constructor
-     */
-    constructor() {}
-
-    // eslint-disable max-len */
     /**
      * local description SDP.
      */
@@ -38,7 +32,6 @@ class MockRTCPeerConnection {
             'a=sendrecv\r\n',
             'a=ice-ufrag:tOQd\r\n',
             'a=ice-pwd:3sAozs7hw6+2O6DBp2pt9fvY\r\n',
-            /* eslint-disable-next-line max-len */
             'a=fingerprint:sha-256 A9:00:CC:F9:81:33:EA:E9:E3:B4:01:E9:9E:18:B3:9B:F8:49:25:A0:5D:12:20:70:D5:6F:34:5A:2A:39:19:0A\r\n',
             'a=ssrc:2002 msid:26D16D51-503A-420B-8274-3DD1174E498F 8205D1FC-50B4-407C-87D5-9C45F1B779F0\r\n',
             'a=ssrc:2002 cname:juejgy8a01\r\n',
@@ -91,7 +84,6 @@ class MockRTCPeerConnection {
             'a=sendrecv\r\n',
             'a=ice-ufrag:tOQd\r\n',
             'a=ice-pwd:3sAozs7hw6+2O6DBp2pt9fvY\r\n',
-            /* eslint-disable-next-line max-len */
             'a=fingerprint:sha-256 A9:00:CC:F9:81:33:EA:E9:E3:B4:01:E9:9E:18:B3:9B:F8:49:25:A0:5D:12:20:70:D5:6F:34:5A:2A:39:19:0A\r\n',
             'a=ssrc:4004 msid:7C0035E5-2DA1-4AEA-804A-9E75BF9B3768 225E9CDA-0384-4C92-92DD-E74C1153EC68\r\n',
             'a=ssrc:4005 msid:7C0035E5-2DA1-4AEA-804A-9E75BF9B3768 225E9CDA-0384-4C92-92DD-E74C1153EC68\r\n',
@@ -104,7 +96,6 @@ class MockRTCPeerConnection {
         ].join('') };
     }
 }
-// eslint-enable max-len */
 
 /**
  * Mock {@link TraceablePeerConnection} - add things as needed, but only things useful for all tests.
@@ -281,6 +272,3 @@ export class MockSignalingLayerImpl {
         }
     }
 }
-
-/* eslint-enable no-empty-function */
-/* eslint-enable no-useless-constructor */

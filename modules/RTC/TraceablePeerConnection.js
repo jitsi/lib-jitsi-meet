@@ -1695,7 +1695,7 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
             // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
             // baseline code for the jvb connection and therefore this is not needed for jvb connection.
             // TODO - add check for mobile browsers once js-utils provides that check.
-            if (codec === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
+            if (codec === CodecMimeType.H264 && browser.isMobileDevice() && this.isP2P) {
                 SDPUtil.stripCodec(mLine, codec, true /* high profile */);
             }
         }

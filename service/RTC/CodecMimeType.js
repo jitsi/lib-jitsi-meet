@@ -37,8 +37,4 @@ const CodecMimeType = {
 const AudioCodecMimeTypes = [ CodecMimeType.OPUS, CodecMimeType.ULPFEC ];
 const VideoCodecMimeTypes = [ CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
 
-module.exports = {
-    CodecMimeType,
-    AudioCodecMimeTypes,
-    VideoCodecMimeTypes
-};
+export { AudioCodecMimeTypes, CodecMimeType, VideoCodecMimeTypes };

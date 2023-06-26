@@ -45,7 +45,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     isAndroidBrowser() {
         const { userAgent } = navigator;
 
-        return this.isIosBrowser() || (!this.isReactNative() && userAgent.match(/Android/i));
+        return !this.isReactNative() && userAgent.match(/Android/i);
     }
 
     /**

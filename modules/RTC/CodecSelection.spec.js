@@ -193,6 +193,14 @@ describe('Codec Selection', () => {
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(1);
         });
 
+        it('and remote endpoint prefers a codec that is locally disabled', () => {
+            // Add a second user joining the call the prefers H.264 and VP8.
+            participant1 = new MockParticipant('remote-1');
+            conference.addParticipant(participant1, [ 'h264', 'vp8' ]);
+
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+        });
+
         it('and remote endpoints use the old codec selection logic (RN)', () => {
             // Add a second user joining the call.
             participant1 = new MockParticipant('remote-1');
