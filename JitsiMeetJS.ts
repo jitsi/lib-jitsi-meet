@@ -130,6 +130,9 @@ export default {
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
+        // @ts-ignore
+        logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
+
         Settings.init(options.externalStorage);
         Statistics.init(options);
         const flags = options.flags || {};
