@@ -2651,7 +2651,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
 
     this._senderMaxHeights.set(sourceName, frameHeight);
 
-    return this._updateVideoSenderParameters(this._updateVideoSenderEncodings(frameHeight, localVideoTrack));
+    return this._updateVideoSenderParameters(
+        () => this._updateVideoSenderEncodings(frameHeight, localVideoTrack)
+    );
 };
 
 /**
@@ -2659,12 +2661,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
  * This is needed on Chrome as it resets the transaction id after executing setParameters() and can affect the next on
  * the fly updates if they are not chained.
  * https://chromium.googlesource.com/external/webrtc/+/master/pc/rtp_sender.cc#340
- * @param {Promise} promise - The promise that needs to be chained.
+ * @param {Function} nextFunction - The function to be called when the last video sender update promise is settled.
  * @returns {Promise}
  */
-TraceablePeerConnection.prototype._updateVideoSenderParameters = function(promise) {
+TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFunction) {
     const nextPromise = this._lastVideoSenderUpdatePromise
-        .finally(() => promise);
+        .finally(nextFunction);
 
     this._lastVideoSenderUpdatePromise = nextPromise;
 
