@@ -118,7 +118,8 @@ export class CodecSelection {
     _selectPreferredCodec(mediaSession) {
         const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
 
-        if (!session) {
+        // Ignore remote codecs published in presence for p2p connections.
+        if (!session || session.isP2P) {
             return;
         }
         const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
