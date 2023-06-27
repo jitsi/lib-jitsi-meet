@@ -2289,6 +2289,15 @@ export default class JingleSessionPC extends JingleSession {
             .then(() => {
                 this.peerconnection.audioTransferActive = active;
                 this.peerconnection.videoTransferActive = active;
+
+                // Reconfigure the video tracks so that only the correct encodings are active.
+                const promises = [];
+
+                for (const track of this.rtc.getLocalVideoTracks()) {
+                    promises.push(this.peerconnection.configureSenderVideoEncodings(track));
+                }
+
+                return Promise.allSettled(promises);
             });
     }
 
