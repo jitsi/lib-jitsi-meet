@@ -180,11 +180,15 @@ const ScreenObtainer = {
 
                         // We have to use the old API on Electron to get a desktop stream.
                         navigator.mediaDevices.getUserMedia(constraints)
-                            .then(stream => onSuccess({
-                                stream,
-                                sourceId: streamId,
-                                sourceType: streamType
-                            }), onFailure);
+                            .then(stream => {
+                                this.setContentHint(stream);
+                                onSuccess({
+                                    stream,
+                                    sourceId: streamId,
+                                    sourceType: streamType
+                                });
+                            })
+                            .catch(err => onFailure(err));
                     } else {
                         // As noted in Chrome Desktop Capture API:
                         // If user didn't select any source (i.e. canceled the prompt)
@@ -257,6 +261,7 @@ const ScreenObtainer = {
 
         getDisplayMedia(constraints)
             .then(stream => {
+                this.setContentHint(stream);
                 callback({
                     stream,
                     sourceId: stream.id
@@ -294,6 +299,7 @@ const ScreenObtainer = {
 
         navigator.mediaDevices.getDisplayMedia({ video: true })
             .then(stream => {
+                this.setContentHint(stream);
                 callback({
                     stream,
                     sourceId: stream.id });
@@ -302,6 +308,24 @@ const ScreenObtainer = {
                 errorCallback(new JitsiTrackError(JitsiTrackErrors
                     .SCREENSHARING_USER_CANCELED));
             });
+    },
+
+    /** Sets the contentHint on the transmitted MediaStreamTrack to indicate charaterstics in the video stream, which
+     * informs RTCPeerConnection on how to encode the track (to prefer motion or individual frame detail).
+     *
+     * @param {MediaStream} stream - The captured desktop stream.
+     * @returns {void}
+     */
+    setContentHint(stream) {
+        const { desktopSharingFrameRate } = this.options;
+        const desktopTrack = stream.getVideoTracks()[0];
+
+        // Set contentHint on the desktop track based on the fps requested.
+        if ('contentHint' in desktopTrack) {
+            desktopTrack.contentHint = desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE ? 'motion' : 'detail';
+        } else {
+            logger.warn('MediaStreamTrack contentHint attribute not supported');
+        }
     },
 
     /**
