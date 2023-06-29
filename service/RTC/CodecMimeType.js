@@ -32,9 +32,6 @@ const CodecMimeType = {
      * The vp9 codec mime type.
      */
     VP9: 'vp9'
-
 };
-const AudioCodecMimeTypes = [ CodecMimeType.OPUS, CodecMimeType.ULPFEC ];
-const VideoCodecMimeTypes = [ CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
 
-export { AudioCodecMimeTypes, CodecMimeType, VideoCodecMimeTypes };
+export default CodecMimeType;

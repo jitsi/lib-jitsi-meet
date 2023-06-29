@@ -2,11 +2,15 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import { CodecMimeType, VideoCodecMimeTypes } from '../../service/RTC/CodecMimeType';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
+
+// Default video codec preferences on mobile and desktop endpoints.
+const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
+const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.H264 ];
 
 /**
  * This class handles the codec selection mechanism for the conference based on the config.js settings.
@@ -103,10 +107,11 @@ export class CodecSelection {
      * @returns {Array}
      */
     _getSupportedVideoCodecs() {
-        return VideoCodecMimeTypes.filter(codec => window.RTCRtpReceiver
-                && window.RTCRtpReceiver.getCapabilities
-                && window.RTCRtpReceiver.getCapabilities('video').codecs
-                    .some(supportedCodec => supportedCodec.mimeType.toLowerCase() === `video/${codec}`));
+        const videoCodecMimeTypes = browser.isMobileDevice() ? MOBILE_VIDEO_CODEC_ORDER : DESKTOP_VIDEO_CODEC_ORDER;
+
+        return videoCodecMimeTypes.filter(codec =>
+            (window.RTCRtpReceiver?.getCapabilities?.(MediaType.VIDEO)?.codecs ?? [])
+                .some(supportedCodec => supportedCodec.mimeType.toLowerCase() === `${MediaType.VIDEO}/${codec}`));
     }
 
     /**
@@ -118,8 +123,7 @@ export class CodecSelection {
     _selectPreferredCodec(mediaSession) {
         const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
 
-        // Ignore remote codecs published in presence for p2p connections.
-        if (!session || session.isP2P) {
+        if (!session) {
             return;
         }
         const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
@@ -139,11 +143,15 @@ export class CodecSelection {
         const selectedCodecOrder = localPreferredCodecOrder.reduce((acc, localCodec) => {
             let codecNotSupportedByRemote = false;
 
-            // Remove any codecs that are not supported by any of the remote endpoints. The order of the supported
-            // codecs locally however will remain the same since we want to support asymmetric codecs.
-            for (const remoteCodecs of remoteCodecsPerParticipant) {
-                codecNotSupportedByRemote = codecNotSupportedByRemote
-                    || (remoteCodecs.length && !remoteCodecs.find(participantCodec => participantCodec === localCodec));
+            // Ignore remote codecs for p2p since only the JVB codec preferences are published in presence.
+            // For p2p, we rely on the codec order present in the remote offer/answer.
+            if (!session.isP2P) {
+                // Remove any codecs that are not supported by any of the remote endpoints. The order of the supported
+                // codecs locally however will remain the same since we want to support asymmetric codecs.
+                for (const remoteCodecs of remoteCodecsPerParticipant) {
+                    codecNotSupportedByRemote = codecNotSupportedByRemote
+                        || !remoteCodecs.find(participantCodec => participantCodec === localCodec);
+                }
             }
 
             if (!codecNotSupportedByRemote) {
