@@ -1925,7 +1925,9 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function() {
     }
     const parsedSdp = transform.parse(sdp);
     const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
-    const codecs = new Set(mLine.rtp.filter(pt => pt.codec !== 'rtx').map(pt => pt.codec.toLowerCase()));
+    const codecs = new Set(mLine.rtp
+        .filter(pt => pt.codec.toLowerCase() !== 'rtx')
+        .map(pt => pt.codec.toLowerCase()));
 
     return Array.from(codecs);
 };

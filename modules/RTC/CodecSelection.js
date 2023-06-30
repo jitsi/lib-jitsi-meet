@@ -10,6 +10,7 @@ const logger = getLogger(__filename);
 
 // Default video codec preferences on mobile and desktop endpoints.
 const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
+const MOBILE_P2P_VIDEO_CODEC_ORDER = [ CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
 const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.H264 ];
 
 /**
@@ -36,31 +37,33 @@ export class CodecSelection {
         for (const connectionType of Object.keys(options)) {
             // eslint-disable-next-line prefer-const
             let { disabledCodec, preferredCodec, preferenceOrder } = options[connectionType];
-            const supportedCodecs = new Set(this._getSupportedVideoCodecs());
-            let selectedOrder;
+            const supportedCodecs = new Set(this._getSupportedVideoCodecs(connectionType));
+
+            // Default preference codec order when no codec preferences are set in config.js
+            let selectedOrder = Array.from(supportedCodecs);
 
             if (preferenceOrder) {
+                preferenceOrder = preferenceOrder.map(codec => codec.toLowerCase());
+
                 // Select all codecs that are supported by the browser.
-                selectedOrder = preferenceOrder
-                    .filter(codec => supportedCodecs.has(codec.toLowerCase()));
+                selectedOrder = preferenceOrder.filter(codec => supportedCodecs.has(codec));
 
                 // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
                 // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
                 // devices).
                 if (!browser.supportsVP9()) {
-                    const index = selectedOrder.findIndex(codec => codec.toLowerCase() === CodecMimeType.VP9);
+                    const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
 
                     if (index !== -1) {
                         selectedOrder.splice(index, 1);
                         selectedOrder.push(CodecMimeType.VP9);
                     }
                 }
-            } else {
-                // Generate the codec list based on the supported codecs and the preferred/disabled (deprecated)
-                // settings from config.js
+
+            // Generate the codec list based on the supported codecs and the preferred/disabled (deprecated) settings
+            } else if (preferredCodec || disabledCodec) {
                 disabledCodec = disabledCodec?.toLowerCase();
                 preferredCodec = preferredCodec?.toLowerCase();
-                selectedOrder = Array.from(supportedCodecs);
 
                 // VP8 cannot be disabled since it the default codec.
                 if (disabledCodec && disabledCodec !== CodecMimeType.VP8) {
@@ -84,8 +87,6 @@ export class CodecSelection {
                 }
             }
 
-            selectedOrder = selectedOrder.map(codec => codec.toLowerCase());
-
             logger.info(`Codec preference order for ${connectionType} connection is ${selectedOrder}`);
             this.codecPreferenceOrder[connectionType] = selectedOrder;
         }
@@ -104,10 +105,13 @@ export class CodecSelection {
     /**
      * Returns a list of video codecs that are supported by the browser.
      *
+     * @param {string} connectionType - media connection type, p2p or jvb.
      * @returns {Array}
      */
-    _getSupportedVideoCodecs() {
-        const videoCodecMimeTypes = browser.isMobileDevice() ? MOBILE_VIDEO_CODEC_ORDER : DESKTOP_VIDEO_CODEC_ORDER;
+    _getSupportedVideoCodecs(connectionType) {
+        const videoCodecMimeTypes = browser.isMobileDevice() && connectionType === 'p2p'
+            ? MOBILE_P2P_VIDEO_CODEC_ORDER
+            : browser.isMobileDevice() ? MOBILE_VIDEO_CODEC_ORDER : DESKTOP_VIDEO_CODEC_ORDER;
 
         return videoCodecMimeTypes.filter(codec =>
             (window.RTCRtpReceiver?.getCapabilities?.(MediaType.VIDEO)?.codecs ?? [])
