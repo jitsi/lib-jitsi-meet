@@ -20,7 +20,8 @@ module.exports = (_env, argv) => {
                 path: path.join(process.cwd(), 'dist', 'umd')
             }),
             performance: {
-                hints: false
+                maxAssetSize: 830 * 1024,
+                maxEntrypointSize: 830 * 2014
             }
         }),
         {

@@ -37,6 +37,7 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
+import EventEmitter from 'events';
 
 const logger = Logger.getLogger(__filename);
 
@@ -167,8 +168,6 @@ export default {
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        RtcStats.init(options);
-
         return RTC.init(options);
     },
 
@@ -197,12 +196,14 @@ export default {
         Logger.setLogLevel(level);
     },
 
-    getRtcStatsTrace() {
-        return RtcStats.getTrace();
-    },
-
-    setRtcStatsMeetingFqn(config) {
-        RtcStats.setMeetingFqn(config);
+    rtcstats: {
+      getTrace() {
+          return RtcStats.getTrace();
+      },
+      setMeetingFqn(options) {
+          RtcStats.setMeetingFqn(options);
+      },
+      events: RtcStats.events
     },
 
     /**

@@ -5,6 +5,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import RtcStats from '../RtcStats/RtcStats';
 import browser from '../browser';
 import ScriptUtil from '../util/ScriptUtil';
 import WatchRTC from '../watchRTC/WatchRTC';
@@ -133,6 +134,7 @@ Statistics.init = function(options) {
     if (!browser.isReactNative()) {
         WatchRTC.init(options);
     }
+    RtcStats.init(options);
 };
 
 /**
