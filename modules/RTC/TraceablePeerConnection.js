@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import { Interop } from '@jitsi/sdp-interop';
 import transform from 'sdp-transform';
 
-import * as CodecMimeType from '../../service/RTC/CodecMimeType';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -1688,20 +1688,25 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     for (const mLine of mLines) {
-        if (this.codecSettings.disabled) {
-            SDPUtil.stripCodec(mLine, this.codecSettings.disabled);
-        }
+        // Strip the codecs that are not in the codec list from all the video m-lines.
+        const currentCodecs = this.getConfiguredVideoCodecs();
 
-        if (this.codecSettings.preferred) {
-            SDPUtil.preferCodec(mLine, this.codecSettings.preferred);
+        for (const codec of currentCodecs) {
+            if (!this.codecSettings.codecList.find(selectedCodec => selectedCodec === codec)) {
+                SDPUtil.stripCodec(mLine, codec);
+            }
 
             // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
             // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
             // baseline code for the jvb connection and therefore this is not needed for jvb connection.
-            // TODO - add check for mobile browsers once js-utils provides that check.
-            if (this.codecSettings.preferred === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
-                SDPUtil.stripCodec(mLine, this.codecSettings.preferred, true /* high profile */);
+            if (codec === CodecMimeType.H264 && browser.isMobileDevice() && this.isP2P) {
+                SDPUtil.stripCodec(mLine, codec, true /* high profile */);
             }
+        }
+
+        // Reorder the codecs based on the preferred settings.
+        for (const codec of this.codecSettings.codecList.slice().reverse()) {
+            SDPUtil.preferCodec(mLine, codec);
         }
     }
 
@@ -1908,6 +1913,26 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
 };
 
 /**
+ * Returns the codecs in the current order of preference as configured on the peerconnection.
+ *
+ * @returns {Array}
+ */
+TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function() {
+    const sdp = this.peerconnection.localDescription?.sdp;
+
+    if (!sdp) {
+        return [];
+    }
+    const parsedSdp = transform.parse(sdp);
+    const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
+    const codecs = new Set(mLine.rtp
+        .filter(pt => pt.codec.toLowerCase() !== 'rtx')
+        .map(pt => pt.codec.toLowerCase()));
+
+    return Array.from(codecs);
+};
+
+/**
  * Checks if the client has negotiated not to receive video encoded using the given codec, i.e., the codec has been
  * removed from the local description.
  */
@@ -1942,12 +1967,12 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  * @param {CodecMimeType} disabledCodec the codec that needs to be disabled.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.setVideoCodecs = function(preferredCodec, disabledCodec) {
-    if (!this.codecSettings) {
+TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
+    if (!this.codecSettings || !codecList?.length) {
         return;
     }
-    preferredCodec && (this.codecSettings.preferred = preferredCodec);
-    disabledCodec && (this.codecSettings.disabled = disabledCodec);
+
+    this.codecSettings.codecList = codecList;
 };
 
 /**
@@ -2451,7 +2476,7 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
 
     for (const mLine of mLines) {
-        if (this.codecSettings.preferred === CodecMimeType.VP9) {
+        if (this.codecSettings.codecList[0] === CodecMimeType.VP9) {
             const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
             const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
             const ssHdBitrate = bitrates.ssHigh ? bitrates.ssHigh : HD_BITRATE;
@@ -3014,25 +3039,22 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
     // Set the codec preference before creating an offer or answer so that the generated SDP will have
     // the correct preference order.
     if (this._usesTransceiverCodecPreferences && this.codecSettings) {
-        const { mediaType } = this.codecSettings;
+        const { codecList, mediaType } = this.codecSettings;
         const transceivers = this.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver?.track?.kind === mediaType);
+        let capabilities = RTCRtpReceiver.getCapabilities(mediaType)?.codecs;
 
-        if (transceivers.length) {
-            let capabilities = RTCRtpReceiver.getCapabilities(mediaType)?.codecs;
-            const disabledCodecMimeType = this.codecSettings?.disabled;
-            const preferredCodecMimeType = this.codecSettings?.preferred;
+        if (transceivers.length && capabilities) {
+            // Remove codecs that are not in the preferred list.
+            capabilities = capabilities
+                .filter(caps => codecList.find(codec => `${mediaType}/${codec}` === caps.mimeType.toLowerCase()));
 
-            if (capabilities && disabledCodecMimeType) {
-                capabilities = capabilities
-                    .filter(caps => caps.mimeType.toLowerCase() !== `${mediaType}/${disabledCodecMimeType}`);
-            }
-
-            if (capabilities && preferredCodecMimeType) {
-                // Move the desired codec (all variations of it as well) to the beginning of the list.
+            // Rearrange the codec list as per the preference order.
+            for (const codec of codecList.slice().reverse()) {
+                // Move the desired codecs (all variations of it as well) to the beginning of the list
                 /* eslint-disable-next-line arrow-body-style */
                 capabilities.sort(caps => {
-                    return caps.mimeType.toLowerCase() === `${mediaType}/${preferredCodecMimeType}` ? -1 : 1;
+                    return caps.mimeType.toLowerCase() === `${mediaType}/${codec}` ? -1 : 1;
                 });
             }
 

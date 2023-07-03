@@ -3,7 +3,7 @@ import $ from 'jquery';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import * as CodecMimeType from '../../service/RTC/CodecMimeType';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -1047,10 +1047,14 @@ export default class JingleSessionPC extends JingleSession {
             .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
             .then(() => {
                 this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
+                let localDescription = this.peerconnection.localDescription;
 
-                // NOTE that the offer is obtained from the localDescription getter as it needs to go though
-                // the transformation chain.
-                this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
+                // Munge the codec order on the outgoing offer for clients that don't support
+                // RTCRtpTransceiver#setCodecPreferences.
+                if (!browser.supportsCodecPreferences) {
+                    localDescription = this.peerconnection._mungeCodecOrder(localDescription);
+                }
+                this.sendSessionInitiate(localDescription.sdp);
             })
             .then(() => {
                 logger.debug(`${this} invite executed - OK`);
@@ -1224,10 +1228,10 @@ export default class JingleSessionPC extends JingleSession {
      * @param {CodecMimeType} preferred the preferred codec.
      * @param {CodecMimeType} disabled the codec that needs to be disabled.
      */
-    setVideoCodecs(preferred = null, disabled = null) {
+    setVideoCodecs(codecList) {
         if (this._assertNotEnded()) {
-            logger.info(`${this} setVideoCodecs: preferred=${preferred}, disabled=${disabled}`);
-            this.peerconnection.setVideoCodecs(preferred, disabled);
+            logger.info(`${this} setVideoCodecs: ${codecList}`);
+            this.peerconnection.setVideoCodecs(codecList);
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {

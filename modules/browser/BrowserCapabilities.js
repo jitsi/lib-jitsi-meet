@@ -27,6 +27,17 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the client is running on an Android browser.
+     *
+     * @returns {boolean}
+     */
+    isAndroidBrowser() {
+        const { userAgent } = navigator;
+
+        return !this.isReactNative() && userAgent.match(/Android/i);
+    }
+
+    /**
      * Checks if the current browser is Chromium based, i.e., it's either Chrome / Chromium or uses it as its engine,
      * but doesn't identify as Chrome.
      *
@@ -56,6 +67,13 @@ export default class BrowserCapabilities extends BrowserDetection {
 
         return Boolean(userAgent.match(/iP(ad|hone|od)/i))
             || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform));
+    }
+
+    /**
+     * Checks if the client is running on a mobile device.
+     */
+    isMobileDevice() {
+        return this.isAndroidBrowser() || this.isIosBrowser() || this.isReactNative();
     }
 
     /**
