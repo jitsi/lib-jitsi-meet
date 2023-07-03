@@ -48,18 +48,6 @@ export class CodecSelection {
                 // Select all codecs that are supported by the browser.
                 selectedOrder = preferenceOrder.filter(codec => supportedCodecs.has(codec));
 
-                // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
-                // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
-                // devices).
-                if (!browser.supportsVP9()) {
-                    const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
-
-                    if (index !== -1) {
-                        selectedOrder.splice(index, 1);
-                        selectedOrder.push(CodecMimeType.VP9);
-                    }
-                }
-
             // Generate the codec list based on the supported codecs and the preferred/disabled (deprecated) settings
             } else if (preferredCodec || disabledCodec) {
                 disabledCodec = disabledCodec?.toLowerCase();
@@ -72,18 +60,22 @@ export class CodecSelection {
 
                 const index = selectedOrder.findIndex(codec => codec === preferredCodec);
 
-                // Move the preferred codec to the top of the list if it is locally supported or move it to the end of
-                // the list if encoding is not properly supported. For example, we do not want to encode VP9 on Firefox
-                // and Safari since they produce only 180p streams always. However, we do want other Chromium endpoints
-                // to continue to encode in VP9 since Firefox/Safari are able to decode VP9 properly.
+                // Move the preferred codec to the top of the list.
                 if (preferredCodec && index !== -1) {
                     selectedOrder.splice(index, 1);
+                    selectedOrder.unshift(preferredCodec);
+                }
+            }
 
-                    if (preferredCodec !== CodecMimeType.VP9 || browser.supportsVP9()) {
-                        selectedOrder.unshift(preferredCodec);
-                    } else {
-                        selectedOrder.push(preferredCodec);
-                    }
+            // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
+            // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
+            // devices).
+            if (!browser.supportsVP9()) {
+                const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
+
+                if (index !== -1) {
+                    selectedOrder.splice(index, 1);
+                    selectedOrder.push(CodecMimeType.VP9);
                 }
             }
 
