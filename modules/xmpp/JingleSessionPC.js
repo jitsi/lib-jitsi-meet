@@ -1051,7 +1051,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 // Munge the codec order on the outgoing offer for clients that don't support
                 // RTCRtpTransceiver#setCodecPreferences.
-                if (!browser.supportsCodecPreferences) {
+                if (!browser.supportsCodecPreferences()) {
                     localDescription = this.peerconnection._mungeCodecOrder(localDescription);
                 }
                 this.sendSessionInitiate(localDescription.sdp);
