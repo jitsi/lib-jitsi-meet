@@ -109,6 +109,25 @@ export class TPCUtils {
     }
 
     /**
+     * Updates the sender parameters in the stream encodings.
+     *
+     * @param {RTCRtpSender} sender - the sender associated with a MediaStreamTrack.
+     * @param {boolean} enable - whether the streams needs to be enabled or disabled.
+     * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
+     */
+    _updateSenderParameters(sender, enable) {
+        const parameters = sender.getParameters();
+
+        if (parameters?.encodings?.length) {
+            for (const encoding of parameters.encodings) {
+                encoding.active = enable;
+            }
+        }
+
+        return sender.setParameters(parameters);
+    }
+
+    /**
      * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e.,
      * the primary ssrc first and the secondary rtx ssrc later. This is important for unified
      * plan since we have only one FID group per media description.
@@ -508,17 +527,12 @@ export class TPCUtils {
         const promises = [];
 
         for (const sender of senders) {
-            const parameters = sender.getParameters();
-
-            if (parameters?.encodings?.length) {
-                for (const encoding of parameters.encodings) {
-                    encoding.active = enable;
-                }
-            }
-
             if (sender.track.kind === MediaType.VIDEO) {
-                promises.push(this.pc._updateVideoSenderParameters(() => sender.setParameters(parameters)));
+                promises.push(this.pc._updateVideoSenderParameters(this._updateSenderParameters(sender, enable)));
             } else {
+                const parameters = sender.getParameters();
+
+                parameters?.encodings?.length && (parameters.encodings[0].active = enable);
                 promises.push(sender.setParameters(parameters));
             }
         }
