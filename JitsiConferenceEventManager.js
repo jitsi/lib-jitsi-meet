@@ -199,6 +199,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONNECTION_ERROR);
 
+    this.chatRoomForwarder.forward(XMPPEvents.DISPLAY_NAME_REQUIRED,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.DISPLAY_NAME_REQUIRED);
+    chatRoom.addListener(XMPPEvents.DISPLAY_NAME_REQUIRED, () => conference.leave());
+
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONNECTION_ERROR);
