@@ -1,0 +1,82 @@
+
+import Logger from '@jitsi/logger';
+import watchRTC from '@testrtc/watchrtc-sdk';
+
+import { isAnalyticsEnabled, isRtcstatsEnabled, isWatchRTCEnabled } from './functions';
+import { IWatchRTCConfiguration } from './interfaces';
+
+const logger = Logger.getLogger(__filename);
+
+/**
+ * Class that controls the watchRTC flow, because it overwrites and proxies global function it should only be
+ * initialized once.
+ */
+class WatchRTCHandler {
+    options?: IWatchRTCConfiguration;
+    /**
+     * Initialize watchRTC, it overwrites GUM and PeerConnection global functions and adds a proxy over them
+     * used to capture stats.
+     *
+     * @param {Object} options - Init options.
+     * @returns {void}
+     */
+    init(options: any): void {
+
+        if (isWatchRTCEnabled(options)) {
+
+            if (!isAnalyticsEnabled(options)) {
+                logger.error('Cannot initialize WatchRTC when analytics or third party requests are disabled.');
+                return;
+            }
+
+            if (isRtcstatsEnabled(options)) {
+                logger.error('Cannot initialize WatchRTC when RTCStats is enabled.');
+                return;
+            }
+
+            // watchRTC "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global
+            // window functions. Because lib-jitsi-meet uses references to those functions that are taken on
+            // init, we need to add these proxies before it initializes, otherwise lib-jitsi-meet will use the
+            // original non proxy versions of these functions.
+            try {
+                if (options?.watchRTCConfigParams?.rtcApiKey) {
+                    watchRTC.init({
+                        rtcApiKey: options.watchRTCConfigParams.rtcApiKey,
+                    });
+                    this.options = options.watchRTCConfigParams;
+                    logger.info('WatchRTC initialized.');
+                } else {
+                    logger.error('WatchRTC is enabled but missing API key.');
+                }
+            } catch (error) {
+                logger.error('Failed to initialize WatchRTC: ', error);
+            }
+        }
+    }
+
+    /**
+     * Begin watchRTC session considering roomName and userName if already not available
+     *
+     * @param {string} roomName - The room name we are currently in.
+     * @param {string} userName - The user name. This value is obtained from
+     * JitsiConference.prototype.myUserId
+     * @returns {void}
+     */
+    start(roomName: string, userName: string): void {
+        try {
+            if (this.options) {
+                this.options.rtcRoomId = this.options.rtcRoomId ? this.options.rtcRoomId : roomName;
+                this.options.rtcPeerId = this.options.rtcPeerId ? this.options.rtcPeerId : userName;
+                watchRTC.persistentEnd();
+                watchRTC.setConfig(this.options);
+                logger.info('WatchRTC setConfig.');
+            } else {
+                logger.error('WatchRTC is enabled but it has not been configured.');
+            }
+        } catch (error) {
+            logger.error('Failed to start WatchRTC session: ', error);
+        }
+    }
+}
+
+export default new WatchRTCHandler();
