@@ -46,7 +46,7 @@ class RtcStats {
      * Initializes the underlying rtcstats node moduke.
      */
     init(options) {
-        const { rtcstatsUseLibJitsi } = options.analytics;
+        const { rtcstatsUseLibJitsi } = options.testing;
 
         if (!rtcstatsUseLibJitsi) {
             logger.info('RtcStats configured to not use in lib-jitsi-meet');
