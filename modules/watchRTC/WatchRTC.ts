@@ -34,10 +34,6 @@ class WatchRTCHandler {
                 return;
             }
 
-            // watchRTC "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global
-            // window functions. Because lib-jitsi-meet uses references to those functions that are taken on
-            // init, we need to add these proxies before it initializes, otherwise lib-jitsi-meet will use the
-            // original non proxy versions of these functions.
             try {
                 if (options?.watchRTCConfigParams?.rtcApiKey) {
                     watchRTC.init({
