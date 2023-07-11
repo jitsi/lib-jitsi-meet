@@ -60,6 +60,7 @@ export enum JitsiConferenceErrors {
     /**
      * Indicates that the display name is required when joining the room.
      * There are cases like lobby room where display name is required.
+     * @param {boolean|null} lobby whether the error is because lobby is enabled.
      */
     DISPLAY_NAME_REQUIRED = 'conference.display_name_required',
 
