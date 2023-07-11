@@ -201,7 +201,7 @@ export default function Statistics(xmpp, options) {
 
     // WatchRTC is not required to work for react native
     if (!browser.isReactNative()) {
-        WatchRTC.start(options.roomName, options.userName);
+        WatchRTC.start(this.options.roomName, this.options.userName);
     }
 }
 Statistics.audioLevelsEnabled = false;
