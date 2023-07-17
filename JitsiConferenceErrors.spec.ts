@@ -11,6 +11,7 @@ describe( "/JitsiConferenceErrors members", () => {
         CONFERENCE_MAX_USERS,
         CONNECTION_ERROR,
         CONFERENCE_RESTARTED,
+        DISPLAY_NAME_REQUIRED,
         NOT_ALLOWED_ERROR,
         MEMBERS_ONLY_ERROR,
         CONFERENCE_ACCESS_DENIED,
@@ -37,6 +38,7 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
         expect( CONNECTION_ERROR ).toBe( 'conference.connectionError' );
         expect( CONFERENCE_RESTARTED ).toBe( 'conference.restarted' );
+        expect( DISPLAY_NAME_REQUIRED ).toBe( 'conference.display_name_required' );
         expect( NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );
         expect( MEMBERS_ONLY_ERROR ).toBe( 'conference.connectionError.membersOnly' );
         expect( CONFERENCE_ACCESS_DENIED ).toBe( 'conference.connectionError.accessDenied' );
@@ -61,6 +63,7 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( JitsiConferenceErrors.CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
         expect( JitsiConferenceErrors.CONNECTION_ERROR ).toBe( 'conference.connectionError' );
         expect( JitsiConferenceErrors.CONFERENCE_RESTARTED ).toBe( 'conference.restarted' );
+        expect( JitsiConferenceErrors.DISPLAY_NAME_REQUIRED ).toBe( 'conference.display_name_required' );
         expect( JitsiConferenceErrors.NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );
         expect( JitsiConferenceErrors.MEMBERS_ONLY_ERROR ).toBe( 'conference.connectionError.membersOnly' );
         expect( JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED ).toBe( 'conference.connectionError.accessDenied' );
