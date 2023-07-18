@@ -2039,7 +2039,6 @@ export default class JingleSessionPC extends JingleSession {
 
                 lines.forEach(line => {
                     mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
-
                     if (mid > -1) {
                         remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
                         if (this.isP2P) {
@@ -2054,18 +2053,16 @@ export default class JingleSessionPC extends JingleSession {
                             // Jvb connections will have direction set to 'sendonly' for the remote sources.
                             remoteSdp.media[mid] = remoteSdp.media[mid]
                                 .replace(`a=${MediaDirection.SENDONLY}`, `a=${MediaDirection.INACTIVE}`);
+
+                            // Reject the m-line so that the browser removes the associated transceiver from the list
+                            // of available transceivers. This will prevent the client from trying to re-use these
+                            // inactive transceivers when additional video sources are added to the peerconnection.
+                            const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
+
+                            remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
                         }
                     }
                 });
-
-                // Reject the m-line so that the browser removes the associated transceiver from the list of available
-                // transceivers. This will prevent the client from trying to re-use these inactive transceivers when
-                // additional video sources are added to the peerconnection.
-                if (mid > -1 && !this.isP2P && FeatureFlags.isMultiStreamSendSupportEnabled()) {
-                    const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
-
-                    remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
-                }
             } else {
                 lines.forEach(line => {
                     remoteSdp.media[idx] = remoteSdp.media[idx].replace(`${line}\r\n`, '');
