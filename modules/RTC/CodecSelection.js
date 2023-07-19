@@ -70,12 +70,17 @@ export class CodecSelection {
             // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
             // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
             // devices).
-            if (!browser.supportsVP9()) {
+            if (!browser.supportsVP9() || this.conference.isE2EEEnabled()) {
                 const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
 
                 if (index !== -1) {
                     selectedOrder.splice(index, 1);
-                    selectedOrder.push(CodecMimeType.VP9);
+
+                    // Remove VP9 from the list when E2EE is enabled since it is not supported.
+                    // TODO - remove this check when support for VP9-E2EE is introduced.
+                    if (!this.conference.isE2EEEnabled()) {
+                        selectedOrder.push(CodecMimeType.VP9);
+                    }
                 }
             }
 
@@ -111,6 +116,20 @@ export class CodecSelection {
     }
 
     /**
+     * Filters VP9 from the list of the preferred video codecs for JVB if E2EE is enabled.
+     *
+     * @returns {Array}
+     */
+    _maybeFilterJvbCodecs() {
+        // TODO - remove this check when support for VP9-E2EE is introduced.
+        if (this.conference.isE2EEEnabled()) {
+            return this.codecPreferenceOrder.jvb.filter(codec => codec !== CodecMimeType.VP9);
+        }
+
+        return this.codecPreferenceOrder.jvb;
+    }
+
+    /**
      * Sets the codec on the media session based on the codec preference order configured in config.js and the supported
      * codecs published by the remote participants in their presence.
      *
@@ -124,7 +143,7 @@ export class CodecSelection {
         }
         const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
         const localPreferredCodecOrder = session === this.conference.jvbJingleSession
-            ? this.codecPreferenceOrder.jvb
+            ? this._maybeFilterJvbCodecs()
             : this.codecPreferenceOrder.p2p;
 
         const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
