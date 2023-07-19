@@ -23,11 +23,9 @@ provided public key on the given key server. An example structure can be view in
 
 This is how you generate the keys:
 ```
-openssl genrsa -out keypair.pem 2048
-openssl rsa -in keypair.pem -pubout -out publickey.pem
-openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in keypair.pem -out moderated.der
+openssl genrsa -out jitsi-private.pem 2048
+openssl rsa -in jitsi-private.pem -pubout -out jitsi-public.pem
 ```
-Get the private_key_id through this command echo -n [NAME_OF_PRIVATE_KEY.der] | shasum -a 256 and change the publickey.pem name to the fetched private_key_id
 
 
 JWT authentication works with BOSH and WebSocket connections.

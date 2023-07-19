@@ -1,4 +1,5 @@
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { VideoType } from '../../service/RTC/VideoType';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
 import Statistics from '../statistics/statistics';
@@ -165,6 +166,15 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     _onTrackMute() {
         logger.debug(`"onmute" event(${Date.now()}): ${this}`);
+
+        // Ignore mute events that get fired on desktop tracks because of 0Hz screensharing introduced in Chromium.
+        // The sender stops sending frames if the content of the captured window doesn't change resulting in the
+        // receiver showing avatar instead of the shared content.
+        if (this.videoType === VideoType.DESKTOP) {
+            logger.debug('Ignoring mute event on desktop tracks.');
+
+            return;
+        }
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
     }

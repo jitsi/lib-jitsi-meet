@@ -485,12 +485,13 @@ export class TPCUtils {
             return Promise.resolve();
         }
         parameters.encodings = this._getStreamEncodings(track);
+        const promise = transceiver.sender.setParameters(parameters);
 
         if (mediaType === MediaType.VIDEO) {
-            return this.pc._updateVideoSenderParameters(() => transceiver.sender.setParameters(parameters));
+            return this.pc._updateVideoSenderParameters(promise);
         }
 
-        return transceiver.sender.setParameters(parameters);
+        return promise;
     }
 
     /**
@@ -515,11 +516,12 @@ export class TPCUtils {
                     encoding.active = enable;
                 }
             }
+            const setActivePromise = sender.setParameters(parameters);
 
             if (sender.track.kind === MediaType.VIDEO) {
-                promises.push(this.pc._updateVideoSenderParameters(() => sender.setParameters(parameters)));
+                promises.push(this.pc._updateVideoSenderParameters(setActivePromise));
             } else {
-                promises.push(sender.setParameters(parameters));
+                promises.push(setActivePromise);
             }
         }
 
