@@ -69,6 +69,14 @@ class MockConference extends Listenable {
     }
 
     /**
+     * Checks if E2EE is enabled.
+     * @returns {boolean}
+     */
+    isE2EEEnabled() {
+        return false;
+    }
+
+    /**
      * Removes the participant from the conference.
      * @param {MockParticipant} endpoint
      */
