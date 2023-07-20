@@ -1688,14 +1688,9 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
     }
 
     for (const mLine of mLines) {
-        // Strip the codecs that are not in the codec list from all the video m-lines.
         const currentCodecs = this.getConfiguredVideoCodecs();
 
         for (const codec of currentCodecs) {
-            if (!this.codecSettings.codecList.find(selectedCodec => selectedCodec === codec)) {
-                SDPUtil.stripCodec(mLine, codec);
-            }
-
             // Strip the high profile H264 codecs on mobile clients for p2p connection. High profile codecs give better
             // quality at the expense of higher load which we do not want on mobile clients. Jicofo offers only the
             // baseline code for the jvb connection and therefore this is not needed for jvb connection.
