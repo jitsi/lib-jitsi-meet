@@ -66,8 +66,6 @@ class WatchRTCHandler {
                 watchRTC.persistentEnd();
                 watchRTC.setConfig(this.options);
                 logger.info('WatchRTC setConfig.');
-            } else {
-                logger.error('WatchRTC is enabled but it has not been configured.');
             }
         } catch (error) {
             logger.error('Failed to start WatchRTC session: ', error);
