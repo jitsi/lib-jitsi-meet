@@ -1229,7 +1229,9 @@ export default class ChatRoom extends Listenable {
                 lobbyRoomJid = lobbyRoomNode.text();
             }
 
-            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR, lobbyRoomJid);
+            const waitingForHost = $(pres).find('>error[type="auth"]>waiting-for-host').length > 0;
+
+            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR, lobbyRoomJid, waitingForHost);
         } else if ((errorDescriptionNode = $(pres).find(
                 '>error[type="modify"]>displayname-required[xmlns="http://jitsi.org/jitmeet"]')).length) {
             logger.warn('display name required ', pres);
