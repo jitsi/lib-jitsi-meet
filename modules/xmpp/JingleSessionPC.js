@@ -261,7 +261,7 @@ export default class JingleSessionPC extends JingleSession {
          * @type {boolean}
          * @private
          */
-        this._localVideoActive = true;
+        this._localSendReceiveVideoActive = true;
 
         /**
          * Indicates whether or not the remote peer has video transfer active.
@@ -273,7 +273,7 @@ export default class JingleSessionPC extends JingleSession {
          * @type {boolean}
          * @private
          */
-        this._remoteVideoActive = true;
+        this._remoteSendReceiveVideoActive = true;
 
         /**
          * Marks that ICE gathering duration has been reported already. That
@@ -1191,7 +1191,7 @@ export default class JingleSessionPC extends JingleSession {
                     // interested in receiving video content. Changing media direction in the remote SDP will mess
                     // up our SDP translation chain (simulcast, video mute, RTX etc.)
                     // #2 Sends the max frame height if it was set, before the session-initiate/accept
-                    if (this.isP2P && (!this._localVideoActive || this._sourceReceiverConstraints)) {
+                    if (this.isP2P && (!this._localSendReceiveVideoActive || this._sourceReceiverConstraints)) {
                         this.sendContentModify();
                     }
                 }
@@ -1415,7 +1415,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     sendContentModify() {
-        const senders = this._localVideoActive ? 'both' : 'none';
+        const senders = this._localSendReceiveVideoActive ? 'both' : 'none';
         const sessionModify
             = $iq({
                 to: this.remoteJid,
@@ -2536,47 +2536,23 @@ export default class JingleSessionPC extends JingleSession {
                     + ' before "initialize" is called');
         }
 
-        const logVideoStr = videoActive ? 'video active' : 'video inactive';
-
-        logger.info(`${this} Queued make ${logVideoStr} task`);
-
-        const workFunction = finishedCallback => {
-            const isSessionActive = this.state === JingleSessionState.ACTIVE;
-
-            if (this._localVideoActive !== videoActive) {
-                this._localVideoActive = videoActive;
-                if (this.isP2P && isSessionActive) {
-                    this.sendContentModify();
-                }
+        if (this._localSendReceiveVideoActive !== videoActive) {
+            this._localSendReceiveVideoActive = videoActive;
+            if (this.isP2P && this.state === JingleSessionState.ACTIVE) {
+                this.sendContentModify();
             }
 
-            this.peerconnection.setVideoTransferActive(this._localVideoActive && this._remoteVideoActive);
+            return this.peerconnection
+                .setVideoTransferActive(this._localSendReceiveVideoActive && this._remoteSendReceiveVideoActive);
+        }
 
-            // Always initiate a renegotiation cycle for p2p connection when the media direction is changed.
-            this._renegotiate()
-                .then(() => finishedCallback())
-                .catch(error => finishedCallback(error));
-        };
-
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                error => {
-                    if (error) {
-                        logger.error(`${this} Make ${logVideoStr} task failed!`);
-                        reject(error);
-                    } else {
-                        logger.debug(`${this} Make ${logVideoStr} task done!`);
-                        resolve();
-                    }
-                });
-        });
+        return Promise.resolve();
     }
 
     /**
-     * Will put and execute on the queue a session modify task. It checks if the sourceMaxFrameHeight (as requested by
-     * the p2p peer) or the senders attribute of the video content has changed and modifies the local video sources
-     * accordingly.
+     * Enables/disables local video based on 'senders' attribute of the video conent in 'content-modify' IQ sent by the
+     * remote peer. Also, checks if the sourceMaxFrameHeight (as requested by the p2p peer) or the senders attribute of
+     * the video content has changed and modifies the local video resolution accordingly.
      */
     modifyContents(jingleContents) {
         const newVideoSenders = JingleSessionPC.parseVideoSenders(jingleContents);
@@ -2593,52 +2569,22 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        const workFunction = finishedCallback => {
-            if (this._assertNotEnded() && this._modifyRemoteVideoActive(newVideoSenders)) {
-                // Will do the sRD/sLD cycle to update SDPs and adjust the media direction.
-                this._renegotiate()
-                    .then(finishedCallback, finishedCallback /* (error) */);
-            } else {
-                finishedCallback();
-            }
-        };
-
-        logger.debug(`${this} queued "content-modify" task(video senders="${newVideoSenders}")`);
-
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    logger.error(`${this} "content-modify" failed`, error);
-                } else {
-                    logger.debug(`${this} "content-modify" task(video senders="${newVideoSenders}") done`);
-                }
-            });
-    }
-
-    /**
-     * Processes new value of remote video "senders" Jingle attribute and tries to apply it for
-     * {@link _remoteVideoActive}.
-     * @param {string} remoteVideoSenders the value of "senders" attribute of Jingle video content element advertised
-     * by remote peer.
-     * @return {boolean} <tt>true</tt> if the change affected state of the underlying peerconnection and renegotiation
-     * is required for the changes to take effect.
-     * @private
-     */
-    _modifyRemoteVideoActive(remoteVideoSenders) {
-        const isRemoteVideoActive
-            = remoteVideoSenders === 'both'
-                || (remoteVideoSenders === 'initiator' && this.isInitiator)
-                || (remoteVideoSenders === 'responder' && !this.isInitiator);
-
-        if (isRemoteVideoActive !== this._remoteVideoActive) {
-            logger.debug(`${this} new remote video active: ${isRemoteVideoActive}`);
-            this._remoteVideoActive = isRemoteVideoActive;
-
-            return this.peerconnection.setVideoTransferActive(this._localVideoActive && this._remoteVideoActive);
+        if (!this._assertNotEnded()) {
+            return;
         }
 
-        return false;
+        const isRemoteVideoActive
+            = newVideoSenders === 'both'
+                || (newVideoSenders === 'initiator' && this.isInitiator)
+                || (newVideoSenders === 'responder' && !this.isInitiator);
+
+        if (isRemoteVideoActive !== this._remoteSendReceiveVideoActive) {
+            logger.debug(`${this} new remote video active: ${isRemoteVideoActive}`);
+            this._remoteSendReceiveVideoActive = isRemoteVideoActive;
+
+            this.peerconnection
+                .setVideoTransferActive(this._localSendReceiveVideoActive && this._remoteSendReceiveVideoActive);
+        }
     }
 
     /**

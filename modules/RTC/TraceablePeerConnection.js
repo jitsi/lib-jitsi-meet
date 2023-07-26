@@ -2784,16 +2784,11 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 };
 
 /**
- * Enables/disables video media transmission on this peer connection. When
- * disabled the SDP video media direction in the local SDP will be adjusted to
- * 'inactive' which means that no data will be sent nor accepted, but
- * the connection should be kept alive.
- * @param {boolean} active <tt>true</tt> to enable video media transmission or
- * <tt>false</tt> to disable. If the value is not a boolean the call will have
- * no effect.
- * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
- * needs to be executed in order for the changes to take effect or
- * <tt>false</tt> if the given value was the same as the previous one.
+ * Enables/disables outgoing video media transmission on this peer connection. When disabled the stream encoding's
+ * active state is enabled or disabled to send or stop the media.
+ * @param {boolean} active <tt>true</tt> to enable video media transmission or <tt>false</tt> to disable. If the value
+ * is not a boolean the call will have no effect.
+ * @return {Promise} A promise that is resolved when the change is succesful, rejected otherwise.
  * @public
  */
 TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
@@ -2802,14 +2797,11 @@ TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
 
     this.videoTransferActive = active;
 
-    if (this._usesUnifiedPlan) {
-        this.tpcUtils.setVideoTransferActive(active);
-
-        // false means no renegotiation up the chain which is not needed in the Unified mode
-        return false;
+    if (changed) {
+        return this.tpcUtils.setMediaTransferActive(active, MediaType.VIDEO);
     }
 
-    return changed;
+    return Promise.resolve();
 };
 
 /**

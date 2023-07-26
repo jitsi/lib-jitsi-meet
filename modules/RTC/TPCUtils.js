@@ -498,14 +498,17 @@ export class TPCUtils {
      * Resumes or suspends media on the peerconnection by setting the active state on RTCRtpEncodingParameters
      * associated with all the senders that have a track attached to it.
      *
-     * @param {boolean} enable - whether media needs to be enabled or suspended.
+     * @param {boolean} enable - whether outgoing media needs to be enabled or disabled.
+     * @param {string} mediaType - media type, 'audio' or 'video', if neither is passed, all outgoing media will either
+     * be enabled or disabled.
      * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
      * otherwise.
      */
-    setMediaTransferActive(enable) {
+    setMediaTransferActive(enable, mediaType) {
         logger.info(`${this.pc} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
 
-        const senders = this.pc.peerconnection.getSenders().filter(s => Boolean(s.track));
+        const senders = this.pc.peerconnection.getSenders()
+            .filter(s => Boolean(s.track) && (!mediaType || s.track.kind === mediaType));
         const promises = [];
 
         for (const sender of senders) {
@@ -538,31 +541,6 @@ export class TPCUtils {
 
                 return Promise.resolve();
             });
-    }
-
-    /**
-     * Enables/disables video media transmission on the peer connection. When disabled the SDP video media direction in
-     * the local SDP will be adjusted to 'inactive' which means that no data will be sent nor accepted, but the
-     * connection should be kept alive. This is used for setting lastn=0 on p2p connection.
-     *
-     * @param {boolean} active - true to enable media transmission or false to disable.
-     * @returns {void}
-     */
-    setVideoTransferActive(active) {
-        const transceivers = this.pc.peerconnection.getTransceivers()
-            .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === MediaType.VIDEO);
-
-        logger.info(`${this.pc} ${active ? 'Enabling' : 'Suspending'} video media transfer.`);
-        transceivers.forEach(transceiver => {
-            const localTrackMids = Array.from(this.pc._localTrackTransceiverMids);
-            const direction = active
-                ? localTrackMids.find(mids => mids[1] === transceiver.mid)
-                    ? MediaDirection.SENDRECV : MediaDirection.RECVONLY
-                : MediaDirection.INACTIVE;
-
-            logger.debug(`Setting direction to ${direction} on mid=${transceiver.mid}`);
-            transceiver.direction = direction;
-        });
     }
 
     /**
