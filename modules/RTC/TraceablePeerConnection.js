@@ -2509,10 +2509,10 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.configureSenderVideoEncodings = function(localVideoTrack = null) {
-    // If media is suspended on the peerconnection, make sure that media stays disabled. The default 'active' state for
-    // the encodings after the source is added to the peerconnection is 'true', so it needs to be explicitly disabled
-    // after the source is added.
-    if (!(this.videoTransferActive && this.audioTransferActive)) {
+    // If media is suspended on the jvb peerconnection, make sure that media stays disabled. The default 'active' state
+    // for the encodings after the source is added to the peerconnection is 'true', so it needs to be explicitly
+    // disabled after the source is added.
+    if (!this.isP2P && !(this.videoTransferActive && this.audioTransferActive)) {
         return this.tpcUtils.setMediaTransferActive(false);
     }
 
@@ -2651,7 +2651,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
 
     // Ignore sender constraints if the media on the peerconnection is suspended (jvb conn when p2p is currently active)
     // or if the video track is muted.
-    if (!this.videoTransferActive || localVideoTrack.isMuted()) {
+    if ((!this.isP2P && !this.videoTransferActive) || localVideoTrack.isMuted()) {
         this._senderMaxHeights.set(sourceName, frameHeight);
 
         return Promise.resolve();
