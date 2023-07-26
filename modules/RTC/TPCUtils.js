@@ -109,6 +109,25 @@ export class TPCUtils {
     }
 
     /**
+     * Updates the sender parameters in the stream encodings.
+     *
+     * @param {RTCRtpSender} sender - the sender associated with a MediaStreamTrack.
+     * @param {boolean} enable - whether the streams needs to be enabled or disabled.
+     * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
+     */
+    _updateSenderEncodings(sender, enable) {
+        const parameters = sender.getParameters();
+
+        if (parameters?.encodings?.length) {
+            for (const encoding of parameters.encodings) {
+                encoding.active = enable;
+            }
+        }
+
+        return sender.setParameters(parameters);
+    }
+
+    /**
      * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e.,
      * the primary ssrc first and the secondary rtx ssrc later. This is important for unified
      * plan since we have only one FID group per media description.
@@ -485,13 +504,12 @@ export class TPCUtils {
             return Promise.resolve();
         }
         parameters.encodings = this._getStreamEncodings(track);
-        const promise = transceiver.sender.setParameters(parameters);
 
         if (mediaType === MediaType.VIDEO) {
-            return this.pc._updateVideoSenderParameters(promise);
+            return this.pc._updateVideoSenderParameters(() => transceiver.sender.setParameters(parameters));
         }
 
-        return promise;
+        return transceiver.sender.setParameters(parameters);
     }
 
     /**
@@ -512,19 +530,10 @@ export class TPCUtils {
         const promises = [];
 
         for (const sender of senders) {
-            const parameters = sender.getParameters();
-
-            if (parameters?.encodings?.length) {
-                for (const encoding of parameters.encodings) {
-                    encoding.active = enable;
-                }
-            }
-            const setActivePromise = sender.setParameters(parameters);
-
             if (sender.track.kind === MediaType.VIDEO) {
-                promises.push(this.pc._updateVideoSenderParameters(setActivePromise));
+                promises.push(this.pc._updateVideoSenderParameters(() => this._updateSenderEncodings(sender, enable)));
             } else {
-                promises.push(setActivePromise);
+                promises.push(this._updateSenderEncodings(sender, enable));
             }
         }
 
