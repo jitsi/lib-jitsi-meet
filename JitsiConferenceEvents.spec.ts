@@ -8,6 +8,7 @@ describe( "/JitsiConferenceEvents members", () => {
         AUDIO_UNMUTE_PERMISSIONS_CHANGED,
         AUTH_STATUS_CHANGED,
         BEFORE_STATISTICS_DISPOSED,
+        COMPUTE_PRESSURE_CHANGED,
         CONFERENCE_ERROR,
         CONFERENCE_FAILED,
         CONFERENCE_JOIN_IN_PROGRESS,
@@ -89,6 +90,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
+        expect( COMPUTE_PRESSURE_CHANGED ).toBe( 'conference.computePressureChanged' );
         expect( CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );

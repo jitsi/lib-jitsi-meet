@@ -327,6 +327,11 @@ export default function JitsiConference(options) {
 
     this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
         && (this.options.config.testing?.enableFirefoxP2p ?? true);
+
+    /**
+     * Experimental feature to monitor CPU pressure.
+     */
+    this.pressureObserver = undefined;
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -590,9 +595,16 @@ JitsiConference.prototype._init = function(options = {}) {
  * @param replaceParticipant {boolean} whether the current join replaces
  * an existing participant with same jwt from the meeting.
  */
-JitsiConference.prototype.join = function(password, replaceParticipant = false) {
+JitsiConference.prototype.join = async function(password, replaceParticipant = false) {
     if (this.room) {
         this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
+        if ('PressureObserver' in window.globalThis) {
+            this.pressureObserver = new window.PressureObserver(
+                records => this._fireComputePressureChangedEvent(records),
+                { sampleRate: 1 }
+            );
+            await this.pressureObserver.observe('cpu');
+        }
     }
 };
 
@@ -734,6 +746,10 @@ JitsiConference.prototype.leave = async function(reason) {
 
     if (this.rtc) {
         this.rtc.destroy();
+    }
+
+    if (this.pressureObserver) {
+        this.pressureObserver.unobserve('cpu');
     }
 
     if (leaveError) {
@@ -1197,6 +1213,16 @@ JitsiConference.prototype._fireAudioLevelChangeEvent = function(audioLevel, tpc)
             JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
             this.myUserId(), audioLevel);
     }
+};
+
+/**
+ * Fires COMPUTE_PRESSURE_CHANGED conference event and broadcasts the pressure records.
+ */
+JitsiConference.prototype._fireComputePressureChangedEvent = function(records) {
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.COMPUTE_PRESSURE_CHANGED,
+        records
+    );
 };
 
 /**

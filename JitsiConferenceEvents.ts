@@ -28,6 +28,12 @@ export enum JitsiConferenceEvents {
     BEFORE_STATISTICS_DISPOSED = 'conference.beforeStatisticsDisposed',
 
     /**
+     * Indicates a change in the compute pressure level
+     * and provides pressure records.
+     */
+    COMPUTE_PRESSURE_CHANGED = 'conference.computePressureChanged',
+
+    /**
      * Indicates that an error occurred.
      */
     CONFERENCE_ERROR = 'conference.error',
@@ -472,6 +478,7 @@ export const AUDIO_INPUT_STATE_CHANGE = JitsiConferenceEvents.AUDIO_INPUT_STATE_
 export const AUDIO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED;
 export const AUTH_STATUS_CHANGED = JitsiConferenceEvents.AUTH_STATUS_CHANGED;
 export const BEFORE_STATISTICS_DISPOSED = JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED;
+export const COMPUTE_PRESSURE_CHANGED = JitsiConferenceEvents.COMPUTE_PRESSURE_CHANGED;
 export const CONFERENCE_ERROR = JitsiConferenceEvents.CONFERENCE_ERROR;
 export const CONFERENCE_FAILED = JitsiConferenceEvents.CONFERENCE_FAILED;
 export const CONFERENCE_JOIN_IN_PROGRESS = JitsiConferenceEvents.CONFERENCE_JOIN_IN_PROGRESS;
