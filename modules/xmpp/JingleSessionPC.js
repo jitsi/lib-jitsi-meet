@@ -1047,14 +1047,7 @@ export default class JingleSessionPC extends JingleSession {
             .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
             .then(() => {
                 this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
-                let localDescription = this.peerconnection.localDescription;
-
-                // Munge the codec order on the outgoing offer for clients that don't support
-                // RTCRtpTransceiver#setCodecPreferences.
-                if (!browser.supportsCodecPreferences()) {
-                    localDescription = this.peerconnection._mungeCodecOrder(localDescription);
-                }
-                this.sendSessionInitiate(localDescription.sdp);
+                this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
             })
             .then(() => {
                 logger.debug(`${this} invite executed - OK`);
