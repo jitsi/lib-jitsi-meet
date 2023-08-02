@@ -70,7 +70,7 @@ export class CodecSelection {
             // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
             // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
             // devices).
-            if (!browser.supportsVP9() || this.conference.isE2EEEnabled()) {
+            if ((connectionType === 'jvb' && !browser.supportsVP9()) || this.conference.isE2EEEnabled()) {
                 const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
 
                 if (index !== -1) {
