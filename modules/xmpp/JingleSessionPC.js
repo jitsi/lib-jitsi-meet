@@ -97,7 +97,6 @@ function _addSourceElement(description, s, ssrc_, msid) {
  * @property {boolean} gatherStats - Described in the config.js[1].
  * @property {object} p2p - Peer to peer related options (FIXME those could be
  * fetched from config.p2p on the upper level).
- * @property {boolean} preferH264 - Described in the config.js[1].
  * @property {Object} testing - Testing and/or experimental options.
  * @property {boolean} webrtcIceUdpDisable - Described in the config.js[1].
  * @property {boolean} webrtcIceTcpDisable - Described in the config.js[1].
@@ -407,19 +406,16 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
+        const preferredJvbCodec = options.codecSettings?.codecList[0];
 
-        if (this.isP2P) {
-            // simulcast needs to be disabled for P2P (121) calls
-            pcOptions.disableSimulcast = true;
-        } else {
-            // H264 scalability is not supported on jvb, so simulcast needs to be disabled when H264 is preferred.
-            pcOptions.disableSimulcast
-                = options.disableSimulcast || options.videoQuality?.preferredCodec === CodecMimeType.H264;
+        pcOptions.disableSimulcast = this.isP2P
+            ? true
+            : options.disableSimulcast
+                ?? (!browser.supportsScalabilityModeAPI() && preferredJvbCodec?.toLowerCase() === CodecMimeType.H264);
 
+        if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.
-            pcOptions.capScreenshareBitrate = pcOptions.disableSimulcast
-                || !(typeof options.desktopSharingFrameRate?.max === 'number'
-                    && options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
+            pcOptions.capScreenshareBitrate = !(options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
         }
 
         if (options.startSilent) {

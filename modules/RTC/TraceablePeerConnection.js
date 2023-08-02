@@ -8,6 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
+import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode.ts';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -693,11 +694,15 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 
 /**
  * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
- * bridge. Currently this happens only when VP8 is the selected codec.
+ * bridge. Currently this happens only when VP8 or H264 is the selected codec.
  * @returns {boolean}
  */
 TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
-    return this.isSimulcastOn() && this.getConfiguredVideoCodec() === CodecMimeType.VP8;
+    const currentCodec = this.getConfiguredVideoCodec();
+
+    return this.isSimulcastOn()
+        && (currentCodec === CodecMimeType.VP8
+            || (currentCodec === CodecMimeType.H264 && browser.supportsScalabilityModeAPI()));
 };
 
 /**
@@ -2737,6 +2742,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     this.encodingsEnabledState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, frameHeight);
     const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack);
     const videoType = localVideoTrack.getVideoType();
+    const currentCodec = this.getConfiguredVideoCodec();
 
     if (this.isSimulcastOn()) {
         for (const encoding in parameters.encodings) {
@@ -2747,11 +2753,15 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
                 // encodings.
                 browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
 
-                if (this.getConfiguredVideoCodec() === CodecMimeType.VP8
+                if (currentCodec === CodecMimeType.VP8
                     && (this.options?.videoQuality?.maxBitratesVideo
                         || isSharingLowFpsScreen
                         || this._usesUnifiedPlan)) {
                     parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
+                }
+
+                if (browser.supportsScalabilityModeAPI() && currentCodec === CodecMimeType.H264) {
+                    parameters.encodings[encoding].scalabilityMode = VideoEncoderScalabilityMode.L1T3;
                 }
             }
         }
