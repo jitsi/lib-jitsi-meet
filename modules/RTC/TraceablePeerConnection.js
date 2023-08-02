@@ -48,13 +48,17 @@ const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
+ * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
+ * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
+ * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
  * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
- * @param {string} options.disabledCodec the mime type of the code that should not be negotiated on the peerconnection.
- * @param {string} options.preferredCodec the mime type of the codec that needs to be made the preferred codec for the
- * peerconnection.
+ * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
+ * enabled on the PeerConnection.
+ * @param {boolean} options.forceTurnRelay If set to true, the browser will generate only Relay ICE candidates.
  * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
  * @param {boolean} options.usesUnifiedPlan Indicates if the  browser is running in unified plan mode.
+ * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
