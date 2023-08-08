@@ -42,7 +42,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
         attribute: 'cname',
         value: primarySsrcCname
     });
-    mLine.addSSRCAttribute({
+    primarySsrcMsid && mLine.addSSRCAttribute({
         id: rtxSsrc,
         attribute: 'msid',
         value: primarySsrcMsid
