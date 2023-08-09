@@ -1,3 +1,4 @@
+import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $build } from 'strophe.js';
@@ -123,7 +124,7 @@ export function expandSourcesFromJson(iq, jsonMessageXml) {
     let json;
 
     try {
-        json = JSON.parse(jsonMessageXml.textContent);
+        json = safeJsonParse(jsonMessageXml.textContent);
     } catch (error) {
         logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
 

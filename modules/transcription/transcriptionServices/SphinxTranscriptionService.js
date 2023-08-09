@@ -1,5 +1,7 @@
 /* global config */
 
+import { safeJsonParse } from '@jitsi/js-utils/json';
+
 import Word from '../word';
 
 import audioRecorder from './../audioRecorder';
@@ -56,7 +58,7 @@ export default class SphinxService extends AbstractTranscriptionService {
      * @param response the JSON body retrieved from the Sphinx4 server
      */
     formatResponse(response) {
-        const result = JSON.parse(response).objects;
+        const result = safeJsonParse(response).objects;
 
         // make sure to delete the session id object, which is always
         // the first value in the JSON array
@@ -87,7 +89,7 @@ export default class SphinxService extends AbstractTranscriptionService {
         let json;
 
         try {
-            json = JSON.parse(response);
+            json = safeJsonParse(response);
         } catch (error) {
             console.log(error);
 

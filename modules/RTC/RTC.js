@@ -1,4 +1,5 @@
 import { getLogger } from '@jitsi/logger';
+import clonedeep from 'lodash.clonedeep';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -369,7 +370,7 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, pcConfig, isP2P, options) {
-        const pcConstraints = JSON.parse(JSON.stringify(RTCUtils.pcConstraints));
+        const pcConstraints = clonedeep(RTCUtils.pcConstraints);
 
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');

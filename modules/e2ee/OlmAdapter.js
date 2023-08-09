@@ -1,5 +1,6 @@
 /* global Olm */
 
+import { safeJsonParse as _safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import base64js from 'base64-js';
 import isEqual from 'lodash.isequal';
@@ -285,7 +286,7 @@ export class OlmAdapter extends Listenable {
             this._olmAccount = new Olm.Account();
             this._olmAccount.create();
 
-            this._idKeys = JSON.parse(this._olmAccount.identity_keys());
+            this._idKeys = _safeJsonParse(this._olmAccount.identity_keys());
 
             logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
@@ -995,7 +996,7 @@ export class OlmAdapter extends Listenable {
         // Generate a One Time Key.
         this._olmAccount.generate_one_time_keys(1);
 
-        const otKeys = JSON.parse(this._olmAccount.one_time_keys());
+        const otKeys = _safeJsonParse(this._olmAccount.one_time_keys());
         const otKey = Object.values(otKeys.curve25519)[0];
 
         if (!otKey) {
@@ -1098,7 +1099,7 @@ export class OlmAdapter extends Listenable {
  */
 function safeJsonParse(data) {
     try {
-        return JSON.parse(data);
+        return _safeJsonParse(data);
     } catch (e) {
         return {};
     }

@@ -1,3 +1,4 @@
+import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $msg, Strophe } from 'strophe.js';
@@ -1006,7 +1007,7 @@ export default class XMPP extends Listenable {
         }
 
         try {
-            const json = JSON.parse(jsonString);
+            const json = safeJsonParse(jsonString);
 
             // Handle non-exception-throwing cases:
             // Neither JSON.parse(false) or JSON.parse(1234) throw errors,

@@ -1,3 +1,4 @@
+import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
@@ -388,7 +389,7 @@ export default class ChatRoom extends Listenable {
 
             if (roomMetadataText) {
                 try {
-                    this.roomMetadata._handleMessages(JSON.parse(roomMetadataText));
+                    this.roomMetadata._handleMessages(safeJsonParse(roomMetadataText));
                 } catch (e) {
                     logger.warn('Failed to set room metadata', e);
                 }
