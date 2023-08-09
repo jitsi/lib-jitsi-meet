@@ -5,7 +5,6 @@ import JitsiParticipant from './JitsiParticipant';
 import JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from './modules/RTC/JitsiLocalTrack';
 import JitsiTrack from './modules/RTC/JitsiTrack';
-import Transcriber from './modules/transcription/transcriber';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import { MediaType } from './service/RTC/MediaType';
@@ -59,7 +58,6 @@ export default class JitsiConference {
   removeCommand: ( name: string ) => void;
   setDisplayName: ( name: string ) => void;
   setSubject: ( name: string ) => void;
-  getTranscriber: () => Transcriber;
   getTranscriptionStatus: () => 'on' | 'off';
   addTrack: ( track: JitsiLocalTrack ) => Promise<JitsiLocalTrack>;
   onLocalTrackRemoved: ( track: JitsiLocalTrack ) => void;
