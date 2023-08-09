@@ -38,7 +38,6 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import Transcriber from './modules/transcription/transcriber';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -1093,32 +1092,6 @@ JitsiConference.prototype.setSubject = function(subject) {
 };
 
 /**
- * Get a transcriber object for all current participants in this conference
- * @return {Transcriber} the transcriber object
- */
-JitsiConference.prototype.getTranscriber = function() {
-    if (this.transcriber === undefined) {
-        this.transcriber = new Transcriber();
-
-        // add all existing local audio tracks to the transcriber
-        const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
-
-        for (const localAudio of localAudioTracks) {
-            this.transcriber.addTrack(localAudio);
-        }
-
-        // and all remote audio tracks
-        const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
-
-        for (const remoteTrack of remoteAudioTracks) {
-            this.transcriber.addTrack(remoteTrack);
-        }
-    }
-
-    return this.transcriber;
-};
-
-/**
  * Returns the transcription status.
  *
  * @returns {String} "on" or "off".
@@ -2091,10 +2064,6 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
         logger.info(`Source signaling received before presence for ${id}`);
     }
 
-    if (this.transcriber) {
-        this.transcriber.addTrack(track);
-    }
-
     const emitter = this.eventEmitter;
 
     track.addEventListener(
@@ -2162,10 +2131,6 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
                 participant._tracks.splice(i, 1);
 
                 this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, removedTrack);
-
-                if (this.transcriber) {
-                    this.transcriber.removeTrack(removedTrack);
-                }
 
                 break;
             }
