@@ -1,3 +1,4 @@
+import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -292,7 +293,7 @@ export default class BridgeChannel {
             let obj;
 
             try {
-                obj = JSON.parse(data);
+                obj = safeJsonParse(data);
             } catch (error) {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Failed to parse channel message as JSON: ', data, error);

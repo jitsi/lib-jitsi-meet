@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
+import clonedeep from 'lodash.clonedeep';
 import { $iq, Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
@@ -206,10 +207,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     fromJid,
                     this.connection,
                     this.mediaConstraints,
-
-                    // Makes a copy in order to prevent exception thrown on RN when either this.p2pIceConfig or
-                    // this.jvbIceConfig is modified and there's a PeerConnection instance holding a reference
-                    JSON.parse(JSON.stringify(pcConfig)),
+                    clonedeep(pcConfig),
                     isP2P,
                     /* initiator */ false);
 
