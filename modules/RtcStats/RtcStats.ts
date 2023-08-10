@@ -55,16 +55,11 @@ class RTCStats {
             } = {}
         } = initConfig;
 
-        console.log('[ADBG LJM]: Running init...', initConfig);
-
-
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
         // with unforseseen consequences.
         if (!rtcstatsEnabled || this._initialized) return;
         
-        console.log('[ADBG LJM]: Running init once...');
-
         rtcstatsInit( 
             { statsEntry: this.sendStatsEntry.bind(this) }, 
             { connectionFilter,
