@@ -28,7 +28,7 @@ declare class Statistics {
   addByteSentStatsListener: ( listener: unknown ) => void; // TODO:
   removeByteSentStatsListener: ( listener: unknown ) => void; // TODO:
   addLongTasksStatsListener: ( listener: unknown ) => void; // TODO:
-  attachLongTasksStats: ( conference: unknown ) => void; // TODO:
+  attachLongTasksStats: () => void; // TODO:
   getLongTasksStats: () => unknown | null; // TODO:
   removeLongTasksStatsListener: ( listener: unknown ) => void; // TODO:
   setSpeakerList: ( speakerList: Array<string> ) => void;

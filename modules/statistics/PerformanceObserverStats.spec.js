@@ -29,7 +29,7 @@ describe('PerformanceObserverStats', () => {
         spyOn(browser, 'isChrome').and.returnValue(true);
         mockConference = new MockConference();
         Statistics.init({ longTasksStatsInterval: 1000 });
-        statistics = new Statistics();
+        statistics = new Statistics(mockConference);
         jasmine.clock().install();
     });
 
