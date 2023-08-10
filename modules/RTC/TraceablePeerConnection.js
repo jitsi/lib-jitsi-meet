@@ -3043,10 +3043,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
         let capabilities = RTCRtpReceiver.getCapabilities(mediaType)?.codecs;
 
         if (transceivers.length && capabilities) {
-            // Remove codecs that are not in the preferred list.
-            capabilities = capabilities
-                .filter(caps => codecList.find(codec => `${mediaType}/${codec}` === caps.mimeType.toLowerCase()));
-
             // Rearrange the codec list as per the preference order.
             for (const codec of codecList.slice().reverse()) {
                 // Move the desired codecs (all variations of it as well) to the beginning of the list
