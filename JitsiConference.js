@@ -3074,7 +3074,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
         this.p2pJingleSession.peerconnection,
         remoteID);
 
-    const localTracks = this.getLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     this.p2pJingleSession.acceptOffer(
         jingleOffer,
