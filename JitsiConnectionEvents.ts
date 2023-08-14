@@ -35,6 +35,11 @@ export enum JitsiConnectionEvents {
     CONNECTION_FAILED = 'connection.connectionFailed',
 
     /**
+     * The connection is redirected to a visitor node.
+     */
+    CONNECTION_REDIRECTED = 'connection.redirected',
+
+    /**
      * Indicates that the performed action cannot be executed because the
      * connection is not in the correct state(connected, disconnected, etc.)
      */
@@ -46,11 +51,12 @@ export enum JitsiConnectionEvents {
      * There are cases like lobby room where display name is required.
      */
     DISPLAY_NAME_REQUIRED = 'connection.display_name_required'
-};
+}
 
 // exported for backward compatibility
 export const CONNECTION_DISCONNECTED = JitsiConnectionEvents.CONNECTION_DISCONNECTED;
 export const CONNECTION_ESTABLISHED = JitsiConnectionEvents.CONNECTION_ESTABLISHED;
 export const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
+export const CONNECTION_REDIRECTED = JitsiConnectionEvents.CONNECTION_REDIRECTED;
 export const WRONG_STATE = JitsiConnectionEvents.WRONG_STATE;
 export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;

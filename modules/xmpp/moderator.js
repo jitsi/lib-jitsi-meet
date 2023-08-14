@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq, Strophe } from 'strophe.js';
 
+import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
@@ -61,6 +62,7 @@ export default class Moderator extends Listenable {
         // availability.
         this.sipGatewayEnabled = false;
 
+        this.xmpp = xmpp;
         this.connection = xmpp.connection;
 
         // The JID to which conference-iq requests are sent over XMPP.
@@ -393,7 +395,7 @@ export default class Moderator extends Listenable {
             if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
                 logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid} }`);
 
-                this.eventEmitter.emit(XMPPEvents.REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
+                this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
 
                 return;
             }

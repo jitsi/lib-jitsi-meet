@@ -23,7 +23,6 @@ describe( "/JitsiConferenceErrors members", () => {
         OFFER_ANSWER_FAILED,
         PASSWORD_NOT_SUPPORTED,
         PASSWORD_REQUIRED,
-        REDIRECTED,
         RESERVATION_ERROR,
         VIDEOBRIDGE_NOT_AVAILABLE,
         JitsiConferenceErrors,
@@ -51,7 +50,6 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( PASSWORD_NOT_SUPPORTED ).toBe( 'conference.passwordNotSupported' );
         expect( PASSWORD_REQUIRED ).toBe( 'conference.passwordRequired' );
         expect( RESERVATION_ERROR ).toBe( 'conference.reservationError' );
-        expect( REDIRECTED ).toBe( 'conference.redirected' );
         expect( VIDEOBRIDGE_NOT_AVAILABLE ).toBe( 'conference.videobridgeNotAvailable' );
 
         expect( JitsiConferenceErrors ).toBeDefined();
@@ -76,7 +74,6 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED ).toBe( 'conference.passwordNotSupported' );
         expect( JitsiConferenceErrors.PASSWORD_REQUIRED ).toBe( 'conference.passwordRequired' );
         expect( JitsiConferenceErrors.RESERVATION_ERROR ).toBe( 'conference.reservationError' );
-        expect( JitsiConferenceErrors.REDIRECTED ).toBe( 'conference.redirected' );
         expect( JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE ).toBe( 'conference.videobridgeNotAvailable' );
     } );
 
