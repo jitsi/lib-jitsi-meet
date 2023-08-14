@@ -172,7 +172,6 @@ export default class ChatRoom extends Listenable {
 
         this.eventsForwarder = new EventEmitterForwarder(this.xmpp.moderator, this.eventEmitter);
         this.eventsForwarder.forward(AuthenticationEvents.IDENTITY_UPDATED, AuthenticationEvents.IDENTITY_UPDATED);
-        this.eventsForwarder.forward(XMPPEvents.REDIRECTED, XMPPEvents.REDIRECTED);
         this.eventsForwarder.forward(XMPPEvents.AUTHENTICATION_REQUIRED, XMPPEvents.AUTHENTICATION_REQUIRED);
         this.eventsForwarder.forward(XMPPEvents.FOCUS_DISCONNECTED, XMPPEvents.FOCUS_DISCONNECTED);
         this.eventsForwarder.forward(XMPPEvents.RESERVATION_ERROR, XMPPEvents.RESERVATION_ERROR);
@@ -1594,23 +1593,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Redirected back.
-     * @param iq The received iq.
-     */
-    onVisitorIQ(iq) {
-        const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
-        const response = $(iq).find('promotion-response');
-
-        if (visitors.length && response.length
-            && String(response.attr('allow')).toLowerCase() === 'true') {
-            logger.warn('Redirected back to main room.');
-
-            this.eventEmitter.emit(
-                XMPPEvents.REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
-        }
-    }
-
-    /**
      * Obtains the info about given media advertised (in legacy format) in the MUC presence of the participant
      * identified by the given endpoint JID. This is for mantining interop with endpoints that do not support
      * source-name signaling (Jigasi and very old mobile clients).
@@ -1833,7 +1815,6 @@ export default class ChatRoom extends Listenable {
 
         this.eventsForwarder.removeListeners(
             AuthenticationEvents.IDENTITY_UPDATED,
-            XMPPEvents.REDIRECTED,
             XMPPEvents.AUTHENTICATION_REQUIRED,
             XMPPEvents.FOCUS_DISCONNECTED,
             XMPPEvents.RESERVATION_ERROR);

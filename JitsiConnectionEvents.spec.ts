@@ -7,6 +7,7 @@ describe( "/JitsiConnectionEvents members", () => {
         CONNECTION_DISCONNECTED,
         CONNECTION_ESTABLISHED,
         CONNECTION_FAILED,
+        CONNECTION_REDIRECTED,
         WRONG_STATE,
         DISPLAY_NAME_REQUIRED,
         JitsiConnectionEvents,
@@ -17,6 +18,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( CONNECTION_DISCONNECTED ).toBe( 'connection.connectionDisconnected' );
         expect( CONNECTION_ESTABLISHED ).toBe( 'connection.connectionEstablished' );
         expect( CONNECTION_FAILED ).toBe( 'connection.connectionFailed' );
+        expect( CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
         expect( WRONG_STATE ).toBe( 'connection.wrongState' );
         expect( DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
 
@@ -25,6 +27,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( JitsiConnectionEvents.CONNECTION_DISCONNECTED ).toBe( 'connection.connectionDisconnected' );
         expect( JitsiConnectionEvents.CONNECTION_ESTABLISHED ).toBe( 'connection.connectionEstablished' );
         expect( JitsiConnectionEvents.CONNECTION_FAILED ).toBe( 'connection.connectionFailed' );
+        expect( JitsiConnectionEvents.CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
         expect( JitsiConnectionEvents.WRONG_STATE ).toBe( 'connection.wrongState' );
         expect( JitsiConnectionEvents.DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
     } );
