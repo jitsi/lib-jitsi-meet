@@ -88,7 +88,7 @@ export default class BreakoutRooms {
     /**
      * Changes the subject of a breakout room.
      *
-     * @param {string} breakoutRoomJid - JID of the room to be removed.
+     * @param {string} breakoutRoomJid - JID of the room to be renamed.
      * @param {string} subject - A new subject for the breakout room.
      */
     renameBreakoutRoom(breakoutRoomJid, subject) {
