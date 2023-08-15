@@ -7,6 +7,7 @@ const FEATURE_KEY = 'features/breakout-rooms';
 const BREAKOUT_ROOM_ACTIONS = {
     ADD: `${FEATURE_KEY}/add`,
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
+    MESSAGE_TO_ROOM: `${FEATURE_KEY}/message-to-room`,
     REMOVE: `${FEATURE_KEY}/remove`,
     RENAME: `${FEATURE_KEY}/rename`
 };
@@ -129,6 +130,47 @@ export default class BreakoutRooms {
         };
 
         this._sendMessage(message);
+    }
+
+    /**
+     * Sends a message to a breakout room.
+     *
+     * @param {string} roomJid - JID of the room to send the message to.
+     * @param {string} textContent - The message content.
+     */
+    sendMessageToRoom(roomJid, textContent) {
+        if (!this.isSupported() || !this.room.isModerator()) {
+            logger.error(`Cannot send message to room - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        const message = {
+            type: BREAKOUT_ROOM_ACTIONS.MESSAGE_TO_ROOM,
+            roomJid,
+            textContent
+        };
+
+        this._sendMessage(message);
+    }
+
+    /**
+     * Sends a message to all breakout rooms.
+     *
+     * @param {string} textContent - The message content.
+     */
+    sendBroadcastMessage(textContent) {
+        if (!this.isSupported() || !this.room.isModerator()) {
+            logger.error(`Cannot send broadcast message - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        Object.values(this._rooms).forEach(room => {
+            this.sendMessageToRoom(room.jid, textContent);
+        });
     }
 
     /**
