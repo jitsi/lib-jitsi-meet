@@ -25,7 +25,6 @@ import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
 import {
-    HD_BITRATE,
     HD_SCALE_FACTOR,
     SIM_LAYER_RIDS,
     TPCUtils
@@ -843,7 +842,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
 TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
     const currentCodec = this.getConfiguredVideoCodec();
 
-    return this.tpcUtils.videoBitrates[currentCodec.toUpperCase()] || this.tpcUtils.videoBitrates;
+    return this.tpcUtils.encodingBitrates[currentCodec];
 };
 
 /**
@@ -2489,14 +2488,10 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
 
     for (const mLine of mLines) {
         if (this.codecSettings.codecList[0] === CodecMimeType.VP9) {
-            const bitrates = this.tpcUtils.videoBitrates.VP9 || this.tpcUtils.videoBitrates;
-            const hdBitrate = bitrates.high ? bitrates.high : HD_BITRATE;
-            const ssHdBitrate = bitrates.ssHigh ? bitrates.ssHigh : HD_BITRATE;
+            const bitrates = this.tpcUtils.encodingBitrates[CodecMimeType.VP9];
             const mid = mLine.mid;
-            const isSharingScreen = FeatureFlags.isMultiStreamSendSupportEnabled()
-                ? mid === this._getDesktopTrackMid()
-                : this._isSharingScreen();
-            const limit = Math.floor((isSharingScreen ? ssHdBitrate : hdBitrate) / 1000);
+            const isSharingScreen = mid === this._getDesktopTrackMid();
+            const limit = Math.floor((isSharingScreen ? bitrates.ssHigh : bitrates.high) / 1000);
 
             // Use only the HD bitrate for now as there is no API available yet for configuring
             // the bitrates on the individual SVC layers.
@@ -2748,21 +2743,14 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
                 parameters.encodings[encoding].active = this.encodingsEnabledState[encoding];
+                parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
+                if (browser.supportsScalabilityModeAPI() && currentCodec === CodecMimeType.H264) {
+                    parameters.encodings[encoding].scalabilityMode = VideoEncoderScalabilityMode.L1T3;
+                }
 
                 // Firefox doesn't follow the spec and lets application specify the degradation preference on the
                 // encodings.
                 browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
-
-                if (currentCodec === CodecMimeType.VP8
-                    && (this.options?.videoQuality?.maxBitratesVideo
-                        || isSharingLowFpsScreen
-                        || this._usesUnifiedPlan)) {
-                    parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
-                }
-
-                if (browser.supportsScalabilityModeAPI() && currentCodec === CodecMimeType.H264) {
-                    parameters.encodings[encoding].scalabilityMode = VideoEncoderScalabilityMode.L1T3;
-                }
             }
         }
         this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
@@ -2783,17 +2771,13 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         browser.isFirefox() && (parameters.encodings[0].degradationPreference = preference);
 
         // Configure the bitrate.
-        if (this.getConfiguredVideoCodec() === CodecMimeType.VP8 && this.options?.videoQuality?.maxBitratesVideo) {
-            let bitrate = this.getTargetVideoBitrates()?.high;
+        let bitrate = this.getTargetVideoBitrates().high;
 
-            if (videoType === VideoType.CAMERA) {
-                bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType())
-                    .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate ?? bitrate;
-            }
-            parameters.encodings[0].maxBitrate = bitrate;
-        } else {
-            parameters.encodings[0].maxBitrate = undefined;
+        if (videoType === VideoType.CAMERA) {
+            bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType(), currentCodec)
+                .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate;
         }
+        parameters.encodings[0].maxBitrate = bitrate;
     } else {
         parameters.encodings[0].active = false;
     }
