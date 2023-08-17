@@ -69,8 +69,10 @@ export class CodecSelection {
 
             // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
             // preferable to encode VP9 (because of browser bugs on the encoding side or added complexity on mobile
-            // devices).
-            if ((connectionType === 'jvb' && !browser.supportsVP9()) || this.conference.isE2EEEnabled()) {
+            // devices). Currently, VP9 encode is supported on Chrome and on Safari (only for p2p).
+            const isVp9EncodeSupported = browser.supportsVP9() || (browser.isWebKitBased() && connectionType === 'p2p');
+
+            if (!isVp9EncodeSupported || this.conference.isE2EEEnabled()) {
                 const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
 
                 if (index !== -1) {
