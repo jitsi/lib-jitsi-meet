@@ -227,7 +227,6 @@ export default class ChatRoom extends Listenable {
             this.options.disableFocus
                 && logger.info(`Conference focus disabled for ${this.roomjid}`);
 
-            // there is no point of sending conference iq when in visitor mode
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
@@ -625,6 +624,9 @@ export default class ChatRoom extends Listenable {
                 if (this.presenceUpdateTime >= this.presenceSyncTime) {
                     this.sendPresence();
                 }
+
+                // we need to reset it because of breakout rooms which will reuse connection but will invite jicofo
+                this.xmpp.moderator.conferenceRequestSent = false;
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
 
