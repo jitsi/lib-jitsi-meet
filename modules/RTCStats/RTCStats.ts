@@ -1,3 +1,5 @@
+import { getLogger } from '@jitsi/logger';
+
 import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 import EventEmitter from 'events';
@@ -8,9 +10,10 @@ import {
     CONFERENCE_UNIQUE_ID_SET 
 } from '../../JitsiConferenceEvents';
 import JitsiConference from '../../JitsiConference';
+import { IRTCStatsConfiguration } from './interfaces';
+import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 
-const RTC_STATS_WC_DISCONNECTED = 'rtcstats_ws_disconnected';
-const RTC_STATS_PC_EVENT = 'rtstats_pc_event';
+const logger = getLogger(__filename);
 
 /**
  * Filter out RTCPeerConnection that are created by callstats.io.
@@ -19,11 +22,9 @@ const RTC_STATS_PC_EVENT = 'rtstats_pc_event';
  * @returns {boolean}
  */
 function connectionFilter(config) {
-    if (config?.iceServers[0] && config.iceServers[0].urls) {
-        for (const iceUrl of config.iceServers[0].urls) {
-            if (iceUrl.includes('callstats.io')) {
-                return true;
-            }
+    for(const iceUrl of (config?.iceServers ?? [])[0]?.urls ?? []) {
+        if (iceUrl.includes('callstats.io')) {
+            return true;
         }
     }
 }
@@ -34,7 +35,7 @@ function connectionFilter(config) {
  */
 class RTCStats {
     private _initialized: boolean = false;
-    private trace: any = null;
+    private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
     /**
@@ -42,10 +43,10 @@ class RTCStats {
      * The proxies will then send data to the rtcstats server via the trace object.
      * The initialization procedure must be called once when lib-jitsi-meet is loaded.
      * 
-     * @param initConfig initial config for rtcstats.
+     * @param {IRTCStatsConfiguration} initConfig initial config for rtcstats.
      * @returns {void}
      */
-    init(initConfig: any) {        
+    init(initConfig: IRTCStatsConfiguration) {       
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
@@ -57,7 +58,7 @@ class RTCStats {
 
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
-        // with unforseseen consequences.
+        // with unforeseen consequences.
         if (!rtcstatsEnabled || this._initialized) return;
         
         rtcstatsInit( 
@@ -76,14 +77,18 @@ class RTCStats {
      * When a conference is about to start, we need to reset the trace module, and initialize it with the
      * new conference's config. On a normal conference flow this wouldn't be necessary, as the whole page is
      * reloaded, but in the case of breakout rooms or react native the js context doesn't reload, hence the
-     * RTCStats singleton and its config persists between conferneces.
+     * RTCStats singleton and its config persists between conferences.
      * 
      * @param conference - JitsiConference instance that's about to start.
      * @returns {void}
      */
     start(conference: JitsiConference) {
         // If rtcstats proxy module is not initialized, do nothing.
-        if (!this._initialized) return;
+        if (!this._initialized) {
+            logger.error('Calling start before RTCStats proxy module is initialized.');
+
+            return;
+        }
 
         // Reset the trace module in case it wasn't during the previous conference.
         // Closing the underlying websocket connection and deleting the trace obj.
@@ -122,12 +127,12 @@ class RTCStats {
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
-            this.trace = traceInit(traceOptions);
+            this._trace = traceInit(traceOptions);
 
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            this.trace.connect(isBreakoutRoom);
+            this._trace.connect(isBreakoutRoom);
 
             const identityData = {
                 ...confConfig,
@@ -158,7 +163,7 @@ class RTCStats {
      * @returns {void}
      */ 
     sendIdentity(identityData) {
-        this.trace?.identity('identity', null, identityData);        
+        this._trace?.identity('identity', null, identityData);        
     }
         
     /**
@@ -170,8 +175,8 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
-        this.trace?.close();
-        this.trace && delete this.trace;
+        this._trace?.close();
+        this._trace = null;
     }
 
     /**
@@ -182,7 +187,7 @@ class RTCStats {
      * @returns {void}
      */
     sendStatsEntry(statsType, pcId, data) {
-        this.trace?.statsEntry(statsType, pcId, data);
+        this._trace?.statsEntry(statsType, pcId, data);
     }
 }
 

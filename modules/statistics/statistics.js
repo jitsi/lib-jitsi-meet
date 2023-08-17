@@ -156,11 +156,11 @@ Statistics.init = function(options) {
  */
 /**
  *
- * @param xmpp
+ * @param {JitsiConference} conference - The conference instance from which the statistics were initialized.
  * @param {StatisticsOptions} options - The options to use creating the
  * Statistics.
  */
-export default function Statistics(conference, config) {
+export default function Statistics(conference, options) {
     /**
      * {@link RTPStats} mapped by {@link TraceablePeerConnection.id} which
      * collect RTP statistics for each peerconnection.
@@ -170,7 +170,7 @@ export default function Statistics(conference, config) {
     this.eventEmitter = new EventEmitter();
     this.conference = conference;
     this.xmpp = conference?.xmpp;
-    this.options = config || {};
+    this.options = options || {};
 
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
@@ -203,7 +203,7 @@ export default function Statistics(conference, config) {
 
     Statistics.instances.add(this);
 
-    conference && RTCStats.start(this.conference);
+    RTCStats.start(this.conference);
 
     // WatchRTC is not required to work for react native
     if (!browser.isReactNative()) {

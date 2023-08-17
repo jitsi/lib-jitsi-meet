@@ -37,7 +37,7 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
-import EventEmitter from 'events';
+import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
 
 const logger = Logger.getLogger(__filename);
 
@@ -118,7 +118,8 @@ export default {
         track: JitsiTrackEvents,
         mediaDevices: JitsiMediaDevicesEvents,
         connectionQuality: ConnectionQualityEvents,
-        e2eping: E2ePingEvents
+        e2eping: E2ePingEvents,
+        rtcstats: RTCStatsEvents
     },
     errors: {
         conference: JitsiConferenceErrors,
