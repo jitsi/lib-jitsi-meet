@@ -697,6 +697,8 @@ export default class XMPP extends Listenable {
             jid = configDomain || (location && location.hostname);
         }
 
+        this._startConnecting = true;
+
         return this._connect(jid, password);
     }
 
@@ -810,7 +812,9 @@ export default class XMPP extends Listenable {
     disconnect(ev) {
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
-        } else if (!this.connection) {
+        } else if (!this.connection || !this._startConnecting) {
+            // we have created a connection, but never called connect we still want to resolve on calling disconnect
+            // this is visitors use case when using http to send conference request.
             return Promise.resolve();
         }
 
@@ -868,6 +872,8 @@ export default class XMPP extends Listenable {
         }
 
         this.connection.disconnect();
+
+        this._startConnecting = false;
 
         if (this.connection.options.sync !== true) {
             this.connection.flush();
