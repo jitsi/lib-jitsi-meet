@@ -139,7 +139,7 @@ export default class BreakoutRooms {
      * @param {string} textContent - The message content.
      */
     sendMessageToRoom(roomJid, textContent) {
-        if (!this.isSupported() || !this.room.isModerator()) {
+        if (!this.isSupported() || !this.isFeatureSupported('broadcast') || !this.room.isModerator()) {
             logger.error(`Cannot send message to room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
@@ -161,7 +161,7 @@ export default class BreakoutRooms {
      * @param {string} textContent - The message content.
      */
     sendBroadcastMessage(textContent) {
-        if (!this.isSupported() || !this.room.isModerator()) {
+        if (!this.isSupported() || !this.isFeatureSupported('broadcast') || !this.room.isModerator()) {
             logger.error(`Cannot send broadcast message - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
