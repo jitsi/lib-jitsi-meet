@@ -892,10 +892,9 @@ export default class ChatRoom extends Listenable {
      * Send text message to the other participants in the conference
      * @param message
      * @param elementName
-     * @param {string} [roomjid] the jid of the chat room where the message will be sent
      */
-    sendMessage(message, elementName, roomjid = this.roomjid) {
-        const msg = $msg({ to: roomjid,
+    sendMessage(message, elementName) {
+        const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
         // We are adding the message in a packet extension. If this element
@@ -917,10 +916,9 @@ export default class ChatRoom extends Listenable {
      * @param id id/muc resource of the receiver
      * @param message
      * @param elementName
-     * @param {string} [roomjid] the jid of the chat room where the recieving participant is
      */
-    sendPrivateMessage(id, message, elementName, roomjid = this.roomjid) {
-        const msg = $msg({ to: `${roomjid}/${id}`,
+    sendPrivateMessage(id, message, elementName) {
+        const msg = $msg({ to: `${this.roomjid}/${id}`,
             type: 'chat' });
 
         // We are adding the message in packet. If this element is different
