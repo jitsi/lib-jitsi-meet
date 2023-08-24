@@ -228,13 +228,17 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {void}
      */
     attach(container) {
+        let result = Promise.resolve();
+
         if (this.stream) {
             this._onTrackAttach(container);
-            RTCUtils.attachMediaStream(container, this.stream);
+            result = RTCUtils.attachMediaStream(container, this.stream);
         }
         this.containers.push(container);
         this._maybeFireTrackAttached(container);
         this._attachTTFMTracker(container);
+
+        return result;
     }
 
     /**
@@ -251,7 +255,9 @@ export default class JitsiTrack extends EventEmitter {
 
             if (!container) {
                 this._onTrackDetach(c);
-                RTCUtils.attachMediaStream(c, null);
+                RTCUtils.attachMediaStream(c, null).catch(() => {
+                    logger.error(`Detach for ${this} failed!`);
+                });
             }
             if (!container || c === container) {
                 cs.splice(i, 1);
@@ -260,7 +266,9 @@ export default class JitsiTrack extends EventEmitter {
 
         if (container) {
             this._onTrackDetach(container);
-            RTCUtils.attachMediaStream(container, null);
+            RTCUtils.attachMediaStream(container, null).catch(() => {
+                logger.error(`Detach for ${this} failed!`);
+            });
         }
     }
 
