@@ -451,7 +451,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._startStreamEffect(this._streamEffect);
                 }
 
-                this.containers.map(cont => RTCUtils.attachMediaStream(cont, this.stream));
+                this.containers.map(cont => RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
+                    logger.error(`Attach media failed for ${this} on video unmute!`);
+                }));
 
                 return this._addStreamToConferenceAsUnmute();
             });
@@ -855,7 +857,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         if (!conference) {
             this._switchStreamEffect(effect);
             if (this.isVideoTrack()) {
-                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+                this.containers.forEach(cont => {
+                    RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
+                        logger.error(`Attach media failed for ${this} when trying to set effect.`);
+                    });
+                });
             }
 
             return Promise.resolve();
@@ -867,7 +873,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
             .then(() => {
                 this._switchStreamEffect(effect);
                 if (this.isVideoTrack()) {
-                    this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+                    this.containers.forEach(cont => {
+                        RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
+                            logger.error(`Attach media failed for ${this} when trying to set effect.`);
+                        });
+                    });
                 }
 
                 return conference._addLocalTrackToPc(this);
