@@ -93,7 +93,7 @@ export default class BreakoutRooms {
      * @param {string} subject - A new subject for the breakout room.
      */
     renameBreakoutRoom(breakoutRoomJid, subject) {
-        if (!this.isSupported() || !this.room.isModerator()) {
+        if (!this.isSupported() || !this.isFeatureSupported('rename') || !this.room.isModerator()) {
             logger.error(`Cannot rename breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
