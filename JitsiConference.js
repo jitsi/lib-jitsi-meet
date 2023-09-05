@@ -949,6 +949,18 @@ JitsiConference.prototype.on = function(eventId, handler) {
 };
 
 /**
+ * Adds a one-time`listener` function for the event.
+ * @param eventId the event ID.
+ * @param handler handler for the event.
+ *
+ */
+JitsiConference.prototype.once = function(eventId, handler) {
+    if (this.eventEmitter) {
+        this.eventEmitter.once(eventId, handler);
+    }
+};
+
+/**
  * Removes event listener
  * @param eventId the event ID.
  * @param [handler] optional, the specific handler to unbind

@@ -47,6 +47,7 @@ export default class JitsiConference {
   getLocalVideoTrack: () => JitsiLocalTrack | null;
   getPerformanceStats: () => unknown | null; // TODO:
   on: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
+  once: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
   off: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
   addEventListener: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:
   removeEventListener: ( eventId: JitsiConferenceEvents, handler: (...args: any[]) => unknown ) => void; // TODO:

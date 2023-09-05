@@ -115,7 +115,7 @@ class RTCStats {
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
-        conference.on(CONFERENCE_JOINED, () => {      
+        conference.once(CONFERENCE_JOINED, () => {      
             const traceOptions = {
                 endpoint,
                 meetingFqn: confName,
@@ -147,11 +147,11 @@ class RTCStats {
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
-        conference.on(CONFERENCE_UNIQUE_ID_SET, (meetingUniqueId) => {
+        conference.once(CONFERENCE_UNIQUE_ID_SET, (meetingUniqueId) => {
             this.sendIdentity({meetingUniqueId});
         });
 
-        conference.on(CONFERENCE_LEFT, () => {
+        conference.once(CONFERENCE_LEFT, () => {
             this.reset();
         });
     }
