@@ -5,6 +5,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import ScriptUtil from '../util/ScriptUtil';
 import WatchRTC from '../watchRTC/WatchRTC';
@@ -133,6 +134,8 @@ Statistics.init = function(options) {
     if (!browser.isReactNative()) {
         WatchRTC.init(options);
     }
+
+    RTCStats.init(options);
 };
 
 /**
@@ -153,11 +156,11 @@ Statistics.init = function(options) {
  */
 /**
  *
- * @param xmpp
+ * @param {JitsiConference} conference - The conference instance from which the statistics were initialized.
  * @param {StatisticsOptions} options - The options to use creating the
  * Statistics.
  */
-export default function Statistics(xmpp, options) {
+export default function Statistics(conference, options) {
     /**
      * {@link RTPStats} mapped by {@link TraceablePeerConnection.id} which
      * collect RTP statistics for each peerconnection.
@@ -165,7 +168,8 @@ export default function Statistics(xmpp, options) {
      */
     this.rtpStatsMap = new Map();
     this.eventEmitter = new EventEmitter();
-    this.xmpp = xmpp;
+    this.conference = conference;
+    this.xmpp = conference?.xmpp;
     this.options = options || {};
 
     this.callStatsIntegrationEnabled
@@ -199,10 +203,13 @@ export default function Statistics(xmpp, options) {
 
     Statistics.instances.add(this);
 
+    RTCStats.start(this.conference);
+
     // WatchRTC is not required to work for react native
     if (!browser.isReactNative()) {
         WatchRTC.start(this.options.roomName, this.options.userName);
     }
+
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
@@ -355,7 +362,7 @@ Statistics.prototype.addLongTasksStatsListener = function(listener) {
  *
  * @returns {void}
  */
-Statistics.prototype.attachLongTasksStats = function(conference) {
+Statistics.prototype.attachLongTasksStats = function() {
     if (!browser.supportsPerformanceObserver()) {
         logger.warn('Performance observer for long tasks not supported by browser!');
 
@@ -366,10 +373,10 @@ Statistics.prototype.attachLongTasksStats = function(conference) {
         this.eventEmitter,
         Statistics.longTasksStatsInterval);
 
-    conference.on(
+    this.conference.on(
         JitsiConferenceEvents.CONFERENCE_JOINED,
         () => this.performanceObserverStats.startObserver());
-    conference.on(
+    this.conference.on(
         JitsiConferenceEvents.CONFERENCE_LEFT,
         () => this.performanceObserverStats.stopObserver());
 };
