@@ -394,7 +394,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @return {boolean} Whether something was processed from the supplied message.
      */
     onReceiveStunAndTurnCredentials(res) {
-        const iceservers = [];
+        let iceservers = [];
 
         $(res).find('>services>service').each((idx, el) => {
             // eslint-disable-next-line no-param-reassign
@@ -418,7 +418,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 const port = el.attr('port');
 
                 if (port) {
-                    dict.urls += `:${el.attr('port')}`;
+                    dict.urls += `:${port}`;
                 }
                 const transport = el.attr('transport');
 
@@ -426,8 +426,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     dict.urls += `?transport=${transport}`;
                 }
 
-                dict.credential = el.attr('password')
-                        || dict.credential;
+                dict.credential = el.attr('password') || dict.credential;
                 iceservers.push(dict);
                 break;
             }
@@ -435,6 +434,46 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         });
 
         const options = this.xmpp.options;
+        const { iceServersOverride = [] } = options;
+
+        iceServersOverride.forEach(({ targetType, urls, username, credential }) => {
+            if (![ 'turn', 'turns', 'stun' ].includes(targetType)) {
+                return;
+            }
+
+            const pattern = `${targetType}:`;
+
+            if (typeof urls === 'undefined'
+                && typeof username === 'undefined'
+                && typeof credential === 'undefined') {
+                return;
+            }
+
+            if (urls === null) { // remove this type of ice server
+                iceservers = iceservers.filter(server => !server.urls.startsWith(pattern));
+            }
+
+
+            iceservers.forEach(server => {
+                if (!server.urls.startsWith(pattern)) {
+                    return;
+                }
+
+                server.urls = urls ?? server.urls;
+
+                if (username === null) {
+                    delete server.username;
+                } else {
+                    server.username = username ?? server.username;
+                }
+
+                if (credential === null) {
+                    delete server.credential;
+                } else {
+                    server.credential = credential ?? server.credential;
+                }
+            });
+        });
 
         // Shuffle ICEServers for loadbalancing
         for (let i = iceservers.length - 1; i > 0; i--) {
