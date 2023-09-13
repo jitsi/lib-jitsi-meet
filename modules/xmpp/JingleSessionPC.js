@@ -407,11 +407,15 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
         const preferredJvbCodec = options.codecSettings?.codecList[0];
+        const explicityDisabled = options.videoQuality
+            && options.videoQuality[CodecMimeType.H264]
+            && options.videoQuality[CodecMimeType.H264].scalabilityModeEnabled !== 'undefined'
+            && !options.videoQuality[CodecMimeType.H264].scalabilityModeEnabled;
 
         pcOptions.disableSimulcast = this.isP2P
             ? true
             : options.disableSimulcast
-                ?? (!browser.supportsScalabilityModeAPI() && preferredJvbCodec?.toLowerCase() === CodecMimeType.H264);
+                ?? (preferredJvbCodec?.toLowerCase() === CodecMimeType.H264 && explicityDisabled);
 
         if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.

@@ -117,7 +117,6 @@ export default class TraceablePeerConnection {
   addIceCandidate: ( candidate: unknown ) => unknown; // TODO:
   generateNewStreamSSRCInfo: (track: JitsiLocalTrack) => TraceablePeerConnection['localSSRCs'];
   usesUnifiedPlan: () => boolean;
-  getActiveSimulcastStreams: () => number;
   getStats: () => unknown; // TODO:
   toString: () => string;
 }

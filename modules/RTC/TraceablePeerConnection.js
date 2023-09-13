@@ -8,7 +8,6 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode.ts';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -693,15 +692,19 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 
 /**
  * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
- * bridge. Currently this happens only when VP8 or H264 is the selected codec.
+ * bridge. Currently this happens always for VP8 and only simulcast is enabled for VP9/AV1/H264.
  * @returns {boolean}
  */
 TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
     const currentCodec = this.getConfiguredVideoCodec();
+    const codecScalabilityModeSettings = this.tpcUtils.codecSettings[currentCodec];
+    const runsInSimulcastMode = currentCodec === CodecMimeType.AV1 || currentCodec === CodecMimeType.VP9
+        ? codecScalabilityModeSettings.scalabilityModeEnabled && codecScalabilityModeSettings.useSimulcast
+        : currentCodec === CodecMimeType.H264
+            ? codecScalabilityModeSettings.scalabilityModeEnabled
+            : true; // VP8
 
-    return this.isSimulcastOn()
-        && (currentCodec === CodecMimeType.VP8
-            || (currentCodec === CodecMimeType.H264 && browser.supportsScalabilityModeAPI()));
+    return this.isSimulcastOn() && runsInSimulcastMode;
 };
 
 /**
@@ -842,7 +845,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
 TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
     const currentCodec = this.getConfiguredVideoCodec();
 
-    return this.tpcUtils.encodingBitrates[currentCodec];
+    return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
 };
 
 /**
@@ -2470,13 +2473,13 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
 };
 
 /**
- * Sets the max bitrates on the video m-lines when VP9 is the selected codec.
+ * Sets the max bitrates on the video m-lines when VP9/AV1 is the selected codec.
  *
  * @param {RTCSessionDescription} description - The local description that needs to be munged.
  * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
  * @returns RTCSessionDescription
  */
-TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isLocalSdp = false) {
+TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLocalSdp = false) {
     if (!this.codecSettings) {
         return description;
     }
@@ -2485,10 +2488,17 @@ TraceablePeerConnection.prototype._setVp9MaxBitrates = function(description, isL
     // Find all the m-lines associated with the local sources.
     const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
+    const currentCodec = this.codecSettings.codecList[0];
+    const codecScalabilityModeSettings = this.tpcUtils.codecSettings[currentCodec];
 
     for (const mLine of mLines) {
-        if (this.codecSettings.codecList[0] === CodecMimeType.VP9) {
-            const bitrates = this.tpcUtils.encodingBitrates[CodecMimeType.VP9];
+        const isDoingKSvc = CodecMimeType.VP9 && !codecScalabilityModeSettings.scalabilityModeEnabled;
+        const isDoingTrueSvc = codecScalabilityModeSettings.scalabilityModeEnabled
+            && !codecScalabilityModeSettings.useSimulcast
+            && currentCodec !== CodecMimeType.H264;
+
+        if (isDoingKSvc || isDoingTrueSvc) {
+            const bitrates = codecScalabilityModeSettings.maxBitratesVideo;
             const mid = mLine.mid;
             const isSharingScreen = mid === this._getDesktopTrackMid();
             const limit = Math.floor((isSharingScreen ? bitrates.ssHigh : bitrates.high) / 1000);
@@ -2557,7 +2567,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     localDescription = this._mungeCodecOrder(localDescription);
-    localDescription = this._setVp9MaxBitrates(localDescription, true);
+    localDescription = this._setMaxBitrates(localDescription, true);
 
     this.trace('setLocalDescription::postTransform', dumpSDP(localDescription));
 
@@ -2618,7 +2628,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     // Munge the order of the codecs based on the preferences set through config.js.
     remoteDescription = this._mungeCodecOrder(remoteDescription);
-    remoteDescription = this._setVp9MaxBitrates(remoteDescription);
+    remoteDescription = this._setMaxBitrates(remoteDescription);
     this.trace('setRemoteDescription::postTransform (munge codec order)', dumpSDP(remoteDescription));
 
     return new Promise((resolve, reject) => {
@@ -2669,7 +2679,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         return Promise.resolve();
     }
 
-    const configuredResolution = this.tpcUtils.getConfiguredEncodeResolution(localVideoTrack);
+    const configuredResolution = this.tpcUtils.getConfiguredEncodeResolution(
+        localVideoTrack,
+        this.getConfiguredVideoCodec());
 
     // Ignore sender constraints if the client is already sending video of the requested resolution. Note that for
     // screensharing sources, the max resolution will be the height of the window being captured irrespective of the
@@ -2734,25 +2746,23 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     logger.info(`${this} Setting degradation preference [preference=${preference},track=${localVideoTrack}`);
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
-    this.encodingsEnabledState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, frameHeight);
-    const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack);
+    const codec = this.getConfiguredVideoCodec();
+    const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec);
     const videoType = localVideoTrack.getVideoType();
-    const currentCodec = this.getConfiguredVideoCodec();
+    const encodingsActiveState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, frameHeight, codec);
 
     if (this.isSimulcastOn()) {
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
-                parameters.encodings[encoding].active = this.encodingsEnabledState[encoding];
+                parameters.encodings[encoding].active = encodingsActiveState[encoding];
                 parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
-                if (browser.supportsScalabilityModeAPI() && currentCodec === CodecMimeType.H264) {
-                    parameters.encodings[encoding].scalabilityMode = VideoEncoderScalabilityMode.L1T3;
-                }
 
                 // Firefox doesn't follow the spec and lets application specify the degradation preference on the
                 // encodings.
                 browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
             }
         }
+        this.tpcUtils.updateEncodingsScalabilityMode(parameters.encodings, codec, frameHeight, localVideoTrack);
         this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
 
     // For p2p and cases and where simulcast is explicitly disabled.
@@ -2774,7 +2784,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         let bitrate = this.getTargetVideoBitrates().high;
 
         if (videoType === VideoType.CAMERA) {
-            bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType(), currentCodec)
+            bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
                 .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate;
         }
         parameters.encodings[0].maxBitrate = bitrate;
@@ -3157,23 +3167,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function(candidate) {
     }, null, ' '));
 
     return this.peerconnection.addIceCandidate(candidate);
-};
-
-/**
- * Returns the number of simulcast streams that are currently enabled on the peerconnection.
- *
- * @returns {number} The number of simulcast streams currently enabled or 1 when simulcast is disabled.
- */
-TraceablePeerConnection.prototype.getActiveSimulcastStreams = function() {
-    let activeStreams = 1;
-
-    if (this.isSimulcastOn() && this.encodingsEnabledState) {
-        activeStreams = this.encodingsEnabledState.filter(stream => Boolean(stream))?.length;
-    } else if (this.isSimulcastOn()) {
-        activeStreams = SIM_LAYER_RIDS.length;
-    }
-
-    return activeStreams;
 };
 
 /**
