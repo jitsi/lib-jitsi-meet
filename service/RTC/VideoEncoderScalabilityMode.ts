@@ -5,7 +5,7 @@
  * const VideoEncoderScalabilityMode: {
  *  L1T3: string;
  *  L2T3: string;
- *  L2T3_Key: string;
+ *  L2T3_KEY: string;
  *  L3T3: string;
  *  L3T3_KEY: string;
  * }
@@ -22,9 +22,9 @@ export const VideoEncoderScalabilityMode = {
     L2T3: 'L2T3',
 
     /**
-     * L2T3_Key mode: 2-layer spatial and 3-layer temporal scalability K-SVC encoding.
+     * L2T3_KEY mode: 2-layer spatial and 3-layer temporal scalability K-SVC encoding.
      */
-    L2T3_Key: 'L2T3_Key',
+    L2T3_KEY: 'L2T3_KEY',
 
     /**
      * L3T3 mode: -layer spatial and 3-layer temporal scalability encoding.

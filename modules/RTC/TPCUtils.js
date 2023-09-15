@@ -72,6 +72,58 @@ export class TPCUtils {
     }
 
     /**
+     * Calculates the configuration of the first encoding when the client is configured to do full SVC for VP9 and AV1
+     * codecs depending on the resolution that is being requested.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
+     * @param {number} newHeight - The resolution that needs to be configured for the local video track.
+     * @param {CodecMimeType} codec - The video codec.
+     * @returns {Object} configuration.
+     */
+    _calculateActiveEncodingParamsForSvc(localVideoTrack, newHeight, codec) {
+        const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
+        const localTrack = localVideoTrack.getTrack();
+        const { height } = localTrack.getSettings();
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
+        const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
+        const scalabilityMode = isScreenshare && this._isScreenshareBitrateCapped(localVideoTrack)
+
+            // The endpoint needs to send only 1 spatial layer with temporal scalability for low fps SS.
+            ? VideoEncoderScalabilityMode.L1T3
+
+            // For camera and high fps screenshare, we need both spatial and temporal scalability.
+            : this.codecSettings[codec].useL3T3
+                ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY;
+        const maxBitrate = isScreenshare
+            ? this._isScreenshareBitrateCapped(localVideoTrack) ? desktopShareBitrate : codecBitrates.ssHigh
+            : codecBitrates.high;
+
+        const config = {
+            active: newHeight > 0,
+            maxBitrate,
+            scalabilityMode,
+            scaleResolutionDownBy: HD_SCALE_FACTOR
+        };
+
+        if (newHeight >= height || newHeight === 0 || isScreenshare) {
+            return config;
+        }
+
+        if (newHeight >= height / SD_SCALE_FACTOR) {
+            config.maxBitrate = codecBitrates.standard;
+            config.scalabilityMode = this.codecSettings[codec].useL3T3
+                ? VideoEncoderScalabilityMode.L2T3 : VideoEncoderScalabilityMode.L2T3_KEY;
+            config.scaleResolutionDownBy = SD_SCALE_FACTOR;
+        } else {
+            config.maxBitrate = codecBitrates.low;
+            config.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
+            config.scaleResolutionDownBy = LD_SCALE_FACTOR;
+        }
+
+        return config;
+    }
+
+    /**
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
@@ -140,7 +192,8 @@ export class TPCUtils {
         ];
 
         if (this.codecSettings[codec].scalabilityModeEnabled) {
-            // Configure all 3 encodings for the simulcast case.
+            // Configure all 3 encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
+            // always since that is the only supported mode when DD header extension is negotiated for H.264.
             if (this.codecSettings[codec].useSimulcast || codec === CodecMimeType.H264) {
                 for (const encoding of standardSimulcastEncodings) {
                     encoding.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
@@ -160,10 +213,12 @@ export class TPCUtils {
                         ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY
                 },
                 {
-                    active: false
+                    active: false,
+                    maxBitrate: 0
                 },
                 {
-                    active: false
+                    active: false,
+                    maxBitrate: 0
                 }
             ];
         }
@@ -172,15 +227,33 @@ export class TPCUtils {
     }
 
     /**
-     * Returns a boolean indicating whether the video encoder is running in SVC mode.
+     * Returns a boolean indicating whether the video encoder is running in full SVC mode, i.e., it sends only one
+     * video stream that has both temporal and spatial scalability.
      *
      * @param {CodecMimeType} codec
      * @returns boolean
      */
-    _isRunningInSvcMode(codec) {
+    _isRunningInFullSvcMode(codec) {
         return (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1)
             && this.codecSettings[codec].scalabilityModeEnabled
             && !this.codecSettings[codec].useSimulcast;
+    }
+
+    /**
+     * Returns a boolean indicating whether the bitrate needs to be capped for the local video track if it happens to
+     * be a screenshare track. The lower spatial layers for screensharing are disabled when low fps screensharing is in
+     * progress. Sending all three streams often results in the browser suspending the high resolution in low b/w and
+     * and low cpu conditions, especially on the low end machines. Suspending the low resolution streams ensures that
+     * the highest resolution stream is available always. Safari is an exception here since it does not send the
+     * desktop stream at all if only the high resolution stream is enabled.
+     *
+     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
+     * @returns {boolean}
+     */
+    _isScreenshareBitrateCapped(localVideoTrack) {
+        return localVideoTrack.getVideoType() === VideoType.DESKTOP
+            && this.pc._capScreenshareBitrate
+            && !browser.isWebKitBased();
     }
 
     /**
@@ -369,7 +442,7 @@ export class TPCUtils {
     }
 
     /**
-     * Returns the calculated active state of the simulcast encodings based on the frame height requested for the send
+     * Returns the calculated active state of the stream encodings based on the frame height requested for the send
      * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
      *
      * @param {JitsiLocalTrack} localVideoTrack The local video track.
@@ -378,19 +451,17 @@ export class TPCUtils {
      * @returns {Array<boolean>}
      */
     calculateEncodingsActiveState(localVideoTrack, newHeight, codec) {
-        // SVC mode for VP9 and AV1 codecs.
-        if (this._isRunningInSvcMode(codec)) {
-            return newHeight > 0 ? [ true, false, false ] : [ false, false, false ];
-        }
-
-        const localTrack = localVideoTrack.getTrack();
         const height = localVideoTrack.getHeight();
-        const videoStreamEncodings = this._getVideoStreamEncodings(
-            localVideoTrack.getVideoType(),
-            this.pc.getConfiguredVideoCodec());
+        const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec);
         const encodingsState = videoStreamEncodings
         .map(encoding => height / encoding.scaleResolutionDownBy)
         .map((frameHeight, idx) => {
+            if (this._isRunningInFullSvcMode(codec)) {
+                const { active } = this._calculateActiveEncodingParamsForSvc(localVideoTrack, newHeight, codec);
+
+                return idx === 0 ? active : false;
+            }
+
             let active = localVideoTrack.getVideoType() === VideoType.CAMERA
 
                 // Keep the LD stream enabled even when the LD stream's resolution is higher than of the requested
@@ -404,15 +475,8 @@ export class TPCUtils {
                 // Keep all the encodings for desktop track active.
                 : true;
 
-            // Disable the lower spatial layers for screensharing in Unified plan when low fps screensharing is in
-            // progress. Sending all three streams often results in the browser suspending the high resolution in low
-            // b/w and cpu cases, especially on the low end machines. Suspending the low resolution streams ensures
-            // that the highest resolution stream is available always. Safari is an exception here since it does not
-            // send the desktop stream at all if only the high resolution stream is enabled.
-            if (localVideoTrack.getVideoType() === VideoType.DESKTOP
-                && this.pc._capScreenshareBitrate
+            if (this._isScreenshareBitrateCapped(localVideoTrack)
                 && this.pc.usesUnifiedPlan()
-                && !browser.isWebKitBased()
                 && videoStreamEncodings[idx].scaleResolutionDownBy !== HD_SCALE_FACTOR) {
                 active = false;
             }
@@ -424,28 +488,25 @@ export class TPCUtils {
     }
 
     /**
-     * Returns the calculates max bitrates that need to be configured on the simulcast encodings based on the video
+     * Returns the calculates max bitrates that need to be configured on the stream encodings based on the video
      * type and other considerations associated with screenshare.
      *
      * @param {JitsiLocalTrack} localVideoTrack The local video track.
      * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {number} newHeight The resolution requested for the video track.
      * @returns {Array<number>}
      */
-    calculateEncodingsBitrates(localVideoTrack, codec) {
-        // SVC mode for VP9 and AV1 codecs.
-        if (this._isRunningInSvcMode(codec)) {
-            return [ this.codecSettings[codec].maxBitratesVideo.high, 0, 0 ];
-        }
-
+    calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
         const videoType = localVideoTrack.getVideoType();
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
-        const lowFpsScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP
-            && this.pc._capScreenshareBitrate
-            && !browser.isWebKitBased();
-        const encodingsBitrates = this._getVideoStreamEncodings(
-            localVideoTrack.getVideoType(), this.pc.getConfiguredVideoCodec())
-        .map(encoding => {
-            const bitrate = lowFpsScreenshare
+        const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
+        .map((encoding, idx) => {
+            if (this._isRunningInFullSvcMode(codec)) {
+                const { maxBitrate } = this._calculateActiveEncodingParamsForSvc(localVideoTrack, newHeight, codec);
+
+                return idx === 0 ? maxBitrate : 0;
+            }
+            const bitrate = this._isScreenshareBitrateCapped(localVideoTrack)
                 ? desktopShareBitrate
 
                 // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
@@ -484,7 +545,7 @@ export class TPCUtils {
         }
 
         // SVC mode for VP9 and AV1 codecs.
-        if (this._isRunningInSvcMode(codec)) {
+        if (this._isRunningInFullSvcMode(codec)) {
             const activeEncoding = parameters.encodings[0];
 
             if (activeEncoding.active) {
@@ -712,7 +773,6 @@ export class TPCUtils {
 
         const videoType = localVideoTrack.getVideoType();
         const standardSimulcastEncodings = this._getVideoStreamEncodings(videoType, codec);
-        const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
 
         // Simulcast mode.
         if (this.codecSettings[codec].useSimulcast) {
@@ -727,38 +787,10 @@ export class TPCUtils {
             return;
         }
 
-        // SVC mode for desktop streams.
-        if (videoType === VideoType.DESKTOP) {
-            const lowFpsScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP
-                && this.pc._capScreenshareBitrate
-                && !browser.isWebKitBased();
+        const { scalabilityMode, scaleResolutionDownBy }
+            = this._calculateActiveEncodingParamsForSvc(localVideoTrack, maxHeight, codec);
 
-            encodings[0].scalabilityMode = lowFpsScreenshare
-                ? VideoEncoderScalabilityMode.L1T3
-                : this._getVideoStreamEncodings(videoType, codec)[0].scalabilityMode;
-            encodings[0].scaleResolutionDownBy = HD_SCALE_FACTOR;
-            encodings[0].maxBitrate = lowFpsScreenshare ? DESKTOP_SHARE_RATE : codecBitrates.ssHigh;
-
-            return;
-        }
-
-        const { height } = localVideoTrack.getTrack().getSettings();
-
-        // SVC for camera streams.
-        if (maxHeight >= height) {
-            encodings[0].scalabilityMode = this.codecSettings[codec].useL3T3
-                ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY;
-            encodings[0].scaleResolutionDownBy = HD_SCALE_FACTOR;
-            encodings[0].maxBitrate = codecBitrates.high;
-        } else if (maxHeight >= height / 2) {
-            encodings[0].scalabilityMode = this.codecSettings[codec].useL3T3
-                ? VideoEncoderScalabilityMode.L2T3 : VideoEncoderScalabilityMode.L2T3_Key;
-            encodings[0].scaleResolutionDownBy = SD_SCALE_FACTOR;
-            encodings[0].maxBitrate = codecBitrates.standard;
-        } else {
-            encodings[0].scalabilityMode = VideoEncoderScalabilityMode.L1T3;
-            encodings[0].scaleResolutionDownBy = LD_SCALE_FACTOR;
-            encodings[0].maxBitrate = codecBitrates.low;
-        }
+        encodings[0].scalabilityMode = scalabilityMode;
+        encodings[0].scaleResolutionDownBy = scaleResolutionDownBy;
     }
 }

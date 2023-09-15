@@ -692,7 +692,7 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 
 /**
  * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
- * bridge. Currently this happens always for VP8 and only simulcast is enabled for VP9/AV1/H264.
+ * bridge. Currently this happens always for VP8 and only if simulcast is enabled for VP9/AV1/H264.
  * @returns {boolean}
  */
 TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
@@ -2747,7 +2747,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
     const codec = this.getConfiguredVideoCodec();
-    const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec);
+    const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const videoType = localVideoTrack.getVideoType();
     const encodingsActiveState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, frameHeight, codec);
 
