@@ -1,12 +1,9 @@
 /* eslint-disable max-len */
-import { MockPeerConnection } from './MockClasses';
-import { TPCUtils } from './TPCUtils';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
+import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode';
 
-const TEST_VIDEO_BITRATES = {
-    low: 200000,
-    standard: 700000,
-    high: 2500000
-};
+import { MockJitsiLocalTrack, MockPeerConnection } from './MockClasses';
+import { HD_SCALE_FACTOR, LD_SCALE_FACTOR, SD_SCALE_FACTOR, TPCUtils } from './TPCUtils';
 
 describe('TPCUtils', () => {
     describe('ensureCorrectOrderOfSsrcs()', () => {
@@ -37,8 +34,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs associated with all FID ssrc-groups', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, TEST_VIDEO_BITRATES);
-
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()
@@ -102,8 +98,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs in case the first ssrc in the SIM group is not present at the top', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, TEST_VIDEO_BITRATES);
-
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()
@@ -167,8 +162,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs in case there is a single FID group', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, TEST_VIDEO_BITRATES);
-
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()
@@ -206,6 +200,607 @@ describe('TPCUtils', () => {
                     'a=rtcp-mux'
                 ].join('\r\n')}\r\n`;
             }
+        });
+    });
+
+
+    describe('Test encodings when default settings are used for', () => {
+        let activeState, maxBitrates, pc, result, tpcUtils;
+
+        beforeEach(() => {
+            pc = new MockPeerConnection('1', true);
+
+            const videoQuality = {};
+
+            pc.options = { videoQuality };
+            console.log(`videoQuality === ${videoQuality.AV1}`);
+            tpcUtils = new TPCUtils(pc);
+        });
+
+        afterEach(() => {
+            activeState = null;
+            maxBitrates = null;
+            pc = null;
+            result = null;
+            tpcUtils = null;
+        });
+
+        it('AV1 camera tracks', () => {
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 720);
+            expect(maxBitrates[0]).toBe(1000000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 360);
+            expect(maxBitrates[0]).toBe(300000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L2T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(SD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 180);
+            expect(maxBitrates[0]).toBe(100000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 180, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(LD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('AV1 low fps desktop tracks', () => {
+            pc._capScreenshareBitrate = true;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 2160);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 2160, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 720);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 2160, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 360);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('AV1 high fps desktop tracks', () => {
+            pc._capScreenshareBitrate = false;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 2160);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 720);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 360);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.AV1);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP9 camera tracks', () => {
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 720);
+            expect(maxBitrates[0]).toBe(1200000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 360);
+            expect(maxBitrates[0]).toBe(300000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L2T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(SD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 180);
+            expect(maxBitrates[0]).toBe(100000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 180, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(LD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP9 low fps desktop tracks', () => {
+            pc._capScreenshareBitrate = true;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 2160);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 2160, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 720);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 360);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L1T3);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP9 high fps desktop tracks', () => {
+            pc._capScreenshareBitrate = false;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 2160);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            result = tpcUtils._calculateActiveEncodingParamsForSvc(localVideoTrack, 2160, CodecMimeType.VP9);
+            expect(result.scalabilityMode).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
+            expect(result.scaleResolutionDownBy).toBe(HD_SCALE_FACTOR);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 720);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 360);
+            expect(maxBitrates[0]).toBe(2500000);
+            expect(maxBitrates[1]).toBe(0);
+            expect(maxBitrates[2]).toBe(0);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP9);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP8 camera tracks', () => {
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 720);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 360);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 180);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP8 low fps desktop tracks', () => {
+            pc._capScreenshareBitrate = true;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 2160);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 720);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 360);
+            expect(maxBitrates[0]).toBe(500000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('VP8 high fps desktop tracks', () => {
+            pc._capScreenshareBitrate = false;
+            tpcUtils = new TPCUtils(pc);
+            const localVideoTrack = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 2160, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 2160);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(2500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 720);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(2500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP8, 360);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(2500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP8);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+
+        it('H.264 camera tracks', () => {
+            // We expect simulcast to be enabled for H.264 tracks.
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.H264);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(true);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.H264, 720);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.H264);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(true);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.H264, 360);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.H264);
+            expect(activeState[0]).toBe(true);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+
+            maxBitrates = tpcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.H264, 180);
+            expect(maxBitrates[0]).toBe(200000);
+            expect(maxBitrates[1]).toBe(500000);
+            expect(maxBitrates[2]).toBe(1500000);
+
+            activeState = tpcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.H264);
+            expect(activeState[0]).toBe(false);
+            expect(activeState[1]).toBe(false);
+            expect(activeState[2]).toBe(false);
+        });
+    });
+
+    describe('Test encodings when settings are overwritten', () => {
+        let bitrates, enabledState, pcUtils, peerconnection;
+
+        beforeEach(() => {
+            peerconnection = new MockPeerConnection('1', true);
+
+            // Configure AV1 to run in simulcast mode.
+            const av1Settings = {
+                maxBitratesVideo: {
+                    low: 300000,
+                    standard: 600000,
+                    high: 2000000,
+                    ssHigh: 2500000
+                },
+                useSimulcast: true
+            };
+
+            // Disable scalability mode so VP9 runs in K-SVC mode.
+            const vp9Settings = {
+                scalabilityModeEnabled: false
+            };
+
+            const videoQuality = {
+                AV1: av1Settings,
+                VP9: vp9Settings
+            };
+
+            peerconnection.options = { videoQuality };
+            pcUtils = new TPCUtils(peerconnection);
+        });
+
+        afterEach(() => {
+            enabledState = null;
+            bitrates = null;
+            peerconnection = null;
+            pcUtils = null;
+        });
+
+        it('for AV1 camera tracks', () => {
+            // We expect AV1 to run in Simulcast mode.
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.AV1);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(true);
+            expect(enabledState[2]).toBe(true);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 720);
+            expect(bitrates[0]).toBe(300000);
+            expect(bitrates[1]).toBe(600000);
+            expect(bitrates[2]).toBe(2000000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.AV1);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(true);
+            expect(enabledState[2]).toBe(false);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 360);
+            expect(bitrates[0]).toBe(300000);
+            expect(bitrates[1]).toBe(600000);
+            expect(bitrates[2]).toBe(2000000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.AV1);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(false);
+            expect(enabledState[2]).toBe(false);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.AV1, 180);
+            expect(bitrates[0]).toBe(300000);
+            expect(bitrates[1]).toBe(600000);
+            expect(bitrates[2]).toBe(2000000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.AV1);
+            expect(enabledState[0]).toBe(false);
+            expect(enabledState[1]).toBe(false);
+            expect(enabledState[2]).toBe(false);
+        });
+
+        it('for VP9 camera tracks', () => {
+            // We expect VP9 to run in K-SVC mode.
+            const localVideoTrack = new MockJitsiLocalTrack(720, 'video', 'camera');
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 720, CodecMimeType.VP9);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(true);
+            expect(enabledState[2]).toBe(true);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 720);
+            expect(bitrates[0]).toBe(100000);
+            expect(bitrates[1]).toBe(300000);
+            expect(bitrates[2]).toBe(1200000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 360, CodecMimeType.VP9);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(true);
+            expect(enabledState[2]).toBe(false);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 360);
+            expect(bitrates[0]).toBe(100000);
+            expect(bitrates[1]).toBe(300000);
+            expect(bitrates[2]).toBe(1200000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 180, CodecMimeType.VP9);
+            expect(enabledState[0]).toBe(true);
+            expect(enabledState[1]).toBe(false);
+            expect(enabledState[2]).toBe(false);
+
+            bitrates = pcUtils.calculateEncodingsBitrates(localVideoTrack, CodecMimeType.VP9, 180);
+            expect(bitrates[0]).toBe(100000);
+            expect(bitrates[1]).toBe(300000);
+            expect(bitrates[2]).toBe(1200000);
+
+            enabledState = pcUtils.calculateEncodingsActiveState(localVideoTrack, 0, CodecMimeType.VP9);
+            expect(enabledState[0]).toBe(false);
+            expect(enabledState[1]).toBe(false);
+            expect(enabledState[2]).toBe(false);
         });
     });
 });

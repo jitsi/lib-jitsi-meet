@@ -271,4 +271,65 @@ export class MockSignalingLayerImpl {
             this._remoteSourceState[endpointId] = undefined;
         }
     }
+
+}
+
+/**
+ * MockTrack
+ */
+export class MockTrack {
+    /**
+     * A constructor
+     */
+    constructor(height) {
+        this.height = height;
+    }
+
+    /**
+     * Returns height.
+     * @returns {number}
+     */
+    getSettings() {
+        return {
+            height: this.height
+        };
+    }
+}
+
+/**
+ * MockJitsiLocalTrack
+ */
+export class MockJitsiLocalTrack {
+    /**
+     * A constructor
+     */
+    constructor(height, mediaType, videoType) {
+        this.track = new MockTrack(height);
+        this.type = mediaType;
+        this.videoType = videoType;
+    }
+
+    /**
+     * Returns track.
+     * @returns {MockTrack}
+     */
+    getTrack() {
+        return this.track;
+    }
+
+    /**
+     * Returns media type.
+     * @returns {MediaType}
+     */
+    getType() {
+        return this.type;
+    }
+
+    /**
+     * Returns video type.
+     * @returns {VideoType}
+     */
+    getVideoType() {
+        return this.videoType;
+    }
 }
