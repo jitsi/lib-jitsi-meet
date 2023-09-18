@@ -473,7 +473,7 @@ export class TPCUtils {
                     : frameHeight <= newHeight
 
                 // Keep all the encodings for desktop track active.
-                : true;
+                : newHeight > 0;
 
             if (this._isScreenshareBitrateCapped(localVideoTrack)
                 && this.pc.usesUnifiedPlan()
