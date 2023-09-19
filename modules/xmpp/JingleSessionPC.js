@@ -988,7 +988,7 @@ export default class JingleSessionPC extends JingleSession {
      * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
      * assumption that the initial offer/answer cycle has been executed already.
      */
-    acceptOffer(jingleOffer, success, failure, localTracks) {
+    acceptOffer(jingleOffer, success, failure, localTracks = []) {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {

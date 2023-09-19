@@ -368,7 +368,8 @@ export default class ProxyConnectionPC {
                 this._options.peerJid,
                 ACTIONS.CONNECTION_ERROR,
                 'session initiate error'
-            )
+            ),
+            []
         );
     }
 
