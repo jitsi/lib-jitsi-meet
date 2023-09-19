@@ -86,12 +86,17 @@ export class TPCUtils {
         const maxVideoBitrate = videoType === VideoType.DESKTOP && this.encodingBitrates.ssHigh
             ? this.encodingBitrates.ssHigh : this.encodingBitrates.high;
 
+        // The SSRCs on older versions of Firefox are reversed in SDP, i.e., they have resolution order of 1:2:4 as
+        // opposed to Chromium and other browsers. This has been reverted in Firefox 117 as part of the below commit.
+        // https://hg.mozilla.org/mozilla-central/rev/b0348f1f8d7197fb87158ba74542d28d46133997
+        const reversedEncodings = browser.isFirefox() && browser.isVersionLessThan(117);
+
         return [
             {
                 active: this.pc.videoTransferActive,
-                maxBitrate: browser.isFirefox() ? maxVideoBitrate : this.encodingBitrates.low,
+                maxBitrate: reversedEncodings ? maxVideoBitrate : this.encodingBitrates.low,
                 rid: SIM_LAYER_1_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
+                scaleResolutionDownBy: reversedEncodings ? HD_SCALE_FACTOR : LD_SCALE_FACTOR
             },
             {
                 active: this.pc.videoTransferActive,
@@ -101,9 +106,9 @@ export class TPCUtils {
             },
             {
                 active: this.pc.videoTransferActive,
-                maxBitrate: browser.isFirefox() ? this.encodingBitrates.low : maxVideoBitrate,
+                maxBitrate: reversedEncodings ? this.encodingBitrates.low : maxVideoBitrate,
                 rid: SIM_LAYER_3_RID,
-                scaleResolutionDownBy: browser.isFirefox() ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
+                scaleResolutionDownBy: reversedEncodings ? LD_SCALE_FACTOR : HD_SCALE_FACTOR
             }
         ];
     }
