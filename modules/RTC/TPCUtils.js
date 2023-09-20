@@ -45,7 +45,8 @@ export class TPCUtils {
                     ?? (videoQualitySettings.maxBitratesVideo
                         && (videoQualitySettings.maxBitratesVideo[codec]
                             || videoQualitySettings.maxBitratesVideo[codec.toUpperCase()]));
-                const scalalabilityModeSettings = videoQualitySettings[codec];
+                const scalalabilityModeSettings = videoQualitySettings[codec]
+                    ?? videoQualitySettings[codec.toUpperCase()];
 
                 if (bitrateSettings) {
                     [ 'low', 'standard', 'high', 'ssHigh' ].forEach(value => {
