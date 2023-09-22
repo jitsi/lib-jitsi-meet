@@ -243,6 +243,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this.emit(NO_DATA_FROM_SOURCE, value);
 
+        logger.debug(`NO_DATA_FROM_SOURCE event with value ${value} detected for track: ${this}`);
+
         // FIXME: Should we report all of those events
         Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
         Statistics.sendLog(JSON.stringify({
