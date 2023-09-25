@@ -307,8 +307,7 @@ export class TPCUtils {
      * @returns {Array<boolean>}
      */
     calculateEncodingsActiveState(localVideoTrack, newHeight) {
-        const localTrack = localVideoTrack.getTrack();
-        const { height } = localTrack.getSettings();
+        const height = localVideoTrack.getHeight();
         const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack.getVideoType());
         const encodingsState = videoStreamEncodings
         .map(encoding => height / encoding.scaleResolutionDownBy)
@@ -384,8 +383,7 @@ export class TPCUtils {
      * @returns {number|null} The max encoded resolution for the given video track.
      */
     getConfiguredEncodeResolution(localVideoTrack) {
-        const localTrack = localVideoTrack.getTrack();
-        const { height } = localTrack.getSettings();
+        const height = localVideoTrack.getHeight();
         const videoSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
         let maxHeight = 0;
 
