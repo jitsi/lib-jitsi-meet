@@ -386,7 +386,7 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
-     * Returns the width of the track in 16:9 format
+     * Returns the width of the track in normalized landscape format.
      */
     getWidth() {
         return Math.max(this.track.getSettings().height, this.track.getSettings().width);
