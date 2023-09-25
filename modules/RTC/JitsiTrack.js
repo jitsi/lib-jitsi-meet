@@ -379,7 +379,7 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
-     * Returns the height of the track in 16:9 format
+     * Returns the height of the track in normalized landscape format.
      */
     getHeight() {
         return Math.min(this.track.getSettings().height, this.track.getSettings().width);
