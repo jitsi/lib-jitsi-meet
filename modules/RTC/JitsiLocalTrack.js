@@ -102,7 +102,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         // Get the resolution from the track itself because it cannot be
         // certain which resolution webrtc has fallen back to using.
-        this.resolution = track.getSettings().height;
+        this.resolution = this.getHeight();
         this.maxEnabledResolution = resolution;
 
         // Cache the constraints of the track in case of any this track
@@ -112,8 +112,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // Safari returns an empty constraints object, construct the constraints using getSettings.
         if (!Object.keys(this._constraints).length && videoType === VideoType.CAMERA) {
             this._constraints = {
-                height: track.getSettings().height,
-                width: track.getSettings().width
+                height: track.getHeight(),
+                width: track.getWidth()
             };
         }
 

@@ -379,6 +379,20 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Returns the height of the track in 16:9 format
+     */
+    getHeight() {
+        return Math.min(this.track.getSettings().height, this.track.getSettings().width);
+    }
+
+    /**
+     * Returns the width of the track in 16:9 format
+     */
+    getWidth() {
+        return Math.max(this.track.getSettings().height, this.track.getSettings().width);
+    }
+
+    /**
      * Checks whether the MediaStream is active/not ended.
      * When there is no check for active we don't have information and so
      * will return that stream is active (in case of FF).
