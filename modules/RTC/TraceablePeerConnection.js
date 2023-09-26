@@ -1424,7 +1424,7 @@ const normalizePlanB = function(desc) {
  * @returns {Array<Object>} ssrcLines with removed lines referencing msid "-".
  */
 function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
-    if (!browser.isChrome() || !browser.isVersionGreaterThan(70)) {
+    if (!browser.isChromiumBased()) {
         return ssrcLines;
     }
 
