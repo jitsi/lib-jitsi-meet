@@ -13,7 +13,7 @@ export const STANDARD_CODEC_SETTINGS = {
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
-        useL3T3: false // defaults to L3T3_KEY for SVC mode.
+        useL3T3Mode: false // defaults to L3T3_KEY for SVC mode.
     },
     h264: {
         maxBitratesVideo: {
@@ -42,6 +42,6 @@ export const STANDARD_CODEC_SETTINGS = {
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
-        useL3T3: false // defaults to L3T3_KEY for SVC mode.
+        useL3T3Mode: false // defaults to L3T3_KEY for SVC mode.
     }
 };

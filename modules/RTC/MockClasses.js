@@ -107,11 +107,13 @@ export class MockPeerConnection {
      *
      * @param {string} id RTC id
      * @param {boolean} usesUnifiedPlan
+     * @param {boolean} simulcast
      */
-    constructor(id, usesUnifiedPlan) {
+    constructor(id, usesUnifiedPlan, simulcast) {
         this.id = id;
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
+        this._simulcast = simulcast;
     }
 
     /**
@@ -160,6 +162,15 @@ export class MockPeerConnection {
         const codecs = new Set(mLine.rtp.map(pt => pt.codec.toLowerCase()));
 
         return Array.from(codecs);
+    }
+
+    /**
+     * {@link TraceablePeerConnection.isSimulcastOn}.
+     *
+     * @returns {boolean}
+     */
+    isSimulcastOn() {
+        return this._simulcast;
     }
 
     /**

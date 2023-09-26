@@ -23,11 +23,7 @@ import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
-import {
-    HD_SCALE_FACTOR,
-    SIM_LAYER_RIDS,
-    TPCUtils
-} from './TPCUtils';
+import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
 
@@ -697,14 +693,8 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
  */
 TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
     const currentCodec = this.getConfiguredVideoCodec();
-    const codecScalabilityModeSettings = this.tpcUtils.codecSettings[currentCodec];
-    const runsInSimulcastMode = currentCodec === CodecMimeType.AV1 || currentCodec === CodecMimeType.VP9
-        ? codecScalabilityModeSettings.scalabilityModeEnabled && codecScalabilityModeSettings.useSimulcast
-        : currentCodec === CodecMimeType.H264
-            ? codecScalabilityModeSettings.scalabilityModeEnabled
-            : true; // VP8
 
-    return this.isSimulcastOn() && runsInSimulcastMode;
+    return this.isSimulcastOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
 };
 
 /**
@@ -2748,49 +2738,31 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     // Calculate the encodings active state based on the resolution requested by the bridge.
     const codec = this.getConfiguredVideoCodec();
     const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
-    const videoType = localVideoTrack.getVideoType();
-    const encodingsActiveState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, frameHeight, codec);
+    const encodingsActiveState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
+    const scaleFactor = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
+    const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
 
-    if (this.isSimulcastOn()) {
-        for (const encoding in parameters.encodings) {
-            if (parameters.encodings.hasOwnProperty(encoding)) {
-                parameters.encodings[encoding].active = encodingsActiveState[encoding];
-                parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
+    for (const encoding in parameters.encodings) {
+        if (parameters.encodings.hasOwnProperty(encoding)) {
+            parameters.encodings[encoding].active = encodingsActiveState[encoding];
+            parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
 
-                // Firefox doesn't follow the spec and lets application specify the degradation preference on the
-                // encodings.
-                browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
+            // Firefox doesn't follow the spec and lets application specify the degradation preference on the
+            // encodings.
+            browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
+
+            // Configure scale factor when there is a single outbound-rtp stream.
+            if (scaleFactor) {
+                parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor;
+            }
+
+            // Configure scalability mode when its supported and enabled.
+            if (scalabilityModes) {
+                parameters.encodings[encoding].scalabilityMode = scalabilityModes[encoding];
             }
         }
-        this.tpcUtils.updateEncodingsScalabilityMode(parameters.encodings, codec, frameHeight, localVideoTrack);
-        this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
-
-    // For p2p and cases and where simulcast is explicitly disabled.
-    } else if (frameHeight > 0) {
-        let scaleFactor = HD_SCALE_FACTOR;
-
-        // Do not scale down encodings for desktop tracks for non-simulcast case.
-        if (videoType === VideoType.CAMERA && localVideoTrack.resolution > frameHeight) {
-            scaleFactor = Math.floor(localVideoTrack.resolution / frameHeight);
-        }
-
-        parameters.encodings[0].active = true;
-        parameters.encodings[0].scaleResolutionDownBy = scaleFactor;
-
-        // Firefox doesn't follow the spec and lets application specify the degradation preference on the encodings.
-        browser.isFirefox() && (parameters.encodings[0].degradationPreference = preference);
-
-        // Configure the bitrate.
-        let bitrate = this.getTargetVideoBitrates().high;
-
-        if (videoType === VideoType.CAMERA) {
-            bitrate = this.tpcUtils._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
-                .find(layer => layer.scaleResolutionDownBy === scaleFactor)?.maxBitrate;
-        }
-        parameters.encodings[0].maxBitrate = bitrate;
-    } else {
-        parameters.encodings[0].active = false;
     }
+    this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
 
     logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
