@@ -32,29 +32,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isAndroidBrowser() {
-        const { userAgent } = navigator;
-
-        return !this.isReactNative() && userAgent.match(/Android/i);
-    }
-
-    /**
-     * Checks if the current browser is Chromium based, i.e., it's either Chrome / Chromium or uses it as its engine,
-     * but doesn't identify as Chrome.
-     *
-     * This includes the following browsers:
-     * - Chrome and Chromium.
-     * - Other browsers which use the Chrome engine, but are detected as Chrome, such as Brave and Vivaldi.
-     * - Browsers which are NOT Chrome but use it as their engine, and have custom detection code: Opera, Electron
-     *   and NW.JS.
-     * This excludes
-     * - Chrome on iOS since it uses WKWebView.
-     */
-    isChromiumBased() {
-        return (this.isChrome()
-            || this.isElectron()
-            || this.isNWJS()
-            || this.isOpera())
-            && !this.isWebKitBased();
+        return !this.isReactNative() && this.getOS() === 'Android';
     }
 
     /**
@@ -63,10 +41,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isIosBrowser() {
-        const { userAgent, maxTouchPoints, platform } = navigator;
-
-        return Boolean(userAgent.match(/iP(ad|hone|od)/i))
-            || (maxTouchPoints && maxTouchPoints > 2 && /MacIntel/.test(platform));
+        return !this.isReactNative() && this.getOS() === 'iOS';
     }
 
     /**
@@ -74,24 +49,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isMobileDevice() {
         return this.isAndroidBrowser() || this.isIosBrowser() || this.isReactNative();
-    }
-
-    /**
-     * Checks if the current browser is WebKit based. It's either
-     * Safari or uses WebKit as its engine.
-     *
-     * This includes Chrome and Firefox on iOS
-     *
-     * @returns {boolean}
-     */
-    isWebKitBased() {
-        // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
-        return this._bowser.isEngine('webkit')
-            && typeof navigator.mediaDevices !== 'undefined'
-            && typeof navigator.mediaDevices.getUserMedia !== 'undefined'
-            && typeof window.RTCRtpTransceiver !== 'undefined'
-            // eslint-disable-next-line no-undef
-            && Object.keys(RTCRtpTransceiver.prototype).indexOf('currentDirection') > -1;
     }
 
     /**
@@ -113,7 +70,7 @@ export default class BrowserCapabilities extends BrowserDetection {
             return false;
         }
 
-        return (this.isChromiumBased() && this._getChromiumBasedVersion() >= MIN_REQUIRED_CHROME_VERSION)
+        return (this.isChromiumBased() && this.isEngineVersionGreaterThan(MIN_REQUIRED_CHROME_VERSION - 1))
             || this.isFirefox()
             || this.isReactNative()
             || this.isWebKitBased();
@@ -232,7 +189,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsTrackBasedStats() {
-        return this.isChromiumBased() && this.isVersionLessThan(112);
+        return this.isChromiumBased() && this.isEngineVersionLessThan(112);
     }
 
     /**
@@ -328,7 +285,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     supportsUnifiedPlan() {
         // We do not want to enable unified plan on Electron clients that have Chromium version < 96 because of
         // performance and screensharing issues.
-        return !(this.isElectron() && (this._getChromiumBasedVersion() < 96));
+        return !(this.isElectron() && this.isEngineVersionLessThan(96));
     }
 
     /**
@@ -352,37 +309,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns the version of a Chromium based browser.
-     *
-     * @returns {Number}
-     */
-    _getChromiumBasedVersion() {
-        if (this.isChromiumBased()) {
-            // NW.JS doesn't expose the Chrome version in the UA string.
-            if (this.isNWJS()) {
-                // eslint-disable-next-line no-undef
-                return Number.parseInt(process.versions.chromium, 10);
-            }
-
-            // Here we process all browsers which use the Chrome engine but
-            // don't necessarily identify as Chrome. We cannot use the version
-            // comparing functions because the Electron, Opera and NW.JS
-            // versions are inconsequential here, as we need to know the actual
-            // Chrome engine version.
-            const ua = navigator.userAgent;
-
-            if (ua.match(/Chrome/)) {
-                const version
-                    = Number.parseInt(ua.match(/Chrome\/([\d.]+)/)[1], 10);
-
-                return version;
-            }
-        }
-
-        return -1;
-    }
-
-    /**
      * Returns the version of a Safari browser.
      *
      * @returns {Number}
@@ -402,7 +328,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     _getIOSVersion() {
         if (this.isWebKitBased()) {
-            return Number.parseInt(this.getVersion(), 10);
+            return Number.parseInt(this.getOSVersion(), 10);
         }
 
         return -1;
