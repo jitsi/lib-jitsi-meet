@@ -87,8 +87,7 @@ export class TPCUtils {
      */
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
-        const localTrack = localVideoTrack.getTrack();
-        const { height } = localTrack.getSettings();
+        const height = localVideoTrack.getHeight();
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
         let scalabilityMode = this.codecSettings[codec].useL3T3Mode

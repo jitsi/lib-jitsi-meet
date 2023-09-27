@@ -321,6 +321,14 @@ export class MockJitsiLocalTrack {
     }
 
     /**
+     * Returns the height.
+     * @returns {number}
+     */
+    getHeight() {
+        return this.track.height;
+    }
+
+    /**
      * Returns track.
      * @returns {MockTrack}
      */
