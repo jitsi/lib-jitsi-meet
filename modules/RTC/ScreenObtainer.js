@@ -201,7 +201,7 @@ const ScreenObtainer = {
 
         if (browser.isChromiumBased()) {
             // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
-            browser.isVersionGreaterThan(106) && (video.surfaceSwitching = 'include');
+            browser.isEngineVersionGreaterThan(106) && (video.surfaceSwitching = 'include');
 
             // Set bogus resolution constraints to work around
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311 for low fps screenshare. Capturing SS at
