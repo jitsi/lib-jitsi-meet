@@ -191,7 +191,7 @@ export default class Moderator extends Listenable {
             conferenceRequest.sessionId = sessionId;
         }
 
-        if (FeatureFlags.isJoinAsVisitorSupported()) {
+        if (FeatureFlags.isJoinAsVisitorSupported() && !config.iAmRecorder && !config.iAmSipGateway) {
             conferenceRequest.properties['visitors-version'] = 1;
         }
 
