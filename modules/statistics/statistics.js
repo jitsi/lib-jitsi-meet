@@ -131,9 +131,9 @@ Statistics.init = function(options) {
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 
     // WatchRTC is not required to work for react native
-    if (!browser.isReactNative()) {
-        WatchRTC.init(options);
-    }
+    browser.isReactNative()
+        ? logger.warn('Cannot initialize WatchRTC in a react native environment!')
+        : WatchRTC.init(options);
 
     RTCStats.init(options);
 };
