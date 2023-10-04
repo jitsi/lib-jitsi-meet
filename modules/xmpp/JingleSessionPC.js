@@ -926,16 +926,15 @@ export default class JingleSessionPC extends JingleSession {
 
         ssrcs.each((i, ssrcElement) => {
             const ssrc = Number(ssrcElement.getAttribute('ssrc'));
+            let sourceName;
 
             if (ssrcElement.hasAttribute('name')) {
-                const sourceName = ssrcElement.getAttribute('name');
-
-                this._signalingLayer.setTrackSourceName(ssrc, sourceName);
+                sourceName = ssrcElement.getAttribute('name');
             }
 
             if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
-                this._signalingLayer.setSSRCOwner(ssrc, Strophe.getResourceFromJid(this.remoteJid));
+                this._signalingLayer.setSSRCOwner(ssrc, Strophe.getResourceFromJid(this.remoteJid), sourceName);
             } else {
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
@@ -946,7 +945,7 @@ export default class JingleSessionPC extends JingleSession {
                             if (isNaN(ssrc) || ssrc < 0) {
                                 logger.warn(`${this} Invalid SSRC ${ssrc} value received for ${owner}`);
                             } else {
-                                this._signalingLayer.setSSRCOwner(ssrc, getEndpointId(owner));
+                                this._signalingLayer.setSSRCOwner(ssrc, getEndpointId(owner), sourceName);
                             }
                         }
                     });
@@ -1804,7 +1803,7 @@ export default class JingleSessionPC extends JingleSession {
                 logger.debug(`Existing SSRC ${ssrc}: new owner=${owner}, source-name=${source}`);
 
                 // Update the SSRC owner.
-                this._signalingLayer.setSSRCOwner(ssrc, owner);
+                this._signalingLayer.setSSRCOwner(ssrc, owner, source);
 
                 // Update the track with all the relevant info.
                 track.setSourceName(source);
