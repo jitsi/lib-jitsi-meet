@@ -222,6 +222,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         }
 
         this.muted = value;
+
+        logger.info(`Mute ${this}: ${value}`);
         this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
     }
 
