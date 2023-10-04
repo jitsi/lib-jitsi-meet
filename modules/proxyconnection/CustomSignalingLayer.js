@@ -111,12 +111,6 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackSourceName(ssrc, sourceName) { // eslint-disable-line no-unused-vars
-    }
-
-    /**
-     * @inheritDoc
-     */
     updateSsrcOwnersOnLeave(id) {
         const ssrcs = Array.from(this.ssrcOwners)
             .filter(entry => entry[1] === id)
