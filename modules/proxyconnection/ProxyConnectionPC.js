@@ -268,8 +268,6 @@ export default class ProxyConnectionPC {
 
         const signalingLayer = new CustomSignalingLayer();
 
-        signalingLayer.setChatRoom(roomStub);
-
         /**
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
