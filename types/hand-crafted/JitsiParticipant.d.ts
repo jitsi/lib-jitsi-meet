@@ -10,6 +10,7 @@ export default class JitsiParticipant {
   getDisplayName: () => string;
   getFeatures: () => Promise<Set<string> | Error>;
   getId: () => string;
+  getIdentity: () => undefined | JwtIdentity;
   getJid: () => string;
   getProperty: ( name: string ) => string;
   getRole: () => string;
@@ -31,4 +32,24 @@ export default class JitsiParticipant {
   setProperty: ( name: string, value: string ) => void;
   setRole: ( role: string ) => void;
   supportsDTMF: () => boolean;
+}
+
+/**
+ * Application-defined values carried in the JWT claims section.
+ *
+ * @see https://github.com/jitsi/lib-jitsi-meet/blob/master/doc/tokens.md#token-identifiers-structure-optional
+ */
+interface JwtIdentity {
+  group: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    avatar: string;
+  };
+  callee?: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
 }
