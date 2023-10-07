@@ -1377,17 +1377,16 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.AV1;
 
             // Configure AV1 to run in simulcast mode.
-            const av1Settings = {
-                maxBitratesVideo: {
-                    low: 300000,
-                    standard: 600000,
-                    high: 2000000,
-                    ssHigh: 2500000
-                },
-                useSimulcast: true
-            };
             const videoQuality = {
-                av1: av1Settings
+                av1: {
+                    maxBitratesVideo: {
+                        low: 300000,
+                        standard: 600000,
+                        high: 2000000,
+                        ssHigh: 2500000
+                    },
+                    useSimulcast: true
+                }
             };
 
             beforeEach(() => {
@@ -1495,17 +1494,16 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in simulcast mode.
-            const vp9Settings = {
-                maxBitratesVideo: {
-                    low: 300000,
-                    standard: 600000,
-                    high: 2000000,
-                    ssHigh: 2500000
-                },
-                useSimulcast: true
-            };
             const videoQuality = {
-                vp9: vp9Settings
+                vp9: {
+                    maxBitratesVideo: {
+                        low: 300000,
+                        standard: 600000,
+                        high: 2000000,
+                        ssHigh: 2500000
+                    },
+                    useSimulcast: true
+                }
             };
 
             beforeEach(() => {
@@ -1613,11 +1611,10 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
-            const vp9Settings = {
-                scalabilityModeEnabled: false
-            };
             const videoQuality = {
-                vp9: vp9Settings
+                vp9: {
+                    scalabilityModeEnabled: false
+                }
             };
 
             beforeEach(() => {
@@ -1717,11 +1714,10 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
-            const vp9Settings = {
-                scalabilityModeEnabled: false
-            };
             const videoQuality = {
-                vp9: vp9Settings
+                vp9: {
+                    scalabilityModeEnabled: false
+                }
             };
 
             beforeEach(() => {
@@ -1821,11 +1817,10 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
-            const vp9Settings = {
-                scalabilityModeEnabled: false
-            };
             const videoQuality = {
-                vp9: vp9Settings
+                vp9: {
+                    scalabilityModeEnabled: false
+                }
             };
 
             beforeEach(() => {
@@ -1886,11 +1881,10 @@ describe('TPCUtils', () => {
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
-            const vp9Settings = {
-                scalabilityModeEnabled: false
-            };
             const videoQuality = {
-                vp9: vp9Settings
+                vp9: {
+                    scalabilityModeEnabled: false
+                }
             };
 
             beforeEach(() => {
@@ -1946,16 +1940,15 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for H.264 camera tracks', () => {
+        describe('for H.264 camera tracks, scalability mode is disabled', () => {
             const track = new MockJitsiLocalTrack(720, 'video', 'camera');
             const codec = CodecMimeType.H264;
 
             // Configure VP9 to run in simulcast mode.
-            const h264Settings = {
-                scalabilityModeEnabled: false
-            };
             const videoQuality = {
-                h264: h264Settings
+                h264: {
+                    scalabilityModeEnabled: false
+                }
             };
 
             beforeEach(() => {
@@ -2025,6 +2018,124 @@ describe('TPCUtils', () => {
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
+            });
+        });
+
+        describe('for VP9 camera tracks when deprecated settings are used for overriding bitrates', () => {
+            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const codec = CodecMimeType.VP9;
+
+            // Configure VP9 bitrates using the deprecated settings.
+            const videoQuality = {
+                vp9: {
+                    useSimulcast: true
+                },
+                maxbitratesvideo: {
+                    VP9: {
+                        low: 300000,
+                        standard: 600000,
+                        high: 2000000
+                    }
+                }
+            };
+
+            beforeEach(() => {
+                pc = new MockPeerConnection('1', true, true /* simulcast */);
+                pc.options = { videoQuality };
+                tpcUtils = new TPCUtils(pc);
+            });
+
+            afterEach(() => {
+                pc = null;
+                tpcUtils = null;
+            });
+
+            it('and requested resolution is 720', () => {
+                height = 720;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+                expect(activeState[1]).toBe(true);
+                expect(activeState[2]).toBe(true);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(300000);
+                expect(bitrates[1]).toBe(600000);
+                expect(bitrates[2]).toBe(2000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[1]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor).toBe(undefined);
+            });
+
+            it('and requested resolution is 360', () => {
+                height = 360;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+                expect(activeState[1]).toBe(true);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(300000);
+                expect(bitrates[1]).toBe(600000);
+                expect(bitrates[2]).toBe(2000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[1]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor).toBe(undefined);
+            });
+
+            it('and requested resolution is 180', () => {
+                height = 180;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(300000);
+                expect(bitrates[1]).toBe(600000);
+                expect(bitrates[2]).toBe(2000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[1]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor).toBe(undefined);
+            });
+
+            it('and requested resolution is 0', () => {
+                height = 0;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(300000);
+                expect(bitrates[1]).toBe(600000);
+                expect(bitrates[2]).toBe(2000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[1]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor).toBe(undefined);
             });
         });
     });

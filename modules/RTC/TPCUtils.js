@@ -43,13 +43,16 @@ export class TPCUtils {
 
         if (videoQualitySettings) {
             for (const codec of VIDEO_CODECS) {
-                const bitrateSettings = videoQualitySettings[codec]?.maxBitratesVideo
-                    ?? videoQualitySettings[codec.toUpperCase()]?.maxBitratesVideo
-                    ?? (videoQualitySettings.maxBitratesVideo
-                        && (videoQualitySettings.maxBitratesVideo[codec]
-                            || videoQualitySettings.maxBitratesVideo[codec.toUpperCase()]));
-                const scalalabilityModeSettings = videoQualitySettings[codec]
-                    ?? videoQualitySettings[codec.toUpperCase()];
+                const codecConfig = videoQualitySettings[codec];
+
+                if (!codecConfig) {
+                    continue; // eslint-disable-line no-continue
+                }
+                const bitrateSettings = codecConfig?.maxBitratesVideo
+
+                    // Read the deprecated settings for max bitrates.
+                    ?? (videoQualitySettings.maxbitratesvideo
+                        && videoQualitySettings.maxbitratesvideo[codec.toUpperCase()]);
 
                 if (bitrateSettings) {
                     [ 'low', 'standard', 'high', 'ssHigh' ].forEach(value => {
@@ -61,14 +64,14 @@ export class TPCUtils {
 
                 // TODO - Check if AV1 DD extension headers are negotiated and add that check here for AV1 and H.264.
                 const scalabilityModeEnabled = this.codecSettings[codec].scalabilityModeEnabled
-                    && (typeof scalalabilityModeSettings?.scalabilityModeEnabled === 'undefined'
-                        || scalalabilityModeSettings.scalabilityModeEnabled);
+                    && (typeof codecConfig.scalabilityModeEnabled === 'undefined'
+                        || codecConfig.scalabilityModeEnabled);
 
                 if (scalabilityModeEnabled) {
-                    scalalabilityModeSettings?.useSimulcast
-                        && (this.codecSettings[codec].useSimulcast = scalalabilityModeSettings.useSimulcast);
-                    scalalabilityModeSettings?.useL3T3Mode
-                        && (this.codecSettings[codec].useL3T3Mode = scalalabilityModeSettings.useL3T3Mode);
+                    codecConfig.useSimulcast
+                        && (this.codecSettings[codec].useSimulcast = codecConfig.useSimulcast);
+                    codecConfig.useL3T3Mode
+                        && (this.codecSettings[codec].useL3T3Mode = codecConfig.useL3T3Mode);
                 } else {
                     this.codecSettings[codec].scalabilityModeEnabled = false;
                 }
@@ -88,7 +91,7 @@ export class TPCUtils {
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const height = localVideoTrack.getHeight();
-        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
         let scalabilityMode = this.codecSettings[codec].useL3T3Mode
             ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY;
@@ -505,7 +508,7 @@ export class TPCUtils {
      */
     calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
         const videoType = localVideoTrack.getVideoType();
-        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopBitrate || DESKTOP_SHARE_RATE;
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
         const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
         .map((encoding, idx) => {
             let bitrate = encoding.maxBitrate;

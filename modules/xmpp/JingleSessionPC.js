@@ -402,20 +402,31 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
-        pcOptions.videoQuality = options.videoQuality;
+        let h264SimulcastEnabled = browser.supportsScalabilityModeAPI();
+
+        if (options.videoQuality) {
+            const settings = Object.entries(options.videoQuality)
+            .map(entry => {
+                entry[0] = entry[0].toLowerCase();
+
+                return entry;
+            });
+
+            pcOptions.videoQuality = Object.fromEntries(settings);
+            const h264Settings = pcOptions.videoQuality[CodecMimeType.H264];
+
+            h264SimulcastEnabled = h264SimulcastEnabled
+                && (typeof h264Settings === 'undefined' || h264Settings.scalabilityModeEnabled);
+        }
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
         const preferredJvbCodec = options.codecSettings?.codecList[0];
-        const explicityDisabled = options.videoQuality
-            && options.videoQuality[CodecMimeType.H264]
-            && options.videoQuality[CodecMimeType.H264].scalabilityModeEnabled !== 'undefined'
-            && !options.videoQuality[CodecMimeType.H264].scalabilityModeEnabled;
 
         pcOptions.disableSimulcast = this.isP2P
             ? true
             : options.disableSimulcast
-                ?? (preferredJvbCodec?.toLowerCase() === CodecMimeType.H264 && explicityDisabled);
+                ?? (preferredJvbCodec?.toLowerCase() === CodecMimeType.H264 && !h264SimulcastEnabled);
 
         if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.
