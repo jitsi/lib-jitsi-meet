@@ -138,7 +138,7 @@ export class TPCUtils {
         const codec = this.pc.getConfiguredVideoCodec();
         const encodings = this._getVideoStreamEncodings(localTrack.getVideoType(), codec);
 
-        if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
+        if (this.pc.isSpatialScalabilityOn() && localTrack.isVideoTrack()) {
             return encodings;
         }
 
@@ -463,7 +463,7 @@ export class TPCUtils {
         .map(encoding => height / encoding.scaleResolutionDownBy)
         .map((frameHeight, idx) => {
             // Single video stream.
-            if (!this.pc.isSimulcastOn() || this._isRunningInFullSvcMode(codec)) {
+            if (!this.pc.isSpatialScalabilityOn() || this._isRunningInFullSvcMode(codec)) {
                 const { active } = this._calculateActiveEncodingParams(localVideoTrack, codec, newHeight);
 
                 return idx === 0 ? active : false;
@@ -514,7 +514,7 @@ export class TPCUtils {
             let bitrate = encoding.maxBitrate;
 
             // Single video stream.
-            if (!this.pc.isSimulcastOn() || this._isRunningInFullSvcMode(codec)) {
+            if (!this.pc.isSpatialScalabilityOn() || this._isRunningInFullSvcMode(codec)) {
                 const { maxBitrate } = this._calculateActiveEncodingParams(localVideoTrack, codec, newHeight);
 
                 return idx === 0 ? maxBitrate : 0;
@@ -545,7 +545,7 @@ export class TPCUtils {
      * @returns {Array<VideoEncoderScalabilityMode> | undefined}
      */
     calculateEncodingsScalabilityMode(localVideoTrack, codec, maxHeight) {
-        if (!this.pc.isSimulcastOn() || !this.codecSettings[codec].scalabilityModeEnabled) {
+        if (!this.pc.isSpatialScalabilityOn() || !this.codecSettings[codec].scalabilityModeEnabled) {
             return;
         }
 
@@ -581,7 +581,7 @@ export class TPCUtils {
      * @returns {number|undefined}
      */
     calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
-        if (this.pc.isSimulcastOn() && this.isRunningInSimulcastMode(codec)) {
+        if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
             return;
         }
 
@@ -643,7 +643,7 @@ export class TPCUtils {
                     localVideoTrack.getVideoType(),
                     this.pc.getConfiguredVideoCodec());
                 const scaleResolutionDownBy
-                    = this.pc.isSimulcastOn()
+                    = this.pc.isSpatialScalabilityOn()
                         ? encodingConfig[encoding].scaleResolutionDownBy
                         : parameters.encodings[encoding].scaleResolutionDownBy;
 

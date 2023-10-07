@@ -334,7 +334,7 @@ export default class ConnectionQuality {
             const activeTPC = this._conference.getActivePeerConnection();
 
             if (activeTPC) {
-                const isSimulcastOn = activeTPC.isSimulcastOn();
+                const isSimulcastOn = activeTPC.isSpatialScalabilityOn();
                 const videoQualitySettings = activeTPC.getTargetVideoBitrates();
 
                 // Add the codec info as well.

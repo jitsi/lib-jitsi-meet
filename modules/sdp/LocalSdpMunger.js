@@ -91,7 +91,7 @@ export default class LocalSdpMunger {
 
             // Inject removed SSRCs
             const requiredSSRCs
-                = this.tpc.isSimulcastOn()
+                = this.tpc.isSpatialScalabilityOn()
                     ? this.tpc.simulcast.ssrcCache
                     : [ this.tpc.sdpConsistency.cachedPrimarySsrc ];
 

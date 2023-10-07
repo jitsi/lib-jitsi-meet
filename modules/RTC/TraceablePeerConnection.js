@@ -571,11 +571,11 @@ TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoint
 };
 
 /**
- * Tells whether or not this TPC instance is using Simulcast.
- * @return {boolean} <tt>true</tt> if simulcast is enabled and active or
+ * Tells whether or not this TPC instance has spatial scalability enabled.
+ * @return {boolean} <tt>true</tt> if spatial scalability is enabled and active or
  * <tt>false</tt> if it's turned off.
  */
-TraceablePeerConnection.prototype.isSimulcastOn = function() {
+TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
     return !this.options.disableSimulcast;
 };
 
@@ -694,7 +694,7 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
     const currentCodec = this.getConfiguredVideoCodec();
 
-    return this.isSimulcastOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
+    return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
 };
 
 /**
@@ -710,7 +710,7 @@ TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
         return ssrcs;
     }
 
-    const ssrcGroup = this.isSimulcastOn() ? 'SIM' : 'FID';
+    const ssrcGroup = this.isSpatialScalabilityOn() ? 'SIM' : 'FID';
 
     return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
 };
@@ -1960,7 +1960,7 @@ TraceablePeerConnection.prototype.isVideoCodecDisabled = function(codec) {
 TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) {
     const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
 
-    this._capScreenshareBitrate = this.isSimulcastOn() && lowFps;
+    this._capScreenshareBitrate = this.isSpatialScalabilityOn() && lowFps;
 };
 
 /**
@@ -2599,15 +2599,15 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             remoteDescription = this.interop.toUnifiedPlan(remoteDescription, currentDescription);
             this.trace('setRemoteDescription::postTransform (Unified)', dumpSDP(remoteDescription));
         }
-        if (this.isSimulcastOn()) {
+        if (this.isSpatialScalabilityOn()) {
             remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
             this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));
         }
         remoteDescription = this.tpcUtils.ensureCorrectOrderOfSsrcs(remoteDescription);
         this.trace('setRemoteDescription::postTransform (correct ssrc order)', dumpSDP(remoteDescription));
     } else {
-        if (this.isSimulcastOn()) {
-            // Implode the simulcast ssrcs so that the remote sdp has only the first ssrc in the SIM group.
+        if (this.isSpatialScalabilityOn()) {
+            // Implode the 3 different ssrcs so that the remote sdp has only the first ssrc in the SIM group.
             remoteDescription = this.simulcast.mungeRemoteDescription(
                 remoteDescription,
                 true /* add x-google-conference flag */);
@@ -2962,8 +2962,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
             const localVideoTrack = this.getLocalVideoTracks()[0];
 
-            // Configure simulcast for camera tracks and for desktop tracks that need simulcast.
-            if (this.isSimulcastOn() && browser.usesSdpMungingForSimulcast()
+            // Munge local description to add 3 SSRCs for camera tracks and for desktop tracks when spatial scalability
+            // for video streams is enabled.
+            if (this.isSpatialScalabilityOn() && browser.usesSdpMungingForSimulcast()
                 && (localVideoTrack?.getVideoType() === VideoType.CAMERA
                 || this._usesUnifiedPlan)) {
                 // eslint-disable-next-line no-param-reassign
@@ -3166,8 +3167,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
         logger.error(`${this} Overwriting local SSRCs for track id=${rtcId}`);
     }
 
-    // Configure simulcast for camera tracks and desktop tracks that need simulcast.
-    if (this.isSimulcastOn()
+    // Configure SIM groups for camera tracks and desktop tracks that need simulcast.
+    if (this.isSpatialScalabilityOn()
         && (track.getVideoType() === VideoType.CAMERA || !this.isSharingLowFpsScreen())) {
         ssrcInfo = {
             ssrcs: [],

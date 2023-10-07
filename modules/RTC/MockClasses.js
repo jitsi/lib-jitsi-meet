@@ -165,11 +165,11 @@ export class MockPeerConnection {
     }
 
     /**
-     * {@link TraceablePeerConnection.isSimulcastOn}.
+     * {@link TraceablePeerConnection.isSpatialScalabilityOn}.
      *
      * @returns {boolean}
      */
-    isSimulcastOn() {
+    isSpatialScalabilityOn() {
         return this._simulcast;
     }
 
