@@ -189,7 +189,9 @@ const ScreenObtainer = {
 
         const audio = this._getAudioConstraints();
         let video = {};
+        const constraintOpts = {};
         const {
+            desktopDisplaySurface,
             desktopSharingFrameRate,
             desktopSurfaceSwitching,
             desktopSelfBrowserSurface,
@@ -208,19 +210,23 @@ const ScreenObtainer = {
         if (browser.isChromiumBased()) {
             // Show users the current tab is the preferred capture source, default: false.
             browser.isEngineVersionGreaterThan(93)
-                && (video.preferCurrentTab = desktopPreferCurrentTab || false);
+                && (constraintOpts.preferCurrentTab = desktopPreferCurrentTab || false);
 
             // Allow users to select system audio, default: include.
             browser.isEngineVersionGreaterThan(104)
-                && (video.systemAudio = desktopSystemAudio || 'include');
+                && (constraintOpts.systemAudio = desktopSystemAudio || 'include');
 
             // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
             browser.isEngineVersionGreaterThan(106)
-                && (video.surfaceSwitching = desktopSurfaceSwitching || 'include');
+                && (constraintOpts.surfaceSwitching = desktopSurfaceSwitching || 'include');
+
+            // Allow a user to be shown a preference for what screen is to be captured, default: unset.
+            browser.isEngineVersionGreaterThan(106) && desktopDisplaySurface
+                && (video.displaySurface = desktopDisplaySurface);
 
             // Allow users to select the current tab as a capture source, default: exclude.
             browser.isEngineVersionGreaterThan(111)
-                && (video.selfBrowserSurface = desktopSelfBrowserSurface || 'exclude');
+                && (constraintOpts.selfBrowserSurface = desktopSelfBrowserSurface || 'exclude');
 
             // Set bogus resolution constraints to work around
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311 for low fps screenshare. Capturing SS at
@@ -231,6 +237,11 @@ const ScreenObtainer = {
             }
         }
 
+        // Allow a user to be shown a preference for what screen is to be captured.
+        if (browser.isSafari() && browser.isEngineVersionGreaterThan(11) && desktopDisplaySurface) {
+            video.displaySurface = desktopDisplaySurface;
+        }
+
         if (Object.keys(video).length === 0) {
             video = true;
         }
@@ -238,6 +249,7 @@ const ScreenObtainer = {
         const constraints = {
             video,
             audio,
+            ...constraintOpts,
             cursor: 'always'
         };
 
