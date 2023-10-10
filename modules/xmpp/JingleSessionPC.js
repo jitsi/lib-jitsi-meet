@@ -6,7 +6,6 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import { VideoType } from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
@@ -1781,7 +1780,7 @@ export default class JingleSessionPC extends JingleSession {
 
         for (const src of message.mappedSources) {
             // eslint-disable-next-line prefer-const
-            let { owner, source, ssrc, videoType } = src;
+            let { owner, source, ssrc } = src;
             const isNewSsrc = this.peerconnection.addRemoteSsrc(ssrc, source);
             let lookupSsrc = ssrc;
 
@@ -1808,11 +1807,11 @@ export default class JingleSessionPC extends JingleSession {
                 // Update the track with all the relevant info.
                 track.setSourceName(source);
                 track.setOwner(owner);
-                if (mediaType === MediaType.VIDEO) {
-                    const type = videoType === 'CAMERA' ? VideoType.CAMERA : VideoType.DESKTOP;
 
-                    track._setVideoType(type);
-                }
+                // Update the video type based on the type published by peer in its presence.
+                const { videoType } = this._signalingLayer.getPeerSourceInfo(owner, source);
+
+                track._setVideoType(videoType);
 
                 // Update the muted state on the track since the presence for this track could have been received
                 // before the updated source map is received on the bridge channel.
