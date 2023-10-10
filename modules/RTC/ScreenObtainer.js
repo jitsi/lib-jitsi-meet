@@ -189,7 +189,13 @@ const ScreenObtainer = {
 
         const audio = this._getAudioConstraints();
         let video = {};
-        const { desktopSharingFrameRate } = this.options;
+        const {
+            desktopSharingFrameRate,
+            desktopSurfaceSwitching,
+            desktopSelfBrowserSurface,
+            desktopPreferCurrentTab,
+            desktopSystemAudio
+        } = this.options;
 
         if (typeof desktopSharingFrameRate === 'object') {
             video.frameRate = desktopSharingFrameRate;
@@ -200,8 +206,21 @@ const ScreenObtainer = {
         video.frameRate && delete video.frameRate.min;
 
         if (browser.isChromiumBased()) {
+            // Show users the current tab is the preferred capture source, default: false.
+            browser.isEngineVersionGreaterThan(93)
+                && (video.preferCurrentTab = desktopPreferCurrentTab || false);
+
+            // Allow users to select system audio, default: include.
+            browser.isEngineVersionGreaterThan(104)
+                && (video.systemAudio = desktopSystemAudio || 'include');
+
             // Allow users to seamlessly switch which tab they are sharing without having to select the tab again.
-            browser.isEngineVersionGreaterThan(106) && (video.surfaceSwitching = 'include');
+            browser.isEngineVersionGreaterThan(106)
+                && (video.surfaceSwitching = desktopSurfaceSwitching || 'include');
+
+            // Allow users to select the current tab as a capture source, default: exclude.
+            browser.isEngineVersionGreaterThan(111)
+                && (video.selfBrowserSurface = desktopSelfBrowserSurface || 'exclude');
 
             // Set bogus resolution constraints to work around
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311 for low fps screenshare. Capturing SS at
