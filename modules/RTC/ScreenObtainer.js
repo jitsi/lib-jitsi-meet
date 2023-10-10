@@ -238,7 +238,7 @@ const ScreenObtainer = {
         }
 
         // Allow a user to be shown a preference for what screen is to be captured.
-        if (browser.isSafari() && browser.isEngineVersionGreaterThan(11) && desktopDisplaySurface) {
+        if (browser.isSafari() && desktopDisplaySurface) {
             video.displaySurface = desktopDisplaySurface;
         }
 
