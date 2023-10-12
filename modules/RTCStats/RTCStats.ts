@@ -4,13 +4,13 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 import EventEmitter from 'events';
 
-import { 
-    CONFERENCE_JOINED, 
-    CONFERENCE_LEFT, 
-    CONFERENCE_UNIQUE_ID_SET 
+import {
+    CONFERENCE_JOINED,
+    CONFERENCE_LEFT,
+    CONFERENCE_UNIQUE_ID_SET
 } from '../../JitsiConferenceEvents';
 import JitsiConference from '../../JitsiConference';
-import { IRTCStatsConfiguration } from './interfaces';
+import { IRTCStatsConfiguration, RTCStatsState } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 
 const logger = getLogger(__filename);
@@ -34,7 +34,10 @@ function connectionFilter(config) {
  * Config and conference changes are handled by the start method.
  */
 class RTCStats {
-    private _initialized: boolean = false;
+    private _state: RTCStatsState = {
+        initialized: false,
+        enabled: true
+    };
     private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
@@ -42,11 +45,11 @@ class RTCStats {
      * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
      * The proxies will then send data to the rtcstats server via the trace object.
      * The initialization procedure must be called once when lib-jitsi-meet is loaded.
-     * 
+     *
      * @param {IRTCStatsConfiguration} initConfig initial config for rtcstats.
      * @returns {void}
      */
-    init(initConfig: IRTCStatsConfiguration) {       
+    init(initConfig: IRTCStatsConfiguration) {
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
@@ -59,18 +62,22 @@ class RTCStats {
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
         // with unforeseen consequences.
-        if (!rtcstatsEnabled || this._initialized) return;
-        
-        rtcstatsInit( 
-            { statsEntry: this.sendStatsEntry.bind(this) }, 
+        if (this._state.initialized) return;
+        if (!rtcstatsEnabled) {
+            this._state.initialized = true;
+            return;
+        }
+
+        rtcstatsInit(
+            { statsEntry: this.sendStatsEntry.bind(this) },
             { connectionFilter,
-              pollInterval,
-              useLegacy,
-              sendSdp,
+                pollInterval,
+                useLegacy,
+                sendSdp,
               eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
         );
 
-        this._initialized = true;
+        this._state.initialized = true;
     }
 
     /**
@@ -78,29 +85,32 @@ class RTCStats {
      * new conference's config. On a normal conference flow this wouldn't be necessary, as the whole page is
      * reloaded, but in the case of breakout rooms or react native the js context doesn't reload, hence the
      * RTCStats singleton and its config persists between conferences.
-     * 
+     *
      * @param conference - JitsiConference instance that's about to start.
      * @returns {void}
      */
     start(conference: JitsiConference) {
         // If rtcstats proxy module is not initialized, do nothing.
-        if (!this._initialized) {
+        if (!this._state.initialized) {
             logger.error('Calling start before RTCStats proxy module is initialized.');
-
+            return;
+        }
+        // Initialized, but without `rtcstatsEnabled` being true.
+        if (!this._state.enabled) {
             return;
         }
 
         // Reset the trace module in case it wasn't during the previous conference.
         // Closing the underlying websocket connection and deleting the trace obj.
         this.reset();
-        
-        const { 
-            options: { 
+
+        const {
+            options: {
                 config : confConfig = {},
                 name: confName = ''
             } = {},
             _statsCurrentId : displayName = ''
-        } = conference; 
+        } = conference;
 
         const {
             analytics: {
@@ -115,7 +125,7 @@ class RTCStats {
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
-        conference.once(CONFERENCE_JOINED, () => {      
+        conference.once(CONFERENCE_JOINED, () => {
             const traceOptions = {
                 endpoint,
                 meetingFqn: confName,
@@ -142,7 +152,7 @@ class RTCStats {
                 meetingUniqueId,
                 isBreakoutRoom
             }
-    
+
             this.sendIdentity(identityData);
         });
 
@@ -158,14 +168,14 @@ class RTCStats {
 
     /**
      * Sends the identity data to the rtcstats server.
-     *  
+     *
      * @param identityData - Identity data to send.
      * @returns {void}
-     */ 
+     */
     sendIdentity(identityData) {
-        this._trace?.identity('identity', null, identityData);        
+        this._trace?.identity('identity', null, identityData);
     }
-        
+
     /**
      * Resets the trace module by closing the websocket and deleting the object.
      * After reset, the rtcstats proxy module that tries to send data via `sendStatsEntry`, will no longer
@@ -182,7 +192,7 @@ class RTCStats {
     /**
      * Sends a stats entry to the rtcstats server. This is called by the rtcstats proxy module,
      * or any other app that wants to send custom stats.
-     *  
+     *
      * @param entry - Stats entry to send.
      * @returns {void}
      */
