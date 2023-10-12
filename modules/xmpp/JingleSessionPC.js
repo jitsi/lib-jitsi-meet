@@ -1325,6 +1325,8 @@ export default class JingleSessionPC extends JingleSession {
                         // The session might have been terminated before the task was executed, making it obsolete.
                         logger.debug(`${this} ICE restart task aborted: session terminated`);
                         success();
+
+                        return;
                     }
                     logger.error(`${this} ICE restart task failed: ${error}`);
                     failure(error);
@@ -2203,6 +2205,8 @@ export default class JingleSessionPC extends JingleSession {
                             // The session might have been terminated before the task was executed, making it obsolete.
                             logger.debug(`${this} renegotiation after addTrack aborted: session terminated`);
                             resolve();
+
+                            return;
                         }
                         logger.error(`${this} renegotiation after addTrack error`, error);
                         reject(error);
@@ -2320,6 +2324,8 @@ export default class JingleSessionPC extends JingleSession {
                             // The session might have been terminated before the task was executed, making it obsolete.
                             logger.debug('Replace track aborted: session terminated');
                             resolve();
+
+                            return;
                         }
                         logger.error(`${this} Replace track error:`, error);
                         reject(error);
@@ -2523,6 +2529,8 @@ export default class JingleSessionPC extends JingleSession {
                             // The session might have been terminated before the task was executed, making it obsolete.
                             logger.debug(`${this} ${operationName} aborted: session terminated`);
                             resolve();
+
+                            return;
                         }
                         logger.error(`${this} ${operationName} failed`);
                         reject(error);
