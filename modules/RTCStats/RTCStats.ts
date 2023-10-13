@@ -10,7 +10,7 @@ import {
     CONFERENCE_UNIQUE_ID_SET
 } from '../../JitsiConferenceEvents';
 import JitsiConference from '../../JitsiConference';
-import { IRTCStatsConfiguration, RTCStatsState } from './interfaces';
+import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 
 const logger = getLogger(__filename);
@@ -34,11 +34,8 @@ function connectionFilter(config) {
  * Config and conference changes are handled by the start method.
  */
 class RTCStats {
-    private _state: RTCStatsState = {
-        initialized: false,
-        enabled: true
-    };
-    private _trace: any = null;
+    #initialized = false;
+    #trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
     /**
@@ -62,11 +59,7 @@ class RTCStats {
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
         // with unforeseen consequences.
-        if (this._state.initialized) return;
-        if (!rtcstatsEnabled) {
-            this._state.initialized = true;
-            return;
-        }
+        if (!rtcstatsEnabled || this.#initialized) return;
 
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
@@ -77,7 +70,7 @@ class RTCStats {
               eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
         );
 
-        this._state.initialized = true;
+        this.#initialized = true;
     }
 
     /**
@@ -90,20 +83,6 @@ class RTCStats {
      * @returns {void}
      */
     start(conference: JitsiConference) {
-        // If rtcstats proxy module is not initialized, do nothing.
-        if (!this._state.initialized) {
-            logger.error('Calling start before RTCStats proxy module is initialized.');
-            return;
-        }
-        // Initialized, but without `rtcstatsEnabled` being true.
-        if (!this._state.enabled) {
-            return;
-        }
-
-        // Reset the trace module in case it wasn't during the previous conference.
-        // Closing the underlying websocket connection and deleting the trace obj.
-        this.reset();
-
         const {
             options: {
                 config : confConfig = {},
@@ -120,8 +99,19 @@ class RTCStats {
             } = {}
         } = confConfig;
 
+        // Reset the trace module in case it wasn't during the previous conference.
+        // Closing the underlying websocket connection and deleting the trace obj.
+        this.reset();
+
         // The new conference config might have rtcstats disabled, so we need to check again.
         if (!rtcstatsEnabled) return;
+
+        // If rtcstats proxy module is not initialized, do nothing.
+        if (!this.#initialized) {
+            logger.error('Calling start before RTCStats proxy module is initialized.');
+
+            return;
+        }
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
@@ -137,12 +127,12 @@ class RTCStats {
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
-            this._trace = traceInit(traceOptions);
+            this.#trace = traceInit(traceOptions);
 
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            this._trace.connect(isBreakoutRoom);
+            this.#trace.connect(isBreakoutRoom);
 
             const identityData = {
                 ...confConfig,
@@ -173,7 +163,7 @@ class RTCStats {
      * @returns {void}
      */
     sendIdentity(identityData) {
-        this._trace?.identity('identity', null, identityData);
+        this.#trace?.identity('identity', null, identityData);
     }
 
     /**
@@ -185,8 +175,8 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
-        this._trace?.close();
-        this._trace = null;
+        this.#trace?.close();
+        this.#trace = null;
     }
 
     /**
@@ -197,7 +187,7 @@ class RTCStats {
      * @returns {void}
      */
     sendStatsEntry(statsType, pcId, data) {
-        this._trace?.statsEntry(statsType, pcId, data);
+        this.#trace?.statsEntry(statsType, pcId, data);
     }
 }
 

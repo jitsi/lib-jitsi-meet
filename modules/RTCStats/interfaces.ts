@@ -9,10 +9,3 @@ export interface IRTCStatsConfiguration {
         rtcstatsUseLegacy?: boolean;
     };
 }
-
-export interface RTCStatsState {
-    /** Initialized - doesn't necessarily mean that rtcstats are enabled */
-    initialized: boolean;
-    /** Is true if initialized with `rtcstatsEnabled` being true */
-    enabled: boolean;
-}
