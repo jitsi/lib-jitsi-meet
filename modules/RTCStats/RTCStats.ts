@@ -34,8 +34,8 @@ function connectionFilter(config) {
  * Config and conference changes are handled by the start method.
  */
 class RTCStats {
-    #initialized = false;
-    #trace: any = null;
+    _initialized = false;
+    _trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
     /**
@@ -59,7 +59,7 @@ class RTCStats {
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
         // with unforeseen consequences.
-        if (!rtcstatsEnabled || this.#initialized) return;
+        if (!rtcstatsEnabled || this._initialized) return;
 
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
@@ -70,7 +70,7 @@ class RTCStats {
               eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
         );
 
-        this.#initialized = true;
+        this._initialized = true;
     }
 
     /**
@@ -107,7 +107,7 @@ class RTCStats {
         if (!rtcstatsEnabled) return;
 
         // If rtcstats proxy module is not initialized, do nothing.
-        if (!this.#initialized) {
+        if (!this._initialized) {
             logger.error('Calling start before RTCStats proxy module is initialized.');
 
             return;
@@ -127,12 +127,12 @@ class RTCStats {
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
-            this.#trace = traceInit(traceOptions);
+            this._trace = traceInit(traceOptions);
 
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            this.#trace.connect(isBreakoutRoom);
+            this._trace.connect(isBreakoutRoom);
 
             const identityData = {
                 ...confConfig,
@@ -163,7 +163,7 @@ class RTCStats {
      * @returns {void}
      */
     sendIdentity(identityData) {
-        this.#trace?.identity('identity', null, identityData);
+        this._trace?.identity('identity', null, identityData);
     }
 
     /**
@@ -175,8 +175,8 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
-        this.#trace?.close();
-        this.#trace = null;
+        this._trace?.close();
+        this._trace = null;
     }
 
     /**
@@ -187,7 +187,7 @@ class RTCStats {
      * @returns {void}
      */
     sendStatsEntry(statsType, pcId, data) {
-        this.#trace?.statsEntry(statsType, pcId, data);
+        this._trace?.statsEntry(statsType, pcId, data);
     }
 }
 
