@@ -189,7 +189,9 @@ export class Context {
                 encodedFrame,
                 keyIndex);
 
-            return controller.enqueue(decodedFrame);
+            if (decodedFrame) {
+                controller.enqueue(decodedFrame);
+            }
         }
     }
 
