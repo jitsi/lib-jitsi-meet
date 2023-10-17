@@ -118,20 +118,6 @@ export class CodecSelection {
     }
 
     /**
-     * Filters VP9 from the list of the preferred video codecs for JVB if E2EE is enabled.
-     *
-     * @returns {Array}
-     */
-    _maybeFilterJvbCodecs() {
-        // TODO - remove this check when support for VP9-E2EE is introduced.
-        if (this.conference.isE2EEEnabled()) {
-            return this.codecPreferenceOrder.jvb.filter(codec => codec !== CodecMimeType.VP9);
-        }
-
-        return this.codecPreferenceOrder.jvb;
-    }
-
-    /**
      * Sets the codec on the media session based on the codec preference order configured in config.js and the supported
      * codecs published by the remote participants in their presence.
      *
@@ -144,9 +130,14 @@ export class CodecSelection {
             return;
         }
         const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
-        const localPreferredCodecOrder = session === this.conference.jvbJingleSession
-            ? this._maybeFilterJvbCodecs()
-            : this.codecPreferenceOrder.p2p;
+        const isJvbSession = session === this.conference.jvbJingleSession;
+
+        let localPreferredCodecOrder = isJvbSession ? this.codecPreferenceOrder.jvb : this.codecPreferenceOrder.p2p;
+
+        // E2EE is curently supported only for VP8 codec.
+        if (this.conference.isE2EEEnabled() && isJvbSession) {
+            localPreferredCodecOrder = [ CodecMimeType.VP8 ];
+        }
 
         const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
         const remoteCodecsPerParticipant = remoteParticipants?.map(remote => {
