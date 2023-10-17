@@ -62,7 +62,6 @@ export class TPCUtils {
                     });
                 }
 
-                // TODO - Check if AV1 DD extension headers are negotiated and add that check here for AV1 and H.264.
                 const scalabilityModeEnabled = this.codecSettings[codec].scalabilityModeEnabled
                     && (typeof codecConfig.scalabilityModeEnabled === 'undefined'
                         || codecConfig.scalabilityModeEnabled);

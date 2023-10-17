@@ -335,6 +335,13 @@ export default function TraceablePeerConnection(
     this._senderMaxHeights = new Map();
 
     /**
+     * Flag indicating bridge support for AV1 codec. On the bridge connection, it is supported only when support for
+     * AV1 Dependency Descriptor header extensions is offered by Jicofo. H.264 simulcast is also possible when these
+     * header extensions are negotiated.
+     */
+    this._supportsAv1HeaderExts = false;
+
+    /**
      * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
      * {@link JitsiLocalTrack.rtcId}.
      * @type {Map<string, string>}
@@ -576,7 +583,11 @@ TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoint
  * <tt>false</tt> if it's turned off.
  */
 TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
-    return !this.options.disableSimulcast;
+    const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
+        && this._supportsAv1HeaderExts;
+
+    return !this.options.disableSimulcast
+        && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
 };
 
 /**
@@ -1720,6 +1731,61 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
 };
 
 /**
+ * Checks if the AV1 Dependency descriptors are negotiated on the bridge peerconnection and disables them when the
+ * codec selected is VP8 or VP9.
+ *
+ * @param {RTCSessionDescription} description that needs to be munged.
+ * @returns {RTCSessionDescription} the munged description.
+ */
+TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
+    if (!browser.supportsScalabilityModeAPI()) {
+        return description;
+    }
+
+    const parsedSdp = transform.parse(description.sdp);
+    const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO);
+    const extUri = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
+
+    if (!mLines.length) {
+        return description;
+    }
+
+    mLines.forEach((mLine, idx) => {
+        const senderMids = Array.from(this._localTrackTransceiverMids.values());
+        const isSender = senderMids.length
+            ? senderMids.find(mid => mLine.mid.toString() === mid.toString())
+            : idx === 0;
+        const payload = mLine.payloads.split(' ')[0];
+        let { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
+
+        codec = codec.toLowerCase();
+
+        if (isSender && mLine.ext?.length) {
+            const headerIndex = mLine.ext.findIndex(ext => ext.uri === extUri);
+            const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
+
+            if (!this._supportsAv1HeaderExts && headerIndex >= 0) {
+                this._supportsAv1HeaderExts = true;
+            }
+
+            if (this._supportsAv1HeaderExts && shouldNegotiateHeaderExts && headerIndex < 0) {
+                mLine.ext.push({
+                    value: 11,
+                    uri: extUri
+                });
+            } else if (!shouldNegotiateHeaderExts && headerIndex >= 0) {
+                mLine.ext.splice(headerIndex, 1);
+            }
+        }
+    });
+
+    return new RTCSessionDescription({
+        type: description.type,
+        sdp: transform.write(parsedSdp)
+    });
+};
+
+/**
  * Add {@link JitsiLocalTrack} to this TPC.
  * @param {JitsiLocalTrack} track
  * @param {boolean} isInitiator indicates if the endpoint is the offerer.
@@ -1906,7 +1972,8 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
     }
     const parsedSdp = transform.parse(sdp);
     const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
-    const codec = mLine.rtp[0].codec;
+    const payload = mLine.payloads.split(' ')[0];
+    const { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
 
     if (codec) {
         return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
@@ -2558,6 +2625,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
     // Munge the order of the codecs based on the preferences set through config.js.
     localDescription = this._mungeCodecOrder(localDescription);
     localDescription = this._setMaxBitrates(localDescription, true);
+    localDescription = this._updateAv1DdHeaders(localDescription);
 
     this.trace('setLocalDescription::postTransform', dumpSDP(localDescription));
 
@@ -2619,6 +2687,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     // Munge the order of the codecs based on the preferences set through config.js.
     remoteDescription = this._mungeCodecOrder(remoteDescription);
     remoteDescription = this._setMaxBitrates(remoteDescription);
+    remoteDescription = this._updateAv1DdHeaders(remoteDescription);
     this.trace('setRemoteDescription::postTransform (munge codec order)', dumpSDP(remoteDescription));
 
     return new Promise((resolve, reject) => {

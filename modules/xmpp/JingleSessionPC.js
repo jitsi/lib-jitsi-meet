@@ -3,7 +3,6 @@ import $ from 'jquery';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -402,7 +401,6 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
-        let h264SimulcastEnabled = browser.supportsScalabilityModeAPI();
 
         if (options.videoQuality) {
             const settings = Object.entries(options.videoQuality)
@@ -413,20 +411,11 @@ export default class JingleSessionPC extends JingleSession {
             });
 
             pcOptions.videoQuality = Object.fromEntries(settings);
-            const h264Settings = pcOptions.videoQuality[CodecMimeType.H264];
-
-            h264SimulcastEnabled = h264SimulcastEnabled
-                && (typeof h264Settings === 'undefined' || h264Settings.scalabilityModeEnabled);
         }
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
-        const preferredJvbCodec = options.codecSettings?.codecList[0];
-
-        pcOptions.disableSimulcast = this.isP2P
-            ? true
-            : options.disableSimulcast
-                ?? (preferredJvbCodec?.toLowerCase() === CodecMimeType.H264 && !h264SimulcastEnabled);
+        pcOptions.disableSimulcast = this.isP2P ? true : options.disableSimulcast;
 
         if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.
@@ -1008,7 +997,7 @@ export default class JingleSessionPC extends JingleSession {
                 // modify sendSessionAccept method to do that
                 this.sendSessionAccept(() => {
                     // Start processing tasks on the modification queue.
-                    logger.debug('Resuming the modification queue after session is established!');
+                    logger.debug(`${this} Resuming the modification queue after session is established!`);
                     this.modificationQueue.resume();
 
                     success();
@@ -1128,7 +1117,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.state = JingleSessionState.ACTIVE;
 
                     // Start processing tasks on the modification queue.
-                    logger.debug('Resuming the modification queue after session is established!');
+                    logger.debug(`${this} Resuming the modification queue after session is established!`);
                     this.modificationQueue.resume();
                     const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
