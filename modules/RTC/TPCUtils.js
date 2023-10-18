@@ -67,10 +67,10 @@ export class TPCUtils {
                         || codecConfig.scalabilityModeEnabled);
 
                 if (scalabilityModeEnabled) {
-                    codecConfig.useSimulcast
+                    typeof codecConfig.useSimulcast !== undefined
                         && (this.codecSettings[codec].useSimulcast = codecConfig.useSimulcast);
-                    codecConfig.useL3T3Mode
-                        && (this.codecSettings[codec].useL3T3Mode = codecConfig.useL3T3Mode);
+                    typeof codecConfig.useKSVC !== undefined
+                        && (this.codecSettings[codec].useKSVC = codecConfig.useKSVC);
                 } else {
                     this.codecSettings[codec].scalabilityModeEnabled = false;
                 }
@@ -92,8 +92,8 @@ export class TPCUtils {
         const height = localVideoTrack.getHeight();
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
-        let scalabilityMode = this.codecSettings[codec].useL3T3Mode
-            ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY;
+        let scalabilityMode = this.codecSettings[codec].useKSVC
+            ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
         let maxBitrate = codecBitrates.high;
 
         if (this._isScreenshareBitrateCapped(localVideoTrack)) {
@@ -116,8 +116,8 @@ export class TPCUtils {
 
         if (newHeight >= height / SD_SCALE_FACTOR) {
             config.maxBitrate = codecBitrates.standard;
-            config.scalabilityMode = this.codecSettings[codec].useL3T3Mode
-                ? VideoEncoderScalabilityMode.L2T3 : VideoEncoderScalabilityMode.L2T3_KEY;
+            config.scalabilityMode = this.codecSettings[codec].useKSVC
+                ? VideoEncoderScalabilityMode.L2T3_KEY : VideoEncoderScalabilityMode.L2T3;
             config.scaleResolutionDownBy = SD_SCALE_FACTOR;
         } else {
             config.maxBitrate = codecBitrates.low;
@@ -214,8 +214,8 @@ export class TPCUtils {
                     maxBitrate: maxVideoBitrate,
                     rid: SIM_LAYER_1_RID,
                     scaleResolutionDownBy: HD_SCALE_FACTOR,
-                    scalabilityMode: this.codecSettings[codec].useL3T3Mode
-                        ? VideoEncoderScalabilityMode.L3T3 : VideoEncoderScalabilityMode.L3T3_KEY
+                    scalabilityMode: this.codecSettings[codec].useKSVC
+                        ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3
                 },
                 {
                     active: false,
