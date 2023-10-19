@@ -34,8 +34,8 @@ function connectionFilter(config) {
  * Config and conference changes are handled by the start method.
  */
 class RTCStats {
-    _initialized = false;
-    _trace: any = null;
+    private _initialized: boolean = false;
+    private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
     /**
@@ -64,9 +64,9 @@ class RTCStats {
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
             { connectionFilter,
-                pollInterval,
-                useLegacy,
-                sendSdp,
+              pollInterval,
+              useLegacy,
+              sendSdp,
               eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
         );
 
