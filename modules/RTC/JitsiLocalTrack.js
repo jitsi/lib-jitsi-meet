@@ -112,8 +112,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // Safari returns an empty constraints object, construct the constraints using getSettings.
         if (!Object.keys(this._constraints).length && videoType === VideoType.CAMERA) {
             this._constraints = {
-                height: track.getSettings().getHeight(),
-                width: track.getSettings().getWidth()
+                height: this.getHeight(),
+                width: this.getWidth()
             };
         }
 
