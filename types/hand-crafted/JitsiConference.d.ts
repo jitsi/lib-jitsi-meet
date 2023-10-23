@@ -19,8 +19,7 @@ export default class JitsiConference {
         enabled: boolean,
         backToP2PDelay?: number
       },
-      channelLastN?: number,
-      forceJVB121Ratio?: number
+      channelLastN?: number
     },
     connection: unknown
   } ); // TODO:
