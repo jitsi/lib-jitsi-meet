@@ -17,7 +17,7 @@ import SDP from '../sdp/SDP';
 import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
-import AsyncQueue from '../util/AsyncQueue';
+import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import browser from './../browser';
@@ -1320,6 +1320,13 @@ export default class JingleSessionPC extends JingleSession {
             workFunction,
             error => {
                 if (error) {
+                    if (error instanceof ClearedQueueError) {
+                        // The session might have been terminated before the task was executed, making it obsolete.
+                        logger.debug(`${this} ICE restart task aborted: session terminated`);
+                        success();
+
+                        return;
+                    }
                     logger.error(`${this} ICE restart task failed: ${error}`);
                     failure(error);
                 } else {
@@ -2193,6 +2200,13 @@ export default class JingleSessionPC extends JingleSession {
                 workFunction,
                 error => {
                     if (error) {
+                        if (error instanceof ClearedQueueError) {
+                            // The session might have been terminated before the task was executed, making it obsolete.
+                            logger.debug(`${this} renegotiation after addTrack aborted: session terminated`);
+                            resolve();
+
+                            return;
+                        }
                         logger.error(`${this} renegotiation after addTrack error`, error);
                         reject(error);
                     } else {
@@ -2305,6 +2319,13 @@ export default class JingleSessionPC extends JingleSession {
                 workFunction,
                 error => {
                     if (error) {
+                        if (error instanceof ClearedQueueError) {
+                            // The session might have been terminated before the task was executed, making it obsolete.
+                            logger.debug('Replace track aborted: session terminated');
+                            resolve();
+
+                            return;
+                        }
                         logger.error(`${this} Replace track error:`, error);
                         reject(error);
                     } else {
@@ -2503,6 +2524,13 @@ export default class JingleSessionPC extends JingleSession {
                 workFunction,
                 error => {
                     if (error) {
+                        if (error instanceof ClearedQueueError) {
+                            // The session might have been terminated before the task was executed, making it obsolete.
+                            logger.debug(`${this} ${operationName} aborted: session terminated`);
+                            resolve();
+
+                            return;
+                        }
                         logger.error(`${this} ${operationName} failed`);
                         reject(error);
                     } else {
