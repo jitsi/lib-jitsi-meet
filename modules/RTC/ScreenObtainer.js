@@ -254,6 +254,31 @@ const ScreenObtainer = {
         getDisplayMedia(constraints)
             .then(stream => {
                 this.setContentHint(stream);
+
+                // Apply min fps constraints to the track so that 0Hz mode doesn't kick in.
+                // https://bugs.chromium.org/p/webrtc/issues/detail?id=15539
+                if (browser.isChromiumBased()) {
+                    const track = stream.getVideoTracks()[0];
+                    let minFps = SS_DEFAULT_FRAME_RATE;
+
+                    if (typeof desktopSharingFrameRate?.min === 'number' && desktopSharingFrameRate.min > 0) {
+                        minFps = desktopSharingFrameRate.min;
+                    }
+
+                    const contraints = {
+                        frameRate: {
+                            min: minFps
+                        }
+                    };
+
+                    try {
+                        track.applyConstraints(contraints);
+                    } catch (err) {
+                        logger.warn(`Min fps=${minFps} constraint could not be applied on the desktop track,`
+                            + `${err.message}`);
+                    }
+                }
+
                 callback({
                     stream,
                     sourceId: stream.id
@@ -266,7 +291,7 @@ const ScreenObtainer = {
                     errorStack: error && error.stack
                 };
 
-                logger.error('getDisplayMedia error', constraints, errorDetails);
+                logger.error('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
 
                 if (errorDetails.errorMsg && errorDetails.errorMsg.indexOf('denied by system') !== -1) {
                     // On Chrome this is the only thing different between error returned when user cancels
