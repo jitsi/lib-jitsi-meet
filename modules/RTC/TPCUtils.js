@@ -89,7 +89,10 @@ export class TPCUtils {
         // The SSRCs on older versions of Firefox are reversed in SDP, i.e., they have resolution order of 1:2:4 as
         // opposed to Chromium and other browsers. This has been reverted in Firefox 117 as part of the below commit.
         // https://hg.mozilla.org/mozilla-central/rev/b0348f1f8d7197fb87158ba74542d28d46133997
-        const reversedEncodings = browser.isFirefox() && browser.isVersionLessThan(117);
+        // This revert seems to be applied only to camera tracks, the desktop stream encodings still have the
+        // resolution order of 4:2:1.
+        const reversedEncodings = browser.isFirefox()
+            && (videoType === VideoType.DESKTOP || browser.isVersionLessThan(117));
 
         return [
             {
