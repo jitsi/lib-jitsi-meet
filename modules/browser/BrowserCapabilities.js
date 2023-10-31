@@ -184,6 +184,17 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if the browser supports the new Scalability Mode API for VP9/AV1 simulcast and full SVC. H.264
+     * simulcast will also be supported by the jvb for this version because the bridge is able to read the Dependency
+     * Descriptor RTP header extension to extract layers information for H.264 as well.
+     *
+     * @returns {boolean}
+     */
+    supportsScalabilityModeAPI() {
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(114);
+    }
+
+    /**
      * Returns true if the browser supports track based statistics for the local video track. Otherwise,
      * track resolution and framerate will be calculated based on the 'outbound-rtp' statistics.
      * @returns {boolean}

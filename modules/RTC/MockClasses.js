@@ -107,11 +107,13 @@ export class MockPeerConnection {
      *
      * @param {string} id RTC id
      * @param {boolean} usesUnifiedPlan
+     * @param {boolean} simulcast
      */
-    constructor(id, usesUnifiedPlan) {
+    constructor(id, usesUnifiedPlan, simulcast) {
         this.id = id;
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
+        this._simulcast = simulcast;
     }
 
     /**
@@ -160,6 +162,15 @@ export class MockPeerConnection {
         const codecs = new Set(mLine.rtp.map(pt => pt.codec.toLowerCase()));
 
         return Array.from(codecs);
+    }
+
+    /**
+     * {@link TraceablePeerConnection.isSpatialScalabilityOn}.
+     *
+     * @returns {boolean}
+     */
+    isSpatialScalabilityOn() {
+        return this._simulcast;
     }
 
     /**
@@ -270,5 +281,74 @@ export class MockSignalingLayerImpl {
         } else {
             this._remoteSourceState[endpointId] = undefined;
         }
+    }
+
+}
+
+/**
+ * MockTrack
+ */
+export class MockTrack {
+    /**
+     * A constructor
+     */
+    constructor(height) {
+        this.height = height;
+    }
+
+    /**
+     * Returns height.
+     * @returns {number}
+     */
+    getSettings() {
+        return {
+            height: this.height
+        };
+    }
+}
+
+/**
+ * MockJitsiLocalTrack
+ */
+export class MockJitsiLocalTrack {
+    /**
+     * A constructor
+     */
+    constructor(height, mediaType, videoType) {
+        this.track = new MockTrack(height);
+        this.type = mediaType;
+        this.videoType = videoType;
+    }
+
+    /**
+     * Returns the height.
+     * @returns {number}
+     */
+    getHeight() {
+        return this.track.height;
+    }
+
+    /**
+     * Returns track.
+     * @returns {MockTrack}
+     */
+    getTrack() {
+        return this.track;
+    }
+
+    /**
+     * Returns media type.
+     * @returns {MediaType}
+     */
+    getType() {
+        return this.type;
+    }
+
+    /**
+     * Returns video type.
+     * @returns {VideoType}
+     */
+    getVideoType() {
+        return this.videoType;
     }
 }

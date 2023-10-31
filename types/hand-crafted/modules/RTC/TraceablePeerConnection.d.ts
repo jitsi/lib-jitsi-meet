@@ -72,7 +72,7 @@ export default class TraceablePeerConnection {
   onnegotiationneeded: unknown; // TODO:
   ondatachannel: unknown; // TODO:
   getConnectionState: () => string;
-  isSimulcastOn: () => boolean;
+  isSpatialScalabilityOn: () => boolean;
   getAudioLevels: ( speakerList?: Array<unknown> ) => Map<string, number>; // TODO:
   getLocalTracks: ( mediaType: MediaType ) => JitsiLocalTrack[];
   getLocalVideoTrack: () => JitsiLocalTrack | undefined;
@@ -117,7 +117,6 @@ export default class TraceablePeerConnection {
   addIceCandidate: ( candidate: unknown ) => unknown; // TODO:
   generateNewStreamSSRCInfo: (track: JitsiLocalTrack) => TraceablePeerConnection['localSSRCs'];
   usesUnifiedPlan: () => boolean;
-  getActiveSimulcastStreams: () => number;
   getStats: () => unknown; // TODO:
   toString: () => string;
 }

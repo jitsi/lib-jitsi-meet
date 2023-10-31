@@ -3,7 +3,6 @@ import $ from 'jquery';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import {
@@ -96,7 +95,6 @@ function _addSourceElement(description, s, ssrc_, msid) {
  * @property {boolean} gatherStats - Described in the config.js[1].
  * @property {object} p2p - Peer to peer related options (FIXME those could be
  * fetched from config.p2p on the upper level).
- * @property {boolean} preferH264 - Described in the config.js[1].
  * @property {Object} testing - Testing and/or experimental options.
  * @property {boolean} webrtcIceUdpDisable - Described in the config.js[1].
  * @property {boolean} webrtcIceTcpDisable - Described in the config.js[1].
@@ -402,23 +400,25 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
-        pcOptions.videoQuality = options.videoQuality;
+
+        if (options.videoQuality) {
+            const settings = Object.entries(options.videoQuality)
+            .map(entry => {
+                entry[0] = entry[0].toLowerCase();
+
+                return entry;
+            });
+
+            pcOptions.videoQuality = Object.fromEntries(settings);
+        }
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
         pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
+        pcOptions.disableSimulcast = this.isP2P ? true : options.disableSimulcast;
 
-        if (this.isP2P) {
-            // simulcast needs to be disabled for P2P (121) calls
-            pcOptions.disableSimulcast = true;
-        } else {
-            // H264 scalability is not supported on jvb, so simulcast needs to be disabled when H264 is preferred.
-            pcOptions.disableSimulcast
-                = options.disableSimulcast || options.videoQuality?.preferredCodec === CodecMimeType.H264;
-
+        if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.
-            pcOptions.capScreenshareBitrate = pcOptions.disableSimulcast
-                || !(typeof options.desktopSharingFrameRate?.max === 'number'
-                    && options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
+            pcOptions.capScreenshareBitrate = !(options.desktopSharingFrameRate?.max > SS_DEFAULT_FRAME_RATE);
         }
 
         if (options.startSilent) {
@@ -995,7 +995,7 @@ export default class JingleSessionPC extends JingleSession {
                 // modify sendSessionAccept method to do that
                 this.sendSessionAccept(() => {
                     // Start processing tasks on the modification queue.
-                    logger.debug('Resuming the modification queue after session is established!');
+                    logger.debug(`${this} Resuming the modification queue after session is established!`);
                     this.modificationQueue.resume();
 
                     success();
@@ -1115,7 +1115,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.state = JingleSessionState.ACTIVE;
 
                     // Start processing tasks on the modification queue.
-                    logger.debug('Resuming the modification queue after session is established!');
+                    logger.debug(`${this} Resuming the modification queue after session is established!`);
                     this.modificationQueue.resume();
                     const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
