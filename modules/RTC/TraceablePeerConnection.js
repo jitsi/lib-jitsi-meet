@@ -30,6 +30,9 @@ import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 const logger = getLogger(__filename);
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
+const DD_HEADER_EXT_URI
+    = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
+const DD_HEADER_EXT_ID = 11;
 
 /* eslint-disable max-params */
 
@@ -336,10 +339,10 @@ export default function TraceablePeerConnection(
 
     /**
      * Flag indicating bridge support for AV1 codec. On the bridge connection, it is supported only when support for
-     * AV1 Dependency Descriptor header extensions is offered by Jicofo. H.264 simulcast is also possible when these
+     * Dependency Descriptor header extensions is offered by Jicofo. H.264 simulcast is also possible when these
      * header extensions are negotiated.
      */
-    this._supportsAv1HeaderExts = false;
+    this._supportsDDHeaderExt = false;
 
     /**
      * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
@@ -584,7 +587,7 @@ TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoint
  */
 TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
     const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-        && this._supportsAv1HeaderExts;
+        && this._supportsDDHeaderExt;
 
     return !this.options.disableSimulcast
         && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
@@ -1744,7 +1747,6 @@ TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
 
     const parsedSdp = transform.parse(description.sdp);
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO);
-    const extUri = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
 
     if (!mLines.length) {
         return description;
@@ -1761,17 +1763,17 @@ TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
         codec = codec.toLowerCase();
 
         if (isSender && mLine.ext?.length) {
-            const headerIndex = mLine.ext.findIndex(ext => ext.uri === extUri);
+            const headerIndex = mLine.ext.findIndex(ext => ext.uri === DD_HEADER_EXT_URI);
             const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
 
-            if (!this._supportsAv1HeaderExts && headerIndex >= 0) {
-                this._supportsAv1HeaderExts = true;
+            if (!this._supportsDDHeaderExt && headerIndex >= 0) {
+                this._supportsDDHeaderExt = true;
             }
 
-            if (this._supportsAv1HeaderExts && shouldNegotiateHeaderExts && headerIndex < 0) {
+            if (this._supportsDDHeaderExt && shouldNegotiateHeaderExts && headerIndex < 0) {
                 mLine.ext.push({
-                    value: 11,
-                    uri: extUri
+                    value: DD_HEADER_EXT_ID,
+                    uri: DD_HEADER_EXT_URI
                 });
             } else if (!shouldNegotiateHeaderExts && headerIndex >= 0) {
                 mLine.ext.splice(headerIndex, 1);
