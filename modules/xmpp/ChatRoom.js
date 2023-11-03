@@ -1221,6 +1221,26 @@ export default class ChatRoom extends Listenable {
 
             } else {
                 logger.warn('onPresError ', pres);
+
+                const txt = $(pres).find('>error[type="cancel"]>text[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
+
+                // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
+                // because of no participants in the room, and we tried to create the room, without having
+                // permissions for that (only jicofo creates rooms)
+                if (txt.length && txt.text() === 'Room creation is restricted') {
+                    if (!this._roomCreationRetries) {
+                        this._roomCreationRetries = 0;
+                    }
+                    this._roomCreationRetries++;
+
+                    if (this._roomCreationRetries <= 3) {
+                        // let's retry inviting jicofo and joining the room
+                        this.join(this.password, this.replaceParticipant);
+
+                        return;
+                    }
+                }
+
                 this.eventEmitter.emit(
                     XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR);
             }
