@@ -1950,10 +1950,9 @@ JitsiConference.prototype.onMemberKicked = function(
     const actorParticipant = this.participants.get(actorId);
 
     if (isSelfPresence) {
+        this.leave().finally(() => this.xmpp.disconnect());
         this.eventEmitter.emit(
             JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
-
-        this.leave().finally(() => this.xmpp.disconnect());
 
         return;
     }
