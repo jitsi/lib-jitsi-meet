@@ -834,7 +834,11 @@ Statistics.prototype.sendFeedback = function(overall, comment) {
             comment
         });
 
-    return CallStats.sendFeedback(this.options.confID, overall, comment);
+    if (this.isCallstatsEnabled()) {
+        return CallStats.sendFeedback(this.options.confID, overall, comment);
+    }
+
+    return Promise.resolve();
 };
 
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
