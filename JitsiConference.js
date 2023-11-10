@@ -3231,6 +3231,8 @@ JitsiConference.prototype._removeRemoteP2PTracks = function() {
         'P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
 };
 
+// test
+
 /**
  * Generates fake "remote track removed" events for given Jingle session.
  * @param {string} sessionNickname the session's nickname which will appear in
