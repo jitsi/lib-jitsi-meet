@@ -342,14 +342,13 @@ export class TPCUtils {
     }
 
     /**
-     * Takes in a *unified plan* offer and inserts the appropriate
-     * parameters for adding simulcast receive support.
+     * Takes in a *unified plan* offer and inserts the appropriate parameters for adding simulcast receive support.
      * @param {Object} desc - A session description object
      * @param {String} desc.type - the type (offer/answer)
      * @param {String} desc.sdp - the sdp content
      *
-     * @return {Object} A session description (same format as above) object
-     * with its sdp field modified to advertise simulcast receive support
+     * @return {Object} A session description (same format as above) object with its sdp field modified to advertise
+     * simulcast receive support.
      */
     insertUnifiedPlanSimulcastReceive(desc) {
         // a=simulcast line is not needed on browsers where we SDP munging is used for enabling on simulcast.
@@ -357,30 +356,7 @@ export class TPCUtils {
         if (browser.usesSdpMungingForSimulcast()) {
             return desc;
         }
-        const sdp = transform.parse(desc.sdp);
-        const idx = sdp.media.findIndex(mline => mline.type === MediaType.VIDEO);
-
-        if (sdp.media[idx].rids && (sdp.media[idx].simulcast_03 || sdp.media[idx].simulcast)) {
-            // Make sure we don't have the simulcast recv line on video descriptions other than
-            // the first video description.
-            sdp.media.forEach((mline, i) => {
-                if (mline.type === MediaType.VIDEO && i !== idx) {
-                    sdp.media[i].rids = undefined;
-                    sdp.media[i].simulcast = undefined;
-
-                    // eslint-disable-next-line camelcase
-                    sdp.media[i].simulcast_03 = undefined;
-                }
-            });
-
-            return new RTCSessionDescription({
-                type: desc.type,
-                sdp: transform.write(sdp)
-            });
-        }
-
-        // In order of highest to lowest spatial quality
-        sdp.media[idx].rids = [
+        const rids = [
             {
                 id: SIM_LAYER_1_RID,
                 direction: 'recv'
@@ -401,11 +377,29 @@ export class TPCUtils {
         const simulcastLine = browser.isFirefox() && browser.isVersionGreaterThan(71)
             ? `recv ${SIM_LAYER_RIDS.join(';')}`
             : `recv rid=${SIM_LAYER_RIDS.join(';')}`;
+        const sdp = transform.parse(desc.sdp);
+        const mLines = sdp.media.filter(m => m.type === MediaType.VIDEO);
+        const senderMids = Array.from(this.pc._localTrackTransceiverMids.values());
 
-        // eslint-disable-next-line camelcase
-        sdp.media[idx].simulcast_03 = {
-            value: simulcastLine
-        };
+        mLines.forEach((mLine, idx) => {
+            // Make sure the simulcast recv line is only set on video descriptions that are associated with senders.
+            if (senderMids.find(sender => mLine.mid.toString() === sender.toString()) || idx === 0) {
+                if (!mLine.simulcast_03 || !mLine.simulcast) {
+                    mLine.rids = rids;
+
+                    // eslint-disable-next-line camelcase
+                    mLine.simulcast_03 = {
+                        value: simulcastLine
+                    };
+                }
+            } else {
+                mLine.rids = undefined;
+                mLine.simulcast = undefined;
+
+                // eslint-disable-next-line camelcase
+                mLine.simulcast_03 = undefined;
+            }
+        });
 
         return new RTCSessionDescription({
             type: desc.type,
