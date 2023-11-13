@@ -1783,48 +1783,48 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {void}
      */
     processSourceMap(message, mediaType) {
+        if (!FeatureFlags.isSsrcRewritingSupported()) {
+            return;
+        }
         const newSsrcs = [];
 
         for (const src of message.mappedSources) {
-            // eslint-disable-next-line prefer-const
-            let { owner, source, ssrc } = src;
+            const { owner, source, ssrc } = src;
             const isNewSsrc = this.peerconnection.addRemoteSsrc(ssrc, source);
-            let lookupSsrc = ssrc;
 
             if (isNewSsrc) {
                 newSsrcs.push(src);
+                logger.debug(`New SSRC signaled ${ssrc}: owner=${owner}, source-name=${source}`);
 
                 // Check if there is an old mapping for the given source and clear the owner on the associated track.
                 const oldSsrc = this.peerconnection.remoteSources.get(source);
 
                 if (oldSsrc) {
-                    lookupSsrc = oldSsrc;
-                    owner = undefined;
-                    source = undefined;
+                    this._signalingLayer.removeSSRCOwners([ oldSsrc ]);
+                    const track = this.peerconnection.getTrackBySSRC(oldSsrc);
+
+                    if (track) {
+                        track.setSourceName(undefined);
+                        track.setOwner(undefined);
+                        track._setVideoType(undefined);
+                    }
                 }
-            }
-            const track = this.peerconnection.getTrackBySSRC(lookupSsrc);
+            } else {
+                logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
+                const track = this.peerconnection.getTrackBySSRC(ssrc);
 
-            if (track) {
-                logger.debug(`Existing SSRC ${ssrc}: new owner=${owner}, source-name=${source}`);
-
-                // Update the SSRC owner.
                 this._signalingLayer.setSSRCOwner(ssrc, owner, source);
-
-                // Update the track with all the relevant info.
                 track.setSourceName(source);
                 track.setOwner(owner);
 
-                // Update the video type based on the type published by peer in its presence.
-                const { videoType } = this._signalingLayer.getPeerSourceInfo(owner, source);
-
-                track._setVideoType(videoType);
-
-                // Update the muted state on the track since the presence for this track could have been received
-                // before the updated source map is received on the bridge channel.
+                // Update the muted state and the video type on the track since the presence for this track could have
+                // been received before the updated source map is received on the bridge channel.
                 const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
 
-                peerMediaInfo && this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
+                if (peerMediaInfo) {
+                    track._setVideoType(peerMediaInfo.videoType);
+                    this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
+                }
             }
         }
 
