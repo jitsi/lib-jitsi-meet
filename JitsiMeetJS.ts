@@ -201,6 +201,18 @@ export default {
      */
     rtcstats: {
         /**
+         * Sends identity data to the rtcstats server. This data is used
+         * to identify the specifics of a particular client, it can be any object
+         * and will show in the generated rtcstats dump under "identity" entries.
+         *  
+         * @param {Object} identityData - Identity data to send.
+         * @returns {void}
+         */ 
+        sendIdentityEntry(identityData) {
+            RTCStats.sendIdentity(identityData);
+        },
+
+        /**
          * Sends a stats entry to rtcstats server.
          * @param {string} statsType - The type of stats to send.
          * @param {Object} data - The stats data to send.
