@@ -112,9 +112,15 @@ export class CodecSelection {
             ? MOBILE_P2P_VIDEO_CODEC_ORDER
             : browser.isMobileDevice() ? MOBILE_VIDEO_CODEC_ORDER : DESKTOP_VIDEO_CODEC_ORDER;
 
-        return videoCodecMimeTypes.filter(codec =>
+        const supportedCodecs = videoCodecMimeTypes.filter(codec =>
             (window.RTCRtpReceiver?.getCapabilities?.(MediaType.VIDEO)?.codecs ?? [])
                 .some(supportedCodec => supportedCodec.mimeType.toLowerCase() === `${MediaType.VIDEO}/${codec}`));
+
+        // Select VP8 as the default codec if RTCRtpReceiver.getCapabilities() is not supported by the browser or if it
+        // returns an empty set.
+        !supportedCodecs.length && supportedCodecs.push(CodecMimeType.VP8);
+
+        return supportedCodecs;
     }
 
     /**
