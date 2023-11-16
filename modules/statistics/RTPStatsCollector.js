@@ -17,12 +17,11 @@ const logger = getLogger(__filename);
  * @returns {number} packet loss percent
  */
 function calculatePacketLoss(lostPackets, totalPackets) {
-    if (!totalPackets || totalPackets <= 0
-            || !lostPackets || lostPackets <= 0) {
-        return 0;
+    if (lostPackets > 0 && totalPackets > 0) {
+        return Math.round(lostPackets / totalPackets * 100);
     }
 
-    return Math.round((lostPackets / totalPackets) * 100);
+    return 0;
 }
 
 /**
@@ -358,18 +357,18 @@ StatsCollector.prototype._processAndEmitReport = function() {
     }
 
     this.conferenceStats.bitrate = {
-        'upload': bitrateUpload,
-        'download': bitrateDownload
+        upload: bitrateUpload,
+        download: bitrateDownload
     };
 
     this.conferenceStats.bitrate.audio = {
-        'upload': audioBitrateUpload,
-        'download': audioBitrateDownload
+        upload: audioBitrateUpload,
+        download: audioBitrateDownload
     };
 
     this.conferenceStats.bitrate.video = {
-        'upload': videoBitrateUpload,
-        'download': videoBitrateDownload
+        upload: videoBitrateUpload,
+        download: videoBitrateDownload
     };
 
     this.conferenceStats.packetLoss = {
@@ -410,13 +409,13 @@ StatsCollector.prototype._processAndEmitReport = function() {
         StatisticsEvents.CONNECTION_STATS,
         this.peerconnection,
         {
-            'bandwidth': this.conferenceStats.bandwidth,
-            'bitrate': this.conferenceStats.bitrate,
-            'packetLoss': this.conferenceStats.packetLoss,
-            'resolution': resolutions,
-            'framerate': framerates,
-            'codec': codecs,
-            'transport': this.conferenceStats.transport,
+            bandwidth: this.conferenceStats.bandwidth,
+            bitrate: this.conferenceStats.bitrate,
+            packetLoss: this.conferenceStats.packetLoss,
+            resolution: resolutions,
+            framerate: framerates,
+            codec: codecs,
+            transport: this.conferenceStats.transport,
             localAvgAudioLevels,
             avgAudioLevels
         });
