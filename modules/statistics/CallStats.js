@@ -365,6 +365,7 @@ export default class CallStats {
 
             const configParams = { ...options.configParams };
 
+            configParams.additionalIDs = {};
             if (options.applicationName) {
                 configParams.applicationVersion = `${options.applicationName} (${browser.getName()})`;
             }
@@ -375,6 +376,7 @@ export default class CallStats {
 
                 // if there is no tenant, we will just set '/'
                 configParams.siteID = options.siteID || (match && match[1]) || '/';
+                configParams.additionalIDs.tenantID = (match && match[1]) || '/';
             }
 
             // userID is generated or given by the origin server
