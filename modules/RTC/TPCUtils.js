@@ -44,10 +44,6 @@ export class TPCUtils {
         if (videoQualitySettings) {
             for (const codec of VIDEO_CODECS) {
                 const codecConfig = videoQualitySettings[codec];
-
-                if (!codecConfig) {
-                    continue; // eslint-disable-line no-continue
-                }
                 const bitrateSettings = codecConfig?.maxBitratesVideo
 
                     // Read the deprecated settings for max bitrates.
@@ -60,6 +56,10 @@ export class TPCUtils {
                             this.codecSettings[codec].maxBitratesVideo[value] = bitrateSettings[value];
                         }
                     });
+                }
+
+                if (!codecConfig) {
+                    continue; // eslint-disable-line no-continue
                 }
 
                 const scalabilityModeEnabled = this.codecSettings[codec].scalabilityModeEnabled
