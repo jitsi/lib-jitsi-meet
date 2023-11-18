@@ -1212,7 +1212,9 @@ export default class JingleSessionPC extends JingleSession {
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
-                this._renegotiate().then(
+                this._renegotiate()
+                .then(() => this.peerconnection.configureSenderVideoEncodings())
+                .then(
                     () => {
                         logger.debug(`${this} setVideoCodecs task is done`);
 

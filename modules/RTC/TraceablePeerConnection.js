@@ -2551,12 +2551,10 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
     const codecScalabilityModeSettings = this.tpcUtils.codecSettings[currentCodec];
 
     for (const mLine of mLines) {
-        const isDoingKSvc = CodecMimeType.VP9 && !codecScalabilityModeSettings.scalabilityModeEnabled;
-        const isDoingTrueSvc = codecScalabilityModeSettings.scalabilityModeEnabled
-            && !codecScalabilityModeSettings.useSimulcast
-            && currentCodec !== CodecMimeType.H264;
+        const isDoingVp9KSvc = currentCodec === CodecMimeType.VP9
+            && !codecScalabilityModeSettings.scalabilityModeEnabled;
 
-        if (isDoingKSvc || isDoingTrueSvc) {
+        if (isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) {
             const bitrates = codecScalabilityModeSettings.maxBitratesVideo;
             const mid = mLine.mid;
             const isSharingScreen = mid === this._getDesktopTrackMid();
@@ -2822,14 +2820,13 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             // encodings.
             browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
 
-            // Configure scale factor when there is a single outbound-rtp stream.
-            if (scaleFactor) {
-                parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor;
-            }
+            parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor[encoding];
 
             // Configure scalability mode when its supported and enabled.
             if (scalabilityModes) {
                 parameters.encodings[encoding].scalabilityMode = scalabilityModes[encoding];
+            } else {
+                parameters.encodings[encoding].scalabilityMode = undefined;
             }
         }
     }
