@@ -249,7 +249,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -270,7 +270,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -291,7 +291,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -337,7 +337,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -383,7 +383,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -422,7 +422,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -437,7 +437,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -452,7 +452,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -489,7 +489,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -532,7 +532,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -553,7 +553,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -574,7 +574,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -620,7 +620,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -666,7 +666,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -705,7 +705,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -720,7 +720,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -735,7 +735,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -772,7 +772,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -815,7 +815,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -836,7 +838,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -857,7 +861,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -903,7 +909,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -949,7 +957,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -988,7 +998,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1003,7 +1013,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1018,7 +1028,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1055,7 +1065,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1096,7 +1106,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1115,7 +1127,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1134,7 +1148,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1163,7 +1179,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(highResolutiontrack, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1199,7 +1217,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1243,7 +1263,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1282,7 +1304,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1297,7 +1319,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1312,7 +1334,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1349,7 +1371,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1419,7 +1441,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1441,7 +1465,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1463,7 +1489,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1485,7 +1513,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1536,7 +1566,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1558,7 +1590,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1580,7 +1614,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1602,7 +1638,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1645,7 +1683,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1665,7 +1705,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1685,7 +1727,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1705,7 +1749,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1748,7 +1794,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1768,7 +1816,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -1788,7 +1838,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1808,7 +1860,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1852,7 +1906,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1872,7 +1928,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1916,7 +1974,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -1936,7 +1996,9 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(undefined);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[1]).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[2]).toBe(HD_SCALE_FACTOR);
             });
         });
 
@@ -1975,7 +2037,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -1991,7 +2053,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -2007,7 +2069,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -2062,7 +2124,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -2080,7 +2142,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L2T3_KEY);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -2098,7 +2160,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {
@@ -2148,7 +2210,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L3T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(HD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 360', () => {
@@ -2166,7 +2228,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L2T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(SD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 180', () => {
@@ -2184,7 +2246,7 @@ describe('TPCUtils', () => {
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor).toBe(LD_SCALE_FACTOR);
+                expect(scaleFactor[0]).toBe(LD_SCALE_FACTOR);
             });
 
             it('and requested resolution is 0', () => {

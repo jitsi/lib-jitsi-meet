@@ -450,18 +450,19 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localVideoTrack The local video track.
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
-     * @returns {number|undefined}
+     * @returns {Array<float>}
      */
     calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
         if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
-            return;
+            return this._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
+                .map(encoding => encoding.scaleResolutionDownBy);
         }
 
         // Single video stream.
         const { scaleResolutionDownBy }
             = this._calculateActiveEncodingParams(localVideoTrack, codec, maxHeight);
 
-        return scaleResolutionDownBy;
+        return [ scaleResolutionDownBy, undefined, undefined ];
     }
 
     /**
