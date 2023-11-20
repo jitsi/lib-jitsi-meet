@@ -89,7 +89,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} true if the browser is supported for iOS devices
      */
     isSupportedIOSBrowser() {
-        return this._getIOSVersion() >= MIN_REQUIRED_IOS_VERSION;
+        return this._getSafariVersion() >= MIN_REQUIRED_IOS_VERSION
+                || this._getIOSVersion() >= MIN_REQUIRED_IOS_VERSION;
     }
 
     /**
