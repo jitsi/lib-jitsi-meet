@@ -1866,6 +1866,12 @@ export default class ChatRoom extends Listenable {
             const onMucLeft = (doReject = false) => {
                 this.eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
                 clearTimeout(timeout);
+
+                // This will reset the joined flag to false. If we reset it earlier any self presence will be
+                // interpreted as muc join. That's why we reset the flag once we have received presence unavalable
+                // (MUC_LEFT).
+                this.clean();
+
                 if (doReject) {
                     // The timeout expired. Make sure we clean the EMUC state.
                     this.connection.emuc.doLeave(this.roomjid);
@@ -1877,8 +1883,6 @@ export default class ChatRoom extends Listenable {
 
             if (this.joined) {
                 timeout = setTimeout(() => onMucLeft(true), 5000);
-
-                this.clean();
                 this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
                 this.doLeave(reason);
             } else {
