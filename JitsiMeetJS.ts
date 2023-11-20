@@ -25,7 +25,6 @@ import ProxyConnectionService
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import precallTest from './modules/statistics/PrecallTest';
 import Statistics from './modules/statistics/statistics';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
@@ -549,6 +548,7 @@ export default {
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
     },
+    /* eslint-enable max-params */
 
     /**
      * Informs lib-jitsi-meet about the current network status.
@@ -560,10 +560,6 @@ export default {
     setNetworkInfo({ isOnline }) {
         NetworkInfo.updateNetworkInfo({ isOnline });
     },
-
-    precallTest,
-
-    /* eslint-enable max-params */
 
     /**
      * Represents a hub/namespace for utility functionality which may be of
