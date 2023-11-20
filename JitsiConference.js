@@ -2256,14 +2256,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
         this._desktopSharingFrameRate
             && jingleSession.peerconnection.setDesktopSharingFrameRate(this._desktopSharingFrameRate);
 
-        // Start callstats as soon as peerconnection is initialized,
-        // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-        // happen in case if user doesn't have or denied permission to
-        // both camera and microphone.
-        logger.info('Starting CallStats for JVB connection...');
-        this.statistics.startCallStats(
-            this.jvbJingleSession.peerconnection,
-            'jitsi' /* Remote user ID for JVB is 'jitsi' */);
         this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
@@ -3006,10 +2998,6 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
         remoteID = participant.getStatsID() || remoteID;
     }
 
-    this.statistics.startCallStats(
-        this.p2pJingleSession.peerconnection,
-        remoteID);
-
     const localTracks = this._getInitialLocalTracks();
 
     this.p2pJingleSession.acceptOffer(
@@ -3352,20 +3340,6 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             },
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
-
-    logger.info('Starting CallStats for P2P connection...');
-
-    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
-
-    const participant = this.participants.get(remoteID);
-
-    if (participant) {
-        remoteID = participant.getStatsID() || remoteID;
-    }
-
-    this.statistics.startCallStats(
-        this.p2pJingleSession.peerconnection,
-        remoteID);
 
     const localTracks = this.getLocalTracks();
 
