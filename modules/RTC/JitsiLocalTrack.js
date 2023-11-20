@@ -233,7 +233,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Fires NO_DATA_FROM_SOURCE event and logs it to analytics and callstats.
+     * Fires NO_DATA_FROM_SOURCE event and logs it to analytics
      *
      * @private
      * @returns {void}
@@ -247,10 +247,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         // FIXME: Should we report all of those events
         Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
-        Statistics.sendLog(JSON.stringify({
-            name: NO_DATA_FROM_SOURCE,
-            log: value
-        }));
     }
 
     /**
@@ -817,14 +813,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     setConference(conference) {
         this.conference = conference;
-
-        // We want to keep up with postponed events which should have been fired
-        // on "attach" call, but for local track we not always have the
-        // conference before attaching. However this may result in duplicated
-        // events if they have been triggered on "attach" already.
-        for (let i = 0; i < this.containers.length; i++) {
-            this._maybeFireTrackAttached(this.containers[i]);
-        }
     }
 
     /**

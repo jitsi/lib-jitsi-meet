@@ -43,12 +43,6 @@ export default function JitsiConnection(appID, token, options) {
                     ANALYTICS_CONNECTION_DISCONNECTED,
                     { message: msg });
             }
-            Statistics.sendLog(
-                JSON.stringify(
-                    {
-                        id: ANALYTICS_CONNECTION_DISCONNECTED,
-                        msg
-                    }));
         });
 }
 
