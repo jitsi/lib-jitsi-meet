@@ -1,5 +1,3 @@
-import Statistics from '../statistics/statistics';
-
 const logger = require('@jitsi/logger').getLogger(__filename);
 
 /**

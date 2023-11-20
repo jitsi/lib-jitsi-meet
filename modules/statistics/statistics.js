@@ -1,13 +1,11 @@
 import EventEmitter from 'events';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import JitsiTrackError from '../../JitsiTrackError';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
-import ScriptUtil from '../util/ScriptUtil';
 import WatchRTC from '../watchRTC/WatchRTC';
 
 import analytics from './AnalyticsAdapter';
@@ -366,7 +364,7 @@ Statistics.prototype.sendFeedback = function(overall, comment) {
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
 
 /**
- * Sends event to analytics and logs a message to the logger/console. 
+ * Sends event to analytics and logs a message to the logger/console.
  *
  * @param {string | Object} event the event name, or an object which
  * represents the entire event.

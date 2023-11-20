@@ -3,7 +3,6 @@ import EventEmitter from 'events';
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
-import Statistics from './modules/statistics/statistics';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 

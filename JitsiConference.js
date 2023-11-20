@@ -473,7 +473,7 @@ JitsiConference.prototype._init = function(options = {}) {
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             siteID: config.siteID,
             roomName: this.options.name,
-            applicationName: config.applicationName,
+            applicationName: config.applicationName
         });
         Statistics.analytics.addPermanentProperties({
             'callstats_name': this._statsCurrentId
@@ -2671,7 +2671,7 @@ JitsiConference.prototype.sendFeedback = function(overallFeedback, detailedFeedb
 };
 
 /**
- * @returns false, since callstats in not supported anymore. 
+ * @returns false, since callstats in not supported anymore.
  */
 JitsiConference.prototype.isCallstatsEnabled = function() {
     return false;
@@ -2690,6 +2690,7 @@ JitsiConference.prototype.getSsrcByTrack = function(track) {
 /**
  * This is a no-op since callstats is no longer supported.
  */
+// eslint-disable-next-line no-empty-function
 JitsiConference.prototype.sendApplicationLog = function() { };
 
 /**

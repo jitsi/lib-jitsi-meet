@@ -10,7 +10,6 @@ import browser from '../browser';
 
 const MAX_CACHE_SIZE = 100;
 
-// eslist-disable-line no-undef
 const logger = getLogger(__filename);
 
 /**
