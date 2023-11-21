@@ -2672,8 +2672,10 @@ JitsiConference.prototype.sendFeedback = function(overallFeedback, detailedFeedb
 
 /**
  * @returns false, since callstats in not supported anymore.
+ * @deprecated
  */
 JitsiConference.prototype.isCallstatsEnabled = function() {
+    logger.warn('Callstats is no longer supported');
     return false;
 };
 
