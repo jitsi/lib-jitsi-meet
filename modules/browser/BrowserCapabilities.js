@@ -192,7 +192,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsScalabilityModeAPI() {
-        return this.isChromiumBased() && this.isEngineVersionGreaterThan(114);
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(112);
     }
 
     /**
