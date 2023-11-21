@@ -18,7 +18,7 @@
   "dependencies": {
     "@jitsi/js-utils": "2.2.1",
     "@jitsi/logger": "2.0.2",
-    "@jitsi/rtcstats": "9.6.0",
+    "@jitsi/rtcstats": "9.7.0",
     "@jitsi/sdp-interop": "git+https://github.com/jitsi/sdp-interop#3d49eb4aa26863a3f8d32d7581cdb4321244266b",
     "@jitsi/sdp-simulcast": "0.4.0",
     "@testrtc/watchrtc-sdk": "1.36.3",
