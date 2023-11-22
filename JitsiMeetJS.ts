@@ -25,7 +25,6 @@ import ProxyConnectionService
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import precallTest from './modules/statistics/PrecallTest';
 import Statistics from './modules/statistics/statistics';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
@@ -156,16 +155,6 @@ export default {
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));
-        }
-
-        if (this.version) {
-            const logObject = {
-                id: 'component_version',
-                component: 'lib-jitsi-meet',
-                version: this.version
-            };
-
-            Statistics.sendLog(JSON.stringify(logObject));
         }
 
         return RTC.init(options);
@@ -379,16 +368,6 @@ export default {
                 promiseFulfilled = true;
 
                 if (error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
-                    // User cancelled action is not really an error, so only
-                    // log it as an event to avoid having conference classified
-                    // as partially failed
-                    const logObject = {
-                        id: 'screensharing_user_canceled',
-                        message: error.message
-                    };
-
-                    Statistics.sendLog(JSON.stringify(logObject));
-
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent(
                             'warning',
@@ -396,14 +375,6 @@ export default {
                                 reason: 'extension install user canceled'
                             }));
                 } else if (error.name === JitsiTrackErrors.NOT_FOUND) {
-                    // logs not found devices with just application log to cs
-                    const logObject = {
-                        id: 'usermedia_missing_device',
-                        status: error.gum.devices
-                    };
-
-                    Statistics.sendLog(JSON.stringify(logObject));
-
                     const attributes
                         = getAnalyticsAttributesFromOptions(options);
 
@@ -412,9 +383,6 @@ export default {
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent('error', attributes));
                 } else {
-                    // Report gUM failed to the stats
-                    Statistics.sendGetUserMediaFailed(error);
-
                     const attributes
                         = getAnalyticsAttributesFromOptions(options);
 
@@ -547,8 +515,8 @@ export default {
             `Line: ${lineno}`,
             `Column: ${colno}`,
             'StackTrace: ', error);
-        Statistics.reportGlobalError(error);
     },
+    /* eslint-enable max-params */
 
     /**
      * Informs lib-jitsi-meet about the current network status.
@@ -560,10 +528,6 @@ export default {
     setNetworkInfo({ isOnline }) {
         NetworkInfo.updateNetworkInfo({ isOnline });
     },
-
-    precallTest,
-
-    /* eslint-enable max-params */
 
     /**
      * Represents a hub/namespace for utility functionality which may be of
