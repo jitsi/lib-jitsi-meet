@@ -309,6 +309,11 @@ export default class Lobby {
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_DESTROYED,
                 (reason, jid) => {
+                    this.lobbyRoom?.clean();
+
+                    this.lobbyRoom = undefined;
+                    logger.info('Lobby room left(destroyed)!');
+
                     // we are receiving the jid of the main room
                     // means we are invited to join, maybe lobby was disabled
                     if (jid) {
@@ -316,8 +321,6 @@ export default class Lobby {
 
                         return;
                     }
-
-                    this.lobbyRoom.clean();
 
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });
@@ -327,7 +330,9 @@ export default class Lobby {
             this.mainRoom.addEventListener(
                 XMPPEvents.MUC_JOINED,
                 () => {
-                    this.leave();
+                    this.leave().catch(() => {
+                        // this may happen if the room has been destroyed.
+                    });
                 });
         }
 
