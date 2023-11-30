@@ -235,7 +235,7 @@ export enum JitsiConferenceEvents {
     PARTCIPANT_FEATURES_CHANGED = 'conference.partcipant_features_changed',
 
     /**
-     * Indicates that a the value of a specific property of a specific participant
+     * Indicates that a value of a specific property of a specific participant
      * has changed.
      */
     PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed',
@@ -280,7 +280,7 @@ export enum JitsiConferenceEvents {
      *     {string} address,
      *     {VideoSIPGWConstants} oldState,
      *     {VideoSIPGWConstants} newState,
-     *     {string} displayName}
+     *     {string} displayName
      * }.
      */
     VIDEO_SIP_GW_SESSION_STATE_CHANGED = 'conference.videoSIPGWSessionStateChanged',
@@ -379,6 +379,16 @@ export enum JitsiConferenceEvents {
     VIDEO_UNMUTE_PERMISSIONS_CHANGED = 'conference.video_unmute_permissions_changed',
 
     /**
+     * Event indicating we have received a message from the visitors component.
+     */
+    VISITORS_MESSAGE = 'conference.visitors_message',
+
+    /**
+     * Event indicating that our request for promotion was rejected.
+     */
+    VISITORS_REJECTION = 'conference.visitors_rejection',
+
+    /**
      * Event indicates that the bot participant type changed.
      */
     BOT_TYPE_CHANGED = 'conference.bot_type_changed',
@@ -464,7 +474,7 @@ export enum JitsiConferenceEvents {
     E2EE_VERIFICATION_READY = 'conference.e2ee.verification.ready',
 
     E2EE_VERIFICATION_COMPLETED = 'conference.e2ee.verification.completed'
-};
+}
 
 // exported for backward compatibility
 export const AUDIO_INPUT_STATE_CHANGE = JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE;
@@ -531,6 +541,8 @@ export const USER_LEFT = JitsiConferenceEvents.USER_LEFT;
 export const USER_ROLE_CHANGED = JitsiConferenceEvents.USER_ROLE_CHANGED;
 export const USER_STATUS_CHANGED = JitsiConferenceEvents.USER_STATUS_CHANGED;
 export const VIDEO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.VIDEO_UNMUTE_PERMISSIONS_CHANGED;
+export const VISITORS_MESSAGE = JitsiConferenceEvents.VISITORS_MESSAGE;
+export const VISITORS_REJECTION = JitsiConferenceEvents.VISITORS_REJECTION;
 export const BOT_TYPE_CHANGED = JitsiConferenceEvents.BOT_TYPE_CHANGED;
 export const LOBBY_USER_JOINED = JitsiConferenceEvents.LOBBY_USER_JOINED;
 export const LOBBY_USER_UPDATED = JitsiConferenceEvents.LOBBY_USER_UPDATED;

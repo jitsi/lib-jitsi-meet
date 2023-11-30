@@ -224,12 +224,16 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
         const response = $(iq).find('promotion-response');
 
-        if (visitors.length && response.length
-            && String(response.attr('allow')).toLowerCase() === 'true') {
-            logger.warn('Redirected back to main room.');
+        if (visitors.length && response.length) {
+            if (String(response.attr('allow')).toLowerCase() === 'true') {
+                logger.warn('Redirected back to main room.');
 
-            this.xmpp.eventEmitter.emit(
-                CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
+                this.xmpp.eventEmitter.emit(
+                    CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
+            } else {
+                // rejected
+                this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
+            }
         }
 
         return true;

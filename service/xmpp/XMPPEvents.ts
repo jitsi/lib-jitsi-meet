@@ -385,6 +385,16 @@ export enum XMPPEvents {
      */
     VIDEO_SIP_GW_SESSION_STATE_CHANGED = 'xmpp.videoSIPGWSessionStateChanged',
 
+    /**
+     * Event indicating we have received a message from the visitors component.
+     */
+    VISITORS_MESSAGE = 'xmpp.visitors_message',
+
+    /**
+     * Event indicating that our request for promotion was rejected.
+     */
+    VISITORS_REJECTION = 'xmpp.visitors_rejection',
+
     // Designates an event indicating that the local ICE connection state has
     // changed.
     ICE_CONNECTION_STATE_CHANGED = 'xmpp.ice_connection_state_changed',
