@@ -226,12 +226,11 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
 
         if (visitors.length && response.length) {
             if (String(response.attr('allow')).toLowerCase() === 'true') {
-                logger.warn('Redirected back to main room.');
-
+                logger.info('Promotion request accepted. Redirected to main room.');
                 this.xmpp.eventEmitter.emit(
                     CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
             } else {
-                // rejected
+                logger.info('Promotion request rejected.');
                 this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
             }
         }
