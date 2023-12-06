@@ -48,7 +48,7 @@ export default class BridgeChannel {
         // for the first connection attempt. Then transition to either true or false.
         this._connected = undefined;
 
-        // @type {EventManager}
+        // @type {EventEmitter}
         this._eventEmitter = emitter;
 
         // Whether a RTCDataChannel or WebSocket is internally used.
