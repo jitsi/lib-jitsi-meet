@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 
 import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
-import EventEmitter from 'events';
 
 import {
     CONFERENCE_JOINED,
@@ -12,6 +11,7 @@ import {
 import JitsiConference from '../../JitsiConference';
 import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
+import EventManager from '../util/EventManager';
 
 const logger = getLogger(__filename);
 
@@ -22,7 +22,7 @@ const logger = getLogger(__filename);
 class RTCStats {
     private _initialized: boolean = false;
     private _trace: any = null;
-    public events: EventEmitter = new EventEmitter();
+    public events: EventManager = new EventManager();
 
     /**
      * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.

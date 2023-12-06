@@ -1,8 +1,7 @@
-import EventEmitter from 'events';
-
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
+import Listenable from './modules/util/Listenable';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 
@@ -13,13 +12,13 @@ const VIDEO_PERMISSION_NAME = 'camera';
 /**
  * Media devices utilities for Jitsi.
  */
-class JitsiMediaDevices {
+class JitsiMediaDevices extends Listenable {
     /**
      * Initializes a {@code JitsiMediaDevices} object. There will be a single
      * instance of this class.
      */
     constructor() {
-        this._eventEmitter = new EventEmitter();
+        super();
         this._permissions = {};
 
         RTC.addListener(

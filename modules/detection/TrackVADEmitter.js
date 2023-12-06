@@ -1,6 +1,5 @@
-import EventEmitter from 'events';
-
 import RTC from '../RTC/RTC';
+import EventManager from '../util/EventManager';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
 
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
@@ -14,7 +13,7 @@ import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
  *
  * @fires VAD_SCORE_PUBLISHED
  */
-export default class TrackVADEmitter extends EventEmitter {
+export default class TrackVADEmitter extends EventManager {
     /**
      * Constructor.
      *

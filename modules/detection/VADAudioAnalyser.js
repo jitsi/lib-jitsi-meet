@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
-import { EventEmitter } from 'events';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import EventManager from '../util/EventManager';
 
 import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
@@ -18,7 +18,7 @@ const VAD_EMITTER_SAMPLE_RATE = 4096;
  * Connects a TrackVADEmitter to the target conference local audio track and manages various services that use
  * the data to produce audio analytics (VADTalkMutedDetection and VADNoiseDetection).
  */
-export default class VADAudioAnalyser extends EventEmitter {
+export default class VADAudioAnalyser extends EventManager {
     /**
      * Creates <tt>VADAudioAnalyser</tt>
      * @param {JitsiConference} conference - JitsiConference instance that created us.

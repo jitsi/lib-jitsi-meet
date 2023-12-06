@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
 import clonedeep from 'lodash.clonedeep';
 import 'webrtc-adapter';
 
@@ -12,6 +11,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
+import EventManager from '../util/EventManager';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
@@ -19,7 +19,7 @@ import screenObtainer from './ScreenObtainer';
 
 const logger = getLogger(__filename);
 
-const eventEmitter = new EventEmitter();
+const eventEmitter = new EventManager();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 

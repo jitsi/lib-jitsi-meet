@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
@@ -39,6 +38,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import Listenable from './modules/util/Listenable';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -150,7 +150,7 @@ export default function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new Listenable();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
 

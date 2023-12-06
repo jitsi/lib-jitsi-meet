@@ -1,9 +1,8 @@
-import EventEmitter from 'events';
-
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
 
+import EventManager from '../util/EventManager';
 import SpeakerStats from './SpeakerStats';
 import SpeakerStatsCollector from './SpeakerStatsCollector';
 
@@ -19,7 +18,7 @@ const mockRemoteUser = {
  * @constructor
  */
 function MockConference() {
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new EventManager();
 }
 MockConference.prototype = Object.create(JitsiConference.prototype);
 MockConference.prototype.constructor = JitsiConference;
