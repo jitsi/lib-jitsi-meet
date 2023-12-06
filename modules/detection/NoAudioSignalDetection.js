@@ -1,6 +1,5 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-
 import EventManager from '../util/EventManager';
 
 import * as DetectionEvents from './DetectionEvents';
