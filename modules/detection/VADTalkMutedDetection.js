@@ -1,5 +1,4 @@
 import Listenable from '../util/Listenable';
-
 import { calculateAverage } from '../util/MathUtil';
 
 import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';

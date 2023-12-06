@@ -1,5 +1,4 @@
 import Listenable from '../util/Listenable';
-
 import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
 
 import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from './DetectionEvents';

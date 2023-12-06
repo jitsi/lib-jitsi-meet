@@ -1,12 +1,10 @@
-import Listenable from '../util/Listenable';
-
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
+import Listenable from '../util/Listenable';
 
 import SpeakerStats from './SpeakerStats';
 import SpeakerStatsCollector from './SpeakerStatsCollector';
-
 
 const mockMyId = 1;
 const mockRemoteUser = {

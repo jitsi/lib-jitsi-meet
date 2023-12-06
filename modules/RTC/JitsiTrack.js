@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
-import Listenable from '../util/Listenable';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
+import Listenable from '../util/Listenable';
 
 import RTCUtils from './RTCUtils';
 

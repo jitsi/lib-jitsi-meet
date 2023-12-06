@@ -1,6 +1,5 @@
-import Listenable from '../util/Listenable';
-
 import RTC from '../RTC/RTC';
+import Listenable from '../util/Listenable';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
 
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';

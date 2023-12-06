@@ -1,7 +1,6 @@
-import Listenable from '../util/Listenable';
-
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import Listenable from '../util/Listenable';
 
 import * as DetectionEvents from './DetectionEvents';
 

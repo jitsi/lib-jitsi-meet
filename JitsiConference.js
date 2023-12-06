@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import Listenable from './modules/util/Listenable';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
@@ -39,6 +38,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import Listenable from './modules/util/Listenable';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';

@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
-import Listenable from '../util/Listenable';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import Listenable from '../util/Listenable';
 
 import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
