@@ -1,8 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
+import Listenable from '../util/Listenable';
+
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
-import Listenable from '../util/Listenable';
 
 const logger = getLogger(__filename);
 
