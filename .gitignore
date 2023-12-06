@@ -14,6 +14,7 @@ npm-*.log
 stats.json
 .vscode
 dist
+index.d.ts
 types/auto
 types/types-comparer/auto.json
 types/types-comparer/hand-crafted.json
