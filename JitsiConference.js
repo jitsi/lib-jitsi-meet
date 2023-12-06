@@ -37,8 +37,8 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
+import EventManager from './modules/util/EventManager';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
-import Listenable from './modules/util/Listenable';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -150,7 +150,7 @@ export default function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
-    this.eventEmitter = new Listenable();
+    this.eventEmitter = new EventManager();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
 
