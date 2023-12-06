@@ -1,4 +1,4 @@
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 import { calculateAverage } from '../util/MathUtil';
 
 import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
@@ -31,7 +31,7 @@ const PROCESS_TIME_FRAME_SPAN_MS = 700;
 /**
  * Detect if provided VAD score which is generated on a muted device is voice and fires an event.
  */
-export default class VADTalkMutedDetection extends EventManager {
+export default class VADTalkMutedDetection extends EventEmitter {
     /**
      * Creates <tt>VADTalkMutedDetection</tt>
      * @constructor

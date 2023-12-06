@@ -1,6 +1,6 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 
 import * as DetectionEvents from './DetectionEvents';
 
@@ -16,7 +16,7 @@ const SILENCE_PERIOD_MS = 4000;
  * @fires DetectionEvents.AUDIO_INPUT_STATE_CHANGE
  * @fires DetectionEvents.NO_AUDIO_INPUT
  */
-export default class NoAudioSignalDetection extends EventManager {
+export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * Creates new NoAudioSignalDetection.
      *

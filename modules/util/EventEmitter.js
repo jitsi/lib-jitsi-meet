@@ -1,9 +1,9 @@
-import EventEmitter from 'events';
+import { EventEmitter as NodeEventEmitter } from 'events';
 
 /**
  * The class creates our own EventEmitter instance
  */
-export default class EventManager extends EventEmitter {
+export default class EventEmitter extends NodeEventEmitter {
     /**
      * Creates new instance.
      * @constructor

@@ -1,4 +1,4 @@
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
 
 import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from './DetectionEvents';
@@ -36,7 +36,7 @@ const PROCESS_TIME_FRAME_SPAN_MS = 1500;
 /**
  * Detect if provided VAD score and PCM data is considered noise.
  */
-export default class VADNoiseDetection extends EventManager {
+export default class VADNoiseDetection extends EventEmitter {
     /**
      * Creates <tt>VADNoiseDetection</tt>
      *

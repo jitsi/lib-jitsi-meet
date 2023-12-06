@@ -4,7 +4,7 @@ import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 import WatchRTC from '../watchRTC/WatchRTC';
 
 import analytics from './AnalyticsAdapter';
@@ -65,7 +65,7 @@ export default function Statistics(conference, options) {
      * @type {Map<string, RTPStats}
      */
     this.rtpStatsMap = new Map();
-    this.eventEmitter = new EventManager();
+    this.eventEmitter = new EventEmitter();
     this.conference = conference;
     this.xmpp = conference?.xmpp;
     this.options = options || {};

@@ -320,7 +320,7 @@ export default function TraceablePeerConnection(
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
-     * @type {EventManager}
+     * @type {EventEmitter}
      */
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();

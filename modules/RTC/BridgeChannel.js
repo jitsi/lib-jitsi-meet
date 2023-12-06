@@ -21,7 +21,7 @@ export default class BridgeChannel {
      * @param {RTCPeerConnection} [peerconnection] WebRTC peer connection
      * instance.
      * @param {string} [wsUrl] WebSocket URL.
-     * @param {EventManager} emitter the EventEmitter instance to use for event emission.
+     * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
      * @param {JitsiConference} conference the conference instance.
      */
     constructor(peerconnection, wsUrl, emitter, conference) {

@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 
 import RTCUtils from './RTCUtils';
 
@@ -21,7 +21,7 @@ const trackHandler2Prop = {
 /**
  * Represents a single media track (either audio or video).
  */
-export default class JitsiTrack extends EventManager {
+export default class JitsiTrack extends EventEmitter {
     /* eslint-disable max-params */
     /**
      * Represents a single media track (either audio or video).

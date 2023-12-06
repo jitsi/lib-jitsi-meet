@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import EventManager from '../util/EventManager';
+import EventEmitter from '../util/EventEmitter';
 
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
@@ -23,7 +23,7 @@ const SCRIPT_NODE_SAMPLE_RATE = 4096;
  * The service is not reusable if destroyed a new one needs to be created, i.e. when a new device is added to the system
  * a new service needs to be created and the old discarded.
  */
-export default class VADReportingService extends EventManager {
+export default class VADReportingService extends EventEmitter {
 
     /**
      *
