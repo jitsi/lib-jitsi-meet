@@ -39,6 +39,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -1788,11 +1789,10 @@ JitsiConference.prototype.onMemberJoined = function(
 /**
  * Get notified when we joined the room.
  *
- * FIXME This should NOT be exposed!
- *
  * @private
  */
 JitsiConference.prototype._onMucJoined = function() {
+    this._numberOfParticipantsOnJoin = this.getParticipantCount();
     this._maybeStartOrStopP2P();
 };
 
@@ -3670,7 +3670,26 @@ JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
         return;
     }
 
+    const conferenceConnectionTimes = this.getConnectionTimes();
+    const xmppConnectionTimes = this.connection.getConnectionTimes();
+    const gumStart = window.connectionTimes['firstObtainPermissions.start'];
+    const gumEnd = window.connectionTimes['firstObtainPermissions.end'];
+    const globalNSConnectionTimes = window.JitsiMeetJS?.app?.connectionTimes ?? {};
+    const connectionTimes = {
+        ...conferenceConnectionTimes,
+        ...xmppConnectionTimes,
+        ...globalNSConnectionTimes,
+        gumDuration: safeSubtract(gumEnd, gumStart),
+        xmppConnectingTime: safeSubtract(xmppConnectionTimes.connected, xmppConnectionTimes.connecting),
+        connectedToMUCJoinedTime: safeSubtract(
+            conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connected),
+        connectingToMUCJoinedTime: safeSubtract(
+            conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connecting),
+        numberOfParticipantsOnJoin: this._numberOfParticipantsOnJoin
+    };
+
     Statistics.sendAnalytics(createConferenceEvent('joined', {
+        ...connectionTimes,
         meetingId,
         participantId: `${meetingId}.${this._statsCurrentId}`
     }));
