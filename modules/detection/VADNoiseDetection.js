@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import Listenable from '../util/Listenable';
 
 import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
 
@@ -37,7 +37,7 @@ const PROCESS_TIME_FRAME_SPAN_MS = 1500;
 /**
  * Detect if provided VAD score and PCM data is considered noise.
  */
-export default class VADNoiseDetection extends EventEmitter {
+export default class VADNoiseDetection extends Listenable {
     /**
      * Creates <tt>VADNoiseDetection</tt>
      *

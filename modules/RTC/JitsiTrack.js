@@ -1,11 +1,12 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
+import Listenable from '../util/Listenable';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
 
 import RTCUtils from './RTCUtils';
+
 
 const logger = getLogger(__filename);
 
@@ -21,7 +22,7 @@ const trackHandler2Prop = {
 /**
  * Represents a single media track (either audio or video).
  */
-export default class JitsiTrack extends EventEmitter {
+export default class JitsiTrack extends Listenable {
     /* eslint-disable max-params */
     /**
      * Represents a single media track (either audio or video).
@@ -43,10 +44,6 @@ export default class JitsiTrack extends EventEmitter {
             trackMediaType,
             videoType) {
         super();
-
-        // aliases for addListener/removeListener
-        this.addEventListener = this.addListener;
-        this.removeEventListener = this.off = this.removeListener;
 
         /**
          * Array with the HTML elements that are displaying the streams.

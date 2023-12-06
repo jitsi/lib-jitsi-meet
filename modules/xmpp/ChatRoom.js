@@ -170,7 +170,7 @@ export default class ChatRoom extends Listenable {
         this.noBridgeAvailable = false;
         this.options = options || {};
 
-        this.eventsForwarder = new EventEmitterForwarder(this.xmpp.moderator, this.eventEmitter);
+        this.eventsForwarder = new EventEmitterForwarder(this.xmpp.moderator, this);
         this.eventsForwarder.forward(AuthenticationEvents.IDENTITY_UPDATED, AuthenticationEvents.IDENTITY_UPDATED);
         this.eventsForwarder.forward(XMPPEvents.AUTHENTICATION_REQUIRED, XMPPEvents.AUTHENTICATION_REQUIRED);
         this.eventsForwarder.forward(XMPPEvents.FOCUS_DISCONNECTED, XMPPEvents.FOCUS_DISCONNECTED);

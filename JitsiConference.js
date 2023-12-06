@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
+import Listenable from './modules/util/Listenable';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
@@ -150,7 +150,7 @@ export default function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new Listenable();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
 

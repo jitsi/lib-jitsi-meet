@@ -1,5 +1,3 @@
-import EventEmitter from 'events';
-
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents.ts';
 import Listenable from '../util/Listenable.js';
 import JingleSessionPC from '../xmpp/JingleSessionPC.js';
@@ -42,7 +40,6 @@ class MockConference extends Listenable {
         };
 
         this.activeMediaSession = undefined;
-        this.eventEmitter = new EventEmitter();
         this.mediaSessions = [];
         this.participants = [];
         this._signalingLayer = new MockSignalingLayerImpl();
@@ -57,7 +54,7 @@ class MockConference extends Listenable {
     addParticipant(participant, codecList, codecType) {
         this.participants.push(participant);
         this._signalingLayer.setPeerMediaInfo(true, participant.getId(), codecList, codecType);
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED);
+        this.emit(JitsiConferenceEvents.USER_JOINED);
     }
 
     /**
@@ -83,7 +80,7 @@ class MockConference extends Listenable {
     removeParticipant(endpoint) {
         this.participants = this.participants.filter(p => p !== endpoint);
         this._signalingLayer.setPeerMediaInfo(false, endpoint.getId());
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT);
+        this.emit(JitsiConferenceEvents.USER_LEFT);
     }
 }
 

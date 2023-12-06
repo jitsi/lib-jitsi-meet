@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
 import clonedeep from 'lodash.clonedeep';
 import 'webrtc-adapter';
 
@@ -19,7 +18,7 @@ import screenObtainer from './ScreenObtainer';
 
 const logger = getLogger(__filename);
 
-const eventEmitter = new EventEmitter();
+const eventEmitter = new Listenable();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
@@ -287,13 +286,6 @@ function onMediaDevicesListChanged(devicesReceived) {
  *
  */
 class RTCUtils extends Listenable {
-    /**
-     *
-     */
-    constructor() {
-        super(eventEmitter);
-    }
-
     /**
      * Depending on the browser, sets difference instance methods for
      * interacting with user media and adds methods to native WebRTC-related

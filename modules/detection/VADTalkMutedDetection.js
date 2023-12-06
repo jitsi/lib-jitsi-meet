@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import Listenable from '../util/Listenable';
 
 import { calculateAverage } from '../util/MathUtil';
 
@@ -32,7 +32,7 @@ const PROCESS_TIME_FRAME_SPAN_MS = 700;
 /**
  * Detect if provided VAD score which is generated on a muted device is voice and fires an event.
  */
-export default class VADTalkMutedDetection extends EventEmitter {
+export default class VADTalkMutedDetection extends Listenable {
     /**
      * Creates <tt>VADTalkMutedDetection</tt>
      * @constructor

@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import Listenable from './modules/util/Listenable';
 
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
@@ -13,19 +13,19 @@ const VIDEO_PERMISSION_NAME = 'camera';
 /**
  * Media devices utilities for Jitsi.
  */
-class JitsiMediaDevices {
+class JitsiMediaDevices extends Listenable {
     /**
      * Initializes a {@code JitsiMediaDevices} object. There will be a single
      * instance of this class.
      */
     constructor() {
-        this._eventEmitter = new EventEmitter();
+        super();
         this._permissions = {};
 
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
-                this._eventEmitter.emit(
+                this.emit(
                     JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
                     devices));
 
@@ -128,7 +128,7 @@ class JitsiMediaDevices {
                 ...this._permissions,
                 ...permissions
             };
-            this._eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
+            this.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
 
             if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
                 // Triggering device list update when the permissiions are granted in order to update
@@ -267,29 +267,11 @@ class JitsiMediaDevices {
     }
 
     /**
-     * Adds an event handler.
-     * @param {string} event - event name
-     * @param {function} handler - event handler
-     */
-    addEventListener(event, handler) {
-        this._eventEmitter.addListener(event, handler);
-    }
-
-    /**
-     * Removes event handler.
-     * @param {string} event - event name
-     * @param {function} handler - event handler
-     */
-    removeEventListener(event, handler) {
-        this._eventEmitter.removeListener(event, handler);
-    }
-
-    /**
      * Emits an event.
      * @param {string} event - event name
      */
     emitEvent(event, ...args) {
-        this._eventEmitter.emit(event, ...args);
+        this.emit(event, ...args);
     }
 }
 

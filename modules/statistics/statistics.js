@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import Listenable from '../util/Listenable';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
@@ -66,7 +66,7 @@ export default function Statistics(conference, options) {
      * @type {Map<string, RTPStats}
      */
     this.rtpStatsMap = new Map();
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new Listenable();
     this.conference = conference;
     this.xmpp = conference?.xmpp;
     this.options = options || {};
