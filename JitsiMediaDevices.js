@@ -24,7 +24,7 @@ class JitsiMediaDevices extends Listenable {
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
-                this._eventEmitter.emit(
+                this.eventEmitter.emit(
                     JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
                     devices));
 
@@ -127,7 +127,7 @@ class JitsiMediaDevices extends Listenable {
                 ...this._permissions,
                 ...permissions
             };
-            this._eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
+            this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
 
             if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
                 // Triggering device list update when the permissiions are granted in order to update
@@ -263,32 +263,6 @@ class JitsiMediaDevices extends Listenable {
      */
     setAudioOutputDevice(deviceId) {
         return RTC.setAudioOutputDevice(deviceId);
-    }
-
-    /**
-     * Adds an event handler.
-     * @param {string} event - event name
-     * @param {function} handler - event handler
-     */
-    addEventListener(event, handler) {
-        this._eventEmitter.addListener(event, handler);
-    }
-
-    /**
-     * Removes event handler.
-     * @param {string} event - event name
-     * @param {function} handler - event handler
-     */
-    removeEventListener(event, handler) {
-        this._eventEmitter.removeListener(event, handler);
-    }
-
-    /**
-     * Emits an event.
-     * @param {string} event - event name
-     */
-    emitEvent(event, ...args) {
-        this._eventEmitter.emit(event, ...args);
     }
 }
 

@@ -50,4 +50,12 @@ export default class Listenable {
     removeListener(eventName, listener) {
         return this.eventEmitter.removeListener(eventName, listener);
     }
+
+    /**
+     * Emits an event.
+     * @param {string} event - event name
+     */
+    emit(event, ...args) {
+        this.eventEmitter.emit(event, ...args);
+    }
 }
