@@ -92,3 +92,15 @@ export class RunningAverage {
         return this.average;
     }
 }
+
+
+/**
+ * Subtracts the two numbers passed or returns 0 if any of the arguments are not a number.
+ *
+ * @param {*} x - The number we subtract from.
+ * @param {*} y - The number we subtract.
+ * @returns {number} - x - y or 0 if x or is not a number.
+ */
+export function safeSubtract(x, y) {
+    return !isNaN(x) && !isNaN(y) ? x - y : 0;
+}
