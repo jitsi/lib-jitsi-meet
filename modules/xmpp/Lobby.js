@@ -233,7 +233,7 @@ export default class Lobby {
 
         if (isModerator) {
             this.lobbyRoom.addPresenceListener(EMAIL_COMMAND, (node, from) => {
-                this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_LOBBY_MEMBER_UPDATED, from, { email: node.value });
+                this.mainRoom.emit(XMPPEvents.MUC_LOBBY_MEMBER_UPDATED, from, { email: node.value });
             });
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_MEMBER_JOINED,
@@ -253,7 +253,7 @@ export default class Lobby {
 
                     // we emit the new event on the main room so we can propagate
                     // events to the conference
-                    this.mainRoom.eventEmitter.emit(
+                    this.mainRoom.emit(
                         XMPPEvents.MUC_LOBBY_MEMBER_JOINED,
                         Strophe.getResourceFromJid(from),
                         nick,
@@ -264,7 +264,7 @@ export default class Lobby {
                 XMPPEvents.MUC_MEMBER_LEFT, from => {
                     // we emit the new event on the main room so we can propagate
                     // events to the conference
-                    this.mainRoom.eventEmitter.emit(
+                    this.mainRoom.emit(
                         XMPPEvents.MUC_LOBBY_MEMBER_LEFT,
                         Strophe.getResourceFromJid(from)
                     );
@@ -274,7 +274,7 @@ export default class Lobby {
                 () => {
                     // let's make sure we emit that all lobby users had left
                     Object.keys(this.lobbyRoom.members)
-                        .forEach(j => this.mainRoom.eventEmitter.emit(
+                        .forEach(j => this.mainRoom.emit(
                             XMPPEvents.MUC_LOBBY_MEMBER_LEFT, Strophe.getResourceFromJid(j)));
 
                     this.lobbyRoom.clean();
@@ -286,7 +286,7 @@ export default class Lobby {
             // this should only be handled by those waiting in lobby
             this.lobbyRoom.addEventListener(XMPPEvents.KICKED, isSelfPresence => {
                 if (isSelfPresence) {
-                    this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DENIED_ACCESS);
+                    this.mainRoom.emit(XMPPEvents.MUC_DENIED_ACCESS);
 
                     this.lobbyRoom.clean();
 
@@ -322,7 +322,7 @@ export default class Lobby {
                         return;
                     }
 
-                    this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
+                    this.mainRoom.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });
 
             // If participant retries joining shared password while waiting in the lobby

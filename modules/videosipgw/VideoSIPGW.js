@@ -18,7 +18,6 @@ export default class VideoSIPGW {
      */
     constructor(chatRoom) {
         this.chatRoom = chatRoom;
-        this.eventEmitter = chatRoom.eventEmitter;
         logger.debug('creating VideoSIPGW');
         this.sessions = {};
 
@@ -126,7 +125,7 @@ export default class VideoSIPGW {
             delete this.sessions[address];
         }
 
-        this.eventEmitter.emit(
+        this.chatRoom.emit(
             XMPPEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED,
             event);
     }

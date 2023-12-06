@@ -36,7 +36,7 @@ export class NetworkInfo extends Listenable {
         this._current = {
             isOnline: isOnline === true
         };
-        this.eventEmitter.emit(NETWORK_INFO_EVENT, this._current);
+        this.emit(NETWORK_INFO_EVENT, this._current);
     }
 
     /**

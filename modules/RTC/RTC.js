@@ -796,7 +796,7 @@ export default class RTC extends Listenable {
             if (this._channel && this._channel.isOpen()) {
                 this._channel.sendSetLastNMessage(value);
             }
-            this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
+            this.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
         }
     }
 

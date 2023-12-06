@@ -495,7 +495,7 @@ export default class JingleSessionPC extends JingleSession {
                 this.wasstable = true;
             } else if (this.peerconnection.signalingState === 'closed'
                 || this.peerconnection.connectionState === 'closed') {
-                this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED, this);
+                this.room.emit(XMPPEvents.SUSPEND_DETECTED, this);
             }
         };
 
@@ -526,7 +526,7 @@ export default class JingleSessionPC extends JingleSession {
                     value: now
                 });
 
-            this.room.eventEmitter.emit(
+            this.room.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this,
                 this.peerconnection.iceConnectionState);
@@ -543,7 +543,7 @@ export default class JingleSessionPC extends JingleSession {
                         && this.room.supportsRestartByTerminate();
 
                     if (this.isReconnect || usesTerminateForRestart) {
-                        this.room.eventEmitter.emit(
+                        this.room.emit(
                             XMPPEvents.CONNECTION_RESTORED, this);
                     }
                 }
@@ -590,7 +590,7 @@ export default class JingleSessionPC extends JingleSession {
                         });
 
                     this.wasConnected = true;
-                    this.room.eventEmitter.emit(
+                    this.room.emit(
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
                 this.isReconnect = false;
@@ -601,12 +601,12 @@ export default class JingleSessionPC extends JingleSession {
                 // Informs interested parties that the connection has been
                 // interrupted.
                 if (this.wasstable) {
-                    this.room.eventEmitter.emit(
+                    this.room.emit(
                         XMPPEvents.CONNECTION_INTERRUPTED, this);
                 }
                 break;
             case 'failed':
-                this.room.eventEmitter.emit(
+                this.room.emit(
                     XMPPEvents.CONNECTION_ICE_FAILED, this);
                 break;
             }
@@ -627,7 +627,7 @@ export default class JingleSessionPC extends JingleSession {
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=982793
                 // for details) we use this workaround to recover from lost connections
                 if (icestate === 'disconnected') {
-                    this.room.eventEmitter.emit(
+                    this.room.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this);
                 }
                 break;
@@ -999,7 +999,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.modificationQueue.resume();
 
                     success();
-                    this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT, this);
+                    this.room.emit(XMPPEvents.SESSION_ACCEPT, this);
 
                     // The first video track is added to the peerconnection and signaled as part of the session-accept.
                     // Add secondary video tracks (that were already added to conference) to the peerconnection here.
@@ -1015,7 +1015,7 @@ export default class JingleSessionPC extends JingleSession {
                 },
                 error => {
                     failure(error);
-                    this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this, error);
+                    this.room.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this, error);
                 });
             },
             failure,
@@ -1248,11 +1248,11 @@ export default class JingleSessionPC extends JingleSession {
             const sdp = new SDP(this.peerconnection.localDescription.sdp);
 
             this.sendTransportAccept(sdp, success, failure);
-            this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTARTED, this);
+            this.room.emit(XMPPEvents.CONNECTION_RESTARTED, this);
 
             return;
         }
-        this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
+        this.room.emit(XMPPEvents.ICE_RESTARTING, this);
 
         // We need to first reject the 'data' section to have the SCTP stack
         // cleaned up to signal the known data channel is now invalid. After
@@ -1303,7 +1303,7 @@ export default class JingleSessionPC extends JingleSession {
 
                             this.sendTransportAccept(localSDP, success, failure);
 
-                            this.room.eventEmitter.emit(
+                            this.room.emit(
                                 XMPPEvents.ICE_RESTART_SUCCESS,
                                 this,
                                 originalOffer);
@@ -1383,7 +1383,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 // 'session-accept' is a critical timeout and we'll
                 // have to restart
-                this.room.eventEmitter.emit(
+                this.room.emit(
                     XMPPEvents.SESSION_ACCEPT_TIMEOUT, this);
             }),
             IQ_TIMEOUT);
@@ -1650,7 +1650,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (FeatureFlags.isSsrcRewritingSupported() && this.peerconnection) {
             this.peerconnection.getRemoteTracks().forEach(track => {
-                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED, track);
+                this.room.emit(JitsiTrackEvents.TRACK_REMOVED, track);
             });
         }
 
@@ -2104,7 +2104,7 @@ export default class JingleSessionPC extends JingleSession {
         if (this.peerconnection.signalingState === 'closed') {
             const error = new Error('Attempted to renegotiate in state closed');
 
-            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
+            this.room.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
 
             return Promise.reject(error);
         }
@@ -2114,7 +2114,7 @@ export default class JingleSessionPC extends JingleSession {
         if (!remoteSdp) {
             const error = new Error(`Can not renegotiate without remote description, current state: ${this.state}`);
 
-            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
+            this.room.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
 
             return Promise.reject(error);
         }
@@ -2581,7 +2581,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (sourceMaxFrameHeights) {
             this.remoteSourceMaxFrameHeights = sourceMaxFrameHeights;
-            this.eventEmitter.emit(MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED, this, sourceMaxFrameHeights);
+            this.emit(MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED, this, sourceMaxFrameHeights);
         }
 
         if (newVideoSenders === null) {
@@ -2681,10 +2681,10 @@ export default class JingleSessionPC extends JingleSession {
             this.connection.sendIQ(
                 remove,
                 () => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE, this, ctx);
+                    this.room.emit(XMPPEvents.SOURCE_REMOVE, this, ctx);
                 },
                 this.newJingleErrorHandler(remove, error => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_REMOVE_ERROR, this, error, ctx);
+                    this.room.emit(XMPPEvents.SOURCE_REMOVE_ERROR, this, error, ctx);
                 }),
                 IQ_TIMEOUT);
         }
@@ -2710,10 +2710,10 @@ export default class JingleSessionPC extends JingleSession {
             this.connection.sendIQ(
                 add,
                 () => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
+                    this.room.emit(XMPPEvents.SOURCE_ADD, this, ctx);
                 },
                 this.newJingleErrorHandler(add, error => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, addedSsrcInfo.mediaType, ctx);
+                    this.room.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, addedSsrcInfo.mediaType, ctx);
                 }),
                 IQ_TIMEOUT);
         }

@@ -96,7 +96,7 @@ export default class RoomMetadata {
         }
 
         this._metadata = metadata;
-        this.room.eventEmitter.emit(XMPPEvents.ROOM_METADATA_UPDATED, metadata);
+        this.room.emit(XMPPEvents.ROOM_METADATA_UPDATED, metadata);
     }
 
     /**

@@ -12,14 +12,11 @@ const INITIAL_SOURCE_INFO = { value: JSON.stringify({}) };
 
 // eslint-disable-next-line require-jsdoc
 function createMockChatRoom() {
-    const chatRoom = {
-        ...new Listenable(),
-        ...jasmine.createSpyObj('', [
-            'addOrReplaceInPresence',
-            'setAudioMute',
-            'setVideoMute'
-        ])
-    };
+    const chatRoom = new Listenable();
+
+    chatRoom.addOrReplaceInPresence = jasmine.createSpy('addOrReplaceInPresence');
+    chatRoom.setAudioMute = jasmine.createSpy('setAudioMute');
+    chatRoom.setVideoMute = jasmine.createSpy('setVideoMute');
 
     const listeners = {};
 
@@ -54,7 +51,7 @@ function createMockChatRoom() {
 
     chatRoom.emitParticipantLeft = endpointId => {
         // Only the resource part (MUC nick) is relevant
-        chatRoom.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, `room@server.com/${endpointId}`);
+        chatRoom.emit(XMPPEvents.MUC_MEMBER_LEFT, `room@server.com/${endpointId}`);
     };
 
     return chatRoom;
@@ -164,7 +161,7 @@ describe('SignalingLayerImpl', () => {
                 signalingLayer.setChatRoom(chatRoom);
             });
             it('from a legacy user (no SourceInfo)', () => {
-                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+                const emitterSpy = spyOn(signalingLayer, 'emit');
 
                 chatRoom.getLastPresence = () => [];
                 chatRoom.emitPresenceListener({
@@ -181,7 +178,7 @@ describe('SignalingLayerImpl', () => {
             });
             it('from a user with SourceInfo and ssrc-rewriting disabled', () => {
                 FeatureFlags.init({ });
-                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+                const emitterSpy = spyOn(signalingLayer, 'emit');
                 const sourceInfo = {
                     '12345678-a0': {
                         muted: true
@@ -207,7 +204,7 @@ describe('SignalingLayerImpl', () => {
 
             it('from a user with sourceInfo and ssrc-rewriting enabled', () => {
                 FeatureFlags.init({ ssrcRewritingEnabled: true });
-                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+                const emitterSpy = spyOn(signalingLayer, 'emit');
                 const sourceInfo = {
                     '12345678-a0': {
                         muted: true

@@ -1,22 +1,12 @@
-import Listenable from '../util/Listenable';
 import { nextTick } from '../util/TestUtils';
 
 import IceFailedHandling from './IceFailedHandling';
+import { MockConferenceBase } from '../xmpp/MockClasses';
 
 /**
  * Mock conference for the purpose of this test.
  */
-class MockConference extends Listenable {
-    /**
-     * A constructor...
-     */
-    constructor() {
-        super();
-        this.options = {
-            config: { }
-        };
-    }
-}
+class MockConference extends MockConferenceBase {}
 
 describe('IceFailedHandling', () => {
     let mockConference;
@@ -27,10 +17,6 @@ describe('IceFailedHandling', () => {
         jasmine.clock().install();
         mockConference = new MockConference();
         iceFailedHandling = new IceFailedHandling(mockConference);
-        mockConference.eventEmitter = {
-            // eslint-disable-next-line no-empty-function
-            emit: () => { }
-        };
         mockConference.room = {
             supportsRestartByTerminate: () => false
         };

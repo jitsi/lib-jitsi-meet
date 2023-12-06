@@ -31,9 +31,9 @@ class RecordingManager {
 
         this.onMemberLeft = this.onMemberLeft.bind(this);
 
-        this._chatRoom.eventEmitter.addListener(
+        this._chatRoom.addListener(
             XMPPEvents.PRESENCE_RECEIVED, this.onPresence);
-        this._chatRoom.eventEmitter.addListener(
+        this._chatRoom.addListener(
             XMPPEvents.MUC_MEMBER_LEFT, this.onMemberLeft);
     }
 
@@ -211,7 +211,7 @@ class RecordingManager {
      * @param {string|undefined} initiator - The jid of the initiator of the update.
      */
     _emitSessionUpdate(session, initiator) {
-        this._chatRoom.eventEmitter.emit(
+        this._chatRoom.emit(
             XMPPEvents.RECORDER_STATE_CHANGED, session, initiator);
     }
 

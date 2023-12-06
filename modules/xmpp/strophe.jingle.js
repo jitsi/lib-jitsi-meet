@@ -57,14 +57,12 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
     /**
      * Creates new <tt>JingleConnectionPlugin</tt>
      * @param {XMPP} xmpp
-     * @param {EventEmitter} eventEmitter
      * @param {Object} iceConfig an object that holds the iceConfig to be passed
      * to the p2p and the jvb <tt>PeerConnection</tt>.
      */
-    constructor(xmpp, eventEmitter, iceConfig) {
+    constructor(xmpp, iceConfig) {
         super();
         this.xmpp = xmpp;
-        this.eventEmitter = eventEmitter;
         this.sessions = {};
         this.jvbIceConfig = iceConfig.jvb;
         this.p2pIceConfig = iceConfig.p2p;
@@ -193,7 +191,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 const audioMuted = startMuted.attr(MediaType.AUDIO);
                 const videoMuted = startMuted.attr(MediaType.VIDEO);
 
-                this.eventEmitter.emit(
+                this.xmpp.emit(
                     XMPPEvents.START_MUTED_FROM_FOCUS,
                     audioMuted === 'true',
                     videoMuted === 'true');
@@ -212,7 +210,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     /* initiator */ false);
 
             this.sessions[sess.sid] = sess;
-            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, $(iq).find('>jingle'), now);
+            this.xmpp.emit(XMPPEvents.CALL_INCOMING, sess, $(iq).find('>jingle'), now);
             break;
         }
         case 'session-accept': {
@@ -226,7 +224,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 ssrc && ssrcs.push(ssrc);
             }
             logger.debug(`Received ${action} from ${fromJid} with ssrcs=${ssrcs}`);
-            this.eventEmitter.emit(XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            this.xmpp.emit(XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
             break;
         }
         case 'content-modify': {
@@ -238,7 +236,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             const candidates = _parseIceCandidates($(iq).find('jingle>content>transport'));
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
-            this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
+            this.xmpp.emit(XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
             break;
         }
         case 'session-terminate': {
@@ -253,7 +251,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             }
             logger.debug(`Received ${action} from ${fromJid} disconnect reason=${reasonText}`);
             this.terminate(sess.sid, reasonCondition, reasonText);
-            this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
+            this.xmpp.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
             break;
         }
         case 'transport-replace': {

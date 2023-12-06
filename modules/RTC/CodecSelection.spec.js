@@ -1,7 +1,7 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents.ts';
 import Listenable from '../util/Listenable.js';
 import JingleSessionPC from '../xmpp/JingleSessionPC.js';
-import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses.js';
+import {MockChatRoom, MockConferenceBase, MockStropheConnection} from '../xmpp/MockClasses.js';
 
 import { CodecSelection } from './CodecSelection.js';
 import { MockRTC, MockSignalingLayerImpl } from './MockClasses.js';
@@ -29,15 +29,12 @@ class MockParticipant {
 /**
  * MockConference
  */
-class MockConference extends Listenable {
+class MockConference extends MockConferenceBase {
     /**
      * A constructor...
      */
     constructor() {
         super();
-        this.options = {
-            config: {}
-        };
 
         this.activeMediaSession = undefined;
         this.mediaSessions = [];
@@ -54,7 +51,7 @@ class MockConference extends Listenable {
     addParticipant(participant, codecList, codecType) {
         this.participants.push(participant);
         this._signalingLayer.setPeerMediaInfo(true, participant.getId(), codecList, codecType);
-        this.emit(JitsiConferenceEvents.USER_JOINED);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED);
     }
 
     /**
@@ -80,7 +77,7 @@ class MockConference extends Listenable {
     removeParticipant(endpoint) {
         this.participants = this.participants.filter(p => p !== endpoint);
         this._signalingLayer.setPeerMediaInfo(false, endpoint.getId());
-        this.emit(JitsiConferenceEvents.USER_LEFT);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT);
     }
 }
 

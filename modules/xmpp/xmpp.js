@@ -179,7 +179,7 @@ export default class XMPP extends Listenable {
             };
             /* eslint-enable camelcase */
 
-            this.eventEmitter.emit(
+            this.emit(
                 JitsiConnectionEvents.CONNECTION_FAILED,
                 JitsiConnectionErrors.OTHER_ERROR,
                 undefined,
@@ -310,7 +310,7 @@ export default class XMPP extends Listenable {
             `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
             now);
 
-        this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
+        this.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         this._maybeSendDeploymentInfoStat();
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             // once connected or attached we no longer need this handle, drop it if it exist
@@ -358,7 +358,7 @@ export default class XMPP extends Listenable {
                 && Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
                 // this.connection.send($pres());
-                this.eventEmitter.emit(
+                this.emit(
                     JitsiConnectionEvents.CONNECTION_ESTABLISHED,
                     Strophe.getResourceFromJid(this.connection.jid));
             }
@@ -370,7 +370,7 @@ export default class XMPP extends Listenable {
             }
             this.lastErrorMsg = msg;
             if (msg === 'giving-up') {
-                this.eventEmitter.emit(
+                this.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR, msg);
             }
@@ -384,18 +384,18 @@ export default class XMPP extends Listenable {
 
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
-                this.eventEmitter.emit(
+                this.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.PASSWORD_REQUIRED);
             } else if (this.connectionFailed) {
-                this.eventEmitter.emit(
+                this.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR,
                     errMsg,
                     undefined, /* credentials */
                     this._getConnectionFailedReasonDetails());
             } else if (wasIntentionalDisconnect) {
-                this.eventEmitter.emit(
+                this.emit(
                     JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
             } else {
                 // XXX if Strophe drops the connection while not being asked to,
@@ -410,14 +410,14 @@ export default class XMPP extends Listenable {
                 const lastErrorStatus = Strophe.getLastErrorStatus();
 
                 if (lastErrorStatus >= 500 && lastErrorStatus < 600) {
-                    this.eventEmitter.emit(
+                    this.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.SERVER_ERROR,
                         errMsg || 'server-error',
                         /* credentials */ undefined,
                         this._getConnectionFailedReasonDetails());
                 } else {
-                    this.eventEmitter.emit(
+                    this.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
                         errMsg || 'connection-dropped-error',
@@ -429,7 +429,7 @@ export default class XMPP extends Listenable {
             const lastFailedRawMessage = this.getConnection().getLastFailedMessage();
 
             // wrong password or username, prompt user
-            this.eventEmitter.emit(
+            this.emit(
                 JitsiConnectionEvents.CONNECTION_FAILED,
                 JitsiConnectionErrors.PASSWORD_REQUIRED,
                 msg || this._parseConnectionFailedMessage(lastFailedRawMessage),
@@ -472,7 +472,7 @@ export default class XMPP extends Listenable {
                 const processLobbyFeatures = f => {
                     f.forEach(fr => {
                         if (fr.endsWith('#displayname_required')) {
-                            this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
+                            this.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
                         }
                     });
                 };
@@ -825,12 +825,12 @@ export default class XMPP extends Listenable {
         this.disconnectInProgress = new Promise(resolve => {
             const disconnectListener = (credentials, status) => {
                 if (status === Strophe.Status.DISCONNECTED) {
-                    this.eventEmitter.removeListener(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
+                    this.removeListener(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
                     resolve();
                 }
             };
 
-            this.eventEmitter.on(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
+            this.on(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
         });
 
         this._cleanupXmppConnection(ev);
@@ -910,7 +910,7 @@ export default class XMPP extends Listenable {
         }
 
         this.connection.addConnectionPlugin('emuc', new MucConnectionPlugin(this));
-        this.connection.addConnectionPlugin('jingle', new JingleConnectionPlugin(this, this.eventEmitter, iceConfig));
+        this.connection.addConnectionPlugin('jingle', new JingleConnectionPlugin(this, iceConfig));
         this.connection.addConnectionPlugin('rayo', new RayoConnectionPlugin());
     }
 
@@ -1071,15 +1071,15 @@ export default class XMPP extends Listenable {
         }
 
         if (parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats' && parsedJson.users) {
-            this.eventEmitter.emit(XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
+            this.emit(XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'conference_duration' && parsedJson.created_timestamp) {
-            this.eventEmitter.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, parsedJson.created_timestamp);
+            this.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, parsedJson.created_timestamp);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'av_moderation') {
-            this.eventEmitter.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
+            this.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'breakout_rooms') {
-            this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
+            this.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'room_metadata') {
-            this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
+            this.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
         }
 
         return true;

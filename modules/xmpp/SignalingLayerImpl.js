@@ -79,7 +79,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         // Add handlers for 'audiomuted', 'videomuted' and 'videoType' fields in presence in order to support interop
         // with very old versions of mobile clients and jigasi that do not support source-name signaling.
         const emitAudioMutedEvent = (endpointId, muted) => {
-            this.eventEmitter.emit(
+            this.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
                 MediaType.AUDIO,
@@ -94,7 +94,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         room.addPresenceListener('audiomuted', this._audioMuteHandler);
 
         const emitVideoMutedEvent = (endpointId, muted) => {
-            this.eventEmitter.emit(
+            this.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
                 MediaType.VIDEO,
@@ -109,7 +109,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         room.addPresenceListener('videomuted', this._videoMuteHandler);
 
         const emitVideoTypeEvent = (endpointId, videoType) => {
-            this.eventEmitter.emit(
+            this.emit(
                 SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
                 endpointId, videoType);
         };
@@ -141,7 +141,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
                     sourceChanged = true;
                     oldSourceState.muted = newMutedState;
                     if (emitEventsFromHere && !this._localSourceState[sourceName]) {
-                        this.eventEmitter.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
+                        this.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
                     }
                 }
 
@@ -157,12 +157,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
                     // Since having a mix of eps that do/don't support multi-stream in the same call is supported, emit
                     // SOURCE_VIDEO_TYPE_CHANGED event when the remote source changes videoType.
                     if (emitEventsFromHere && !this._localSourceState[sourceName]) {
-                        this.eventEmitter.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
+                        this.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
                     }
                 }
 
                 if (sourceChanged && FeatureFlags.isSsrcRewritingSupported()) {
-                    this.eventEmitter.emit(
+                    this.emit(
                         SignalingEvents.SOURCE_UPDATED,
                         sourceName,
                         mucNick,

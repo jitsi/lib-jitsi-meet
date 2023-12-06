@@ -176,7 +176,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             return;
         }
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
+        this.rtc.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
     }
 
     /**
@@ -189,7 +189,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _onTrackUnmute() {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+        this.rtc.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
     }
 
     /**
@@ -442,7 +442,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
         // track to prevent this from happening.
         !this._trackStreamingStatusImpl.isVideoTrackFrozen()
-            && this.rtc.eventEmitter.emit(
+            && this.rtc.emit(
                 JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
                 this,
                 this._trackStreamingStatus);

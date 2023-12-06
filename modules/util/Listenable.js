@@ -14,7 +14,19 @@ export default class Listenable extends EventEmitter {
         super();
 
         // aliases for addListener/removeListener
-        this.addEventListener = this.on = this.addListener;
-        this.removeEventListener = this.off = this.removeListener;
+        this.addEventListener = this.addListener;
+        this.removeEventListener = this.removeListener;
+    }
+
+    /**
+     * Adds new cancellable listener.
+     * @param {String} eventName the name of the event
+     * @param {Function} listener the listener.
+     * @returns {Function} - The unsubscribe function.
+     */
+    addCancellableListener(eventName, listener) {
+        this.addEventListener(eventName, listener);
+
+        return () => this.removeEventListener(eventName, listener);
     }
 }

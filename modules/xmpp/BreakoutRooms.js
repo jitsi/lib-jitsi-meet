@@ -207,13 +207,13 @@ export default class BreakoutRooms {
     _handleMessages(payload) {
         switch (payload.event) {
         case BREAKOUT_ROOM_EVENTS.MOVE_TO_ROOM:
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, payload.roomJid);
+            this.room.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, payload.roomJid);
             break;
         case BREAKOUT_ROOM_EVENTS.UPDATE: {
             const filteredPayload = this._filterUpdatePayload(payload);
 
             this._rooms = filteredPayload.rooms;
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, filteredPayload);
+            this.room.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, filteredPayload);
             break;
         }
         }

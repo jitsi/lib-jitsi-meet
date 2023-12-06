@@ -65,7 +65,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
         this.rooms[roomJid] = new ChatRoom(this.connection, jid,
             password, this.xmpp, options);
-        this.eventEmitter.emit(
+        this.emit(
             XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
 
         return this.rooms[roomJid];
@@ -86,7 +86,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param jid
      */
     doLeave(jid) {
-        this.eventEmitter.emit(
+        this.emit(
             XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
@@ -228,7 +228,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             && String(response.attr('allow')).toLowerCase() === 'true') {
             logger.warn('Redirected back to main room.');
 
-            this.xmpp.eventEmitter.emit(
+            this.xmpp.emit(
                 CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
         }
 

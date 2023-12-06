@@ -5,6 +5,26 @@ import Listenable from '../util/Listenable';
 /* eslint-disable no-empty-function */
 
 /**
+ * Mock {@link JitsiConference}.
+ */
+export class MockConferenceBase {
+    /**
+     * A constructor...
+     */
+    constructor() {
+        this.eventEmitter = new Listenable();
+        this.addEventListener = this.eventEmitter.on;
+        this.removeEventListener = this.eventEmitter.off;
+        this.on = this.eventEmitter.on;
+        this.once = this.eventEmitter.once;
+        this.off = this.eventEmitter.removeListener;
+        this.options = {
+            config: {}
+        };
+    }
+}
+
+/**
  * Mock {@link ChatRoom}.
  */
 export class MockChatRoom extends Listenable {

@@ -1,25 +1,15 @@
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import browser from '../browser';
-import Listenable from '../util/Listenable';
 
 import Statistics from './statistics';
+import { MockConferenceBase } from '../xmpp/MockClasses';
 
 /**
  * Mock object to be used in place of a real conference.
  *
  */
-class MockConference extends Listenable {
-    /**
-     * constructor
-     */
-    constructor() {
-        super();
-        this.options = {
-            config: {}
-        };
-    }
-}
+class MockConference extends MockConferenceBase {}
 
 describe('PerformanceObserverStats', () => {
     let mockConference, statistics;
@@ -34,7 +24,7 @@ describe('PerformanceObserverStats', () => {
     });
 
     it('Conference events start/stop observer', () => {
-        statistics.attachLongTasksStats(mockConference);
+        statistics.attachLongTasksStats();
         const startObserverSpy = spyOn(statistics.performanceObserverStats, 'startObserver');
         const stopObserverSpy = spyOn(statistics.performanceObserverStats, 'stopObserver');
 
@@ -46,7 +36,7 @@ describe('PerformanceObserverStats', () => {
     });
 
     it('Emits long tasks stats every sec', () => {
-        statistics.attachLongTasksStats(mockConference);
+        statistics.attachLongTasksStats();
         statistics.performanceObserverStats.eventEmitter = {
             // eslint-disable-next-line no-empty-function
             emit: () => {}

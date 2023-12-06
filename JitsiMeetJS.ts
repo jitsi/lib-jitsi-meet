@@ -311,11 +311,11 @@ export default {
 
         if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
             // @ts-ignore
-            JitsiMediaDevices.emitEvent(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
+            JitsiMediaDevices.emit(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
         } else if (fireSlowPromiseEvent) {
             window.setTimeout(() => {
                 if (!promiseFulfilled) {
-                    JitsiMediaDevices.emitEvent(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
+                    JitsiMediaDevices.emit(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
                 }
             }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }

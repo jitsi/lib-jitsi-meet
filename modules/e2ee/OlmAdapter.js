@@ -241,7 +241,7 @@ export class OlmAdapter extends Listenable {
         if (!isVerified) {
             olmData.sasVerification = undefined;
             logger.warn(`Verification failed for participant ${pId}`);
-            this.eventEmitter.emit(
+            this.emit(
                 OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                 pId,
                 false,
@@ -252,7 +252,7 @@ export class OlmAdapter extends Listenable {
 
         if (!olmData.sasVerification) {
             logger.warn(`Participant ${pId} does not have valid sasVerification`);
-            this.eventEmitter.emit(
+            this.emit(
                 OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                 pId,
                 false,
@@ -527,7 +527,7 @@ export class OlmAdapter extends Listenable {
                     const keyIndex = json.keyIndex;
 
                     olmData.lastKey = key;
-                    this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                    this.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                 }
             } else {
                 logger.warn('Received ACK with the wrong UUID');
@@ -553,7 +553,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
                     // Send ACK.
@@ -589,7 +589,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
-                        this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
+                        this.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
                 }
 
@@ -615,7 +615,7 @@ export class OlmAdapter extends Listenable {
 
             if (olmData.sasVerification?.sas) {
                 logger.warn(`SAS already created for participant ${pId}`);
-                this.eventEmitter.emit(
+                this.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
@@ -668,7 +668,7 @@ export class OlmAdapter extends Listenable {
 
             if (!olmData.sasVerification) {
                 logger.warn(`SAS_ACCEPT Participant ${pId} does not have valid sasVerification`);
-                this.eventEmitter.emit(
+                this.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
@@ -717,7 +717,7 @@ export class OlmAdapter extends Listenable {
 
             if (!olmData.sasVerification) {
                 logger.warn(`SAS_KEY Participant ${pId} does not have valid sasVerification`);
-                this.eventEmitter.emit(
+                this.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
@@ -741,7 +741,7 @@ export class OlmAdapter extends Listenable {
 
                 if (sasCommitment !== commitment) {
                     this._sendError(participant, 'OlmAdapter commitments mismatched');
-                    this.eventEmitter.emit(
+                    this.emit(
                         OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                         pId,
                         false,
@@ -764,7 +764,7 @@ export class OlmAdapter extends Listenable {
             const sasBytes = sas.generate_bytes(info, OLM_SAS_NUM_BYTES);
             const generatedSas = generateSas(sasBytes);
 
-            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
+            this.emit(OlmAdapterEvents.PARTICIPANT_SAS_READY, pId, generatedSas);
 
             if (keySent) {
                 return;
@@ -820,7 +820,7 @@ export class OlmAdapter extends Listenable {
 
             if (keysMac !== keys) {
                 logger.error('SAS verification error: keys MAC mismatch');
-                this.eventEmitter.emit(
+                this.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
@@ -832,7 +832,7 @@ export class OlmAdapter extends Listenable {
             if (!olmData.ed25519) {
                 logger.warn('SAS verification error: Missing ed25519 key');
 
-                this.eventEmitter.emit(
+                this.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                     pId,
                     false,
@@ -849,7 +849,7 @@ export class OlmAdapter extends Listenable {
 
                 if (computedMac !== ourComputedMac) {
                     logger.error('SAS verification error: MAC mismatch');
-                    this.eventEmitter.emit(
+                    this.emit(
                         OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
                         pId,
                         false,
@@ -860,7 +860,7 @@ export class OlmAdapter extends Listenable {
             }
 
             logger.info(`SAS MAC verified for participant ${pId}`);
-            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
+            this.emit(OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED, pId, true);
 
             break;
         }
@@ -931,7 +931,7 @@ export class OlmAdapter extends Listenable {
             break;
         case 'e2ee.idKey.ed25519':
             olmData.ed25519 = newValue;
-            this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_SAS_AVAILABLE, participantId);
+            this.emit(OlmAdapterEvents.PARTICIPANT_SAS_AVAILABLE, participantId);
             break;
         }
     }

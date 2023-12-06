@@ -152,7 +152,7 @@ describe('ChatRoom', () => {
                 'password',
                 xmpp,
                 {} /* options */);
-            emitterSpy = spyOn(room.eventEmitter, 'emit');
+            emitterSpy = spyOn(room, 'emit');
         });
         it('parses status correctly', () => {
             const presStr = '' +

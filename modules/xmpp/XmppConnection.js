@@ -315,7 +315,7 @@ export default class XmppConnection extends Listenable {
 
         if (!blockCallback) {
             targetCallback(status, ...args);
-            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+            this.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
         }
     }
 
@@ -455,7 +455,7 @@ export default class XmppConnection extends Listenable {
                 if (responseShard !== shard) {
                     logger.error(
                         `Detected that shard changed from ${shard} to ${responseShard}`);
-                    this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
+                    this.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
                 }
             })
             .catch(error => {

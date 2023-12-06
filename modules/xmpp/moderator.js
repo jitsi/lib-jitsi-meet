@@ -383,7 +383,7 @@ export default class Moderator extends Listenable {
             Settings.sessionId = conferenceRequest.sessionId;
         }
 
-        this.eventEmitter.emit(
+        this.emit(
             AuthenticationEvents.IDENTITY_UPDATED, authenticationEnabled, conferenceRequest.identity);
 
         this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
@@ -397,7 +397,7 @@ export default class Moderator extends Listenable {
             if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
                 logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`);
 
-                this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
+                this.xmpp.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
 
                 return;
             }
@@ -435,7 +435,7 @@ export default class Moderator extends Listenable {
         // Not authorized to create new room
         if (notAuthorized) {
             logger.warn('Unauthorized to start the conference');
-            this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
+            this.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
 
             return;
         }
@@ -457,7 +457,7 @@ export default class Moderator extends Listenable {
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
             // TODO: change the event name to something accurate.
-            this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
+            this.emit(XMPPEvents.FOCUS_DISCONNECTED);
         }
     }
 
@@ -483,7 +483,7 @@ export default class Moderator extends Listenable {
             if (errorTextNode) {
                 errorMsg = errorTextNode.text();
             }
-            this.eventEmitter.emit(
+            this.emit(
                 XMPPEvents.RESERVATION_ERROR,
                 errorCode,
                 errorMsg);

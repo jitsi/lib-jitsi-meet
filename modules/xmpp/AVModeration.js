@@ -136,11 +136,11 @@ export default class AVModeration {
 
             if (removed) {
                 oldList.filter(x => !newList.includes(x))
-                    .forEach(jid => this._xmpp.eventEmitter
+                    .forEach(jid => this._xmpp
                         .emit(XMPPEvents.AV_MODERATION_PARTICIPANT_REJECTED, media, jid));
             } else {
                 newList.filter(x => !oldList.includes(x))
-                    .forEach(jid => this._xmpp.eventEmitter
+                    .forEach(jid => this._xmpp
                         .emit(XMPPEvents.AV_MODERATION_PARTICIPANT_APPROVED, media, jid));
             }
 
@@ -152,11 +152,11 @@ export default class AVModeration {
         } else if (enabled !== undefined && this._moderationEnabledByType[media] !== enabled) {
             this._moderationEnabledByType[media] = enabled;
 
-            this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_CHANGED, enabled, media, actor);
+            this._xmpp.emit(XMPPEvents.AV_MODERATION_CHANGED, enabled, media, actor);
         } else if (removed) {
-            this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_REJECTED, media);
+            this._xmpp.emit(XMPPEvents.AV_MODERATION_REJECTED, media);
         } else if (approved) {
-            this._xmpp.eventEmitter.emit(XMPPEvents.AV_MODERATION_APPROVED, media);
+            this._xmpp.emit(XMPPEvents.AV_MODERATION_APPROVED, media);
         }
     }
 }

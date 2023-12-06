@@ -352,7 +352,7 @@ export default class ChatRoom extends Listenable {
                     === 1;
 
             if (locked !== this.locked) {
-                this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
+                this.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
             }
 
@@ -389,7 +389,7 @@ export default class ChatRoom extends Listenable {
 
             if (membersOnly !== this.membersOnlyEnabled) {
                 this.membersOnlyEnabled = membersOnly;
-                this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
+                this.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
             }
 
             const roomMetadataEl
@@ -421,7 +421,7 @@ export default class ChatRoom extends Listenable {
                 logger.warn(`Meeting Id changed from:${this.meetingId} to:${meetingId}`);
             }
             this.meetingId = meetingId;
-            this.eventEmitter.emit(XMPPEvents.MEETING_ID_SET, meetingId);
+            this.emit(XMPPEvents.MEETING_ID_SET, meetingId);
         }
     }
 
@@ -524,7 +524,7 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        this.eventEmitter.emit(XMPPEvents.PRESENCE_RECEIVED, {
+        this.emit(XMPPEvents.PRESENCE_RECEIVED, {
             fromHiddenDomain: member.isHiddenDomain,
             presence: pres
         });
@@ -592,7 +592,7 @@ export default class ChatRoom extends Listenable {
 
             logger.log('(TIME) MUC join started:\t', now);
 
-            this.eventEmitter.emit(XMPPEvents.MUC_JOIN_IN_PROGRESS);
+            this.emit(XMPPEvents.MUC_JOIN_IN_PROGRESS);
             this.inProgressEmitted = true;
         }
 
@@ -602,7 +602,7 @@ export default class ChatRoom extends Listenable {
 
             if (this.role !== newRole) {
                 this.role = newRole;
-                this.eventEmitter.emit(
+                this.emit(
                     XMPPEvents.LOCAL_ROLE_CHANGED,
                     this.role);
             }
@@ -628,7 +628,7 @@ export default class ChatRoom extends Listenable {
                 // we need to reset it because of breakout rooms which will reuse connection but will invite jicofo
                 this.xmpp.moderator.conferenceRequestSent = false;
 
-                this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
+                this.emit(XMPPEvents.MUC_JOINED);
 
                 // Now let's check the disco-info to retrieve the
                 // meeting Id if any
@@ -648,7 +648,7 @@ export default class ChatRoom extends Listenable {
                 // identity is being added to member joined, so external
                 // services can be notified for that (currently identity is
                 // not used inside library)
-                this.eventEmitter.emit(
+                this.emit(
                     XMPPEvents.MUC_MEMBER_JOINED,
                     from,
                     member.nick,
@@ -673,7 +673,7 @@ export default class ChatRoom extends Listenable {
 
             if (memberOfThis.role !== member.role) {
                 memberOfThis.role = member.role;
-                this.eventEmitter.emit(
+                this.emit(
                     XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
             }
 
@@ -685,7 +685,7 @@ export default class ChatRoom extends Listenable {
             // fire event that botType had changed
             if (memberOfThis.botType !== member.botType) {
                 memberOfThis.botType = member.botType;
-                this.eventEmitter.emit(
+                this.emit(
                     XMPPEvents.MUC_MEMBER_BOT_TYPE_CHANGED,
                     from,
                     member.botType);
@@ -728,7 +728,7 @@ export default class ChatRoom extends Listenable {
 
             if (!isEqual(memberOfThis.features, member.features)) {
                 memberOfThis.features = member.features;
-                this.eventEmitter.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from, member.features);
+                this.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from, member.features);
             }
         }
 
@@ -745,7 +745,7 @@ export default class ChatRoom extends Listenable {
                             ? Strophe.getResourceFromJid(from)
                             : member.nick;
 
-                    this.eventEmitter.emit(
+                    this.emit(
                         XMPPEvents.DISPLAY_NAME_CHANGED,
                         from,
                         displayName);
@@ -754,7 +754,7 @@ export default class ChatRoom extends Listenable {
             case 'bridgeNotAvailable':
                 if (member.isFocus && !this.noBridgeAvailable) {
                     this.noBridgeAvailable = true;
-                    this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
+                    this.emit(XMPPEvents.BRIDGE_DOWN);
                 }
                 break;
             case 'conference-properties':
@@ -769,7 +769,7 @@ export default class ChatRoom extends Listenable {
                         }
                     }
 
-                    this.eventEmitter.emit(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
+                    this.emit(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
 
                     // Log if Jicofo supports restart by terminate only once. This conference property does not change
                     // during the call.
@@ -790,7 +790,7 @@ export default class ChatRoom extends Listenable {
 
                 if (status && status !== this.transcriptionStatus) {
                     this.transcriptionStatus = status;
-                    this.eventEmitter.emit(
+                    this.emit(
                         XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
                         status
                     );
@@ -807,7 +807,7 @@ export default class ChatRoom extends Listenable {
                 }
                 this.phoneNumber = att.phone || null;
                 this.phonePin = att.pin || null;
-                this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
+                this.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
             default:
@@ -817,7 +817,7 @@ export default class ChatRoom extends Listenable {
 
         // Trigger status message update if necessary
         if (hasStatusUpdate) {
-            this.eventEmitter.emit(
+            this.emit(
                 XMPPEvents.PRESENCE_STATUS,
                 from,
                 member.status);
@@ -919,7 +919,7 @@ export default class ChatRoom extends Listenable {
         }
 
         this.connection.send(msg);
-        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
+        this.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
     }
 
     /* eslint-disable max-params */
@@ -944,7 +944,7 @@ export default class ChatRoom extends Listenable {
         }
 
         this.connection.send(msg);
-        this.eventEmitter.emit(
+        this.emit(
             XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
     }
     /* eslint-enable max-params */
@@ -986,7 +986,7 @@ export default class ChatRoom extends Listenable {
                 reason = reasonSelect.text();
             }
 
-            this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason, destroySelect.attr('jid'));
+            this.emit(XMPPEvents.MUC_DESTROYED, reason, destroySelect.attr('jid'));
             this.connection.emuc.doLeave(this.roomjid);
 
             return true;
@@ -1031,7 +1031,7 @@ export default class ChatRoom extends Listenable {
             // we first fire the kicked so we can show the participant
             // who kicked, before notifying that participant left
             // we fire kicked for us and for any participant kicked
-            this.eventEmitter.emit(
+            this.emit(
                 XMPPEvents.KICKED,
                 isSelfPresence,
                 actorNick,
@@ -1050,7 +1050,7 @@ export default class ChatRoom extends Listenable {
                 delete this.members[jid];
                 delete this.lastPresences[jid];
                 if (!member.isFocus) {
-                    this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
+                    this.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
                 }
             });
             this.connection.emuc.doLeave(this.roomjid);
@@ -1058,7 +1058,7 @@ export default class ChatRoom extends Listenable {
             // we fire muc_left only if this is not a kick,
             // kick has both statuses 110 and 307.
             if (!isKick) {
-                this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
+                this.emit(XMPPEvents.MUC_LEFT);
             }
         } else {
             const reasonSelect = $(pres).find('>status');
@@ -1073,10 +1073,10 @@ export default class ChatRoom extends Listenable {
             delete this.lastPresences[from];
 
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
-            this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
+            this.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
             if (member?.isFocus) {
                 logger.info('Focus has left the room - leaving conference');
-                this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
+                this.emit(XMPPEvents.FOCUS_LEFT);
             }
         }
     }
@@ -1093,13 +1093,13 @@ export default class ChatRoom extends Listenable {
             const settingsErrorMsg = $(msg).find('>settings-error>text').text();
 
             if (settingsErrorMsg.length) {
-                this.eventEmitter.emit(XMPPEvents.SETTINGS_ERROR_RECEIVED, settingsErrorMsg);
+                this.emit(XMPPEvents.SETTINGS_ERROR_RECEIVED, settingsErrorMsg);
 
                 return true;
             }
             const errorMsg = $(msg).find('>error>text').text();
 
-            this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
+            this.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
 
             return true;
         }
@@ -1111,7 +1111,7 @@ export default class ChatRoom extends Listenable {
             const subjectText = subject.text();
 
             if (subjectText || subjectText === '') {
-                this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
+                this.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
                 logger.log(`Subject is changed to ${subjectText}`);
             }
         }
@@ -1146,7 +1146,7 @@ export default class ChatRoom extends Listenable {
                     password = passwordSelect.text();
                 }
 
-                this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                this.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
                     from, invite.attr('from'), txt, password);
             }
         }
@@ -1160,7 +1160,7 @@ export default class ChatRoom extends Listenable {
             // delivered after a delay, i.e. stamp is undefined.
             // e.g. - subtitles should not be displayed if delayed.
             if (parsedJson && stamp === undefined) {
-                this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
+                this.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
                     from, parsedJson);
 
                 return;
@@ -1169,7 +1169,7 @@ export default class ChatRoom extends Listenable {
 
         if (txt) {
             if (type === 'chat') {
-                this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                this.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp);
             } else if (type === 'groupchat') {
                 const nickEl = $(msg).find('>nick');
@@ -1182,7 +1182,7 @@ export default class ChatRoom extends Listenable {
                 // we will fire explicitly that this is a guest(isGuest:true) to the conference
                 // informing that this is probably a message from a guest to the conference (visitor)
                 // a message with explicit name set
-                this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
+                this.emit(XMPPEvents.MESSAGE_RECEIVED,
                     from, txt, this.myroomjid, stamp, nick, Boolean(nick));
             }
         }
@@ -1203,7 +1203,7 @@ export default class ChatRoom extends Listenable {
                         + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
                 .length) {
             logger.log('on password required', from);
-            this.eventEmitter.emit(XMPPEvents.PASSWORD_REQUIRED);
+            this.emit(XMPPEvents.PASSWORD_REQUIRED);
         } else if ($(pres)
                 .find(
                     '>error[type="cancel"]'
@@ -1217,7 +1217,7 @@ export default class ChatRoom extends Listenable {
                 // result in reconnection from authorized domain.
                 // We're either missing Jicofo/Prosody config for anonymous
                 // domains or something is wrong.
-                this.eventEmitter.emit(XMPPEvents.ROOM_JOIN_ERROR);
+                this.emit(XMPPEvents.ROOM_JOIN_ERROR);
 
             } else {
                 logger.warn('onPresError ', pres);
@@ -1241,13 +1241,13 @@ export default class ChatRoom extends Listenable {
                     }
                 }
 
-                this.eventEmitter.emit(
+                this.emit(
                     XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR);
             }
         } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
+            this.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
         } else if ($(pres)
             .find(
                 '>error[type="auth"]'
@@ -1264,14 +1264,14 @@ export default class ChatRoom extends Listenable {
 
             const waitingForHost = $(pres).find('>error[type="auth"]>waiting-for-host').length > 0;
 
-            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR, lobbyRoomJid, waitingForHost);
+            this.emit(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR, lobbyRoomJid, waitingForHost);
         } else if ((errorDescriptionNode = $(pres).find(
                 '>error[type="modify"]>displayname-required[xmlns="http://jitsi.org/jitmeet"]')).length) {
             logger.warn('display name required ', pres);
-            this.eventEmitter.emit(XMPPEvents.DISPLAY_NAME_REQUIRED, errorDescriptionNode[0].attributes.lobby?.value);
+            this.emit(XMPPEvents.DISPLAY_NAME_REQUIRED, errorDescriptionNode[0].attributes.lobby?.value);
         } else {
             logger.warn('onPresError ', pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR);
+            this.emit(XMPPEvents.ROOM_CONNECT_ERROR);
         }
     }
 
@@ -1793,7 +1793,7 @@ export default class ChatRoom extends Listenable {
         const mute = $(iq).find('mute');
 
         if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, mute.attr('actor'));
+            this.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, mute.attr('actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
@@ -1818,7 +1818,7 @@ export default class ChatRoom extends Listenable {
         const mute = $(iq).find('mute');
 
         if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, mute.attr('actor'));
+            this.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, mute.attr('actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
@@ -1864,7 +1864,7 @@ export default class ChatRoom extends Listenable {
             let timeout = -1;
 
             const onMucLeft = (doReject = false) => {
-                this.eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
+                this.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
                 clearTimeout(timeout);
 
                 // This will reset the joined flag to false. If we reset it earlier any self presence will be
@@ -1883,7 +1883,7 @@ export default class ChatRoom extends Listenable {
 
             if (this.joined) {
                 timeout = setTimeout(() => onMucLeft(true), 5000);
-                this.eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
+                this.on(XMPPEvents.MUC_LEFT, onMucLeft);
                 this.doLeave(reason);
             } else {
                 // we are clearing up, and we haven't joined the room

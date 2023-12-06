@@ -318,11 +318,6 @@ export default function TraceablePeerConnection(
      */
     this.localSdpMunger = new LocalSdpMunger(this, this.rtc.getLocalEndpointId());
 
-    /**
-     * TracablePeerConnection uses RTC's eventEmitter
-     * @type {EventEmitter}
-     */
-    this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
 
     /**
@@ -1107,7 +1102,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 sourceName);
 
     userTracksByMediaType.add(remoteTrack);
-    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
+    this.rtc.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
 };
 
 /**
@@ -1218,7 +1213,7 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
     } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
         logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
     }
-    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+    this.rtc.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
 };
 
 /**
@@ -2637,7 +2632,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
                 if (localUfrag !== this.localUfrag) {
                     this.localUfrag = localUfrag;
-                    this.eventEmitter.emit(RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
+                    this.rtc.emit(RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
                 }
 
                 this._initializeDtlsTransport();
@@ -2645,7 +2640,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
                 resolve();
             }, err => {
                 this.trace('setLocalDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
+                this.rtc.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2698,7 +2693,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
                 if (remoteUfrag !== this.remoteUfrag) {
                     this.remoteUfrag = remoteUfrag;
-                    this.eventEmitter.emit(RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
+                    this.rtc.emit(RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
                 }
 
                 this._initializeDtlsTransport();
@@ -2706,7 +2701,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 resolve();
             }, err => {
                 this.trace('setRemoteDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED, err, this);
+                this.rtc.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2836,7 +2831,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 
     return videoSender.setParameters(parameters).then(() => {
         localVideoTrack.maxEnabledResolution = frameHeight;
-        this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
+        this.rtc.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
     });
 };
 
@@ -3074,7 +3069,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                 ? RTCEvents.CREATE_OFFER_FAILED
                 : RTCEvents.CREATE_ANSWER_FAILED;
 
-        this.eventEmitter.emit(eventType, err, this);
+        this.rtc.emit(eventType, err, this);
 
         rejectFn(err);
     };
@@ -3173,7 +3168,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             if (newSSRCNum !== oldSSRCNum) {
                 oldSSRCNum && logger.error(`${this} Overwriting SSRC for track=${track}] with ssrc=${newSSRC}`);
                 this.localSSRCs.set(track.rtcId, newSSRC);
-                this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
+                this.rtc.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
             }
         } else if (!track.isVideoTrack() && !track.isMuted()) {
             // It is normal to find no SSRCs for a muted video track in

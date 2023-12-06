@@ -264,14 +264,6 @@ class JitsiMediaDevices extends Listenable {
     setAudioOutputDevice(deviceId) {
         return RTC.setAudioOutputDevice(deviceId);
     }
-
-    /**
-     * Emits an event.
-     * @param {string} event - event name
-     */
-    emitEvent(event, ...args) {
-        this.emit(event, ...args);
-    }
 }
 
 export default new JitsiMediaDevices();

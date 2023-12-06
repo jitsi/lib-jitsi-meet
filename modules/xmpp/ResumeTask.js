@@ -51,7 +51,7 @@ export default class ResumeTask {
         this._resumeRetryN += 1;
 
         this._networkOnlineListener
-            = NetworkInfo.addEventListener(
+            = NetworkInfo.addCancellableListener(
                 NETWORK_INFO_EVENT,
                 ({ isOnline }) => {
                     if (isOnline) {

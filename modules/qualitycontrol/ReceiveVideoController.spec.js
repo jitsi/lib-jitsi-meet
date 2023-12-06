@@ -2,22 +2,19 @@ import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
 
 import ReceiveVideoController from './ReceiveVideoController';
+import { MockConferenceBase } from '../xmpp/MockClasses';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
 /**
  * Mock conference for the purpose of this test file.
  */
-class MockConference extends Listenable {
+class MockConference extends MockConferenceBase {
     /**
      * A constructor...
      */
     constructor() {
         super();
-        this.options = {
-            config: {}
-        };
-
         this.activeMediaSession = undefined;
         this.mediaSessions = [];
     }
