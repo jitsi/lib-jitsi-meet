@@ -95,7 +95,6 @@ interface ICreateLocalTrackFromMediaStreamOptions {
     stream: MediaStream,
     sourceType: string,
     mediaType: MediaType,
-    track: MediaStreamTrack,
     videoType?: VideoType
 }
 
@@ -439,16 +438,25 @@ export default {
     createLocalTracksFromMediaStreams(tracksInfo) {
         return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
             const tracks = trackInfo.stream.getTracks();
+
             if (!tracks || tracks.length === 0) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND);
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
             }
 
             if (tracks.length > 1) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM);
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM, null, null);
             }
 
-            if (tracks.indexOf(trackInfo.track) === -1) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_MISMATCHED_STREAM);
+            if (trackInfo.mediaType === MediaType.AUDIO) {
+                trackInfo.track = tracks.find(track => track.kind === 'audio');
+            } else if (trackInfo.mediaType === MediaType.VIDEO) {
+                trackInfo.track = tracks.find(track => track.kind === 'video');
+            } else {
+                throw new JitsiTrackError(JitsiTrackErrors.NOT_FOUND, null, null);
+            }
+
+            if (!trackInfo.track) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
             }
 
             if (!trackInfo.sourceId) {

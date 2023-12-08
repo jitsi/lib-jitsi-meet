@@ -79,11 +79,6 @@ export enum JitsiTrackErrors {
      * An error which indicates that no tracks were found in the media stream
      */
     TRACK_NO_STREAM_TRACKS_FOUND = 'track.no_stream_tracks_found',
-
-    /**
-     * An error which indicates that the track does not belong to the provided media stream
-     */
-    TRACK_MISMATCHED_STREAM = 'track.mismatched_stream'
 }
 
 // exported for backward compatibility
@@ -101,4 +96,3 @@ export const TRACK_NO_STREAM_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_FOUND;
 export const UNSUPPORTED_RESOLUTION = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
 export const TRACK_TOO_MANY_TRACKS_IN_STREAM = JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM;
 export const TRACK_NO_STREAM_TRACKS_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND;
-export const TRACK_MISMATCHED_STREAM = JitsiTrackErrors.TRACK_MISMATCHED_STREAM;

@@ -13,7 +13,6 @@ describe('JitsiMeetJS', () => {
                 stream: canvasStream,
                 sourceType: 'canvas',
                 mediaType: MediaType.VIDEO,
-                track: canvasStream.getVideoTracks()[0],
                 videoType: VideoType.DESKTOP
             };
             const newTracks = JitsiMeetJS.createLocalTracksFromMediaStreams([ trackInfo ]);
@@ -22,22 +21,19 @@ describe('JitsiMeetJS', () => {
             expect(newTracks.length).toBe(1);
         });
 
-        it('throws an error if track is not from the same stream', () => {
+        it('throws an error if track is not the correct media type', () => {
             const canvas = document.createElement('canvas');
-            const otherCanvas = document.createElement('canvas');
 
             const canvasStream = canvas.captureStream(5);
-            const otherCanvasStream = otherCanvas.captureStream(5);
             const trackInfo = {
                 stream: canvasStream,
                 sourceType: 'canvas',
-                mediaType: MediaType.VIDEO,
-                track: otherCanvasStream.getVideoTracks()[0],
+                mediaType: MediaType.AUDIO,
                 videoType: VideoType.DESKTOP
             };
 
             expect(() => JitsiMeetJS.createLocalTracksFromMediaStreams([ trackInfo ]))
-                .toThrowError(JitsiTrackErrors.TRACK_MISMATCHED_STREAM);
+                .toThrowError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND);
         });
     });
 });
