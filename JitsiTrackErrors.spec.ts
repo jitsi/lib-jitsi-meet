@@ -16,6 +16,8 @@ describe( "/JitsiTrackErrors members", () => {
         TRACK_IS_DISPOSED,
         TRACK_NO_STREAM_FOUND,
         UNSUPPORTED_RESOLUTION,
+        TRACK_TOO_MANY_TRACKS_IN_STREAM,
+        TRACK_NO_STREAM_TRACKS_FOUND,
         JitsiTrackErrors,
         ...others
     } = exported;
@@ -33,6 +35,8 @@ describe( "/JitsiTrackErrors members", () => {
         expect( TRACK_IS_DISPOSED ).toBe( 'track.track_is_disposed' );
         expect( TRACK_NO_STREAM_FOUND ).toBe( 'track.no_stream_found' );
         expect( UNSUPPORTED_RESOLUTION ).toBe( 'gum.unsupported_resolution' );
+        expect( TRACK_TOO_MANY_TRACKS_IN_STREAM ).toBe( 'track.too_many_tracks_in_stream' );
+        expect( TRACK_NO_STREAM_TRACKS_FOUND ).toBe( 'track.no_stream_tracks_found' );
 
         expect( JitsiTrackErrors ).toBeDefined();
 
@@ -48,6 +52,8 @@ describe( "/JitsiTrackErrors members", () => {
         expect( JitsiTrackErrors.TRACK_IS_DISPOSED ).toBe( 'track.track_is_disposed' );
         expect( JitsiTrackErrors.TRACK_NO_STREAM_FOUND ).toBe( 'track.no_stream_found' );
         expect( JitsiTrackErrors.UNSUPPORTED_RESOLUTION ).toBe( 'gum.unsupported_resolution' );
+        expect( JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM ).toBe( 'track.too_many_tracks_in_stream' );
+        expect( JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND ).toBe( 'track.no_stream_tracks_found' );
     } );
 
     it( "unknown members", () => {

@@ -437,7 +437,8 @@ export default {
      */
     createLocalTracksFromMediaStreams(tracksInfo) {
         return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
-            const tracks = trackInfo.stream.getTracks();
+            const tracks = trackInfo.stream.getTracks()
+                .filter(track => track.kind === trackInfo.mediaType);
 
             if (!tracks || tracks.length === 0) {
                 throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
@@ -447,17 +448,7 @@ export default {
                 throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM, null, null);
             }
 
-            if (trackInfo.mediaType === MediaType.AUDIO) {
-                trackInfo.track = tracks.find(track => track.kind === 'audio');
-            } else if (trackInfo.mediaType === MediaType.VIDEO) {
-                trackInfo.track = tracks.find(track => track.kind === 'video');
-            } else {
-                throw new JitsiTrackError(JitsiTrackErrors.NOT_FOUND, null, null);
-            }
-
-            if (!trackInfo.track) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
-            }
+            trackInfo.track = tracks[0];
 
             if (!trackInfo.sourceId) {
                 trackInfo.sourceId = 'GENERATEDVALUEHERE';
