@@ -36,6 +36,7 @@ import * as ConnectionQualityEvents
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
+import { VideoType } from './service/RTC/VideoType';
 
 const logger = Logger.getLogger(__filename);
 
@@ -88,6 +89,14 @@ interface IJitsiMeetJSOptions {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
     }
+}
+
+interface ICreateLocalTrackFromMediaStreamOptions {
+    stream: MediaStream,
+    sourceType: string,
+    mediaType: MediaType,
+    track: MediaStreamTrack,
+    videoType?: VideoType
 }
 
 /**
@@ -424,11 +433,30 @@ export default {
     /**
      * Manually create JitsiLocalTrack's from the provided track info, by exposing the RTC method
      *
-     * @param {Array<Object>} tracksInfo - array of track information
+     * @param {Array<ICreateLocalTrackFromMediaStreamOptions>} tracksInfo - array of track information
      * @returns {Array<JitsiLocalTrack>} - created local tracks
      */
     createLocalTracksFromMediaStreams(tracksInfo) {
-        return RTC.createLocalTracks(tracksInfo);
+        return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
+            const tracks = trackInfo.stream.getTracks();
+            if (!tracks || tracks.length === 0) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND);
+            }
+
+            if (tracks.length > 1) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM);
+            }
+
+            if (tracks.indexOf(trackInfo.track) === -1) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_MISMATCHED_STREAM);
+            }
+
+            if (!trackInfo.sourceId) {
+                trackInfo.sourceId = 'GENERATEDVALUEHERE';
+            }
+
+            return trackInfo;
+        }));
     },
 
     /**
