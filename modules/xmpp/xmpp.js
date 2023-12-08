@@ -233,9 +233,9 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('http://jitsi.org/remb');
         }
 
-        // Disable TCC on Firefox 116 and older versions because of a known issue where BWE is halved on every
+        // Disable TCC on Firefox 114 and older versions because of a known issue where BWE is halved on every
         // renegotiation.
-        if (!(browser.isFirefox() && browser.isVersionLessThan(117))
+        if (!(browser.isFirefox() && browser.isVersionLessThan(115))
             && (typeof this.options.enableTcc === 'undefined' || this.options.enableTcc)) {
             this.caps.addFeature('http://jitsi.org/tcc');
         }
