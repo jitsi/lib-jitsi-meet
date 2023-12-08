@@ -422,6 +422,16 @@ export default {
     },
 
     /**
+     * Manually create JitsiLocalTrack's from the provided track info, by exposing the RTC method
+     *
+     * @param {Array<Object>} tracksInfo - array of track information
+     * @returns {Array<JitsiLocalTrack>} - created local tracks
+     */
+    createLocalTracksFromMediaStreams(tracksInfo) {
+        return RTC.createLocalTracks(tracksInfo);
+    },
+
+    /**
      * Create a TrackVADEmitter service that connects an audio track to an VAD (voice activity detection) processor in
      * order to obtain VAD scores for individual PCM audio samples.
      * @param {string} localAudioDeviceId - The target local audio device.
