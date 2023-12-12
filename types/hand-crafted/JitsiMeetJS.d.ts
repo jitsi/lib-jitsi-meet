@@ -122,6 +122,8 @@ export type JitsiMeetJSType = {
 
   getActiveAudioDevice: () => Promise<Object>; // TODO: can we improve on object?
 
+  createLocalTracksFromMediaStreams: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
+
   // isDeviceListAvailable: () => boolean; // obsosete
 
   // isDeviceChangeAvailable: ( deviceType: string ) => boolean; // obsosete
