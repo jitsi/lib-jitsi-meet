@@ -450,10 +450,6 @@ export default {
 
             trackInfo.track = tracks[0];
 
-            if (!trackInfo.sourceId) {
-                trackInfo.sourceId = 'GENERATEDVALUEHERE';
-            }
-
             return trackInfo;
         }));
     },
