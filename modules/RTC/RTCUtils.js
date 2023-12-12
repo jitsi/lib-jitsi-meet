@@ -442,7 +442,8 @@ class RTCUtils extends Listenable {
 
         sendDeviceListToAnalytics(availableDevices);
 
-        // Used by tracks to update the real device id before the consumer of lib-jitsi-meet receives the new device list.
+        // Used by tracks to update the real device id before the consumer of lib-jitsi-meet receives the
+        // new device list.
         this.eventEmitter.emit(RTCEvents.DEVICE_LIST_WILL_CHANGE, availableDevices);
 
         this.eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, availableDevices);
@@ -454,9 +455,10 @@ class RTCUtils extends Listenable {
      * @param {Array<Object>} pds - The new devices.
      * @returns {void}
      *
-     * NOTE: Use this function as a shared callback to handle both the devicechange event  and the polling implementations.
-     * This prevents duplication and works around a chrome bug (verified to occur on 68) where devicechange fires twice in
-     * a row, which can cause async post devicechange processing to collide.
+     * NOTE: Use this function as a shared callback to handle both the devicechange event and the
+     * polling implementations.
+     * This prevents duplication and works around a chrome bug (verified to occur on 68) where devicechange
+     * fires twice in a row, which can cause async post devicechange processing to collide.
      */
     _updateKnownDevices(pds) {
         if (compareAvailableMediaDevices(pds)) {
