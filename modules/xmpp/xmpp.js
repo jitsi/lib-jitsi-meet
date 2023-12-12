@@ -525,6 +525,10 @@ export default class XMPP extends Listenable {
                 this.roomMetadataComponentAddress = identity.name;
                 this._components.push(this.roomMetadataComponentAddress);
             }
+
+            if (identity.type === 'visitors') {
+                this._components.push(identity.name);
+            }
         });
 
         this._maybeSendDeploymentInfoStat(true);
@@ -1080,6 +1084,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'room_metadata') {
             this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'visitors') {
+            this.eventEmitter.emit(XMPPEvents.VISITORS_MESSAGE, parsedJson);
         }
 
         return true;
