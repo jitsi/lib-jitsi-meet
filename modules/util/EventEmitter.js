@@ -12,7 +12,7 @@ export default class EventEmitter extends NodeEventEmitter {
         super();
 
         // aliases for addListener/removeListener
-        this.addEventListener = this.on = this.addListener;
-        this.removeEventListener = this.off = this.removeListener;
+        this.addEventListener = this.addListener;
+        this.removeEventListener = this.removeListener;
     }
 }
