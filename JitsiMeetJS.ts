@@ -26,7 +26,6 @@ import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
@@ -163,11 +162,6 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
-        }
-
-        if (options.enableWindowOnErrorHandler) {
-            GlobalOnErrorHandler.addHandler(
-                this.getGlobalOnErrorHandler.bind(this));
         }
 
         return RTC.init(options);
@@ -555,24 +549,6 @@ export default {
             + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
     },
-
-    /* eslint-disable max-params */
-
-    /**
-     * @returns function that can be used to be attached to window.onerror and
-     * if options.enableWindowOnErrorHandler is enabled returns
-     * the function used by the lib.
-     * (function(message, source, lineno, colno, error)).
-     */
-    getGlobalOnErrorHandler(message, source, lineno, colno, error) {
-        logger.error(
-            `UnhandledError: ${message}`,
-            `Script: ${source}`,
-            `Line: ${lineno}`,
-            `Column: ${colno}`,
-            'StackTrace: ', error);
-    },
-    /* eslint-enable max-params */
 
     /**
      * Informs lib-jitsi-meet about the current network status.
