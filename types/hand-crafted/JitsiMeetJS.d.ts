@@ -134,8 +134,6 @@ export type JitsiMeetJSType = {
 
   enumerateDevices: ( callback: ( availableDevices: MediaDeviceInfo[] ) => void ) => void;
 
-  getGlobalOnErrorHandler: ( message: string, source: string, lineno?: number, colno?: number, error?: Error ) => void;
-
   setNetworkInfo: ( { isOnline: boolean } ) => void;
 
   precallTest: PrecallTest;
