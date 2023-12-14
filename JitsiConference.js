@@ -38,7 +38,6 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -2195,7 +2194,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
             });
     } catch (error) {
-        GlobalOnErrorHandler.callErrorHandler(error);
         logger.error(error);
 
         return;
@@ -2223,7 +2221,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 }
             },
             error => {
-                GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Failed to accept incoming Jingle session', error);
             },
             localTracks
@@ -2235,7 +2232,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
 
         this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
     } catch (e) {
-        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error(e);
     }
 };

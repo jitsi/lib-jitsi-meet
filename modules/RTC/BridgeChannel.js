@@ -4,7 +4,6 @@ import { getLogger } from '@jitsi/logger';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 const logger = getLogger(__filename);
 
@@ -295,7 +294,6 @@ export default class BridgeChannel {
             try {
                 obj = safeJsonParse(data);
             } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Failed to parse channel message as JSON: ', data, error);
 
                 return;

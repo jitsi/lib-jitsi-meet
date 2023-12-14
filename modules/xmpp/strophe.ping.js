@@ -1,8 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-
 import ConnectionPlugin from './ConnectionPlugin';
 
 
@@ -129,7 +127,6 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                 const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
 
                 if (this.failedPings >= this.pingThreshold) {
-                    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
                     this._onPingThresholdExceeded && this._onPingThresholdExceeded();
                 } else {

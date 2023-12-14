@@ -5,7 +5,6 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
 
@@ -198,7 +197,6 @@ export default class RTC extends Listenable {
 
         this._channelOpenListener = () => {
             const logError = (error, msgType, value) => {
-                GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(`Cannot send ${msgType}(${JSON.stringify(value)}) endpoint message`, error);
             };
 
