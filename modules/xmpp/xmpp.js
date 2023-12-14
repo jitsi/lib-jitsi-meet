@@ -11,7 +11,6 @@ import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
 import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
 
@@ -339,11 +338,7 @@ export default class XMPP extends Listenable {
                         identities, undefined /* when querying we will query for features */);
                 })
                 .catch(error => {
-                    const errmsg = 'Feature discovery error';
-
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error(`${errmsg}: ${error}`));
-                    logger.error(errmsg, error);
+                    logger.error('Feature discovery error', error);
 
                     this._maybeSendDeploymentInfoStat(true);
                 });

@@ -19,7 +19,6 @@ import SDPUtil from '../sdp/SDPUtil';
 import SdpConsistency from '../sdp/SdpConsistency';
 import SdpSimulcast from '../sdp/SdpSimulcast';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
-import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
@@ -959,8 +958,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
 
     // look up an associated JID for a stream id
     if (!mediaType) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`));
+        logger.error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`);
 
         return;
     }
@@ -988,9 +986,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     }
 
     if (!mediaLine) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
-                + 'track creation failed!'));
+        logger.error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
+                + 'track creation failed!');
 
         return;
     }
@@ -999,9 +996,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
 
     ssrcLines = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
     if (!ssrcLines.length) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
-                + 'track creation failed!'));
+        logger.error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
+                + 'track creation failed!');
 
         return;
     }
@@ -1013,17 +1009,15 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
     if (isNaN(trackSsrc) || trackSsrc < 0) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-                + 'track creation failed!'));
+        logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+                + 'track creation failed!');
 
         return;
     }
 
     if (!ownerEndpointId) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-            + 'track creation failed!'));
+        logger.error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+            + 'track creation failed!');
 
         return;
     }
@@ -1152,13 +1146,13 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     }
 
     if (!streamId) {
-        GlobalOnErrorHandler.callErrorHandler(new Error(`${this} remote track removal failed - no stream ID`));
+        logger.error(`${this} remote track removal failed - no stream ID`);
 
         return;
     }
 
     if (!trackId) {
-        GlobalOnErrorHandler.callErrorHandler(new Error(`${this} remote track removal failed - no track ID`));
+        logger.error(`${this} remote track removal failed - no track ID`);
 
         return;
     }
@@ -1167,7 +1161,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
         remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
 
     if (!toBeRemoved) {
-        GlobalOnErrorHandler.callErrorHandler(new Error(`${this} remote track removal failed - track not found`));
+        logger.error(`${this} remote track removal failed - track not found`);
 
         return;
     }

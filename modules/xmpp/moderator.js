@@ -11,7 +11,6 @@ import Listenable from '../util/Listenable';
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
-const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 const logger = getLogger(__filename);
 
@@ -449,11 +448,7 @@ export default class Moderator extends Listenable {
             window.setTimeout(() => this.sendConferenceRequest(roomJid)
                 .then(callback), waitMs);
         } else {
-            const errmsg = 'Failed to get a successful response, giving up.';
-            const error = new Error(errmsg);
-
-            logger.error(errmsg, error);
-            GlobalOnErrorHandler.callErrorHandler(error);
+            logger.error('Failed to get a successful response, giving up.');
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
             // TODO: change the event name to something accurate.
@@ -579,10 +574,7 @@ export default class Moderator extends Listenable {
                 callback();
             },
             error => {
-                const errmsg = 'Logout error';
-
-                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-                logger.error(errmsg, error);
+                logger.error('Logout error', error);
             }
         );
     }

@@ -17,7 +17,6 @@ import SDPDiffer from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import browser from './../browser';
 import JingleSession from './JingleSession';
@@ -706,10 +705,7 @@ export default class JingleSessionPC extends JingleSession {
             const jcand = SDPUtil.candidateToJingle(candidate.candidate);
 
             if (!(ice && jcand)) {
-                const errorMesssage = 'failed to get ice && jcand';
-
-                GlobalOnErrorHandler.callErrorHandler(new Error(errorMesssage));
-                logger.error(errorMesssage);
+                logger.error('failed to get ice && jcand');
 
                 return;
             }
@@ -2777,9 +2773,7 @@ export default class JingleSessionPC extends JingleSession {
                 // We don't want to have that logged on error level.
                 logger.debug(`${this} Jingle error: ${JSON.stringify(error)}`);
             } else {
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error(
-                        `Jingle error: ${JSON.stringify(error)}`));
+                logger.error(`Jingle error: ${JSON.stringify(error)}`);
             }
         };
     }

@@ -11,7 +11,6 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Statistics from '../statistics/statistics';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
 
 import ConnectionPlugin from './ConnectionPlugin';
@@ -285,7 +284,6 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                         value: successTime
                     }));
             }, error => {
-                GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Transport replace failed', error);
                 sess.sendTransportReject();
             });
