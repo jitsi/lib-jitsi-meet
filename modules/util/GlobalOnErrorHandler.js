@@ -46,32 +46,6 @@ const GlobalOnErrorHandler = {
      */
     addHandler(handler) {
         handlers.push(handler);
-    },
-
-    /**
-     * Calls the global error handler if there is one.
-     * @param error the error to pass to the error handler
-     */
-    callErrorHandler(error) {
-        const errHandler = window.onerror;
-
-        if (!errHandler) {
-            return;
-        }
-        errHandler(null, null, null, null, error);
-    },
-
-    /**
-     * Calls the global rejection handler if there is one.
-     * @param error the error to pass to the rejection handler.
-     */
-    callUnhandledRejectionHandler(error) {
-        const errHandler = window.onunhandledrejection;
-
-        if (!errHandler) {
-            return;
-        }
-        errHandler(error);
     }
 };
 
