@@ -7,6 +7,8 @@ You can use Jitsi Meet API to create Jitsi Meet video conferences with a custom 
 - [Installation guide](doc/API.md#installation)
 - [Checkout the example](doc/example)
 
+
+
 ## Building the sources
 
 NOTE: you need Node.js >= 12 and npm >= 7
