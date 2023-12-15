@@ -234,7 +234,7 @@ export default class ChatRoom extends Listenable {
             preJoin.then(() => {
                 this.sendPresence(true);
                 this._removeConnListeners.push(
-                    this.connection.addEventListener(
+                    this.connection.addCancellableListener(
                         XmppConnection.Events.CONN_STATUS_CHANGED,
                         this.onConnStatusChanged.bind(this))
                 );

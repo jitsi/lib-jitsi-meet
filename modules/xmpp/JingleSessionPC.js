@@ -349,7 +349,7 @@ export default class JingleSessionPC extends JingleSession {
 
         this._xmppListeners = [];
         this._xmppListeners.push(
-            connection.addEventListener(
+            connection.addCancellableListener(
                 XmppConnection.Events.CONN_STATUS_CHANGED,
                 this.onXmppStatusChanged.bind(this))
         );
