@@ -99,8 +99,6 @@ export default class JitsiConference {
   isSIPCallingSupported: () => boolean;
   dial: ( number: string ) => Promise<unknown>;
   hangup: () => Promise<unknown>;
-  startTranscriber: () => Promise<unknown>;
-  stopTranscriber: () => Promise<unknown>;
   getPhoneNumber: () => string | null;
   getPhonePin: () => string | null;
   getMeetingUniqueId: () => string | undefined;
