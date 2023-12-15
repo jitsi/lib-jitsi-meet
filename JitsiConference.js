@@ -2497,19 +2497,6 @@ JitsiConference.prototype.hangup = function() {
 };
 
 /**
- * Starts the transcription service.
- */
-JitsiConference.prototype.startTranscriber = function() {
-    return this.dial('jitsi_meet_transcribe');
-};
-
-
-/**
- * Stops the transcription service.
- */
-JitsiConference.prototype.stopTranscriber = JitsiConference.prototype.hangup;
-
-/**
  * Returns the phone number for joining the conference.
  */
 JitsiConference.prototype.getPhoneNumber = function() {
