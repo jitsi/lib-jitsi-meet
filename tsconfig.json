@@ -22,6 +22,7 @@
     "**/*.spec.ts",
     "*.conf*.js",
     "index.js",
+    "index.d.ts",
     "lib-jitsi-meet.*.js",
     "webpack*.js",
   ]
