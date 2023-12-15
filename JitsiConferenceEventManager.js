@@ -696,6 +696,11 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
         value => {
             conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_REJECTED, { mediaType: value });
         });
+
+    this._addConferenceXMPPListener(XMPPEvents.VISITORS_MESSAGE,
+        value => conference.eventEmitter.emit(JitsiConferenceEvents.VISITORS_MESSAGE, value));
+    this._addConferenceXMPPListener(XMPPEvents.VISITORS_REJECTION,
+        () => conference.eventEmitter.emit(JitsiConferenceEvents.VISITORS_REJECTION));
 };
 
 /**

@@ -5,8 +5,6 @@ import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
-const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-
 const logger = getLogger(__filename);
 
 /**
@@ -185,7 +183,6 @@ StatsCollector.prototype.stop = function() {
  * @param error an error that occurred on <tt>getStats</tt> call.
  */
 StatsCollector.prototype.errorCallback = function(error) {
-    GlobalOnErrorHandler.callErrorHandler(error);
     logger.error('Get stats error', error);
     this.stop();
 };
@@ -228,7 +225,6 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                 try {
                     this.processStatsReport();
                 } catch (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
                     logger.error('Processing of RTP stats failed:', error);
                 }
                 this.previousStatsReport = this.currentStatsReport;

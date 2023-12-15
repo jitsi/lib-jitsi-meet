@@ -122,6 +122,8 @@ export type JitsiMeetJSType = {
 
   getActiveAudioDevice: () => Promise<Object>; // TODO: can we improve on object?
 
+  createLocalTracksFromMediaStreams: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
+
   // isDeviceListAvailable: () => boolean; // obsosete
 
   // isDeviceChangeAvailable: ( deviceType: string ) => boolean; // obsosete
@@ -131,8 +133,6 @@ export type JitsiMeetJSType = {
   isCollectingLocalStats: () => boolean;
 
   enumerateDevices: ( callback: ( availableDevices: MediaDeviceInfo[] ) => void ) => void;
-
-  getGlobalOnErrorHandler: ( message: string, source: string, lineno?: number, colno?: number, error?: Error ) => void;
 
   setNetworkInfo: ( { isOnline: boolean } ) => void;
 

@@ -38,7 +38,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import EventEmitter from './modules/util/EventEmitter';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -1788,11 +1788,10 @@ JitsiConference.prototype.onMemberJoined = function(
 /**
  * Get notified when we joined the room.
  *
- * FIXME This should NOT be exposed!
- *
  * @private
  */
 JitsiConference.prototype._onMucJoined = function() {
+    this._numberOfParticipantsOnJoin = this.getParticipantCount();
     this._maybeStartOrStopP2P();
 };
 
@@ -2195,7 +2194,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
             });
     } catch (error) {
-        GlobalOnErrorHandler.callErrorHandler(error);
         logger.error(error);
 
         return;
@@ -2223,7 +2221,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 }
             },
             error => {
-                GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Failed to accept incoming Jingle session', error);
             },
             localTracks
@@ -2235,7 +2232,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
 
         this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
     } catch (e) {
-        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error(e);
     }
 };
@@ -2482,9 +2478,7 @@ JitsiConference.prototype.dial = function(number) {
         return this.room.dial(number);
     }
 
-    return new Promise((resolve, reject) => {
-        reject(new Error('The conference is not created yet!'));
-    });
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
 
 /**
@@ -2495,9 +2489,7 @@ JitsiConference.prototype.hangup = function() {
         return this.room.hangup();
     }
 
-    return new Promise((resolve, reject) => {
-        reject(new Error('The conference is not created yet!'));
-    });
+    return Promise.resolve();
 };
 
 /**
@@ -3670,7 +3662,26 @@ JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
         return;
     }
 
+    const conferenceConnectionTimes = this.getConnectionTimes();
+    const xmppConnectionTimes = this.connection.getConnectionTimes();
+    const gumStart = window.connectionTimes['firstObtainPermissions.start'];
+    const gumEnd = window.connectionTimes['firstObtainPermissions.end'];
+    const globalNSConnectionTimes = window.JitsiMeetJS?.app?.connectionTimes ?? {};
+    const connectionTimes = {
+        ...conferenceConnectionTimes,
+        ...xmppConnectionTimes,
+        ...globalNSConnectionTimes,
+        gumDuration: safeSubtract(gumEnd, gumStart),
+        xmppConnectingTime: safeSubtract(xmppConnectionTimes.connected, xmppConnectionTimes.connecting),
+        connectedToMUCJoinedTime: safeSubtract(
+            conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connected),
+        connectingToMUCJoinedTime: safeSubtract(
+            conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connecting),
+        numberOfParticipantsOnJoin: this._numberOfParticipantsOnJoin
+    };
+
     Statistics.sendAnalytics(createConferenceEvent('joined', {
+        ...connectionTimes,
         meetingId,
         participantId: `${meetingId}.${this._statsCurrentId}`
     }));

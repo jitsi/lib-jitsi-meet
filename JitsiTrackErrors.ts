@@ -68,7 +68,17 @@ export enum JitsiTrackErrors {
      * An error which indicates that requested video resolution is not supported
      * by a webcam.
      */
-    UNSUPPORTED_RESOLUTION = 'gum.unsupported_resolution'
+    UNSUPPORTED_RESOLUTION = 'gum.unsupported_resolution',
+
+    /**
+     * An error which indicates that there are too many tracks in the provided media stream
+     */
+    TRACK_TOO_MANY_TRACKS_IN_STREAM = 'track.too_many_tracks_in_stream',
+
+    /**
+     * An error which indicates that no tracks were found in the media stream
+     */
+    TRACK_NO_STREAM_TRACKS_FOUND = 'track.no_stream_tracks_found',
 }
 
 // exported for backward compatibility
@@ -84,3 +94,5 @@ export const TIMEOUT = JitsiTrackErrors.TIMEOUT;
 export const TRACK_IS_DISPOSED = JitsiTrackErrors.TRACK_IS_DISPOSED;
 export const TRACK_NO_STREAM_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_FOUND;
 export const UNSUPPORTED_RESOLUTION = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
+export const TRACK_TOO_MANY_TRACKS_IN_STREAM = JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM;
+export const TRACK_NO_STREAM_TRACKS_FOUND = JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND;

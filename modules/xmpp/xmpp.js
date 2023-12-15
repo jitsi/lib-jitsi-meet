@@ -11,7 +11,6 @@ import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
 import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
 
@@ -233,9 +232,9 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('http://jitsi.org/remb');
         }
 
-        // Disable TCC on Firefox 116 and older versions because of a known issue where BWE is halved on every
+        // Disable TCC on Firefox 114 and older versions because of a known issue where BWE is halved on every
         // renegotiation.
-        if (!(browser.isFirefox() && browser.isVersionLessThan(117))
+        if (!(browser.isFirefox() && browser.isVersionLessThan(115))
             && (typeof this.options.enableTcc === 'undefined' || this.options.enableTcc)) {
             this.caps.addFeature('http://jitsi.org/tcc');
         }
@@ -339,11 +338,7 @@ export default class XMPP extends Listenable {
                         identities, undefined /* when querying we will query for features */);
                 })
                 .catch(error => {
-                    const errmsg = 'Feature discovery error';
-
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error(`${errmsg}: ${error}`));
-                    logger.error(errmsg, error);
+                    logger.error('Feature discovery error', error);
 
                     this._maybeSendDeploymentInfoStat(true);
                 });
@@ -524,6 +519,10 @@ export default class XMPP extends Listenable {
             if (identity.type === 'room_metadata') {
                 this.roomMetadataComponentAddress = identity.name;
                 this._components.push(this.roomMetadataComponentAddress);
+            }
+
+            if (identity.type === 'visitors') {
+                this._components.push(identity.name);
             }
         });
 
@@ -1080,6 +1079,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'room_metadata') {
             this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'visitors') {
+            this.eventEmitter.emit(XMPPEvents.VISITORS_MESSAGE, parsedJson);
         }
 
         return true;

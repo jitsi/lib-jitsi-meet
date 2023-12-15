@@ -26,7 +26,6 @@ import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
@@ -36,6 +35,7 @@ import * as ConnectionQualityEvents
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
+import { VideoType } from './service/RTC/VideoType';
 
 const logger = Logger.getLogger(__filename);
 
@@ -44,6 +44,11 @@ const logger = Logger.getLogger(__filename);
  * {@link JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN} event.
  */
 const USER_MEDIA_SLOW_PROMISE_TIMEOUT = 1000;
+
+/**
+ * Indicates whether GUM has been executed or not.
+ */
+let hasGUMExecuted = false;
 
 /**
  * Extracts from an 'options' objects with a specific format (TODO what IS the
@@ -83,6 +88,13 @@ interface IJitsiMeetJSOptions {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
     }
+}
+
+interface ICreateLocalTrackFromMediaStreamOptions {
+    stream: MediaStream,
+    sourceType: string,
+    mediaType: MediaType,
+    videoType?: VideoType
 }
 
 /**
@@ -150,11 +162,6 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
-        }
-
-        if (options.enableWindowOnErrorHandler) {
-            GlobalOnErrorHandler.addHandler(
-                this.getGlobalOnErrorHandler.bind(this));
         }
 
         return RTC.init(options);
@@ -320,18 +327,31 @@ export default {
             }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }
 
+        let isFirstGUM = false;
+        let startTS = window.performance.now();
+
         if (!window.connectionTimes) {
             window.connectionTimes = {};
         }
-        window.connectionTimes['obtainPermissions.start']
-            = window.performance.now();
+
+        if (!hasGUMExecuted) {
+            hasGUMExecuted = true;
+            isFirstGUM = true;
+            window.connectionTimes['firstObtainPermissions.start'] = startTS;
+        }
+        window.connectionTimes['obtainPermissions.start'] = startTS;
 
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
                 promiseFulfilled = true;
 
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
+                let endTS = window.performance.now();
+
+                window.connectionTimes['obtainPermissions.end'] = endTS;
+
+                if (isFirstGUM) {
+                    window.connectionTimes['firstObtainPermissions.end'] = endTS;
+                }
 
                 Statistics.sendAnalytics(
                     createGetUserMediaEvent(
@@ -391,11 +411,41 @@ export default {
                         createGetUserMediaEvent('error', attributes));
                 }
 
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
+                let endTS = window.performance.now();
+
+                window.connectionTimes['obtainPermissions.end'] = endTS;
+
+                if (isFirstGUM) {
+                    window.connectionTimes['firstObtainPermissions.end'] = endTS;
+                }
 
                 return Promise.reject(error);
             });
+    },
+
+    /**
+     * Manually create JitsiLocalTrack's from the provided track info, by exposing the RTC method
+     *
+     * @param {Array<ICreateLocalTrackFromMediaStreamOptions>} tracksInfo - array of track information
+     * @returns {Array<JitsiLocalTrack>} - created local tracks
+     */
+    createLocalTracksFromMediaStreams(tracksInfo) {
+        return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
+            const tracks = trackInfo.stream.getTracks()
+                .filter(track => track.kind === trackInfo.mediaType);
+
+            if (!tracks || tracks.length === 0) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
+            }
+
+            if (tracks.length > 1) {
+                throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM, null, null);
+            }
+
+            trackInfo.track = tracks[0];
+
+            return trackInfo;
+        }));
     },
 
     /**
@@ -499,24 +549,6 @@ export default {
             + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
     },
-
-    /* eslint-disable max-params */
-
-    /**
-     * @returns function that can be used to be attached to window.onerror and
-     * if options.enableWindowOnErrorHandler is enabled returns
-     * the function used by the lib.
-     * (function(message, source, lineno, colno, error)).
-     */
-    getGlobalOnErrorHandler(message, source, lineno, colno, error) {
-        logger.error(
-            `UnhandledError: ${message}`,
-            `Script: ${source}`,
-            `Line: ${lineno}`,
-            `Column: ${colno}`,
-            'StackTrace: ', error);
-    },
-    /* eslint-enable max-params */
 
     /**
      * Informs lib-jitsi-meet about the current network status.

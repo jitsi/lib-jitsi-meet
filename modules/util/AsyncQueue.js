@@ -35,7 +35,7 @@ export default class AsyncQueue {
     clear() {
         for (const finishedCallback of this._taskCallbacks.values()) {
             try {
-                finishedCallback(new ClearedQueueError('The queue has been cleared'));
+                finishedCallback?.(new ClearedQueueError('The queue has been cleared'));
             } catch (error) {
                 logger.error('Error in callback while clearing the queue:', error);
             }

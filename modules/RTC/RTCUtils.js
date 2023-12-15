@@ -11,7 +11,6 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 
 import screenObtainer from './ScreenObtainer';
@@ -864,14 +863,9 @@ function wrapAttachMediaStream(origAttachMediaStream) {
 
                 // we skip setting audio output if there was no explicit change
                 && audioOutputChanged) {
-            return element.setSinkId(rtcUtils.getAudioOutputDevice()).catch(function(ex) {
+            return element.setSinkId(rtcUtils.getAudioOutputDevice()).catch(ex => {
                 const err
                     = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
-                GlobalOnErrorHandler.callUnhandledRejectionHandler({
-                    promise: this, // eslint-disable-line no-invalid-this
-                    reason: err
-                });
 
                 logger.warn(
                     'Failed to set audio output device for the element.'
