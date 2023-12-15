@@ -2478,9 +2478,7 @@ JitsiConference.prototype.dial = function(number) {
         return this.room.dial(number);
     }
 
-    return new Promise((resolve, reject) => {
-        reject(new Error('The conference is not created yet!'));
-    });
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
 
 /**
