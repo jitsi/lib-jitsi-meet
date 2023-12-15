@@ -2491,9 +2491,7 @@ JitsiConference.prototype.hangup = function() {
         return this.room.hangup();
     }
 
-    return new Promise((resolve, reject) => {
-        reject(new Error('The conference is not created yet!'));
-    });
+    return Promise.resolve();
 };
 
 /**
