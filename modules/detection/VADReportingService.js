@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
+
+import EventEmitter from '../util/EventEmitter';
 
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';

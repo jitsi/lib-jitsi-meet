@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 
 import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
-import EventEmitter from 'events';
 
 import {
     CONFERENCE_JOINED,
@@ -12,6 +11,7 @@ import {
 import JitsiConference from '../../JitsiConference';
 import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
+import EventEmitter from '../util/EventEmitter';
 
 const logger = getLogger(__filename);
 

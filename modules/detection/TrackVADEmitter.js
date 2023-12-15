@@ -1,6 +1,5 @@
-import EventEmitter from 'events';
-
 import RTC from '../RTC/RTC';
+import EventEmitter from '../util/EventEmitter';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
 
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';

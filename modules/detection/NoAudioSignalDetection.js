@@ -1,7 +1,6 @@
-import EventEmitter from 'events';
-
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import EventEmitter from '../util/EventEmitter';
 
 import * as DetectionEvents from './DetectionEvents';
 

@@ -1,5 +1,3 @@
-import EventEmitter from 'events';
-
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents.ts';
 import Listenable from '../util/Listenable.js';
 import JingleSessionPC from '../xmpp/JingleSessionPC.js';
@@ -42,7 +40,6 @@ class MockConference extends Listenable {
         };
 
         this.activeMediaSession = undefined;
-        this.eventEmitter = new EventEmitter();
         this.mediaSessions = [];
         this.participants = [];
         this._signalingLayer = new MockSignalingLayerImpl();

@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
+import EventEmitter from '../util/EventEmitter';
 
 import RTCUtils from './RTCUtils';
 
@@ -43,10 +43,6 @@ export default class JitsiTrack extends EventEmitter {
             trackMediaType,
             videoType) {
         super();
-
-        // aliases for addListener/removeListener
-        this.addEventListener = this.addListener;
-        this.removeEventListener = this.off = this.removeListener;
 
         /**
          * Array with the HTML elements that are displaying the streams.

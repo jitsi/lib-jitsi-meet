@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import EventEmitter from 'events';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { Strophe } from 'strophe.js';
@@ -38,6 +37,7 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
+import EventEmitter from './modules/util/EventEmitter';
 import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
