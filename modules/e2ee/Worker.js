@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 /* global TransformStream */
 /* eslint-disable no-bitwise */
 

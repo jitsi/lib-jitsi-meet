@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 /* global TransformStream */
 import { getLogger } from '@jitsi/logger';
 
