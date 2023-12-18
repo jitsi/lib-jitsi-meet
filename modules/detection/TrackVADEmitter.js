@@ -20,7 +20,8 @@ export default class TrackVADEmitter extends EventEmitter {
      * @param {number} procNodeSampleRate - Sample rate of the ScriptProcessorNode. Possible values  256, 512, 1024,
      *  2048, 4096, 8192, 16384. Passing other values will default to closes neighbor.
      * @param {Object} vadProcessor - VAD processor that allows us to calculate VAD score for PCM samples.
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} jitsiLocalTrack - JitsiLocalTrack corresponding to micDeviceId.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} jitsiLocalTrack - JitsiLocalTrack corresponding
+     * to micDeviceId.
      */
     constructor(procNodeSampleRate, vadProcessor, jitsiLocalTrack) {
         super();

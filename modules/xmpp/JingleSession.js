@@ -108,7 +108,8 @@ export default class JingleSession extends Listenable {
      * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the chat room for the conference associated with
      * this session
      * @param {import("modules/RTC/RTC").RTC} rtc the RTC service instance
-     * @param {import("modules/xmpp/SignalingLayerImpl").SignalingLayerImpl} signalingLayer - The signaling layer instance.
+     * @param {import("modules/xmpp/SignalingLayerImpl").SignalingLayerImpl} signalingLayer - The signaling layer
+     * instance.
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.
      */

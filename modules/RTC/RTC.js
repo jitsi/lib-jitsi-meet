@@ -356,7 +356,8 @@ export default class RTC extends Listenable {
      * @param {object} options The config options.
      * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
      * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
-     * @param {Array<import("service/RTC/CodecMimeType").CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
+     * @param {Array<import("service/RTC/CodecMimeType").CodecMimeType>} options.codecSettings - codec settings to be
+     * applied for video streams.
      * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
      * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
      * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be

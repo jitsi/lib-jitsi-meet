@@ -54,7 +54,8 @@ Statistics.init = function(options) {
  * @property {string} userName - The user name to use
  * @property {string} roomName - The room name we are currently in.
  *
- * @param {import("JitsiConference").JitsiConference} conference - The conference instance from which the statistics were initialized.
+ * @param {import("JitsiConference").JitsiConference} conference - The conference instance from which the statistics
+ * were initialized.
  * @param {StatisticsOptions} options - The options to use creating the
  * Statistics.
  */

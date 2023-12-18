@@ -9,7 +9,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
-import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
+
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -22,6 +22,7 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
+import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
@@ -2081,7 +2082,8 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 
 /**
  * Returns the sender corresponding to the given media type.
- * @param {import("service/RTC/MediaType").MediaType} mediaType - The media type 'audio' or 'video' to be used for the search.
+ * @param {import("service/RTC/MediaType").MediaType} mediaType - The media type 'audio' or 'video' to be used for
+ * the search.
  * @returns {Object|undefined} - The found sender or undefined if no sender
  * was found.
  */

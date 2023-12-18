@@ -25,8 +25,8 @@ export default class ProxyConnectionService {
      * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied video should be returned as a desktop
      * stream. Defaults to false.
      * @param {Object} [options.pcConfig] - The {@code RTCConfiguration} to use for the WebRTC peer connection.
-     * @param {import("JitsiMeetJS").JitsiConnection} [options.jitsiConnection] - The {@code JitsiConnection} which will be used to fetch
-     * TURN credentials for the P2P connection.
+     * @param {import("JitsiMeetJS").JitsiConnection} [options.jitsiConnection] - The {@code JitsiConnection} which will
+     * be used to fetch TURN credentials for the P2P connection.
      * @param {Function} options.onRemoteStream - Callback to invoke when a remote video stream has been received and
      * converted to a {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
      * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out. The

@@ -83,7 +83,8 @@ export default class AudioOutputProblemDetector {
     /**
      * A listener for audio level data retrieved by the local stats.
      *
-     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - The <tt>TraceablePeerConnection</tt> instance used to gather the data.
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - The
+     * <tt>TraceablePeerConnection</tt> instance used to gather the data.
      * @param {Object} avgAudioLevels - The average audio levels per participant.
      * @returns {void}
      */

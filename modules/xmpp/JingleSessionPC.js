@@ -976,11 +976,12 @@ export default class JingleSessionPC extends JingleSession {
      * 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept the incoming offer. 'error' argument
      * can be used to log some details about the error.
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of the local
-     * tracks that will be added, before the offer/answer cycle executes. We allow the localTracks to optionally be passed
-     * in so that the addition of the local tracks and the processing of the initial offer can all be done atomically.
-     * We want to make sure that any other operations which originate in the XMPP Jingle messages related with this session
-     * to be executed with an assumption that the initial offer/answer cycle has been executed already.
+     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of the
+     * local tracks that will be added, before the offer/answer cycle executes. We allow the localTracks to optionally
+     * be passed in so that the addition of the local tracks and the processing of the initial offer can all be done
+     * atomically. We want to make sure that any other operations which originate in the XMPP Jingle messages related
+     * with this session to be executed with an assumption that the initial offer/answer cycle has been executed
+     * already.
      */
     acceptOffer(jingleOffer, success, failure, localTracks = []) {
         this.setOfferAnswerCycle(

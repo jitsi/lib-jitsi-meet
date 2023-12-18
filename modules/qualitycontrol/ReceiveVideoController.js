@@ -144,9 +144,10 @@ export default class ReceiveVideoController {
     /**
      * Creates a new instance for a given conference.
      *
-     * @param {import("JitsiConference").JitsiConference} conference the conference instance for which the new instance will be managing
-     * the receive video quality constraints.
-     * @param {import("modules/RTC/RTC").RTC} rtc the rtc instance which is responsible for initializing the bridge channel.
+     * @param {import("JitsiConference").JitsiConference} conference the conference instance for which the new instance
+     * will be managing the receive video quality constraints.
+     * @param {import("modules/RTC/RTC").RTC} rtc the rtc instance which is responsible for initializing the bridge
+     * channel.
      */
     constructor(conference, rtc) {
         this._conference = conference;
