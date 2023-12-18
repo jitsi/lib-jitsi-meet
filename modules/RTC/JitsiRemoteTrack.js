@@ -27,15 +27,15 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
 export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Creates new JitsiRemoteTrack instance.
-     * @param {RTC} rtc the RTC service instance.
-     * @param {JitsiConference} conference the conference to which this track
+     * @param {import("modules/RTC/RTC").RTC} rtc the RTC service instance.
+     * @param {import("JitsiConference").JitsiConference} conference the conference to which this track
      *        belongs to
      * @param {string} ownerEndpointId the endpoint ID of the track owner
      * @param {MediaStream} stream WebRTC MediaStream, parent of the track
      * @param {MediaStreamTrack} track underlying WebRTC MediaStreamTrack for
      *        the new JitsiRemoteTrack
-     * @param {MediaType} mediaType the type of the media
-     * @param {VideoType} videoType the type of the video if applicable
+     * @param {import("service/RTC/MediaType").MediaType} mediaType the type of the media
+     * @param {import("service/RTC/VideoType").VideoType} videoType the type of the video if applicable
      * @param {number} ssrc the SSRC number of the Media Stream
      * @param {boolean} muted the initial muted state
      * @param {boolean} isP2P indicates whether or not this track belongs to a
@@ -205,7 +205,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     /**
      * Sets current muted status and fires an events for the change.
-     * @param value the muted status.
+     * @param {boolean} value the muted status.
      */
     setMute(value) {
         if (this.muted === value) {
@@ -229,7 +229,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     /**
      * Returns the current muted status of the track.
-     * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
+     * @returns {boolean} <tt>true</tt> if the track is
      * muted and <tt>false</tt> otherwise.
      */
     isMuted() {
@@ -350,7 +350,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Attach time to first media tracker only if there is conference and only
      * for the first element.
-     * @param container the HTML container which can be 'video' or 'audio'
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio'
      * element.
      * @private
      */
@@ -462,7 +462,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Updates track's streaming status.
      *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     * @param {string} status the current track streaming state. {@link TrackStreamingStatus}.
      */
     _setTrackStreamingStatus(status) {
         this._trackStreamingStatus = status;

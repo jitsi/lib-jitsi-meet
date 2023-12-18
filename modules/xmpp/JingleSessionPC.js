@@ -106,7 +106,7 @@ function _addSourceElement(description, s, ssrc_, msid) {
 export default class JingleSessionPC extends JingleSession {
     /**
      * Parses 'senders' attribute of the video content.
-     * @param {jQuery} jingleContents
+     * @param {JQuery} jingleContents
      * @return {string|null} one of the values of content "senders" attribute
      * defined by Jingle. If there is no "senders" attribute or if the value is
      * invalid then <tt>null</tt> will be returned.
@@ -133,7 +133,7 @@ export default class JingleSessionPC extends JingleSession {
      * Parses the source-name and max frame height value of the 'content-modify' IQ when source-name signaling
      * is enabled.
      *
-     * @param {jQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
+     * @param {JQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
      * @returns {Object|null}
      */
     static parseSourceMaxFrameHeight(jingleContents) {
@@ -976,11 +976,11 @@ export default class JingleSessionPC extends JingleSession {
      * 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept the incoming offer. 'error' argument
      * can be used to log some details about the error.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
-     * the offer/answer cycle executes. We allow the localTracks to optionally be passed in so that the addition of the
-     * local tracks and the processing of the initial offer can all be done atomically. We want to make sure that any
-     * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
-     * assumption that the initial offer/answer cycle has been executed already.
+     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of the local
+     * tracks that will be added, before the offer/answer cycle executes. We allow the localTracks to optionally be passed
+     * in so that the addition of the local tracks and the processing of the initial offer can all be done atomically.
+     * We want to make sure that any other operations which originate in the XMPP Jingle messages related with this session
+     * to be executed with an assumption that the initial offer/answer cycle has been executed already.
      */
     acceptOffer(jingleOffer, success, failure, localTracks = []) {
         this.setOfferAnswerCycle(
@@ -1021,8 +1021,9 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
      *
-     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be added, before the offer/answer cycle
-     * executes (for the local track addition to be an atomic operation together with the offer/answer).
+     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks the local tracks that will be
+     * added, before the offer/answer cycle executes (for the local track addition to be an atomic operation
+     * together with the offer/answer).
      */
     invite(localTracks = []) {
         if (!this.isInitiator) {
@@ -1135,9 +1136,9 @@ export default class JingleSessionPC extends JingleSession {
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we fail at any point during setRD,
      * createAnswer, setLD.
-     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the local tracks that will be added, before
-     * the offer/answer cycle executes (for the local track addition to be an atomic operation together with the
-     * offer/answer).
+     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of
+     * the local tracks that will be added, before the offer/answer cycle executes (for the local track addition
+     * to be an atomic operation together with the offer/answer).
      */
     setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks = []) {
         logger.debug(`${this} Executing setOfferAnswerCycle task`);
@@ -1670,11 +1671,11 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parse the information from the xml sourceAddElem and translate it
      *  into sdp lines
-     * @param {jquery xml element} sourceAddElem the source-add
+     * @param {Element} sourceAddElem the source-add
      *  element from jingle
-     * @param {SDP object} currentRemoteSdp the current remote
+     * @param {Object} currentRemoteSdp the current remote
      *  sdp (as of this new source-add)
-     * @returns {list} a list of SDP line strings that should
+     * @returns {Array<string>} a list of SDP line strings that should
      *  be added to the remote SDP
      */
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
@@ -1964,8 +1965,8 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Takes in a jingle offer iq, returns the new sdp offer
-     * @param {jquery xml element} offerIq the incoming offer
-     * @returns {SDP object} the jingle offer translated to SDP
+     * @param {JQuery} offerIq the incoming offer
+     * @returns {Object} the jingle offer translated to SDP
      */
     _processNewJingleOfferIq(offerIq) {
         const remoteSdp = new SDP('');
@@ -1988,7 +1989,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Remove the given ssrc lines from the current remote sdp
-     * @param {list} removeSsrcInfo a list of SDP line strings that
+     * @param {Array<string>} removeSsrcInfo a list of SDP line strings that
      *  should be removed from the remote SDP
      * @returns type {SDP Object} the new remote SDP (after removing the lines
      *  in removeSsrcInfo
@@ -2051,7 +2052,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Add the given ssrc lines to the current remote sdp
-     * @param {list} addSsrcInfo a list of SDP line strings that
+     * @param {Array<string>} addSsrcInfo a list of SDP line strings that
      *  should be added to the remote SDP
      * @returns type {SDP Object} the new remote SDP (after removing the lines
      *  in removeSsrcInfo
@@ -2147,7 +2148,8 @@ export default class JingleSessionPC extends JingleSession {
      * Adds a new track to the peerconnection. This method needs to be called only when a secondary JitsiLocalTrack is
      * being added to the peerconnection for the first time.
      *
-     * @param {Array<JitsiLocalTrack>} localTracks - Tracks to be added to the peer connection.
+     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks - Tracks to be added to
+     * the peer connection.
      * @returns {Promise<void>} that resolves when the track is successfully added to the peerconnection, rejected
      * otherwise.
      */
@@ -2244,9 +2246,10 @@ export default class JingleSessionPC extends JingleSession {
      * <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
      * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
      * <tt>oldTrack</tt>
-     * @param {JitsiLocalTrack|null} oldTrack the current track in use to be
-     * replaced
-     * @param {JitsiLocalTrack|null} newTrack the new track to use
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} oldTrack the current
+     * track in use to be replaced
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} newTrack the new track
+     * to use
      * @returns {Promise} which resolves once the replacement is complete
      *  with no arguments or rejects with an error {string}
      */
@@ -2337,11 +2340,11 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parse the information from the xml sourceRemoveElem and translate it
      *  into sdp lines
-     * @param {jquery xml element} sourceRemoveElem the source-remove
+     * @param {Element} sourceRemoveElem the source-remove
      *  element from jingle
-     * @param {SDP object} currentRemoteSdp the current remote
+     * @param {Object} currentRemoteSdp the current remote
      *  sdp (as of this new source-remove)
-     * @returns {list} a list of SDP line strings that should
+     * @returns {Array<string>} a list of SDP line strings that should
      *  be removed from the remote SDP
      */
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
@@ -2445,7 +2448,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Adds local track back to the peerconnection associated with this session.
-     * @param {JitsiLocalTrack} track
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track
      * @return {Promise} a promise that will resolve once the local track is added back to this session and
      * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
      * details in case something goes wrong.
@@ -2463,7 +2466,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Remove local track as part of the mute operation.
-     * @param {JitsiLocalTrack} track the local track to be removed
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the local track to be removed
      * @return {Promise} a promise which will be resolved once the local track
      * is removed from this session and the renegotiation is performed.
      * The promise will be rejected with a <tt>string</tt> that the describes
@@ -2476,7 +2479,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * See {@link addTrackToPc} and {@link removeTrackFromPc}.
      * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
-     * @param {JitsiLocalTrack} track the track that will be added/removed
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
     _addRemoveTrack(isRemove, track) {

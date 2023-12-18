@@ -26,7 +26,7 @@ const logger = getLogger(__filename);
 /**
  * Parses the transport XML element and returns the list of ICE candidates formatted as text.
  *
- * @param {*} transport Transport XML element extracted from the IQ.
+ * @param {any} transport Transport XML element extracted from the IQ.
  * @returns {Array<string>}
  */
 function _parseIceCandidates(transport) {
@@ -55,8 +55,8 @@ function _parseIceCandidates(transport) {
 export default class JingleConnectionPlugin extends ConnectionPlugin {
     /**
      * Creates new <tt>JingleConnectionPlugin</tt>
-     * @param {XMPP} xmpp
-     * @param {EventEmitter} eventEmitter
+     * @param {import("modules/xmpp/xmpp").XMPP} xmpp
+     * @param {import("modules/util/EventEmitter").EventEmitter} eventEmitter
      * @param {Object} iceConfig an object that holds the iceConfig to be passed
      * to the p2p and the jvb <tt>PeerConnection</tt>.
      */
@@ -314,7 +314,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * connection, configured as 'initiator'.
      * @param {string} me our JID
      * @param {string} peer remote participant's JID
-     * @return {JingleSessionPC}
+     * @return {import("modules/xmpp/JingleSessionPC").JingleSessionPC}
      */
     newP2PJingleSession(me, peer) {
         const sess

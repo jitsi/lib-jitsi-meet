@@ -172,7 +172,7 @@ export default function JitsiConference(options) {
 
     /**
      * Jingle session instance for the JVB connection.
-     * @type {JingleSessionPC}
+     * @type {import("modules/xmpp/JingleSessionPC").JingleSessionPC}
      */
     this.jvbJingleSession = null;
     this.lastDominantSpeaker = null;
@@ -276,7 +276,7 @@ export default function JitsiConference(options) {
 
     /**
      * A JingleSession for the direct peer to peer connection.
-     * @type {JingleSessionPC}
+     * @type {import("modules/xmpp/JingleSessionPC").JingleSessionPC}
      */
     this.p2pJingleSession = null;
 
@@ -367,7 +367,7 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
 /**
  * Initializes the conference object properties
  * @param options {object}
- * @param options.connection {JitsiConnection} overrides this.connection
+ * @param options.connection {import("JitsiMeetJS").JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupXMPPListeners();
@@ -759,7 +759,7 @@ JitsiConference.prototype.end = function() {
 /**
  * Returns the currently active media session if any.
  *
- * @returns {JingleSessionPC|undefined}
+ * @returns {import("modules/xmpp/JingleSessionPC").JingleSessionPC|undefined}
  */
 JitsiConference.prototype.getActiveMediaSession = function() {
     return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
@@ -768,7 +768,7 @@ JitsiConference.prototype.getActiveMediaSession = function() {
 /**
  * Returns an array containing all media sessions existing in this conference.
  *
- * @returns {Array<JingleSessionPC>}
+ * @returns {Array<import("modules/xmpp/JingleSessionPC").JingleSessionPC>}
  */
 JitsiConference.prototype.getMediaSessions = function() {
     const sessions = [];
@@ -797,7 +797,7 @@ JitsiConference.prototype._registerRtcListeners = function(rtc) {
  * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
  * decisions based on the video type of the local source.
  *
- * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
  * @returns {void}
  * @private
  */
@@ -819,7 +819,7 @@ JitsiConference.prototype.getName = function() {
 };
 
 /**
- * Returns the {@link JitsiConnection} used by this this conference.
+ * Returns the {@link import("JitsiMeetJS").JitsiConnection} used by this this conference.
  */
 JitsiConference.prototype.getConnection = function() {
     return this.connection;
@@ -863,7 +863,7 @@ JitsiConference.prototype.getLocalTracks = function(mediaType) {
 
 /**
  * Obtains local audio track.
- * @return {JitsiLocalTrack|null}
+ * @return {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null}
  */
 JitsiConference.prototype.getLocalAudioTrack = function() {
     return this.rtc ? this.rtc.getLocalAudioTrack() : null;
@@ -871,7 +871,7 @@ JitsiConference.prototype.getLocalAudioTrack = function() {
 
 /**
  * Obtains local video track.
- * @return {JitsiLocalTrack|null}
+ * @return {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null}
  */
 JitsiConference.prototype.getLocalVideoTrack = function() {
     return this.rtc ? this.rtc.getLocalVideoTrack() : null;
@@ -879,7 +879,7 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
 
 /**
  * Returns all the local video tracks.
- * @returns {Array<JitsiLocalTrack>}
+ * @returns {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>}
  */
 JitsiConference.prototype.getLocalVideoTracks = function() {
     return this.rtc ? this.rtc.getLocalVideoTracks() : null;
@@ -1065,8 +1065,8 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
 
 /**
  * Adds JitsiLocalTrack object to the conference.
- * @param {JitsiLocalTrack} track the JitsiLocalTrack object.
- * @returns {Promise<JitsiLocalTrack>}
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the JitsiLocalTrack object.
+ * @returns {Promise<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>}
  * @throws {Error} if the specified track is a video track and there is already
  * another video track in the conference.
  */
@@ -1130,7 +1130,7 @@ JitsiConference.prototype.addTrack = function(track) {
 /**
  * Fires TRACK_AUDIO_LEVEL_CHANGED change conference event (for local tracks).
  * @param {number} audioLevel the audio level
- * @param {TraceablePeerConnection} [tpc]
+ * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} [tpc]
  */
 JitsiConference.prototype._fireAudioLevelChangeEvent = function(audioLevel, tpc) {
     const activeTpc = this.getActivePeerConnection();
@@ -1196,7 +1196,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  * This takes the startAudioMuted/startVideoMuted flags into consideration since we do not
  * want to add the tracks if the user joins the call audio/video muted. The tracks will be
  * added when the user unmutes for the first time.
- * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
+ * @returns {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} - list of local tracks that are unmuted.
  */
 JitsiConference.prototype._getInitialLocalTracks = function() {
     // Always add the audio track on certain platforms:
@@ -1222,7 +1222,7 @@ JitsiConference.prototype._getInitialLocalTracks = function() {
 
 /**
  * Clear JitsiLocalTrack properties and listeners.
- * @param track the JitsiLocalTrack object.
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.onLocalTrackRemoved = function(track) {
     track.setConference(null);
@@ -1238,7 +1238,7 @@ JitsiConference.prototype.onLocalTrackRemoved = function(track) {
 /**
  * Removes JitsiLocalTrack from the conference and performs
  * a new offer/answer cycle.
- * @param {JitsiLocalTrack} track
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function(track) {
@@ -1250,8 +1250,8 @@ JitsiConference.prototype.removeTrack = function(track) {
  *  cycle after both operations are done.  Either oldTrack or newTrack
  *  can be null; replacing a valid 'oldTrack' with a null 'newTrack'
  *  effectively just removes 'oldTrack'
- * @param {JitsiLocalTrack} oldTrack the current stream in use to be replaced
- * @param {JitsiLocalTrack} newTrack the new stream to use
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} oldTrack the current stream in use to be replaced
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} newTrack the new stream to use
  * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
@@ -1318,9 +1318,9 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
  * Replaces the tracks at the lower level by going through the Jingle session
  * and WebRTC peer connection. The method will resolve immediately if there is
  * currently no JingleSession started.
- * @param {JitsiLocalTrack|null} oldTrack the track to be removed during
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} oldTrack the track to be removed during
  * the process or <tt>null</t> if the method should act as "add track"
- * @param {JitsiLocalTrack|null} newTrack the new track to be added or
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} newTrack the new track to be added or
  * <tt>null</tt> if the method should act as "remove track"
  * @return {Promise} resolved when the process is done or rejected with a string
  * which describes the error.
@@ -1347,7 +1347,7 @@ JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
 /**
  * Handler for when a source-add for a local source is rejected by Jicofo.
  *
- * @param {JingleSessionPC} jingleSession - The media session.
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession - The media session.
  * @param {Error} error - The error message.
  * @param {MediaType} mediaType - The media type of the track associated with the source that was rejected.
  * @returns {void}
@@ -1364,7 +1364,7 @@ JitsiConference.prototype._removeLocalSourceOnReject = function(jingleSession, e
 
 /**
  * Operations related to creating a new track
- * @param {JitsiLocalTrack} newTrack the new track being created
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} newTrack the new track being created
  */
 JitsiConference.prototype._setupNewTrack = function(newTrack) {
     const mediaType = newTrack.getType();
@@ -1435,9 +1435,9 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
+ * Method called by the {@link import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
  *
- * @param {JitsiLocalTrack} track the local track that will be added to the pc.
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the local track that will be added to the pc.
  * @return {Promise} resolved when the process is done or rejected with a string which describes the error.
  */
 JitsiConference.prototype._addLocalTrackToPc = function(track) {
@@ -1459,10 +1459,10 @@ JitsiConference.prototype._addLocalTrackToPc = function(track) {
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} in order to remove the underlying MediaStream from the
+ * Method called by the {@link import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} in order to remove the underlying MediaStream from the
  * RTCPeerConnection.
  *
- * @param {JitsiLocalTrack} track the local track that will be removed.
+ * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the local track that will be removed.
  * @return {Promise} resolved when the process is done or rejected with a string which describes the error.
  */
 JitsiConference.prototype._removeLocalTrackFromPc = function(track) {
@@ -1984,7 +1984,7 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 /**
  * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
  *
- * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
+ * @param {import("modules/RTC/JitsiRemoteTrack").JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     if (track.isP2P && !this.isP2PActive()) {
@@ -2028,9 +2028,9 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 
 /**
  * Callback called by the Jingle plugin when 'session-answer' is received.
- * @param {JingleSessionPC} session the Jingle session for which an answer was
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session the Jingle session for which an answer was
  * received.
- * @param {jQuery} answer a jQuery selector pointing to 'jingle' IQ element
+ * @param {JQuery} answer a jQuery selector pointing to 'jingle' IQ element
  */
 // eslint-disable-next-line no-unused-vars
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
@@ -2044,9 +2044,9 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
 
 /**
  * Callback called by the Jingle plugin when 'transport-info' is received.
- * @param {JingleSessionPC} session the Jingle session for which the IQ was
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session the Jingle session for which the IQ was
  * received
- * @param {jQuery} transportInfo a jQuery selector pointing to 'jingle' IQ
+ * @param {JQuery} transportInfo a jQuery selector pointing to 'jingle' IQ
  * element
  */
 // eslint-disable-next-line no-unused-vars
@@ -2061,7 +2061,7 @@ JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
  * Notifies this JitsiConference that a JitsiRemoteTrack was removed from
  * the conference.
  *
- * @param {JitsiRemoteTrack} removedTrack
+ * @param {import("modules/RTC/JitsiRemoteTrack").JitsiRemoteTrack} removedTrack
  */
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     this.getParticipants().forEach(participant => {
@@ -2239,10 +2239,10 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
 /**
  * Sets the BridgeChannel.
  *
- * @param {jQuery} offerIq a jQuery selector pointing to the jingle element of
+ * @param {JQuery} offerIq a jQuery selector pointing to the jingle element of
  * the offer IQ which may carry the WebSocket URL for the 'websocket'
  * BridgeChannel mode.
- * @param {TraceablePeerConnection} pc the peer connection which will be used
+ * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} pc the peer connection which will be used
  * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
@@ -2291,7 +2291,7 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
 
 /**
  * Rejects incoming Jingle call.
- * @param {JingleSessionPC} jingleSession the session instance to be rejected.
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession the session instance to be rejected.
  * @param {object} [options]
  * @param {string} options.reason the name of the reason element as defined
  * by Jingle
@@ -2324,7 +2324,7 @@ JitsiConference.prototype._rejectIncomingCall = function(jingleSession, options)
  * Handles the call ended event.
  * XXX is this due to the remote side terminating the Jingle session?
  *
- * @param {JingleSessionPC} jingleSession the jingle session which has been
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession the jingle session which has been
  * terminated.
  * @param {String} reasonCondition the Jingle reason condition.
  * @param {String|null} reasonText human readable reason text which may provide
@@ -2374,7 +2374,7 @@ JitsiConference.prototype.onCallEnded = function(jingleSession, reasonCondition,
 
 /**
  * Handles the suspend detected event. Leaves the room and fires suspended.
- * @param {JingleSessionPC} jingleSession
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession
  */
 JitsiConference.prototype.onSuspendDetected = function(jingleSession) {
     if (!jingleSession.isP2P) {
@@ -2529,7 +2529,7 @@ JitsiConference.prototype.getMeetingUniqueId = function() {
  * Will return P2P or JVB <tt>TraceablePeerConnection</tt> depending on
  * which connection is currently active.
  *
- * @return {TraceablePeerConnection|null} null if there isn't any active
+ * @return {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection|null} null if there isn't any active
  * <tt>TraceablePeerConnection</tt> currently available.
  * @public (FIXME how to make package local ?)
  */
@@ -2796,7 +2796,7 @@ JitsiConference.prototype.isConnectionInterrupted = function() {
 /**
  * Handles {@link XMPPEvents.CONNECTION_RESTARTED} event. This happens when the bridge goes down
  * and Jicofo moves conferences away to a different bridge.
- * @param {JingleSessionPC} session
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session
  * @private
  */
 JitsiConference.prototype._onConferenceRestarted = function(session) {
@@ -2807,7 +2807,7 @@ JitsiConference.prototype._onConferenceRestarted = function(session) {
 
 /**
  * Handles {@link XMPPEvents.CONNECTION_INTERRUPTED}
- * @param {JingleSessionPC} session
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session
  * @private
  */
 JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
@@ -2823,7 +2823,7 @@ JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
 
 /**
  * Handles {@link XMPPEvents.CONNECTION_ICE_FAILED}
- * @param {JingleSessionPC} session
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session
  * @private
  */
 JitsiConference.prototype._onIceConnectionFailed = function(session) {
@@ -2855,7 +2855,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
 
 /**
  * Handles {@link XMPPEvents.CONNECTION_RESTORED}
- * @param {JingleSessionPC} session
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session
  * @private
  */
 JitsiConference.prototype._onIceConnectionRestored = function(session) {
@@ -2873,8 +2873,8 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
 
 /**
  * Accept incoming P2P Jingle call.
- * @param {JingleSessionPC} jingleSession the session instance
- * @param {jQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession the session instance
+ * @param {JQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
  * @private
  */
 JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingleOffer) {
@@ -2934,7 +2934,7 @@ JitsiConference.prototype._addRemoteP2PTracks = function() {
 /**
  * Generates fake "remote track added" events for given Jingle session.
  * @param {string} logName the session's nickname which will appear in log messages.
- * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be added
+ * @param {Array<import("modules/RTC/JitsiRemoteTrack").JitsiRemoteTrack>} remoteTracks the tracks that will be added
  * @private
  */
 JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
@@ -2950,9 +2950,9 @@ JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
 
 /**
  * Called when {@link XMPPEvents.CONNECTION_ESTABLISHED} event is
- * triggered for a {@link JingleSessionPC}. Switches the conference to use
+ * triggered for a {@link import("modules/xmpp/JingleSessionPC").JingleSessionPC}. Switches the conference to use
  * the P2P connection if the event comes from the P2P session.
- * @param {JingleSessionPC} jingleSession the session instance.
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession the session instance.
  * @private
  */
 JitsiConference.prototype._onIceConnectionEstablished = function(jingleSession) {
@@ -3122,7 +3122,7 @@ JitsiConference.prototype._removeRemoteP2PTracks = function() {
  * Generates fake "remote track removed" events for given Jingle session.
  * @param {string} sessionNickname the session's nickname which will appear in
  * log messages.
- * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be removed
+ * @param {Array<import("modules/RTC/JitsiRemoteTrack").JitsiRemoteTrack>} remoteTracks the tracks that will be removed
  * @private
  */
 JitsiConference.prototype._removeRemoteTracks = function(sessionNickname, remoteTracks) {
@@ -3435,7 +3435,7 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
 
 /**
  * Updates room presence if needed and send the packet in case of a modification.
- * @param {JingleSessionPC} jingleSession the session firing the event, contains the peer connection which
+ * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} jingleSession the session firing the event, contains the peer connection which
  * tracks we will check.
  * @param {Object|null} ctx a context object we can distinguish multiple calls of the same pass of updating tracks.
  */
@@ -3625,7 +3625,7 @@ JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
- * @returns {JitsiVideoSIPGWSession|Error} Returns null if conference is not
+ * @returns {import("modules/videosipgw/JitsiVideoSIPGWSession").JitsiVideoSIPGWSession|Error} Returns null if conference is not
  * initialised and there is no room.
  */
 JitsiConference.prototype.createVideoSIPGWSession = function(sipAddress, displayName) {

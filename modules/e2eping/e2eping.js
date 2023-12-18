@@ -39,7 +39,7 @@ const DEFAULT_MAX_CONFERENCE_SIZE = 200;
 class ParticipantWrapper {
     /**
      * Creates a ParticipantWrapper
-     * @param {JitsiParticipant} participant - The remote participant that this
+     * @param {import("JitsiParticipant").JitsiParticipant} participant - The remote participant that this
      * object wraps.
      * @param {E2ePing} e2eping
      */
@@ -194,7 +194,7 @@ class ParticipantWrapper {
  */
 export default class E2ePing {
     /**
-     * @param {JitsiConference} conference - The conference.
+     * @param {import("JitsiConference").JitsiConference} conference - The conference.
      * @param {Function} sendMessage - The function to use to send a message.
      * @param {Object} options
      */
@@ -267,7 +267,7 @@ export default class E2ePing {
      * requests to the participant.
      *
      * @param {String} id - The ID of the participant.
-     * @param {JitsiParticipant} participant - The participant that joined.
+     * @param {import("JitsiParticipant").JitsiParticipant} participant - The participant that joined.
      */
     participantJoined(id, participant) {
         if (this.participants[id]) {

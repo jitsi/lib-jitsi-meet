@@ -308,8 +308,8 @@ export default class RTC extends Listenable {
 
     /**
      * Sends the track's  video type to the JVB.
-     * @param {SourceName} sourceName - the track's source name.
-     * @param {BridgeVideoType} videoType - the track's video type.
+     * @param {import("service/RTC/SignalingLayer").SourceName} sourceName - the track's source name.
+     * @param {import("service/RTC/BridgeVideoType").BridgeVideoType} videoType - the track's video type.
      */
     sendSourceVideoType(sourceName, videoType) {
         if (this._channel && this._channel.isOpen()) {
@@ -349,14 +349,14 @@ export default class RTC extends Listenable {
 
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
-     * @param {SignalingLayer} signaling The signaling layer that will provide information about the media or
-     * participants which is not carried over SDP.
+     * @param {import("service/RTC/SignalingLayer").SignalingLayer} signaling The signaling layer that will provide
+     * information about the media or participants which is not carried over SDP.
      * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
      * @param {boolean} isP2P Indicates whether or not the new TPC will be used in a peer to peer type of session.
      * @param {object} options The config options.
      * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
      * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
-     * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
+     * @param {Array<import("service/RTC/CodecMimeType").CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
      * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
      * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
      * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
@@ -454,7 +454,7 @@ export default class RTC extends Listenable {
 
     /**
      * Get local video track.
-     * @returns {JitsiLocalTrack|undefined}
+     * @returns {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|undefined}
      */
     getLocalVideoTrack() {
         const localVideo = this.getLocalTracks(MediaType.VIDEO);
@@ -464,7 +464,7 @@ export default class RTC extends Listenable {
 
     /**
      * Returns all the local video tracks.
-     * @returns {Array<JitsiLocalTrack>}
+     * @returns {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>}
      */
     getLocalVideoTracks() {
         return this.getLocalTracks(MediaType.VIDEO);
@@ -472,7 +472,7 @@ export default class RTC extends Listenable {
 
     /**
      * Get local audio track.
-     * @returns {JitsiLocalTrack|undefined}
+     * @returns {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|undefined}
      */
     getLocalAudioTrack() {
         const localAudio = this.getLocalTracks(MediaType.AUDIO);
@@ -509,7 +509,7 @@ export default class RTC extends Listenable {
      * Obtains all remote tracks currently known to this RTC module instance.
      * @param {MediaType} [mediaType] The remote tracks will be filtered
      *      by their media type if this argument is specified.
-     * @return {Array<JitsiRemoteTrack>}
+     * @return {Array<import("modules/RTC/JitsiRemoteTrack").JitsiRemoteTrack>}
      */
     getRemoteTracks(mediaType) {
         let remoteTracks = [];

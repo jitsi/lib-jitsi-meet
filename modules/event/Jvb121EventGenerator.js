@@ -12,7 +12,7 @@ const logger = getLogger(__filename);
 export default class Jvb121EventGenerator {
     /**
      * Creates new <tt>Jvb121EventGenerator</tt> for the given conference.
-     * @param {JitsiConference} conference
+     * @param {import("JitsiConference").JitsiConference} conference
      */
     constructor(conference) {
         this._conference = conference;

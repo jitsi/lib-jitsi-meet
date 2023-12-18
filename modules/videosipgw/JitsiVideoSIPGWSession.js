@@ -26,7 +26,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * starting the session.
      * @param {string} displayName - The display name to use for
      * that participant.
-     * @param {ChatRoom} chatRoom - The chat room this session is bound to.
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} chatRoom - The chat room this session is bound to.
      */
     constructor(sipAddress, displayName, chatRoom) {
         super();

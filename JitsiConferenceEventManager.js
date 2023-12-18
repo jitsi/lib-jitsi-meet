@@ -25,7 +25,7 @@ const logger = getLogger(__filename);
 
 /**
  * Setups all event listeners related to conference
- * @param conference {JitsiConference} the conference
+ * @param conference {import("JitsiConference").JitsiConference} the conference
  */
 export default function JitsiConferenceEventManager(conference) {
     this.conference = conference;

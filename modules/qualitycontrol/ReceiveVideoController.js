@@ -144,9 +144,9 @@ export default class ReceiveVideoController {
     /**
      * Creates a new instance for a given conference.
      *
-     * @param {JitsiConference} conference the conference instance for which the new instance will be managing
+     * @param {import("JitsiConference").JitsiConference} conference the conference instance for which the new instance will be managing
      * the receive video quality constraints.
-     * @param {RTC} rtc the rtc instance which is responsible for initializing the bridge channel.
+     * @param {import("modules/RTC/RTC").RTC} rtc the rtc instance which is responsible for initializing the bridge channel.
      */
     constructor(conference, rtc) {
         this._conference = conference;
@@ -185,7 +185,7 @@ export default class ReceiveVideoController {
     /**
      * Returns a map of all the remote source names and the corresponding max frame heights.
      *
-     * @param {JingleSessionPC} mediaSession - the media session.
+     * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} mediaSession - the media session.
      * @param {number} maxFrameHeight - the height to be requested for remote sources.
      * @returns
      */
@@ -205,7 +205,7 @@ export default class ReceiveVideoController {
      * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
      * session. The preferred receive frameHeight is applied on the media session.
      *
-     * @param {JingleSessionPC} mediaSession - the started media session.
+     * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} mediaSession - the started media session.
      * @returns {void}
      * @private
      */

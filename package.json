@@ -59,7 +59,7 @@
     "karma-webpack": "5.0.0",
     "process": "0.11.10",
     "string-replace-loader": "3.0.3",
-    "typescript": "4.3.5",
+    "typescript": "5.3.3",
     "webpack": "5.76.0",
     "webpack-bundle-analyzer": "4.4.2",
     "webpack-cli": "4.9.0"
@@ -69,7 +69,7 @@
     "build:webpack": "LIB_JITSI_MEET_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null) webpack",
     "build:webpack-dev": "webpack --mode development",
     "build:tsc": "tsc --build --clean && tsc",
-    "gen-types": "tsc --declaration --emitDeclarationOnly --out index.js",
+    "gen-types": "tsc --declaration --emitDeclarationOnly --outFile index.d.ts",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "postinstall": "patch-package",

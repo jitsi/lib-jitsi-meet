@@ -10,7 +10,8 @@ import { OlmAdapter } from './OlmAdapter';
 export class E2EEncryption {
     /**
      * A constructor.
-     * @param {JitsiConference} conference - The conference instance for which E2E encryption is to be enabled.
+     * @param {import("JitsiConference").JitsiConference} conference - The conference instance for which E2E
+     * encryption is to be enabled.
      */
     constructor(conference) {
         const { e2ee = {} } = conference.options.config;

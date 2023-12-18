@@ -17,7 +17,7 @@ export default {
     /**
      * The storage used to store the settings.
      */
-    _storage: jitsiLocalStorage,
+    _storage: typeof jitsiLocalStorage,
 
     /**
      * Initializes the Settings class.

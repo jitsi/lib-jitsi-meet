@@ -20,7 +20,7 @@ import { MediaType } from '../../service/RTC/MediaType';
  * Generates a source name.
  *
  * @param {EndpointId} endpointId - Jitsi Endpoint Id.
- * @param {MediaType} mediaType - the media type string.
+ * @param {import("service/RTC/MediaType").MediaType} mediaType - the media type string.
  * @param {number} trackIdx - Track index (or sender idx? - to be figured out) starting from 0.
  * @returns {SourceName} eg. endpointA-v0
  */
@@ -35,7 +35,7 @@ export function getSourceNameForJitsiTrack(endpointId, mediaType, trackIdx) {
  * {@link getSourceNameForJitsiTrack}).
  *
  * @param {SourceName} sourceName - the source name.
- * @returns {MediaType}
+ * @returns {import("service/RTC/MediaType").MediaType}
  */
 export function getMediaTypeFromSourceName(sourceName) {
     const firstLetterOfMediaTypeIdx = sourceName.lastIndexOf('-') + 1;
@@ -78,7 +78,7 @@ export function getSourceIndexFromSourceName(sourceName) {
  * participant in the signaling channel.
  * @typedef {Object} PeerMediaInfo
  * @property {boolean} muted indicates if the media is currently muted
- * @property {VideoType|undefined} videoType the type of the video if applicable
+ * @property {import("service/RTC/VideoType").VideoType|undefined} videoType the type of the video if applicable
  */
 
 /**
@@ -93,7 +93,7 @@ export default class SignalingLayer extends Listenable {
      * the participant identified by the given MUC JID.
      * @param {string} owner the MUC jid of the participant for whom
      * {@link PeerMediaInfo} will be obtained.
-     * @param {MediaType} mediaType the type of the media for which presence
+     * @param {import("service/RTC/MediaType").MediaType} mediaType the type of the media for which presence
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
      * info will be obtained.
      * @return {PeerMediaInfo|null} presenceInfo an object with media presence
@@ -137,7 +137,7 @@ export default class SignalingLayer extends Listenable {
     /**
      * Removes the association between a given SSRC and its current owner so that it can re-used when the SSRC gets
      * remapped to another source from a different endpoint.
-     * @param {number} ssrc a list of SSRCs.
+     * @param {Array<number>} ssrcList a list of SSRCs.
      */
     removeSSRCOwners(ssrcList) { // eslint-disable-line no-unused-vars
     }
@@ -166,7 +166,7 @@ export default class SignalingLayer extends Listenable {
     /**
      * Sets track's video type.
      * @param {SourceName} sourceName - the track's source name.
-     * @param {VideoType} videoType - the new video type.
+     * @param {import("service/RTC/VideoType").VideoType} videoType - the new video type.
      * @returns {boolean}
      */
     setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars

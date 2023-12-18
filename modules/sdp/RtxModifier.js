@@ -16,7 +16,7 @@ const logger = getLogger(__filename);
  *  the given rtxSsrc.  If no rtx ssrc for primarySsrc currently exists, it will
  *  add the appropriate ssrc and ssrc group lines.  If primarySsrc already has
  *  an rtx ssrc, the appropriate ssrc and group lines will be updated
- * @param {MLineWrap} mLine
+ * @param {import("modules/sdp/SdpTransformUtil").MLineWrap} mLine
  * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the
  *  primary ssrc
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
@@ -123,7 +123,7 @@ export default class RtxModifier {
     /**
      * Does the same thing as {@link modifyRtxSsrcs}, but takes the {@link MLineWrap} instance wrapping video media as
      * an argument.
-     * @param {MLineWrap} videoMLine
+     * @param {import("modules/sdp/SdpTransformUtil").MLineWrap} videoMLine
      * @return {boolean} <tt>true</tt> if the SDP wrapped by {@link SdpTransformWrap} has been modified or
      * <tt>false</tt> otherwise.
      */

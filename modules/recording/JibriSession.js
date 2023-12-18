@@ -42,7 +42,7 @@ export default class JibriSession {
     /**
      * Returns the initiator of the session instance.
      *
-     * @returns {JitsiParticipant|string} The participant that started the session.
+     * @returns {import("JitsiParticipant").JitsiParticipant|string} The participant that started the session.
      */
     getInitiator() {
         return this._initiator;
@@ -81,7 +81,7 @@ export default class JibriSession {
     /**
      * Returns the jid of the participant that stopped the session.
      *
-     * @returns {JitsiParticipant|string} The participant that stopped the session.
+     * @returns {import("JitsiParticipant").JitsiParticipant|string} The participant that stopped the session.
      */
     getTerminator() {
         return this._terminator;
@@ -149,7 +149,7 @@ export default class JibriSession {
 
     /**
      * Sets the participant that started the session.
-     * @param {JitsiParticipant | string} participant - The participant or resource id
+     * @param {import("JitsiParticipant").JitsiParticipant | string} participant - The participant or resource id
      * if local participant.
      */
     setInitiator(participant) {
@@ -158,7 +158,7 @@ export default class JibriSession {
 
     /**
      * Sets the participant that stopped the session.
-     * @param {JitsiParticipant | string} participant - The participant or the resource id
+     * @param {import("JitsiParticipant").JitsiParticipant | string} participant - The participant or the resource id
      * if local participant.
      */
     setTerminator(participant) {
@@ -235,6 +235,7 @@ export default class JibriSession {
     /**
      * Generates the message to change the status of the recording session.
      *
+     * @param {Object} options - IQ options
      * @param {string} [options.action] - The action to set the IQ
      * @param {string} [options.appData] - Data specific to the app/service that
      * the result file will be uploaded.

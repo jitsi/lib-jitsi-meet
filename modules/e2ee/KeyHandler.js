@@ -16,7 +16,7 @@ const logger = getLogger(__filename);
 export class KeyHandler extends Listenable {
     /**
      * Build a new KeyHandler instance, which will be used in a given conference.
-     * @param {JitsiConference} conference - the current conference.
+     * @param {import("JitsiConference").JitsiConference} conference - the current conference.
      * @param {object} options - the options passed to {E2EEContext}, see implemention.
      */
     constructor(conference, options = {}) {
@@ -141,8 +141,10 @@ export class KeyHandler extends Listenable {
     /**
      * Setup E2EE for the sending side.
      *
-     * @param {JingleSessionPC} session - the session which sends the media produced by the track.
-     * @param {JitsiLocalTrack} track - the local track for which e2e encoder will be configured.
+     * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} session - the session which sends the
+     * media produced by the track.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track - the local track for which e2e
+     * encoder will be configured.
      * @private
      */
     _setupSenderE2EEForTrack(session, track) {

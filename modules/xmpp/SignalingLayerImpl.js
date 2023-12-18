@@ -36,7 +36,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         /**
          *
-         * @type {ChatRoom|null}
+         * @type {import("modules/xmpp/ChatRoom").ChatRoom|null}
          */
         this.chatRoom = null;
 
@@ -47,7 +47,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         this._localSourceState = { };
 
         /**
-         * @type {Map<EndpointId, Map<SourceName, SourceInfo>>}
+         * @type {Map<import("service/RTC/SignalingLayer").EndpointId, Map<SourceName, SourceInfo>>}
          * @private
          */
         this._remoteSourceState = { };
@@ -56,7 +56,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * Adds <SourceInfo> element to the local presence.
      *
-     * @returns {void}
+     * @returns {boolean}
      * @private
      */
     _addLocalSourceInfoToPresence() {
@@ -71,7 +71,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
     /**
      * Binds event listeners to the chat room instance.
-     * @param {ChatRoom} room
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room
      * @private
      * @returns {void}
      */
@@ -195,7 +195,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * Check is given endpoint has advertised <SourceInfo/> in it's presence which means that the source name signaling
      * is used by this endpoint.
      *
-     * @param {EndpointId} endpointId
+     * @param {import("service/RTC/SignalingLayer").EndpointId} endpointId
      * @returns {boolean}
      */
     _doesEndpointSendNewSourceInfo(endpointId) {
@@ -308,7 +308,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
     /**
      * Sets the <tt>ChatRoom</tt> instance used and binds presence listeners.
-     * @param {ChatRoom} room
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room
      */
     setChatRoom(room) {
         const oldChatRoom = this.chatRoom;

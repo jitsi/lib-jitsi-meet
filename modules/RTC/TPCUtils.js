@@ -34,7 +34,8 @@ export class TPCUtils {
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
-     * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} peerconnection - the tpc
+     * instance for which we have utility functions.
      */
     constructor(peerconnection) {
         this.pc = peerconnection;
@@ -82,8 +83,8 @@ export class TPCUtils {
      * Calculates the configuration of the active encoding when the browser sends only one stream, i,e,, when there is
      * no spatial scalability configure (p2p) or when it is running in full SVC mode.
      *
-     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
-     * @param {CodecMimeType} codec - The video codec.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack - The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The video codec.
      * @param {number} newHeight - The resolution that needs to be configured for the local video track.
      * @returns {Object} configuration.
      */
@@ -131,7 +132,7 @@ export class TPCUtils {
     /**
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
-     * @param {JitsiLocalTrack} localTrack
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack
      */
     _getStreamEncodings(localTrack) {
         const codec = this.pc.getConfiguredVideoCodec();
@@ -162,7 +163,7 @@ export class TPCUtils {
      * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
      *  original resolution of the captured video.
      *
-     * @param {VideoType} videoType
+     * @param {import("service/RTC/VideoType").VideoType} videoType
      * @param {String} codec
      */
     _getVideoStreamEncodings(videoType, codec) {
@@ -238,7 +239,7 @@ export class TPCUtils {
      * Returns a boolean indicating whether the video encoder is running in full SVC mode, i.e., it sends only one
      * video stream that has both temporal and spatial scalability.
      *
-     * @param {CodecMimeType} codec
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec
      * @returns boolean
      */
     _isRunningInFullSvcMode(codec) {
@@ -255,7 +256,7 @@ export class TPCUtils {
      * the highest resolution stream is available always. Safari is an exception here since it does not send the
      * desktop stream at all if only the high resolution stream is enabled.
      *
-     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack - The local video track.
      * @returns {boolean}
      */
     _isScreenshareBitrateCapped(localVideoTrack) {
@@ -285,7 +286,7 @@ export class TPCUtils {
 
     /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
-    * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
+    * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track - track to be added to the peerconnection.
     * @param {boolean} isInitiator - boolean that indicates if the endpoint is offerer in a p2p connection.
     * @returns {void}
     */
@@ -323,8 +324,8 @@ export class TPCUtils {
      * Returns the calculated active state of the stream encodings based on the frame height requested for the send
      * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
      *
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
-     * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The codec currently in use.
      * @param {number} newHeight The resolution requested for the video track.
      * @returns {Array<boolean>}
      */
@@ -373,8 +374,8 @@ export class TPCUtils {
      * Returns the calculated max bitrates that need to be configured on the stream encodings based on the video
      * type and other considerations associated with screenshare.
      *
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
-     * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The codec currently in use.
      * @param {number} newHeight The resolution requested for the video track.
      * @returns {Array<number>}
      */
@@ -411,8 +412,8 @@ export class TPCUtils {
     /**
      * Returns the calculated scalability modes for the video encodings when scalability modes are supported.
      *
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
-     * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
      * @returns {Array<VideoEncoderScalabilityMode> | undefined}
      */
@@ -447,10 +448,10 @@ export class TPCUtils {
      * Returns the scale factor that needs to be applied on the local video stream based on the desired resolution
      * and the codec in use.
      *
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
-     * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
-     * @returns {Array<float>}
+     * @returns {Array<number>}
      */
     calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
         if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
@@ -512,8 +513,8 @@ export class TPCUtils {
      * Returns the max resolution that the client is configured to encode for a given local video track. The actual
      * send resolution might be downscaled based on cpu and bandwidth constraints.
      *
-     * @param {JitsiLocalTrack} localVideoTrack - The local video track.
-     * @param {CodecMimeType} codec - The codec currently in use.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack - The local video track.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The codec currently in use.
      * @returns {number|null} The max encoded resolution for the given video track.
      */
     getConfiguredEncodeResolution(localVideoTrack, codec) {
@@ -640,7 +641,7 @@ export class TPCUtils {
      * Returns a boolean indicating whether the video encoder is running in Simulcast mode, i.e., three encodings need
      * to be configured in 4:2:1 resolution order with temporal scalability.
      *
-     * @param {CodecMimeType} codec - The video codec in use.
+     * @param {import("service/RTC/CodecMimeType").CodecMimeType} codec - The video codec in use.
      * @returns {boolean}
      */
     isRunningInSimulcastMode(codec) {
@@ -659,8 +660,10 @@ export class TPCUtils {
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      *
-     * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
-     * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} oldTrack - existing track on the sender that
+     * needs to be removed.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} newTrack - new track that needs to be added
+     * to the sender.
      * @returns {Promise<RTCRtpTransceiver>} - resolved with the associated transceiver when done, rejected otherwise.
      */
     replaceTrack(oldTrack, newTrack) {
@@ -726,7 +729,8 @@ export class TPCUtils {
     /**
      * Set the simulcast stream encoding properties on the RTCRtpSender.
      *
-     * @param {JitsiLocalTrack} localTrack - the current track in use for which the encodings are to be set.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack - the current track in use
+     * for which the encodings are to be set.
      * @returns {Promise<void>} - resolved when done.
      */
     setEncodings(localTrack) {
@@ -796,7 +800,7 @@ export class TPCUtils {
      * that were configured on the RTCRtpSender when the source was added to the peerconnection.
      * This should prevent us from overriding the default values if the browser returns
      * erroneous values when RTCRtpSender.getParameters is used for getting the encodings info.
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
+     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localVideoTrack The local video track.
      * @param {Object} parameters - the RTCRtpEncodingParameters obtained from the browser.
      * @returns {void}
      */

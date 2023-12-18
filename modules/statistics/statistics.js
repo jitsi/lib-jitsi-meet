@@ -54,7 +54,7 @@ Statistics.init = function(options) {
  * @property {string} userName - The user name to use
  * @property {string} roomName - The room name we are currently in.
  *
- * @param {JitsiConference} conference - The conference instance from which the statistics were initialized.
+ * @param {import("JitsiConference").JitsiConference} conference - The conference instance from which the statistics were initialized.
  * @param {StatisticsOptions} options - The options to use creating the
  * Statistics.
  */
@@ -103,7 +103,7 @@ Object.defineProperty(Statistics, 'instances', {
 
 /**
  * Starts collecting RTP stats for given peerconnection.
- * @param {TraceablePeerConnection} peerconnection
+ * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} peerconnection
  */
 Statistics.prototype.startRemoteStats = function(peerconnection) {
     this.stopRemoteStats(peerconnection);
@@ -334,7 +334,7 @@ Statistics.prototype._stopRemoteStats = function(tpcId) {
 
 /**
  * Stops collecting RTP stats for given peerconnection
- * @param {TraceablePeerConnection} tpc
+ * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc
  */
 Statistics.prototype.stopRemoteStats = function(tpc) {
     this._stopRemoteStats(tpc.id);

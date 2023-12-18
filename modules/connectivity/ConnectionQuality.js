@@ -59,7 +59,7 @@ let startBitrate = 800;
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.
  * @param simulcast {boolean} whether simulcast is enabled or not.
- * @param resolution {Resolution} the resolution.
+ * @param resolution {Object} the resolution.
  * @param millisSinceStart {number} the number of milliseconds since sending video started.
  * @param videoQualitySettings {Object} the bitrate and codec settings for the local video source.
  */
@@ -271,7 +271,7 @@ export default class ConnectionQuality {
      * Calculates a new "connection quality" value.
      * @param videoType {VideoType} the type of the video source (camera or a screen capture).
      * @param isMuted {boolean} whether the local video is muted.
-     * @param resolutionName {Resolution} the input resolution used by the camera.
+     * @param resolutionName {Object} the input resolution used by the camera.
      * @returns {*} the newly calculated connection quality.
      */
     _calculateConnectionQuality(videoType, isMuted, resolutionName) {
@@ -409,8 +409,8 @@ export default class ConnectionQuality {
 
     /**
      * Updates the local statistics
-     * @param {TraceablePeerConnection} tpc the peerconnection which emitted
-     * the stats
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - the peerconnection
+     * which emitted the stats
      * @param data new statistics
      */
     _updateLocalStats(tpc, data) {

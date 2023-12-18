@@ -39,10 +39,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @constructor
      * @param {Object} trackInfo
      * @param {number} trackInfo.rtcId - The ID assigned by the RTC module.
-     * @param {Object} trackInfo.stream - The WebRTC MediaStream, parent of the track.
-     * @param {Object} trackInfo.track - The underlying WebRTC MediaStreamTrack for new JitsiLocalTrack.
-     * @param {string} trackInfo.mediaType - The MediaType of the JitsiLocalTrack.
-     * @param {string} trackInfo.videoType - The VideoType of the JitsiLocalTrack.
+     * @param {MediaStream} trackInfo.stream - The WebRTC MediaStream, parent of the track.
+     * @param {MediaStreamTrack} trackInfo.track - The underlying WebRTC MediaStreamTrack for new JitsiLocalTrack.
+     * @param {import("service/RTC/MediaType").MediaType} trackInfo.mediaType - The MediaType of the JitsiLocalTrack.
+     * @param {import("service/RTC/VideoType").VideoType} trackInfo.videoType - The VideoType of the JitsiLocalTrack.
      * @param {Array<Object>} trackInfo.effects - The effects to be applied to the JitsiLocalTrack.
      * @param {number} trackInfo.resolution - The the video resolution if it's a video track
      * @param {string} trackInfo.deviceId - The ID of the local device for this track.
@@ -783,7 +783,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Handles bytes sent statistics. NOTE: used only for audio tracks to detect audio issues.
      *
-     * @param {TraceablePeerConnection} tpc - The peerconnection that is reporting the bytes sent stat.
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - The peerconnection
+     * that is reporting the bytes sent stat.
      * @param {number} bytesSent - The new value.
      * @returns {void}
      */
@@ -809,7 +810,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Sets the JitsiConference object associated with the track. This is temp solution.
      *
-     * @param conference - JitsiConference object.
+     * @param {import("JitsiConference").JitsiConference} conference - JitsiConference object.
      * @returns {void}
      */
     setConference(conference) {

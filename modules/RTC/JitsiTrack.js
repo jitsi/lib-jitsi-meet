@@ -26,14 +26,14 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Represents a single media track (either audio or video).
      * @constructor
-     * @param conference the rtc instance
-     * @param stream the WebRTC MediaStream instance
-     * @param track the WebRTC MediaStreamTrack instance, must be part of
+     * @param {import("JitsiConference").JitsiConference} conference the rtc instance
+     * @param {MediaStream} stream the WebRTC MediaStream instance
+     * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack instance, must be part of
      * the given <tt>stream</tt>.
-     * @param streamInactiveHandler the function that will handle
+     * @param {function} streamInactiveHandler the function that will handle
      *        onended/oninactive events of the stream.
-     * @param trackMediaType the media type of the JitsiTrack
-     * @param videoType the VideoType for this track if any
+     * @param {import("service/RTC/MediaType").MediaType} trackMediaType the media type of the JitsiTrack
+     * @param {import("service/RTC/VideoType").VideoType} videoType the VideoType for this track if any
      */
     constructor(
             conference,
@@ -206,7 +206,7 @@ export default class JitsiTrack extends EventEmitter {
      * Adds the container to the list of containers that are displaying the
      * track.
      *
-     * @param container the HTML container which can be 'video' or 'audio'
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio'
      * element.
      *
      * @returns {void}
@@ -227,7 +227,7 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Removes this JitsiTrack from the passed HTML container.
      *
-     * @param container the HTML container to detach from this JitsiTrack. If
+     * @param {HTMLElement} container the HTML container to detach from this JitsiTrack. If
      * <tt>null</tt> or <tt>undefined</tt>, all containers are removed. A
      * container can be a 'video', 'audio' or 'object' HTML element instance to
      * which this JitsiTrack is currently attached.
@@ -356,6 +356,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Returns the video type (camera or desktop) of this track.
+     * @returns {import("service/RTC/VideoType").VideoType|null} the type of video
      */
     getVideoType() {
         return this.videoType;
@@ -363,6 +364,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Returns the height of the track in normalized landscape format.
+     * @returns {number} height of track
      */
     getHeight() {
         return Math.min(this.track.getSettings().height, this.track.getSettings().width);
@@ -370,6 +372,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Returns the width of the track in normalized landscape format.
+     * @returns {number} width of track
      */
     getWidth() {
         return Math.max(this.track.getSettings().height, this.track.getSettings().width);
@@ -391,6 +394,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Check if this is an audio track.
+     * @return {boolean} is an audio track
      */
     isAudioTrack() {
         return this.getType() === MediaType.AUDIO;
@@ -416,6 +420,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Check if this is a video track.
+     * @return {boolean} 'true' if a video track or 'false' otherwise
      */
     isVideoTrack() {
         return this.getType() === MediaType.VIDEO;
@@ -434,8 +439,8 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Sets the audio level for the stream
      * @param {number} audioLevel value between 0 and 1
-     * @param {TraceablePeerConnection} [tpc] the peerconnection instance which
-     * is source for the audio level. It can be <tt>undefined</tt> for
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} [tpc] the peerconnection
+     * instance which is source for the audio level. It can be <tt>undefined</tt> for
      * a local track if the audio level was measured outside of the
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).
      */

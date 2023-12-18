@@ -17,9 +17,9 @@ export default class JitsiParticipant {
      *
      * @constructor
      * @param jid the conference XMPP jid
-     * @param conference
-     * @param displayName
-     * @param {Boolean} hidden - True if the new JitsiParticipant instance is to
+     * @param {import("JitsiConference").JitsiConference} conference
+     * @param {string} displayName
+     * @param {boolean} hidden - True if the new JitsiParticipant instance is to
      * represent a hidden participant; otherwise, false.
      * @param {string} statsID - optional participant statsID
      * @param {string} status - the initial status if any.
@@ -62,9 +62,9 @@ export default class JitsiParticipant {
      * Determines whether all JitsiTracks which are of a specific MediaType and which belong to this
      * JitsiParticipant are muted.
      *
-     * @param {MediaType} mediaType - The MediaType of the JitsiTracks to be checked.
+     * @param {import("service/RTC/MediaType").MediaType} mediaType - The MediaType of the JitsiTracks to be checked.
      * @private
-     * @returns {Boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
+     * @returns {boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
      * JitsiParticipant are muted; otherwise, false.
      */
     _isMediaTypeMuted(mediaType) {
@@ -76,7 +76,7 @@ export default class JitsiParticipant {
 
     /**
      * Sets source info.
-     * @param {MediaType} mediaType The media type, 'audio' or 'video'.
+     * @param {import("service/RTC/MediaType").MediaType} mediaType The media type, 'audio' or 'video'.
      * @param {boolean} muted The new muted state.
      * @param {string} sourceName The name of the source.
      * @param {string} videoType The video type of the source.
@@ -110,7 +110,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {JitsiConference} The conference that this participant belongs
+     * @returns {import("JitsiConference").JitsiConference} The conference that this participant belongs
      * to.
      */
     getConference() {
@@ -202,7 +202,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array.<JitsiTrack>} The list of media tracks for this
+     * @returns {Array<import("modules/RTC/JitsiTrack").JitsiTrack>} The list of media tracks for this
      * participant.
      */
     getTracks() {
@@ -210,8 +210,8 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @param {MediaType} mediaType
-     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * @param {import("service/RTC/MediaType").MediaType} mediaType
+     * @returns {Array<import("modules/RTC/JitsiTrack").JitsiTrack>} an array of media tracks for this
      * participant, for given media type.
      */
     getTracksByMediaType(mediaType) {
@@ -326,8 +326,8 @@ export default class JitsiParticipant {
     /**
      * Sets the value of a property of this participant, and fires an event if
      * the value has changed.
-     * @name the name of the property.
-     * @value the value to set.
+     * @param name the name of the property.
+     * @param value the value to set.
      */
     setProperty(name, value) {
         const oldValue = this._properties[name];
@@ -352,7 +352,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     *
+     * @returns {boolean} returns 'true' if supports DTMF, 'false' otherwise
      */
     supportsDTMF() {
         return this._supportsDTMF;

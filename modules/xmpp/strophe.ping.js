@@ -168,7 +168,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * Checks the maximum gap between sending pings, considering and the
      * current time. Trying to detect computer inactivity (sleep).
      *
-     * @returns {int} the time ping was suspended, if it was not 0 is returned.
+     * @returns {number} the time ping was suspended, if it was not 0 is returned.
      */
     getPingSuspendTime() {
         const pingIntervals = this.pingExecIntervals.slice();

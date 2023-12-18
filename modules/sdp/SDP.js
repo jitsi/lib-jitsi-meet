@@ -53,7 +53,7 @@ SDP.prototype.removeUdpCandidates = false;
  * Adds a new m-line to the description so that a new local source can then be attached to the transceiver that gets
  * added after a reneogtiation cycle.
  *
- * @param {MediaType} mediaType media type of the new source that is being added.
+ * @param {import("service/RTC/MediaType").MediaType} mediaType media type of the new source that is being added.
  */
 SDP.prototype.addMlineForNewLocalSource = function(mediaType) {
     const mid = this.media.length;

@@ -138,7 +138,7 @@ class ConnectionAvgStats {
 
         /**
          * The conference for which stats will be collected and reported.
-         * @type {JitsiConference}
+         * @type {import("JitsiConference").JitsiConference}
          * @private
          */
         this._avgRtpStatsReporter = avgRtpStatsReporter;
@@ -337,7 +337,7 @@ class ConnectionAvgStats {
 export default class AvgRTPStatsReporter {
     /**
      * Creates new instance of <tt>AvgRTPStatsReporter</tt>
-     * @param {JitsiConference} conference
+     * @param {import("JitsiConference").JitsiConference} conference
      * @param {number} n the number of samples, before arithmetic mean is to be
      * calculated and values submitted to the analytics module.
      */
@@ -369,7 +369,7 @@ export default class AvgRTPStatsReporter {
 
         /**
          * The conference for which stats will be collected and reported.
-         * @type {JitsiConference}
+         * @type {import("JitsiConference").JitsiConference}
          * @private
          */
         this._conference = conference;

@@ -17,11 +17,12 @@ export default class BridgeChannel {
      * instance, or creates a WebSocket connection with the videobridge.
      * At least one of both, peerconnection or wsUrl parameters, must be
      * given.
-     * @param {RTCPeerConnection} [peerconnection] WebRTC peer connection
+     * @param {RTCPeerConnection|null} peerconnection WebRTC peer connection
      * instance.
-     * @param {string} [wsUrl] WebSocket URL.
-     * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
-     * @param {JitsiConference} conference the conference instance.
+     * @param {string|null} wsUrl WebSocket URL.
+     * @param {import("modules/util/EventEmitter").EventEmitter} emitter the EventEmitter instance to use for
+     * event emission.
+     * @param {import("JitsiConference").JitsiConference} conference the conference instance.
      */
     constructor(peerconnection, wsUrl, emitter, conference) {
         if (!peerconnection && !wsUrl) {
@@ -239,7 +240,8 @@ export default class BridgeChannel {
     /**
      * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
      *
-     * @param {ReceiverVideoConstraints} constraints video constraints.
+     * @param {import("modules/qualitycontrol/ReceiveVideoController").ReceiverVideoConstraints} constraints video
+     * constraints.
      */
     sendReceiverVideoConstraintsMessage(constraints) {
         logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
@@ -252,8 +254,8 @@ export default class BridgeChannel {
     /**
      * Sends a 'SourceVideoTypeMessage' message via the bridge channel.
      *
-     * @param {BridgeVideoType} videoType - the video type.
-     * @param {SourceName} sourceName - the source name of the video track.
+     * @param {import("service/RTC/BridgeVideoType").BridgeVideoType} videoType - the video type.
+     * @param {import("service/RTC/SignalingLayer").SourceName} sourceName - the source name of the video track.
      * @returns {void}
      */
     sendSourceVideoTypeMessage(sourceName, videoType) {

@@ -20,7 +20,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * Creates new NoAudioSignalDetection.
      *
-     * @param conference the JitsiConference instance that created us.
+     * @param {import("JitsiConference").JitsiConference} conference the JitsiConference instance that created us.
      * @constructor
      */
     constructor(conference) {
@@ -86,7 +86,8 @@ export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * Receives audio level events for all send and receive streams on the current TraceablePeerConnection.
      *
-     * @param {TraceablePeerConnection} tpc - TraceablePeerConnection of the owning conference.
+     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - TraceablePeerConnection
+     * of the owning conference.
      * @param {number} ssrc - The synchronization source identifier (SSRC) of the endpoint/participant/stream
      * being reported.
      * @param {number} audioLevel - The audio level of the ssrc.
@@ -117,7 +118,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * Notifies NoAudioSignalDetection that a JitsiTrack was added to the associated JitsiConference.
      * Only take into account local audio tracks.
      *
-     * @param {JitsiTrack} track - The added JitsiTrack.
+     * @param {import("modules/RTC/JitsiTrack").JitsiTrack} track - The added JitsiTrack.
      */
     _trackAdded(track) {
         if (track.isLocalAudioTrack()) {

@@ -338,7 +338,7 @@ export class MockJitsiLocalTrack {
 
     /**
      * Returns media type.
-     * @returns {MediaType}
+     * @returns {import("service/RTC/MediaType").MediaType}
      */
     getType() {
         return this.type;
@@ -346,7 +346,7 @@ export class MockJitsiLocalTrack {
 
     /**
      * Returns video type.
-     * @returns {VideoType}
+     * @returns {import("service/RTC/VideoType").VideoType}
      */
     getVideoType() {
         return this.videoType;

@@ -18,9 +18,9 @@ export default class SendVideoController {
     /**
      * Creates new instance for a given conference.
      *
-     * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
+     * @param {import("JitsiConference").JitsiConference} conference - the conference instance for which the new instance will be managing
      * the send video quality constraints.
-     * @param {RTC} rtc - the rtc instance that is responsible for sending the messages on the bridge channel.
+     * @param {import("modules/RTC/RTC").RTC} rtc - the rtc instance that is responsible for sending the messages on the bridge channel.
      */
     constructor(conference, rtc) {
         this._conference = conference;

@@ -19,7 +19,7 @@ const logger = getLogger(__filename);
 export default class IceFailedHandling {
     /**
      * Creates new {@code DelayedIceFailed} task.
-     * @param {JitsiConference} conference
+     * @param {import("JitsiConference").JitsiConference} conference
      */
     constructor(conference) {
         this._conference = conference;

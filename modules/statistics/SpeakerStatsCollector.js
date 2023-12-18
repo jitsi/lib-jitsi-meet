@@ -20,7 +20,7 @@ export default class SpeakerStatsCollector {
      * Initializes a new SpeakerStatsCollector instance.
      *
      * @constructor
-     * @param {JitsiConference} conference - The conference to track.
+     * @param {import("JitsiConference").JitsiConference} conference - The conference to track.
      * @returns {void}
      */
     constructor(conference) {

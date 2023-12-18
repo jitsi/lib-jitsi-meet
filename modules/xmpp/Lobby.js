@@ -21,7 +21,7 @@ export default class Lobby {
     /**
      * Constructs lobby room.
      *
-     * @param {ChatRoom} room the main room.
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the main room.
      */
     constructor(room) {
         this.xmpp = room.xmpp;

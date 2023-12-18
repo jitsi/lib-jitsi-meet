@@ -16,7 +16,7 @@ class RecordingManager {
      * Initialize {@code RecordingManager} with other objects that are necessary
      * for starting a recording.
      *
-     * @param {ChatRoom} chatRoom - The chat room to handle.
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} chatRoom - The chat room to handle.
      * @returns {void}
      */
     constructor(chatRoom) {

@@ -22,7 +22,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
 
         /**
          *
-         * @type {ChatRoom|null}
+         * @type {import("modules/xmpp/ChatRoom").ChatRoom|null}
          */
         this.chatRoom = null;
     }
@@ -31,7 +31,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * @inheritDoc
      */
     getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
-        return {};
+        return null;
     }
 
     /**
@@ -70,7 +70,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
 
     /**
      * Sets the <tt>ChatRoom</tt> instance used.
-     * @param {ChatRoom} room
+     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room
      */
     setChatRoom(room) {
         this.chatRoom = room;

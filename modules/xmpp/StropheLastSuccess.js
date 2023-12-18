@@ -13,7 +13,8 @@ export default class LastRequestTracker {
     /**
      * Starts tracking requests on the given connection.
      *
-     * @param {XmppConnection} xmppConnection - The XMPP connection which manages the given {@code stropheConnection}.
+     * @param {import("modules/xmpp/XmppConnection").XmppConnection} xmppConnection - The XMPP connection
+     * which manages the given {@code stropheConnection}.
      * @param {Object} stropheConnection - Strophe connection instance.
      */
     startTracking(xmppConnection, stropheConnection) {
