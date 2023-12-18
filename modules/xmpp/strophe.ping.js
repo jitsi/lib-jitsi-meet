@@ -34,7 +34,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param {Object} options
      * @param {Function} options.onPingThresholdExceeded - Callback called when ping fails too many times (controlled
      * by the {@link PING_THRESHOLD} constant).
-     * @param {Function} options._getTimeSinceLastServerResponse - A function to obtain the last seen
+     * @param {Function} options.getTimeSinceLastServerResponse - A function to obtain the last seen
      * response from the server.
      * @param {Object} options.pingOptions - The ping options if any.
      * @constructor
