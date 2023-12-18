@@ -87,9 +87,7 @@
     "index.d.ts"
   ],
   "overrides": {
-    "karma-rollup-preprocessor": {
-      "rollup": "npm:@rollup/wasm-node"
-    }
+    "rollup": "npm:@rollup/wasm-node"
   },
   "license": "Apache-2.0"
 }
