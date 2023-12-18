@@ -528,8 +528,10 @@ export default class XmppConnection extends Listenable {
      * which would fail immediately if disconnected).
      *
      * @param {Element} iq - The IQ to send.
-     * @param {number} timeout - How long to wait for the response. The time when the connection is reconnecting is
-     * included, which means that the IQ may never be sent and still fail with a timeout.
+     * @param {Object} options - Options object
+     * @param {options.timeout} timeout - How long to wait for the response.
+     * The time when the connection is reconnecting is included, which means that
+     * the IQ may never be sent and still fail with a timeout.
      */
     sendIQ2(iq, { timeout }) {
         return new Promise((resolve, reject) => {

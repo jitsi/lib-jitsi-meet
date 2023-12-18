@@ -135,7 +135,7 @@ export default class JitsiParticipant {
 
     /**
      * Returns a set with the features for the participant.
-     * @returns {Promise<Set<String>, Error>}
+     * @returns {Promise<Set<String>>}
      */
     getFeatures() {
         return Promise.resolve(this._features);

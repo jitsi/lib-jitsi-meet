@@ -195,7 +195,7 @@ export default class Caps extends Listenable {
      * Returns a set with the features for a host.
      * @param {String} jid the jid of the host
      * @param {int} timeout the timeout in ms for reply from the host.
-     * @returns {Promise<Set<String>, Error>}
+     * @returns {Promise<Set<String>>}
      */
     getFeaturesAndIdentities(jid, node, timeout = 5000) {
         return this._getDiscoInfo(jid, node, timeout);

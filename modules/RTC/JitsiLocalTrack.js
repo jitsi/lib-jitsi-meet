@@ -47,8 +47,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @param {number} trackInfo.resolution - The the video resolution if it's a video track
      * @param {string} trackInfo.deviceId - The ID of the local device for this track.
      * @param {string} trackInfo.facingMode - Thehe camera facing mode used in getUserMedia call (for mobile only).
-     * @param {sourceId} trackInfo.sourceId - The id of the desktop sharing source, which is the Chrome media source ID,
+     * @param {string} trackInfo.sourceId - The id of the desktop sharing source, which is the Chrome media source ID,
      * returned by Desktop Picker on Electron. NOTE: defined for desktop sharing tracks only.
+     * @param {string} trackInfo.sourceType - The type of source the track originates from.
      */
     constructor({
         deviceId,
