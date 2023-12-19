@@ -171,7 +171,7 @@ export default class Caps extends Listenable {
 
     /**
      * Updates the presences in the room based on the current values in externalFeatures.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the room to update.
+     * @param {ChatRoom} room the room to update.
      * @private
      */
     _updateRoomWithExternalFeatures(room) {
@@ -221,7 +221,7 @@ export default class Caps extends Listenable {
     /**
      * Adds ChatRoom instance to the list of rooms. Adds listeners to the room
      * and adds "c" element to the presences of the room.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the room.
+     * @param {ChatRoom} room the room.
      */
     _addChatRoom(room) {
         this.rooms.add(room);
@@ -233,7 +233,7 @@ export default class Caps extends Listenable {
     /**
      * Removes ChatRoom instance from the list of rooms. Removes listeners
      * added from the Caps class.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the room.
+     * @param {ChatRoom} room the room.
      */
     _removeChatRoom(room) {
         this.rooms.delete(room);
@@ -241,7 +241,7 @@ export default class Caps extends Listenable {
 
     /**
      * Creates/updates the "c" xml node into the presence of the passed room.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the room.
+     * @param {ChatRoom} room the room.
      */
     _fixChatRoomPresenceMap(room) {
         room.addOrReplaceInPresence('c', {

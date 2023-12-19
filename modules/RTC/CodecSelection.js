@@ -24,8 +24,8 @@ export class CodecSelection {
     /**
      * Creates a new instance for a given conference.
      *
-     * @param {import("JitsiConference").JitsiConference} conference the conference instance
-     * @param {*} options
+     * @param {JitsiConference} conference the conference instance
+     * @param {Object} options
      * @param {string} options.jvb settings (codec list, preferred and disabled) for the jvb connection.
      * @param {string} options.p2p settings (codec list, preferred and disabled) for the p2p connection.
      */
@@ -127,7 +127,7 @@ export class CodecSelection {
      * Sets the codec on the media session based on the codec preference order configured in config.js and the supported
      * codecs published by the remote participants in their presence.
      *
-     * @param {import("modules/xmpp/JingleSessionPC").JingleSessionPC} mediaSession session for which the codec
+     * @param {JingleSessionPC} mediaSession session for which the codec
      * selection has to be made.
      */
     _selectPreferredCodec(mediaSession) {

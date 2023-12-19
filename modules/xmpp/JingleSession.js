@@ -20,7 +20,7 @@ export default class JingleSession extends Listenable {
      * @param {string} sid the Jingle session identifier
      * @param {string} localJid our JID
      * @param {string} remoteJid the JID of the remote peer
-     * @param {import("modules/xmpp/XmppConnection").XmppConnection} connection the XMPP connection
+     * @param {XmppConnection} connection the XMPP connection
      * @param {Object} mediaConstraints the media constraints object passed to the PeerConnection onCreateAnswer/Offer.
      * @param {Object} pcConfig The {@code RTCConfiguration} object passed to the PeerConnection's constructor.
      * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
@@ -61,13 +61,13 @@ export default class JingleSession extends Listenable {
 
         /**
          * The chat room instance associated with the session.
-         * @type {import("modules/xmpp/ChatRoom").ChatRoom}
+         * @type {ChatRoom}
          */
         this.room = null;
 
         /**
          * The signaling layer.
-         * @type {import("modules/xmpp/SignalingLayerImpl").SignalingLayerImpl | null}
+         * @type {SignalingLayerImpl | null}
          * @private
          */
         this._signalingLayer = null;
@@ -80,7 +80,7 @@ export default class JingleSession extends Listenable {
 
         /**
          * The RTC service instance
-         * @type {import("modules/RTC/RTC").RTC}
+         * @type {RTC}
          */
         this.rtc = null;
     }
@@ -105,10 +105,10 @@ export default class JingleSession extends Listenable {
 
     /**
      * Prepares this object to initiate a session.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the chat room for the conference associated with
+     * @param {ChatRoom} room the chat room for the conference associated with
      * this session
-     * @param {import("modules/RTC/RTC").RTC} rtc the RTC service instance
-     * @param {import("modules/xmpp/SignalingLayerImpl").SignalingLayerImpl} signalingLayer - The signaling layer
+     * @param {RTC} rtc the RTC service instance
+     * @param {SignalingLayerImpl} signalingLayer - The signaling layer
      * instance.
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.

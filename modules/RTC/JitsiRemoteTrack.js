@@ -27,15 +27,15 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
 export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Creates new JitsiRemoteTrack instance.
-     * @param {import("modules/RTC/RTC").RTC} rtc the RTC service instance.
-     * @param {import("JitsiConference").JitsiConference} conference the conference to which this track
+     * @param {RTC} rtc the RTC service instance.
+     * @param {JitsiConference} conference the conference to which this track
      *        belongs to
      * @param {string} ownerEndpointId the endpoint ID of the track owner
      * @param {MediaStream} stream WebRTC MediaStream, parent of the track
      * @param {MediaStreamTrack} track underlying WebRTC MediaStreamTrack for
      *        the new JitsiRemoteTrack
-     * @param {import("service/RTC/MediaType").MediaType} mediaType the type of the media
-     * @param {import("service/RTC/VideoType").VideoType} videoType the type of the video if applicable
+     * @param {MediaType} mediaType the type of the media
+     * @param {VideoType} videoType the type of the video if applicable
      * @param {number} ssrc the SSRC number of the Media Stream
      * @param {boolean} muted the initial muted state
      * @param {boolean} isP2P indicates whether or not this track belongs to a

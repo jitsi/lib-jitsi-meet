@@ -227,7 +227,7 @@ export default class XmppConnection extends Listenable {
      *
      * @param {string} name - The name of the plugin or rather a key under which it will be stored on this connection
      * instance.
-     * @param {import("modules/xmpp/ConnectionPlugin").ConnectionPluginListenable} plugin - The plugin to add.
+     * @param {ConnectionPluginListenable} plugin - The plugin to add.
      */
     addConnectionPlugin(name, plugin) {
         this[name] = plugin;

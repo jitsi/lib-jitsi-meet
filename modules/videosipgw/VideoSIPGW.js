@@ -14,7 +14,7 @@ export default class VideoSIPGW {
     /**
      * Creates new handler.
      *
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} chatRoom - Tha chat room to handle.
+     * @param {ChatRoom} chatRoom - Tha chat room to handle.
      */
     constructor(chatRoom) {
         this.chatRoom = chatRoom;
@@ -108,8 +108,8 @@ export default class VideoSIPGW {
      *
      * @param {Object} event - event object
      * @param {string} [event.address]
-     * @param {import("modules/videosipgw/VideoSIPGWConstants").VideoSIPGWStatusConstants} [event.oldState]
-     * @param {import("modules/videosipgw/VideoSIPGWConstants").VideoSIPGWStatusConstants} [event.newState]
+     * @param {VideoSIPGWStatusConstants} [event.oldState]
+     * @param {VideoSIPGWStatusConstants} [event.newState]
      * @param {string} [event.displayName]
      */
     sessionStateChanged(event) {

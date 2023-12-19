@@ -17,7 +17,7 @@ export default class JitsiParticipant {
      *
      * @constructor
      * @param jid the conference XMPP jid
-     * @param {import("JitsiConference").JitsiConference} conference
+     * @param {JitsiConference} conference
      * @param {string} displayName
      * @param {boolean} hidden - True if the new JitsiParticipant instance is to
      * represent a hidden participant; otherwise, false.
@@ -62,7 +62,7 @@ export default class JitsiParticipant {
      * Determines whether all JitsiTracks which are of a specific MediaType and which belong to this
      * JitsiParticipant are muted.
      *
-     * @param {import("service/RTC/MediaType").MediaType} mediaType - The MediaType of the JitsiTracks to be checked.
+     * @param {MediaType} mediaType - The MediaType of the JitsiTracks to be checked.
      * @private
      * @returns {boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
      * JitsiParticipant are muted; otherwise, false.
@@ -76,7 +76,7 @@ export default class JitsiParticipant {
 
     /**
      * Sets source info.
-     * @param {import("service/RTC/MediaType").MediaType} mediaType The media type, 'audio' or 'video'.
+     * @param {MediaType} mediaType The media type, 'audio' or 'video'.
      * @param {boolean} muted The new muted state.
      * @param {string} sourceName The name of the source.
      * @param {string} videoType The video type of the source.
@@ -110,7 +110,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {import("JitsiConference").JitsiConference} The conference that this participant belongs
+     * @returns {JitsiConference} The conference that this participant belongs
      * to.
      */
     getConference() {
@@ -202,7 +202,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array<import("modules/RTC/JitsiTrack").JitsiTrack>} The list of media tracks for this
+     * @returns {Array<JitsiTrack>} The list of media tracks for this
      * participant.
      */
     getTracks() {
@@ -210,8 +210,8 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @param {import("service/RTC/MediaType").MediaType} mediaType
-     * @returns {Array<import("modules/RTC/JitsiTrack").JitsiTrack>} an array of media tracks for this
+     * @param {MediaType} mediaType
+     * @returns {Array<JitsiTrack>} an array of media tracks for this
      * participant, for given media type.
      */
     getTracksByMediaType(mediaType) {

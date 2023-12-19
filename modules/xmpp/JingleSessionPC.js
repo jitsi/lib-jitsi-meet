@@ -976,7 +976,7 @@ export default class JingleSessionPC extends JingleSession {
      * 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept the incoming offer. 'error' argument
      * can be used to log some details about the error.
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of the
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of the
      * local tracks that will be added, before the offer/answer cycle executes. We allow the localTracks to optionally
      * be passed in so that the addition of the local tracks and the processing of the initial offer can all be done
      * atomically. We want to make sure that any other operations which originate in the XMPP Jingle messages related
@@ -1022,7 +1022,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
      *
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks the local tracks that will be
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
      * added, before the offer/answer cycle executes (for the local track addition to be an atomic operation
      * together with the offer/answer).
      */
@@ -1137,7 +1137,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we fail at any point during setRD,
      * createAnswer, setLD.
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} [localTracks] the optional list of
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
      * the local tracks that will be added, before the offer/answer cycle executes (for the local track addition
      * to be an atomic operation together with the offer/answer).
      */
@@ -2149,7 +2149,7 @@ export default class JingleSessionPC extends JingleSession {
      * Adds a new track to the peerconnection. This method needs to be called only when a secondary JitsiLocalTrack is
      * being added to the peerconnection for the first time.
      *
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks - Tracks to be added to
+     * @param {Array<JitsiLocalTrack>} localTracks - Tracks to be added to
      * the peer connection.
      * @returns {Promise<void>} that resolves when the track is successfully added to the peerconnection, rejected
      * otherwise.
@@ -2247,9 +2247,9 @@ export default class JingleSessionPC extends JingleSession {
      * <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
      * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
      * <tt>oldTrack</tt>
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} oldTrack the current
+     * @param {JitsiLocalTrack|null} oldTrack the current
      * track in use to be replaced
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} newTrack the new track
+     * @param {JitsiLocalTrack|null} newTrack the new track
      * to use
      * @returns {Promise} which resolves once the replacement is complete
      *  with no arguments or rejects with an error {string}
@@ -2449,7 +2449,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Adds local track back to the peerconnection associated with this session.
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track
+     * @param {JitsiLocalTrack} track
      * @return {Promise} a promise that will resolve once the local track is added back to this session and
      * renegotiation succeeds (if its warranted). Will be rejected with a <tt>string</tt> that provides some error
      * details in case something goes wrong.
@@ -2467,7 +2467,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Remove local track as part of the mute operation.
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the local track to be removed
+     * @param {JitsiLocalTrack} track the local track to be removed
      * @return {Promise} a promise which will be resolved once the local track
      * is removed from this session and the renegotiation is performed.
      * The promise will be rejected with a <tt>string</tt> that the describes
@@ -2480,7 +2480,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * See {@link addTrackToPc} and {@link removeTrackFromPc}.
      * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
-     * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the track that will be added/removed
+     * @param {JitsiLocalTrack} track the track that will be added/removed
      * @private
      */
     _addRemoveTrack(isRemove, track) {

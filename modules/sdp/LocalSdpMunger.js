@@ -24,7 +24,7 @@ export default class LocalSdpMunger {
     /**
      * Creates new <tt>LocalSdpMunger</tt> instance.
      *
-     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc
+     * @param {TraceablePeerConnection} tpc
      * @param {string} localEndpointId - The endpoint id of the local user.
      */
     constructor(tpc, localEndpointId) {
@@ -43,7 +43,7 @@ export default class LocalSdpMunger {
      *
      * NOTE 1 video track is assumed
      *
-     * @param {import("modules/sdp/SdpTransformUtil").SdpTransformWrap} transformer the transformer instance which will
+     * @param {SdpTransformWrap} transformer the transformer instance which will
      * be used to process the SDP.
      * @return {boolean} <tt>true</tt> if there were any modifications to
      * the SDP wrapped by <tt>transformer</tt>.

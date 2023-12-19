@@ -26,14 +26,14 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Represents a single media track (either audio or video).
      * @constructor
-     * @param {import("JitsiConference").JitsiConference} conference the rtc instance
+     * @param {JitsiConference} conference the rtc instance
      * @param {MediaStream} stream the WebRTC MediaStream instance
      * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack instance, must be part of
      * the given <tt>stream</tt>.
      * @param {function} streamInactiveHandler the function that will handle
      *        onended/oninactive events of the stream.
-     * @param {import("service/RTC/MediaType").MediaType} trackMediaType the media type of the JitsiTrack
-     * @param {import("service/RTC/VideoType").VideoType} videoType the VideoType for this track if any
+     * @param {MediaType} trackMediaType the media type of the JitsiTrack
+     * @param {VideoType} videoType the VideoType for this track if any
      */
     constructor(
             conference,
@@ -356,7 +356,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Returns the video type (camera or desktop) of this track.
-     * @returns {import("service/RTC/VideoType").VideoType|null} the type of video
+     * @returns {VideoType|null} the type of video
      */
     getVideoType() {
         return this.videoType;
@@ -439,7 +439,7 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Sets the audio level for the stream
      * @param {number} audioLevel value between 0 and 1
-     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} [tpc] the peerconnection
+     * @param {TraceablePeerConnection} [tpc] the peerconnection
      * instance which is source for the audio level. It can be <tt>undefined</tt> for
      * a local track if the audio level was measured outside of the
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).

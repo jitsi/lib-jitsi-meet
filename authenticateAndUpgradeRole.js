@@ -8,7 +8,7 @@ import XMPP from './modules/xmpp/xmpp';
 /**
  * @typedef {Object} UpgradeRoleError
  *
- * @property {import("JitsiConnectionErrors").JitsiConnectionErrors} [connectionError] - One of
+ * @property {JitsiConnectionErrors} [connectionError] - One of
  * {@link JitsiConnectionErrors} which occurred when trying to connect to the
  * XMPP server.
  * @property {String} [authenticationError] - One of XMPP error conditions

@@ -22,7 +22,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
 
         /**
          *
-         * @type {import("modules/xmpp/ChatRoom").ChatRoom|null}
+         * @type {ChatRoom|null}
          */
         this.chatRoom = null;
     }
@@ -70,7 +70,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
 
     /**
      * Sets the <tt>ChatRoom</tt> instance used.
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room
+     * @param {ChatRoom} room
      */
     setChatRoom(room) {
         this.chatRoom = room;

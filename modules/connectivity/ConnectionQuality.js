@@ -409,7 +409,7 @@ export default class ConnectionQuality {
 
     /**
      * Updates the local statistics
-     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - the peerconnection
+     * @param {TraceablePeerConnection} tpc - the peerconnection
      * which emitted the stats
      * @param data new statistics
      */

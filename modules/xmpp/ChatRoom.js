@@ -1613,9 +1613,9 @@ export default class ChatRoom extends Listenable {
      * source-name signaling (Jigasi and very old mobile clients).
      *
      * @param {string} endpointId the endpoint ID mapped to the participant which corresponds to MUC nickname.
-     * @param {import("service/RTC/MediaType").MediaType} mediaType the type of the media for which presence
+     * @param {MediaType} mediaType the type of the media for which presence
      * info will be obtained.
-     * @return {import("service/RTC/SignalingLayer").PeerMediaInfo} presenceInfo an object with media presence
+     * @return {PeerMediaInfo} presenceInfo an object with media presence
      * info or <tt>null</tt> either if there is no presence available or if the media type given is invalid.
      */
     getMediaPresenceInfo(endpointId, mediaType) {

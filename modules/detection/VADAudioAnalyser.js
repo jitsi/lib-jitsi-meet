@@ -21,7 +21,7 @@ const VAD_EMITTER_SAMPLE_RATE = 4096;
 export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Creates <tt>VADAudioAnalyser</tt>
-     * @param {import("JitsiConference").JitsiConference} conference - JitsiConference instance that created us.
+     * @param {JitsiConference} conference - JitsiConference instance that created us.
      * @param {Object} createVADProcessor - Function that creates a Voice activity detection processor. The processor
      * needs to implement the following functions:
      * - <tt>getSampleLength()</tt> - Returns the sample size accepted by getSampleLength.
@@ -149,7 +149,7 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Notifies the detector that a track was added to the associated {@link JitsiConference}.
      * Only take into account local audio tracks.
-     * @param {import("modules/RTC/JitsiTrack").JitsiTrack} track - The added track.
+     * @param {JitsiTrack} track - The added track.
      * @returns {void}
      * @listens TRACK_ADDED
      */
@@ -179,7 +179,7 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Notifies the detector that the mute state of a {@link JitsiConference} track has changed. Only takes into account
      * local audio tracks.
-     * @param {import("modules/RTC/JitsiTrack").JitsiTrack} track - The track whose mute state has changed.
+     * @param {JitsiTrack} track - The track whose mute state has changed.
      * @returns {void}
      * @listens TRACK_MUTE_CHANGED
      */
@@ -197,7 +197,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * Notifies the detector that a track associated with the {@link JitsiConference} was removed. Only takes into
      * account local audio tracks. Cleans up resources associated with the track and resets the processing context.
      *
-     * @param {import("modules/RTC/JitsiTrack").JitsiTrack} track - The removed track.
+     * @param {JitsiTrack} track - The removed track.
      * @returns {void}
      * @listens TRACK_REMOVED
      */

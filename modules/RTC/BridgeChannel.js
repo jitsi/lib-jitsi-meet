@@ -20,9 +20,9 @@ export default class BridgeChannel {
      * @param {RTCPeerConnection|null} peerconnection WebRTC peer connection
      * instance.
      * @param {string|null} wsUrl WebSocket URL.
-     * @param {import("modules/util/EventEmitter").EventEmitter} emitter the EventEmitter instance to use for
+     * @param {EventEmitter} emitter the EventEmitter instance to use for
      * event emission.
-     * @param {import("JitsiConference").JitsiConference} conference the conference instance.
+     * @param {JitsiConference} conference the conference instance.
      */
     constructor(peerconnection, wsUrl, emitter, conference) {
         if (!peerconnection && !wsUrl) {
@@ -240,7 +240,7 @@ export default class BridgeChannel {
     /**
      * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
      *
-     * @param {import("modules/qualitycontrol/ReceiveVideoController").ReceiverVideoConstraints} constraints video
+     * @param {ReceiverVideoConstraints} constraints video
      * constraints.
      */
     sendReceiverVideoConstraintsMessage(constraints) {
@@ -254,8 +254,8 @@ export default class BridgeChannel {
     /**
      * Sends a 'SourceVideoTypeMessage' message via the bridge channel.
      *
-     * @param {import("service/RTC/BridgeVideoType").BridgeVideoType} videoType - the video type.
-     * @param {import("service/RTC/SignalingLayer").SourceName} sourceName - the source name of the video track.
+     * @param {BridgeVideoType} videoType - the video type.
+     * @param {SourceName} sourceName - the source name of the video track.
      * @returns {void}
      */
     sendSourceVideoTypeMessage(sourceName, videoType) {

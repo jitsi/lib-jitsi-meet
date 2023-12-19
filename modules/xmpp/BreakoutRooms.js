@@ -25,7 +25,7 @@ export default class BreakoutRooms {
     /**
      * Constructs breakout room.
      *
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the room we are in.
+     * @param {ChatRoom} room the room we are in.
      */
     constructor(room) {
         this.room = room;

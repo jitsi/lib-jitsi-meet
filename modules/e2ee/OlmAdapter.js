@@ -321,7 +321,7 @@ export class OlmAdapter extends Listenable {
           |<--------------------------------|
           |                                 |
      *
-     * @param {import("JitsiParticipant").JitsiParticipant} participant - The target participant.
+     * @param {JitsiParticipant} participant - The target participant.
      * @returns {Promise<void>}
      * @private
      */
@@ -410,7 +410,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Internal helper for getting the olm related data associated with a participant.
      *
-     * @param {import("JitsiParticipant").JitsiParticipant} participant - Participant whose data wants to be extracted.
+     * @param {JitsiParticipant} participant - Participant whose data wants to be extracted.
      * @returns {Object}
      * @private
      */
@@ -881,7 +881,7 @@ export class OlmAdapter extends Listenable {
     /**
     * Handles an update in a participant's presence property.
     *
-    * @param {import("JitsiParticipant").JitsiParticipant} participant - The participant.
+    * @param {JitsiParticipant} participant - The participant.
     * @param {string} name - The name of the property that changed.
     * @param {any} oldValue - The property's previous value.
     * @param {any} newValue - The property's new value.
@@ -939,7 +939,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Builds and sends an error message to the target participant.
      *
-     * @param {import("JitsiParticipant").JitsiParticipant} participant - The target participant.
+     * @param {JitsiParticipant} participant - The target participant.
      * @param {string} error - The error message.
      * @returns {void}
      */
@@ -973,7 +973,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Builds and sends the session-init request to the target participant.
      *
-     * @param {import("JitsiParticipant").JitsiParticipant} participant - Participant to whom we'll send the request.
+     * @param {JitsiParticipant} participant - Participant to whom we'll send the request.
      * @returns {Promise} - The promise will be resolved when the session-ack is received.
      * @private
      */

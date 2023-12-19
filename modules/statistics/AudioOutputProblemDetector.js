@@ -23,7 +23,7 @@ export default class AudioOutputProblemDetector {
     /**
      * Creates new <tt>AudioOutputProblemDetector</tt> instance.
      *
-     * @param {import("JitsiConference").JitsiConference} conference - The conference instance to be monitored.
+     * @param {JitsiConference} conference - The conference instance to be monitored.
      */
     constructor(conference) {
         this._conference = conference;
@@ -83,7 +83,7 @@ export default class AudioOutputProblemDetector {
     /**
      * A listener for audio level data retrieved by the local stats.
      *
-     * @param {import("modules/RTC/TraceablePeerConnection").TraceablePeerConnection} tpc - The
+     * @param {TraceablePeerConnection} tpc - The
      * <tt>TraceablePeerConnection</tt> instance used to gather the data.
      * @param {Object} avgAudioLevels - The average audio levels per participant.
      * @returns {void}

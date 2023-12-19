@@ -14,7 +14,7 @@ export default class AVModeration {
     /**
      * Constructs AV moderation room.
      *
-     * @param {import("modules/xmpp/ChatRoom").ChatRoom} room the main room.
+     * @param {ChatRoom} room the main room.
      */
     constructor(room) {
         this._xmpp = room.xmpp;

@@ -38,16 +38,16 @@ const DD_HEADER_EXT_ID = 11;
 /**
  * Creates new instance of 'TraceablePeerConnection'.
  *
- * @param {import("modules/RTC/RTC").RTC} rtc the instance of <tt>RTC</tt> service
+ * @param {RTC} rtc the instance of <tt>RTC</tt> service
  * @param {number} id the peer connection id assigned by the parent RTC module.
- * @param {import("service/RTC/SignalingLayer").SignalingLayer} signalingLayer the signaling layer instance
+ * @param {SignalingLayer} signalingLayer the signaling layer instance
  * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
  * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
  * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
- * @param {Array<import("service/RTC/CodecMimeType").CodecMimeType>} options.codecSettings - codec settings to be
+ * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be
  * applied for video streams.
  * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
@@ -149,7 +149,7 @@ export default function TraceablePeerConnection(
 
     /**
      * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
-     * @type {Map<number, import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>}
+     * @type {Map<number, JitsiLocalTrack>}
      */
     this.localTracks = new Map();
 
@@ -213,7 +213,7 @@ export default function TraceablePeerConnection(
 
     /**
      * The signaling layer which operates this peer connection.
-     * @type {import("service/RTC/SignalingLayer").SignalingLayer}
+     * @type {SignalingLayer}
      */
     this.signalingLayer = signalingLayer;
 
@@ -320,7 +320,7 @@ export default function TraceablePeerConnection(
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
-     * @type {import("modules/util/EventEmitter").EventEmitter}
+     * @type {EventEmitter}
      */
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
@@ -714,7 +714,7 @@ TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
 /**
  * Returns the SSRCs associated with a given local video track.
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack
+ * @param {JitsiLocalTrack} localTrack
  * @returns
  */
 TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
@@ -733,7 +733,7 @@ TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
  * Obtains local tracks for given {@link MediaType}. If the <tt>mediaType</tt>
  * argument is omitted the list of all local tracks will be returned.
  * @param {MediaType} [mediaType]
- * @return {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>}
+ * @return {Array<JitsiLocalTrack>}
  */
 TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
     let tracks = Array.from(this.localTracks.values());
@@ -748,7 +748,7 @@ TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
 /**
  * Retrieves the local video tracks.
  *
- * @returns {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} - local video tracks.
+ * @returns {Array<JitsiLocalTrack>} - local video tracks.
  */
 TraceablePeerConnection.prototype.getLocalVideoTracks = function() {
     return this.getLocalTracks(MediaType.VIDEO);
@@ -856,7 +856,7 @@ TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
  * Tries to find {@link JitsiTrack} for given SSRC number. It will search both
  * local and remote tracks bound to this instance.
  * @param {number} ssrc
- * @return {import("modules/RTC/JitsiTrack").JitsiTrack|null}
+ * @return {JitsiTrack|null}
  */
 TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
     if (typeof ssrc !== 'number') {
@@ -1502,7 +1502,7 @@ const enforceSendRecv = function(localDescription, options) {
 
 /**
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack
+ * @param {JitsiLocalTrack} localTrack
  */
 TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
     const ssrcInfo = this._getSSRC(localTrack.rtcId);
@@ -1784,7 +1784,7 @@ TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
 
 /**
  * Add {@link JitsiLocalTrack} to this TPC.
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track
+ * @param {JitsiLocalTrack} track
  * @param {boolean} isInitiator indicates if the endpoint is the offerer.
  * @returns {Promise<void>} - resolved when done.
  */
@@ -1870,7 +1870,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 /**
  * Adds local track to the RTCPeerConnection.
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track the track to be added to the pc.
+ * @param {JitsiLocalTrack} track the track to be added to the pc.
  * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
  * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
  */
@@ -1936,7 +1936,7 @@ TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
  * track does not belong an error message will be logged.
  * @param {string} methodName the method name that will be logged in an error
  * message
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack
+ * @param {JitsiLocalTrack} localTrack
  * @return {boolean} <tt>true</tt> if given local track belongs to this TPC or
  * <tt>false</tt> otherwise.
  * @private
@@ -2055,7 +2055,7 @@ TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
 
 /**
  * Remove local track from this TPC.
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack the track to be removed from this TPC.
+ * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
  *
  * FIXME It should probably remove a boolean just like {@link removeTrackFromPc}
  *       The same applies to addTrack.
@@ -2081,7 +2081,7 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 
 /**
  * Returns the sender corresponding to the given media type.
- * @param {import("service/RTC/MediaType").MediaType} mediaType - The media type 'audio' or 'video' to be used for
+ * @param {MediaType} mediaType - The media type 'audio' or 'video' to be used for
  * the search.
  * @returns {Object|undefined} - The found sender or undefined if no sender
  * was found.
@@ -2119,7 +2119,7 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
 /**
  * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
  *
- * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks - local tracks that are added
+ * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added
  * to the peerconnection.
  * @returns {void}
  */
@@ -2149,9 +2149,9 @@ TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(l
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
  * <tt>oldTrack</tt>
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} oldTrack - The current track in use
+ * @param {JitsiLocalTrack|null} oldTrack - The current track in use
  * to be replaced on the pc.
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack|null} newTrack - The new track to be used.
+ * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
  *
  * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
  * Otherwise no renegotiation is needed.
@@ -2239,7 +2239,7 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
 /**
  * Removes local track from the RTCPeerConnection.
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} localTrack the local track to be removed.
+ * @param {JitsiLocalTrack} localTrack the local track to be removed.
  * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
  * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
  */
@@ -2582,7 +2582,7 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
 /**
  * Configures the stream encodings depending on the video type and the bitrates configured.
  *
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} - The local track for which the sender encodings
+ * @param {JitsiLocalTrack} - The local track for which the sender encodings
  * have to configured.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
@@ -2717,7 +2717,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * bitrates on the send stream.
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} - The local track for which the sender
+ * @param {JitsiLocalTrack} - The local track for which the sender
  * constraints have to be applied.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
@@ -2779,7 +2779,7 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  * Configures the video stream with resolution / degradation / maximum bitrates
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} - The local track for which the sender constraints
+ * @param {JitsiLocalTrack} - The local track for which the sender constraints
  * have to be applied.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
@@ -3225,7 +3225,7 @@ TraceablePeerConnection.prototype.getStats = function() {
  * Generates and stores new SSRC info object for given local track.
  * The method should be called only for a video track being added to this TPC
  * in the muted state (given that the current browser uses this strategy).
- * @param {import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack} track
+ * @param {JitsiLocalTrack} track
  * @return {TPCSSRCInfo}
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {

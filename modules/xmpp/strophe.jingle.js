@@ -55,8 +55,8 @@ function _parseIceCandidates(transport) {
 export default class JingleConnectionPlugin extends ConnectionPlugin {
     /**
      * Creates new <tt>JingleConnectionPlugin</tt>
-     * @param {import("modules/xmpp/xmpp").XMPP} xmpp
-     * @param {import("modules/util/EventEmitter").EventEmitter} eventEmitter
+     * @param {XMPP} xmpp
+     * @param {EventEmitter} eventEmitter
      * @param {Object} iceConfig an object that holds the iceConfig to be passed
      * to the p2p and the jvb <tt>PeerConnection</tt>.
      */
@@ -314,7 +314,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * connection, configured as 'initiator'.
      * @param {string} me our JID
      * @param {string} peer remote participant's JID
-     * @return {import("modules/xmpp/JingleSessionPC").JingleSessionPC}
+     * @return {JingleSessionPC}
      */
     newP2PJingleSession(me, peer) {
         const sess

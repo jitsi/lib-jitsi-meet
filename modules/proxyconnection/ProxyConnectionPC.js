@@ -47,7 +47,7 @@ export default class ProxyConnectionPC {
          * Instances of {@code JitsiTrack} associated with this instance of
          * {@code ProxyConnectionPC}.
          *
-         * @type {Array<import("modules/RTC/JitsiTrack").JitsiTrack>}
+         * @type {Array<JitsiTrack>}
          */
         this._tracks = [];
 
@@ -105,7 +105,7 @@ export default class ProxyConnectionPC {
      * Instantiates a peer connection and starts the offer/answer cycle to
      * establish a connection with a remote peer.
      *
-     * @param {Array<import("modules/RTC/JitsiLocalTrack").JitsiLocalTrack>} localTracks - Initial local tracks to add
+     * @param {Array<JitsiLocalTrack>} localTracks - Initial local tracks to add
      * to add to the peer connection.
      * @returns {void}
      */
