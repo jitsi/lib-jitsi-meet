@@ -69,7 +69,7 @@
     "build:webpack": "LIB_JITSI_MEET_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null) webpack",
     "build:webpack-dev": "webpack --mode development",
     "build:tsc": "tsc --build --clean && tsc",
-    "gen-types": "tsc --declaration --emitDeclarationOnly --out index.js",
+    "gen-types": "tsc --declaration --emitDeclarationOnly --out types/index.d.ts",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "postinstall": "patch-package",
@@ -81,6 +81,7 @@
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
+  "types": "types/index.d.ts",
   "files": [
     "dist",
     "types",
