@@ -544,6 +544,7 @@ export default class XMPP extends Listenable {
             return null;
         }
 
+        FAILURE_REGEX.lastIndex = 0;
         const matches = FAILURE_REGEX.exec(msg);
 
         return matches ? matches[1] : null;
