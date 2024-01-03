@@ -67,9 +67,9 @@ export class TPCUtils {
                         || codecConfig.scalabilityModeEnabled);
 
                 if (scalabilityModeEnabled) {
-                    typeof codecConfig.useSimulcast !== undefined
+                    typeof codecConfig.useSimulcast !== 'undefined'
                         && (this.codecSettings[codec].useSimulcast = codecConfig.useSimulcast);
-                    typeof codecConfig.useKSVC !== undefined
+                    typeof codecConfig.useKSVC !== 'undefined'
                         && (this.codecSettings[codec].useKSVC = codecConfig.useKSVC);
                 } else {
                     this.codecSettings[codec].scalabilityModeEnabled = false;
@@ -544,20 +544,19 @@ export class TPCUtils {
         const hasIncorrectConfig = this.pc._capScreenshareBitrate
             ? parameters.encodings.every(encoding => encoding.active)
             : parameters.encodings.some(encoding => !encoding.active);
+        const videoType = localVideoTrack.getVideoType();
 
         // Check if every encoding is active for screenshare track when low fps screenshare is configured or some
         // of the encodings are disabled when high fps screenshare is configured. In both these cases, the track
         // encodings need to be reconfigured. This is needed when p2p->jvb switch happens and new sender constraints
         // are not received by the client.
-        if (localVideoTrack.getVideoType() === VideoType.DESKTOP && hasIncorrectConfig) {
+        if (videoType === VideoType.DESKTOP && hasIncorrectConfig) {
             return null;
         }
 
         for (const encoding in parameters.encodings) {
             if (parameters.encodings[encoding].active) {
-                const encodingConfig = this._getVideoStreamEncodings(
-                    localVideoTrack.getVideoType(),
-                    this.pc.getConfiguredVideoCodec());
+                const encodingConfig = this._getVideoStreamEncodings(videoType, codec);
                 const scaleResolutionDownBy
                     = this.pc.isSpatialScalabilityOn()
                         ? encodingConfig[encoding].scaleResolutionDownBy

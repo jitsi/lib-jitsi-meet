@@ -2808,19 +2808,24 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     for (const encoding in parameters.encodings) {
         if (parameters.encodings.hasOwnProperty(encoding)) {
             parameters.encodings[encoding].active = encodingsActiveState[encoding];
-            parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
 
             // Firefox doesn't follow the spec and lets application specify the degradation preference on the
             // encodings.
             browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
 
-            parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor[encoding];
+            // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in legacy K-SVC mode
+            // since the browser sends only the lowest resolution layer when those are configured.
+            if (codec !== CodecMimeType.VP9
+                || !this.isSpatialScalabilityOn()
+                || (browser.supportsScalabilityModeAPI()
+                    && this.tpcUtils.codecSettings[codec].scalabilityModeEnabled)) {
+                parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor[encoding];
+                parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
+            }
 
             // Configure scalability mode when its supported and enabled.
             if (scalabilityModes) {
                 parameters.encodings[encoding].scalabilityMode = scalabilityModes[encoding];
-            } else {
-                parameters.encodings[encoding].scalabilityMode = undefined;
             }
         }
     }
