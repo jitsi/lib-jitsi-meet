@@ -81,7 +81,6 @@
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
-  "types": "types/index.d.ts",
   "files": [
     "dist",
     "types"
