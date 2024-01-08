@@ -381,7 +381,8 @@ JitsiConference.prototype._init = function(options = {}) {
                 ? config.videoQuality.mobileCodecPreferenceOrder
                 : config.videoQuality?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec)
+            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
+            supportsAv1: config.testing?.enableAv1Support
         },
         p2p: {
             preferenceOrder: browser.isMobileDevice() && config.p2p?.mobileCodecPreferenceOrder
@@ -3077,6 +3078,13 @@ JitsiConference.prototype._updateProperties = function(properties = {}) {
                 });
             }
         });
+
+        const oldValue = this._hasVisitors;
+
+        this._hasVisitors = this.properties['visitor-count'] > 0;
+
+        // as this is visitor leaving, consider it leaving for _maybeStartOrStopP2P
+        oldValue && !this._hasVisitors && this._maybeStartOrStopP2P(true);
     }
 };
 
@@ -3269,7 +3277,8 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     if (!this.isP2PEnabled()
             || this.isP2PTestModeEnabled()
             || (browser.isFirefox() && !this._firefoxP2pEnabled)
-            || this.isE2EEEnabled()) {
+            || this.isE2EEEnabled()
+            || this._hasVisitors) {
         logger.info('Auto P2P disabled');
 
         return;
