@@ -85,8 +85,5 @@
     "dist",
     "types"
   ],
-  "overrides": {
-    "rollup": "npm:@rollup/wasm-node"
-  },
   "license": "Apache-2.0"
 }
