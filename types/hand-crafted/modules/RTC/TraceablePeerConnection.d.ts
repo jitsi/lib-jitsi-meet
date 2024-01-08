@@ -3,7 +3,6 @@ import JitsiTrack from './JitsiTrack';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import JitsiLocalTrack from './JitsiLocalTrack';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
-import SdpConsistency from '../sdp/SdpConsistency';
 import RtxModifier from '../sdp/RtxModifier';
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -16,7 +15,6 @@ export default function TraceablePeerConnection( rtc: RTC, id: number, signaling
   disabledCodec: string;
   preferredCodec: string;
   startSilent: boolean;
-  usesUnifiedPlan: boolean;
 } ): void; // TODO:
 
 export default class TraceablePeerConnection {
@@ -60,7 +58,6 @@ export default class TraceablePeerConnection {
   maxstats: unknown; // TODO:
   interop: unknown; // TODO: unknown = Interop refers to @jitsi/sdp-interop
   simulcast: unknown; // TODO: unknown = Simulcast refers to @jitsi/sdp-simulcast
-  sdpConsistency: SdpConsistency; // TODO:
   localSdpMunger: LocalSdpMunger; // TODO:
   eventEmitter: unknown; // TODO:
   rtxModifier: RtxModifier; // TODO:
@@ -109,14 +106,10 @@ export default class TraceablePeerConnection {
   setSenderVideoConstraint: ( frameHeight: number ) => Promise<void>;
   setVideoTransferActive: ( active: boolean ) => boolean;
   sendTones: ( tones: string, duration: number, interToneGap: number ) => void;
-  generateRecvonlySsrc: () => void;
-  clearRecvonlySsrc: () => void;
   close: () => void;
   createAnswer: ( constraints: unknown ) => unknown; // TODO:
   createOffer: ( constraints: unknown ) => unknown; // TODO:
   addIceCandidate: ( candidate: unknown ) => unknown; // TODO:
-  generateNewStreamSSRCInfo: (track: JitsiLocalTrack) => TraceablePeerConnection['localSSRCs'];
-  usesUnifiedPlan: () => boolean;
   getStats: () => unknown; // TODO:
   toString: () => string;
 }

@@ -290,17 +290,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser supports unified plan.
-     *
-     * @returns {boolean}
-     */
-    supportsUnifiedPlan() {
-        // We do not want to enable unified plan on Electron clients that have Chromium version < 96 because of
-        // performance and screensharing issues.
-        return !(this.isElectron() && this.isEngineVersionLessThan(96));
-    }
-
-    /**
      * Checks if the browser supports voice activity detection via the @type {VADAudioAnalyser} service.
      *
      * @returns {boolean}

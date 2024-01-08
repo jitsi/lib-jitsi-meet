@@ -20,7 +20,6 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
-import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
@@ -354,8 +353,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     _setMuted(muted) {
-        if (this.isMuted() === muted
-            && !(this.videoType === VideoType.DESKTOP && FeatureFlags.isMultiStreamSendSupportEnabled())) {
+        if (this.isMuted() === muted && !this.videoType === VideoType.DESKTOP) {
             return Promise.resolve();
         }
 
@@ -377,9 +375,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // conference. This is needed because we don't want the client to signal a source-remove to the remote peer for
         // the desktop track when screenshare is stopped. Later when screenshare is started again, the same sender will
         // be re-used without the need for signaling a new ssrc through source-add.
-        if (this.isAudioTrack()
-                || (this.videoType === VideoType.DESKTOP && !FeatureFlags.isMultiStreamSendSupportEnabled())
-                || !doesVideoMuteByStreamRemove) {
+        if (this.isAudioTrack() || !doesVideoMuteByStreamRemove) {
             logMuteInfo();
 
             // If we have a stream effect that implements its own mute functionality, prioritize it before

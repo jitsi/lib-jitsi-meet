@@ -1088,8 +1088,7 @@ JitsiConference.prototype.addTrack = function(track) {
 
         // Currently, only adding multiple video streams of different video types is supported.
         // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
-        if (FeatureFlags.isMultiStreamSendSupportEnabled()
-            && mediaType === MediaType.VIDEO
+        if (mediaType === MediaType.VIDEO
             && !localTracks.find(t => t.getVideoType() === track.getVideoType())) {
             const sourceName = getSourceNameForJitsiTrack(
                 this.myUserId(),
@@ -1122,7 +1121,7 @@ JitsiConference.prototype.addTrack = function(track) {
             // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
             // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
             // only be sent after a session-accept or source-add is ack'ed.
-            if (track.getVideoType() === VideoType.DESKTOP && FeatureFlags.isMultiStreamSendSupportEnabled()) {
+            if (track.getVideoType() === VideoType.DESKTOP) {
                 this._updateRoomPresence(this.getActiveMediaSession());
             }
         });
@@ -1260,7 +1259,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
     const mediaType = oldTrack?.getType() || newTrack?.getType();
     const newVideoType = newTrack?.getVideoType();
 
-    if (FeatureFlags.isMultiStreamSendSupportEnabled() && oldTrack && newTrack && oldVideoType !== newVideoType) {
+    if (oldTrack && newTrack && oldVideoType !== newVideoType) {
         throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
             + ' not supported in this mode.');
     }
@@ -2087,12 +2086,11 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
  */
 JitsiConference.prototype._onIncomingCallP2P = function(jingleSession, jingleOffer) {
     let rejectReason;
-    const usesUnifiedPlan = browser.supportsUnifiedPlan();
     const contentName = jingleOffer.find('>content').attr('name');
     const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
 
     // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
-    if (usesUnifiedPlan !== peerUsesUnifiedPlan) {
+    if (!peerUsesUnifiedPlan) {
         rejectReason = {
             reason: 'decline',
             reasonDescription: 'P2P disabled',

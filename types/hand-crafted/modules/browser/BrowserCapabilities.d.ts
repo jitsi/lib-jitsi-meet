@@ -19,6 +19,5 @@ export default class BrowserCapabilities {
   supportsGetDisplayMedia: () => boolean;
   supportsInsertableStreams: () => boolean;
   supportsAudioRed: () => boolean;
-  supportsUnifiedPlan: () => boolean;
   supportsVADDetection: () => boolean;
 }
