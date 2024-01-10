@@ -266,9 +266,12 @@ StatsCollector.prototype._processAndEmitReport = function() {
         totalPackets[type] += loss.packetsTotal;
         lostPackets[type] += loss.packetsLost;
 
+        const ssrcBitrateDownload = ssrcStats.bitrate.download;
+        const ssrcBitrateUpload = ssrcStats.bitrate.upload;
+
         // process bitrate stats
-        bitrateDownload += ssrcStats.bitrate.download;
-        bitrateUpload += ssrcStats.bitrate.upload;
+        bitrateDownload += ssrcBitrateDownload;
+        bitrateUpload += ssrcBitrateUpload;
 
         ssrcStats.resetBitrate();
 
@@ -283,12 +286,12 @@ StatsCollector.prototype._processAndEmitReport = function() {
         let videoCodec;
 
         if (track.isAudioTrack()) {
-            audioBitrateDownload += ssrcStats.bitrate.download;
-            audioBitrateUpload += ssrcStats.bitrate.upload;
+            audioBitrateDownload += ssrcBitrateDownload;
+            audioBitrateUpload += ssrcBitrateUpload;
             audioCodec = ssrcStats.codec;
         } else {
-            videoBitrateDownload += ssrcStats.bitrate.download;
-            videoBitrateUpload += ssrcStats.bitrate.upload;
+            videoBitrateDownload += ssrcBitrateDownload;
+            videoBitrateUpload += ssrcBitrateUpload;
             videoCodec = ssrcStats.codec;
         }
 
