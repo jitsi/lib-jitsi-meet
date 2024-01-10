@@ -353,7 +353,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     _setMuted(muted) {
-        if (this.isMuted() === muted && !this.videoType === VideoType.DESKTOP) {
+        if (this.isMuted() === muted && this.videoType !== VideoType.DESKTOP) {
             return Promise.resolve();
         }
 
