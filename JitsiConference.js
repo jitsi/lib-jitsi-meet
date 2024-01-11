@@ -3079,8 +3079,7 @@ JitsiConference.prototype._updateProperties = function(properties = {}) {
 
         this._hasVisitors = this.properties['visitor-count'] > 0;
 
-        // as this is visitor leaving, consider it leaving for _maybeStartOrStopP2P
-        oldValue && !this._hasVisitors && this._maybeStartOrStopP2P(true);
+        oldValue !== this._hasVisitors && this._maybeStartOrStopP2P(true);
     }
 };
 
@@ -3273,8 +3272,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     if (!this.isP2PEnabled()
             || this.isP2PTestModeEnabled()
             || (browser.isFirefox() && !this._firefoxP2pEnabled)
-            || this.isE2EEEnabled()
-            || this._hasVisitors) {
+            || this.isE2EEEnabled()) {
         logger.info('Auto P2P disabled');
 
         return;
@@ -3350,7 +3348,7 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
     const peers = this.getParticipants();
     const peerCount = peers.length;
     const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist' || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-    const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors;
 
     logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
