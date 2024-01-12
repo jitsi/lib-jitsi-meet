@@ -481,22 +481,23 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
 };
 
 /**
- * Obtains the media direction for given {@link MediaType}. The method takes
- * into account whether or not there are any local tracks for media and
- * the {@link audioTransferActive} and {@link videoTransferActive} flags.
+ * Obtains the media direction for given {@link MediaType} that needs to be set on a p2p peerconnection's remote SDP
+ * after a source-add or source-remove action. The method takes into account whether or not there are any
+ * local tracks for the given media type.
  * @param {MediaType} mediaType
  * @param {boolean} isAddOperation whether the direction is to be calculated after a source-add action.
- * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly'
- * etc.) which should be used when setting local description on the peer
- * connection.
+ * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.) which should be used when setting
+ * local description on the peerconnection.
  * @private
  */
 TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType, isAddOperation = false) {
     const hasLocalSource = this.hasAnyTracksOfType(mediaType);
 
-    return isAddOperation
-        ? hasLocalSource ? MediaDirection.SENDRECV : MediaDirection.SENDONLY
-        : hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
+    if (isAddOperation) {
+        return hasLocalSource ? MediaDirection.SENDRECV : MediaDirection.SENDONLY;
+    }
+
+    return hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
 };
 
 /**

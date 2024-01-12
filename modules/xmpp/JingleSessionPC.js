@@ -2123,7 +2123,11 @@ export default class JingleSessionPC extends JingleSession {
      * otherwise.
      */
     addTracks(localTracks = null) {
-        if (!localTracks?.length || localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
+        if (!localTracks?.length) {
+            Promise.reject(new Error('No tracks passed'));
+        }
+
+        if (localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
             return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
         }
 
@@ -2398,8 +2402,7 @@ export default class JingleSessionPC extends JingleSession {
             operationPromise
                 .then(shouldRenegotiate => {
                     if (shouldRenegotiate) {
-                        this._renegotiate()
-                            .then(() => finishedCallback());
+                        this._renegotiate().then(finishedCallback);
                     } else {
                         finishedCallback();
                     }
