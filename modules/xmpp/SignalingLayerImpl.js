@@ -56,7 +56,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * Adds <SourceInfo> element to the local presence.
      *
-     * @returns {void}
+     * @returns {boolean}
      * @private
      */
     _addLocalSourceInfoToPresence() {

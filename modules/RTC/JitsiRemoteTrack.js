@@ -205,7 +205,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     /**
      * Sets current muted status and fires an events for the change.
-     * @param value the muted status.
+     * @param {boolean} value the muted status.
      */
     setMute(value) {
         if (this.muted === value) {
@@ -229,7 +229,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     /**
      * Returns the current muted status of the track.
-     * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
+     * @returns {boolean} <tt>true</tt> if the track is
      * muted and <tt>false</tt> otherwise.
      */
     isMuted() {
@@ -350,7 +350,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Attach time to first media tracker only if there is conference and only
      * for the first element.
-     * @param container the HTML container which can be 'video' or 'audio'
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio'
      * element.
      * @private
      */
@@ -462,7 +462,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Updates track's streaming status.
      *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     * @param {string} status the current track streaming state. {@link TrackStreamingStatus}.
      */
     _setTrackStreamingStatus(status) {
         this._trackStreamingStatus = status;

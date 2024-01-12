@@ -883,8 +883,8 @@ export class OlmAdapter extends Listenable {
     *
     * @param {JitsiParticipant} participant - The participant.
     * @param {string} name - The name of the property that changed.
-    * @param {*} oldValue - The property's previous value.
-    * @param {*} newValue - The property's new value.
+    * @param {any} oldValue - The property's previous value.
+    * @param {any} newValue - The property's new value.
     * @private
     */
     async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {

@@ -141,8 +141,10 @@ export class KeyHandler extends Listenable {
     /**
      * Setup E2EE for the sending side.
      *
-     * @param {JingleSessionPC} session - the session which sends the media produced by the track.
-     * @param {JitsiLocalTrack} track - the local track for which e2e encoder will be configured.
+     * @param {JingleSessionPC} session - the session which sends the
+     * media produced by the track.
+     * @param {JitsiLocalTrack} track - the local track for which e2e
+     * encoder will be configured.
      * @private
      */
     _setupSenderE2EEForTrack(session, track) {

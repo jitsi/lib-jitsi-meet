@@ -115,7 +115,7 @@ export default class XmppConnection extends Listenable {
     /**
      * Retrieves the feature discovery plugin instance.
      *
-     * @returns {Strophe.Connection.disco}
+     * @returns {Strophe.Connection['disco']}
      */
     get disco() {
         return this._stropheConn.disco;

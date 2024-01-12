@@ -798,7 +798,8 @@ JitsiConference.prototype._registerRtcListeners = function(rtc) {
  * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
  * decisions based on the video type of the local source.
  *
- * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
+ * @param {JitsiLocalTrack} localtrack - The track associated with the local
+ * source signaled to the bridge.
  * @returns {void}
  * @private
  */
@@ -1223,7 +1224,7 @@ JitsiConference.prototype._getInitialLocalTracks = function() {
 
 /**
  * Clear JitsiLocalTrack properties and listeners.
- * @param track the JitsiLocalTrack object.
+ * @param {JitsiLocalTrack} track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.onLocalTrackRemoved = function(track) {
     track.setConference(null);
@@ -1436,7 +1437,8 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
+ * Method called by the {@link JitsiLocalTrack} in order to add the underlying
+ * MediaStream to the RTCPeerConnection.
  *
  * @param {JitsiLocalTrack} track the local track that will be added to the pc.
  * @return {Promise} resolved when the process is done or rejected with a string which describes the error.
@@ -1460,7 +1462,8 @@ JitsiConference.prototype._addLocalTrackToPc = function(track) {
 };
 
 /**
- * Method called by the {@link JitsiLocalTrack} in order to remove the underlying MediaStream from the
+ * Method called by the {@link JitsiLocalTrack} in order to remove the underlying
+ * MediaStream from the
  * RTCPeerConnection.
  *
  * @param {JitsiLocalTrack} track the local track that will be removed.
@@ -1985,7 +1988,8 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 /**
  * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
  *
- * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
+ * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this
+ * JitsiConference.
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     if (track.isP2P && !this.isP2PActive()) {
@@ -2031,7 +2035,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
  * Callback called by the Jingle plugin when 'session-answer' is received.
  * @param {JingleSessionPC} session the Jingle session for which an answer was
  * received.
- * @param {jQuery} answer a jQuery selector pointing to 'jingle' IQ element
+ * @param {JQuery} answer a jQuery selector pointing to 'jingle' IQ element
  */
 // eslint-disable-next-line no-unused-vars
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
@@ -2047,7 +2051,7 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
  * Callback called by the Jingle plugin when 'transport-info' is received.
  * @param {JingleSessionPC} session the Jingle session for which the IQ was
  * received
- * @param {jQuery} transportInfo a jQuery selector pointing to 'jingle' IQ
+ * @param {JQuery} transportInfo a jQuery selector pointing to 'jingle' IQ
  * element
  */
 // eslint-disable-next-line no-unused-vars
@@ -2240,11 +2244,11 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
 /**
  * Sets the BridgeChannel.
  *
- * @param {jQuery} offerIq a jQuery selector pointing to the jingle element of
+ * @param {JQuery} offerIq a jQuery selector pointing to the jingle element of
  * the offer IQ which may carry the WebSocket URL for the 'websocket'
  * BridgeChannel mode.
- * @param {TraceablePeerConnection} pc the peer connection which will be used
- * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
+ * @param {TraceablePeerConnection} pc the peer connection which will be
+ * used to listen for new WebRTC Data Channels (in the 'datachannel' mode).
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
     const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
@@ -2875,7 +2879,7 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
 /**
  * Accept incoming P2P Jingle call.
  * @param {JingleSessionPC} jingleSession the session instance
- * @param {jQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
+ * @param {JQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
  * @private
  */
 JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingleOffer) {
@@ -3442,8 +3446,8 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
 
 /**
  * Updates room presence if needed and send the packet in case of a modification.
- * @param {JingleSessionPC} jingleSession the session firing the event, contains the peer connection which
- * tracks we will check.
+ * @param {JingleSessionPC} jingleSession the session firing the event, contains
+ * the peer connection which tracks we will check.
  * @param {Object|null} ctx a context object we can distinguish multiple calls of the same pass of updating tracks.
  */
 JitsiConference.prototype._updateRoomPresence = function(jingleSession, ctx) {
@@ -3632,8 +3636,8 @@ JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
- * @returns {JitsiVideoSIPGWSession|Error} Returns null if conference is not
- * initialised and there is no room.
+ * @returns {JitsiVideoSIPGWSession|Error} Returns null if
+ * conference is not initialised and there is no room.
  */
 JitsiConference.prototype.createVideoSIPGWSession = function(sipAddress, displayName) {
     if (!this.room) {

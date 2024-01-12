@@ -17,9 +17,9 @@ export default class JitsiParticipant {
      *
      * @constructor
      * @param jid the conference XMPP jid
-     * @param conference
-     * @param displayName
-     * @param {Boolean} hidden - True if the new JitsiParticipant instance is to
+     * @param {JitsiConference} conference
+     * @param {string} displayName
+     * @param {boolean} hidden - True if the new JitsiParticipant instance is to
      * represent a hidden participant; otherwise, false.
      * @param {string} statsID - optional participant statsID
      * @param {string} status - the initial status if any.
@@ -64,7 +64,7 @@ export default class JitsiParticipant {
      *
      * @param {MediaType} mediaType - The MediaType of the JitsiTracks to be checked.
      * @private
-     * @returns {Boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
+     * @returns {boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
      * JitsiParticipant are muted; otherwise, false.
      */
     _isMediaTypeMuted(mediaType) {
@@ -202,7 +202,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array.<JitsiTrack>} The list of media tracks for this
+     * @returns {Array<JitsiTrack>} The list of media tracks for this
      * participant.
      */
     getTracks() {
@@ -211,7 +211,7 @@ export default class JitsiParticipant {
 
     /**
      * @param {MediaType} mediaType
-     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * @returns {Array<JitsiTrack>} an array of media tracks for this
      * participant, for given media type.
      */
     getTracksByMediaType(mediaType) {
@@ -326,8 +326,8 @@ export default class JitsiParticipant {
     /**
      * Sets the value of a property of this participant, and fires an event if
      * the value has changed.
-     * @name the name of the property.
-     * @value the value to set.
+     * @param name the name of the property.
+     * @param value the value to set.
      */
     setProperty(name, value) {
         const oldValue = this._properties[name];
@@ -352,7 +352,7 @@ export default class JitsiParticipant {
     }
 
     /**
-     *
+     * @returns {boolean} returns 'true' if supports DTMF, 'false' otherwise
      */
     supportsDTMF() {
         return this._supportsDTMF;

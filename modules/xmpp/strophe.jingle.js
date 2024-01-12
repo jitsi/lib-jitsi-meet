@@ -26,7 +26,7 @@ const logger = getLogger(__filename);
 /**
  * Parses the transport XML element and returns the list of ICE candidates formatted as text.
  *
- * @param {*} transport Transport XML element extracted from the IQ.
+ * @param {any} transport Transport XML element extracted from the IQ.
  * @returns {Array<string>}
  */
 function _parseIceCandidates(transport) {

@@ -235,6 +235,7 @@ export default class JibriSession {
     /**
      * Generates the message to change the status of the recording session.
      *
+     * @param {Object} options - IQ options
      * @param {string} [options.action] - The action to set the IQ
      * @param {string} [options.appData] - Data specific to the app/service that
      * the result file will be uploaded.

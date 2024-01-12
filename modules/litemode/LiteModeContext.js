@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 /* global TransformStream */
 import { getLogger } from '@jitsi/logger';
 
@@ -16,7 +17,8 @@ const logger = getLogger(__filename);
 export class LiteModeContext {
     /**
      * A constructor.
-     * @param {JitsiConference} conference - The conference instance for which lite mode is to be enabled.
+     * @param {JitsiConference} conference - The conference instance for which lite mode is
+     * to be enabled.
      */
     constructor(conference) {
         this.enabled = FeatureFlags.isRunInLiteModeEnabled();

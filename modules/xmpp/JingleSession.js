@@ -108,7 +108,8 @@ export default class JingleSession extends Listenable {
      * @param {ChatRoom} room the chat room for the conference associated with
      * this session
      * @param {RTC} rtc the RTC service instance
-     * @param {SignalingLayerImpl} signalingLayer - The signaling layer instance.
+     * @param {SignalingLayerImpl} signalingLayer - The signaling layer
+     * instance.
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.
      */

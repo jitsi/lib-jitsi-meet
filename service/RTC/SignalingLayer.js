@@ -137,7 +137,7 @@ export default class SignalingLayer extends Listenable {
     /**
      * Removes the association between a given SSRC and its current owner so that it can re-used when the SSRC gets
      * remapped to another source from a different endpoint.
-     * @param {number} ssrc a list of SSRCs.
+     * @param {Array<number>} ssrcList a list of SSRCs.
      */
     removeSSRCOwners(ssrcList) { // eslint-disable-line no-unused-vars
     }

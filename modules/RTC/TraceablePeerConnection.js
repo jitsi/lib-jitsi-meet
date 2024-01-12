@@ -9,7 +9,6 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
-import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -22,6 +21,7 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
+import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
@@ -47,7 +47,8 @@ const DD_HEADER_EXT_ID = 11;
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
  * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
  * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
- * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
+ * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be
+ * applied for video streams.
  * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
  * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
@@ -1051,7 +1052,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
  * @param {MediaStream} stream the WebRTC stream instance
  * @param {MediaStreamTrack} track the WebRTC track instance
  * @param {MediaType} mediaType the track's type of the media
- * @param {VideoType} [videoType] the track's type of the video (if applicable)
+ * @param {VideoType|null} videoType the track's type of the video (if applicable)
  * @param {number} ssrc the track's main SSRC number
  * @param {boolean} muted the initial muted status
  * @param {String} sourceName the track's source name
@@ -1218,18 +1219,18 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
 /**
  * Returns a map with keys msid/mediaType and <tt>TrackSSRCInfo</tt> values.
  * @param {RTCSessionDescription} desc the local description.
- * @return {Map<string,TrackSSRCInfo>}
+ * @return {Map<string, Object>}
  */
 TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
     /**
      * Track SSRC infos mapped by stream ID (msid) or mediaType (unified-plan)
-     * @type {Map<string,TrackSSRCInfo>}
+     * @type {Map<string, Object>}
      */
     const ssrcMap = new Map();
 
     /**
      * Groups mapped by primary SSRC number
-     * @type {Map<number,Array<SSRCGroupInfo>>}
+     * @type {Map<number, Array<Object>>}
      */
     const groupsMap = new Map();
 
@@ -2080,8 +2081,9 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 
 /**
  * Returns the sender corresponding to the given media type.
- * @param {MEDIA_TYPE} mediaType - The media type 'audio' or 'video' to be used for the search.
- * @returns {RTPSender|undefined} - The found sender or undefined if no sender
+ * @param {MediaType} mediaType - The media type 'audio' or 'video' to be used for
+ * the search.
+ * @returns {Object|undefined} - The found sender or undefined if no sender
  * was found.
  */
 TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
@@ -2093,7 +2095,7 @@ TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
 /**
  * Returns the receiver corresponding to the given MediaStreamTrack.
  *
- * @param {MediaSreamTrack} track - The media stream track used for the search.
+ * @param {MediaStreamTrack} track - The media stream track used for the search.
  * @returns {RTCRtpReceiver|undefined} - The found receiver or undefined if no receiver
  * was found.
  */
@@ -2104,7 +2106,7 @@ TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
 /**
  * Returns the sender corresponding to the given MediaStreamTrack.
  *
- * @param {MediaSreamTrack} track - The media stream track used for the search.
+ * @param {MediaStreamTrack} track - The media stream track used for the search.
  * @returns {RTCRtpSender|undefined} - The found sender or undefined if no sender
  * was found.
  */
@@ -2117,7 +2119,8 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
 /**
  * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
  *
- * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
+ * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added
+ * to the peerconnection.
  * @returns {void}
  */
 TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
@@ -2146,7 +2149,8 @@ TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(l
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
  * <tt>oldTrack</tt>
  *
- * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be replaced on the pc.
+ * @param {JitsiLocalTrack|null} oldTrack - The current track in use
+ * to be replaced on the pc.
  * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
  *
  * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
@@ -2578,7 +2582,8 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
 /**
  * Configures the stream encodings depending on the video type and the bitrates configured.
  *
- * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
+ * @param {JitsiLocalTrack} - The local track for which the sender encodings
+ * have to configured.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.configureSenderVideoEncodings = function(localVideoTrack = null) {
@@ -2712,7 +2717,8 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * bitrates on the send stream.
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
- * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
+ * @param {JitsiLocalTrack} - The local track for which the sender
+ * constraints have to be applied.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack) {
@@ -2773,7 +2779,8 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  * Configures the video stream with resolution / degradation / maximum bitrates
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
- * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
+ * @param {JitsiLocalTrack} - The local track for which the sender constraints
+ * have to be applied.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack) {
@@ -3128,7 +3135,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
 
 /**
  * Extract primary SSRC from given {@link TrackSSRCInfo} object.
- * @param {TrackSSRCInfo} ssrcObj
+ * @param {Object} ssrcObj
  * @return {number|null} the primary SSRC or <tt>null</tt>
  */
 TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
@@ -3145,7 +3152,7 @@ TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
  * Goes over the SSRC map extracted from the latest local description and tries
  * to match them with the local tracks (by MSID). Will update the values
  * currently stored in the {@link TraceablePeerConnection.localSSRCs} map.
- * @param {Map<string,TrackSSRCInfo>} ssrcMap
+ * @param {Map<string, Object>} ssrcMap
  * @private
  */
 TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {

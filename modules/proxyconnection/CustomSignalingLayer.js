@@ -31,7 +31,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * @inheritDoc
      */
     getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
-        return {};
+        return null;
     }
 
     /**

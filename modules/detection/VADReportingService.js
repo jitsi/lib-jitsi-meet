@@ -140,7 +140,7 @@ export default class VADReportingService extends EventEmitter {
     /**
      * Set the watched device contexts.
      *
-     * @param {Array<VADDeviceContext>} vadContextArray - List of mics.
+     * @param {Array<any>} vadContextArray - List of mics.
      * @returns {void}
      */
     _setVADContextArray(vadContextArray) {

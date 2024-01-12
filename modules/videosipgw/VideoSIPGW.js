@@ -106,7 +106,11 @@ export default class VideoSIPGW {
      * Listener for session state changed. When a session goes to off or failed
      * we delete its reference.
      *
-     * @param {options} event - { address, oldState, newState, displayName }
+     * @param {Object} event - event object
+     * @param {string} [event.address]
+     * @param {VideoSIPGWStatusConstants} [event.oldState]
+     * @param {VideoSIPGWStatusConstants} [event.newState]
+     * @param {string} [event.displayName]
      */
     sessionStateChanged(event) {
         const address = event.address;

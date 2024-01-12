@@ -34,7 +34,8 @@ export class TPCUtils {
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
-     * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param {TraceablePeerConnection} peerconnection - the tpc
+     * instance for which we have utility functions.
      */
     constructor(peerconnection) {
         this.pc = peerconnection;
@@ -450,7 +451,7 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localVideoTrack The local video track.
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
-     * @returns {Array<float>}
+     * @returns {Array<number>}
      */
     calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
         if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
@@ -658,8 +659,10 @@ export class TPCUtils {
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      *
-     * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
-     * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
+     * @param {JitsiLocalTrack} oldTrack - existing track on the sender that
+     * needs to be removed.
+     * @param {JitsiLocalTrack} newTrack - new track that needs to be added
+     * to the sender.
      * @returns {Promise<RTCRtpTransceiver>} - resolved with the associated transceiver when done, rejected otherwise.
      */
     replaceTrack(oldTrack, newTrack) {
@@ -725,7 +728,8 @@ export class TPCUtils {
     /**
      * Set the simulcast stream encoding properties on the RTCRtpSender.
      *
-     * @param {JitsiLocalTrack} localTrack - the current track in use for which the encodings are to be set.
+     * @param {JitsiLocalTrack} localTrack - the current track in use
+     * for which the encodings are to be set.
      * @returns {Promise<void>} - resolved when done.
      */
     setEncodings(localTrack) {
