@@ -1443,16 +1443,22 @@ JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, 
 JitsiConference.prototype._addLocalTrackToPc = function(track) {
     const addPromises = [];
 
-    if (this.jvbJingleSession) {
-        addPromises.push(this.jvbJingleSession.addTrackToPc(track));
-    } else {
-        logger.debug('Add local MediaStream - no JVB Jingle session started yet');
-    }
+    if (track.conference === this) {
+        if (this.jvbJingleSession) {
+            addPromises.push(this.jvbJingleSession.addTrackToPc(track));
+        } else {
+            logger.debug('Add local MediaStream - no JVB Jingle session started yet');
+        }
 
-    if (this.p2pJingleSession) {
-        addPromises.push(this.p2pJingleSession.addTrackToPc(track));
+        if (this.p2pJingleSession) {
+            addPromises.push(this.p2pJingleSession.addTrackToPc(track));
+        } else {
+            logger.debug('Add local MediaStream - no P2P Jingle session started yet');
+        }
     } else {
-        logger.debug('Add local MediaStream - no P2P Jingle session started yet');
+        // If the track hasn't been added to the conference yet because of start muted by focus, add it to the
+        // conference instead of adding it only to the media sessions.
+        addPromises.push(this.addTrack(track));
     }
 
     return Promise.allSettled(addPromises);
@@ -1468,15 +1474,17 @@ JitsiConference.prototype._addLocalTrackToPc = function(track) {
 JitsiConference.prototype._removeLocalTrackFromPc = function(track) {
     const removePromises = [];
 
-    if (this.jvbJingleSession) {
-        removePromises.push(this.jvbJingleSession.removeTrackFromPc(track));
-    } else {
-        logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
-    }
-    if (this.p2pJingleSession) {
-        removePromises.push(this.p2pJingleSession.removeTrackFromPc(track));
-    } else {
-        logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
+    if (track.conference === this) {
+        if (this.jvbJingleSession) {
+            removePromises.push(this.jvbJingleSession.removeTrackFromPc(track));
+        } else {
+            logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
+        }
+        if (this.p2pJingleSession) {
+            removePromises.push(this.p2pJingleSession.removeTrackFromPc(track));
+        } else {
+            logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
+        }
     }
 
     return Promise.allSettled(removePromises);
