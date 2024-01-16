@@ -412,7 +412,6 @@ export default class JingleSessionPC extends JingleSession {
         }
         pcOptions.forceTurnRelay = options.forceTurnRelay;
         pcOptions.audioQuality = options.audioQuality;
-        pcOptions.usesUnifiedPlan = this.usesUnifiedPlan = browser.supportsUnifiedPlan();
         pcOptions.disableSimulcast = this.isP2P ? true : options.disableSimulcast;
 
         if (!this.isP2P) {
@@ -557,8 +556,7 @@ export default class JingleSessionPC extends JingleSession {
                 if (!this.wasConnected
                     && (this.wasstable
                         || isStable
-                        || (this.usesUnifiedPlan && this.isInitiator
-                            && (browser.isChromiumBased() || browser.isReactNative())))) {
+                        || (this.isInitiator && (browser.isChromiumBased() || browser.isReactNative())))) {
 
                     Statistics.sendAnalytics(
                         ICE_DURATION,
@@ -641,8 +639,7 @@ export default class JingleSessionPC extends JingleSession {
             const state = this.peerconnection.signalingState;
             const remoteDescription = this.peerconnection.remoteDescription;
 
-            if (this.usesUnifiedPlan
-                && !this.isP2P
+            if (!this.isP2P
                 && state === 'stable'
                 && remoteDescription
                 && typeof remoteDescription.sdp === 'string') {
@@ -949,19 +946,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Makes the underlying TraceablePeerConnection generate new SSRC for
-     * the recvonly video stream.
-     * @deprecated
-     */
-    generateRecvonlySsrc() {
-        if (this.peerconnection) {
-            this.peerconnection.generateRecvonlySsrc();
-        } else {
-            logger.error(`${this} Unable to generate recvonly SSRC - no peerconnection`);
-        }
-    }
-
-    /**
      * Returns the video codec configured as the preferred codec on the peerconnection.
      */
     getConfiguredVideoCodec() {
@@ -1005,9 +989,7 @@ export default class JingleSessionPC extends JingleSession {
                     const videoTracks = localTracks.filter(track => track.getType() === MediaType.VIDEO);
 
                     videoTracks.length && videoTracks.splice(0, 1);
-                    if (FeatureFlags.isMultiStreamSendSupportEnabled() && videoTracks.length) {
-                        this.addTracks(videoTracks);
-                    }
+                    videoTracks.length && this.addTracks(videoTracks);
                 },
                 error => {
                     failure(error);
@@ -1150,7 +1132,7 @@ export default class JingleSessionPC extends JingleSession {
         // Add only 1 video track at a time. Adding 2 or more video tracks to the peerconnection at the same time
         // makes the browser go into a renegotiation loop by firing 'negotiationneeded' event after every
         // renegotiation.
-        if (FeatureFlags.isMultiStreamSendSupportEnabled() && videoTracks.length > 1) {
+        if (videoTracks.length > 1) {
             tracks = [ ...audioTracks, videoTracks[0] ];
         }
         for (const track of tracks) {
@@ -1716,8 +1698,7 @@ export default class JingleSessionPC extends JingleSession {
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
 
                     // Do not print the warning for unified plan p2p case since ssrcs are never removed from the SDP.
-                    !(self.usesUnifiedPlan && self.isP2P)
-                        && logger.warn(`${self} Source-add request for existing SSRC: ${ssrc}`);
+                    !self.isP2P && logger.warn(`${self} Source-add request for existing SSRC: ${ssrc}`);
 
                     return;
                 }
@@ -1994,51 +1975,43 @@ export default class JingleSessionPC extends JingleSession {
      *  in removeSsrcInfo
      */
     _processRemoteRemoveSource(removeSsrcInfo) {
-        const remoteSdp = this.usesUnifiedPlan
-            ? new SDP(this.peerconnection.peerconnection.remoteDescription.sdp)
-            : new SDP(this.peerconnection.remoteDescription.sdp);
+        const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
         let ssrcs;
 
-        removeSsrcInfo.forEach((lines, idx) => {
+        removeSsrcInfo.forEach(lines => {
             // eslint-disable-next-line no-param-reassign
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
             ssrcs = lines.map(line => Number(line.split('a=ssrc:')[1]?.split(' ')[0]));
 
-            if (this.usesUnifiedPlan) {
-                let mid;
+            let mid;
 
-                lines.forEach(line => {
-                    mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
-                    if (mid > -1) {
-                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
-                        if (this.isP2P) {
-                            const mediaType = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0])?.media;
-                            const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, false);
+            lines.forEach(line => {
+                mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
+                if (mid > -1) {
+                    remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
+                    if (this.isP2P) {
+                        const mediaType = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0])?.media;
+                        const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, false);
 
-                            [ MediaDirection.SENDRECV, MediaDirection.SENDONLY ].forEach(direction => {
-                                remoteSdp.media[mid] = remoteSdp.media[mid]
-                                    .replace(`a=${direction}`, `a=${desiredDirection}`);
-                            });
-                        } else {
-                            // Jvb connections will have direction set to 'sendonly' for the remote sources.
+                        [ MediaDirection.SENDRECV, MediaDirection.SENDONLY ].forEach(direction => {
                             remoteSdp.media[mid] = remoteSdp.media[mid]
-                                .replace(`a=${MediaDirection.SENDONLY}`, `a=${MediaDirection.INACTIVE}`);
+                                .replace(`a=${direction}`, `a=${desiredDirection}`);
+                        });
+                    } else {
+                        // Jvb connections will have direction set to 'sendonly' for the remote sources.
+                        remoteSdp.media[mid] = remoteSdp.media[mid]
+                            .replace(`a=${MediaDirection.SENDONLY}`, `a=${MediaDirection.INACTIVE}`);
 
-                            // Reject the m-line so that the browser removes the associated transceiver from the list
-                            // of available transceivers. This will prevent the client from trying to re-use these
-                            // inactive transceivers when additional video sources are added to the peerconnection.
-                            const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
+                        // Reject the m-line so that the browser removes the associated transceiver from the list
+                        // of available transceivers. This will prevent the client from trying to re-use these
+                        // inactive transceivers when additional video sources are added to the peerconnection.
+                        const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
 
-                            remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
-                        }
+                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
                     }
-                });
-            } else {
-                lines.forEach(line => {
-                    remoteSdp.media[idx] = remoteSdp.media[idx].replace(`${line}\r\n`, '');
-                });
-            }
+                }
+            });
         });
 
         // Update the ssrc owners list.
@@ -2061,9 +2034,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Add a new m-line in the remote description if the source info for a secondary video source is recceived from
         // the remote p2p peer when multi-stream support is enabled.
-        if (addSsrcInfo.length > remoteSdp.media.length
-            && this.isP2P
-            && this.usesUnifiedPlan) {
+        if (addSsrcInfo.length > remoteSdp.media.length && this.isP2P) {
             remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
             remoteSdp = new SDP(remoteSdp.raw);
         }
@@ -2072,7 +2043,7 @@ export default class JingleSessionPC extends JingleSession {
 
             // Make sure to change the direction to 'sendrecv/sendonly' only for p2p connections. For jvb connections,
             // a new m-line is added for the new remote sources.
-            if (this.isP2P && this.usesUnifiedPlan) {
+            if (this.isP2P) {
                 const mediaType = SDPUtil.parseMLine(remoteSdp.media[idx].split('\r\n')[0])?.media;
                 const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, true);
 
@@ -2152,9 +2123,11 @@ export default class JingleSessionPC extends JingleSession {
      * otherwise.
      */
     addTracks(localTracks = null) {
-        if (!FeatureFlags.isMultiStreamSendSupportEnabled()
-            || !localTracks?.length
-            || localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
+        if (!localTracks?.length) {
+            Promise.reject(new Error('No tracks passed'));
+        }
+
+        if (localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
             return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
         }
 
@@ -2253,41 +2226,6 @@ export default class JingleSessionPC extends JingleSession {
     replaceTrack(oldTrack, newTrack) {
         const workFunction = finishedCallback => {
             logger.debug(`${this} replaceTrack worker started. oldTrack = ${oldTrack}, newTrack = ${newTrack}`);
-
-            if (!this.usesUnifiedPlan) {
-                // NOTE the code below assumes that no more than 1 video track
-                // can be added to the peer connection.
-                // Transition from camera to desktop share
-                // or transition from one camera source to another.
-                if (this.peerconnection.options.capScreenshareBitrate
-                    && oldTrack && newTrack && newTrack.isVideoTrack()) {
-                    // Clearing current primary SSRC will make
-                    // the SdpConsistency generate a new one which will result
-                    // with:
-                    // 1. source-remove for the old video stream.
-                    // 2. source-add for the new video stream.
-                    this.peerconnection.clearRecvonlySsrc();
-                }
-
-                // Transition from no video to video (unmute).
-                if (!oldTrack && newTrack && newTrack.isVideoTrack()) {
-                    // Clearing current primary SSRC will make
-                    // the SdpConsistency generate a new one which will result
-                    // with:
-                    // 1. source-remove for the recvonly
-                    // 2. source-add for the new video stream
-                    this.peerconnection.clearRecvonlySsrc();
-
-                // Transition from video to no video
-                } else if (oldTrack && oldTrack.isVideoTrack() && !newTrack) {
-                    // Clearing current primary SSRC and generating the recvonly
-                    // will result in:
-                    // 1. source-remove for the old video stream
-                    // 2. source-add for the recvonly stream
-                    this.peerconnection.clearRecvonlySsrc();
-                    this.peerconnection.generateRecvonlySsrc();
-                }
-            }
 
             this.peerconnection.replaceTrack(oldTrack, newTrack)
                 .then(shouldRenegotiate => {
@@ -2408,42 +2346,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Will print an error if there is any difference, between the SSRCs given
-     * in the <tt>oldSDP</tt> and the ones currently described in
-     * the peerconnection's local description.
-     * @param {string} operationName the operation's name which will be printed
-     * in the error message.
-     * @param {SDP} oldSDP the old local SDP which will be compared with
-     * the current one.
-     * @return {boolean} <tt>true</tt> if there was any change or <tt>false</tt>
-     * otherwise.
-     * @private
-     */
-    _verifyNoSSRCChanged(operationName, oldSDP) {
-        const currentLocalSDP
-            = new SDP(this.peerconnection.localDescription.sdp);
-        let sdpDiff = new SDPDiffer(oldSDP, currentLocalSDP);
-        const addedMedia = sdpDiff.getNewMedia();
-
-        if (Object.keys(addedMedia).length) {
-            logger.error(`${this} - some SSRC were added on ${operationName}`, addedMedia);
-
-            return false;
-        }
-
-        sdpDiff = new SDPDiffer(currentLocalSDP, oldSDP);
-        const removedMedia = sdpDiff.getNewMedia();
-
-        if (Object.keys(removedMedia).length) {
-            logger.error(`${this} - some SSRCs were removed on ${operationName}`, removedMedia);
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Adds local track back to the peerconnection associated with this session.
      * @param {JitsiLocalTrack} track
      * @return {Promise} a promise that will resolve once the local track is added back to this session and
@@ -2492,7 +2394,6 @@ export default class JingleSessionPC extends JingleSession {
 
                 return;
             }
-            const oldLocalSDP = tpc.localDescription.sdp;
             const operationPromise
                 = isRemove
                     ? tpc.removeTrackFromPc(track)
@@ -2500,14 +2401,8 @@ export default class JingleSessionPC extends JingleSession {
 
             operationPromise
                 .then(shouldRenegotiate => {
-                    if (shouldRenegotiate && oldLocalSDP && tpc.remoteDescription.sdp) {
-                        this._renegotiate()
-                            .then(() => {
-                                // The results are ignored, as this check failure is not enough to fail the whole
-                                // operation. It will log an error inside for plan-b.
-                                !this.usesUnifiedPlan && this._verifyNoSSRCChanged(operationName, new SDP(oldLocalSDP));
-                                finishedCallback();
-                            });
+                    if (shouldRenegotiate) {
+                        this._renegotiate().then(finishedCallback);
                     } else {
                         finishedCallback();
                     }

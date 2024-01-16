@@ -363,7 +363,6 @@ export default class RTC extends Listenable {
      * enabled on the PeerConnection.
      * @param {boolean} options.forceTurnRelay If set to true, the browser will generate only Relay ICE candidates.
      * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
-     * @param {boolean} options.usesUnifiedPlan Indicates if the  browser is running in unified plan mode.
      * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
      * @return {TraceablePeerConnection}
      */
@@ -373,14 +372,6 @@ export default class RTC extends Listenable {
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
             pcConfig.encodedInsertableStreams = true;
-        }
-
-        // TODO: remove this.
-        const supportsSdpSemantics = browser.isChromiumBased() && !options.usesUnifiedPlan;
-
-        if (supportsSdpSemantics) {
-            logger.debug('WebRTC application is running in plan-b mode');
-            pcConfig.sdpSemantics = 'plan-b';
         }
 
         if (options.forceTurnRelay) {

@@ -20,15 +20,6 @@ class FeatureFlags {
     }
 
     /**
-     * Checks if multiple local video streams support is enabled.
-     *
-     * @returns {boolean}
-     */
-    isMultiStreamSendSupportEnabled() {
-        return browser.supportsUnifiedPlan();
-    }
-
-    /**
      * Checks if the run in lite mode is enabled.
      * This will cause any media to be received and not decoded. (Insertable streams are used to discard
      * all media before it is decoded). This can be used for various test scenarios.

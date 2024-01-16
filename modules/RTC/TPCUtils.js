@@ -10,7 +10,6 @@ import { STANDARD_CODEC_SETTINGS } from '../../service/RTC/StandardVideoSettings
 import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
-import FeatureFlags from '../flags/FeatureFlags';
 
 const logger = getLogger(__filename);
 const DESKTOP_SHARE_RATE = 500000;
@@ -379,7 +378,6 @@ export class TPCUtils {
      * @returns {Array<number>}
      */
     calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
-        const videoType = localVideoTrack.getVideoType();
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
         const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack.getVideoType(), codec)
         .map((encoding, idx) => {
@@ -395,11 +393,6 @@ export class TPCUtils {
             // Multiple video streams.
             if (this._isScreenshareBitrateCapped(localVideoTrack)) {
                 bitrate = desktopShareBitrate;
-            } else if (videoType === VideoType.DESKTOP && browser.isChromiumBased() && !this.pc.usesUnifiedPlan()) {
-                // For high fps screenshare, 'maxBitrate' setting must be cleared on Chrome in plan-b, because
-                // if simulcast is enabled for screen and maxBitrates are set then Chrome will not send the
-                // desktop stream.
-                bitrate = undefined;
             }
 
             return bitrate;
@@ -666,8 +659,7 @@ export class TPCUtils {
         const mediaType = newTrack?.getType() ?? oldTrack?.getType();
         const localTracks = this.pc.getLocalTracks(mediaType);
         const track = newTrack?.getTrack() ?? null;
-        const isNewLocalSource = FeatureFlags.isMultiStreamSendSupportEnabled()
-            && localTracks?.length
+        const isNewLocalSource = localTracks?.length
             && !oldTrack
             && newTrack
             && !localTracks.find(t => t === newTrack);
