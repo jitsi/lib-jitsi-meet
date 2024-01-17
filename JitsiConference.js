@@ -1216,6 +1216,9 @@ JitsiConference.prototype._getInitialLocalTracks = function() {
                 return true;
             }
 
+            // Remove the track from the conference.
+            this.onLocalTrackRemoved(track);
+
             return false;
         });
 };
@@ -3247,7 +3250,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
 
-    const localTracks = this.getLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     this.p2pJingleSession.invite(localTracks);
 };
