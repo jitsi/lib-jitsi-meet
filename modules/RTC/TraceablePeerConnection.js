@@ -8,6 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
+import { SIM_LAYERS } from '../../service/RTC/StandardVideoSettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -21,7 +22,7 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
-import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
+import { TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
 
@@ -284,7 +285,7 @@ export default function TraceablePeerConnection(
 
     this.interop = new Interop();
 
-    this.simulcast = new SdpSimulcast({ numOfLayers: SIM_LAYER_RIDS.length });
+    this.simulcast = new SdpSimulcast({ numOfLayers: SIM_LAYERS.length });
 
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from

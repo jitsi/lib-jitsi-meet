@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 
 const Resolutions = require('../../service/RTC/Resolutions');
@@ -16,33 +16,6 @@ const logger = getLogger(__filename);
  * over the data channel.
  */
 const STATS_MESSAGE_TYPE = 'stats';
-
-const kSimulcastFormats = [
-    {
-        height: 1080,
-        target: 'high'
-    },
-    {
-        height: 720,
-        target: 'high'
-    },
-    {
-        height: 540,
-        target: 'standard'
-    },
-    {
-        height: 360,
-        target: 'standard'
-    },
-    {
-        height: 270,
-        target: 'low'
-    },
-    {
-        height: 180,
-        target: 'low'
-    }
-];
 
 /**
  * The maximum bitrate to use as a measurement against the participant's current
@@ -61,32 +34,32 @@ let startBitrate = 800;
  * @param simulcast {boolean} whether simulcast is enabled or not.
  * @param resolution {Resolution} the resolution.
  * @param millisSinceStart {number} the number of milliseconds since sending video started.
- * @param videoQualitySettings {Object} the bitrate and codec settings for the local video source.
+ * @param bitrates {Object} the bitrates for the local video source.
  */
-function getTarget(simulcast, resolution, millisSinceStart, videoQualitySettings) {
+function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
     let target = 0;
     let height = Math.min(resolution.height, resolution.width);
 
     // Find the first format with height no bigger than ours.
-    let simulcastFormat = kSimulcastFormats.find(f => f.height <= height);
+    let qualityLevel = VIDEO_QUALITY_LEVELS.find(f => f.height <= height);
 
-    if (simulcastFormat && simulcast && videoQualitySettings.codec === CodecMimeType.VP8) {
+    if (qualityLevel && simulcast) {
         // Sum the target fields from all simulcast layers for the given
         // resolution (e.g. 720p + 360p + 180p) for VP8 simulcast.
-        for (height = simulcastFormat.height; height >= 180; height /= 2) {
+        for (height = qualityLevel.height; height >= 180; height /= 2) {
             const targetHeight = height;
 
-            simulcastFormat = kSimulcastFormats.find(f => f.height === targetHeight);
-            if (simulcastFormat) {
-                target += videoQualitySettings[simulcastFormat.target];
+            qualityLevel = VIDEO_QUALITY_LEVELS.find(f => f.height === targetHeight);
+            if (qualityLevel) {
+                target += bitrates[qualityLevel.level];
             } else {
                 break;
             }
         }
-    } else if (simulcastFormat) {
+    } else if (qualityLevel) {
         // For VP9 SVC, H.264 (simulcast automatically disabled) and p2p, target bitrate will be
         // same as that of the individual stream bitrate.
-        target = videoQualitySettings[simulcastFormat.target];
+        target = bitrates[qualityLevel.level];
     }
 
     // Allow for an additional 1 second for ramp up -- delay any initial drop
@@ -334,19 +307,17 @@ export default class ConnectionQuality {
             const activeTPC = this._conference.getActivePeerConnection();
 
             if (activeTPC) {
-                const isSimulcastOn = activeTPC.isSpatialScalabilityOn();
-                const videoQualitySettings = activeTPC.getTargetVideoBitrates();
-
-                // Add the codec info as well.
-                videoQualitySettings.codec = activeTPC.getConfiguredVideoCodec();
-
                 // Time since sending of video was enabled.
                 const millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
                 const statsInterval = this._options.config?.pcStatsInterval ?? 10000;
 
                 // Expected sending bitrate in perfect conditions.
-                let target = getTarget(isSimulcastOn, resolution, millisSinceStart, videoQualitySettings);
+                let target = getTarget(
+                    activeTPC.doesTrueSimulcast(),
+                    resolution,
+                    millisSinceStart,
+                    activeTPC.getTargetVideoBitrates());
 
                 target = Math.min(target, MAX_TARGET_BITRATE);
 

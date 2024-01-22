@@ -1,7 +1,4 @@
 import JitsiLocalTrack from './JitsiLocalTrack';
-import { MediaType } from '../../service/RTC/MediaType';
-
-export const SIM_LAYER_RIDS: string[];
 
 export default class TPCUtils {
   constructor(peerconnection: unknown, videoBitrates: unknown); // TODO:
