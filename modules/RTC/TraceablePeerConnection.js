@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { SIM_LAYERS } from '../../service/RTC/StandardVideoSettings';
+import { SIM_LAYERS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -499,21 +499,6 @@ TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType,
     }
 
     return hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
-};
-
-/**
- * Returns the MID of the m-line associated with the local desktop track (if it exists).
- *
- * @returns {Number|null}
- */
-TraceablePeerConnection.prototype._getDesktopTrackMid = function() {
-    const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
-
-    if (desktopTrack) {
-        return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
-    }
-
-    return null;
 };
 
 /**
@@ -2068,14 +2053,22 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
     for (const mLine of mLines) {
         const isDoingVp9KSvc = currentCodec === CodecMimeType.VP9
             && !codecScalabilityModeSettings.scalabilityModeEnabled;
+        const localTrack = this.getLocalVideoTracks()
+            .find(track => this._localTrackTransceiverMids.get(track.rtcId) === mLine.mid.toString());
 
-        if (isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) {
-            const bitrates = codecScalabilityModeSettings.maxBitratesVideo;
-            const mid = mLine.mid;
-            const isSharingScreen = mid === this._getDesktopTrackMid();
-            const limit = Math.floor((isSharingScreen ? bitrates.ssHigh : bitrates.high) / 1000);
+        if ((isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) && localTrack) {
+            const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === localTrack.getHeight());
+            let maxBitrate;
 
-            // Use only the HD bitrate for now as there is no API available yet for configuring
+            if (localTrack.getVideoType() === VideoType.DESKTOP) {
+                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
+            } else {
+                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[qualityLevel.level];
+            }
+
+            const limit = Math.floor(maxBitrate / 1000);
+
+            // Use only the highest spatial layer bitrates for now as there is no API available yet for configuring
             // the bitrates on the individual SVC layers.
             mLine.bandwidth = [ {
                 type: 'AS',

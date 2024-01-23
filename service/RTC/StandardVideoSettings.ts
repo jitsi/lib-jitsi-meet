@@ -26,7 +26,7 @@ export const STANDARD_CODEC_SETTINGS = {
             standard: 300000,
             high: 1000000,
             fullHd: 1200000,
-            ultraHd: 1500000,
+            ultraHd: 2500000,
             ssHigh: 2500000
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
@@ -38,8 +38,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 200000,
             standard: 500000,
             high: 1500000,
-            fullHd: 1800000,
-            ultraHd: 2000000,
+            fullHd: 2000000,
+            ultraHd: 4000000,
             ssHigh: 2500000
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
@@ -49,8 +49,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 200000,
             standard: 500000,
             high: 1500000,
-            fullHd: 1800000,
-            ultraHd: 2000000,
+            fullHd: 2000000,
+            ultraHd: 4000000,
             ssHigh: 2500000
         },
         scalabilityModeEnabled: false
@@ -61,7 +61,7 @@ export const STANDARD_CODEC_SETTINGS = {
             standard: 300000,
             high: 1200000,
             fullHd: 1500000,
-            ultraHd: 1800000,
+            ultraHd: 3000000,
             ssHigh: 2500000
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
@@ -76,7 +76,8 @@ export const STANDARD_CODEC_SETTINGS = {
  * 'high' and above - the encoder will be configured to encode 3 spatial layers.
  * 'standard' - the encoder will be configured to encode 2 spatial laters.
  * 'low' - the encoder will be configured to encode only 1 spatial layer.
- * In all the above cases, each of the layers will again have 3 temporal layers.
+ * In all the above cases, each of the layers will again have 3 temporal layers, except for VP8 codec for which only
+ * 2 temporal layers are configured by default.
  */
 export const VIDEO_QUALITY_LEVELS = [
     {
@@ -108,3 +109,23 @@ export const VIDEO_QUALITY_LEVELS = [
         level: 'low'
     }
 ];
+
+/**
+ * Enumerate the supported video resolutions.
+ */
+export enum VIDEO_QUALITY_SETTINGS {
+    // 3840x2160 or 4k.
+    ULTRA = 'ultraHd',
+
+    // 1920x1080 or full High Definition.
+    FULL = 'fullHd',
+
+    // 1280x720 or High Definition.
+    HIGH = 'high',
+
+    // 640x360 or Standard Definition.
+    STANDARD = 'standard',
+
+    // 320x180 or Low Definition.
+    LOW = 'low'
+};

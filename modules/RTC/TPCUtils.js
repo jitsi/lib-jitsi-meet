@@ -9,14 +9,14 @@ import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import {
     SIM_LAYERS,
     STANDARD_CODEC_SETTINGS,
-    VIDEO_QUALITY_LEVELS
+    VIDEO_QUALITY_LEVELS,
+    VIDEO_QUALITY_SETTINGS
 } from '../../service/RTC/StandardVideoSettings';
 import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
-const DESKTOP_SHARE_RATE = 500000;
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
 
 /**
@@ -47,7 +47,9 @@ export class TPCUtils {
                         && videoQualitySettings.maxbitratesvideo[codec.toUpperCase()]);
 
                 if (bitrateSettings) {
-                    [ 'low', 'standard', 'high', 'fullHd', 'ultraHd', 'ssHigh' ].forEach(value => {
+                    const settings = Object.values(VIDEO_QUALITY_SETTINGS);
+
+                    [ ...settings, 'ssHigh' ].forEach(value => {
                         if (bitrateSettings[value]) {
                             this.codecSettings[codec].maxBitratesVideo[value] = bitrateSettings[value];
                         }
@@ -85,12 +87,13 @@ export class TPCUtils {
      */
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
-        const height = localVideoTrack.getHeight();
-        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
+        const trackHeight = localVideoTrack.getHeight();
+        const effectiveNewHeight = newHeight > trackHeight ? trackHeight : newHeight;
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
         let scalabilityMode = this.codecSettings[codec].useKSVC
             ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
-        const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === newHeight);
+        const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === effectiveNewHeight);
         let maxBitrate;
 
         if (this._isScreenshareBitrateCapped(localVideoTrack)) {
@@ -109,25 +112,21 @@ export class TPCUtils {
             scaleResolutionDownBy: this.l2ScaleFactor
         };
 
-        if (newHeight >= height || newHeight === 0 || isScreenshare) {
+        if (effectiveNewHeight === trackHeight || !config.active || isScreenshare || !qualityLevel) {
             return config;
         }
 
-        if (!qualityLevel) {
-            return config;
-        }
-
-        config.scaleResolutionDownBy = height / newHeight;
+        config.scaleResolutionDownBy = trackHeight / effectiveNewHeight;
 
         // Configure the sender to send all 3 spatial layers for resolutions 720p and higher.
         switch (qualityLevel.level) {
-        case 'ultraHd':
-        case 'fullHd':
-        case 'high':
+        case VIDEO_QUALITY_SETTINGS.ULTRA:
+        case VIDEO_QUALITY_SETTINGS.FULL:
+        case VIDEO_QUALITY_SETTINGS.HIGH:
             config.scalabilityMode = this.codecSettings[codec].useKSVC
                 ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
             break;
-        case 'standard':
+        case VIDEO_QUALITY_SETTINGS.STANDARD:
             config.scalabilityMode = this.codecSettings[codec].useKSVC
                 ? VideoEncoderScalabilityMode.L2T3_KEY : VideoEncoderScalabilityMode.L2T3;
             break;
@@ -185,10 +184,10 @@ export class TPCUtils {
         if (qualityLevel) {
             maxBitrate = codecBitrates[qualityLevel.level];
 
-            if (qualityLevel.level === 'ultraHd') {
+            if (qualityLevel.level === VIDEO_QUALITY_SETTINGS.ULTRA) {
                 this.l1ScaleFactor = 6.0; // 360p
                 this.l0ScaleFactor = 12.0; // 180p
-            } else if (qualityLevel.level === 'fullHd') {
+            } else if (qualityLevel.level === VIDEO_QUALITY_SETTINGS.FULL) {
                 this.l1ScaleFactor = 3.0; // 360p
                 this.l0ScaleFactor = 6.0; // 180p
             }
@@ -406,7 +405,8 @@ export class TPCUtils {
      * @returns {Array<number>}
      */
     calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
-        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || DESKTOP_SHARE_RATE;
+        const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
+        const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
         const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack, codec)
         .map((encoding, idx) => {
             let bitrate = encoding.maxBitrate;
