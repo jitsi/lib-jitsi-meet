@@ -1,4 +1,5 @@
 import { getLogger } from '@jitsi/logger';
+import base64js from 'base64-js';
 import { debounce } from 'lodash-es';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
@@ -23,7 +24,8 @@ export class ManagedKeyHandler extends KeyHandler {
     constructor(conference) {
         super(conference);
 
-        this._key = undefined;
+        this._pqKey = undefined;
+        this._olmKey = undefined;
         this._conferenceJoined = false;
 
         this._olmAdapter = new OlmAdapter(conference);
@@ -88,13 +90,18 @@ export class ManagedKeyHandler extends KeyHandler {
         }
 
         // Generate a random key in case we are enabling.
-        this._key = enabled ? this._generateKey() : false;
+        this._olmKey = enabled ? this._generateKey() : false;
+        this._pqKey = enabled ? this._generateKey() : false;
 
-        // Send it to others using the E2EE olm channel.
-        const index = await this._olmAdapter.updateKey(this._key);
+        const { mediaKeyIndex: index, mediaKey: key } = await this._olmAdapter.updateKey(this._olmKey, this._pqKey);
+
+        logger.info(`olm: my mediaKey is ${base64js.fromByteArray(key)} or ${key}`);
 
         // Set our key so we begin encrypting.
-        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+        this.e2eeCtx.setKey(this.conference.myUserId(), key, index);
+
+        logger.info('_setEnabled is over');
+
     }
 
     /**
@@ -148,12 +155,26 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _rotateKeyImpl() {
-        logger.debug('Rotating key');
 
-        this._key = this._generateKey();
-        const index = await this._olmAdapter.updateKey(this._key);
+        this._olmKey = this._generateKey();
+        this._pqKey = this._generateKey();
 
-        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+        let index;
+        let key;
+
+        try {
+            const { mediaKeyIndex, mediaKey } = await this._olmAdapter.updateKey(this._olmKey, this._pqKey);
+
+            index = mediaKeyIndex;
+            key = mediaKey;
+
+
+        } catch (error) {
+            console.log('[ERROR_KEY_DERIVATION]: Cannot ratchet key ', error);
+
+        }
+
+        this.e2eeCtx.setKey(this.conference.myUserId(), key, index);
     }
 
     /**
@@ -162,16 +183,22 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _ratchetKeyImpl() {
-        logger.debug('Ratchetting key');
+        logger.debug('Ratchetting keys');
 
-        const material = await importKey(this._key);
-        const newKey = await ratchet(material);
+        const olmMaterial = await importKey(this._olmKey);
+        const newOlmKey = await ratchet(olmMaterial);
 
-        this._key = new Uint8Array(newKey);
+        this._olmKey = new Uint8Array(newOlmKey);
 
-        const index = this._olmAdapter.updateCurrentMediaKey(this._key);
+        const pqMaterial = await importKey(this._pqKey);
+        const newPqKey = await ratchet(pqMaterial);
 
-        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+        this._pqKey = new Uint8Array(newPqKey);
+
+        const { mediaKeyIndex: index, mediaKey: key }
+        = await this._olmAdapter.updateCurrentMediaKey(this._olmKey, this._pqKey);
+
+        this.e2eeCtx.setKey(this.conference.myUserId(), key, index);
     }
 
     /**
@@ -183,8 +210,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantKeyUpdated(id, key, index) {
-        logger.debug(`Participant ${id} updated their key`);
-
+        logger.debug(`Participant ${id} updated their key ${key}`);
         this.e2eeCtx.setKey(id, key, index);
     }
 

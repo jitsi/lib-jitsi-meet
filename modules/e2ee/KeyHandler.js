@@ -84,6 +84,8 @@ export class KeyHandler extends Listenable {
         this.conference._restartMediaSessions();
 
         this._enabling.resolve();
+
+        logger.info('olm: setEnabled is over');
     }
 
     /**

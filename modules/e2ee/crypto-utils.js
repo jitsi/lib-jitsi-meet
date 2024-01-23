@@ -55,3 +55,91 @@ export async function importKey(keyBytes) {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
     return crypto.subtle.importKey('raw', keyBytes, 'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
 }
+
+/**
+ * Encrypts using AES-GCM
+ */
+export const encryptSymmetric = async (plaintext, key) => {
+    if (plaintext === undefined || plaintext.length === 0) {
+        return Promise.reject(new Error('[SYMMETRIC_ENCRYPTION]: plaintext is undefined'));
+    }
+    if (key === undefined || key.length === 0) {
+        return Promise.reject(new Error('[SYMMETRIC_ENCRYPTION]: key is undefined'));
+    }
+    try {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const secretKey = await crypto.subtle.importKey(
+        'raw',
+        key,
+        {
+            name: 'AES-GCM',
+            length: 256
+        },
+        false,
+        [ 'encrypt', 'decrypt' ]
+        );
+
+        const ciphertext = await crypto.subtle.encrypt(
+        {
+            name: 'AES-GCM',
+            iv
+        },
+        secretKey,
+        plaintext
+        );
+
+        return {
+            ciphertext,
+            iv
+        };
+    } catch (error) {
+        console.error(`[SYMMETRIC_ENCRYPTION]: encryption failed, the key was ${key.length} long 
+            and of type ${typeof key}, the plaintext was ${plaintext.length} long
+            and of type ${typeof plaintext}. ERROR: `, error);
+        throw error;
+    }
+};
+
+/**
+ * Decrypts data using AES-GCM.
+ */
+export const decryptSymmetric = async (ciphertext, iv, key) => {
+    if (ciphertext === undefined || ciphertext.length === 0) {
+        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: ciphertext is undefined'));
+    }
+    if (iv === undefined || iv.length === 0) {
+        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: iv is undefined'));
+    }
+    if (key === undefined || key.length === 0) {
+        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: key is undefined'));
+    }
+    try {
+        const secretKey = await crypto.subtle.importKey(
+        'raw',
+        key,
+        {
+            name: 'AES-GCM',
+            length: 256
+        },
+        false,
+        [ 'encrypt', 'decrypt' ]
+        );
+
+        const plaintext = await crypto.subtle.decrypt(
+        {
+            name: 'AES-GCM',
+            iv
+        },
+        secretKey,
+        ciphertext
+        );
+
+        return plaintext;
+    } catch (error) {
+        console.error(`[SYMMETRIC_DECRYPTION]: decryption failed, the key was ${key.length} long 
+            and of type ${typeof key}, the ciphertext was ${ciphertext.length} long
+            and of type ${typeof ciphertext} and iv was ${iv.length} long and of 
+            type ${typeof iv}. ERROR: `, error);
+        throw error;
+    }
+};
