@@ -781,33 +781,4 @@ export class TPCUtils {
                 return Promise.resolve();
             });
     }
-
-    /**
-     * Ensures that the resolution of the stream encodings are consistent with the values
-     * that were configured on the RTCRtpSender when the source was added to the peerconnection.
-     * This should prevent us from overriding the default values if the browser returns
-     * erroneous values when RTCRtpSender.getParameters is used for getting the encodings info.
-     * @param {JitsiLocalTrack} localVideoTrack The local video track.
-     * @param {Object} parameters - the RTCRtpEncodingParameters obtained from the browser.
-     * @returns {void}
-     */
-    updateEncodingsResolution(localVideoTrack, parameters) {
-        if (!(browser.isWebKitBased() && parameters.encodings && Array.isArray(parameters.encodings))) {
-            return;
-        }
-        const allEqualEncodings
-            = encodings => encodings.every(encoding => typeof encoding.scaleResolutionDownBy !== 'undefined'
-                && encoding.scaleResolutionDownBy === encodings[0].scaleResolutionDownBy);
-
-        // Implement the workaround only when all the encodings report the same resolution.
-        if (allEqualEncodings(parameters.encodings)) {
-            const videoStreamEncodings = this._getVideoStreamEncodings(
-                localVideoTrack.getVideoType(),
-                this.pc.getConfiguredVideoCodec());
-
-            parameters.encodings.forEach((encoding, idx) => {
-                encoding.scaleResolutionDownBy = videoStreamEncodings[idx].scaleResolutionDownBy;
-            });
-        }
-    }
 }
