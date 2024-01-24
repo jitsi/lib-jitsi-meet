@@ -2332,8 +2332,6 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             }
         }
     }
-    this.tpcUtils.updateEncodingsResolution(localVideoTrack, parameters);
-
     logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
     return videoSender.setParameters(parameters).then(() => {

@@ -349,6 +349,47 @@ describe('TPCUtils', () => {
             });
         });
 
+        describe('AV1 desktop tracks for p2p', () => {
+            const codec = CodecMimeType.AV1;
+            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+
+            beforeEach(() => {
+                pc = new MockPeerConnection('1', true, false /* simulcast */);
+                pc._capScreenshareBitrate = true;
+                pc.options = { videoQuality };
+                tpcUtils = new TPCUtils(pc);
+            });
+
+            afterEach(() => {
+                pc = null;
+                tpcUtils = null;
+            });
+
+            it('and requested resolution is 2160', () => {
+                height = 2160;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+
+                maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(maxBitrates[0]).toBe(500000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes).toBe(undefined);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
+            });
+
+            it('and requested resolution is 0', () => {
+                height = 0;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+            });
+        });
+
+
         describe('AV1 high fps desktop tracks', () => {
             const codec = CodecMimeType.AV1;
             const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
@@ -440,6 +481,21 @@ describe('TPCUtils', () => {
                 expect(scaleFactor[0]).toBe(SD_SCALE_FACTOR);
             });
 
+            it('and requested resolution is 720 again', () => {
+                height = 720;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+
+                maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(maxBitrates[0]).toBe(1000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes).toBe(undefined);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
+            });
+
             it('and requested resolution is 180', () => {
                 height = 180;
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
@@ -478,7 +534,7 @@ describe('TPCUtils', () => {
             });
 
             it('and requested resolution is 2160', () => {
-                height = 720;
+                height = 2160;
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(true);
 
@@ -761,7 +817,7 @@ describe('TPCUtils', () => {
             });
 
             it('and requested resolution is 2160', () => {
-                height = 720;
+                height = 2160;
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(true);
 
@@ -1054,7 +1110,7 @@ describe('TPCUtils', () => {
             });
 
             it('and requested resolution is 2160', () => {
-                height = 720;
+                height = 2160;
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(true);
 
@@ -1360,7 +1416,75 @@ describe('TPCUtils', () => {
             });
 
             it('and requested resolution is 2160', () => {
-                height = 720;
+                height = 2160;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+
+                maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(maxBitrates[0]).toBe(2500000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes).toBe(undefined);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
+            });
+
+            it('and requested resolution is 180', () => {
+                height = 2160;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+
+                maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(maxBitrates[0]).toBe(2500000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes).toBe(undefined);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
+            });
+
+            it('and requested resolution is 2160 again', () => {
+                height = 2160;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(true);
+
+                maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(maxBitrates[0]).toBe(2500000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes).toBe(undefined);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(HD_SCALE_FACTOR);
+            });
+
+            it('and requested resolution is 0', () => {
+                height = 0;
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+            });
+        });
+
+        describe('VP8 high fps desktop tracks for p2p', () => {
+            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const codec = CodecMimeType.VP8;
+
+            beforeEach(() => {
+                pc = new MockPeerConnection('1', true, false /* simulcast */);
+                pc.options = { videoQuality };
+                pc._capScreenshareBitrate = false;
+                tpcUtils = new TPCUtils(pc);
+            });
+
+            afterEach(() => {
+                pc = null;
+                tpcUtils = null;
+            });
+
+            it('and requested resolution is 2160', () => {
+                height = 2160;
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(true);
 
