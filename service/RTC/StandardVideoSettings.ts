@@ -27,7 +27,8 @@ export const STANDARD_CODEC_SETTINGS = {
             high: 1000000,
             fullHd: 1200000,
             ultraHd: 2500000,
-            ssHigh: 2500000
+            ssHigh: 2500000,
+            none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
@@ -40,7 +41,8 @@ export const STANDARD_CODEC_SETTINGS = {
             high: 1500000,
             fullHd: 2000000,
             ultraHd: 4000000,
-            ssHigh: 2500000
+            ssHigh: 2500000,
+            none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
     },
@@ -51,7 +53,8 @@ export const STANDARD_CODEC_SETTINGS = {
             high: 1500000,
             fullHd: 2000000,
             ultraHd: 4000000,
-            ssHigh: 2500000
+            ssHigh: 2500000,
+            none: 0
         },
         scalabilityModeEnabled: false
     },
@@ -62,7 +65,8 @@ export const STANDARD_CODEC_SETTINGS = {
             high: 1200000,
             fullHd: 1500000,
             ultraHd: 3000000,
-            ssHigh: 2500000
+            ssHigh: 2500000,
+            none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
@@ -97,6 +101,10 @@ export const VIDEO_QUALITY_LEVELS = [
         level: 'standard'
     },
     {
+        height: 480,
+        level: 'standard'
+    },
+    {
         height: 360,
         level: 'standard'
     },
@@ -107,6 +115,14 @@ export const VIDEO_QUALITY_LEVELS = [
     {
         height: 180,
         level: 'low'
+    },
+    {
+        height: 90,
+        level: 'low'
+    },
+    {
+        height: 0,
+        level: 'none'
     }
 ];
 
@@ -127,5 +143,8 @@ export enum VIDEO_QUALITY_SETTINGS {
     STANDARD = 'standard',
 
     // 320x180 or Low Definition.
-    LOW = 'low'
+    LOW = 'low',
+
+    // When the camera is turned off.
+    NONE = 'none'
 };

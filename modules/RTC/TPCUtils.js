@@ -87,39 +87,44 @@ export class TPCUtils {
      */
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
-        const trackHeight = localVideoTrack.getHeight();
-        const effectiveNewHeight = newHeight > trackHeight ? trackHeight : newHeight;
+        const trackCaptureHeight = localVideoTrack.getHeight();
+        const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
         let scalabilityMode = this.codecSettings[codec].useKSVC
             ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
-        const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === effectiveNewHeight);
+        const { height, level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= effectiveNewHeight);
         let maxBitrate;
+        let scaleResolutionDownBy = this.l2ScaleFactor;
 
         if (this._isScreenshareBitrateCapped(localVideoTrack)) {
             scalabilityMode = VideoEncoderScalabilityMode.L1T3;
             maxBitrate = desktopShareBitrate;
-        } else if (localVideoTrack.getVideoType() === VideoType.DESKTOP) {
+        } else if (isScreenshare) {
             maxBitrate = codecBitrates.ssHigh;
-        } else if (qualityLevel) {
-            maxBitrate = codecBitrates[qualityLevel.level];
+        } else {
+            maxBitrate = codecBitrates[level];
+            effectiveNewHeight && (scaleResolutionDownBy = trackCaptureHeight / effectiveNewHeight);
+
+            if (height !== effectiveNewHeight) {
+                logger.debug(`Quality level with height=${height} was picked when requested height=${newHeight} for`
+                    + `track with capture height=${trackCaptureHeight}`);
+            }
         }
 
         const config = {
-            active: newHeight > 0,
+            active: effectiveNewHeight > 0,
             maxBitrate,
             scalabilityMode,
-            scaleResolutionDownBy: this.l2ScaleFactor
+            scaleResolutionDownBy
         };
 
-        if (effectiveNewHeight === trackHeight || !config.active || isScreenshare || !qualityLevel) {
+        if (!config.active || isScreenshare) {
             return config;
         }
 
-        config.scaleResolutionDownBy = trackHeight / effectiveNewHeight;
-
         // Configure the sender to send all 3 spatial layers for resolutions 720p and higher.
-        switch (qualityLevel.level) {
+        switch (level) {
         case VIDEO_QUALITY_SETTINGS.ULTRA:
         case VIDEO_QUALITY_SETTINGS.FULL:
         case VIDEO_QUALITY_SETTINGS.HIGH:
@@ -143,19 +148,21 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localTrack
      */
     _getStreamEncodings(localTrack) {
+        if (localTrack.isAudioTrack()) {
+            return [ { active: this.pc.audioTransferActive } ];
+        }
+
         const codec = this.pc.getConfiguredVideoCodec();
         const encodings = this._getVideoStreamEncodings(localTrack, codec);
 
-        if (this.pc.isSpatialScalabilityOn() && localTrack.isVideoTrack()) {
+        if (this.pc.isSpatialScalabilityOn()) {
             return encodings;
         }
 
-        return localTrack.isVideoTrack()
-            ? [ {
-                active: this.pc.videoTransferActive,
-                maxBitrate: this.codecSettings[codec].maxBitratesVideo.high
-            } ]
-            : [ { active: this.pc.audioTransferActive } ];
+        return [ {
+            active: this.pc.videoTransferActive,
+            maxBitrate: this.codecSettings[codec].maxBitratesVideo.high
+        } ];
     }
 
     /**
@@ -178,19 +185,15 @@ export class TPCUtils {
         const captureResolution = localTrack.getHeight();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
-        let maxBitrate = codecBitrates.high;
-        const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === captureResolution);
+        const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= captureResolution);
+        const maxBitrate = codecBitrates[level];
 
-        if (qualityLevel) {
-            maxBitrate = codecBitrates[qualityLevel.level];
-
-            if (qualityLevel.level === VIDEO_QUALITY_SETTINGS.ULTRA) {
-                this.l1ScaleFactor = 6.0; // 360p
-                this.l0ScaleFactor = 12.0; // 180p
-            } else if (qualityLevel.level === VIDEO_QUALITY_SETTINGS.FULL) {
-                this.l1ScaleFactor = 3.0; // 360p
-                this.l0ScaleFactor = 6.0; // 180p
-            }
+        if (level === VIDEO_QUALITY_SETTINGS.ULTRA) {
+            this.l1ScaleFactor = 6.0; // 360p
+            this.l0ScaleFactor = 12.0; // 180p
+        } else if (level === VIDEO_QUALITY_SETTINGS.FULL) {
+            this.l1ScaleFactor = 3.0; // 360p
+            this.l0ScaleFactor = 6.0; // 180p
         }
 
         const maxVideoBitrate = videoType === VideoType.DESKTOP

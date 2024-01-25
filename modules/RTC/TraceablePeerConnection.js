@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { SIM_LAYERS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -285,7 +285,7 @@ export default function TraceablePeerConnection(
 
     this.interop = new Interop();
 
-    this.simulcast = new SdpSimulcast({ numOfLayers: SIM_LAYERS.length });
+    this.simulcast = new SdpSimulcast();
 
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from
@@ -300,12 +300,6 @@ export default function TraceablePeerConnection(
      */
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
-
-    /**
-     * The height constraint applied on the video sender. The default value is 2160 (4K) when layer suspension is
-     * explicitly disabled.
-     */
-    this._senderVideoMaxHeight = 2160;
 
     /**
      * The height constraints to be applied on the sender per local video source (source name as the key).
@@ -2057,13 +2051,14 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
             .find(track => this._localTrackTransceiverMids.get(track.rtcId) === mLine.mid.toString());
 
         if ((isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) && localTrack) {
-            const qualityLevel = VIDEO_QUALITY_LEVELS.find(level => level.height === localTrack.getHeight());
             let maxBitrate;
 
             if (localTrack.getVideoType() === VideoType.DESKTOP) {
                 maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
             } else {
-                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[qualityLevel.level];
+                const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.getHeight());
+
+                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[level];
             }
 
             const limit = Math.floor(maxBitrate / 1000);
