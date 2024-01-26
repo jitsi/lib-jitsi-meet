@@ -1,17 +1,12 @@
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { SIM_LAYERS } from '../../service/RTC/StandardVideoSettings';
 
 import * as transform from 'sdp-transform';
-
-const DEFAULT_NUM_OF_LAYERS = 3;
 
 interface Description {
     type: RTCSdpType;
     sdp: string;
-}
-
-interface Options {
-    numOfLayers?: number
 }
 
 /**
@@ -22,7 +17,7 @@ interface Options {
  * to a given endpoint.
  */
 export default class SdpSimulcast {
-    private _options: Options;
+    private _numOfLayers: number;
     private _ssrcCache: Map<string, Array<number>>;
 
     /**
@@ -30,13 +25,9 @@ export default class SdpSimulcast {
      *
      * @param options
      */
-    constructor(options: Options) {
-        this._options = options;
+    constructor() {
         this._ssrcCache = new Map();
-
-        if (!this._options.numOfLayers) {
-            this._options.numOfLayers = DEFAULT_NUM_OF_LAYERS;
-        }
+        this._numOfLayers = SIM_LAYERS.length;
     }
 
     /**
@@ -120,7 +111,7 @@ export default class SdpSimulcast {
         // Generate SIM layers.
         const simSsrcs = [];
 
-        for (let i = 0; i < this._options.numOfLayers - 1; ++i) {
+        for (let i = 0; i < this._numOfLayers - 1; ++i) {
             const simSsrc = this._generateSsrc();
 
             addAssociatedAttributes(mLine, simSsrc);

@@ -8,6 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -21,7 +22,7 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
-import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
+import { TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
 
@@ -284,7 +285,7 @@ export default function TraceablePeerConnection(
 
     this.interop = new Interop();
 
-    this.simulcast = new SdpSimulcast({ numOfLayers: SIM_LAYER_RIDS.length });
+    this.simulcast = new SdpSimulcast();
 
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from
@@ -299,12 +300,6 @@ export default function TraceablePeerConnection(
      */
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
-
-    /**
-     * The height constraint applied on the video sender. The default value is 2160 (4K) when layer suspension is
-     * explicitly disabled.
-     */
-    this._senderVideoMaxHeight = 2160;
 
     /**
      * The height constraints to be applied on the sender per local video source (source name as the key).
@@ -498,21 +493,6 @@ TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType,
     }
 
     return hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
-};
-
-/**
- * Returns the MID of the m-line associated with the local desktop track (if it exists).
- *
- * @returns {Number|null}
- */
-TraceablePeerConnection.prototype._getDesktopTrackMid = function() {
-    const desktopTrack = this.getLocalVideoTracks().find(track => track.getVideoType() === VideoType.DESKTOP);
-
-    if (desktopTrack) {
-        return Number(this._localTrackTransceiverMids.get(desktopTrack.rtcId));
-    }
-
-    return null;
 };
 
 /**
@@ -2067,14 +2047,23 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
     for (const mLine of mLines) {
         const isDoingVp9KSvc = currentCodec === CodecMimeType.VP9
             && !codecScalabilityModeSettings.scalabilityModeEnabled;
+        const localTrack = this.getLocalVideoTracks()
+            .find(track => this._localTrackTransceiverMids.get(track.rtcId) === mLine.mid.toString());
 
-        if (isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) {
-            const bitrates = codecScalabilityModeSettings.maxBitratesVideo;
-            const mid = mLine.mid;
-            const isSharingScreen = mid === this._getDesktopTrackMid();
-            const limit = Math.floor((isSharingScreen ? bitrates.ssHigh : bitrates.high) / 1000);
+        if ((isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) && localTrack) {
+            let maxBitrate;
 
-            // Use only the HD bitrate for now as there is no API available yet for configuring
+            if (localTrack.getVideoType() === VideoType.DESKTOP) {
+                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
+            } else {
+                const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.getHeight());
+
+                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[level];
+            }
+
+            const limit = Math.floor(maxBitrate / 1000);
+
+            // Use only the highest spatial layer bitrates for now as there is no API available yet for configuring
             // the bitrates on the individual SVC layers.
             mLine.bandwidth = [ {
                 type: 'AS',
