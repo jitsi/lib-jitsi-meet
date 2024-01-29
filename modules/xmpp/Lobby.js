@@ -63,6 +63,10 @@ export default class Lobby {
             return Promise.reject(new Error('Lobby not supported!'));
         }
 
+        if (this.mainRoom.membersOnlyEnabled) {
+            return Promise.resolve();
+        }
+
         return new Promise((resolve, reject) => {
             this.mainRoom.setMembersOnly(true, resolve, reject);
         });
