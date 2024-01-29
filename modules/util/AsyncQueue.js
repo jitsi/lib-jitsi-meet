@@ -18,6 +18,8 @@ export class ClearedQueueError extends Error {
 
 /**
  * A queue for async task execution.
+ *
+ * TODO replace AsyncQueue usage in JingleSessionPC with the new AsyncQueue2 based on promises and delete the AsyncQueue
  */
 export default class AsyncQueue {
     /**

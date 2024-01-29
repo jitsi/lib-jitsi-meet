@@ -3,15 +3,44 @@ import { Strophe } from 'strophe.js';
 import Listenable from '../util/Listenable';
 
 /* eslint-disable no-empty-function */
+/* eslint-disable require-jsdoc */
 
 /**
  * Mock {@link ChatRoom}.
  */
 export class MockChatRoom extends Listenable {
+    constructor() {
+        super();
+        this.connectionTimes = {};
+    }
+
     /**
      * {@link ChatRoom.addPresenceListener}.
      */
     addPresenceListener() {
+    }
+
+    removePresenceListener() {
+
+    }
+
+    addOrReplaceInPresence() {
+    }
+
+    setParticipantPropertyListener() {
+
+    }
+
+    isFocus() {
+        return true; // Used to verify incoming JVB jingle session
+    }
+
+    getMeetingId() {
+        return undefined; // Doesn't matter in the tests we have so far.
+    }
+
+    leave() {
+
     }
 }
 
@@ -80,3 +109,4 @@ export class MockStropheConnection extends Listenable {
     }
 }
 /* eslint-enable no-empty-function */
+/* eslint-enable require-jsdoc  */

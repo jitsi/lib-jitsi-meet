@@ -37,6 +37,7 @@ import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
+import AsyncQueue2 from './modules/util/AsyncQueue2';
 import EventEmitter from './modules/util/EventEmitter';
 import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
@@ -153,6 +154,14 @@ export default function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
+
+    /**
+     * The queue is used to synchronize access to local tracks (this.rtc.localTracks). This prevents from unexpected
+     * behavior when a new track operation is scheduled, before the previous one has finished.
+     *
+     * @type {AsyncQueue2}
+     */
+    this.modificationQueue = new AsyncQueue2();
 
     /**
      * List of all the participants in the conference.
@@ -636,6 +645,9 @@ JitsiConference.prototype.isP2PTestModeEnabled = function() {
  * @returns {Promise}
  */
 JitsiConference.prototype.leave = async function(reason) {
+    this.modificationQueue.clear('The task was aborted because `conference.leave()` was called');
+    this.modificationQueue.shutdown();
+
     if (this.avgRtpStatsReporter) {
         this.avgRtpStatsReporter.dispose();
         this.avgRtpStatsReporter = null;
@@ -1071,25 +1083,31 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
  * @throws {Error} if the specified track is a video track and there is already
  * another video track in the conference.
  */
-JitsiConference.prototype.addTrack = function(track) {
+JitsiConference.prototype.addTrack = async function(track) {
     if (!track) {
-        throw new Error('addTrack - a track is required');
+        throw new Error('A track is required');
     }
 
-    const mediaType = track.getType();
-    const localTracks = this.rtc.getLocalTracks(mediaType);
+    if (FeatureFlags.isMultiStreamSendSupportEnabled()) {
+        logger.debug(`queued addTrack: ${track}`);
+        await this.modificationQueue.push(async () => {
+            logger.debug(`executing addTrack: ${track}`);
 
-    // Ensure there's exactly 1 local track of each media type in the conference.
-    if (localTracks.length > 0) {
-        // Don't be excessively harsh and severe if the API client happens to attempt to add the same local track twice.
-        if (track === localTracks[0]) {
-            return Promise.resolve(track);
-        }
+            const mediaType = track.getType();
+            const localTracks = this.rtc.getLocalTracks(mediaType);
+            const videoType = track.getVideoType();
 
-        // Currently, only adding multiple video streams of different video types is supported.
-        // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
-        if (mediaType === MediaType.VIDEO
-            && !localTracks.find(t => t.getVideoType() === track.getVideoType())) {
+            if (localTracks.find(t => t === track)) {
+                // a NOOP if the track is in the conference already
+                return;
+            } else if (track.isVideoTrack()
+                && this.getLocalVideoTracks().find(t => t.getVideoType() === track.getVideoType())) {
+                // Currently, only adding multiple video streams of different video types is supported
+                // TODO remove this limitation once issues with jitsi-meet trying to add multiple camera streams
+                //      is fixed.
+                throw new Error(`Cannot add second "${videoType}" video track`);
+            }
+
             const sourceName = getSourceNameForJitsiTrack(
                 this.myUserId(),
                 mediaType,
@@ -1101,7 +1119,7 @@ JitsiConference.prototype.addTrack = function(track) {
             this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
             this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
 
-            return Promise.all(addTrackPromises)
+            await Promise.all(addTrackPromises)
                 .then(() => {
                     this._setupNewTrack(track);
                     this._sendBridgeVideoTypeMessage(track);
@@ -1111,20 +1129,19 @@ JitsiConference.prototype.addTrack = function(track) {
                         this._fireMuteChangeEvent(track);
                     }
                 });
-        }
-
-        return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
-    }
-
-    return this.replaceTrack(null, track)
-        .then(() => {
-            // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
-            // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
-            // only be sent after a session-accept or source-add is ack'ed.
-            if (track.getVideoType() === VideoType.DESKTOP) {
-                this._updateRoomPresence(this.getActiveMediaSession());
-            }
         });
+    } else {
+        logger.debug(`queued addTrack for ${track} as a replace track operation`);
+        await this.replaceTrack(null, track)
+            .then(() => {
+                // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
+                // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
+                // only be sent after a session-accept or source-add is ack'ed.
+                if (track.getVideoType() === VideoType.DESKTOP) {
+                    this._updateRoomPresence(this.getActiveMediaSession());
+                }
+            });
+    }
 };
 
 /**
@@ -1257,7 +1274,7 @@ JitsiConference.prototype.removeTrack = function(track) {
  * @param {JitsiLocalTrack} newTrack the new stream to use
  * @returns {Promise} resolves when the replacement is finished
  */
-JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
+JitsiConference.prototype.replaceTrack = async function(oldTrack, newTrack) {
     const oldVideoType = oldTrack?.getVideoType();
     const mediaType = oldTrack?.getType() || newTrack?.getType();
     const newVideoType = newTrack?.getVideoType();
@@ -1267,54 +1284,57 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             + ' not supported in this mode.');
     }
 
-    if (newTrack) {
-        const sourceName = oldTrack
-            ? oldTrack.getSourceName()
-            : getSourceNameForJitsiTrack(
-                this.myUserId(),
-                mediaType,
-                this.getLocalTracks(mediaType)?.length);
+    logger.debug(`queued replaceTrack old=${oldTrack} new=${newTrack}`);
+    await this.modificationQueue.push(async () => {
+        logger.debug(`executing replaceTrack old=${oldTrack} new=${newTrack}`);
 
-        newTrack.setSourceName(sourceName);
-    }
-    const oldTrackBelongsToConference = this === oldTrack?.conference;
+        if (newTrack) {
+            const sourceName = oldTrack
+                ? oldTrack.getSourceName()
+                : getSourceNameForJitsiTrack(
+                    this.myUserId(),
+                    mediaType,
+                    this.getLocalTracks(mediaType)?.length);
 
-    if (oldTrackBelongsToConference && oldTrack.disposed) {
-        return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-    if (newTrack?.disposed) {
-        return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
+            newTrack.setSourceName(sourceName);
+        }
+        const oldTrackBelongsToConference = this === oldTrack?.conference;
 
-    if (oldTrack && !oldTrackBelongsToConference) {
-        logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
-    }
+        if (oldTrackBelongsToConference && oldTrack.disposed) {
+            throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
+        }
+        if (newTrack?.disposed) {
+            throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
+        }
 
-    // Now replace the stream at the lower levels
-    return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
-        .then(() => {
-            if (oldTrackBelongsToConference && !oldTrack.isMuted() && !newTrack) {
-                oldTrack._sendMuteStatus(true);
-            }
-            oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
-            newTrack && this._setupNewTrack(newTrack);
+        if (oldTrack && !oldTrackBelongsToConference) {
+            logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
+        }
 
-            // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
-            if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
-                this._sendBridgeVideoTypeMessage(newTrack);
-            }
-            this._updateRoomPresence(this.getActiveMediaSession());
-            if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
-                this._fireMuteChangeEvent(newTrack);
-            }
+        // Now replace the stream at the lower levels
+        await this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
+            .then(() => {
+                if (oldTrackBelongsToConference && !oldTrack.isMuted() && !newTrack) {
+                    oldTrack._sendMuteStatus(true);
+                }
+                oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
+                newTrack && this._setupNewTrack(newTrack);
 
-            return Promise.resolve();
-        })
-        .catch(error => {
-            logger.error(`replaceTrack failed: ${error?.stack}`);
+                // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
+                if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
+                    this._sendBridgeVideoTypeMessage(newTrack);
+                }
+                this._updateRoomPresence(this.getActiveMediaSession());
+                if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
+                    this._fireMuteChangeEvent(newTrack);
+                }
+            })
+            .catch(error => {
+                logger.error(`replaceTrack failed: ${error?.stack}`);
 
-            return Promise.reject(error);
-        });
+                throw error;
+            });
+    });
 };
 
 /**
@@ -2212,38 +2232,43 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    const localTracks = this._getInitialLocalTracks();
+    logger.debug(`queued acceptOffer for ${jingleSession}`);
+    this.modificationQueue.push(() => {
+        const localTracks = this._getInitialLocalTracks();
 
-    try {
-        jingleSession.acceptOffer(
-            jingleOffer,
-            () => {
-                // If for any reason invite for the JVB session arrived after
-                // the P2P has been established already the media transfer needs
-                // to be turned off here.
-                if (this.isP2PActive() && this.jvbJingleSession) {
-                    this._suspendMediaTransferForJvbConnection();
-                }
+        logger.debug(`executing acceptOffer for ${jingleSession}, localTracks=${localTracks}`);
+        try {
+            jingleSession.acceptOffer(
+                jingleOffer,
+                () => {
+                    // If for any reason invite for the JVB session arrived after
+                    // the P2P has been established already the media transfer needs
+                    // to be turned off here.
+                    if (this.isP2PActive() && this.jvbJingleSession) {
+                        this._suspendMediaTransferForJvbConnection();
+                    }
 
-                this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, jingleSession);
-                if (!this.isP2PActive()) {
-                    this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, jingleSession);
-                }
-            },
-            error => {
-                logger.error('Failed to accept incoming Jingle session', error);
-            },
-            localTracks
-        );
+                    this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, jingleSession);
+                    if (!this.isP2PActive()) {
+                        this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, jingleSession);
+                    }
+                },
+                error => {
+                    logger.error('Failed to accept incoming Jingle session', error);
+                },
+                localTracks
+            );
 
-        // Set the capture fps for screenshare if it is set through the UI.
-        this._desktopSharingFrameRate
-            && jingleSession.peerconnection.setDesktopSharingFrameRate(this._desktopSharingFrameRate);
+            // Set the capture fps for screenshare if it is set through
+            // the UI.
+            this._desktopSharingFrameRate
+                && jingleSession.peerconnection.setDesktopSharingFrameRate(this._desktopSharingFrameRate);
 
-        this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
-    } catch (e) {
-        logger.error(e);
-    }
+            this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
+        } catch (e) {
+            logger.error(e);
+        }
+    });
 };
 
 /**
@@ -2907,22 +2932,29 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
 
-    const localTracks = this._getInitialLocalTracks();
+    // Accessing local tracks needs to happen on the modification queue to account for any race conditions.
+    // NOTE that JingleSessionPC has its own async queue which will be unblocked only after the first offer/answer
+    // exchange, which is done in the acceptOffer below.
+    logger.debug(`queued acceptOffer for ${this.p2pJingleSession}`);
+    this.modificationQueue.push(() => {
+        const localTracks = this._getInitialLocalTracks();
 
-    this.p2pJingleSession.acceptOffer(
-        jingleOffer,
-        () => {
-            logger.debug('Got RESULT for P2P "session-accept"');
+        logger.debug(`executing acceptOffer for ${this.p2pJingleSession}, localTracks=${localTracks}`);
+        this.p2pJingleSession.acceptOffer(
+            jingleOffer,
+            () => {
+                logger.debug('Got RESULT for P2P "session-accept"');
 
-            this.eventEmitter.emit(
-                JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-                jingleSession);
-        },
-        error => {
-            logger.error(
-                'Failed to accept incoming P2P Jingle session', error);
-        },
-        localTracks);
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+                    jingleSession);
+            },
+            error => {
+                logger.error(
+                    'Failed to accept incoming P2P Jingle session', error);
+            },
+            localTracks);
+    });
 };
 
 /**
@@ -3250,9 +3282,14 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
 
-    const localTracks = this._getInitialLocalTracks();
+    // The invite must be generated on the modification queue to prevent race conditions around local tracks
+    logger.debug(`queued invite for ${this.p2pJingleSession}`);
+    this.modificationQueue.push(() => {
+        const localTracks = this._getInitialLocalTracks();
 
-    this.p2pJingleSession.invite(localTracks);
+        logger.debug(`executing invite for ${this.p2pJingleSession}, localTracks=${localTracks}`);
+        this.p2pJingleSession.invite(localTracks);
+    });
 };
 
 /**
