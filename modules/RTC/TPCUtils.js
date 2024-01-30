@@ -622,13 +622,8 @@ export class TPCUtils {
             }
         ];
 
-        // Firefox 72 has stopped parsing the legacy rid= parameters in simulcast attributes.
-        // eslint-disable-next-line max-len
-        // https://www.fxsitecompat.dev/en-CA/docs/2019/pt-and-rid-in-webrtc-simulcast-attributes-are-no-longer-supported/
         const ridLine = rids.map(val => val.id).join(';');
-        const simulcastLine = browser.isFirefox() && browser.isVersionGreaterThan(71)
-            ? `recv ${ridLine}`
-            : `recv rid=${ridLine}`;
+        const simulcastLine = `recv ${ridLine}`;
         const sdp = transform.parse(desc.sdp);
         const mLines = sdp.media.filter(m => m.type === MediaType.VIDEO);
         const senderMids = Array.from(this.pc._localTrackTransceiverMids.values());
