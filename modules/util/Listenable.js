@@ -34,7 +34,7 @@ export default class Listenable {
      * Adds new listener.
      * @param {String} eventName the name of the event
      * @param {Function} listener the listener.
-     * @returns {EventEmitter} - The unsubscribe function.
+     * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
     addListener(eventName, listener) {
         return this.eventEmitter.addListener(eventName, listener);
@@ -45,7 +45,7 @@ export default class Listenable {
      * @param {String} eventName the name of the event that triggers the
      * listener
      * @param {Function} listener the listener.
-     * @returns {EventEmitter} - The unsubscribe function.
+     * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
     removeListener(eventName, listener) {
         return this.eventEmitter.removeListener(eventName, listener);

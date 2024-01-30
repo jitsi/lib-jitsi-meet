@@ -63,6 +63,36 @@ export default class Lobby {
             return Promise.reject(new Error('Lobby not supported!'));
         }
 
+        // let's wait for the room data form to be populated after XMPPEvents.MUC_JOINED
+        if (!this.mainRoom.initialDiscoRoomInfoReceived) {
+            return new Promise((resolve, reject) => {
+                let unsubscribers = [];
+                const unsubscribe = () => {
+                    unsubscribers.forEach(remove => remove());
+                    unsubscribers = [];
+                };
+
+                unsubscribers.push(
+                    this.mainRoom.addCancellableListener(XMPPEvents.ROOM_DISCO_INFO_UPDATED, () => {
+                        unsubscribe();
+
+                        if (this.mainRoom.membersOnlyEnabled) {
+                            resolve();
+
+                            return;
+                        }
+
+                        this.mainRoom.setMembersOnly(true, resolve, reject);
+                    }));
+
+                // on timeout or failure
+                unsubscribers.push(this.mainRoom.addCancellableListener(XMPPEvents.ROOM_DISCO_INFO_FAILED, e => {
+                    unsubscribe();
+                    reject(e);
+                }));
+            });
+        }
+
         if (this.mainRoom.membersOnlyEnabled) {
             return Promise.resolve();
         }
