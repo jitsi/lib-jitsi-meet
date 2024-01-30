@@ -21,6 +21,12 @@ import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);
 
+/**
+ * How long we're going to wait for IQ response, before timeout error is triggered.
+ * @type {number}
+ */
+const IQ_TIMEOUT = 10000;
+
 export const parser = {
     packet2JSON(xmlElement, nodes) {
         for (const child of Array.from(xmlElement.children)) {
@@ -190,6 +196,7 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
         this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
+        this.initialDiscoRoomInfoReceived = false;
     }
 
     /* eslint-enable max-params */
@@ -402,9 +409,14 @@ export default class ChatRoom extends Listenable {
                     logger.warn('Failed to set room metadata', e);
                 }
             }
+
+            this.initialDiscoRoomInfoReceived = true;
+            this.eventEmitter.emit(XMPPEvents.ROOM_DISCO_INFO_UPDATED);
         }, error => {
             logger.error('Error getting room info: ', error);
-        });
+            this.eventEmitter.emit(XMPPEvents.ROOM_DISCO_INFO_FAILED, error);
+        },
+        IQ_TIMEOUT);
     }
 
     /**

@@ -224,6 +224,12 @@ export enum XMPPEvents {
     ROOM_CONNECT_MEMBERS_ONLY_ERROR = 'xmpp.room_connect_error.members_only',
 
     /**
+     * Indicates that we have received a reply to our disco-info request for the room.
+     */
+    ROOM_DISCO_INFO_UPDATED = 'xmpp.room_disco_info_updated',
+    ROOM_DISCO_INFO_FAILED = 'xmpp.room_disco_info_failed',
+
+    /**
      * Indicates that max users limit has been reached.
      */
     ROOM_MAX_USERS_ERROR = 'xmpp.room_max_users_error',
