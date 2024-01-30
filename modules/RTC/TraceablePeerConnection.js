@@ -2056,7 +2056,7 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
             if (localTrack.getVideoType() === VideoType.DESKTOP) {
                 maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
             } else {
-                const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.getHeight());
+                const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.resolution);
 
                 maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[level];
             }
@@ -2234,7 +2234,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     if ((localVideoTrack.getVideoType() === VideoType.CAMERA && configuredResolution === frameHeight)
         || (localVideoTrack.getVideoType() === VideoType.DESKTOP
             && frameHeight > 0
-            && configuredResolution === localVideoTrack.getHeight())) {
+            && configuredResolution === localVideoTrack.resolution)) {
         return Promise.resolve();
     }
 
