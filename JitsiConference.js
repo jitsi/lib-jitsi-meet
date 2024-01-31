@@ -1088,60 +1088,47 @@ JitsiConference.prototype.addTrack = async function(track) {
         throw new Error('A track is required');
     }
 
-    if (FeatureFlags.isMultiStreamSendSupportEnabled()) {
-        logger.debug(`queued addTrack: ${track}`);
-        await this.modificationQueue.push(async () => {
-            logger.debug(`executing addTrack: ${track}`);
+    logger.debug(`queued addTrack: ${track}`);
+    await this.modificationQueue.push(async () => {
+        logger.debug(`executing addTrack: ${track}`);
 
-            const mediaType = track.getType();
-            const localTracks = this.rtc.getLocalTracks(mediaType);
-            const videoType = track.getVideoType();
+        const mediaType = track.getType();
+        const localTracks = this.rtc.getLocalTracks(mediaType);
+        const videoType = track.getVideoType();
 
-            if (localTracks.find(t => t === track)) {
-                // a NOOP if the track is in the conference already
-                return;
-            } else if (track.isVideoTrack()
-                && this.getLocalVideoTracks().find(t => t.getVideoType() === track.getVideoType())) {
-                // Currently, only adding multiple video streams of different video types is supported
-                // TODO remove this limitation once issues with jitsi-meet trying to add multiple camera streams
-                //      is fixed.
-                throw new Error(`Cannot add second "${videoType}" video track`);
-            }
+        if (localTracks.find(t => t === track)) {
+            // a NOOP if the track is in the conference already
+            return;
+        } else if (track.isVideoTrack()
+            && this.getLocalVideoTracks().find(t => t.getVideoType() === track.getVideoType())) {
+            // Currently, only adding multiple video streams of different video types is supported
+            // TODO remove this limitation once issues with jitsi-meet trying to add multiple camera streams
+            //      is fixed.
+            throw new Error(`Cannot add second "${videoType}" video track`);
+        }
 
-            const sourceName = getSourceNameForJitsiTrack(
-                this.myUserId(),
-                mediaType,
-                this.getLocalTracks(mediaType)?.length);
+        const sourceName = getSourceNameForJitsiTrack(
+            this.myUserId(),
+            mediaType,
+            this.getLocalTracks(mediaType)?.length);
 
-            track.setSourceName(sourceName);
-            const addTrackPromises = [];
+        track.setSourceName(sourceName);
+        const addTrackPromises = [];
 
-            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
-            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+        this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
+        this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
 
-            await Promise.all(addTrackPromises)
-                .then(() => {
-                    this._setupNewTrack(track);
-                    this._sendBridgeVideoTypeMessage(track);
-                    this._updateRoomPresence(this.getActiveMediaSession());
-
-                    if (this.isMutedByFocus || this.isVideoMutedByFocus) {
-                        this._fireMuteChangeEvent(track);
-                    }
-                });
-        });
-    } else {
-        logger.debug(`queued addTrack for ${track} as a replace track operation`);
-        await this.replaceTrack(null, track)
+        await Promise.all(addTrackPromises)
             .then(() => {
-                // Presence needs to be sent here for desktop track since we need the presence to reach the remote peer
-                // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
-                // only be sent after a session-accept or source-add is ack'ed.
-                if (track.getVideoType() === VideoType.DESKTOP) {
-                    this._updateRoomPresence(this.getActiveMediaSession());
+                this._setupNewTrack(track);
+                this._sendBridgeVideoTypeMessage(track);
+                this._updateRoomPresence(this.getActiveMediaSession());
+
+                if (this.isMutedByFocus || this.isVideoMutedByFocus) {
+                    this._fireMuteChangeEvent(track);
                 }
             });
-    }
+    });
 };
 
 /**

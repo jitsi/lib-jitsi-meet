@@ -272,7 +272,6 @@ describe('JitsiConference', () => {
             // Different mocks to satisfy the P2P flow starting at conference.onIncomingCall:
             spyOn(conference, 'isP2PEnabled').and.returnValue(true);
             spyOn(conference, '_shouldBeInP2PMode').and.returnValue(true);
-            spyOn(browser, 'supportsUnifiedPlan').and.returnValue(true);
             const p2pSession = new MockJingleSessionPC({ isP2P: true });
             const acceptOfferSpy = spyOn(p2pSession, 'acceptOffer');
             const mockOffer = new MockOffer();
@@ -340,21 +339,6 @@ describe('JitsiConference', () => {
                         ' is not supported in this mode.'));
         });
     })
-    describe('when sending multiple streams is disabled', () => {
-        beforeEach(() => {
-            spyOn(FeatureFlags, 'isMultiStreamSendSupportEnabled').and.returnValue(false);
-        });
-        it('addTrack should execute the replaceTrack flow', async () => {
-            const cameraTrack1 = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
-            const jvbSession = startJvbSession(conference);
-            const replaceTrackSpy = spyOn(jvbSession, 'replaceTrack');
-
-            await conference.addTrack(cameraTrack1);
-
-            expect(replaceTrackSpy).toHaveBeenCalledOnceWith(null, cameraTrack1);
-            expect(conference.getLocalVideoTracks()[0]).toBe(cameraTrack1);
-        });
-    });
     describe("on leave", () => {
         it("pending track operations should be aborted", async () => {
             const cameraTrack1 = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
