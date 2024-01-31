@@ -1093,10 +1093,10 @@ JitsiConference.prototype.addTrack = async function(track) {
         logger.debug(`executing addTrack: ${track}`);
 
         const mediaType = track.getType();
-        const localTracks = this.rtc.getLocalTracks(mediaType);
+        const localTracksOfSameType = this.rtc.getLocalTracks(mediaType);
         const videoType = track.getVideoType();
 
-        if (localTracks.find(t => t === track)) {
+        if (localTracksOfSameType.find(t => t === track)) {
             // a NOOP if the track is in the conference already
             return;
         } else if (track.isVideoTrack()
@@ -1105,6 +1105,8 @@ JitsiConference.prototype.addTrack = async function(track) {
             // TODO remove this limitation once issues with jitsi-meet trying to add multiple camera streams
             //      is fixed.
             throw new Error(`Cannot add second "${videoType}" video track`);
+        } else if (mediaType === MediaType.AUDIO && localTracksOfSameType.length > 0) {
+            throw new Error('There can be only one audio track in the conference');
         }
 
         const sourceName = getSourceNameForJitsiTrack(
@@ -1115,8 +1117,17 @@ JitsiConference.prototype.addTrack = async function(track) {
         track.setSourceName(sourceName);
         const addTrackPromises = [];
 
-        this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
-        this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+        // FIXME JingleSessionPC.addTrack can be used only for adding secondary tracks of the same media type, so
+        // use replace(null, track) for the primary tracks.
+        const isFirstTrackOfTheKind = localTracksOfSameType.length === 0;
+
+        if (isFirstTrackOfTheKind) {
+            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.replaceTrack(null, track));
+            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.replaceTrack(null, track));
+        } else {
+            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
+            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+        }
 
         await Promise.all(addTrackPromises)
             .then(() => {

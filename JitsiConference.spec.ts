@@ -127,7 +127,7 @@ function startP2PSession(conference) {
     // Need to inject the mock class here:
     spyOn(conference.xmpp.connection.jingle, 'newP2PJingleSession').and.returnValue(p2pJingleSession);
 
-    // This executes the code-path that sends an invite to the "usr@server.com/conn1" JID
+    // This executes the code-path that sends an invite to the 'usr@server.com/conn1' JID
     conference._startP2PSession('user@server.com/conn1');
 
     return p2pJingleSession;
@@ -174,10 +174,21 @@ describe('JitsiConference', () => {
                 .withContext('the local audio track should have been removed at the 2500ms mark')
                 .toBe(undefined);
         });
-        it('should throw an error when a falsy value is padded', () => {
-            conference.addTrack(undefined)
+        it('should throw an error when a falsy value is passed a the track argument', async () => {
+            await conference.addTrack(undefined)
                 .then(() => fail('addTrack should throw'))
                 .catch(e => expect(e.message).toBe('A track is required'));
+        });
+        it('should throw an error if the 2nd audio track is added', async () => {
+            const audioTrack1 = new MockJitsiLocalTrack(undefined, MediaType.AUDIO, undefined);
+            const audioTrack2 = new MockJitsiLocalTrack(undefined, MediaType.AUDIO, undefined);
+
+            await conference.addTrack(audioTrack1);
+            await conference.addTrack(audioTrack2)
+                .then(
+                    () => fail('should throw'),
+                    error => expect(error.message).toBe('There can be only one audio track in the conference')
+                );
         });
         it('should throw if 2nd video track of the same video kind is added', async () => {
             const cameraTrack1 = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
@@ -197,19 +208,21 @@ describe('JitsiConference', () => {
             const jvbSession = startJvbSession(conference);
             const cameraTrack1 = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
 
-            const addTracksSpy = spyOn(jvbSession, 'addTracks');
+            // FIXME JingleSessionPC.replaceTrack is used to add primary video track instead of addTrack
+            // const addTracksSpy = spyOn(jvbSession, 'addTracks');
+            const replaceTracksSpy = spyOn(jvbSession, 'replaceTrack');
 
             await conference.addTrack(cameraTrack1);
             await conference.addTrack(cameraTrack1);
             await conference.addTrack(cameraTrack1);
 
-            expect(addTracksSpy)
+            expect(replaceTracksSpy)
                 .withContext('add track on the JingleSession should have been called once with the camera track')
-                .toHaveBeenCalledOnceWith([cameraTrack1]);
+                .toHaveBeenCalledOnceWith(null, cameraTrack1);
         });
     });
-    describe("JVB JingleSession should pickup the local tracks", () => {
-        it("when created while track operation is in-progress on the P2P session", async () => {
+    describe('JVB JingleSession should pickup the local tracks', () => {
+        it('when created while track operation is in-progress on the P2P session', async () => {
             const p2pJingleSession = startP2PSession(conference);
 
             p2pJingleSession.addDelayToTrackOperations(1000);
@@ -227,7 +240,7 @@ describe('JitsiConference', () => {
 
             await nextTick(1000);
             expect(acceptOfferSpy)
-                .withContext("acceptOffer should have been called with a track at the 1500ms mark")
+                .withContext('acceptOffer should have been called with a track at the 1500ms mark')
                 .toHaveBeenCalledOnceWith(
                     undefined,
                     jasmine.any(Function),
@@ -266,7 +279,7 @@ describe('JitsiConference', () => {
             conference.addTrack(cameraTrack1);
 
             // After 500ms start the P2P session. Note that addTrack is still in progress and the conference needs to
-            // wait with calling "accept offer", so that the track is included correctly (there's no flow that would
+            // wait with calling 'accept offer', so that the track is included correctly (there's no flow that would
             // pick it up later).
             await nextTick(500);
             // Different mocks to satisfy the P2P flow starting at conference.onIncomingCall:
@@ -306,24 +319,30 @@ describe('JitsiConference', () => {
                 .withContext('track 3 should have been replaced with track 4')
                 .toBe(cameraTrack4);
 
-            expect(addTracksSpy)
-                .toHaveBeenCalledOnceWith([cameraTrack1]);
+            // FIXME replaceTrack is used on JingleSessionPC instead of the addTrack method
+            // expect(addTracksSpy)
+            //     .toHaveBeenCalledOnceWith([cameraTrack1]);
+            // FIXME +1 accounts for replace track used to add the first track of same video type
             expect(replaceTrackSpy)
-                .toHaveBeenCalledTimes(3);
+                .toHaveBeenCalledTimes(3 + 1);
 
             // Verify that the tracks were actually replaced in the expected sequence on the JingleSession level:
 
+            // FIXME addTrack - called as replaceTrack(null, cameraTrack1)
+            expect(replaceTrackSpy.calls.all()[0].args[0]).toEqual(null);
+            expect(replaceTrackSpy.calls.all()[0].args[1]).toEqual(cameraTrack1);
+
             // replaceTrack(cameraTrack1, cameraTrack2)
-            expect(replaceTrackSpy.calls.all()[0].args[0]).toEqual(cameraTrack1);
-            expect(replaceTrackSpy.calls.all()[0].args[1]).toEqual(cameraTrack2);
+            expect(replaceTrackSpy.calls.all()[1].args[0]).toEqual(cameraTrack1);
+            expect(replaceTrackSpy.calls.all()[1].args[1]).toEqual(cameraTrack2);
 
             // replaceTrack(cameraTrack2, cameraTrack3)
-            expect(replaceTrackSpy.calls.all()[1].args[0]).toEqual(cameraTrack2);
-            expect(replaceTrackSpy.calls.all()[1].args[1]).toEqual(cameraTrack3);
+            expect(replaceTrackSpy.calls.all()[2].args[0]).toEqual(cameraTrack2);
+            expect(replaceTrackSpy.calls.all()[2].args[1]).toEqual(cameraTrack3);
 
             // replaceTrack(cameraTrack3, cameraTrack4)
-            expect(replaceTrackSpy.calls.all()[2].args[0]).toEqual(cameraTrack3);
-            expect(replaceTrackSpy.calls.all()[2].args[1]).toEqual(cameraTrack4);
+            expect(replaceTrackSpy.calls.all()[3].args[0]).toEqual(cameraTrack3);
+            expect(replaceTrackSpy.calls.all()[3].args[1]).toEqual(cameraTrack4);
         });
         it('should not allow to replace tracks of different video types', async () => {
             const cameraTrack = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
@@ -339,8 +358,8 @@ describe('JitsiConference', () => {
                         ' is not supported in this mode.'));
         });
     })
-    describe("on leave", () => {
-        it("pending track operations should be aborted", async () => {
+    describe('on leave', () => {
+        it('pending track operations should be aborted', async () => {
             const cameraTrack1 = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
             const cameraTrack2 = new MockJitsiLocalTrack(361, MediaType.VIDEO, VideoType.CAMERA);
             const cameraTrack3 = new MockJitsiLocalTrack(362, MediaType.VIDEO, VideoType.CAMERA);
@@ -350,18 +369,18 @@ describe('JitsiConference', () => {
 
             conference.addTrack(cameraTrack1)
                 .then(
-                    () => fail("addTrack should have failed"),
-                    error => expect(error.message).toBe("The task was aborted because `conference.leave()` was called")
+                    () => fail('addTrack should have failed'),
+                    error => expect(error.message).toBe('The task was aborted because `conference.leave()` was called')
                 );
             conference.replaceTrack(cameraTrack1, cameraTrack2)
                 .then(
-                    () => fail("replace track 1 with 2 should have failed"),
-                    error => expect(error.message).toBe("The task was aborted because `conference.leave()` was called")
+                    () => fail('replace track 1 with 2 should have failed'),
+                    error => expect(error.message).toBe('The task was aborted because `conference.leave()` was called')
                 );
             const lastTask = conference.replaceTrack(cameraTrack2, cameraTrack3)
                 .then(
-                    () => fail("replace track 2 with 3 should have failed"),
-                    error => expect(error.message).toBe("The task was aborted because `conference.leave()` was called")
+                    () => fail('replace track 2 with 3 should have failed'),
+                    error => expect(error.message).toBe('The task was aborted because `conference.leave()` was called')
                 );
 
             // Abort in the middle of the 1st operation while others are still on the queue
