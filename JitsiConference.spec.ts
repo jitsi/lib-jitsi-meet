@@ -220,6 +220,20 @@ describe('JitsiConference', () => {
                 .withContext('add track on the JingleSession should have been called once with the camera track')
                 .toHaveBeenCalledOnceWith(null, cameraTrack1);
         });
+        it('should use JingleSessionPC.replaceTrack for primary tracks and addTracks for secondary', async () => {
+           // FIXME remove/replace this test case once JingleSessionPC.addTrack is cleaned up
+            const cameraTrack = new MockJitsiLocalTrack(360, MediaType.VIDEO, VideoType.CAMERA);
+            const screemTrack = new MockJitsiLocalTrack(1080, MediaType.VIDEO, VideoType.DESKTOP);
+            const jvbSession = startJvbSession(conference);
+            const addTracksSpy = spyOn(jvbSession, 'addTracks');
+            const replaceTracksSpy = spyOn(jvbSession, 'replaceTrack');
+
+            conference.addTrack(cameraTrack);
+            await conference.addTrack(screemTrack);
+
+            expect(replaceTracksSpy).toHaveBeenCalledOnceWith(null, cameraTrack);
+            expect(addTracksSpy).toHaveBeenCalledOnceWith([screemTrack]);
+        });
     });
     describe('JVB JingleSession should pickup the local tracks', () => {
         it('when created while track operation is in-progress on the P2P session', async () => {
