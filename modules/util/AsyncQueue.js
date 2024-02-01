@@ -60,6 +60,14 @@ export default class AsyncQueue {
     }
 
     /**
+     * Checks if the queue is paused.
+     * @returns {boolean}
+     */
+    isPaused() {
+        return this._queue.paused;
+    }
+
+    /**
      * Pauses the execution of the tasks on the queue.
      */
     pause() {

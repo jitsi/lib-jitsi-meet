@@ -2131,6 +2131,15 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
         }
 
+        // The tracks will be picked up at the time when the first offer/answer is executed.
+        // This prevents a deadlock where JitsiConference can put a track operation on it's queue, before the
+        // offer/answer which starts the JingleSessionPC queue.
+        if (this.modificationQueue.isPaused()) {
+            logger.info(`${this} skipping addTracks newTracks=${localTracks}, before the session started`);
+
+            return Promise.resolve();
+        }
+
         const replaceTracks = [];
         const workFunction = finishedCallback => {
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
@@ -2224,6 +2233,15 @@ export default class JingleSessionPC extends JingleSession {
      *  with no arguments or rejects with an error {string}
      */
     replaceTrack(oldTrack, newTrack) {
+        // The tracks will be picked up at the time when the first offer/answer is executed.
+        // This prevents a deadlock where JitsiConference can put a track operation on it's queue, before the
+        // offer/answer which starts the JingleSessionPC queue.
+        if (this.modificationQueue.isPaused()) {
+            logger.info(`${this} skipping replaceTrack old=${oldTrack} new=${newTrack}, before the session started`);
+
+            return Promise.resolve();
+        }
+
         const workFunction = finishedCallback => {
             logger.debug(`${this} replaceTrack worker started. oldTrack = ${oldTrack}, newTrack = ${newTrack}`);
 

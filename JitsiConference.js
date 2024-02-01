@@ -1088,9 +1088,9 @@ JitsiConference.prototype.addTrack = async function(track) {
         throw new Error('A track is required');
     }
 
-    logger.debug(`queued addTrack: ${track}`);
+    logger.info(`queued addTrack: ${track}`);
     await this.modificationQueue.push(async () => {
-        logger.debug(`executing addTrack: ${track}`);
+        logger.info(`executing addTrack: ${track}`);
 
         const mediaType = track.getType();
         const localTracksOfSameType = this.rtc.getLocalTracks(mediaType);
@@ -1282,9 +1282,9 @@ JitsiConference.prototype.replaceTrack = async function(oldTrack, newTrack) {
             + ' not supported in this mode.');
     }
 
-    logger.debug(`queued replaceTrack old=${oldTrack} new=${newTrack}`);
+    logger.info(`queued replaceTrack old=${oldTrack} new=${newTrack}`);
     await this.modificationQueue.push(async () => {
-        logger.debug(`executing replaceTrack old=${oldTrack} new=${newTrack}`);
+        logger.info(`executing replaceTrack old=${oldTrack} new=${newTrack}`);
 
         if (newTrack) {
             const sourceName = oldTrack
@@ -1305,7 +1305,14 @@ JitsiConference.prototype.replaceTrack = async function(oldTrack, newTrack) {
             throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
         }
 
-        if (oldTrack && !oldTrackBelongsToConference) {
+        if (oldTrack && !oldTrackBelongsToConference && !newTrack) {
+            logger.warn(
+                `Skipping operation replaceTrack oldTrack=${oldTrack} does not belong to this `
+                    + 'conference and no newTrack was given'
+            );
+
+            return;
+        } else if (oldTrack && !oldTrackBelongsToConference) {
             logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
         }
 
@@ -2230,11 +2237,11 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    logger.debug(`queued acceptOffer for ${jingleSession}`);
+    logger.info(`queued acceptOffer for ${jingleSession}`);
     this.modificationQueue.push(() => {
         const localTracks = this._getInitialLocalTracks();
 
-        logger.debug(`executing acceptOffer for ${jingleSession}, localTracks=${localTracks}`);
+        logger.info(`executing acceptOffer for ${jingleSession}, localTracks=${localTracks}`);
         try {
             jingleSession.acceptOffer(
                 jingleOffer,
@@ -2933,11 +2940,11 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
     // Accessing local tracks needs to happen on the modification queue to account for any race conditions.
     // NOTE that JingleSessionPC has its own async queue which will be unblocked only after the first offer/answer
     // exchange, which is done in the acceptOffer below.
-    logger.debug(`queued acceptOffer for ${this.p2pJingleSession}`);
+    logger.info(`queued acceptOffer for ${this.p2pJingleSession}`);
     this.modificationQueue.push(() => {
         const localTracks = this._getInitialLocalTracks();
 
-        logger.debug(`executing acceptOffer for ${this.p2pJingleSession}, localTracks=${localTracks}`);
+        logger.info(`executing acceptOffer for ${this.p2pJingleSession}, localTracks=${localTracks}`);
         this.p2pJingleSession.acceptOffer(
             jingleOffer,
             () => {
@@ -3281,11 +3288,11 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         });
 
     // The invite must be generated on the modification queue to prevent race conditions around local tracks
-    logger.debug(`queued invite for ${this.p2pJingleSession}`);
+    logger.info(`queued invite for ${this.p2pJingleSession}`);
     this.modificationQueue.push(() => {
         const localTracks = this._getInitialLocalTracks();
 
-        logger.debug(`executing invite for ${this.p2pJingleSession}, localTracks=${localTracks}`);
+        logger.info(`executing invite for ${this.p2pJingleSession}, localTracks=${localTracks}`);
         this.p2pJingleSession.invite(localTracks);
     });
 };
