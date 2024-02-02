@@ -1,6 +1,6 @@
 /**
  * Enumeration of the codec mime types
- * @type {{AV1: string, H264: string, OPUS: string, ULPFEC: string, VP8: string, VP9: string}}
+ * @type {{AV1: string, H264: string, OPUS: string, RED: string, ULPFEC: string, VP8: string, VP9: string}}
  */
 export const CodecMimeType = {
     /**
@@ -17,6 +17,11 @@ export const CodecMimeType = {
      * The opus codec mime type.
      */
     OPUS: 'opus',
+
+    /**
+     * The red codec mime type.
+     */
+    RED: 'red',
 
     /**
      * The ulpfec codec mime type.
