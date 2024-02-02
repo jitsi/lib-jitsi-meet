@@ -47,6 +47,7 @@ let rtcTrackIdCounter = 0;
 function _createLocalTracks(mediaStreamMetaData = []) {
     return mediaStreamMetaData.map(metaData => {
         const {
+            constraints,
             sourceId,
             sourceType,
             stream,
@@ -63,6 +64,7 @@ function _createLocalTracks(mediaStreamMetaData = []) {
         rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
 
         return new JitsiLocalTrack({
+            constraints,
             deviceId,
             facingMode,
             mediaType: track.kind,
