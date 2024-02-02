@@ -515,6 +515,7 @@ class RTCUtils extends Listenable {
         } = options;
 
         const mediaStreamsMetaData = [];
+        let constraints = {};
 
         // Declare private functions to be used in the promise chain below.
         // These functions are declared in the scope of this function because
@@ -558,7 +559,7 @@ class RTCUtils extends Listenable {
                 }
 
                 const requestedDevices = [ 'video' ];
-                const constraints = {
+                const deviceConstraints = {
                     video: {
                         deviceId: matchingDevice.deviceId
 
@@ -566,7 +567,7 @@ class RTCUtils extends Listenable {
                     }
                 };
 
-                return this._getUserMedia(requestedDevices, constraints, timeout)
+                return this._getUserMedia(requestedDevices, deviceConstraints, timeout)
                     .then(stream => {
                         return {
                             sourceType: 'device',
@@ -637,7 +638,7 @@ class RTCUtils extends Listenable {
                 return Promise.resolve();
             }
 
-            const constraints = getConstraints(requestedCaptureDevices, otherOptions);
+            constraints = getConstraints(requestedCaptureDevices, otherOptions);
 
             logger.info('Got media constraints: ', JSON.stringify(constraints));
 
@@ -664,6 +665,7 @@ class RTCUtils extends Listenable {
                 const audioStream = new MediaStream(audioTracks);
 
                 mediaStreamsMetaData.push({
+                    constraints: constraints.audio,
                     stream: audioStream,
                     track: audioStream.getAudioTracks()[0],
                     effects: otherOptions.effects
@@ -676,6 +678,7 @@ class RTCUtils extends Listenable {
                 const videoStream = new MediaStream(videoTracks);
 
                 mediaStreamsMetaData.push({
+                    constraints: constraints.video,
                     stream: videoStream,
                     track: videoStream.getVideoTracks()[0],
                     videoType: VideoType.CAMERA,
