@@ -2740,6 +2740,6 @@ export default class JingleSessionPC extends JingleSession {
      * @return true if the JingleSessionPC has executed first offer/answer cycle and is ready to execute operations.
      */
     isReady() {
-        return this.modificationQueue.isPaused();
+        return !this.modificationQueue.isPaused();
     }
 }
