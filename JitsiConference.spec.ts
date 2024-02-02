@@ -86,6 +86,10 @@ class MockJingleSessionPC {
         }
     }
 
+    isReady() {
+        return true;
+    }
+
     initialize() { }
 
     acceptOffer(offer, success, failure, localTracks) { }

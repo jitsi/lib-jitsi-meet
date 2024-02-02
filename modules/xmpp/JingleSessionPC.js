@@ -2131,15 +2131,6 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
         }
 
-        // The tracks will be picked up at the time when the first offer/answer is executed.
-        // This prevents a deadlock where JitsiConference can put a track operation on it's queue, before the
-        // offer/answer which starts the JingleSessionPC queue.
-        if (this.modificationQueue.isPaused()) {
-            logger.info(`${this} skipping addTracks newTracks=${localTracks}, before the session started`);
-
-            return Promise.resolve();
-        }
-
         const replaceTracks = [];
         const workFunction = finishedCallback => {
             const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
@@ -2233,15 +2224,6 @@ export default class JingleSessionPC extends JingleSession {
      *  with no arguments or rejects with an error {string}
      */
     replaceTrack(oldTrack, newTrack) {
-        // The tracks will be picked up at the time when the first offer/answer is executed.
-        // This prevents a deadlock where JitsiConference can put a track operation on it's queue, before the
-        // offer/answer which starts the JingleSessionPC queue.
-        if (this.modificationQueue.isPaused()) {
-            logger.info(`${this} skipping replaceTrack old=${oldTrack} new=${newTrack}, before the session started`);
-
-            return Promise.resolve();
-        }
-
         const workFunction = finishedCallback => {
             logger.debug(`${this} replaceTrack worker started. oldTrack = ${oldTrack}, newTrack = ${newTrack}`);
 
@@ -2738,5 +2720,26 @@ export default class JingleSessionPC extends JingleSession {
      */
     toString() {
         return `JingleSessionPC[session=${this.isP2P ? 'P2P' : 'JVB'},initiator=${this.isInitiator},sid=${this.sid}]`;
+    }
+
+    /**
+     * Other components should be mindful of the fact that JingleSessionPC has internal async queue which gets started
+     * after the first offer/answer cycle.
+     *
+     * Sometimes this can lead to deadlocks as it is in the case of JitsiConference which has it's async queue as well.
+     * For example, if JitsiConference will put on it's queue:
+     * 1. JingleSessionPC.addTracks
+     * 2. JingleSessionPC.acceptOffer
+     * The first operation blocks JitsiConference's queue indefinitely, because JingleSessionPC queue is stopped and
+     * only the acceptOffer operation can unblock it. But it will never do, since the queue does not execute the 2nd
+     * task until done with the first.
+     *
+     * The scenario above is probably only possible in the P2P initiator case, where JitsiConference creates a reference
+     * to the P2P session, which will not get ready until an answer from the responder is received.
+     *
+     * @return true if the JingleSessionPC has executed first offer/answer cycle and is ready to execute operations.
+     */
+    isReady() {
+        return this.modificationQueue.isPaused();
     }
 }

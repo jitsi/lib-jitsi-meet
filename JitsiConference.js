@@ -1122,11 +1122,11 @@ JitsiConference.prototype.addTrack = async function(track) {
         const isFirstTrackOfTheKind = localTracksOfSameType.length === 0;
 
         if (isFirstTrackOfTheKind) {
-            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.replaceTrack(null, track));
-            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.replaceTrack(null, track));
+            this.p2pJingleSession?.isReady() && addTrackPromises.push(this.p2pJingleSession.replaceTrack(null, track));
+            this.jvbJingleSession?.isReady() && addTrackPromises.push(this.jvbJingleSession.replaceTrack(null, track));
         } else {
-            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
-            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+            this.p2pJingleSession?.isReady() && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
+            this.jvbJingleSession?.isReady() && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
         }
 
         await Promise.all(addTrackPromises)
@@ -1357,16 +1357,16 @@ JitsiConference.prototype.replaceTrack = async function(oldTrack, newTrack) {
 JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
     const replaceTrackPromises = [];
 
-    if (this.jvbJingleSession) {
+    if (this.jvbJingleSession?.isReady()) {
         replaceTrackPromises.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack));
     } else {
-        logger.info('_doReplaceTrack - no JVB JingleSession');
+        logger.info('_doReplaceTrack - no JVB JingleSession or the session is not ready yet');
     }
 
-    if (this.p2pJingleSession) {
+    if (this.p2pJingleSession?.isReady()) {
         replaceTrackPromises.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack));
     } else {
-        logger.info('_doReplaceTrack - no P2P JingleSession');
+        logger.info('_doReplaceTrack - no P2P JingleSession or the session is not ready yet');
     }
 
     return Promise.all(replaceTrackPromises);
