@@ -60,12 +60,6 @@ export async function importKey(keyBytes) {
  * Encrypts using AES-GCM
  */
 export const encryptSymmetric = async (plaintext, key) => {
-    if (plaintext === undefined || plaintext.length === 0) {
-        return Promise.reject(new Error('[SYMMETRIC_ENCRYPTION]: plaintext is undefined'));
-    }
-    if (key === undefined || key.length === 0) {
-        return Promise.reject(new Error('[SYMMETRIC_ENCRYPTION]: key is undefined'));
-    }
     try {
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const secretKey = await crypto.subtle.importKey(
@@ -104,15 +98,6 @@ export const encryptSymmetric = async (plaintext, key) => {
  * Decrypts data using AES-GCM.
  */
 export const decryptSymmetric = async (ciphertext, iv, key) => {
-    if (ciphertext === undefined || ciphertext.length === 0) {
-        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: ciphertext is undefined'));
-    }
-    if (iv === undefined || iv.length === 0) {
-        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: iv is undefined'));
-    }
-    if (key === undefined || key.length === 0) {
-        return Promise.reject(new Error('[SYMMETRIC_DECRYPTION]: key is undefined'));
-    }
     try {
         const secretKey = await crypto.subtle.importKey(
         'raw',
