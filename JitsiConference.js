@@ -49,8 +49,8 @@ import {
     FEATURE_JIGASI,
     JITSI_MEET_MUC_TYPE
 } from './modules/xmpp/xmpp';
-import BridgeVideoType from './service/RTC/BridgeVideoType';
-import CodecMimeType from './service/RTC/CodecMimeType';
+import { BridgeVideoType } from './service/RTC/BridgeVideoType';
+import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 import { SignalingEvents } from './service/RTC/SignalingEvents';

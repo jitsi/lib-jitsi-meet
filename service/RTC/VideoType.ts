@@ -11,4 +11,4 @@ export enum VideoType {
      * The desktop video type.
      */
     DESKTOP = 'desktop'
-};
+}

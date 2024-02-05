@@ -2,7 +2,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import CodecMimeType from '../../service/RTC/CodecMimeType';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
 

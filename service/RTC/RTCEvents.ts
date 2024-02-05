@@ -123,7 +123,7 @@ export enum RTCEvents {
      * new remote sources.
      */
     AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped'
-};
+}
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
 export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
