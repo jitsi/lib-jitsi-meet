@@ -4,19 +4,15 @@ import * as exported from "./CameraFacingMode";
 
 describe( "/service/RTC/CameraFacingMode members", () => {
     const {
-        ENVIRONMENT,
-        USER,
         CameraFacingMode,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( ENVIRONMENT ).toBe( 'environment' );
-        expect( USER ).toBe( 'user' );
-        if ( CameraFacingMode ) {
-            expect( CameraFacingMode.ENVIRONMENT ).toBe( 'environment' );
-            expect( CameraFacingMode.USER ).toBe( 'user' );
-        }
+        expect( CameraFacingMode ).toBeDefined();
+
+        expect( CameraFacingMode.ENVIRONMENT ).toBe( 'environment' );
+        expect( CameraFacingMode.USER ).toBe( 'user' );
     } );
 
     it( "unknown members", () => {

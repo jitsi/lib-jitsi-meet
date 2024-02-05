@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import clonedeep from 'lodash.clonedeep';
 import transform from 'sdp-transform';
 
-import CodecMimeType from '../../service/RTC/CodecMimeType';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
@@ -12,7 +12,7 @@ import {
     VIDEO_QUALITY_LEVELS,
     VIDEO_QUALITY_SETTINGS
 } from '../../service/RTC/StandardVideoSettings';
-import VideoEncoderScalabilityMode from '../../service/RTC/VideoEncoderScalabilityMode';
+import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 

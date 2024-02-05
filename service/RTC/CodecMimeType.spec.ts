@@ -4,26 +4,11 @@ import * as exported from "./CodecMimeType";
 
 describe( "/service/RTC/CodecMimeType members", () => {
     const {
-        default: {
-            AV1,
-            H264,
-            OPUS,
-            ULPFEC,
-            VP8,
-            VP9,
-        },
         CodecMimeType,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( AV1 ).toBe( 'av1' );
-        expect( H264 ).toBe( 'h264' );
-        expect( OPUS ).toBe( 'opus' );
-        expect( ULPFEC ).toBe( 'ulpfec' );
-        expect( VP8 ).toBe( 'vp8' );
-        expect( VP9 ).toBe( 'vp9' );
-
         expect( CodecMimeType ).toBeDefined();
 
         expect( CodecMimeType.AV1 ).toBe( 'av1' );
