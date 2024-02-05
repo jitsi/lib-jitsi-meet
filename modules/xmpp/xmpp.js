@@ -443,11 +443,6 @@ export default class XMPP extends Listenable {
                 this._components.push(this.speakerStatsComponentAddress);
             }
 
-            if (identity.type === 'conference_duration') {
-                this.conferenceDurationComponentAddress = identity.name;
-                this._components.push(this.conferenceDurationComponentAddress);
-            }
-
             if (identity.type === 'lobbyrooms') {
                 this.lobbySupported = true;
                 const processLobbyFeatures = f => {
@@ -1058,8 +1053,6 @@ export default class XMPP extends Listenable {
 
         if (parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats' && parsedJson.users) {
             this.eventEmitter.emit(XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
-        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'conference_duration' && parsedJson.created_timestamp) {
-            this.eventEmitter.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, parsedJson.created_timestamp);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'av_moderation') {
             this.eventEmitter.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'breakout_rooms') {
