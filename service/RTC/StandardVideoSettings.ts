@@ -147,4 +147,4 @@ export enum VIDEO_QUALITY_SETTINGS {
 
     // When the camera is turned off.
     NONE = 'none'
-};
+}

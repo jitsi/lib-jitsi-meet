@@ -4,25 +4,17 @@ import * as exported from "./BridgeVideoType";
 
 describe( "/service/RTC/BridgeVideoType members", () => {
     const {
-        CAMERA,
-        DESKTOP,
-        DESKTOP_HIGH_FPS,
-        NONE,
         BridgeVideoType,
         ...others
-    } = exported as any; // TODO: remove cast after typescript conversion
+    } = exported;
 
     it( "known members", () => {
-        expect( CAMERA ).toBe( 'camera' );
-        expect( DESKTOP ).toBe( 'desktop' );
-        expect( DESKTOP_HIGH_FPS ).toBe( 'desktop_high_fps' );
-        expect( NONE ).toBe( 'none' );
-        if ( BridgeVideoType ) {
-            expect( BridgeVideoType.CAMERA ).toBe( 'camera' );
-            expect( BridgeVideoType.DESKTOP ).toBe( 'desktop' );
-            expect( BridgeVideoType.DESKTOP_HIGH_FPS ).toBe( 'desktop_high_fps' );
-            expect( BridgeVideoType.NONE ).toBe( 'none' );
-        }
+        expect( BridgeVideoType ).toBeDefined();
+
+        expect( BridgeVideoType.CAMERA ).toBe( 'camera' );
+        expect( BridgeVideoType.DESKTOP ).toBe( 'desktop' );
+        expect( BridgeVideoType.DESKTOP_HIGH_FPS ).toBe( 'desktop_high_fps' );
+        expect( BridgeVideoType.NONE ).toBe( 'none' );
     } );
 
     it( "unknown members", () => {

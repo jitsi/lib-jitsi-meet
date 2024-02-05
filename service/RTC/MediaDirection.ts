@@ -21,4 +21,4 @@ export enum MediaDirection {
      * Media is sent and received.
      */
     SENDRECV = 'sendrecv'
-};
+}
