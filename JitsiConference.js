@@ -1075,6 +1075,8 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
  * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function(track) {
+    logger.info(`addTrack: ${track}`);
+
     if (!track) {
         throw new Error('addTrack - a track is required');
     }
@@ -1099,24 +1101,23 @@ JitsiConference.prototype.addTrack = function(track) {
                 this.getLocalTracks(mediaType)?.length);
 
             track.setSourceName(sourceName);
-            const addTrackPromises = [];
 
-            this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
-            this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+            const addTracksToJingleSessions = this._addTracksToSessions([ track ]);
 
-            return Promise.all(addTrackPromises)
-                .then(() => {
-                    this._setupNewTrack(track);
-                    this._sendBridgeVideoTypeMessage(track);
-                    this._updateRoomPresence(this.getActiveMediaSession());
+            return addTracksToJingleSessions.then(() => {
+                this._setupNewTrack(track);
+                this._sendBridgeVideoTypeMessage(track);
+                this._updateRoomPresence(this.getActiveMediaSession());
 
-                    if (this.isMutedByFocus || this.isVideoMutedByFocus) {
-                        this._fireMuteChangeEvent(track);
-                    }
-                });
+                if (this.isMutedByFocus || this.isVideoMutedByFocus) {
+                    this._fireMuteChangeEvent(track);
+                }
+
+                logger.info(`addTrack: ${track} - done`);
+            });
         }
 
-        return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
+        return Promise.reject(new Error(`Cannot add second "${track.getVideoType()}" video track`));
     }
 
     return this.replaceTrack(null, track)
@@ -1127,6 +1128,45 @@ JitsiConference.prototype.addTrack = function(track) {
             if (track.getVideoType() === VideoType.DESKTOP) {
                 this._updateRoomPresence(this.getActiveMediaSession());
             }
+
+            logger.info(`addTrack: ${track} - done`);
+        });
+};
+
+/**
+ * Adds tracks to the media sessions.
+ *
+ * @param {JitsiLocalTrack[]} tracks - the tracks to add.
+ * @returns {Promise<void>}
+ * @private
+ */
+JitsiConference.prototype._addTracksToSessions = function(tracks) {
+    const addTrackPromises = [];
+    const p2pAddTrack = (this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks(tracks)))
+        || logger.info(`addTracks tracks=${tracks} - no P2P session`);
+    const jvbAddTrack = (this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks(tracks)))
+        || logger.info(`addTracks tracks=${tracks} - no JVB session`);
+
+    return Promise.all(addTrackPromises)
+        .then(() => {
+            // It can happen that a new session is started while JingleSessionPC operation is in progress.
+            // Queue up the track operation on the new session to make sure it catches up with the correct
+            // tracks state.
+            // Example:
+            // 1. JitsiConference.replaceTrack(camera1, camera2);
+            // 2. At the time there's only JVB session, it's replaceTrack will take 100ms.
+            // 3. 50 ms later - a P2P session is started, it will use camera1 as "local tracks" to start the session,
+            //    because the replacement has not finished and this.rtc.localTracks still contains camera1.
+            // 4. Another 50ms later, JVB session finishes the replaceTrack and here we see that there's a new P2P
+            //    session. Schedule a catch-up replaceTrack operation and make it part of the original operation chain.
+            const catchUpPromises = [];
+
+            !p2pAddTrack && this.p2pJingleSession && catchUpPromises.push(this.p2pJingleSession.addTracks(tracks))
+                && logger.info(`addTracks tracks=${tracks} catch up operation scheduled for P2P session`);
+            !jvbAddTrack && this.jvbJingleSession && catchUpPromises.push(this.jvbJingleSession.addTracks(tracks))
+                && logger.info(`addTracks tracks=${tracks} catch up operation scheduled for JVB session`);
+
+            return Promise.all(catchUpPromises);
         });
 };
 
@@ -1261,6 +1301,8 @@ JitsiConference.prototype.removeTrack = function(track) {
  * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
+    logger.info(`replaceTrack old=${oldTrack} new=${newTrack}`);
+
     const oldVideoType = oldTrack?.getVideoType();
     const mediaType = oldTrack?.getType() || newTrack?.getType();
     const newVideoType = newTrack?.getVideoType();
@@ -1311,10 +1353,12 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
                 this._fireMuteChangeEvent(newTrack);
             }
 
+            logger.info(`replaceTrack old=${oldTrack} new=${newTrack} - done`);
+
             return Promise.resolve();
         })
         .catch(error => {
-            logger.error(`replaceTrack failed: ${error?.stack}`);
+            logger.error(`replaceTrack old=${oldTrack} new=${newTrack} - failed: ${error?.message} ${error?.stack}`);
 
             return Promise.reject(error);
         });
@@ -1333,21 +1377,38 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
  * @private
  */
 JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
-    const replaceTrackPromises = [];
+    const replaceTracks = [];
+    const jvbReplaceTrack
+        = (this.jvbJingleSession && replaceTracks.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack)))
+            || logger.info('_doReplaceTrack - no JVB JingleSession');
 
-    if (this.jvbJingleSession) {
-        replaceTrackPromises.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack));
-    } else {
-        logger.info('_doReplaceTrack - no JVB JingleSession');
-    }
+    const p2pReplaceTrack
+        = (this.p2pJingleSession && replaceTracks.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack)))
+            || logger.info('_doReplaceTrack - no P2P JingleSession');
 
-    if (this.p2pJingleSession) {
-        replaceTrackPromises.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack));
-    } else {
-        logger.info('_doReplaceTrack - no P2P JingleSession');
-    }
+    return Promise.all(replaceTracks)
+        .then(() => {
+            // It can happen that a new session is started while JingleSessionPC operation is in progress.
+            // Queue up the track operation on the new session to make sure it catches up with the correct
+            // tracks state.
+            // Example:
+            // 1. JitsiConference.replaceTrack(camera1, camera2);
+            // 2. At the time there's only JVB session, it's replaceTrack will take 100ms.
+            // 3. 50 ms later - a P2P session is started, it will use camera1 as "local tracks" to start the session,
+            //    because the replacement has not finished and this.rtc.localTracks still contains camera1.
+            // 4. Another 50ms later, JVB session finishes the replaceTrack and here we see that there's a new P2P
+            //    session. Schedule a catch-up replaceTrack operation and make it part of the original operation chain.
+            const catchUpPromises = [];
 
-    return Promise.all(replaceTrackPromises);
+            !p2pReplaceTrack && this.p2pJingleSession
+                && catchUpPromises.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack))
+                && logger.info('_doReplaceTrack - scheduled catch-up replaceTrack for the P2P session');
+            !jvbReplaceTrack && this.jvbJingleSession
+                && catchUpPromises.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack))
+                && logger.info('_doReplaceTrack - scheduled catch-up replaceTrack for the JVB session');
+
+            return Promise.all(catchUpPromises);
+        });
 };
 
 /**
