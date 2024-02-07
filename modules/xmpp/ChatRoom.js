@@ -12,6 +12,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
+import { getJitterDelay } from '../util/Retry';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
@@ -1236,27 +1237,32 @@ export default class ChatRoom extends Listenable {
             } else {
                 logger.warn('onPresError ', pres);
 
-                const txt = $(pres).find('>error[type="cancel"]>text[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
+                const txtNode = $(pres).find('>error[type="cancel"]>text[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
+                const txt = txtNode.length && txtNode.text();
 
                 // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
                 // because of no participants in the room, and we tried to create the room, without having
                 // permissions for that (only jicofo creates rooms)
-                if (txt.length && txt.text() === 'Room creation is restricted') {
+                if (txt === 'Room creation is restricted') {
                     if (!this._roomCreationRetries) {
                         this._roomCreationRetries = 0;
                     }
                     this._roomCreationRetries++;
 
                     if (this._roomCreationRetries <= 3) {
-                        // let's retry inviting jicofo and joining the room
-                        this.join(this.password, this.replaceParticipant);
+                        const retryDelay = getJitterDelay(
+                            /* retry */ this._roomCreationRetries,
+                            /* minDelay */ 300,
+                            1);
+
+                        // let's retry inviting jicofo and joining the room, retries will take between 1 and 3 seconds
+                        setTimeout(() => this.join(this.password, this.replaceParticipant), retryDelay);
 
                         return;
                     }
                 }
 
-                this.eventEmitter.emit(
-                    XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR);
+                this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, txt);
             }
         } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
