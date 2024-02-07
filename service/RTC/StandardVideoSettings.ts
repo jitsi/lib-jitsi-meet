@@ -25,8 +25,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 100000,
             standard: 300000,
             high: 1000000,
-            fullHd: 1200000,
-            ultraHd: 2500000,
+            fullHd: 1800000,
+            ultraHd: 3600000,
             ssHigh: 2500000,
             none: 0
         },
@@ -39,8 +39,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 200000,
             standard: 500000,
             high: 1500000,
-            fullHd: 2000000,
-            ultraHd: 4000000,
+            fullHd: 2500000,
+            ultraHd: 5000000,
             ssHigh: 2500000,
             none: 0
         },
@@ -51,8 +51,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 200000,
             standard: 500000,
             high: 1500000,
-            fullHd: 2000000,
-            ultraHd: 4000000,
+            fullHd: 2500000,
+            ultraHd: 5000000,
             ssHigh: 2500000,
             none: 0
         },
@@ -63,8 +63,8 @@ export const STANDARD_CODEC_SETTINGS = {
             low: 100000,
             standard: 300000,
             high: 1200000,
-            fullHd: 1500000,
-            ultraHd: 3000000,
+            fullHd: 2000000,
+            ultraHd: 4000000,
             ssHigh: 2500000,
             none: 0
         },
