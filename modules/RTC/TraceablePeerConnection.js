@@ -1582,7 +1582,7 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * video in the local SDP.
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
-    const sdp = this.peerconnection.localDescription?.sdp;
+    const sdp = this.peerconnection.remoteDescription?.sdp;
     const defaultCodec = CodecMimeType.VP8;
 
     if (!sdp) {
