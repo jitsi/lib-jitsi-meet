@@ -326,7 +326,7 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(false);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(3600000);
+                expect(maxBitrates[0]).toBe(4000000);
                 expect(maxBitrates[1]).toBe(0);
                 expect(maxBitrates[2]).toBe(0);
 
@@ -347,7 +347,7 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(false);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(1800000);
+                expect(maxBitrates[0]).toBe(2000000);
                 expect(maxBitrates[1]).toBe(0);
                 expect(maxBitrates[2]).toBe(0);
 
@@ -886,7 +886,7 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(false);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(2000000);
+                expect(maxBitrates[0]).toBe(2500000);
                 expect(maxBitrates[1]).toBe(0);
                 expect(maxBitrates[2]).toBe(0);
 
@@ -1574,7 +1574,7 @@ describe('TPCUtils', () => {
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(highResolutiontrack, codec, height);
                 expect(maxBitrates[0]).toBe(200000);
                 expect(maxBitrates[1]).toBe(500000);
-                expect(maxBitrates[2]).toBe(5000000);
+                expect(maxBitrates[2]).toBe(6000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(highResolutiontrack, codec, height);
                 expect(scalabilityModes).toBe(undefined);
