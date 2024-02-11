@@ -135,6 +135,7 @@ export class Context {
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
 
+
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
                 iv,
@@ -235,6 +236,8 @@ export class Context {
             const cipherTextStart = frameHeader.byteLength;
             const cipherTextLength = encodedFrame.data.byteLength
                     - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
+
+            console.log(`olm: decrypt frame with key ${encryptionKey}`);
 
             const plainText = await crypto.subtle.decrypt({
                 name: 'AES-GCM',

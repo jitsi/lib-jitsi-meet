@@ -3,7 +3,6 @@ import { getLogger } from '@jitsi/logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
-import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 
 import E2EEContext from './E2EEContext';
@@ -63,29 +62,23 @@ export class KeyHandler extends Listenable {
      * @returns {void}
      */
     async setEnabled(enabled) {
-        this._enabling && await this._enabling;
-
+        logger.info('olm: setEnabled started');
         if (enabled === this.enabled) {
             return;
         }
-
-        this._enabling = new Deferred();
-
         this.enabled = enabled;
+        if (enabled) {
 
-        if (!enabled) {
+            await this._setEnabled();
+            this.conference.setLocalParticipantProperty('e2ee.enabled', true);
+
+            // this.conference._restartMediaSessions();
+
+        } else {
+            this._olmAdapter.clearAllParticipantsSessions();
             this.e2eeCtx.cleanupAll();
         }
 
-        this._setEnabled && await this._setEnabled(enabled);
-
-        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
-
-        this.conference._restartMediaSessions();
-
-        this._enabling.resolve();
-
-        logger.info('olm: setEnabled is over');
     }
 
     /**
