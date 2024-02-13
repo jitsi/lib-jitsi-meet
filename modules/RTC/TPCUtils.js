@@ -84,7 +84,7 @@ export class TPCUtils {
      */
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
-        const trackCaptureHeight = localVideoTrack.resolution;
+        const trackCaptureHeight = localVideoTrack.getCaptureResolution();
         const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
         const desktopShareBitrate = this.pc.options?.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
         const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
@@ -177,7 +177,7 @@ export class TPCUtils {
      * @param {String} codec
      */
     _getVideoStreamEncodings(localTrack, codec) {
-        const captureResolution = localTrack.resolution;
+        const captureResolution = localTrack.getCaptureResolution();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
         let effectiveScaleFactors = SIM_LAYERS.map(sim => sim.scaleFactor);
@@ -360,7 +360,7 @@ export class TPCUtils {
      * @returns {Array<boolean>}
      */
     calculateEncodingsActiveState(localVideoTrack, codec, newHeight) {
-        const height = localVideoTrack.resolution;
+        const height = localVideoTrack.getCaptureResolution();
         const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack, codec);
         const encodingsState = videoStreamEncodings
         .map(encoding => height / encoding.scaleResolutionDownBy)
@@ -543,7 +543,7 @@ export class TPCUtils {
      * @returns {number|null} The max encoded resolution for the given video track.
      */
     getConfiguredEncodeResolution(localVideoTrack, codec) {
-        const height = localVideoTrack.resolution;
+        const height = localVideoTrack.getCaptureResolution();
         const videoSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
         let maxHeight = 0;
 
