@@ -153,9 +153,13 @@ export class CodecSelection {
         const remoteCodecsPerParticipant = remoteParticipants?.map(remote => {
             const peerMediaInfo = session._signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
 
-            return peerMediaInfo
-                ? peerMediaInfo.codecList ?? [ peerMediaInfo.codecType ]
-                : [];
+            if (peerMediaInfo?.codecList) {
+                return peerMediaInfo.codecList;
+            } else if (peerMediaInfo?.codecType) {
+                return [ peerMediaInfo.codecType ];
+            }
+
+            return [];
         });
 
         const selectedCodecOrder = localPreferredCodecOrder.reduce((acc, localCodec) => {
@@ -167,8 +171,11 @@ export class CodecSelection {
                 // Remove any codecs that are not supported by any of the remote endpoints. The order of the supported
                 // codecs locally however will remain the same since we want to support asymmetric codecs.
                 for (const remoteCodecs of remoteCodecsPerParticipant) {
-                    codecNotSupportedByRemote = codecNotSupportedByRemote
+                    // Ignore remote participants that do not publish codec preference in presence (transcriber).
+                    if (remoteCodecs.length) {
+                        codecNotSupportedByRemote = codecNotSupportedByRemote
                         || !remoteCodecs.find(participantCodec => participantCodec === localCodec);
+                    }
                 }
             }
 
