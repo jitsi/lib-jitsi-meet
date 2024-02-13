@@ -330,6 +330,14 @@ export class MockJitsiLocalTrack {
     }
 
     /**
+     * Returns the capture resolution.
+     * @returns {number}
+     */
+    getCaptureResolution() {
+        return this.getHeight();
+    }
+
+    /**
      * Returns track.
      * @returns {MockTrack}
      */
