@@ -668,6 +668,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the capture resolution of the video track.
+     *
+     * @returns {Number}
+     */
+    getCaptureResolution() {
+        if (this.videoType === VideoType.CAMERA || !browser.isWebKitBased()) {
+            return this.resolution;
+        }
+
+        return this.getHeight();
+    }
+
+    /**
      * Returns device id associated with track.
      *
      * @returns {string}
