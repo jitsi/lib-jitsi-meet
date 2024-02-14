@@ -71,8 +71,7 @@ export class KeyHandler extends Listenable {
 
             await this._setEnabled();
             this.conference.setLocalParticipantProperty('e2ee.enabled', true);
-
-            // this.conference._restartMediaSessions();
+            this.conference._restartMediaSessions();
 
         } else {
             this._olmAdapter.clearAllParticipantsSessions();
