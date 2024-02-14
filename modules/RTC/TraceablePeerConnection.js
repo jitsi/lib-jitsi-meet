@@ -2324,6 +2324,8 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             // Configure scalability mode when its supported and enabled.
             if (scalabilityModes) {
                 parameters.encodings[encoding].scalabilityMode = scalabilityModes[encoding];
+            } else {
+                parameters.encodings[encoding].scalabilityMode = undefined;
             }
         }
     }
