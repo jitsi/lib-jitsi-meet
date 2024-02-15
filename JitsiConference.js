@@ -3368,12 +3368,62 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
 };
 
 /**
+ * Stops the current JVB jingle session.
+ *
+ * @param {Object} options - options for stopping JVB session.
+ * @param {string} options.reason - One of the Jingle "reason" element
+ * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
+ * @param {string} options.reasonDescription - Text description that will be included in the session terminate message.
+ * @param {boolean} options.requestRestart - Whether this is due to a session restart, in which case, session will be
+ * set to null.
+ * @param {boolean} options.sendSessionTerminate - Whether session-terminate needs to be sent to Jicofo.
+ */
+JitsiConference.prototype._stopJvbSession = function(options = {}) {
+    const {
+        requestRestart = false,
+        sendSessionTerminate = false
+    } = options;
+
+    if (!this.jvbJingleSession) {
+        logger.error('No JVB session to be stopped');
+
+        return;
+    }
+
+    // Remove remote JVB tracks.
+    !this.isP2PActive() && this._removeRemoteJVBTracks();
+
+    logger.info('Stopping stats for jvb connection');
+    this.statistics.stopRemoteStats(this.jvbJingleSession.peerconnection);
+
+    this.jvbJingleSession.terminate(
+        () => {
+            if (requestRestart && sendSessionTerminate) {
+                logger.info('session-terminate for ice restart - done');
+            }
+            this.jvbJingleSession = null;
+        },
+        error => {
+            if (requestRestart && sendSessionTerminate) {
+                logger.error('session-terminate for ice restart failed: reloading the client');
+
+                // Initiate a client reload if Jicofo responds to the session-terminate with an error.
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.ICE_FAILED);
+            }
+            logger.error(`An error occurred while trying to terminate the JVB session', reason=${error.reason},`
+                + `msg=${error.msg}`);
+        },
+        options);
+};
+
+/**
  * Stops the current P2P session.
  * @param {Object} options - Options for stopping P2P.
  * @param {string} options.reason - One of the Jingle "reason" element
  * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
- * @param {string} options.reasonDescription - Text
- * description that will be included in the session terminate message
+ * @param {string} options.reasonDescription - Text description that will be included in the session terminate message.
  * @param {boolean} requestRestart - Whether this is due to a session restart, in which case
  * media will not be resumed on the JVB.
  * @private
@@ -3410,6 +3460,7 @@ JitsiConference.prototype._stopP2PSession = function(options = {}) {
     this.p2pJingleSession.terminate(
         () => {
             logger.info('P2P session terminate RESULT');
+            this.p2pJingleSession = null;
         },
         error => {
             // Because both initiator and responder are simultaneously
@@ -3730,16 +3781,12 @@ JitsiConference.prototype._restartMediaSessions = function() {
     }
 
     if (this.jvbJingleSession) {
-        this.jvbJingleSession.terminate(
-            null /* success callback => we don't care */,
-            error => {
-                logger.warn('An error occurred while trying to terminate the JVB session', error);
-            }, {
-                reason: 'success',
-                reasonDescription: 'restart required',
-                requestRestart: true,
-                sendSessionTerminate: true
-            });
+        this._stopJvbSession({
+            reason: 'success',
+            reasonDescription: 'restart required',
+            requestRestart: true,
+            sendSessionTerminate: true
+        });
     }
 
     this._maybeStartOrStopP2P(false);
