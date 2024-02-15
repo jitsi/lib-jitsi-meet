@@ -655,39 +655,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns <tt>true<tt/> if given WebRTC MediaStream is considered a valid
-     * "user" stream which means that it's not a "receive only" stream nor a
-     * "mixed" JVB stream.
-     *
-     * Clients that implement Unified Plan, such as Firefox use recvonly
-     * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
-     * to Plan B where there are only 3 channels: audio, video and data.
-     *
-     * @param {MediaStream} stream The WebRTC MediaStream instance.
-     * @returns {boolean}
-     */
-    static isUserStream(stream) {
-        return RTC.isUserStreamById(stream.id);
-    }
-
-    /**
-     * Returns <tt>true<tt/> if a WebRTC MediaStream identified by given stream
-     * ID is considered a valid "user" stream which means that it's not a
-     * "receive only" stream nor a "mixed" JVB stream.
-     *
-     * Clients that implement Unified Plan, such as Firefox use recvonly
-     * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
-     * to Plan B where there are only 3 channels: audio, video and data.
-     *
-     * @param {string} streamId The id of WebRTC MediaStream.
-     * @returns {boolean}
-     */
-    static isUserStreamById(streamId) {
-        return streamId && streamId !== 'mixedmslabel'
-            && streamId !== 'default';
-    }
-
-    /**
      * Allows to receive list of available cameras/microphones.
      * @param {function} callback Would receive array of devices as an
      *      argument.
