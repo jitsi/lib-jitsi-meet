@@ -16,6 +16,11 @@ class MockConference extends Listenable {
             config: { }
         };
     }
+
+    /**
+     * Mock function.
+     */
+    _stopJvbSession() {} // eslint-disable-line no-empty-function
 }
 
 describe('IceFailedHandling', () => {
@@ -126,7 +131,7 @@ describe('IceFailedHandling', () => {
                 // eslint-disable-next-line no-empty-function
                 terminate: () => { }
             };
-            sendSessionTerminateSpy = spyOn(mockConference.jvbJingleSession, 'terminate');
+            sendSessionTerminateSpy = spyOn(mockConference, '_stopJvbSession');
         });
         it('send "session-terminate" with the request restart attribute', () => {
             iceFailedHandling.start();
@@ -135,8 +140,7 @@ describe('IceFailedHandling', () => {
                 .then(() => nextTick(2500)) // tick for ice timeout
                 .then(() => {
                     expect(sendSessionTerminateSpy).toHaveBeenCalledWith(
-                        jasmine.any(Function),
-                        jasmine.any(Function), {
+                        {
                             reason: 'connectivity-error',
                             reasonDescription: 'ICE FAILED',
                             requestRestart: true,

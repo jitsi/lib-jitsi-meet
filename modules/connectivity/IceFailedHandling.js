@@ -69,24 +69,12 @@ export default class IceFailedHandling {
                 + `ICE state: ${jvbConnIceState}, `
                 + `use 'session-terminate': ${useTerminateForRestart}`);
             if (useTerminateForRestart) {
-                this._conference.jvbJingleSession.terminate(
-                    () => {
-                        logger.info('session-terminate for ice restart - done');
-                    },
-                    error => {
-                        logger.error(`session-terminate for ice restart failed: reason=${error.reason},`
-                        + `message=${error.msg}`);
-
-                        // Initiate a client reload if Jicofo responds to the session-terminate with an error.
-                        this._conference.eventEmitter.emit(
-                            JitsiConferenceEvents.CONFERENCE_FAILED,
-                            JitsiConferenceErrors.ICE_FAILED);
-                    }, {
-                        reason: 'connectivity-error',
-                        reasonDescription: 'ICE FAILED',
-                        requestRestart: true,
-                        sendSessionTerminate: true
-                    });
+                this._conference._stopJvbSession({
+                    reason: 'connectivity-error',
+                    reasonDescription: 'ICE FAILED',
+                    requestRestart: true,
+                    sendSessionTerminate: true
+                });
             } else {
                 this._conference.jvbJingleSession.sendIceFailedNotification();
             }
