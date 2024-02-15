@@ -21,7 +21,7 @@ import SdpSimulcast from '../sdp/SdpSimulcast';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
-import RTC from './RTC';
+import RTCUtils from './RTCUtils';
 import { TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
@@ -857,7 +857,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const mediaType = track.kind;
 
     // Do not create remote tracks for 'mixed' JVB SSRCs (used by JVB for RTCP termination).
-    if (!this.isP2P && !RTC.isUserStreamById(streamId)) {
+    if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
         return;
     }
     logger.info(`${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`);
@@ -1016,7 +1016,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     const trackId = track?.id;
 
     // Ignore stream removed events for JVB "mixed" sources (used for RTCP termination).
-    if (!RTC.isUserStreamById(streamId)) {
+    if (!RTCUtils.isUserStreamById(streamId)) {
         return;
     }
 
@@ -2454,7 +2454,7 @@ TraceablePeerConnection.prototype.close = function() {
     this._dtmfTonesQueue = [];
 
     if (!this.rtc._removePeerConnection(this)) {
-        logger.error(`${this} RTC._removePeerConnection returned false`);
+        logger.error(`${this} rtc._removePeerConnection returned false`);
     }
     if (this.statsinterval !== null) {
         window.clearInterval(this.statsinterval);

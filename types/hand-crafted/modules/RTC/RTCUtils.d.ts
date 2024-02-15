@@ -15,6 +15,7 @@ declare class RTCUtils extends Listenable {
   getCurrentlyAvailableMediaDevices: () => unknown[]; // TODO:
   getEventDataForActiveDevice: ( device: MediaDeviceInfo ) => unknown; // TODO:
   arePermissionsGrantedForAvailableDevices: () => boolean;
+  isUserStreamById: ( streamId: string ) => boolean;
 }
 
 declare const rtcUtils: RTCUtils;

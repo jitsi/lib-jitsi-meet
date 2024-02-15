@@ -32,8 +32,6 @@ export default class RTC extends Listenable {
   static getCurrentlyAvailableMediaDevices: () => unknown[]; // TODO:
   static getEventDataForActiveDevice: () => MediaDeviceInfo;
   static setAudioOutputDevice: ( deviceId: string ) => Promise<unknown>; // TODO:
-  static isUserStream: ( stream: MediaStream ) => boolean;
-  static isUserStreamById: ( streamId: string ) => boolean;
   static enumerateDevices: ( callback: () => unknown ) => void; // TODO:
   static stopMediaStream: ( mediaStream: MediaStream ) => void;
   static isDesktopSharingEnabled: () => boolean;
