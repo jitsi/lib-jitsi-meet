@@ -1,11 +1,7 @@
 /* eslint-disable no-bitwise */
 /* global BigInt */
-import { getLogger } from '@jitsi/logger';
-import { Buffer } from 'buffer';
 
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
-
-const logger = getLogger(__filename);
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key. We use a size of 16 which corresponds to the four bits
@@ -139,11 +135,6 @@ export class Context {
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
 
-            const encKey = this._cryptoKeyRing[keyIndex].encryptionKey;
-
-            logger.info(`olm: encrypt with 
-                ${Buffer.from(encKey, 'base64')}`);
-
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
                 iv,
@@ -223,9 +214,6 @@ export class Context {
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
         let { material } = this._cryptoKeyRing[keyIndex];
 
-        logger.info(`olm: decrypt frame with ${Buffer.from(encryptionKey, 'base64')}`);
-
-
         // Construct frame trailer. Similar to the frame header described in
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
         // but we put it at the end.
@@ -247,8 +235,6 @@ export class Context {
             const cipherTextStart = frameHeader.byteLength;
             const cipherTextLength = encodedFrame.data.byteLength
                     - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
-
-            console.log(`olm: decrypt frame with key ${encryptionKey}`);
 
             const plainText = await crypto.subtle.decrypt({
                 name: 'AES-GCM',
