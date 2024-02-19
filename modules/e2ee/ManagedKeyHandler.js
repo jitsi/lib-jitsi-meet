@@ -1,5 +1,6 @@
 import { getLogger } from "@jitsi/logger";
-import { debounce } from "lodash-es";
+import base64js from "base64-js";
+import debounce from "lodash.debounce";
 
 import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
@@ -88,7 +89,6 @@ export class ManagedKeyHandler extends KeyHandler {
      */
     async _setEnabled() {
         // Generate a random key in case we are enabling.
-        logger.info("olm: _setEnabled keys are generated");
         this._olmKey = this._generateKey();
         this._pqKey = this._generateKey();
 
@@ -97,7 +97,7 @@ export class ManagedKeyHandler extends KeyHandler {
             this._pqKey
         );
 
-        logger.info(`olm: _setEnabled my media key is ${key}`);
+        logger.info(`My media key is ${base64js.fromByteArray(key)}`);
 
         // Set our key so we begin encrypting.
         this.e2eeCtx.setKey(this.conference.myUserId(), key, 0);
@@ -218,7 +218,9 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantKeyUpdated(id, key, index) {
-        logger.debug(`Participant ${id} updated their key ${key}`);
+        logger.debug(
+            `Participant ${id} updated their key ${base64js.fromByteArray(key)}`
+        );
         this.e2eeCtx.setKey(id, key, index);
     }
 
