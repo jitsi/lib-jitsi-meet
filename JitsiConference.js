@@ -135,8 +135,11 @@ export default function JitsiConference(options) {
         const errmsg
             = 'Invalid conference name (no conference name passed or it '
                 + 'contains invalid characters like capital letters)!';
+        const additionalLogMsg = options.name
+            ? `roomName=${options.name}; condition - ${options.name.toLowerCase()}!==${options.name.toString()}`
+            : 'No room name passed!';
 
-        logger.error(errmsg);
+        logger.error(`${errmsg} ${additionalLogMsg}`);
         throw new Error(errmsg);
     }
     this.connection = options.connection;
