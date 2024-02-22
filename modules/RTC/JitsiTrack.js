@@ -84,7 +84,7 @@ export default class JitsiTrack extends EventEmitter {
      * @param {Function} handler the handler
      */
     _addMediaStreamInactiveHandler(handler) {
-        if (browser.isFirefox()) {
+        if (browser.isFirefox() || browser.isWebKitBased()) {
             this.track.onended = handler;
         } else {
             this.stream.oninactive = handler;
