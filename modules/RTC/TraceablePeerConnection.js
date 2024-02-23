@@ -2259,8 +2259,11 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
  * @returns {Promise}
  */
 TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFunction) {
-    const nextPromise = this._lastVideoSenderUpdatePromise
-        .finally(nextFunction);
+    const nextPromise = this._lastVideoSenderUpdatePromise.catch(
+      error => {
+          logger.error('[TraceablePeerConnection] Failed to proceed with last video sender update promise', error);
+      }
+    ).then(nextFunction);
 
     this._lastVideoSenderUpdatePromise = nextPromise;
 
