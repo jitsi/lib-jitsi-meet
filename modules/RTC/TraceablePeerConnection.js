@@ -1425,10 +1425,6 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
-    if (!browser.supportsScalabilityModeAPI()) {
-        return description;
-    }
-
     const parsedSdp = transform.parse(description.sdp);
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO);
 
