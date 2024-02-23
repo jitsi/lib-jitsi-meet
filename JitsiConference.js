@@ -481,7 +481,7 @@ JitsiConference.prototype._init = function(options = {}) {
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             siteID: config.siteID,
-            name: this.options.name,
+            roomName: this.options.name,
             applicationName: config.applicationName
         });
         Statistics.analytics.addPermanentProperties({
