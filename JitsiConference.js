@@ -131,21 +131,26 @@ function _getCodecMimeType(codec) {
  *       and so on...
  */
 export default function JitsiConference(options) {
-    if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
-        const errmsg
-            = 'Invalid conference name (no conference name passed or it '
-                + 'contains invalid characters like capital letters)!';
-        const additionalLogMsg = options.name
-            ? `roomName=${options.name}; condition - ${options.name.toLowerCase()}!==${options.name.toString()}`
-            : 'No room name passed!';
+    const name = options.name;
 
-        logger.error(`${errmsg} ${additionalLogMsg}`);
+    // Conference name validation
+    if (!name) {
+        const errmsg = 'Invalid conference name (no conference name passed)!';
+
+        logger.error(`${errmsg}  No room name passed!`);
         throw new Error(errmsg);
     }
+    if (name.toLowerCase() !== name.toString()) {
+        const errmsg = 'Invalid conference name (it contains invalid characters like capital letters)!';
+
+        logger.error(`${errmsg} roomName=${name}; condition - ${name.toLowerCase()}!==${name.toString()}`);
+        throw new Error(errmsg);
+    }
+
     this.connection = options.connection;
     this.xmpp = this.connection?.xmpp;
 
-    if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
+    if (this.xmpp.isRoomCreated(name, options.customDomain)) {
         const errmsg = 'A conference with the same name has already been created!';
 
         delete this.connection;
@@ -476,7 +481,7 @@ JitsiConference.prototype._init = function(options = {}) {
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             siteID: config.siteID,
-            roomName: this.options.name,
+            name: this.options.name,
             applicationName: config.applicationName
         });
         Statistics.analytics.addPermanentProperties({
