@@ -1,6 +1,6 @@
 import { getLogger } from "@jitsi/logger";
 import base64js from "base64-js";
-import debounce from "lodash.debounce";
+import { debounce } from "lodash-es";
 
 import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
@@ -37,6 +37,15 @@ export class ManagedKeyHandler extends KeyHandler {
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this)
+        );
+        this._olmAdapter.on(
+            OlmAdapter.events.GENERATE_KEYS,
+            this._onKeyGeneration.bind(this)
+        );
+
+        this._olmAdapter.on(
+            OlmAdapter.events.GENERATE_KEYS,
+            this._onKeyGeneration.bind(this)
         );
 
         this._olmAdapter.on(
@@ -89,18 +98,22 @@ export class ManagedKeyHandler extends KeyHandler {
      */
     async _setEnabled() {
         // Generate a random key in case we are enabling.
-        this._olmKey = this._generateKey();
-        this._pqKey = this._generateKey();
+        this._onKeyGeneration();
 
-        const key = await this._olmAdapter.initSessionsAndSetMediaKey(
-            this._olmKey,
-            this._pqKey
-        );
+        const { mediaKeyIndex, mediaKey } =
+            await this._olmAdapter.initSessionsAndSetMediaKey(
+                this._olmKey,
+                this._pqKey
+            );
 
-        logger.info(`My media key is ${base64js.fromByteArray(key)}`);
+        logger.info(`olm: my media key is ${base64js.fromByteArray(mediaKey)}`);
 
         // Set our key so we begin encrypting.
-        this.e2eeCtx.setKey(this.conference.myUserId(), key, 0);
+        this.e2eeCtx.setKey(
+            this.conference.myUserId(),
+            mediaKey,
+            mediaKeyIndex
+        );
     }
 
     /**
@@ -158,8 +171,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _rotateKeyImpl() {
-        this._olmKey = this._generateKey();
-        this._pqKey = this._generateKey();
+        this._onKeyGeneration();
 
         let index;
         let key;
@@ -218,10 +230,25 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantKeyUpdated(id, key, index) {
-        logger.debug(
-            `Participant ${id} updated their key ${base64js.fromByteArray(key)}`
+        logger.info(
+            `olm: Participant ${id} updated their key ${base64js.fromByteArray(
+                key
+            )}`
         );
         this.e2eeCtx.setKey(id, key, index);
+    }
+
+    /**
+     * Generates keys.
+     *
+     * @private
+     */
+    _onKeyGeneration() {
+        if (!this._olmKey && !this._pqKey) {
+            this._olmKey = this._generateKey();
+            this._pqKey = this._generateKey();
+            this._olmAdapter.updateCurrentMediaKey(this._olmKey, this._pqKey);
+        }
     }
 
     /**
