@@ -2907,7 +2907,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
 
-    const localTracks = this._getInitialLocalTracks();
+    const localTracks = this.getLocalTracks();
 
     this.p2pJingleSession.acceptOffer(
         jingleOffer,
@@ -3250,7 +3250,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
 
-    const localTracks = this._getInitialLocalTracks();
+    const localTracks = this.getLocalTracks();
 
     this.p2pJingleSession.invite(localTracks);
 };
