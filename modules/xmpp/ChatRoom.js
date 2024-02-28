@@ -408,6 +408,14 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
             }
 
+            const visitorsSupported = $(result)
+                .find('>query>x[type="result"]>field[var="muc#roominfo_visitorsEnabled"]>value').text() === '1';
+
+            if (visitorsSupported !== this.visitorsSupported) {
+                this.visitorsSupported = visitorsSupported;
+                this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
             const roomMetadataEl
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_jitsimetadata"]>value');
             const roomMetadataText = roomMetadataEl?.text();

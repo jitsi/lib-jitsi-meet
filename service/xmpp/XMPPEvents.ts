@@ -173,6 +173,9 @@ export enum XMPPEvents {
     // Designates an event indicating that the MUC members only config has changed.
     MUC_MEMBERS_ONLY_CHANGED = 'xmpp.muc_members_only_changed',
 
+    // Designates an event indicating that the MUC visitors support has changed.
+    MUC_VISITORS_SUPPORTED_CHANGED = 'xmpp.muc_visitors_supported_changed',
+
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
     PARTICIPANT_AUDIO_MUTED = 'xmpp.audio_muted',
