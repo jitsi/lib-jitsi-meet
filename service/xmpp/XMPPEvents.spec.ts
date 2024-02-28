@@ -58,6 +58,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.MUC_ROLE_CHANGED ).toBe( 'xmpp.muc_role_changed' );
         expect( XMPPEvents.MUC_LOCK_CHANGED ).toBe( 'xmpp.muc_lock_changed' );
         expect( XMPPEvents.MUC_MEMBERS_ONLY_CHANGED ).toBe( 'xmpp.muc_members_only_changed' );
+        expect( XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED ).toBe( 'xmpp.muc_visitors_supported_changed' );
         expect( XMPPEvents.PARTICIPANT_AUDIO_MUTED ).toBe( 'xmpp.audio_muted' );
         expect( XMPPEvents.PARTICIPANT_VIDEO_MUTED ).toBe( 'xmpp.video_muted' );
         expect( XMPPEvents.PARTICIPANT_VIDEO_TYPE_CHANGED ).toBe( 'xmpp.video_type' );

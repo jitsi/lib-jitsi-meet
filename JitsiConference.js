@@ -3891,6 +3891,15 @@ JitsiConference.prototype.isMembersOnly = function() {
 };
 
 /**
+ * Returns <tt>true</tt> if the room supports visitors feature.
+ *
+ * @returns {boolean} whether conference room has visitors support.
+ */
+JitsiConference.prototype.isVisitorsSupported = function() {
+    return Boolean(this.room && this.room.visitorsSupported);
+};
+
+/**
  * Enables lobby by moderators
  *
  * @returns {Promise} resolves when lobby room is joined or rejects with the error.

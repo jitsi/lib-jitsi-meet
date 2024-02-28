@@ -1,5 +1,4 @@
 import * as exported from "./JitsiConferenceEvents";
-import {VISITORS_MESSAGE, VISITORS_REJECTION} from "./JitsiConferenceEvents";
 
 // this test is brittle on purpose because it's designed to ensure that the TypeScript conversion maintains backward compatibility
 
@@ -71,6 +70,7 @@ describe( "/JitsiConferenceEvents members", () => {
         VIDEO_UNMUTE_PERMISSIONS_CHANGED,
         VISITORS_MESSAGE,
         VISITORS_REJECTION,
+        VISITORS_SUPPORTED_CHANGED,
         BOT_TYPE_CHANGED,
         LOBBY_USER_JOINED,
         LOBBY_USER_UPDATED,
@@ -133,6 +133,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( RECORDER_STATE_CHANGED ).toBe( 'conference.recorderStateChanged' );
         expect( VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );
         expect( VIDEO_SIP_GW_SESSION_STATE_CHANGED ).toBe( 'conference.videoSIPGWSessionStateChanged' );
+        expect( VISITORS_SUPPORTED_CHANGED ).toBe( 'conference.visitorsSupported' );
         expect( START_MUTED_POLICY_CHANGED ).toBe( 'conference.start_muted_policy_changed' );
         expect( STARTED_MUTED ).toBe( 'conference.started_muted' );
         expect( SUBJECT_CHANGED ).toBe( 'conference.subjectChanged' );
@@ -226,6 +227,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.USER_ROLE_CHANGED ).toBe( 'conference.roleChanged' );
         expect( JitsiConferenceEvents.USER_STATUS_CHANGED ).toBe( 'conference.statusChanged' );
         expect( JitsiConferenceEvents.VIDEO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.video_unmute_permissions_changed' );
+        expect( JitsiConferenceEvents.VISITORS_SUPPORTED_CHANGED ).toBe( 'conference.visitorsSupported' );
         expect( JitsiConferenceEvents.BOT_TYPE_CHANGED ).toBe( 'conference.bot_type_changed' );
         expect( JitsiConferenceEvents.LOBBY_USER_JOINED ).toBe( 'conference.lobby.userJoined' );
         expect( JitsiConferenceEvents.LOBBY_USER_UPDATED ).toBe( 'conference.lobby.userUpdated' );

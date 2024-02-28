@@ -464,6 +464,11 @@ export enum JitsiConferenceEvents {
     VIDEO_UNMUTE_PERMISSIONS_CHANGED = 'conference.video_unmute_permissions_changed',
 
     /**
+     * Indicates that the conference has support for visitors.
+     */
+    VISITORS_SUPPORTED_CHANGED = 'conference.visitorsSupported',
+
+    /**
      * Event indicating we have received a message from the visitors component.
      */
     VISITORS_MESSAGE = 'conference.visitors_message',
@@ -551,5 +556,6 @@ export const USER_STATUS_CHANGED = JitsiConferenceEvents.USER_STATUS_CHANGED;
 export const VIDEO_SIP_GW_AVAILABILITY_CHANGED = JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED;
 export const VIDEO_SIP_GW_SESSION_STATE_CHANGED = JitsiConferenceEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED;
 export const VIDEO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.VIDEO_UNMUTE_PERMISSIONS_CHANGED;
+export const VISITORS_SUPPORTED_CHANGED = JitsiConferenceEvents.VISITORS_SUPPORTED_CHANGED;
 export const VISITORS_MESSAGE = JitsiConferenceEvents.VISITORS_MESSAGE;
 export const VISITORS_REJECTION = JitsiConferenceEvents.VISITORS_REJECTION;
