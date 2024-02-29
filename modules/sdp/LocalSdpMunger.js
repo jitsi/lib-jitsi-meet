@@ -193,36 +193,28 @@ export default class LocalSdpMunger {
         const msidLine = mediaSection.mLine?.msid;
         const sources = [ ...new Set(mediaSection.mLine?.ssrcs?.map(s => s.id)) ];
         const streamId = `${this.localEndpointId}-${mediaType}`;
-        const trackId = msidLine && msidLine.split(' ')[1];
+        let trackId = msidLine ? msidLine.split(' ')[1] : `${this.localEndpointId}-${mediaSection.mLine.mid}`;
 
         // Always overwrite msid since we want the msid to be in this format even if the browser generates one.
         for (const source of sources) {
             const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
+            if (msid) {
+                trackId = msid.value.split(' ')[1];
+            }
+            this._updateSourcesToMsidMap(mediaType, streamId, trackId);
+            const storedStreamId = mediaType === MediaType.VIDEO
+                ? this.videoSourcesToMsidMap.get(trackId)
+                : this.audioSourcesToMsidMap.get(trackId);
+
+            const generatedMsid = this._generateMsidAttribute(mediaType, trackId, storedStreamId);
+
             // Update the msid if the 'msid' attribute exists.
             if (msid) {
-                const streamAndTrackIDs = msid.value.split(' ');
-                const trackID = streamAndTrackIDs[1];
+                msid.value = generatedMsid;
 
-                this._updateSourcesToMsidMap(mediaType, streamId, trackID);
-
-                // Update the msid.
-                const storedStreamId = mediaType === MediaType.VIDEO
-                    ? this.videoSourcesToMsidMap.get(trackID)
-                    : this.audioSourcesToMsidMap.get(trackID);
-
-                msid.value = this._generateMsidAttribute(mediaType, trackID, storedStreamId);
-
-            // Generate the msid attribute using the 'trackId' from the msid line from the media description. Only
-            // descriptions that have the direction set to 'sendonly' or 'sendrecv' will have the 'a=msid' line.
-            } else if (trackId) {
-                this._updateSourcesToMsidMap(mediaType, streamId, trackId);
-
-                const storedStreamId = mediaType === MediaType.VIDEO
-                    ? this.videoSourcesToMsidMap.get(trackId)
-                    : this.audioSourcesToMsidMap.get(trackId);
-                const generatedMsid = this._generateMsidAttribute(mediaType, trackId, storedStreamId);
-
+            // Generate the 'msid' attribute if there is a local source.
+            } else if (mediaDirection === MediaDirection.SENDONLY || mediaDirection === MediaDirection.SENDRECV) {
                 mediaSection.ssrcs.push({
                     id: source,
                     attribute: 'msid',
@@ -318,7 +310,6 @@ export default class LocalSdpMunger {
      * (a modified copy of the one given as the input).
      */
     transformStreamIdentifiers(sessionDesc) {
-        // FIXME similar check is probably duplicated in all other transformers
         if (!sessionDesc || !sessionDesc.sdp || !sessionDesc.type) {
             return sessionDesc;
         }
@@ -342,12 +333,11 @@ export default class LocalSdpMunger {
             this._injectSourceNames(videoMLine);
         }
 
-        // Plan-b clients generate new SSRCs and trackIds whenever tracks are removed and added back to the
-        // peerconnection, therefore local track based map for msids needs to be reset after every transformation.
-        if (!this.tpc._usesUnifiedPlan) {
-            this.audioSourcesToMsidMap.clear();
-            this.videoSourcesToMsidMap.clear();
-        }
+        // Reset the local tracks based maps for msid after every transformation since Chrome 122 is generating
+        // a new set of SSRCs for the same source when the direction of transceiver changes because of a remote
+        // source getting added on the p2p connection.
+        this.audioSourcesToMsidMap.clear();
+        this.videoSourcesToMsidMap.clear();
 
         return new RTCSessionDescription({
             type: sessionDesc.type,
