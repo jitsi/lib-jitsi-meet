@@ -141,6 +141,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if the browser supports Dependency Descriptor header extension.
+     *
+     * @returns {boolean}
+     */
+    supportsDDExtHeaders() {
+        return !this.isFirefox();
+    }
+
+    /**
      * Checks if the current browser support the device change event.
      * @return {boolean}
      */

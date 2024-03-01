@@ -1428,7 +1428,7 @@ TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
     const parsedSdp = transform.parse(description.sdp);
     const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO);
 
-    if (!mLines.length) {
+    if (!mLines.length || !browser.supportsDDExtHeaders()) {
         return description;
     }
 
