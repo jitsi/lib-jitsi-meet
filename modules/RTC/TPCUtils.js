@@ -140,6 +140,50 @@ export class TPCUtils {
     }
 
     /**
+     * Configures the RTCRtpEncodingParameters of the outbound rtp stream associated with the given track.
+     *
+     * @param {JitsiLocalTracj} localTrack - The local track whose outbound stream needs to be configured.
+     * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
+     */
+    _configureSenderEncodings(localTrack) {
+        const mediaType = localTrack.getType();
+        const transceiver = localTrack?.track && localTrack.getOriginalStream()
+            ? this.pc.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
+            : this.pc.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
+        const parameters = transceiver?.sender?.getParameters();
+
+        // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
+        // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
+        // action that triggers 'addTrack' (like unmute) will also configure the encodings and set bitrates after that.
+        if (!parameters?.encodings?.length) {
+            return Promise.resolve();
+        }
+
+        parameters.encodings = this._getStreamEncodings(localTrack);
+
+        return transceiver.sender.setParameters(parameters);
+    }
+
+    /**
+     * Enables/disables the streams by changing the active field on RTCRtpEncodingParameters for a given RTCRtpSender.
+     *
+     * @param {RTCRtpSender} sender - the sender associated with a MediaStreamTrack.
+     * @param {boolean} enable - whether the streams needs to be enabled or disabled.
+     * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
+     */
+    _enableSenderEncodings(sender, enable) {
+        const parameters = sender.getParameters();
+
+        if (parameters?.encodings?.length) {
+            for (const encoding of parameters.encodings) {
+                encoding.active = enable;
+            }
+        }
+
+        return sender.setParameters(parameters);
+    }
+
+    /**
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
@@ -749,25 +793,11 @@ export class TPCUtils {
      * @returns {Promise<void>} - resolved when done.
      */
     setEncodings(localTrack) {
-        const mediaType = localTrack.getType();
-        const transceiver = localTrack?.track && localTrack.getOriginalStream()
-            ? this.pc.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
-            : this.pc.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
-        const parameters = transceiver?.sender?.getParameters();
-
-        // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
-        // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
-        // action that triggers 'addTrack' (like unmute) will also configure the encodings and set bitrates after that.
-        if (!parameters?.encodings?.length) {
-            return Promise.resolve();
-        }
-        parameters.encodings = this._getStreamEncodings(localTrack);
-
-        if (mediaType === MediaType.VIDEO) {
-            return this.pc._updateVideoSenderParameters(() => transceiver.sender.setParameters(parameters));
+        if (localTrack.getType() === MediaType.VIDEO) {
+            return this.pc._updateVideoSenderParameters(() => this._configureSenderEncodings(localTrack));
         }
 
-        return transceiver.sender.setParameters(parameters);
+        return this._configureSenderEncodings(localTrack);
     }
 
     /**
@@ -789,9 +819,9 @@ export class TPCUtils {
 
         for (const sender of senders) {
             if (sender.track.kind === MediaType.VIDEO) {
-                promises.push(this.pc._updateVideoSenderParameters(() => this._updateSenderEncodings(sender, enable)));
+                promises.push(this.pc._updateVideoSenderParameters(() => this._enableSenderEncodings(sender, enable)));
             } else {
-                promises.push(this._updateSenderEncodings(sender, enable));
+                promises.push(this._enableSenderEncodings(sender, enable));
             }
         }
 
