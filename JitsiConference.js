@@ -4012,11 +4012,11 @@ JitsiConference.prototype.lobbyDenyAccess = function(id) {
 /**
  * Approves the request to join the conference to a participant waiting in the lobby.
  *
- * @param {string} id The participant id.
+ * @param {string|Array<string>} param The participant id or an array of ids.
  */
-JitsiConference.prototype.lobbyApproveAccess = function(id) {
+JitsiConference.prototype.lobbyApproveAccess = function(param) {
     if (this.room) {
-        this.room.getLobby().approveAccess(id);
+        this.room.getLobby().approveAccess(param);
     }
 };
 
