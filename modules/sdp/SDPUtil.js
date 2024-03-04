@@ -617,10 +617,11 @@ const SDPUtil = {
      * Sets the given codecName as the preferred codec by moving it to the beginning
      * of the payload types list (modifies the given mline in place). All instances
      * of the codec are moved up.
-     * @param {object} mLine the mline object from an sdp as parsed by transform.parse
-     * @param {string} codecName the name of the preferred codec
+     * @param {object} mLine the mline object from an sdp as parsed by transform.parse.
+     * @param {string} codecName the name of the preferred codec.
+     * @param {boolean} sortPayloadTypes whether the payloadtypes need to be sorted for a given codec.
      */
-    preferCodec(mline, codecName) {
+    preferCodec(mline, codecName, sortPayloadTypes = false) {
         if (!mline || !codecName) {
             return;
         }
@@ -630,6 +631,28 @@ const SDPUtil = {
             .map(rtp => rtp.payload);
 
         if (matchingPayloadTypes) {
+            if (sortPayloadTypes && codecName === CodecMimeType.H264) {
+                // Move all the H.264 codecs with packetization-mode=0 to top of the list.
+                const payloadsWithMode0 = matchingPayloadTypes.filter(payload => {
+                    const fmtp = mline.fmtp.find(item => item.payload === payload);
+
+                    if (fmtp) {
+                        return fmtp.config.includes('packetization-mode=0');
+                    }
+
+                    return false;
+                });
+
+                for (const pt of payloadsWithMode0.reverse()) {
+                    const idx = matchingPayloadTypes.findIndex(payloadType => payloadType === pt);
+
+                    if (idx >= 0) {
+                        matchingPayloadTypes.splice(idx, 1);
+                        matchingPayloadTypes.unshift(pt);
+                    }
+                }
+            }
+
             // Call toString() on payloads to get around an issue within SDPTransform that sets
             // payloads as a number, instead of a string, when there is only one payload.
             const payloadTypes
@@ -686,7 +709,7 @@ const SDPUtil = {
                     if (codec) {
                         return codec.toLowerCase() === CodecMimeType.VP9
                             ? !item.config.includes('profile-id=0')
-                            : item.config.includes('profile-level-id=64');
+                            : !item.config.includes('profile-level-id=42');
                     }
 
                     return false;
