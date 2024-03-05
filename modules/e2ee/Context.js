@@ -1,5 +1,7 @@
 /* eslint-disable no-bitwise */
 /* global BigInt */
+import base64js from 'base64-js';
+import { Buffer } from 'buffer';
 
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
 
@@ -24,6 +26,7 @@ const UNENCRYPTED_BYTES = {
     undefined: 1 // frame.type is not set on audio
 };
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
+let print = true;
 
 /* We use a 96 bit IV for AES GCM. This is signalled in plain together with the
  packet. See https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams */
@@ -58,13 +61,16 @@ export class Context {
      * @param {Number} keyIndex
      */
     async setKey(key, keyIndex = -1) {
+
         let newKey = false;
 
         if (key) {
             if (this._sharedKey) {
                 newKey = key;
             } else {
-                const material = await importKey(key);
+                const base64Key = base64js.fromByteArray(key);
+                const arrayKey = Buffer.from(base64Key, 'base64');
+                const material = await importKey(arrayKey);
 
                 newKey = await deriveKeys(material);
             }
@@ -84,7 +90,6 @@ export class Context {
         if (keyIndex >= 0) {
             this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
         }
-
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
 
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
@@ -113,9 +118,14 @@ export class Context {
      * 9) Enqueue the encrypted frame for sending.
      */
     encodeFunction(encodedFrame, controller) {
+        // console.log('CHECKPOINT: Encrypt frame started');
         const keyIndex = this._currentKeyIndex;
 
+        // console.log(`CHECKPOINT: Encrypt frame: index is ${keyIndex} and keyRing is ${this._cryptoKeyRing}`);
+        // console.log(`CHECKPOINT: the key would be
+        //    ${JSON.stringify(this._cryptoKeyRing[keyIndex].encryptionKey)}`);
         if (this._cryptoKeyRing[keyIndex]) {
+            // console.log('CHECKPOINT: Encrypt frame entered if');
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
@@ -135,6 +145,9 @@ export class Context {
             // payload  |IV...(length = IV_LENGTH)|R|IV_LENGTH|KID |
             // ---------+-------------------------+-+---------+----
 
+            // console.log(`CHECKPOINT: Encrypt frame with
+            // ${base64js.fromByteArray(this._cryptoKeyRing[keyIndex].encryptionKey)}`);
+
             return crypto.subtle.encrypt({
                 name: ENCRYPTION_ALGORITHM,
                 iv,
@@ -142,6 +155,11 @@ export class Context {
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
                 UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
+                if (print) {
+                    console.log(`CHECKPOINT: here is the plaintext ${Buffer.from(encodedFrame.data)}`);
+                    console.log(`CHECKPOINT: here is the ciphertext ${Buffer.from(cipherText)}`);
+                    print = false;
+                }
                 const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
                     + iv.byteLength + frameTrailer.byteLength);
                 const newUint8 = new Uint8Array(newData);
@@ -154,7 +172,6 @@ export class Context {
                 newUint8.set(
                         frameTrailer,
                         frameHeader.byteLength + cipherText.byteLength + iv.byteLength); // append frame trailer.
-
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
@@ -211,6 +228,7 @@ export class Context {
             initialKey = undefined,
             ratchetCount = 0) {
 
+        // console.log('CHECKPOINT: Decrypt frame started');
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
         let { material } = this._cryptoKeyRing[keyIndex];
 
@@ -223,6 +241,8 @@ export class Context {
         // ---------+-------------------------+-+---------+----
 
         try {
+            // console.log('CHECKPOINT: Decrypt frame entered try');
+            // console.log(`CHECKPOINT: Decrypt frame with ${JSON.stringify(encryptionKey)}`);
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
 
@@ -235,6 +255,7 @@ export class Context {
             const cipherTextStart = frameHeader.byteLength;
             const cipherTextLength = encodedFrame.data.byteLength
                     - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
+
 
             const plainText = await crypto.subtle.decrypt({
                 name: 'AES-GCM',

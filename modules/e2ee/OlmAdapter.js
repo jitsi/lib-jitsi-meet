@@ -1300,7 +1300,7 @@ export class OlmAdapter extends Listenable {
                     `Tried to send session-init to ${pId} but we already have a session`
                 );
 
-                return Promise.reject();
+                return Promise.reject(new Error(`We already have a session with ${participant.getDisplayName()}`));
             }
 
             if (olmData.pendingSessionUuid !== undefined) {
@@ -1308,7 +1308,7 @@ export class OlmAdapter extends Listenable {
                     `Tried to send session-init to ${pId} but we already have a pending session`
                 );
 
-                return Promise.reject();
+                return Promise.reject(new Error(`We have a pending session with ${participant.getDisplayName()}`));
             }
 
             // Generate a One Time Key.
