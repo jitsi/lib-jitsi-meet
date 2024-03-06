@@ -1,3 +1,5 @@
+import base64js from 'base64-js';
+
 import browser from '../browser';
 
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
@@ -69,6 +71,8 @@ export class E2EEncryption {
      * @returns {void}
      */
     setEncryptionKey(keyInfo) {
+        console.log(`CHECKPOINT: setEncryptionKey keyInfo ${JSON.stringify(keyInfo)} or 
+        ${base64js.fromByteArray(keyInfo.encryptionKey)} and index is ${keyInfo.index}`);
         this._keyHandler.setKey(keyInfo);
     }
 

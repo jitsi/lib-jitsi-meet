@@ -106,7 +106,10 @@ export class ManagedKeyHandler extends KeyHandler {
                 this._pqKey
             );
 
-        logger.info(`olm: my media key is ${base64js.fromByteArray(mediaKey)}`);
+        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(
+            mediaKey
+        )} and
+        index is ${mediaKeyIndex}`);
 
         // Set our key so we begin encrypting.
         this.e2eeCtx.setKey(
@@ -186,6 +189,10 @@ export class ManagedKeyHandler extends KeyHandler {
             console.log("[ERROR_KEY_DERIVATION]: Cannot ratchet key ", error);
         }
 
+        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(
+            key
+        )} and
+        index is ${index}`);
         this.e2eeCtx.setKey(this.conference.myUserId(), key, index);
     }
 
@@ -214,6 +221,8 @@ export class ManagedKeyHandler extends KeyHandler {
 
         this.mediaKeyIndex++;
 
+        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(key)}
+        and index is ${this.mediaKeyIndex}`);
         this.e2eeCtx.setKey(
             this.conference.myUserId(),
             key,
@@ -230,11 +239,10 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantKeyUpdated(id, key, index) {
-        logger.info(
-            `olm: Participant ${id} updated their key ${base64js.fromByteArray(
-                key
-            )}`
-        );
+        logger.info(`CHECKPOINT: Participant ${id} updated their key ${base64js.fromByteArray(
+            key
+        )} and
+        index is ${index}`);
         this.e2eeCtx.setKey(id, key, index);
     }
 
