@@ -53,6 +53,8 @@ export async function ratchet(material) {
  */
 export async function importKey(keyBytes) {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
+    console.log(`CHECKPOINT: Import key got ${keyBytes}`);
+
     return crypto.subtle.importKey('raw', keyBytes, 'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
 }
 
@@ -87,9 +89,7 @@ export const encryptSymmetric = async (plaintext, key) => {
             iv
         };
     } catch (error) {
-        console.error(`[SYMMETRIC_ENCRYPTION]: encryption failed, the key was ${key.length} long 
-            and of type ${typeof key}, the plaintext was ${plaintext.length} long
-            and of type ${typeof plaintext}. ERROR: `, error);
+        console.error('[SYMMETRIC_ENCRYPTION]: encryption failed. ERROR: #%d', error);
         throw error;
     }
 };
@@ -121,10 +121,7 @@ export const decryptSymmetric = async (ciphertext, iv, key) => {
 
         return plaintext;
     } catch (error) {
-        console.error(`[SYMMETRIC_DECRYPTION]: decryption failed, the key was ${key.length} long 
-            and of type ${typeof key}, the ciphertext was ${ciphertext.length} long
-            and of type ${typeof ciphertext} and iv was ${iv.length} long and of 
-            type ${typeof iv}. ERROR: `, error);
+        console.error('[SYMMETRIC_DECRYPTION]: decryption failed. ERROR: #%d', error);
         throw error;
     }
 };

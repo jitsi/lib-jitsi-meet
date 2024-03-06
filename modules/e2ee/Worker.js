@@ -2,6 +2,7 @@
 /* eslint-disable no-bitwise */
 
 // Worker for E2EE/Insertable streams.
+import base64js from 'base64-js';
 
 import { Context } from './Context';
 
@@ -69,8 +70,12 @@ onmessage = async event => {
         const context = getParticipantContext(participantId);
 
         if (key) {
+            console.log(`CHECKPOINT: set key ${base64js.fromByteArray(key)} and 
+            index is ${keyIndex}`);
             context.setKey(key, keyIndex);
         } else {
+            console.log(`CHECKPOINT: set key to FALSE and 
+            index is ${keyIndex}`);
             context.setKey(false, keyIndex);
         }
     } else if (operation === 'cleanup') {
