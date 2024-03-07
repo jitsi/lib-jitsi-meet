@@ -137,6 +137,11 @@ export enum JitsiConferenceEvents {
     CONFERENCE_UNIQUE_ID_SET = 'conference.unique_id_set',
 
     /**
+     * Indicates that the aggregate set of codecs supported by the visitors has changed.
+     */
+    CONFERENCE_VISITOR_CODECS_CHANGED = 'conference.visitor_codecs_changed',
+
+    /**
      * Indicates that the connection to the conference has been established
      * XXX This is currently fired when the *ICE* connection enters 'connected'
      * state for the first time.
@@ -501,6 +506,7 @@ export const CONFERENCE_JOIN_IN_PROGRESS = JitsiConferenceEvents.CONFERENCE_JOIN
 export const CONFERENCE_JOINED = JitsiConferenceEvents.CONFERENCE_JOINED;
 export const CONFERENCE_LEFT = JitsiConferenceEvents.CONFERENCE_LEFT;
 export const CONFERENCE_UNIQUE_ID_SET = JitsiConferenceEvents.CONFERENCE_UNIQUE_ID_SET;
+export const CONFERENCE_VISITOR_CODECS_CHANGED = JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED;
 export const CONNECTION_ESTABLISHED = JitsiConferenceEvents.CONNECTION_ESTABLISHED;
 export const CONNECTION_INTERRUPTED = JitsiConferenceEvents.CONNECTION_INTERRUPTED;
 export const CONNECTION_RESTORED = JitsiConferenceEvents.CONNECTION_RESTORED;
