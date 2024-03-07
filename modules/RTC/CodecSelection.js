@@ -33,6 +33,7 @@ export class CodecSelection {
         this.conference = conference;
         this.options = options;
         this.codecPreferenceOrder = {};
+        this.visitorCodecs = [];
 
         for (const connectionType of Object.keys(options)) {
             // eslint-disable-next-line prefer-const
@@ -93,6 +94,9 @@ export class CodecSelection {
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             session => this._selectPreferredCodec(session));
+        this.conference.on(
+            JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED,
+            codecList => this._updateVisitorCodecs(codecList));
         this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
             () => this._selectPreferredCodec());
@@ -162,6 +166,9 @@ export class CodecSelection {
             return [];
         });
 
+        // Include the visitor codecs.
+        this.visitorCodecs.length && remoteCodecsPerParticipant.push(this.visitorCodecs);
+
         const selectedCodecOrder = localPreferredCodecOrder.reduce((acc, localCodec) => {
             let codecNotSupportedByRemote = false;
 
@@ -196,6 +203,21 @@ export class CodecSelection {
         if (!selectedCodecOrder.every((val, index) => val === currentCodecOrder[index])) {
             session.setVideoCodecs(selectedCodecOrder);
         }
+    }
+
+    /**
+     * Updates the aggregate list of the codecs supported by all the visitors in the call and calculates the
+     * selected codec if needed.
+     * @param {Array} codecList - visitor codecs.
+     * @returns {void}
+     */
+    _updateVisitorCodecs(codecList) {
+        if (this.visitorCodecs === codecList) {
+            return;
+        }
+
+        this.visitorCodecs = codecList;
+        this._selectPreferredCodec();
     }
 
     /**

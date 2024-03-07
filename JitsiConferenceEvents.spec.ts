@@ -14,6 +14,7 @@ describe( "/JitsiConferenceEvents members", () => {
         CONFERENCE_JOINED,
         CONFERENCE_LEFT,
         CONFERENCE_UNIQUE_ID_SET,
+        CONFERENCE_VISITOR_CODECS_CHANGED,
         CONNECTION_ESTABLISHED,
         CONNECTION_INTERRUPTED,
         CONNECTION_RESTORED,
@@ -98,6 +99,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( CONFERENCE_JOINED ).toBe( 'conference.joined' );
         expect( CONFERENCE_LEFT ).toBe( 'conference.left' );
         expect( CONFERENCE_UNIQUE_ID_SET ).toBe( 'conference.unique_id_set' );
+        expect( CONFERENCE_VISITOR_CODECS_CHANGED ).toBe( 'conference.visitor_codecs_changed' );
         expect( CONNECTION_ESTABLISHED ).toBe( 'conference.connectionEstablished' );
         expect( CONNECTION_INTERRUPTED ).toBe( 'conference.connectionInterrupted' );
         expect( CONNECTION_RESTORED ).toBe( 'conference.connectionRestored' );

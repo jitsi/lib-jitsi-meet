@@ -3087,6 +3087,20 @@ JitsiConference.prototype._updateProperties = function(properties = {}) {
             }
         });
 
+        // Handle changes to aggregate list of visitor codecs.
+        let publishedCodecs = this.properties['visitor-codecs']?.split(',');
+
+        if (publishedCodecs?.length) {
+            publishedCodecs = publishedCodecs.filter(codec => typeof codec === 'string'
+                && codec.trim().length
+                && Object.values(CodecMimeType).find(val => val === codec));
+        }
+
+        if (this._visitorCodecs !== publishedCodecs) {
+            this._visitorCodecs = publishedCodecs;
+            this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED, this._visitorCodecs);
+        }
+
         const oldValue = this._hasVisitors;
 
         this._hasVisitors = this.properties['visitor-count'] > 0;
