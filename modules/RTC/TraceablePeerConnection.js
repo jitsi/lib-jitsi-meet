@@ -2222,22 +2222,6 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         return Promise.resolve();
     }
 
-    const configuredResolution = this.tpcUtils.getConfiguredEncodeResolution(
-        localVideoTrack,
-        this.getConfiguredVideoCodec());
-
-    // Ignore sender constraints if the client is already sending video of the requested resolution. Note that for
-    // screensharing sources, the max resolution will be the height of the window being captured irrespective of the
-    // height being requested by the peer.
-    if ((localVideoTrack.getVideoType() === VideoType.CAMERA && configuredResolution === frameHeight)
-        || (localVideoTrack.getVideoType() === VideoType.DESKTOP
-            && frameHeight > 0
-            && configuredResolution === localVideoTrack.getCaptureResolution())) {
-        return Promise.resolve();
-    }
-
-    this._senderMaxHeights.set(sourceName, frameHeight);
-
     return this._updateVideoSenderParameters(
         () => this._updateVideoSenderEncodings(frameHeight, localVideoTrack));
 };
@@ -2286,22 +2270,32 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         : DEGRADATION_PREFERENCE_CAMERA; // Prefer frame-rate for high fps share and camera.
 
     parameters.degradationPreference = preference;
-    logger.info(`${this} Setting degradation preference [preference=${preference},track=${localVideoTrack}`);
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
     const codec = this.getConfiguredVideoCodec();
-    const maxBitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
-    const encodingsActiveState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
-    const scaleFactor = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
+    const bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
+    const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
+    const scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
+    let needsUpdate = false;
 
-    for (const encoding in parameters.encodings) {
-        if (parameters.encodings.hasOwnProperty(encoding)) {
-            parameters.encodings[encoding].active = encodingsActiveState[encoding];
+    for (const idx in parameters.encodings) {
+        if (parameters.encodings.hasOwnProperty(idx)) {
+            const {
+                active = undefined,
+                maxBitrate = undefined,
+                scalabilityMode = undefined,
+                scaleResolutionDownBy = undefined
+            } = parameters.encodings[idx];
+
+            if (active !== activeState[idx]) {
+                parameters.encodings[idx].active = activeState[idx];
+                needsUpdate = true;
+            }
 
             // Firefox doesn't follow the spec and lets application specify the degradation preference on the
             // encodings.
-            browser.isFirefox() && (parameters.encodings[encoding].degradationPreference = preference);
+            browser.isFirefox() && (parameters.encodings[idx].degradationPreference = preference);
 
             // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in legacy K-SVC mode
             // since the browser sends only the lowest resolution layer when those are configured.
@@ -2309,21 +2303,36 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
                 || !this.isSpatialScalabilityOn()
                 || (browser.supportsScalabilityModeAPI()
                     && this.tpcUtils.codecSettings[codec].scalabilityModeEnabled)) {
-                parameters.encodings[encoding].scaleResolutionDownBy = scaleFactor[encoding];
-                parameters.encodings[encoding].maxBitrate = maxBitrates[encoding];
+                if (scaleResolutionDownBy !== scaleFactors[idx]) {
+                    parameters.encodings[idx].scaleResolutionDownBy = scaleFactors[idx];
+                    needsUpdate = true;
+                }
+                if (maxBitrate !== bitrates[idx]) {
+                    parameters.encodings[idx].maxBitrate = bitrates[idx];
+                    needsUpdate = true;
+                }
             }
 
             // Configure scalability mode when its supported and enabled.
             if (scalabilityModes) {
-                parameters.encodings[encoding].scalabilityMode = scalabilityModes[encoding];
+                if (scalabilityMode !== scalabilityModes[idx]) {
+                    parameters.encodings[idx].scalabilityMode = scalabilityModes[idx];
+                    needsUpdate = true;
+                }
             } else {
-                parameters.encodings[encoding].scalabilityMode = undefined;
+                parameters.encodings[idx].scalabilityMode = undefined;
             }
         }
     }
+
+    if (!needsUpdate) {
+        return Promise.resolve();
+    }
+
     logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
     return videoSender.setParameters(parameters).then(() => {
+        this._senderMaxHeights.set(localVideoTrack.getSourceName(), frameHeight);
         localVideoTrack.maxEnabledResolution = frameHeight;
         this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
     });
