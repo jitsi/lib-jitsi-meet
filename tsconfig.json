@@ -4,6 +4,7 @@
     "module": "es6",
     "sourceMap": true,
     "allowJs": true,
+    "baseUrl": "types",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node",

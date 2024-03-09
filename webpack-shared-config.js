@@ -23,7 +23,7 @@ module.exports = (minimize, analyzeBundle) => {
                 fs: false,
                 path: false,
             },
-            extensions: [".json", ".js", ".ts", ".wasm"],
+            extensions: [".json", ".ts", ".js", ".wasm"],
         },
         stats: {
             errorDetails: true,
