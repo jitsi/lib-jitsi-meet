@@ -1,11 +1,8 @@
 
-import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { MediaType } from './service/RTC/MediaType';
-
-const logger = getLogger(__filename);
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -350,11 +347,6 @@ export default class JitsiParticipant {
      */
     setProperty(name, value) {
         const oldValue = this._properties[name];
-
-        if (name === 'e2ee.enabled') {
-            logger.info(`olm: emit PARTICIPANT_PROPERTY_CHANGED on ${name} 
-            new value ${value} and old one is ${oldValue}`);
-        }
 
         if (value !== oldValue) {
             this._properties[name] = value;
