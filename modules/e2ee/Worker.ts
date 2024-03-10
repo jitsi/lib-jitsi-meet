@@ -2,9 +2,9 @@
 /* eslint-disable no-bitwise */
 
 // Worker for E2EE/Insertable streams.
-import base64js from 'base64-js';
+import base64js from "base64-js";
 
-import { Context } from './Context';
+import { Context } from "./Context";
 
 const contexts = new Map(); // Map participant id => context
 
@@ -37,65 +37,65 @@ function getParticipantContext(participantId) {
  * @param {Object} writableStream - Writable stream part.
  */
 function handleTransform(context, operation, readableStream, writableStream) {
-    if (operation === 'encode' || operation === 'decode') {
-        const transformFn = operation === 'encode' ? context.encodeFunction : context.decodeFunction;
+    if (operation === "encode" || operation === "decode") {
+        const transformFn =
+            operation === "encode"
+                ? context.encodeFunction
+                : context.decodeFunction;
         const transformStream = new TransformStream({
-            transform: transformFn.bind(context)
+            transform: transformFn.bind(context),
         });
 
-        readableStream
-            .pipeThrough(transformStream)
-            .pipeTo(writableStream);
+        readableStream.pipeThrough(transformStream).pipeTo(writableStream);
     } else {
         console.error(`Invalid operation: ${operation}`);
     }
 }
 
-onmessage = async event => {
+onmessage = async (event) => {
     const { operation } = event.data;
 
-    if (operation === 'initialize') {
+    if (operation === "initialize") {
         const { sharedKey } = event.data;
 
         if (sharedKey) {
             sharedContext = new Context({ sharedKey });
         }
-    } else if (operation === 'encode' || operation === 'decode') {
+    } else if (operation === "encode" || operation === "decode") {
         const { readableStream, writableStream, participantId } = event.data;
         const context = getParticipantContext(participantId);
 
         handleTransform(context, operation, readableStream, writableStream);
-    } else if (operation === 'setKey') {
+    } else if (operation === "setKey") {
         const { participantId, key, keyIndex } = event.data;
         const context = getParticipantContext(participantId);
 
-        if (key) {
-            console.log(`CHECKPOINT: set key ${base64js.fromByteArray(key)} and 
+        console.log(`CHECKPOINT: set key ${base64js.fromByteArray(key)} and 
             index is ${keyIndex}`);
-            context.setKey(key, keyIndex);
-        } else {
-            console.log(`CHECKPOINT: set key to FALSE and 
-            index is ${keyIndex}`);
-            context.setKey(false, keyIndex);
-        }
-    } else if (operation === 'cleanup') {
+        context.setKey(key, keyIndex);
+    } else if (operation === "cleanup") {
         const { participantId } = event.data;
 
         contexts.delete(participantId);
-    } else if (operation === 'cleanupAll') {
+    } else if (operation === "cleanupAll") {
         contexts.clear();
     } else {
-        console.error('e2ee worker', operation);
+        console.error("e2ee worker", operation);
     }
 };
 
 // Operations using RTCRtpScriptTransform.
 if (self.RTCTransformEvent) {
-    self.onrtctransform = event => {
+    self.onrtctransform = (event) => {
         const transformer = event.transformer;
         const { operation, participantId } = transformer.options;
         const context = getParticipantContext(participantId);
 
-        handleTransform(context, operation, transformer.readable, transformer.writable);
+        handleTransform(
+            context,
+            operation,
+            transformer.readable,
+            transformer.writable
+        );
     };
 }

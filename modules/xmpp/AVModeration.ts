@@ -3,6 +3,7 @@ import { $msg } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import ChatRoom from './ChatRoom';
 
 const logger = getLogger(__filename);
 
@@ -10,6 +11,10 @@ const logger = getLogger(__filename);
  * The AVModeration logic.
  */
 export default class AVModeration {
+    private _xmpp: any;
+    private _mainRoom: ChatRoom;
+    private _moderationEnabledByType: { audio: boolean; video: boolean; };
+    private _whitelistAudio: any[];
 
     /**
      * Constructs AV moderation room.
@@ -27,7 +32,7 @@ export default class AVModeration {
         };
 
         this._whitelistAudio = [];
-        this._whitelistVideo = [];
+        this._whitelistAudio = [];
 
         this._onMessage = this._onMessage.bind(this);
         this._xmpp.addListener(XMPPEvents.AV_MODERATION_RECEIVED, this._onMessage);
@@ -131,7 +136,7 @@ export default class AVModeration {
         if (newWhitelists) {
             const oldList = media === MediaType.AUDIO
                 ? this._whitelistAudio
-                : this._whitelistVideo;
+                : this._whitelistAudio;
             const newList = Array.isArray(newWhitelists[media]) ? newWhitelists[media] : [];
 
             if (removed) {
@@ -147,7 +152,7 @@ export default class AVModeration {
             if (media === MediaType.AUDIO) {
                 this._whitelistAudio = newList;
             } else {
-                this._whitelistVideo = newList;
+                this._whitelistAudio = newList;
             }
         } else if (enabled !== undefined && this._moderationEnabledByType[media] !== enabled) {
             this._moderationEnabledByType[media] = enabled;

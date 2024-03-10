@@ -1,10 +1,12 @@
+/// <reference types="node" />
+
 import { getLogger } from "@jitsi/logger";
 import base64js from "base64-js";
 import { debounce } from "lodash-es";
 
 import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
-import { KeyHandler } from "./KeyHandler";
+import { KeyHandler, KeyInfo } from "./KeyHandler";
 import { OlmAdapter } from "./OlmAdapter";
 import { importKey, ratchet } from "./crypto-utils";
 
@@ -18,6 +20,11 @@ const DEBOUNCE_PERIOD = 5000;
  * This module integrates {@link E2EEContext} with {@link OlmAdapter} in order to distribute the keys for encryption.
  */
 export class ManagedKeyHandler extends KeyHandler {
+    private _pqKey: Uint8Array;
+    private _olmKey: Uint8Array;
+    private _conferenceJoined: boolean;
+    _rotateKey: any;
+    _ratchetKey: any;
     /**
      * Build a new AutomaticKeyHandler instance, which will be used in a given conference.
      */
@@ -81,22 +88,17 @@ export class ManagedKeyHandler extends KeyHandler {
     }
 
     /**
-     * Returns the sasVerficiation object.
-     *
-     * @returns {Object}
-     */
-    get sasVerification() {
-        return this._olmAdapter;
-    }
-
-    /**
      * When E2EE is enabled it initializes sessions and sets the key.
      * Cleans up the sessions when disabled.
      *
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
-    async _setEnabled() {
+    async _setEnabled(enabled) {
+        if (!enabled) {
+            this._olmAdapter.clearAllParticipantsSessions();
+        }
+
         // Generate a random key in case we are enabling.
         this._onKeyGeneration();
 
@@ -108,15 +110,11 @@ export class ManagedKeyHandler extends KeyHandler {
 
         logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(
             mediaKey
-        )} and
+        )} or ${mediaKey} and
         index is ${mediaKeyIndex}`);
 
         // Set our key so we begin encrypting.
-        this.e2eeCtx.setKey(
-            this.conference.myUserId(),
-            mediaKey,
-            mediaKeyIndex
-        );
+        this.setKey({ encryptionKey: mediaKey, index: mediaKeyIndex });
     }
 
     /**
@@ -193,9 +191,16 @@ export class ManagedKeyHandler extends KeyHandler {
             key
         )} and
         index is ${index}`);
-        this.e2eeCtx.setKey(this.conference.myUserId(), key, index);
+        this.setKey({ encryptionKey: key, index });
     }
 
+    setKey(keyInfo: KeyInfo) {
+        this.e2eeCtx.setKey(
+            this.conference.myUserId(),
+            keyInfo.encryptionKey,
+            keyInfo.index
+        );
+    }
     /**
      * Advances the current key by using ratcheting.
      *
@@ -205,29 +210,19 @@ export class ManagedKeyHandler extends KeyHandler {
         logger.debug("Ratchetting keys");
 
         const olmMaterial = await importKey(this._olmKey);
-        const newOlmKey = await ratchet(olmMaterial);
-
-        this._olmKey = new Uint8Array(newOlmKey);
+        this._olmKey = await ratchet(olmMaterial);
 
         const pqMaterial = await importKey(this._pqKey);
-        const newPqKey = await ratchet(pqMaterial);
+        this._pqKey = await ratchet(pqMaterial);
 
-        this._pqKey = new Uint8Array(newPqKey);
-
-        const key = await this._olmAdapter.updateCurrentMediaKey(
+        const { key, index } = await this._olmAdapter.updateCurrentMediaKey(
             this._olmKey,
             this._pqKey
         );
 
-        this.mediaKeyIndex++;
-
         logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(key)}
-        and index is ${this.mediaKeyIndex}`);
-        this.e2eeCtx.setKey(
-            this.conference.myUserId(),
-            key,
-            this.mediaKeyIndex
-        );
+        and index is ${index}`);
+        this.setKey({ encryptionKey: key, index });
     }
 
     /**

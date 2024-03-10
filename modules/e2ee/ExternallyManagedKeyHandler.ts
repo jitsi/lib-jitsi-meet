@@ -1,4 +1,4 @@
-import { KeyHandler } from './KeyHandler';
+import { KeyHandler, KeyInfo } from './KeyHandler';
 
 /**
  * This module integrates {@link E2EEContext} with {external} in order to set the keys for encryption.
@@ -9,7 +9,7 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * @param conference - the current conference.
      */
     constructor(conference) {
-        super(conference, { sharedKey: true });
+        super(conference, true);
     }
 
     /**
@@ -19,7 +19,9 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    setKey(keyInfo) {
-        this.e2eeCtx.setKey(undefined, { encryptionKey: keyInfo.encryptionKey }, keyInfo.index);
+    setKey(keyInfo: KeyInfo) {
+        this.e2eeCtx.setKey(undefined, keyInfo.encryptionKey, keyInfo.index);
+    }
+    async _setEnabled(enabled) {
     }
 }

@@ -1,5 +1,4 @@
 /* global RTCRtpScriptTransform */
-
 import { getLogger } from '@jitsi/logger';
 
 const logger = getLogger(__filename);
@@ -21,15 +20,16 @@ const kJitsiE2EE = Symbol('kJitsiE2EE');
  * - allow for the key to be rotated frequently.
  */
 export default class E2EEcontext {
+    // private _worker: Worker;
     /**
      * Build a new E2EE context instance, which will be used in a given conference.
      * @param {boolean} [options.sharedKey] - whether there is a uniques key shared amoung all participants.
      */
-    constructor({ sharedKey } = {}) {
+    constructor({ sharedKey = 'false' } = {}) {
         // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
-        const ljm = document.querySelector('script[src*="lib-jitsi-meet"]');
+        const ljm = document.querySelector('script[src*="lib-jitsi-meet"]');// as HTMLImageElement;
 
         if (ljm) {
             const idx = ljm.src.lastIndexOf('/');
@@ -154,10 +154,11 @@ export default class E2EEcontext {
      * Set the E2EE key for the specified participant.
      *
      * @param {string} participantId - the ID of the participant who's key we are setting.
-     * @param {Uint8Array | boolean} key - they key for the given participant.
+     * @param {Uint8Array} key - they key for the given participant.
      * @param {Number} keyIndex - the key index.
      */
     setKey(participantId, key, keyIndex) {
+        console.log(`setKey for ${participantId} as ${key}`);
         this._worker.postMessage({
             operation: 'setKey',
             key,

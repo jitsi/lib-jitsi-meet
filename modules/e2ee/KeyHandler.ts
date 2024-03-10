@@ -4,28 +4,41 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import Listenable from '../util/Listenable';
+import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
+import JitsiConference from '../../JitsiConference';
 
 const logger = getLogger(__filename);
 
+export type KeyInfo = {
+    encryptionKey: Uint8Array,
+    index: number, 
+}
 /**
  * Abstract class that integrates {@link E2EEContext} with a key management system.
  */
-export class KeyHandler extends Listenable {
+export abstract class KeyHandler extends Listenable {
+    conference: JitsiConference;
+    e2eeCtx: E2EEContext;
+    enabled: boolean;
+    _enabling: Deferred;
+    _olmAdapter: any;
+
+    abstract _setEnabled(enabled: boolean): void;
+    abstract setKey(keyInfo: KeyInfo): void;
     /**
      * Build a new KeyHandler instance, which will be used in a given conference.
      * @param {JitsiConference} conference - the current conference.
-     * @param {object} options - the options passed to {E2EEContext}, see implemention.
+     * @param {object} sharedKey - the options passed to {E2EEContext}, see implemention.
      */
-    constructor(conference, options = {}) {
+    constructor(conference, sharedKey = false) {
         super();
 
         this.conference = conference;
-        this.e2eeCtx = new E2EEContext(options);
+        this.e2eeCtx = new E2EEContext(sharedKey);
 
         this.enabled = false;
-        this._enabling = undefined;
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -63,23 +76,35 @@ export class KeyHandler extends Listenable {
      */
     async setEnabled(enabled) {
         logger.info('olm: setEnabled started');
+        this._enabling && await this._enabling;
         if (enabled === this.enabled) {
             return;
         }
+        this._enabling = new Deferred();
         this.enabled = enabled;
-        if (enabled) {
 
-            await this._setEnabled();
-            this.conference.setLocalParticipantProperty('e2ee.enabled', true);
-            this.conference._restartMediaSessions();
-
-        } else {
-            this._olmAdapter.clearAllParticipantsSessions();
+        if (!enabled) {
             this.e2eeCtx.cleanupAll();
         }
+    
+        this._setEnabled && await this._setEnabled(enabled);
+    
+        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
+    
+        this.conference._restartMediaSessions();
+    
+        this._enabling.resolve();
 
     }
 
+    /**
+     * Returns the sasVerficiation object.
+     *
+     * @returns {Object}
+     */
+      get sasVerification() {
+        return this._olmAdapter;
+    }
     /**
      * Sets the key for End-to-End encryption.
      *

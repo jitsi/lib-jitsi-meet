@@ -14,6 +14,7 @@ const logger = getLogger(__filename);
  * This module implements a discard-all insertable stream.  Use to reduce decoder CPU load for testing.
  */
 export class LiteModeContext {
+    enabled: boolean;
     /**
      * A constructor.
      * @param {JitsiConference} conference - The conference instance for which lite mode is to be enabled.
