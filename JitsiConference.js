@@ -2215,11 +2215,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    // When ssrc-rewriting is enabled, muted sources that are signaled to Jicofo will not create a broadcast storm.
-    // Therefore, it is ok to signal all the tracks to Jicofo. In the legacy mode, we do not want to signal any
-    // tracks that are muted at join time.
-    const localTracks = FeatureFlags.isSsrcRewritingSupported()
-        ? this.getLocalTracks() : this._getInitialLocalTracks();
+    const localTracks = this._getInitialLocalTracks();
 
     try {
         jingleSession.acceptOffer(
