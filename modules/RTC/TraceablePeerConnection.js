@@ -1755,7 +1755,7 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
         return Promise.resolve();
     }
 
-    logger.debug(`${this} TPC.replaceTrack old=${oldTrack}, new=${newTrack}`);
+    logger.info(`${this} TPC.replaceTrack old=${oldTrack}, new=${newTrack}`);
 
     return this.tpcUtils.replaceTrack(oldTrack, newTrack)
         .then(transceiver => {
@@ -1803,11 +1803,12 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
             }
 
-            // Avoid configuring the encodings on Chromium/Safari until simulcast is configured
-            // for the newly added track using SDP munging which happens during the renegotiation.
-            const configureEncodingsPromise = browser.usesSdpMungingForSimulcast() || !newTrack
-                ? Promise.resolve()
-                : this.tpcUtils.setEncodings(newTrack);
+            // Avoid configuring the video encodings on Chromium/Safari until simulcast is configured
+            // for the newly added video track using SDP munging which happens during the renegotiation.
+            const configureEncodingsPromise
+                = !newTrack || (newTrack.getType() === MediaType.VIDEO && browser.usesSdpMungingForSimulcast())
+                    ? Promise.resolve()
+                    : this.tpcUtils.setEncodings(newTrack);
 
             return configureEncodingsPromise.then(() => this.isP2P);
         });
@@ -2065,19 +2066,31 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
 };
 
 /**
+ * Configures the stream encodings for the audio tracks that are added to the peerconnection.
+ *
+ * @param {JitsiLocalTrack} localAudioTrack - The local audio track.
+ * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
+ */
+TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(localAudioTrack = null) {
+    if (localAudioTrack) {
+        return this.tpcUtils.setEncodings(localAudioTrack);
+    }
+    const promises = [];
+
+    for (const track of this.getLocalTracks(MediaType.AUDIO)) {
+        promises.push(this.tpcUtils.setEncodings(track));
+    }
+
+    return Promise.allSettled(promises);
+};
+
+/**
  * Configures the stream encodings depending on the video type and the bitrates configured.
  *
  * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.configureSenderVideoEncodings = function(localVideoTrack = null) {
-    // If media is suspended on the jvb peerconnection, make sure that media stays disabled. The default 'active' state
-    // for the encodings after the source is added to the peerconnection is 'true', so it needs to be explicitly
-    // disabled after the source is added.
-    if (!this.isP2P && !(this.videoTransferActive && this.audioTransferActive)) {
-        return this.tpcUtils.setMediaTransferActive(false);
-    }
-
+TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(localVideoTrack = null) {
     if (localVideoTrack) {
         return this.setSenderVideoConstraints(
             this._senderMaxHeights.get(localVideoTrack.getSourceName()),
@@ -2196,9 +2209,8 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     }
     const sourceName = localVideoTrack.getSourceName();
 
-    // Ignore sender constraints if the media on the peerconnection is suspended (jvb conn when p2p is currently active)
-    // or if the video track is muted.
-    if ((!this.isP2P && !this.videoTransferActive) || localVideoTrack.isMuted()) {
+    // Ignore sender constraints if the video track is muted.
+    if (localVideoTrack.isMuted()) {
         this._senderMaxHeights.set(sourceName, frameHeight);
 
         return Promise.resolve();
