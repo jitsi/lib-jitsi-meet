@@ -224,6 +224,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -311,6 +312,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -441,6 +443,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -487,6 +490,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -528,6 +532,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = false;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -573,6 +578,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -655,6 +661,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -692,6 +699,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -780,6 +788,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -826,6 +835,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = false;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -871,6 +881,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -979,6 +990,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1087,6 +1099,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1154,6 +1167,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1191,6 +1205,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1285,6 +1300,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1333,6 +1349,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = false;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1380,6 +1397,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1447,6 +1465,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1484,6 +1503,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1595,6 +1615,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1641,6 +1662,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = false;
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1686,6 +1708,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1753,6 +1776,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1821,6 +1845,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
                 pc._capScreenshareBitrate = false;
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -1884,6 +1909,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2009,6 +2035,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2128,6 +2155,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2239,6 +2267,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2351,6 +2380,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
                 pc._capScreenshareBitrate = true;
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2419,6 +2449,7 @@ describe('TPCUtils', () => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
                 pc._capScreenshareBitrate = false;
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2486,6 +2517,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2571,6 +2603,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2657,6 +2690,7 @@ describe('TPCUtils', () => {
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.options = { videoQuality };
+                pc.videoTransferActive = true;
                 tpcUtils = new TPCUtils(pc);
             });
 
@@ -2744,6 +2778,7 @@ describe('TPCUtils', () => {
             pc = new MockPeerConnection('1', true, true /* simulcast */);
             pc.options = { videoQuality };
             pc._capScreenshareBitrate = true;
+            pc.videoTransferActive = true;
             const utils = new TPCUtils(pc);
 
             it('and requested desktop resolution is 2160', () => {
@@ -2861,6 +2896,7 @@ describe('TPCUtils', () => {
             pc = new MockPeerConnection('1', true, true /* simulcast */);
             pc.options = { videoQuality };
             pc._capScreenshareBitrate = true;
+            pc.videoTransferActive = true;
             const utils = new TPCUtils(pc);
 
             it('and requested desktop resolution is 2160', () => {
@@ -2955,6 +2991,86 @@ describe('TPCUtils', () => {
                 height = 0;
 
                 activeState = utils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+            });
+        });
+
+        describe('for VP9 camera tracks and the jvb connection is suspended', () => {
+            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const codec = CodecMimeType.VP9;
+
+            beforeEach(() => {
+                pc = new MockPeerConnection('1', true, true /* simulcast */);
+                pc.options = {};
+                pc.videoTransferActive = false;
+                tpcUtils = new TPCUtils(pc);
+            });
+
+            afterEach(() => {
+                pc = null;
+                tpcUtils = null;
+            });
+
+            it('and requested resolution is 720', () => {
+                height = 720;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(1200000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
+            });
+
+            it('and requested resolution is 360', () => {
+                height = 360;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(300000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L2T3_KEY);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[1].scaleFactor);
+            });
+
+            it('and requested resolution is 180', () => {
+                height = 180;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
+                expect(activeState[0]).toBe(false);
+                expect(activeState[1]).toBe(false);
+                expect(activeState[2]).toBe(false);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(100000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
+            });
+
+            it('and requested resolution is 0', () => {
+                height = 0;
+
+                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(false);
                 expect(activeState[1]).toBe(false);
                 expect(activeState[2]).toBe(false);

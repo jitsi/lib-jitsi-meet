@@ -1388,11 +1388,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.rtc.addLocalTrack(newTrack);
     newTrack.setConference(this);
 
-    // Suspend media on the inactive media session since it gets automatically enabled for a newly added source.
-    if (this.isP2PActive()) {
-        this._suspendMediaTransferForJvbConnection();
-    }
-
     // Add event handlers.
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
     newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack.muteHandler);
