@@ -90,7 +90,6 @@ export default class TraceablePeerConnection {
   getConfiguredVideoCodec: () => CodecMimeType;
   setDesktopSharingFrameRate: (maxFps: number) => void;
   setVideoCodecs: ( preferredCodec?: CodecMimeType, disabledCodec?: CodecMimeType ) => void;
-  isMediaStreamInPc: ( mediaStream: MediaStream ) => boolean;
   removeTrack: ( localTrack: JitsiLocalTrack ) => void;
   findSenderByKind: ( mediaType: MediaType ) => RTCRtpSender | undefined; // TODO: possible bug in the JSDocs
   findReceiverForTrack: ( track: MediaStreamTrack ) => RTCRtpReceiver | undefined;

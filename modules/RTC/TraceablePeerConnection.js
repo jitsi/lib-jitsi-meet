@@ -152,14 +152,6 @@ export default function TraceablePeerConnection(
     this.localTracks = new Map();
 
     /**
-     * Keeps tracks of the WebRTC <tt>MediaStream</tt>s that have been added to
-     * the underlying WebRTC PeerConnection.
-     * @type {Array}
-     * @private
-     */
-    this._addedStreams = [];
-
-    /**
      * @typedef {Object} TPCGroupInfo
      * @property {string} semantics the SSRC groups semantics
      * @property {Array<number>} ssrcs group's SSRCs in order where the first
@@ -1657,16 +1649,6 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
 };
 
 /**
- * Tells if the given WebRTC <tt>MediaStream</tt> has been added to
- * the underlying WebRTC PeerConnection.
- * @param {MediaStream} mediaStream
- * @returns {boolean}
- */
-TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
-    return this._addedStreams.indexOf(mediaStream) > -1;
-};
-
-/**
  * Remove local track from this TPC.
  * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
  *
@@ -2448,8 +2430,6 @@ TraceablePeerConnection.prototype.close = function() {
         }
     }
     this.remoteTracks.clear();
-
-    this._addedStreams = [];
 
     this._dtmfSender = null;
     this._dtmfTonesQueue = [];
