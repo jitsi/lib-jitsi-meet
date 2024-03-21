@@ -58,7 +58,6 @@ class WatchRTCHandler {
             if (this.options) {
                 this.options.rtcRoomId = this.options.rtcRoomId ? this.options.rtcRoomId : roomName;
                 this.options.rtcPeerId = this.options.rtcPeerId ? this.options.rtcPeerId : userName;
-                watchRTC.persistentEnd();
                 watchRTC.setConfig(this.options);
                 logger.info('WatchRTC setConfig.');
             }
