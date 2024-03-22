@@ -80,7 +80,7 @@ const logger = getLogger(__filename);
  * {@link ACTION_JINGLE_SI_TIMEOUT} analytics event is sent (in ms).
  * @type {number}
  */
-const JINGLE_SI_TIMEOUT = 50 * 1000;
+const JINGLE_SI_TIMEOUT = 5 * 1000;
 
 /**
  * Checks if a given string is a valid video codec mime type.
@@ -2106,6 +2106,9 @@ JitsiConference.prototype._updateFeatures = function (participant) {
             }
 
             if (features.has(FEATURE_E2EE)) {
+                console.log(
+                    `CHECK: FEATURE_E2EE is true for ${participant.getId()}`
+                );
                 participant.setProperty("features_e2ee", true);
             }
         })

@@ -349,6 +349,7 @@ export default class JitsiParticipant {
         const oldValue = this._properties[name];
 
         if (value !== oldValue) {
+            console.log(`CHECK: setProperty is called ${name} and ${value}`);
             this._properties[name] = value;
             this._conference.eventEmitter.emit(
                 JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
