@@ -23,5 +23,6 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
         this.e2eeCtx.setKey(undefined, keyInfo.encryptionKey, keyInfo.index);
     }
     async _setEnabled(enabled) {
+        return false;
     }
 }

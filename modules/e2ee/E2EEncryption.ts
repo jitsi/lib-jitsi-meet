@@ -74,7 +74,7 @@ export class E2EEncryption {
      * @returns {void}
      */
     setEncryptionKey(keyInfo) {
-        console.log(`CHECKPOINT: setEncryptionKey keyInfo ${JSON.stringify(keyInfo)} or 
+        console.log(`CHECK: setEncryptionKey keyInfo ${JSON.stringify(keyInfo)} or 
         ${base64js.fromByteArray(keyInfo.encryptionKey)} and index is ${keyInfo.index}`);
         this._keyHandler.setKey(keyInfo);
     }

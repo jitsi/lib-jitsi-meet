@@ -74,7 +74,6 @@ export class Context {
         let newKey: KeyMaterial;
 
         if (this._sharedKey) {
-            console.log(`setKey shared key the key length is ${key.length}`);
             const cryptoKey: CryptoKey = await crypto.subtle.importKey(
                 "raw",
                 key,
@@ -87,7 +86,6 @@ export class Context {
             );
             newKey = { encryptionKey: cryptoKey, material: undefined };
         } else {
-            console.log(`setKey else the key length is ${key.length}`);
             const material = await importKey(key);
 
             newKey = await deriveKeys(material);
@@ -135,14 +133,8 @@ export class Context {
      * 9) Enqueue the encrypted frame for sending.
      */
     encodeFunction(encodedFrame, controller) {
-        // console.log('CHECKPOINT: Encrypt frame started');
         const keyIndex = this._currentKeyIndex;
-
-        // console.log(`CHECKPOINT: Encrypt frame: index is ${keyIndex} and keyRing is ${this._cryptoKeyRing}`);
-        // console.log(`CHECKPOINT: the key would be
-        //    ${JSON.stringify(this._cryptoKeyRing[keyIndex].encryptionKey)}`);
         if (this._cryptoKeyRing[keyIndex]) {
-            // console.log('CHECKPOINT: Encrypt frame entered if');
             const iv = this._makeIV(
                 encodedFrame.getMetadata().synchronizationSource,
                 encodedFrame.timestamp
@@ -275,7 +267,6 @@ export class Context {
         initialKey = undefined,
         ratchetCount = 0
     ) {
-        // console.log('CHECKPOINT: Decrypt frame started');
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
         let { material } = this._cryptoKeyRing[keyIndex];
 
@@ -288,8 +279,6 @@ export class Context {
         // ---------+-------------------------+-+---------+----
 
         try {
-            // console.log('CHECKPOINT: Decrypt frame entered try');
-            // console.log(`CHECKPOINT: Decrypt frame with ${JSON.stringify(encryptionKey)}`);
             const frameHeader = new Uint8Array(
                 encodedFrame.data,
                 0,

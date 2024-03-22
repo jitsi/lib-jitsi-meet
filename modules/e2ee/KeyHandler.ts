@@ -4,7 +4,6 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import Listenable from '../util/Listenable';
-import Deferred from '../util/Deferred';
 
 import E2EEContext from './E2EEContext';
 import JitsiConference from '../../JitsiConference';
@@ -22,10 +21,9 @@ export abstract class KeyHandler extends Listenable {
     conference: JitsiConference;
     e2eeCtx: E2EEContext;
     enabled: boolean;
-    _enabling: Deferred;
     _olmAdapter: any;
 
-    abstract _setEnabled(enabled: boolean): void;
+    abstract _setEnabled(enabled: boolean): Promise<boolean>;
     abstract setKey(keyInfo: KeyInfo): void;
     /**
      * Build a new KeyHandler instance, which will be used in a given conference.
@@ -75,25 +73,18 @@ export abstract class KeyHandler extends Listenable {
      * @returns {void}
      */
     async setEnabled(enabled) {
-        logger.info('olm: setEnabled started');
-        this._enabling && await this._enabling;
+        console.log(`CHECK: setEnabled is called and enabled is ${enabled}`);
         if (enabled === this.enabled) {
             return;
         }
-        this._enabling = new Deferred();
-        this.enabled = enabled;
+        this.enabled = await this._setEnabled(enabled);
 
         if (!enabled) {
             this.e2eeCtx.cleanupAll();
         }
-    
-        this._setEnabled && await this._setEnabled(enabled);
-    
-        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
-    
+        
+        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);  
         this.conference._restartMediaSessions();
-    
-        this._enabling.resolve();
 
     }
 

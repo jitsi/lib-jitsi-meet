@@ -92,29 +92,39 @@ export class ManagedKeyHandler extends KeyHandler {
      * Cleans up the sessions when disabled.
      *
      * @param {boolean} enabled - whether E2EE should be enabled or not.
-     * @returns {void}
+     * @returns {boolean}
      */
-    async _setEnabled(enabled) {
+    async _setEnabled(enabled): Promise<boolean> {
+        console.log(`CHECK: _setEnabled started and is ${enabled}`);
+
         if (!enabled) {
             this._olmAdapter.clearAllParticipantsSessions();
+            return false;
         }
 
+        try {
+            this._onKeyGeneration();
+
+            const { mediaKeyIndex, mediaKey } =
+                await this._olmAdapter.initSessionsAndSetMediaKey(
+                    this._olmKey,
+                    this._pqKey
+                );
+
+            logger.info(`CHECK: my media key is ${base64js.fromByteArray(
+                mediaKey
+            )} or ${mediaKey} and
+            index is ${mediaKeyIndex}`);
+
+            // Set our key so we begin encrypting.
+            this.setKey({ encryptionKey: mediaKey, index: mediaKeyIndex });
+        } catch (e) {
+            console.log(`_setEnabled got error ${e}`);
+            return false;
+        }
         // Generate a random key in case we are enabling.
-        this._onKeyGeneration();
 
-        const { mediaKeyIndex, mediaKey } =
-            await this._olmAdapter.initSessionsAndSetMediaKey(
-                this._olmKey,
-                this._pqKey
-            );
-
-        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(
-            mediaKey
-        )} or ${mediaKey} and
-        index is ${mediaKeyIndex}`);
-
-        // Set our key so we begin encrypting.
-        this.setKey({ encryptionKey: mediaKey, index: mediaKeyIndex });
+        return true;
     }
 
     /**

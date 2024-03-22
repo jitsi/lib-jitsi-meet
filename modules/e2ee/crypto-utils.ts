@@ -66,7 +66,6 @@ export async function ratchet(material: CryptoKey): Promise<Uint8Array> {
  */
 export async function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
-    console.log(`CHECKPOINT: Import key got ${keyBytes}`);
 
     return crypto.subtle.importKey("raw", keyBytes, "HKDF", false, [
         "deriveBits",

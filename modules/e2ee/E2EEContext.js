@@ -158,7 +158,7 @@ export default class E2EEcontext {
      * @param {Number} keyIndex - the key index.
      */
     setKey(participantId, key, keyIndex) {
-        console.log(`setKey for ${participantId} as ${key}`);
+        console.log(`CHECK: setKey for ${participantId} as ${key}`);
         this._worker.postMessage({
             operation: 'setKey',
             key,
