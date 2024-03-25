@@ -277,17 +277,6 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
-     * Returns the msid of the stream attached to the JitsiTrack object or null
-     * if no stream is attached.
-     */
-    getMSID() {
-        const streamId = this.getStreamId();
-        const trackId = this.getTrackId();
-
-        return streamId && trackId ? `${streamId} ${trackId}` : null;
-    }
-
-    /**
      * Returns the WebRTC MediaStream instance.
      */
     getOriginalStream() {
