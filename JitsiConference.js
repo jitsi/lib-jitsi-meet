@@ -475,7 +475,6 @@ JitsiConference.prototype._init = function(options = {}) {
             aliasName: this._statsCurrentId,
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
-            siteID: config.siteID,
             roomName: this.options.name,
             applicationName: config.applicationName
         });
