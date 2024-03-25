@@ -518,14 +518,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _setStream(stream) {
         super._setStream(stream);
-
-        if (stream) {
-            // Store the MSID for video mute/unmute purposes.
-            this.storedMSID = this.getMSID();
-            logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
-        } else {
-            logger.debug(`Setting 'null' stream on ${this}`);
-        }
     }
 
     /**
