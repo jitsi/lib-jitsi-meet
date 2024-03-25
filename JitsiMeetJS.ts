@@ -273,7 +273,7 @@ export default {
     },
 
     /**
-     * Creates the media tracks and returns them trough the callback.
+     * Creates local media tracks.
      *
      * @param options Object with properties / settings specifying the tracks
      * which should be created. should be created or some additional
@@ -287,36 +287,16 @@ export default {
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
-     * @param {intiger} interval - the interval (in ms) for
-     * checking whether the desktop sharing extension is installed or not
-     * @param {Function} checkAgain - returns boolean. While checkAgain()==true
-     * createLocalTracks will wait and check on every "interval" ms for the
-     * extension. If the desktop extension is not install and checkAgain()==true
-     * createLocalTracks will finish with rejected Promise.
-     * @param {Function} listener - The listener will be called to notify the
-     * user of lib-jitsi-meet that createLocalTracks is starting external
-     * extension installation process.
-     * NOTE: If the inline installation process is not possible and external
-     * installation is enabled the listener property will be called to notify
-     * the start of external installation process. After that createLocalTracks
-     * will start to check for the extension on every interval ms until the
-     * plugin is installed or until checkAgain return false. If the extension
-     * is found createLocalTracks will try to get the desktop sharing track and
-     * will finish the execution. If checkAgain returns false, createLocalTracks
-     * will finish the execution with rejected Promise.
      *
-     * @deprecated old firePermissionPromptIsShownEvent
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>} A promise
      * that returns an array of created JitsiTracks if resolved, or a
      * JitsiConferenceError if rejected.
      */
-    createLocalTracks(options: ICreateLocalTrackOptions = {}, oldfirePermissionPromptIsShownEvent) {
+    createLocalTracks(options: ICreateLocalTrackOptions = {}) {
         let promiseFulfilled = false;
-
         const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
-        const firePermissionPrompt = firePermissionPromptIsShownEvent || oldfirePermissionPromptIsShownEvent;
 
-        if (firePermissionPrompt && !RTC.arePermissionsGrantedForAvailableDevices()) {
+        if (firePermissionPromptIsShownEvent && !RTC.arePermissionsGrantedForAvailableDevices()) {
             // @ts-ignore
             JitsiMediaDevices.emit(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
         } else if (fireSlowPromiseEvent) {
