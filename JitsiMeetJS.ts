@@ -512,12 +512,8 @@ export default {
      * Checks if local tracks can collect stats and collection is enabled.
      *
      * @returns {boolean} True if stats are being collected for local tracks.
-     * @deprecated use Statistics.isCollectingLocalStats instead
      */
     isCollectingLocalStats() {
-        logger.warn('This method is deprecated, use '
-            + 'Statistics.isCollectingLocalStats instead');
-
         return Statistics.isCollectingLocalStats();
     },
 
