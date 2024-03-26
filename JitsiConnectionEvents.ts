@@ -53,7 +53,7 @@ export enum JitsiConnectionEvents {
     DISPLAY_NAME_REQUIRED = 'connection.display_name_required',
 
     /**
-     * The connection properties have been updated.
+     * Indicates that the connection properties have been updated.
      * @param properties {object} - All available connection properties (e.g. shard, region).
      */
     PROPERTIES_UPDATED = 'connection.propertiesUpdated'
