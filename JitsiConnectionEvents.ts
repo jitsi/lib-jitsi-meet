@@ -50,7 +50,13 @@ export enum JitsiConnectionEvents {
      * joining the room.
      * There are cases like lobby room where display name is required.
      */
-    DISPLAY_NAME_REQUIRED = 'connection.display_name_required'
+    DISPLAY_NAME_REQUIRED = 'connection.display_name_required',
+
+    /**
+     * Indicates that the connection properties have been updated.
+     * @param properties {object} - All available connection properties (e.g. shard, region).
+     */
+    PROPERTIES_UPDATED = 'connection.propertiesUpdated'
 }
 
 // exported for backward compatibility
@@ -60,3 +66,4 @@ export const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
 export const CONNECTION_REDIRECTED = JitsiConnectionEvents.CONNECTION_REDIRECTED;
 export const WRONG_STATE = JitsiConnectionEvents.WRONG_STATE;
 export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
+export const PROPERTIES_UPDATED = JitsiConnectionEvents.PROPERTIES_UPDATED;
