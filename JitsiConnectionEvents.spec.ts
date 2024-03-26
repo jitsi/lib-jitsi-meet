@@ -10,6 +10,7 @@ describe( "/JitsiConnectionEvents members", () => {
         CONNECTION_REDIRECTED,
         WRONG_STATE,
         DISPLAY_NAME_REQUIRED,
+        PROPERTIES_UPDATED,
         JitsiConnectionEvents,
         ...others
     } = exported;
@@ -21,6 +22,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
         expect( WRONG_STATE ).toBe( 'connection.wrongState' );
         expect( DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
+        expect( PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
 
         expect( JitsiConnectionEvents ).toBeDefined();
 
@@ -30,6 +32,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( JitsiConnectionEvents.CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
         expect( JitsiConnectionEvents.WRONG_STATE ).toBe( 'connection.wrongState' );
         expect( JitsiConnectionEvents.DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
+        expect( JitsiConnectionEvents.PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
     } );
 
     it( "unknown members", () => {

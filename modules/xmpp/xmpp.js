@@ -1110,5 +1110,16 @@ export default class XMPP extends Listenable {
         }
 
         this.sendDeploymentInfo = false;
+
+        const { region, shard } = aprops;
+
+        if (region || shard) {
+            // avoids sending empty values
+            this.eventEmitter.emit(JitsiConnectionEvents.PROPERTIES_UPDATED, JSON.parse(JSON.stringify({
+                region,
+                shard
+            })));
+        }
+
     }
 }
