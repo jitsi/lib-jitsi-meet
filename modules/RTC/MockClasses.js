@@ -1,7 +1,11 @@
 import transform from 'sdp-transform';
 
+import { MediaType } from '../../service/RTC/MediaType';
+import Listenable from '../util/Listenable';
+
 /* eslint-disable no-empty-function */
 /* eslint-disable max-len */
+/* eslint-disable require-jsdoc */
 
 /**
  * MockRTCPeerConnection that return the local description sdp.
@@ -307,18 +311,47 @@ export class MockTrack {
     }
 }
 
+let trackId = 1;
+
 /**
  * MockJitsiLocalTrack
  */
-export class MockJitsiLocalTrack {
+export class MockJitsiLocalTrack extends Listenable {
     /**
      * A constructor
      */
     constructor(height, mediaType, videoType) {
+        super();
         this.resolution = height;
         this.track = new MockTrack(height);
         this.type = mediaType;
         this.videoType = videoType;
+        this._id = trackId;
+        trackId += 1; // The track id is useful to distinguish between instances (see toString)
+    }
+
+    setSourceName(sourceName) {
+        this.sourceName = sourceName;
+    }
+
+    getSourceName() {
+        return this.sourceName;
+    }
+
+    setConference(conference) {
+        this.conference = conference;
+    }
+
+    isAudioTrack() {
+        return this.getType() === MediaType.AUDIO;
+    }
+
+    isVideoTrack() {
+        return this.getType() === MediaType.VIDEO;
+    }
+
+    isMuted() {
+        return false;
     }
 
     /**
@@ -360,4 +393,14 @@ export class MockJitsiLocalTrack {
     getVideoType() {
         return this.videoType;
     }
+
+    _sendMuteStatus() { }
+
+    toString() {
+        return `JitsiLocalTrack[id=${this._id},sourceName=${this.sourceName},type=${this.type}]`;
+    }
 }
+
+/* eslint-enable no-empty-function */
+/* eslint-enable max-len */
+/* eslint-enable require-jsdoc */
