@@ -24,7 +24,6 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
-import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -338,7 +337,7 @@ export default {
                         'success',
                         getAnalyticsAttributesFromOptions(restOptions)));
 
-                if (this.isCollectingLocalStats()) {
+                if (Statistics.isCollectingLocalStats()) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
@@ -512,10 +511,14 @@ export default {
     /**
      * Checks if local tracks can collect stats and collection is enabled.
      *
-     * @param {boolean} True if stats are being collected for local tracks.
+     * @returns {boolean} True if stats are being collected for local tracks.
+     * @deprecated use Statistics.isCollectingLocalStats instead
      */
     isCollectingLocalStats() {
-        return Statistics.audioLevelsEnabled && LocalStatsCollector.isLocalStatsSupported();
+        logger.warn('This method is deprecated, use '
+            + 'Statistics.isCollectingLocalStats instead');
+
+        return Statistics.isCollectingLocalStats();
     },
 
     /**

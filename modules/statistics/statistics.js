@@ -319,6 +319,15 @@ Statistics.stopLocalStats = function(track) {
 };
 
 /**
+ * Checks if local tracks can collect stats and collection is enabled.
+ *
+ * @returns {boolean} True if stats are being collected for local tracks.
+ */
+Statistics.isCollectingLocalStats = function() {
+    return Statistics.audioLevelsEnabled && LocalStats.isLocalStatsSupported();
+};
+
+/**
  * Stops remote RTP stats for given peerconnection ID.
  * @param {string} tpcId {@link TraceablePeerConnection.id}
  * @private
