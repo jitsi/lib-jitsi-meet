@@ -137,6 +137,13 @@ LocalStatsCollector.prototype.stop = function() {
 };
 
 /**
+ * Initialize collector.
+ */
+LocalStatsCollector.init = function() {
+    LocalStatsCollector.connectAudioContext();
+};
+
+/**
  * Checks if the environment has the necessary conditions to support
  * collecting stats from local streams.
  *
@@ -170,8 +177,3 @@ LocalStatsCollector.connectAudioContext = function() {
 
     context.suspend();
 };
-
-/**
- * Initialize the audio context on startup.
- */
-LocalStatsCollector.connectAudioContext();
