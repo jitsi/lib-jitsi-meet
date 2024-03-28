@@ -150,10 +150,6 @@ export default {
 
         Settings.init(options.externalStorage);
         Statistics.init(options);
-        const flags = options.flags || {};
-
-        // Configure the feature flags.
-        FeatureFlags.init(flags);
 
         // Initialize global window.connectionTimes
         // FIXME do not use 'window'

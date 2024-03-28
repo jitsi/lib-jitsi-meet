@@ -1,22 +1,22 @@
-
 import browser from '../browser';
 
 /**
  * A global module for accessing information about different feature flags state.
  */
 class FeatureFlags {
+    private _runInLiteMode: boolean;
+    private _ssrcRewriting: boolean;
+    
     /**
      * Configures the module.
      *
      * @param {object} flags - The feature flags.
      * @param {boolean=} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
      * @param {boolean=} flags.ssrcRewritingEnabled - Use SSRC rewriting.
-     * @param {boolean=} flags.enableJoinAsVisitor - Enable joining as a visitor.
      */
-    init(flags) {
+    init(flags: { runInLiteMode?: boolean | undefined; ssrcRewritingEnabled?: boolean | undefined; }) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
-        this._joinAsVisitor = Boolean(flags.enableJoinAsVisitor ?? true);
     }
 
     /**
@@ -26,7 +26,7 @@ class FeatureFlags {
      *
      * @returns {boolean}
      */
-    isRunInLiteModeEnabled() {
+    isRunInLiteModeEnabled(): boolean {
         return this._runInLiteMode && browser.supportsInsertableStreams();
     }
 
@@ -34,16 +34,8 @@ class FeatureFlags {
      * Checks if the clients supports re-writing of the SSRCs on the media streams by the bridge.
      * @returns {boolean}
      */
-    isSsrcRewritingSupported() {
+    isSsrcRewritingSupported(): boolean {
         return this._ssrcRewriting;
-    }
-
-    /**
-     * Checks if the clients supports joining as a visitor.
-     * @returns {boolean}
-     */
-    isJoinAsVisitorSupported() {
-        return this._joinAsVisitor;
     }
 }
 
