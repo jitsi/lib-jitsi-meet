@@ -263,9 +263,7 @@ export default class XMPP extends Listenable {
         // the version added in moderator.js, this one here is mostly defined
         // for keeping stats, since it is not made available to jocofo at
         // the time of the initial conference-request.
-        if (FeatureFlags.isJoinAsVisitorSupported()) {
-            this.caps.addFeature('http://jitsi.org/visitors-1');
-        }
+        this.caps.addFeature('http://jitsi.org/visitors-1');
     }
 
     /**
