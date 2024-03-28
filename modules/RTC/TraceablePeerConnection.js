@@ -2085,7 +2085,8 @@ TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(local
 };
 
 /**
- * Configures the stream encodings depending on the video type and the bitrates configured.
+ * Configures the stream encodings depending on the video type, scalability mode and the bitrate settings for the codec
+ * that is currently selected.
  *
  * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
@@ -2099,7 +2100,9 @@ TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(local
     const promises = [];
 
     for (const track of this.getLocalVideoTracks()) {
-        promises.push(this.setSenderVideoConstraints(this._senderMaxHeights.get(track.getSourceName()), track));
+        const maxHeight = this._senderMaxHeights.get(track.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
+
+        promises.push(this.setSenderVideoConstraints(maxHeight, track));
     }
 
     return Promise.allSettled(promises);
@@ -2271,6 +2274,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
     const scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
+    const sourceName = localVideoTrack.getSourceName();
     let needsUpdate = false;
 
     for (const idx in parameters.encodings) {
@@ -2320,13 +2324,15 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     }
 
     if (!needsUpdate) {
+        this._senderMaxHeights.set(sourceName, frameHeight);
+
         return Promise.resolve();
     }
 
     logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
     return videoSender.setParameters(parameters).then(() => {
-        this._senderMaxHeights.set(localVideoTrack.getSourceName(), frameHeight);
+        this._senderMaxHeights.set(sourceName, frameHeight);
         localVideoTrack.maxEnabledResolution = frameHeight;
         this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
     });
