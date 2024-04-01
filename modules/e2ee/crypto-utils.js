@@ -96,8 +96,8 @@ export const encryptSymmetric = async (ciphertext, key) => {
 
         return combined;
     } catch (error) {
-        console.error('Encryption failed:', error);
-        throw new Error('Encryption operation failed.');
+        console.error('[SYMMETRIC_ENCRYPTION]: encryption failed:', error);
+        throw error;
     }
 };
 
@@ -138,7 +138,7 @@ export const decryptSymmetric = async (encryptArray, key) => {
 
         return decryptedData;
     } catch (error) {
-        console.error('Decrypt failed:', error);
-        throw new Error('Decrypt operation failed.');
+        console.error('[SYMMETRIC_DECRYPTION]: decryption failed:', error);
+        throw error;
     }
 };

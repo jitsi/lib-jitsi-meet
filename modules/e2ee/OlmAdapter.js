@@ -118,11 +118,6 @@ export class OlmAdapter extends Listenable {
             const promises = [];
             const localParticipantId = this._conf.myUserId();
 
-            const { publicKey, privateKey } = await this._createKeyPair();
-
-            this._publicKey = publicKey;
-            this._privateKey = privateKey;
-
             for (const participant of this._conf.getParticipants()) {
                 if (participant.hasFeature(FEATURE_E2EE) && localParticipantId < participant.getId()) {
                     promises.push(this._sendSessionInit(participant));
@@ -342,6 +337,12 @@ export class OlmAdapter extends Listenable {
 
             this._idKeys = _safeJsonParse(this._olmAccount.identity_keys());
 
+            // Should create keys on bootstrap instead of init sessions to ensure keys are created.
+            const { publicKey, privateKey } = await this._createKeyPair();
+
+            this._publicKey = publicKey;
+            this._privateKey = privateKey;
+
             logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
             this._onIdKeysReady(this._idKeys);
@@ -531,21 +532,31 @@ export class OlmAdapter extends Listenable {
                 session.create_outbound(this._olmAccount, msg.data.idKey, msg.data.otKey);
                 olmData.session = session;
 
-                const participantPublicKey = msg.data.publicKey;
+                let encryptedCiphertext, encryptedPublicKey, encryptedSharedKey;
 
-                olmData.publicKey = participantPublicKey;
+                try {
+                    const participantPublicKey64 = msg.data.publicKey;
 
-                const sessionEncrypted = JSON.stringify(this._encryptKeyInfo(session));
+                    olmData.publicKey = participantPublicKey64;
 
-                const encoder = new TextEncoder();
-                const sessionEncryptedEncoded = encoder.encode(sessionEncrypted);
+                    const sessionEncrypted = JSON.stringify(this._encryptKeyInfo(session));
 
-                // eslint-disable-next-line max-len
-                const { sharedSecret, ciphertext } = await this._encapsulateKey(base64js.toByteArray(participantPublicKey));
+                    const encoder = new TextEncoder();
+                    const sessionEncryptedEncoded = encoder.encode(sessionEncrypted);
 
-                const encryptedCiphertext = await encryptSymmetric(sessionEncryptedEncoded, sharedSecret);
+                    // eslint-disable-next-line max-len
+                    const { sharedSecret, ciphertext } = await this._encapsulateKey(base64js.toByteArray(participantPublicKey64));
 
-                const encryptedPublicKey = await encryptSymmetric(this._publicKey, sharedSecret);
+                    encryptedSharedKey = base64js.fromByteArray(ciphertext);
+                    // eslint-disable-next-line max-len
+                    encryptedCiphertext = base64js.fromByteArray(await encryptSymmetric(sessionEncryptedEncoded, sharedSecret));
+
+                    encryptedPublicKey = base64js.fromByteArray(await encryptSymmetric(this._publicKey, sharedSecret));
+                } catch (error) {
+                    console.log('[ERROR_ENCRYPTION]: Session init failed ', error);
+
+                }
+                console.log(`PUBLIC KEY INIT ${base64js.fromByteArray(this._publicKey)}`);
 
                 // Send ACK
                 const ack = {
@@ -555,9 +566,9 @@ export class OlmAdapter extends Listenable {
                         data: {
                             // ciphertext: this._encryptKeyInfo(session),
                             uuid: msg.data.uuid,
-                            encryptedPublicKey: base64js.fromByteArray(encryptedPublicKey),
-                            encryptedSharedKey: base64js.fromByteArray(ciphertext),
-                            encryptedCiphertext: base64js.fromByteArray(encryptedCiphertext)
+                            encryptedPublicKey,
+                            encryptedSharedKey,
+                            encryptedCiphertext
                         }
                     }
                 };
@@ -591,11 +602,12 @@ export class OlmAdapter extends Listenable {
                     // eslint-disable-next-line max-len
                     const publicKeyUnit8 = await decryptSymmetric(base64js.toByteArray(encryptedPublicKey), sharedSecret);
 
-                    olmData.publicKey = publicKeyUnit8;
+                    olmData.publicKey = base64js.fromByteArray(publicKeyUnit8);
 
                 } catch (err) {
-                    console.log('[ERROR_ENCRYPTION]: session ack failed ', err);
+                    console.log('[ERROR_ENCRYPTION]: Session ack failed ', err);
                 }
+                console.log(`PUBLIC KEY ACK ${olmData.publicKey}`);
 
                 // const { ciphertext } = msg.data;
                 const d = this._reqs.get(msg.data.uuid);
