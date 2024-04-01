@@ -83,6 +83,7 @@
   "files": [
     "dist",
     "types",
+    "connection_optimization/external_connect.js",
     "index.d.ts"
   ],
   "license": "Apache-2.0"
