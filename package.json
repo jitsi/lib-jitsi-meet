@@ -16,6 +16,7 @@
   "author": "",
   "readmeFilename": "README.md",
   "dependencies": {
+    "@dashlane/pqc-kem-kyber512-browser": "^1.0.0",
     "@jitsi/js-utils": "2.2.1",
     "@jitsi/logger": "2.0.2",
     "@jitsi/rtcstats": "9.7.0",
