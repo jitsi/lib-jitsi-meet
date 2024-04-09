@@ -399,6 +399,8 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
+        pcOptions.usesCodecSelectionAPI = this.usesCodecSelectionAPI
+            = browser.supportsCodecSelectionAPI() && options.testing?.enableCodecSelectionAPI;
 
         if (options.videoQuality) {
             const settings = Object.entries(options.videoQuality)
@@ -1174,13 +1176,17 @@ export default class JingleSessionPC extends JingleSession {
      * Updates the codecs on the peerconnection and initiates a renegotiation for the
      * new codec config to take effect.
      *
-     * @param {CodecMimeType} preferred the preferred codec.
-     * @param {CodecMimeType} disabled the codec that needs to be disabled.
+     * @param {Array<CodecMimeType>} codecList the preferred codecs.
      */
     setVideoCodecs(codecList) {
+
         if (this._assertNotEnded()) {
             logger.info(`${this} setVideoCodecs: ${codecList}`);
             this.peerconnection.setVideoCodecs(codecList);
+
+            if (this.usesCodecSelectionAPI) {
+                return;
+            }
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {

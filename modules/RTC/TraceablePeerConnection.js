@@ -266,6 +266,12 @@ export default function TraceablePeerConnection(
         && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
 
     /**
+     * Flag used to indicate if the codecs are configured using the codec selection API without having the need to
+     * trigger a renegotiation for the change to be effective.
+     */
+    this._usesCodecSelectionAPI = this.options.usesCodecSelectionAPI;
+
+    /**
      * Indicates whether an audio track has ever been added to the peer connection.
      */
     this._hasHadAudioTrack = false;
@@ -1421,8 +1427,10 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
         }
 
         // Reorder the codecs based on the preferred settings.
-        for (const codec of this.codecSettings.codecList.slice().reverse()) {
-            SDPUtil.preferCodec(mLine, codec, this.isP2P);
+        if (!this._usesCodecSelectionAPI) {
+            for (const codec of this.codecSettings.codecList.slice().reverse()) {
+                SDPUtil.preferCodec(mLine, codec, this.isP2P);
+            }
         }
     }
 
@@ -1673,6 +1681,10 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
     }
 
     this.codecSettings.codecList = codecList;
+
+    if (this._usesCodecSelectionAPI) {
+        this.configureVideoSenderEncodings();
+    }
 };
 
 /**
@@ -2121,17 +2133,20 @@ TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(local
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(localVideoTrack = null) {
+    const preferredCodec = this.codecSettings.codecList[0];
+
     if (localVideoTrack) {
         return this.setSenderVideoConstraints(
             this._senderMaxHeights.get(localVideoTrack.getSourceName()),
-            localVideoTrack);
+            localVideoTrack,
+            preferredCodec);
     }
     const promises = [];
 
     for (const track of this.getLocalVideoTracks()) {
         const maxHeight = this._senderMaxHeights.get(track.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
 
-        promises.push(this.setSenderVideoConstraints(maxHeight, track));
+        promises.push(this.setSenderVideoConstraints(maxHeight, track, preferredCodec));
     }
 
     return Promise.allSettled(promises);
@@ -2230,9 +2245,10 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
  * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
+ * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack) {
+TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack, preferredCodec) {
     if (frameHeight < 0 || isNaN(frameHeight)) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
@@ -2248,8 +2264,10 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
         return Promise.resolve();
     }
 
+    const codec = preferredCodec ?? this.codecSettings.codecList[0];
+
     return this._updateVideoSenderParameters(
-        () => this._updateVideoSenderEncodings(frameHeight, localVideoTrack));
+        () => this._updateVideoSenderEncodings(frameHeight, localVideoTrack, codec));
 };
 
 /**
@@ -2274,9 +2292,10 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  *
  * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
  * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
+ * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack) {
+TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack, preferredCodec) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
 
     if (!videoSender) {
@@ -2298,7 +2317,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     parameters.degradationPreference = preference;
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
-    const codec = this.getConfiguredVideoCodec();
+    const codec = preferredCodec ?? this.getConfiguredVideoCodec(localVideoTrack);
     const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
     let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
@@ -2321,6 +2340,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         if (parameters.encodings.hasOwnProperty(idx)) {
             const {
                 active = undefined,
+                codec: currentCodec = undefined,
                 maxBitrate = undefined,
                 scalabilityMode = undefined,
                 scaleResolutionDownBy = undefined
@@ -2352,6 +2372,16 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
                 }
             } else {
                 parameters.encodings[idx].scalabilityMode = undefined;
+            }
+
+            const expectedPattern = `${MediaType.VIDEO}/${codec.toUpperCase()}`;
+
+            // Configure the codec here if its supported.
+            if (this._usesCodecSelectionAPI && currentCodec?.mimeType !== expectedPattern) {
+                const matchingCodec = parameters.codecs.find(pt => pt.mimeType === expectedPattern);
+
+                parameters.encodings[idx].codec = matchingCodec;
+                needsUpdate = true;
             }
         }
     }
