@@ -947,13 +947,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Returns the video codec configured as the preferred codec on the peerconnection.
-     */
-    getConfiguredVideoCodec() {
-        return this.peerconnection.getConfiguredVideoCodec();
-    }
-
-    /**
      * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
      *
      * @param jingleOffer jQuery selector pointing to the jingle element of the offer IQ
