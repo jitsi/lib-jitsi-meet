@@ -1260,8 +1260,8 @@ export default class ChatRoom extends Listenable {
                     if (this._roomCreationRetries <= 3) {
                         const retryDelay = getJitterDelay(
                             /* retry */ this._roomCreationRetries,
-                            /* minDelay */ 300,
-                            1);
+                            /* minDelay */ 500,
+                            1.5);
 
                         // let's retry inviting jicofo and joining the room, retries will take between 1 and 3 seconds
                         setTimeout(() => this.join(this.password, this.replaceParticipant), retryDelay);
