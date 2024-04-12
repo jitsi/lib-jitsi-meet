@@ -2,7 +2,9 @@
 import Logger from '@jitsi/logger';
 import watchRTC from '@testrtc/watchrtc-sdk';
 
-import { isAnalyticsEnabled, isRtcstatsEnabled, isWatchRTCEnabled } from './functions';
+import browser from '../browser';
+
+import { isAnalyticsEnabled, isWatchRTCEnabled } from './functions';
 import { IWatchRTCConfiguration } from './interfaces';
 
 const logger = Logger.getLogger(__filename);
@@ -13,6 +15,7 @@ const logger = Logger.getLogger(__filename);
  */
 class WatchRTCHandler {
     options?: IWatchRTCConfiguration;
+
     /**
      * Initialize watchRTC, it overwrites GUM and PeerConnection global functions and adds a proxy over them
      * used to capture stats.
@@ -21,8 +24,13 @@ class WatchRTCHandler {
      * @returns {void}
      */
     init(options: any): void {
-
         if (isWatchRTCEnabled(options)) {
+
+            // @ts-ignore
+            if (browser.isReactNative()) {
+                logger.warn('Cannot initialize WatchRTC in a react native environment!');
+                return;
+            }
 
             if (!isAnalyticsEnabled(options)) {
                 logger.error('Cannot initialize WatchRTC when analytics or third party requests are disabled.');
