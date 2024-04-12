@@ -1,3 +1,5 @@
+import clonedeep from 'lodash.clonedeep';
+
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import FeatureFlags from './modules/flags/FeatureFlags';
@@ -9,6 +11,11 @@ import {
 } from './service/statistics/AnalyticsEvents';
 
 /**
+ * Prefix used by JaaS apps.
+ */
+const JAAS_APPID_PREFIX = 'vpaas-magic-cookie';
+
+/**
  * Creates a new connection object for the Jitsi Meet server side video
  * conferencing service. Provides access to the JitsiConference interface.
  * @param appID identification for the provider of Jitsi Meet video conferencing
@@ -18,15 +25,36 @@ import {
  * the server.
  * @constructor
  */
-export default function JitsiConnection(appID, token, options) {
-    this.appID = appID;
+export default function JitsiConnection(appID, token, options = {}) {
+    this.appID = (appID || '').toLowerCase();
     this.token = token;
-    this.options = options;
+
+    const _options = clonedeep(options);
+
+    // If a JaaS app ID was provided but no options, provide some ourselves.
+    if (this.appID.startsWith(JAAS_APPID_PREFIX)) {
+        if (!_options.hosts) {
+            _options.hosts = {
+                domain: '8x8.vc',
+                muc: `conference.${this.appID}.8x8.vc`
+            };
+        }
+
+        if (!_options.serviceUrl && !_options.bosh && !_options.websocket) {
+            _options.serviceUrl = `wss://8x8.vc/${this.appID}/xmpp-websocket`;
+        }
+
+        if (!_options.websocketKeepAliveUrl) {
+            _options.websocketKeepAliveUrl = `https://8x8.vc/${this.appID}/_unlock`;
+        }
+    }
+
+    this.options = _options;
 
     // Initialize the feature flags so that they are advertised through the disco-info.
-    FeatureFlags.init(options.flags || {});
+    FeatureFlags.init(_options.flags || {});
 
-    this.xmpp = new XMPP(options, token);
+    this.xmpp = new XMPP(this.options, token);
 
     /* eslint-disable max-params */
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
