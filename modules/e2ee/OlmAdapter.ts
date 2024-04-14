@@ -1029,7 +1029,7 @@ export class OlmAdapter extends Listenable {
                                 OlmAdapterEvents.PARTICIPANT_KEY_UPDATED,
                                 pId,
                                 mediaKey,
-                                this._mediaKeyIndex++
+                                this._mediaKeyIndex
                             );
                         }
 
@@ -1106,7 +1106,7 @@ export class OlmAdapter extends Listenable {
                                 OlmAdapterEvents.PARTICIPANT_KEY_UPDATED,
                                 pId,
                                 mediaKey,
-                                this._mediaKeyIndex++
+                                this._mediaKeyIndex
                             );
                         }
                     }

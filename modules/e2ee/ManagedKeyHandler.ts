@@ -1,7 +1,6 @@
 /// <reference types="node" />
 
 import { getLogger } from "@jitsi/logger";
-import base64js from "base64-js";
 import { debounce } from "lodash-es";
 
 import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
@@ -111,9 +110,7 @@ export class ManagedKeyHandler extends KeyHandler {
                     this._pqKey
                 );
 
-            logger.info(`CHECK: my media key is ${base64js.fromByteArray(
-                mediaKey
-            )} or ${mediaKey} and
+            logger.info(`CHECK: setKey my media key is ${mediaKey} and
             index is ${mediaKeyIndex}`);
 
             // Set our key so we begin encrypting.
@@ -197,9 +194,7 @@ export class ManagedKeyHandler extends KeyHandler {
             console.log("[ERROR_KEY_DERIVATION]: Cannot ratchet key ", error);
         }
 
-        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(
-            key
-        )} and
+        logger.info(`CHECKPOINT: setKey my media key is ${key} and
         index is ${index}`);
         this.setKey({ encryptionKey: key, index });
     }
@@ -230,8 +225,9 @@ export class ManagedKeyHandler extends KeyHandler {
             this._pqKey
         );
 
-        logger.info(`CHECKPOINT: my media key is ${base64js.fromByteArray(key)}
-        and index is ${index}`);
+        logger.info(
+            `CHECKPOINT: after ratchet, setKey my media key is ${key} and index is ${index}`
+        );
         this.setKey({ encryptionKey: key, index });
     }
 
@@ -244,9 +240,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantKeyUpdated(id, key, index) {
-        logger.info(`CHECKPOINT: Participant ${id} updated their key ${base64js.fromByteArray(
-            key
-        )} and
+        logger.info(`CHECKPOINT: Participant ${id} called setKey and set their key ${key} and
         index is ${index}`);
         this.e2eeCtx.setKey(id, key, index);
     }

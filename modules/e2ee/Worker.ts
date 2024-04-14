@@ -70,8 +70,7 @@ onmessage = async (event) => {
         const { participantId, key, keyIndex } = event.data;
         const context = getParticipantContext(participantId);
 
-        console.log(`CHECK: set key ${base64js.fromByteArray(key)} and 
-            index is ${keyIndex}`);
+        console.log(`CHECK: setKey ${key} and index is ${keyIndex}`);
         context.setKey(key, keyIndex);
     } else if (operation === "cleanup") {
         const { participantId } = event.data;
