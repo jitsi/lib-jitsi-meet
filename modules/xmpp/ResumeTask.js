@@ -47,6 +47,7 @@ export default class ResumeTask {
      */
     schedule() {
         this._cancelResume();
+        this._removeNetworkOnlineListener();
 
         this._resumeRetryN += 1;
 
@@ -98,16 +99,24 @@ export default class ResumeTask {
      * @returns {void}
      */
     _cancelResume() {
-        if (this._networkOnlineListener) {
-            this._networkOnlineListener();
-            this._networkOnlineListener = null;
-        }
-
         if (this._resumeTimeout) {
             logger.info('Canceling connection resume task');
             clearTimeout(this._resumeTimeout);
             this._resumeTimeout = undefined;
             this._retryDelay = undefined;
+        }
+    }
+
+    /**
+     * Removes network online listener for the NETWORK_INFO_EVENT event.
+     *
+     * @private
+     * @returns {void}
+     */
+    _removeNetworkOnlineListener() {
+        if (this._networkOnlineListener) {
+            this._networkOnlineListener();
+            this._networkOnlineListener = null;
         }
     }
 
@@ -157,6 +166,7 @@ export default class ResumeTask {
      */
     cancel() {
         this._cancelResume();
+        this._removeNetworkOnlineListener();
         this._resumeRetryN = 0;
     }
 }
