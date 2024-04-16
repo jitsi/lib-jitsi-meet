@@ -49,9 +49,7 @@ export default class ResumeTask {
         this._cancelResume();
 
         this._resumeRetryN += 1;
-        if (this._networkOnlineListener) {
-            this._networkOnlineListener();
-        }
+
         this._networkOnlineListener
             = NetworkInfo.addCancellableListener(
                 NETWORK_INFO_EVENT,
@@ -100,6 +98,11 @@ export default class ResumeTask {
      * @returns {void}
      */
     _cancelResume() {
+        if (this._networkOnlineListener) {
+            this._networkOnlineListener();
+            this._networkOnlineListener = null;
+        }
+
         if (this._resumeTimeout) {
             logger.info('Canceling connection resume task');
             clearTimeout(this._resumeTimeout);
@@ -155,9 +158,5 @@ export default class ResumeTask {
     cancel() {
         this._cancelResume();
         this._resumeRetryN = 0;
-        if (this._networkOnlineListener) {
-            this._networkOnlineListener();
-            this._networkOnlineListener = null;
-        }
     }
 }
