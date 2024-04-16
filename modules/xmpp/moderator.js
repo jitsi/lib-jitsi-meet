@@ -288,16 +288,6 @@ export default class Moderator extends Listenable {
      * rejected, and it'll keep on pinging Jicofo forever.
      */
     sendConferenceRequest(roomJid) {
-        // there is no point of sending conference iq when in visitor mode (disableFocus)
-        // when we have sent early the conference request via http
-        // we want to skip sending it here, or visitors can loop
-        if (this.conferenceRequestSent) {
-            return Promise.resolve();
-        }
-
-        // to mark whether we have already sent a conference request
-        this.conferenceRequestSent = false;
-
         return new Promise(resolve => {
             if (this.mode === 'xmpp') {
                 logger.info(`Sending conference request over XMPP to ${this.targetJid}`);
@@ -349,8 +339,6 @@ export default class Moderator extends Listenable {
                         this._handleError(roomJid);
                     });
             }
-        }).then(() => {
-            this.conferenceRequestSent = true;
         });
     }
 
