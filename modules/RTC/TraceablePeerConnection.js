@@ -1081,26 +1081,6 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
 };
 
 /**
- * Removes all JitsiRemoteTracks associated with given MUC nickname (resource part of the JID).
- *
- * @param {string} owner - The resource part of the MUC JID.
- * @returns {JitsiRemoteTrack[]} - The array of removed tracks.
- */
-TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
-    let removedTracks = [];
-    const remoteTracksByMedia = this.remoteTracks.get(owner);
-
-    if (remoteTracksByMedia) {
-        removedTracks = removedTracks.concat(Array.from(remoteTracksByMedia.get(MediaType.AUDIO)));
-        removedTracks = removedTracks.concat(Array.from(remoteTracksByMedia.get(MediaType.VIDEO)));
-        this.remoteTracks.delete(owner);
-    }
-    logger.debug(`${this} removed remote tracks[endpoint=${owner},count=${removedTracks.length}`);
-
-    return removedTracks;
-};
-
-/**
  * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits {@link RTCEvents.REMOTE_TRACK_REMOVED}.
  *
  * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
