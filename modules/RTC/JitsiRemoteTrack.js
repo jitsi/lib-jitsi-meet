@@ -280,7 +280,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     setOwner(owner) {
         this.ownerEndpointId = owner;
-        this.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, owner);
     }
 
     /**

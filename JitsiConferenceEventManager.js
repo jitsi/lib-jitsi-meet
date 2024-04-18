@@ -173,7 +173,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED, track => {
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_ADDED, track => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    });
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_REMOVED, track => {
         conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
     });
 

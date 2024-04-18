@@ -1777,18 +1777,23 @@ export default class JingleSessionPC extends JingleSession {
                     const track = this.peerconnection.getTrackBySSRC(oldSsrc);
 
                     if (track) {
-                        track.setSourceName(undefined);
-                        track.setOwner(undefined);
-                        track._setVideoType(undefined);
+                        track.setSourceName(null);
+                        track.setOwner(null);
+                        track._setVideoType(null);
+                        this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_REMOVED, track);
                     }
                 }
             } else {
                 logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
                 const track = this.peerconnection.getTrackBySSRC(ssrc);
 
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_REMOVED, track);
+
                 this._signalingLayer.setSSRCOwner(ssrc, owner, source);
                 track.setSourceName(source);
                 track.setOwner(owner);
+
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_ADDED, track);
 
                 // Update the muted state and the video type on the track since the presence for this track could have
                 // been received before the updated source map is received on the bridge channel.

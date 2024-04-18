@@ -1882,12 +1882,12 @@ JitsiConference.prototype.onMemberLeft = function(jid, reason) {
     }
 
     tracksToBeRemoved.forEach(track => {
+        // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+
         if (FeatureFlags.isSsrcRewritingSupported()) {
             track.setSourceName(null);
             track.setOwner(null);
-        } else {
-            // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
         }
     });
 
@@ -2946,9 +2946,7 @@ JitsiConference.prototype._addRemoteP2PTracks = function() {
  */
 JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
     for (const track of remoteTracks) {
-        // There will be orphan (with no owner) tracks when ssrc-rewriting is enabled and all of them need to be addded
-        // back to the conference.
-        if (FeatureFlags.isSsrcRewritingSupported() || this.participants.has(track.ownerEndpointId)) {
+        if (this.participants.has(track.ownerEndpointId)) {
             logger.info(`Adding remote ${logName} track: ${track}`);
             this.onRemoteTrackAdded(track);
         }
