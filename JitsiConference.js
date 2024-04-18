@@ -384,8 +384,7 @@ JitsiConference.prototype._init = function(options = {}) {
                 ? config.videoQuality.mobileCodecPreferenceOrder
                 : config.videoQuality?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
-            supportsAv1: config.testing?.enableAv1Support
+            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec)
         },
         p2p: {
             preferenceOrder: browser.isMobileDevice() && config.p2p?.mobileCodecPreferenceOrder
