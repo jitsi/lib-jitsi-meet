@@ -380,7 +380,9 @@ export default class Moderator extends Listenable {
             this.getNextTimeout(true);
 
             // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
-            if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
+            // ignoring redirects when it is a replacement
+            if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway
+                    && !this.options.replaceParticipant) {
                 logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`);
 
                 this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
