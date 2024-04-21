@@ -22,7 +22,7 @@ const logger = getLogger(__filename);
  *
  * @type {number}
  */
-let lastErrorStatus = -1;
+let lastErrorStatus : number = -1;
 
 /**
  * A regular expression used to catch Strophe's log message indicating that the
@@ -30,14 +30,14 @@ let lastErrorStatus = -1;
  * {@link lastErrorStatus} will be set back to '-1'.
  * @type {RegExp}
  */
-const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
+const resetLastErrorStatusRegExpr : RegExp = /request id \d+.\d+ got 200/;
 
 /**
  * A regular expression used to capture the current value of the BOSH request
  * error status (HTTP error code or '0' or something else).
  * @type {RegExp}
  */
-const lastErrorStatusRegExpr
+const lastErrorStatusRegExpr : RegExp
     = /request errored, status: (\d+), number of errors: \d+/;
 
 /**
