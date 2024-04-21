@@ -4,11 +4,12 @@
  *
  * See https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.1
  */
-export async function deriveKeys(material: CryptoKey): Promise<{
-    material: CryptoKey;
-    encryptionKey: CryptoKey;
-}> {
+export async function deriveKeys(olmKey: Uint8Array, pqKey: Uint8Array): Promise<CryptoKey> {
+
     const textEncoder = new TextEncoder();
+    const data = new Uint8Array([...olmKey, ...pqKey]);
+    const concatKey = await crypto.subtle.digest("SHA-256", data);
+    const material =  await importKey(new Uint8Array(concatKey));
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
     // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
@@ -28,10 +29,7 @@ export async function deriveKeys(material: CryptoKey): Promise<{
         ["encrypt", "decrypt"]
     );
 
-    return {
-        material,
-        encryptionKey,
-    };
+    return encryptionKey;
 }
 
 /**

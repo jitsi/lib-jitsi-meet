@@ -8,7 +8,6 @@ import { Context } from "./Context";
 
 const contexts = new Map(); // Map participant id => context
 
-let sharedContext;
 
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
@@ -17,9 +16,6 @@ let sharedContext;
  * @returns {Object} The context.
  */
 function getParticipantContext(participantId) {
-    if (sharedContext) {
-        return sharedContext;
-    }
 
     if (!contexts.has(participantId)) {
         contexts.set(participantId, new Context());
@@ -55,23 +51,18 @@ function handleTransform(context, operation, readableStream, writableStream) {
 onmessage = async (event) => {
     const { operation } = event.data;
 
-    if (operation === "initialize") {
-        const { sharedKey } = event.data;
-
-        if (sharedKey) {
-            sharedContext = new Context({ sharedKey });
-        }
-    } else if (operation === "encode" || operation === "decode") {
+    if (operation === "encode" || operation === "decode") {
         const { readableStream, writableStream, participantId } = event.data;
         const context = getParticipantContext(participantId);
 
         handleTransform(context, operation, readableStream, writableStream);
     } else if (operation === "setKey") {
-        const { participantId, key, keyIndex } = event.data;
+        const { participantId, olmKey, pqKey, index } = event.data;
         const context = getParticipantContext(participantId);
 
-        console.log(`CHECK: setKey ${key} and index is ${keyIndex}`);
-        context.setKey(key, keyIndex);
+        console.log('CHECK: on message got event', event.data, 'parsed as id', participantId, 'olm key', olmKey, 
+            'pq key', pqKey, 'index', index);
+        context.setKey(olmKey, pqKey, index);
     } else if (operation === "cleanup") {
         const { participantId } = event.data;
 

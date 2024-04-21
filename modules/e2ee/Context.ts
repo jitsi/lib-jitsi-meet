@@ -4,7 +4,6 @@ import base64js from "base64-js";
 import { Buffer } from "buffer";
 
 import { deriveKeys, importKey, ratchet } from "./crypto-utils";
-import { KeyInfo } from "./KeyHandler";
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key. We use a size of 16 which corresponds to the four bits
@@ -37,7 +36,8 @@ const RATCHET_WINDOW_SIZE = 8;
 
 export type KeyMaterial = {
     encryptionKey: CryptoKey;
-    material: CryptoKey;
+    materialOlm: CryptoKey;
+    materialPQ: CryptoKey;
 };
 
 /**
@@ -48,11 +48,10 @@ export class Context {
     private _cryptoKeyRing: KeyMaterial[];
     private _currentKeyIndex: number;
     private _sendCounts: Map<any, number>;
-    private _sharedKey: boolean;
     /**
      * @param {Object} options
      */
-    constructor({ sharedKey = false } = {}) {
+    constructor() {
         // An array (ring) of keys that we use for sending and receiving.
         this._cryptoKeyRing = new Array(KEYRING_SIZE);
 
@@ -60,38 +59,30 @@ export class Context {
         this._currentKeyIndex = -1;
 
         this._sendCounts = new Map();
-
-        this._sharedKey = sharedKey;
     }
 
     /**
      * Derives the different subkeys and starts using them for encryption or
      * decryption.
-     * @param {Uint8Array} key bytes.
-     * @param {Number} keyIndex
+     * @param {Uint8Array} olmKey bytes.
+     * @param {Uint8Array} pqKey bytes.
+     * @param {Number} index
      */
-    async setKey(key: Uint8Array, keyIndex: number = -1) {
+    async setKey(olmKey: Uint8Array, pqKey: Uint8Array, index: number = -1) {
         let newKey: KeyMaterial;
 
-        if (this._sharedKey) {
-            const cryptoKey: CryptoKey = await crypto.subtle.importKey(
-                "raw",
-                key,
-                {
-                    name: "AES-GCM",
-                    length: 256,
-                },
-                false,
-                ["encrypt", "decrypt"]
-            );
-            newKey = { encryptionKey: cryptoKey, material: undefined };
-        } else {
-            const material = await importKey(key);
-
-            newKey = await deriveKeys(material);
-        }
-
-        this._setKeys(newKey, keyIndex);
+        const newEncryptionKey = await deriveKeys(
+            olmKey,
+            pqKey
+        );
+        const newMaterialOlm = await importKey(olmKey);
+        const newMaterialPQ = await importKey(pqKey);
+        newKey = {
+            materialOlm: newMaterialOlm,
+            materialPQ: newMaterialPQ,
+            encryptionKey: newEncryptionKey,
+        };
+        this._setKeys(newKey, index);
     }
 
     /**
@@ -132,7 +123,7 @@ export class Context {
      * 8) Append a single byte for the key identifier.
      * 9) Enqueue the encrypted frame for sending.
      */
-    encodeFunction(encodedFrame, controller) {
+    encodeFunction(encodedFrame, controller: TransformStreamDefaultController) {
         const keyIndex = this._currentKeyIndex;
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this._makeIV(
@@ -263,12 +254,12 @@ export class Context {
      */
     async _decryptFrame(
         encodedFrame,
-        keyIndex,
+        keyIndex: number,
         initialKey = undefined,
-        ratchetCount = 0
+        ratchetCount: number = 0
     ) {
         const { encryptionKey } = this._cryptoKeyRing[keyIndex];
-        let { material } = this._cryptoKeyRing[keyIndex];
+        let { materialOlm, materialPQ } = this._cryptoKeyRing[keyIndex];
 
         // Construct frame trailer. Similar to the frame header described in
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
@@ -336,16 +327,23 @@ export class Context {
 
             return encodedFrame;
         } catch (error) {
-            if (this._sharedKey) {
-                return;
-            }
 
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
                 const currentKey = this._cryptoKeyRing[this._currentKeyIndex];
 
-                material = await importKey(await ratchet(material));
+                const newMaterialOlm =  await ratchet(materialOlm);
+                const newMaterialPQ = await ratchet(materialPQ);
+                const newEncryptionKey = await deriveKeys(
+                    newMaterialOlm,
+                    newMaterialPQ
+                );
 
-                const newKey = await deriveKeys(material);
+                console.log('CHECK: Decrypt frame ratches for time =', ratchetCount);
+                const newKey = {
+                    materialOlm: await importKey(newMaterialOlm),
+                    materialPQ: await importKey(newMaterialPQ),
+                    encryptionKey: newEncryptionKey,
+                };
 
                 this._setKeys(newKey);
 

@@ -23,9 +23,8 @@ export default class E2EEcontext {
     // private _worker: Worker;
     /**
      * Build a new E2EE context instance, which will be used in a given conference.
-     * @param {boolean} [options.sharedKey] - whether there is a uniques key shared amoung all participants.
      */
-    constructor({ sharedKey = 'false' } = {}) {
+    constructor() {
         // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
@@ -55,10 +54,6 @@ export default class E2EEcontext {
 
         this._worker.onerror = e => logger.error(e);
 
-        this._worker.postMessage({
-            operation: 'initialize',
-            sharedKey
-        });
     }
 
     /**
@@ -154,15 +149,16 @@ export default class E2EEcontext {
      * Set the E2EE key for the specified participant.
      *
      * @param {string} participantId - the ID of the participant who's key we are setting.
-     * @param {Uint8Array} key - they key for the given participant.
+     * @param {Uint8Array} olmKey - olm key for the given participant.
+     * @param {Uint8Array} pqKey - olm key for the given participant.
      * @param {Number} keyIndex - the key index.
      */
-    setKey(participantId, key, keyIndex) {
-        console.log(`CHECK: setKey for ${participantId} as ${key}`);
+    setKey(participantId, olmKey, pqKey, index) {
         this._worker.postMessage({
             operation: 'setKey',
-            key,
-            keyIndex,
+            olmKey,
+            pqKey,
+            index,
             participantId
         });
     }

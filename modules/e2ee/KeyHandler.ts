@@ -24,17 +24,16 @@ export abstract class KeyHandler extends Listenable {
     _olmAdapter: any;
 
     abstract _setEnabled(enabled: boolean): Promise<boolean>;
-    abstract setKey(keyInfo: KeyInfo): void;
+    abstract setKey(olmKey: Uint8Array, pqKey: Uint8Array, index: number): void;
     /**
      * Build a new KeyHandler instance, which will be used in a given conference.
      * @param {JitsiConference} conference - the current conference.
-     * @param {object} sharedKey - the options passed to {E2EEContext}, see implemention.
      */
-    constructor(conference, sharedKey = false) {
+    constructor(conference) {
         super();
 
         this.conference = conference;
-        this.e2eeCtx = new E2EEContext(sharedKey);
+        this.e2eeCtx = new E2EEContext();
 
         this.enabled = false;
 
@@ -73,7 +72,6 @@ export abstract class KeyHandler extends Listenable {
      * @returns {void}
      */
     async setEnabled(enabled) {
-        console.log(`CHECK: setEnabled is called and enabled is ${enabled}`);
         if (enabled === this.enabled) {
             return;
         }

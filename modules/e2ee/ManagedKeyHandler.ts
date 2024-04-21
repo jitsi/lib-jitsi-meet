@@ -5,9 +5,10 @@ import { debounce } from "lodash-es";
 
 import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
-import { KeyHandler, KeyInfo } from "./KeyHandler";
+import { KeyHandler } from "./KeyHandler";
 import { OlmAdapter } from "./OlmAdapter";
 import { importKey, ratchet } from "./crypto-utils";
+import JitsiParticipant from "../../JitsiParticipant";
 
 const logger = getLogger(__filename);
 
@@ -93,9 +94,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {boolean}
      */
-    async _setEnabled(enabled): Promise<boolean> {
-        console.log(`CHECK: _setEnabled started and is ${enabled}`);
-
+    async _setEnabled(enabled: boolean): Promise<boolean> {
         if (!enabled) {
             this._olmAdapter.clearAllParticipantsSessions();
             return false;
@@ -103,18 +102,15 @@ export class ManagedKeyHandler extends KeyHandler {
 
         try {
             this._onKeyGeneration();
-
-            const { mediaKeyIndex, mediaKey } =
-                await this._olmAdapter.initSessionsAndSetMediaKey(
-                    this._olmKey,
-                    this._pqKey
-                );
-
-            logger.info(`CHECK: setKey my media key is ${mediaKey} and
-            index is ${mediaKeyIndex}`);
+            await this._olmAdapter.initSessions();
+            console.log("CHECK: no key update before that!!!!!!");
+            const mediaKeyIndex = await this._olmAdapter.updateKey(
+                this._olmKey,
+                this._pqKey
+            );
 
             // Set our key so we begin encrypting.
-            this.setKey({ encryptionKey: mediaKey, index: mediaKeyIndex });
+            this.setKey(this._olmKey, this._pqKey, mediaKeyIndex);
         } catch (e) {
             console.log(`_setEnabled got error ${e}`);
             return false;
@@ -133,7 +129,12 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {*} newValue - The property's new value.
      * @private
      */
-    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+    async _onParticipantPropertyChanged(
+        participant: JitsiParticipant,
+        name: string,
+        oldValue,
+        newValue
+    ) {
         if (newValue !== oldValue) {
             switch (name) {
                 case "e2ee.idKey":
@@ -164,7 +165,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * Rotates the current key when a participant leaves the conference.
      * @private
      */
-    _onParticipantLeft(id) {
+    _onParticipantLeft(id: string) {
         this.e2eeCtx.cleanup(id);
 
         if (this.enabled) {
@@ -181,30 +182,15 @@ export class ManagedKeyHandler extends KeyHandler {
     async _rotateKeyImpl() {
         this._onKeyGeneration();
 
-        let index;
-        let key;
-
-        try {
-            const { mediaKeyIndex, mediaKey } =
-                await this._olmAdapter.updateKey(this._olmKey, this._pqKey);
-
-            index = mediaKeyIndex;
-            key = mediaKey;
-        } catch (error) {
-            console.log("[ERROR_KEY_DERIVATION]: Cannot ratchet key ", error);
-        }
-
-        logger.info(`CHECKPOINT: setKey my media key is ${key} and
-        index is ${index}`);
-        this.setKey({ encryptionKey: key, index });
+        const index = await this._olmAdapter.updateKey(
+            this._olmKey,
+            this._pqKey
+        );
+        this.setKey(this._olmKey, this._pqKey, index);
     }
 
-    setKey(keyInfo: KeyInfo) {
-        this.e2eeCtx.setKey(
-            this.conference.myUserId(),
-            keyInfo.encryptionKey,
-            keyInfo.index
-        );
+    setKey(olmKey: Uint8Array, pqKey: Uint8Array, index: number) {
+        this.e2eeCtx.setKey(this.conference.myUserId(), olmKey, pqKey, index);
     }
     /**
      * Advances the current key by using ratcheting.
@@ -220,15 +206,12 @@ export class ManagedKeyHandler extends KeyHandler {
         const pqMaterial = await importKey(this._pqKey);
         this._pqKey = await ratchet(pqMaterial);
 
-        const { key, index } = await this._olmAdapter.updateCurrentMediaKey(
+        const index = await this._olmAdapter.updateCurrentMediaKey(
             this._olmKey,
             this._pqKey
         );
 
-        logger.info(
-            `CHECKPOINT: after ratchet, setKey my media key is ${key} and index is ${index}`
-        );
-        this.setKey({ encryptionKey: key, index });
+        this.setKey(this._olmKey, this._pqKey, index);
     }
 
     /**
@@ -239,10 +222,23 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {Number} index - The new key's index.
      * @private
      */
-    _onParticipantKeyUpdated(id, key, index) {
-        logger.info(`CHECKPOINT: Participant ${id} called setKey and set their key ${key} and
-        index is ${index}`);
-        this.e2eeCtx.setKey(id, key, index);
+    _onParticipantKeyUpdated(
+        id: string,
+        olmKey: Uint8Array,
+        pqKey: Uint8Array,
+        index: number
+    ) {
+        logger.info(
+            "CHECKPOINT: _onParticipantKeyUpdated called setKey with id",
+            id,
+            "olm key",
+            olmKey,
+            "pq key",
+            pqKey,
+            "index",
+            index
+        );
+        this.e2eeCtx.setKey(id, olmKey, pqKey, index);
     }
 
     /**
@@ -265,7 +261,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {Uint8Array} sas - The bytes from sas.generate_bytes..
      * @private
      */
-    _onParticipantSasReady(pId, sas) {
+    _onParticipantSasReady(pId: string, sas: Uint8Array) {
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.E2EE_VERIFICATION_READY,
             pId,
@@ -279,7 +275,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {string} pId - The participant ID.
      * @private
      */
-    _onParticipantSasAvailable(pId) {
+    _onParticipantSasAvailable(pId: string) {
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE,
             pId
@@ -293,7 +289,11 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {boolean} success - Wheter the verification was succesfull.
      * @private
      */
-    _onParticipantVerificationCompleted(pId, success, message) {
+    _onParticipantVerificationCompleted(
+        pId: string,
+        success: boolean,
+        message
+    ) {
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED,
             pId,

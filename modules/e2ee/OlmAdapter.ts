@@ -42,8 +42,7 @@ const OLM_SAS_NUM_BYTES = 6;
 const OLM_KEY_VERIFICATION_MAC_INFO = "Jitsi-KEY_VERIFICATION_MAC";
 const OLM_KEY_VERIFICATION_MAC_KEY_IDS = "Jitsi-KEY_IDS";
 
-const kOlmData = Symbol("OlmData");
-
+const kOlmData = "OlmData";
 const OlmAdapterEvents = {
     PARTICIPANT_E2EE_CHANNEL_READY: "olm.participant_e2ee_channel_ready",
     PARTICIPANT_SAS_AVAILABLE: "olm.participant_sas_available",
@@ -80,7 +79,6 @@ export class OlmAdapter extends Listenable {
     private _init: boolean;
     private _mediaKeyOlm: Uint8Array;
     private _mediaKeyPQ: Uint8Array;
-    private _mediaKey: Uint8Array;
     private _mediaKeyIndex: number;
     private _reqs: Map<Uint8Array, Deferred>;
     private _publicKey: Uint8Array;
@@ -104,7 +102,6 @@ export class OlmAdapter extends Listenable {
         this._kem = undefined;
         this._mediaKeyOlm = undefined;
         this._mediaKeyPQ = undefined;
-        this._mediaKey = undefined;
         this._mediaKeyIndex = -1;
         this._reqs = new Map();
         this._publicKey = undefined;
@@ -127,7 +124,7 @@ export class OlmAdapter extends Listenable {
             );
             this._conf.on(
                 JitsiConferenceEvents.USER_LEFT,
-                this._onParticipantLeft.bind(this)
+                this._onParticipantLeft2.bind(this)
             );
             this._conf.on(
                 JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
@@ -207,47 +204,29 @@ export class OlmAdapter extends Listenable {
         await Promise.allSettled(promises);
     }
 
-    async initSessions() {
-        const promises = [];
-        const localParticipantId = this._conf.myUserId();
-
-        for (const participant of this._conf.getParticipants()) {
-            if (
-                participant.hasFeature(FEATURE_E2EE) &&
-                localParticipantId < participant.getId()
-            ) {
-                logger.info(
-                    `CHECK: initSessionsAndSetMediaKey sent _sessionInitialization to ${participant.getId()}`
-                );
-                promises.push(this._sendSessionInit(participant));
-            }
-        }
-
-        await Promise.allSettled(promises);
-    }
-
     /**
      * Starts new olm sessions with every other participant that has the participantId "smaller" the localParticipantId.
      */
-    async initSessionsAndSetMediaKey(
-        olmKey: Uint8Array,
-        pqKey: Uint8Array
-    ): Promise<{ mediaKey: Uint8Array; mediaKeyIndex: number }> {
-        logger.info("initSessionsAndSetMediaKey started");
+    async initSessions() {
         if (this._init) {
-            throw new Error("initSessionsAndSetMediaKey called multiple times");
+            throw new Error("initSessions called multiple times");
         } else {
             this._init = await this.enableOLM();
-            if (!this._init)
-                throw new Error("initSessionsAndSetMediaKey couldn't init olm");
+            if (!this._init) throw new Error("initSessions couldn't init olm");
 
-            await this.initSessions();
-            logger.info(
-                "CHECK: initSessionsAndSetMediaKey is done waiting and starts KEY_INFO"
-            );
-            const keyInfo = await this.updateKey(olmKey, pqKey);
+            const promises = [];
+            const localParticipantId = this._conf.myUserId();
 
-            return keyInfo;
+            for (const participant of this._conf.getParticipants()) {
+                if (
+                    participant.hasFeature(FEATURE_E2EE) &&
+                    localParticipantId < participant.getId()
+                ) {
+                    promises.push(this._sendSessionInit(participant));
+                }
+            }
+
+            await Promise.allSettled(promises);
         }
     }
 
@@ -268,28 +247,16 @@ export class OlmAdapter extends Listenable {
      * @param {Uint8Array|boolean} pqKey - The new key.
      * @retrns {Promise<Number>}
      */
-    async updateKey(
-        key: Uint8Array,
-        pqkey: Uint8Array
-    ): Promise<{ mediaKeyIndex: number; mediaKey: Uint8Array }> {
-        logger.info("updateKey: started");
-        this._mediaKeyOlm = key;
-        this._mediaKeyPQ = pqkey;
-
-        // Store it locally for new sessions.
-        const { key: newMediaKey, index } = await this.updateCurrentMediaKey(
-            key,
-            pqkey
-        );
-        this._mediaKey = newMediaKey;
-        this._mediaKeyIndex = index;
+    async updateKey(key: Uint8Array, pqkey: Uint8Array): Promise<number> {
+        console.log("Key update us called");
+        await this.updateCurrentMediaKey(key, pqkey);
         this._mediaKeyIndex++;
 
         await this.sendKeyInfoToAll();
 
         // TODO: retry failed ones?
 
-        return { mediaKeyIndex: this._mediaKeyIndex, mediaKey: this._mediaKey };
+        return this._mediaKeyIndex;
     }
 
     /**
@@ -322,22 +289,23 @@ export class OlmAdapter extends Listenable {
      * Updates the current participant key.
      * @param {Uint8Array} olmKey - The new key.
      * @param {Uint8Array} pqKey - The new key.
-     * @returns {Uint8Array}
+     * @returns {number}
      */
     async updateCurrentMediaKey(olmKey, pqKey) {
-        this._mediaKey = await this.deriveKey(olmKey, pqKey);
         this._mediaKeyOlm = olmKey;
         this._mediaKeyPQ = pqKey;
 
-        return { key: this._mediaKey, index: this._mediaKeyIndex };
+        return this._mediaKeyIndex;
     }
 
     /**
      * Frees the olmData session for the given participant.
      *
      */
-    clearParticipantSession(participant) {
+    clearParticipantSession(participant: JitsiParticipant) {
+        console.log("clearParticipantSession for participant", participant);
         const olmData = this._getParticipantOlmData(participant);
+        console.log("clearParticipantSession olmData", olmData);
 
         if (olmData.session) {
             olmData.session.free();
@@ -413,7 +381,7 @@ export class OlmAdapter extends Listenable {
      * Sends sacMac if channel verification waas successful.
      *
      */
-    markParticipantVerified(participant, isVerified) {
+    markParticipantVerified(participant: JitsiParticipant, isVerified) {
         const olmData = this._getParticipantOlmData(participant);
 
         const pId = participant.getId();
@@ -508,7 +476,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Promise<void>}
      * @private
      */
-    startVerification(participant) {
+    startVerification(participant: JitsiParticipant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
@@ -692,7 +660,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Object}
      * @private
      */
-    _getParticipantOlmData(participant) {
+    _getParticipantOlmData(participant: JitsiParticipant) {
         participant[kOlmData] = participant[kOlmData] || {};
 
         return participant[kOlmData];
@@ -705,9 +673,8 @@ export class OlmAdapter extends Listenable {
      */
     async _onConferenceLeft() {
         await this._init;
-
         for (const participant of this._conf.getParticipants()) {
-            this._onParticipantLeft(participant);
+            this._onParticipantLeft2(participant);
         }
 
         if (this._olmAccount) {
@@ -722,7 +689,7 @@ export class OlmAdapter extends Listenable {
      *
      * @private
      */
-    async _onEndpointMessageReceived(participant, payload) {
+    async _onEndpointMessageReceived(participant: JitsiParticipant, payload) {
         if (payload[JITSI_MEET_MUC_TYPE] !== OLM_MESSAGE_TYPE) {
             return;
         }
@@ -744,7 +711,7 @@ export class OlmAdapter extends Listenable {
 
         switch (msg.type) {
             case OLM_MESSAGE_TYPES.SESSION_INIT: {
-                logger.info(`Got SESSION_INIT from ${peerName}`);
+                logger.info("CHECK: Got SESSION_INIT from id", pId);
 
                 if (olmData.session) {
                     logger.error(
@@ -809,7 +776,7 @@ export class OlmAdapter extends Listenable {
                 break;
             }
             case OLM_MESSAGE_TYPES.PQ_SESSION_INIT: {
-                logger.info(`CHECK: Got PQ_SESSION_INIT from ${peerName}`);
+                logger.info("CHECK: Got PQ_SESSION_INIT from id", pId);
 
                 if (olmData.pqSessionKey) {
                     logger.error(
@@ -867,13 +834,12 @@ export class OlmAdapter extends Listenable {
                             },
                         },
                     };
-                    logger.info(`Send PQ_SESSION_ACK to ${peerName}`);
                     this._sendMessage(ack, pId);
                 }
                 break;
             }
             case OLM_MESSAGE_TYPES.PQ_SESSION_ACK: {
-                logger.info(`Got PQ_SESSION_ACK from ${peerName}`);
+                logger.info("CHECK: Got PQ_SESSION_ACK from id", pId);
 
                 if (olmData.pqSessionKey) {
                     logger.error(
@@ -929,7 +895,7 @@ export class OlmAdapter extends Listenable {
                 break;
             }
             case OLM_MESSAGE_TYPES.SESSION_ACK: {
-                logger.info(`Got SESSION_ACK from ${peerName}`);
+                logger.info("CHECK: Got SESSION_ACK from id", pId);
 
                 if (olmData.session) {
                     logger.warn(
@@ -972,32 +938,19 @@ export class OlmAdapter extends Listenable {
                 break;
             }
             case OLM_MESSAGE_TYPES.KEY_INFO: {
-                logger.info(`Got KEY_INFO from ${peerName}`);
+                console.log("CHECK: Got KEY_INFO from id", pId);
 
                 if (olmData.session && olmData.pqSessionKey) {
                     const { ciphertext, pqCiphertext, iv } = msg.data;
-                    logger.info(`KEY_INFO from ${peerName}: we entered if and ciphertext is ${ciphertext.type}
-                        and ${ciphertext.body}`);
                     const data = olmData.session.decrypt(
                         ciphertext.type,
                         ciphertext.body
                     );
-                    logger.info(
-                        `KEY_INFO from ${peerName}: dec result is ${data}`
-                    );
                     const json = safeJsonParse(data);
-                    logger.info(`KEY_INFO from ${peerName}: we decrypted ecc`);
-
                     const pqKey = await this._decryptKeyInfoPQ(
                         pqCiphertext,
                         iv,
                         olmData.pqSessionKey
-                    );
-                    logger.info(
-                        `KEY_INFO from ${peerName}: we decrypted kyber`
-                    );
-                    logger.info(
-                        `KEY_INFO from ${peerName}: we have ${json.encryptionKey}, and ${pqKey} and index ${json.index}`
                     );
 
                     if (
@@ -1005,31 +958,30 @@ export class OlmAdapter extends Listenable {
                         pqKey !== undefined &&
                         json.index !== undefined
                     ) {
-                        logger.info(
-                            `KEY_INFO from ${peerName}: we entered another if`
-                        );
                         const key = json.encryptionKey
                             ? base64js.toByteArray(json.encryptionKey)
                             : false;
+                        const keyIndex = json.index;
 
                         if (!isEqual(olmData.lastKey, key)) {
-                            logger.info(
-                                `KEY_INFO from ${peerName}: we entered yet another if, unbelivable`
+                            console.log(
+                                "CHECK: KEY_INFO will setKeys for id",
+                                pId,
+                                "olm key",
+                                key,
+                                "pq key",
+                                pqKey,
+                                "and index",
+                                keyIndex
                             );
+
                             olmData.lastKey = key;
-                            const mediaKey = await this.deriveKey(key, pqKey);
-
-                            logger.info(
-                                `KEY_INFO: Media key for ${peerName} is ${base64js.fromByteArray(
-                                    mediaKey
-                                )}`
-                            );
-
                             this.eventEmitter.emit(
                                 OlmAdapterEvents.PARTICIPANT_KEY_UPDATED,
                                 pId,
-                                mediaKey,
-                                this._mediaKeyIndex
+                                key,
+                                pqKey,
+                                keyIndex
                             );
                         }
 
@@ -1067,7 +1019,7 @@ export class OlmAdapter extends Listenable {
                 break;
             }
             case OLM_MESSAGE_TYPES.KEY_INFO_ACK: {
-                logger.info(`Got KEY_INFO_ACK from ${peerName}`);
+                logger.info("CHECK: Got KEY_INFO_ACK from id", pId);
 
                 if (olmData.session && olmData.pqSessionKey) {
                     const { ciphertext, pqCiphertext, iv } = msg.data;
@@ -1091,22 +1043,17 @@ export class OlmAdapter extends Listenable {
                         const key = json.encryptionKey
                             ? base64js.toByteArray(json.encryptionKey)
                             : false;
+                        const keyIndex = json.index;
 
                         if (!isEqual(olmData.lastKey, key)) {
                             olmData.lastKey = key;
-                            const mediaKey = await this.deriveKey(key, pqKey);
-
-                            logger.info(
-                                `KEY_INFO_ACK: media key for ${peerName} is ${base64js.fromByteArray(
-                                    mediaKey
-                                )}`
-                            );
 
                             this.eventEmitter.emit(
                                 OlmAdapterEvents.PARTICIPANT_KEY_UPDATED,
                                 pId,
-                                mediaKey,
-                                this._mediaKeyIndex
+                                key,
+                                pqKey,
+                                keyIndex
                             );
                         }
                     }
@@ -1452,7 +1399,8 @@ export class OlmAdapter extends Listenable {
      *
      * @private
      */
-    _onParticipantLeft(participant) {
+    _onParticipantLeft2(participant: JitsiParticipant) {
+        console.log("_onParticipantLeft2 for participant", participant);
         this.clearParticipantSession(participant);
     }
 
@@ -1501,7 +1449,7 @@ export class OlmAdapter extends Listenable {
      * @param {string} error - The error message.
      * @returns {void}
      */
-    _sendError(participant, error) {
+    _sendError(participant: JitsiParticipant, error) {
         const pId = participant.getId();
         const err = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -1536,9 +1484,6 @@ export class OlmAdapter extends Listenable {
      * @private
      */
     _sendSessionInit(participant: JitsiParticipant) {
-        logger.info(
-            `CHECK: _sendSessionInit started for ${participant.getDisplayName()}`
-        );
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
@@ -1619,7 +1564,7 @@ export class OlmAdapter extends Listenable {
      * The second phase of the verification process, the Key verification phase
         https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
      */
-    _sendSasMac(participant) {
+    _sendSasMac(participant: JitsiParticipant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
         const { sas, transactionId } = olmData.sasVerification;
