@@ -7,6 +7,7 @@ import IceFailedHandling from './IceFailedHandling';
  * Mock conference for the purpose of this test.
  */
 class MockConference extends Listenable {
+    options: { config: {}; };
     /**
      * A constructor...
      */

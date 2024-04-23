@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import JitsiConference from '../../JitsiConference';
 
 const logger = getLogger(__filename);
 
@@ -14,6 +15,9 @@ const logger = getLogger(__filename);
  * 'enableForcedReload' option is set in config.js, the conference will be forcefully reloaded.
  */
 export default class IceFailedHandling {
+    _conference: JitsiConference;
+    _canceled: boolean;
+    _iceFailedTimeout: number;
     /**
      * Creates new {@code DelayedIceFailed} task.
      * @param {JitsiConference} conference

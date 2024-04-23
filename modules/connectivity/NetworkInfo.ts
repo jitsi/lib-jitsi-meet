@@ -14,6 +14,7 @@ const logger = getLogger(__filename);
  * it was connected. See {@link JitsiMeetJS.setNetworkInfo}.
  */
 export class NetworkInfo extends Listenable {
+    private _current: { isOnline: boolean; };
     /**
      * Creates new {@link NetworkInfo} instance.
      */

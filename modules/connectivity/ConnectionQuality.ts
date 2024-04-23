@@ -4,6 +4,7 @@ import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
 import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import JitsiConference from '../../JitsiConference';
 
 const Resolutions = require('../../service/RTC/Resolutions');
 const { VideoType } = require('../../service/RTC/VideoType');
@@ -91,6 +92,20 @@ function rampUp(millisSinceStart) {
  * value of 0% indicates a poor connection.
  */
 export default class ConnectionQuality {
+    eventEmitter: any;
+    _conference: JitsiConference;
+    _localStats: {
+        maxEnabledResolution: any;
+        bitrate: any;
+        packetLoss: any;
+        bridgeCount: number;
+        serverRegion: any; connectionQuality: number; jvbRTT: any; 
+};
+    _lastConnectionQualityUpdate: number;
+    _options: any;
+    _remoteStats: {};
+    _timeIceConnected: number;
+    _timeVideoUnmuted: number;
     /**
      *
      * @param conference
@@ -110,7 +125,12 @@ export default class ConnectionQuality {
          */
         this._localStats = {
             connectionQuality: 100,
-            jvbRTT: undefined
+            jvbRTT: undefined,
+            maxEnabledResolution: undefined,
+            bitrate: undefined,
+            packetLoss: undefined,
+            bridgeCount: undefined,
+            serverRegion: undefined,
         };
 
         /**
