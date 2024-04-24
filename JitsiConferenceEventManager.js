@@ -173,11 +173,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_ADDED, track => {
-        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
-    });
-    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_REMOVED, track => {
-        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track, owner, sourceName, videoType) => {
+        if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+
+            // Update the owner and other properties on the track.
+            track.setOwner(owner);
+            track.setSourceName(sourceName);
+            track._setVideoType(videoType);
+            owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        }
     });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,

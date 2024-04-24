@@ -48,12 +48,7 @@ export enum JitsiTrackEvents {
     /**
      * Indicates that a new owner has been assigned to a remote track when SSRC rewriting is enabled.
      */
-    TRACK_OWNER_ADDED = 'track.owner_added',
-
-    /**
-     * Indicates that an owner has been removed from a remote track when SSRC rewriting is enabled.
-     */
-    TRACK_OWNER_REMOVED = 'track.owner_removed',
+    TRACK_OWNER_SET = 'track.owner_set',
 
     /**
      * Event fired whenever video track's streaming changes.
@@ -77,6 +72,5 @@ export const TRACK_MUTE_CHANGED = JitsiTrackEvents.TRACK_MUTE_CHANGED;
 export const TRACK_VIDEOTYPE_CHANGED = JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED;
 export const NO_DATA_FROM_SOURCE = JitsiTrackEvents.NO_DATA_FROM_SOURCE;
 export const NO_AUDIO_INPUT = JitsiTrackEvents.NO_AUDIO_INPUT;
-export const TRACK_OWNER_ADDED = JitsiTrackEvents.TRACK_OWNER_ADDED;
-export const TRACK_OWNER_REMOVED = JitsiTrackEvents.TRACK_OWNER_REMOVED;
+export const TRACK_OWNER_SET = JitsiTrackEvents.TRACK_OWNER_SET;
 export const TRACK_STREAMING_STATUS_CHANGED = JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED;
