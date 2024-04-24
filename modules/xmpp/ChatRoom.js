@@ -1452,6 +1452,7 @@ export default class ChatRoom extends Listenable {
                 type: 'set' })
                 .c('query', {
                     xmlns: 'http://jabber.org/protocol/muc#admin' });
+            let sendIq = false;
 
             Object.values(this.members).forEach(m => {
                 if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
@@ -1459,9 +1460,11 @@ export default class ChatRoom extends Listenable {
                         'affiliation': 'member',
                         'jid': Strophe.getBareJidFromJid(m.jid)
                     }).up();
+                    sendIq = true;
                 }
             });
-            this.xmpp.connection.sendIQ(affiliationsIq.up());
+
+            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up());
         }
 
         const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function
