@@ -1781,8 +1781,12 @@ export default class JingleSessionPC extends JingleSession {
                     }
                 }
             } else {
-                logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
                 const track = this.peerconnection.getTrackBySSRC(ssrc);
+
+                if (track.getParticipantId() === owner && track.getSourceName() === source) {
+                    continue; // eslint-disable-line no-continue
+                }
+                logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
 
                 this._signalingLayer.setSSRCOwner(ssrc, owner, source);
 
