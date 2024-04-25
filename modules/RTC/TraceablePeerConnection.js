@@ -1803,10 +1803,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
             }
 
-            // Avoid configuring the video encodings on Chromium/Safari until simulcast is configured
-            // for the newly added video track using SDP munging which happens during the renegotiation.
+            // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
             const configureEncodingsPromise
-                = !newTrack || (newTrack.getType() === MediaType.VIDEO && browser.usesSdpMungingForSimulcast())
+                = !newTrack || browser.usesSdpMungingForSimulcast()
                     ? Promise.resolve()
                     : this.tpcUtils.setEncodings(newTrack);
 
