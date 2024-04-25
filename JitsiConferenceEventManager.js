@@ -528,15 +528,11 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     });
 
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.VIDEO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.VIDEO);
     });
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.AUDIO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
