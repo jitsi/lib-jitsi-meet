@@ -813,10 +813,6 @@ TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
  * @return {JitsiTrack|null}
  */
 TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
-    if (FeatureFlags.isSsrcRewritingSupported()) {
-        return this.remoteTracksBySsrc.get(ssrc);
-    }
-
     if (typeof ssrc !== 'number') {
         throw new Error(`SSRC ${ssrc} is not a number`);
     }
@@ -825,6 +821,11 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
             return localTrack;
         }
     }
+
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        return this.remoteTracksBySsrc.get(ssrc);
+    }
+
     for (const remoteTrack of this.getRemoteTracks()) {
         if (remoteTrack.getSSRC() === ssrc) {
             return remoteTrack;
