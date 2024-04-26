@@ -649,6 +649,9 @@ export default class ChatRoom extends Listenable {
                     this.sendPresence();
                 }
 
+                // we need to reset it because of breakout rooms which will reuse connection but will invite jicofo
+                this.xmpp.moderator.conferenceRequestSent = false;
+
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
 
                 // Now let's check the disco-info to retrieve the
@@ -1215,6 +1218,13 @@ export default class ChatRoom extends Listenable {
      */
     onPresenceError(pres, from) {
         let errorDescriptionNode;
+
+        if (from === this.myroomjid) {
+            // we have tried to join, and we received an error, let's send again conference-iq on next attempt
+            // as it may turn out that jicofo left the room if we were the first to try,
+            // and the user delayed the attempt for entering the password or such
+            this.xmpp.moderator.conferenceRequestSent = false;
+        }
 
         if ($(pres)
                 .find(
