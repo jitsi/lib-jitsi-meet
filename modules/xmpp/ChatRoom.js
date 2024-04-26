@@ -649,6 +649,9 @@ export default class ChatRoom extends Listenable {
                     this.sendPresence();
                 }
 
+                // we need to reset it because of breakout rooms which will reuse connection but will invite jicofo
+                this.xmpp.moderator.conferenceRequestSent = false;
+
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
 
                 // Now let's check the disco-info to retrieve the
