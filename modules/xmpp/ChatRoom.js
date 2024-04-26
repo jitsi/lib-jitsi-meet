@@ -1219,6 +1219,13 @@ export default class ChatRoom extends Listenable {
     onPresenceError(pres, from) {
         let errorDescriptionNode;
 
+        if (from === this.myroomjid) {
+            // we have tried to join, and we received an error, let's send again conference-iq on next attempt
+            // as it may turn out that jicofo left the room if we were the first to try,
+            // and the user delayed the attempt for entering the password or such
+            this.xmpp.moderator.conferenceRequestSent = false;
+        }
+
         if ($(pres)
                 .find(
                     '>error[type="auth"]'
