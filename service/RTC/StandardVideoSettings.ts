@@ -1,5 +1,43 @@
 import browser from '../../modules/browser';
 
+export interface IMaxBitrates {
+    low?: number;
+    standard?: number;
+    high?: number;
+    fullHd?: number;
+    ultraHd?: number;
+    ssHigh?: number;
+    none?: number;
+}
+
+export interface IVideoQualitySettings {
+    codecPreferenceOrder?: Array<string>;
+    disabledCodec?: string;
+    maxbitratesvideo?: IMaxBitrates;
+    mobileCodecPreferenceOrder?: Array<string>;
+    preferredCodec?: string;
+    av1?: {
+        maxBitrates?: IMaxBitrates;
+        scalabilityModeEnabled?: boolean;
+        useKSVC?: boolean;
+        useSimulcast?: boolean;
+    };
+    h264?: {
+        maxBitrates?: IMaxBitrates;
+        scalabilityModeEnabled?: boolean;
+    };
+    vp8?: {
+        maxBitrates?: IMaxBitrates;
+        scalabilityModeEnabled?: boolean;
+    };
+    vp9?: {
+        maxBitrates?: IMaxBitrates;
+        scalabilityModeEnabled?: boolean;
+        useKSVC?: boolean;
+        useSimulcast?: boolean;
+    }
+}
+
 // Default simulcast encodings config.
 export const SIM_LAYERS = [
     {
@@ -19,9 +57,9 @@ export const SIM_LAYERS = [
 /**
  * Standard scalability mode settings for different video codecs and the default bitrates.
  */
-export const STANDARD_CODEC_SETTINGS = {
+export const STANDARD_CODEC_SETTINGS: IVideoQualitySettings = {
     av1: {
-        maxBitratesVideo: {
+        maxBitrates: {
             low: 100000,
             standard: 300000,
             high: 1000000,
@@ -35,7 +73,7 @@ export const STANDARD_CODEC_SETTINGS = {
         useKSVC: true // defaults to L3T3_KEY for SVC mode.
     },
     h264: {
-        maxBitratesVideo: {
+        maxBitrates: {
             low: 200000,
             standard: 500000,
             high: 1500000,
@@ -47,7 +85,7 @@ export const STANDARD_CODEC_SETTINGS = {
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
     },
     vp8: {
-        maxBitratesVideo: {
+        maxBitrates: {
             low: 200000,
             standard: 500000,
             high: 1500000,
@@ -59,7 +97,7 @@ export const STANDARD_CODEC_SETTINGS = {
         scalabilityModeEnabled: false
     },
     vp9: {
-        maxBitratesVideo: {
+        maxBitrates: {
             low: 100000,
             standard: 300000,
             high: 1200000,

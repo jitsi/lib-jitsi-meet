@@ -78,7 +78,6 @@ export default function TraceablePeerConnection(
      * media direction will be adjusted to 'inactive' in order to suspend
      * the transmission.
      * @type {boolean}
-     * @private
      */
     this.audioTransferActive = !(options.startSilent === true);
 
@@ -114,7 +113,6 @@ export default function TraceablePeerConnection(
      * media direction will be adjusted to 'inactive' in order to suspend
      * the transmission.
      * @type {boolean}
-     * @private
      */
     this.videoTransferActive = true;
 
@@ -803,7 +801,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
 TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
     const currentCodec = this.getConfiguredVideoCodec();
 
-    return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
+    return this.tpcUtils.codecSettings[currentCodec].maxBitrates;
 };
 
 /**
@@ -1287,14 +1285,14 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
 
 /* eslint-disable-next-line vars-on-top */
 const getters = {
-    signalingState() {
-        return this.peerconnection.signalingState;
-    },
-    iceConnectionState() {
-        return this.peerconnection.iceConnectionState;
+    audioTransferActive() {
+        return this.audioTransferActive;
     },
     connectionState() {
         return this.peerconnection.connectionState;
+    },
+    iceConnectionState() {
+        return this.peerconnection.iceConnectionState;
     },
     localDescription() {
         let desc = this.peerconnection.localDescription;
@@ -1341,6 +1339,12 @@ const getters = {
         }
 
         return desc;
+    },
+    signalingState() {
+        return this.peerconnection.signalingState;
+    },
+    videoTransferActive() {
+        return this.videoTransferActive;
     }
 };
 
@@ -2061,11 +2065,11 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
             let maxBitrate;
 
             if (localTrack.getVideoType() === VideoType.DESKTOP) {
-                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
+                maxBitrate = codecScalabilityModeSettings.maxBitrates.ssHigh;
             } else {
                 const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.getCaptureResolution());
 
-                maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[level];
+                maxBitrate = codecScalabilityModeSettings.maxBitrates[level];
             }
 
             const limit = Math.floor(maxBitrate / 1000);

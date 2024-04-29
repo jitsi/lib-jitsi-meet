@@ -1,5 +1,6 @@
 /**
  * Enumeration of the media direction types.
+ * https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverdirection
  */
 export enum MediaDirection {
     /**
@@ -20,5 +21,10 @@ export enum MediaDirection {
     /**
      * Media is sent and received.
      */
-    SENDRECV = 'sendrecv'
+    SENDRECV = 'sendrecv',
+
+    /**
+     * Media will neither be sent or received.
+     */
+    STOPPED = 'stopped'
 }
