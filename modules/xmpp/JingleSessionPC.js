@@ -1783,7 +1783,9 @@ export default class JingleSessionPC extends JingleSession {
             } else {
                 const track = this.peerconnection.getTrackBySSRC(ssrc);
 
-                if (track.getParticipantId() === owner && track.getSourceName() === source) {
+                if (!track || (track.getParticipantId() === owner && track.getSourceName() === source)) {
+                    !track && logger.warn(`Remote track for SSRC=${ssrc} hasn't been created yet,`
+                        + 'not processing the source map');
                     continue; // eslint-disable-line no-continue
                 }
                 logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
