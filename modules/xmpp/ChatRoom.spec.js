@@ -185,7 +185,8 @@ describe('ChatRoom', () => {
                 undefined,
                 'fulljid',
                 undefined, // features
-                0 // isReplaceParticipant
+                0, // isReplaceParticipant
+                undefined // isSilent
             ]);
         });
 
