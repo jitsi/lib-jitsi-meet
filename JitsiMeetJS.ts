@@ -19,7 +19,6 @@ import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatu
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import FeatureFlags from './modules/flags/FeatureFlags';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
