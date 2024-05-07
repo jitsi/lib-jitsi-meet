@@ -29,13 +29,10 @@ export enum JitsiMediaDevicesEvents {
      *  |'react-native'|'android'} environmentType - type of browser or
      *  other execution environment.
      */
-    PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown',
-
-    SLOW_GET_USER_MEDIA = 'mediaDevices.slowGetUserMedia'
+    PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown'
 };
 
 // exported for backward compatibility
 export const DEVICE_LIST_CHANGED = JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED;
 export const PERMISSIONS_CHANGED = JitsiMediaDevicesEvents.PERMISSIONS_CHANGED;
 export const PERMISSION_PROMPT_IS_SHOWN = JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN;
-export const SLOW_GET_USER_MEDIA = JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA;

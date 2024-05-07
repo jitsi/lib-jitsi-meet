@@ -39,12 +39,6 @@ import { VideoType } from './service/RTC/VideoType';
 const logger = Logger.getLogger(__filename);
 
 /**
- * The amount of time to wait until firing
- * {@link JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN} event.
- */
-const USER_MEDIA_SLOW_PROMISE_TIMEOUT = 1000;
-
-/**
  * Indicates whether GUM has been executed or not.
  */
 let hasGUMExecuted = false;
@@ -278,8 +272,6 @@ export default {
      * @param {Array} options.effects optional effects array for the track
      * @param {boolean} options.firePermissionPromptIsShownEvent - if event
      * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
-     * @param {boolean} options.fireSlowPromiseEvent - if event
-     * JitsiMediaDevicesEvents.USER_MEDIA_SLOW_PROMISE_TIMEOUT should be fired
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
@@ -290,18 +282,11 @@ export default {
      * JitsiConferenceError if rejected.
      */
     createLocalTracks(options: ICreateLocalTrackOptions = {}) {
-        let promiseFulfilled = false;
-        const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
+        const { firePermissionPromptIsShownEvent, ...restOptions } = options;
 
         if (firePermissionPromptIsShownEvent && !RTC.arePermissionsGrantedForAvailableDevices()) {
             // @ts-ignore
             JitsiMediaDevices.emit(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
-        } else if (fireSlowPromiseEvent) {
-            window.setTimeout(() => {
-                if (!promiseFulfilled) {
-                    JitsiMediaDevices.emit(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
-                }
-            }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }
 
         let isFirstGUM = false;
@@ -320,8 +305,6 @@ export default {
 
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
-                promiseFulfilled = true;
-
                 let endTS = window.performance.now();
 
                 window.connectionTimes['obtainPermissions.end'] = endTS;
@@ -362,8 +345,6 @@ export default {
                 return tracks;
             })
             .catch(error => {
-                promiseFulfilled = true;
-
                 if (error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent(
