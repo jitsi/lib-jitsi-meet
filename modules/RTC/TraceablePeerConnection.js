@@ -813,18 +813,27 @@ TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
 };
 
 /**
- * Tries to find {@link JitsiTrack} for given SSRC number. It will search both
- * local and remote tracks bound to this instance.
+ * Tries to find {@link JitsiTrack} for given SSRC number. It will search both local and remote tracks bound to this
+ * instance.
  * @param {number} ssrc
+ * @param {isPrimary} boolean - Whether the SSRC passed is a primary SSRC of a source.
  * @return {JitsiTrack|null}
  */
-TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
+TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc, isPrimary = true) {
     if (typeof ssrc !== 'number') {
         throw new Error(`SSRC ${ssrc} is not a number`);
     }
     for (const localTrack of this.localTracks.values()) {
-        if (this.getLocalSSRC(localTrack) === ssrc) {
-            return localTrack;
+        if (isPrimary) {
+            if (this.getLocalSSRC(localTrack) === ssrc) {
+                return localTrack;
+            }
+        } else {
+            const { ssrcs } = this.localSSRCs.get(localTrack.rtcId);
+
+            if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
+                return localTrack;
+            }
         }
     }
 
@@ -1885,6 +1894,15 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
     }
 
     return this.tpcUtils.replaceTrack(localTrack, null).then(() => false);
+};
+
+/**
+ * Returns true if the codec selection API is used for switching between codecs for the video sources.
+ *
+ * @returns {boolean}
+ */
+TraceablePeerConnection.prototype.usesCodecSelectionAPI = function() {
+    return this._usesCodecSelectionAPI;
 };
 
 TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {

@@ -34,6 +34,7 @@ export class CodecSelection {
         this.options = options;
         this.codecPreferenceOrder = {};
         this.visitorCodecs = [];
+        this.encodeTimeStats = new Map();
 
         for (const connectionType of Object.keys(options)) {
             // eslint-disable-next-line prefer-const
@@ -103,6 +104,9 @@ export class CodecSelection {
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             () => this._selectPreferredCodec());
+        this.conference.on(
+            JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
+            (tpc, stats) => this._processEncodeTimeStats(tpc, stats));
     }
 
     /**
@@ -125,6 +129,83 @@ export class CodecSelection {
         !supportedCodecs.length && supportedCodecs.push(CodecMimeType.VP8);
 
         return supportedCodecs;
+    }
+
+    /**
+     * Processes the encode time stats received for all the local video sources and switches the codec to a low
+     * complexity codec if needed.
+     *
+     * @param {TraceablePeerConnection} tpc - the peerconnection for which stats were gathered.
+     * @param {Object} stats - the encode time stats for local video sources.
+     * @returns {void}
+     */
+    _processEncodeTimeStats(tpc, stats) {
+        const activeSession = this.conference.getActiveMediaSession();
+
+        // Process stats only for the active media session.
+        if (activeSession.peerconnection.id !== tpc.id) {
+            return;
+        }
+
+        const statsPerTrack = new Map();
+
+        for (const ssrc of stats.keys()) {
+            const { codec, encodeTime, isBandwidthLimited, resolution, timestamp } = stats.get(ssrc);
+            const track = tpc.getTrackBySSRC(ssrc, false);
+            let existingStats = statsPerTrack.get(track.rtcId);
+            const encodeResolution = Math.min(resolution.height, resolution.width);
+            const ssrcStats = {
+                encodeResolution,
+                encodeTime,
+                isBandwidthLimited
+            };
+
+            if (existingStats) {
+                existingStats.trackStats.push(ssrcStats);
+                existingStats.timestamp = timestamp;
+            } else {
+                existingStats = {
+                    trackStats: [ ssrcStats ],
+                    currentCodec: codec,
+                    timestamp
+                };
+
+                statsPerTrack.set(track.rtcId, existingStats);
+            }
+        }
+
+        // Aggregate the stats for multiple simulcast streams with different SSRCs but for the same video stream.
+        for (const trackId of statsPerTrack.keys()) {
+            const { currentCodec, timestamp, trackStats } = statsPerTrack.get(trackId);
+            const totalEncodeTime = trackStats
+                .map(stat => stat.encodeTime)
+                .reduce((totalValue, currentValue) => totalValue + currentValue, 0);
+            const avgEncodeTime = totalEncodeTime / trackStats.length;
+            const isBandwidthLimited = Boolean(trackStats.find(stat => stat.isBandwidthLimited));
+            const encodeResolution = trackStats
+                .map(stat => stat.encodeResolution)
+                .reduce((resolution, currentValue) => Math.max(resolution, currentValue), 0);
+            const localTrack = this.conference.getLocalVideoTracks().find(t => t.rtcId === trackId);
+
+            const exisitingStats = this.encodeTimeStats.get(trackId);
+            const sourceStats = {
+                avgEncodeTime,
+                currentCodec,
+                encodeResolution,
+                isBandwidthLimited,
+                localTrack,
+                timestamp
+            };
+
+            if (exisitingStats) {
+                exisitingStats.push(sourceStats);
+            } else {
+                this.encodeTimeStats.set(trackId, [ sourceStats ]);
+            }
+
+            logger.debug(`Encode stats for ${localTrack}: codec=${currentCodec}, time=${avgEncodeTime},`
+                + `resolution=${encodeResolution}, bandwidth limited=${isBandwidthLimited}`);
+        }
     }
 
     /**
