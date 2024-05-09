@@ -1601,6 +1601,18 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * video in the local SDP.
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
+    const localVideoTrack = this.getLocalVideoTracks()[0];
+
+    if (this._usesCodecSelectionAPI && localVideoTrack) {
+        const rtpSender = this.findSenderForTrack(localVideoTrack.getTrack());
+
+        if (rtpSender) {
+            const { codecs } = rtpSender.getParameters();
+
+            return codecs[0].mimeType.split('/')[1].toLowerCase();
+        }
+    }
+
     const sdp = this.peerconnection.remoteDescription?.sdp;
     const defaultCodec = CodecMimeType.VP8;
 
