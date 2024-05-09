@@ -155,7 +155,11 @@ export default class ResumeTask {
 
         this._stropheConn.service = url.toString();
 
-        streamManagement.resume();
+        try {
+            streamManagement.resume();
+        } catch (e) {
+            logger.error('Failed to resume XMPP connnection', e);
+        }
     }
 
     /**
