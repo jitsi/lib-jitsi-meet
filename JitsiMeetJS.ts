@@ -141,6 +141,7 @@ export default {
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
+        JitsiMediaDevices.init();
         Settings.init(options.externalStorage);
         Statistics.init(options);
 
