@@ -446,38 +446,6 @@ export default {
     },
 
     /**
-     * Checks if its possible to enumerate available cameras/microphones.
-     *
-     * @returns {Promise<boolean>} a Promise which will be resolved only once
-     * the WebRTC stack is ready, either with true if the device listing is
-     * available available or with false otherwise.
-     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
-     */
-    isDeviceListAvailable() {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
-
-        return this.mediaDevices.isDeviceListAvailable();
-    },
-
-    /**
-     * Returns true if changing the input (camera / microphone) or output
-     * (audio) device is supported and false if not.
-     *
-     * @param {string} [deviceType] - type of device to change. Default is
-     * {@code undefined} or 'input', 'output' - for audio output device change.
-     * @returns {boolean} {@code true} if available; {@code false}, otherwise.
-     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
-     */
-    isDeviceChangeAvailable(deviceType) {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
-
-        return this.mediaDevices.isDeviceChangeAvailable(deviceType);
-    },
-
-
-    /**
      * Checks if the current environment supports having multiple audio
      * input devices in use simultaneously.
      *
@@ -494,18 +462,6 @@ export default {
      */
     isCollectingLocalStats() {
         return Statistics.audioLevelsEnabled && LocalStatsCollector.isLocalStatsSupported();
-    },
-
-    /**
-     * Executes callback with list of media devices connected.
-     *
-     * @param {function} callback
-     * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
-     */
-    enumerateDevices(callback) {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
-        this.mediaDevices.enumerateDevices(callback);
     },
 
     /**
