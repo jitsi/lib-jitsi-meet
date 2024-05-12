@@ -103,7 +103,9 @@ export class ManagedKeyHandler extends KeyHandler {
         try {
             this._onKeyGeneration();
             await this._olmAdapter.initSessions();
-            console.log("CHECK: no key update before that!!!!!!");
+            console.log(
+                "CHECK: all olm sessions should be established now!!!!!!"
+            );
             const mediaKeyIndex = await this._olmAdapter.updateKey(
                 this._olmKey,
                 this._pqKey
