@@ -36,11 +36,11 @@ export const STANDARD_CODEC_SETTINGS = {
     },
     h264: {
         maxBitratesVideo: {
-            low: 200000,
-            standard: 500000,
-            high: 1500000,
-            fullHd: 3000000,
-            ultraHd: 6000000,
+            low: 400000,
+            standard: 800000,
+            high: 2000000,
+            fullHd: 4000000,
+            ultraHd: 8000000,
             ssHigh: 2500000,
             none: 0
         },
