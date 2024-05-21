@@ -40,6 +40,7 @@ import Statistics from './modules/statistics/statistics';
 import EventEmitter from './modules/util/EventEmitter';
 import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
+import { getJitterDelay } from './modules/util/Retry';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -2856,16 +2857,15 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
             reasonDescription: 'ICE FAILED'
         });
     } else if (session && this.jvbJingleSession === session) {
-        // Implement an exponential backoff timer for ICE restarts.
-        const delay = Math.min(1000 * Math.pow(2, this._iceRestarts), 60000);
-        const jitter = Math.random() * 100; // Adding jitter to avoid synchronized retries
-        const totalDelay = delay + jitter;
+        // Use an exponential backoff timer for ICE restarts.
+        const jitterDelay = getJitterDelay(this._iceRestarts, 1000 /* min. delay */);
 
         this._delayedIceFailed = new IceFailedHandling(this);
         setTimeout(() => {
+            logger.error(`triggering ice restart after ${jitterDelay} `);
             this._delayedIceFailed.start(session);
             this._iceRestarts++;
-        }, totalDelay);
+        }, jitterDelay);
     }
 };
 
