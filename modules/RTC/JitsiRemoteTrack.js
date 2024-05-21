@@ -198,6 +198,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
+        if (this.disposed) {
+            return;
+        }
+
         this._disposeTrackStreamingStatus();
 
         return super.dispose();

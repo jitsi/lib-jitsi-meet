@@ -599,6 +599,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     async dispose() {
+        if (this.disposed) {
+            return;
+        }
 
         // Remove the effect instead of stopping it so that the original stream is restored
         // on both the local track and on the peerconnection.
