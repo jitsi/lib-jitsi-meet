@@ -261,6 +261,7 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {Promise}
      */
     dispose() {
+        this.detach();
         this.removeAllListeners();
 
         this.disposed = true;

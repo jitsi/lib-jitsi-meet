@@ -612,7 +612,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         if (this.stream) {
             this.stopStream();
-            this.detach();
         }
 
         RTCUtils.removeListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListWillChange);
