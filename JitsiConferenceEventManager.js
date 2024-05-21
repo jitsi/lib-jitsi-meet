@@ -235,11 +235,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
 
-    chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-        jingleSession => {
-            conference._onIceConnectionFailed(jingleSession);
-        });
-
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONFERENCE_DESTROYED);

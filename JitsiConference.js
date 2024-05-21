@@ -40,6 +40,7 @@ import Statistics from './modules/statistics/statistics';
 import EventEmitter from './modules/util/EventEmitter';
 import { safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
+import { getJitterDelay } from './modules/util/Retry';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -325,6 +326,11 @@ export default function JitsiConference(options) {
 
     this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
         && (this.options.config.testing?.enableFirefoxP2p ?? true);
+
+    /**
+     * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
+     */
+    this._iceRestarts = 0;
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -418,24 +424,21 @@ JitsiConference.prototype._init = function(options = {}) {
             }
         });
 
-    // Connection interrupted/restored listeners
-    this._onIceConnectionInterrupted
-        = this._onIceConnectionInterrupted.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
+    // ICE Connection interrupted/restored listeners.
+    this._onIceConnectionEstablished = this._onIceConnectionEstablished.bind(this);
+    this.room.addListener(XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
+
+    this._onIceConnectionFailed = this._onIceConnectionFailed.bind(this);
+    this.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED, this._onIceConnectionFailed);
+
+    this._onIceConnectionInterrupted = this._onIceConnectionInterrupted.bind(this);
+    this.room.addListener(XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
 
     this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
-
-    this._onIceConnectionEstablished
-        = this._onIceConnectionEstablished.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
+    this.room.addListener(XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
 
     this._updateProperties = this._updateProperties.bind(this);
-    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
-        this._updateProperties);
+    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
 
     this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
     this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
@@ -2854,8 +2857,15 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
             reasonDescription: 'ICE FAILED'
         });
     } else if (session && this.jvbJingleSession === session) {
+        // Use an exponential backoff timer for ICE restarts.
+        const jitterDelay = getJitterDelay(this._iceRestarts, 1000 /* min. delay */);
+
         this._delayedIceFailed = new IceFailedHandling(this);
-        this._delayedIceFailed.start(session);
+        setTimeout(() => {
+            logger.error(`triggering ice restart after ${jitterDelay} `);
+            this._delayedIceFailed.start(session);
+            this._iceRestarts++;
+        }, jitterDelay);
     }
 };
 
