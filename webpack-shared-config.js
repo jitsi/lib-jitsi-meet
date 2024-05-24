@@ -32,17 +32,6 @@ module.exports = (minimize, analyzeBundle) => {
         module: {
             rules: [
                 {
-                    // Version this build of the lib-jitsi-meet library.
-
-                    loader: "string-replace-loader",
-                    options: {
-                        flags: "g",
-                        replace: commitHash,
-                        search: "{#COMMIT_HASH#}",
-                    },
-                    test: path.join(__dirname, "JitsiMeetJS.ts"),
-                },
-                {
                     // Fix pqc-kem-kyber512-browser dependency webpack.config.kem.babel.js
                     loader: "string-replace-loader",
                     options: {
