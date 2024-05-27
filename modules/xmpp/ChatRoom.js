@@ -4,6 +4,7 @@ import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
+import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -1219,6 +1220,13 @@ export default class ChatRoom extends Listenable {
     onPresenceError(pres, from) {
         let errorDescriptionNode;
 
+        if (from === this.myroomjid) {
+            // we have tried to join, and we received an error, let's send again conference-iq on next attempt
+            // as it may turn out that jicofo left the room if we were the first to try,
+            // and the user delayed the attempt for entering the password or such
+            this.xmpp.moderator.conferenceRequestSent = false;
+        }
+
         if ($(pres)
                 .find(
                     '>error[type="auth"]'
@@ -1247,11 +1255,14 @@ export default class ChatRoom extends Listenable {
 
                 const txtNode = $(pres).find('>error[type="cancel"]>text[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
                 const txt = txtNode.length && txtNode.text();
+                let type = AUTH_ERROR_TYPES.GENERAL;
 
                 // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
                 // because of no participants in the room, and we tried to create the room, without having
                 // permissions for that (only jicofo creates rooms)
                 if (txt === 'Room creation is restricted') {
+                    type = AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION;
+
                     if (!this._roomCreationRetries) {
                         this._roomCreationRetries = 0;
                     }
@@ -1268,9 +1279,18 @@ export default class ChatRoom extends Listenable {
 
                         return;
                     }
+                } else if ($(pres).find(
+                    '>error[type="cancel"]>no-main-participants[xmlns="jitsi:visitors"]').length > 0) {
+                    type = AUTH_ERROR_TYPES.NO_MAIN_PARTICIPANTS;
+                } else if ($(pres).find(
+                    '>error[type="cancel"]>promotion-not-allowed[xmlns="jitsi:visitors"]').length > 0) {
+                    type = AUTH_ERROR_TYPES.PROMOTION_NOT_ALLOWED;
+                } else if ($(pres).find(
+                    '>error[type="cancel"]>no-visitors-lobby[xmlns="jitsi:visitors"]').length > 0) {
+                    type = AUTH_ERROR_TYPES.NO_VISITORS_LOBBY;
                 }
 
-                this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, txt);
+                this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type, txt);
             }
         } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
@@ -1455,6 +1475,7 @@ export default class ChatRoom extends Listenable {
                 type: 'set' })
                 .c('query', {
                     xmlns: 'http://jabber.org/protocol/muc#admin' });
+            let sendIq = false;
 
             Object.values(this.members).forEach(m => {
                 if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
@@ -1462,9 +1483,11 @@ export default class ChatRoom extends Listenable {
                         'affiliation': 'member',
                         'jid': Strophe.getBareJidFromJid(m.jid)
                     }).up();
+                    sendIq = true;
                 }
             });
-            this.xmpp.connection.sendIQ(affiliationsIq.up());
+
+            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up());
         }
 
         const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function

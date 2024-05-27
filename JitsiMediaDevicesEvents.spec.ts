@@ -7,7 +7,6 @@ describe( "/JitsiMediaDevicesEvents members", () => {
         DEVICE_LIST_CHANGED,
         PERMISSIONS_CHANGED,
         PERMISSION_PROMPT_IS_SHOWN,
-        SLOW_GET_USER_MEDIA,
         JitsiMediaDevicesEvents,
         ...others
     } = exported;
@@ -16,14 +15,12 @@ describe( "/JitsiMediaDevicesEvents members", () => {
         expect( DEVICE_LIST_CHANGED ).toBe( 'mediaDevices.devicechange' );
         expect( PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( PERMISSION_PROMPT_IS_SHOWN ).toBe( 'mediaDevices.permissionPromptIsShown' );
-        expect( SLOW_GET_USER_MEDIA ).toBe( 'mediaDevices.slowGetUserMedia' );
 
         expect( JitsiMediaDevicesEvents ).toBeDefined();
 
         expect( JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED ).toBe( 'mediaDevices.devicechange' );
         expect( JitsiMediaDevicesEvents.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN ).toBe( 'mediaDevices.permissionPromptIsShown' );
-        expect( JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA ).toBe( 'mediaDevices.slowGetUserMedia' );
     } );
 
     it( "unknown members", () => {

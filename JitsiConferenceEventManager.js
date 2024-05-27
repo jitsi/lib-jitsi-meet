@@ -173,8 +173,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED, track => {
-        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track, owner, sourceName, videoType) => {
+        if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+
+            // Update the owner and other properties on the track.
+            track.setOwner(owner);
+            track.setSourceName(sourceName);
+            track._setVideoType(videoType);
+            owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        }
     });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
@@ -226,11 +234,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.GRACEFUL_SHUTDOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
-
-    chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-        jingleSession => {
-            conference._onIceConnectionFailed(jingleSession);
-        });
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -520,15 +523,11 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     });
 
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.VIDEO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.VIDEO);
     });
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.AUDIO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,

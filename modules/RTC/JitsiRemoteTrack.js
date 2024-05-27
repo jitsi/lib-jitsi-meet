@@ -198,6 +198,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
+        if (this.disposed) {
+            return;
+        }
+
         this._disposeTrackStreamingStatus();
 
         return super.dispose();
@@ -280,7 +284,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     setOwner(owner) {
         this.ownerEndpointId = owner;
-        this.emit(JitsiTrackEvents.TRACK_OWNER_CHANGED, owner);
     }
 
     /**

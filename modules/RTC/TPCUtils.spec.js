@@ -1222,9 +1222,9 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(true);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(200000);
-                expect(maxBitrates[1]).toBe(500000);
-                expect(maxBitrates[2]).toBe(1500000);
+                expect(maxBitrates[0]).toBe(400000);
+                expect(maxBitrates[1]).toBe(800000);
+                expect(maxBitrates[2]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
@@ -1245,9 +1245,9 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(false);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(200000);
-                expect(maxBitrates[1]).toBe(500000);
-                expect(maxBitrates[2]).toBe(1500000);
+                expect(maxBitrates[0]).toBe(400000);
+                expect(maxBitrates[1]).toBe(800000);
+                expect(maxBitrates[2]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
@@ -1268,9 +1268,9 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(false);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(200000);
-                expect(maxBitrates[1]).toBe(500000);
-                expect(maxBitrates[2]).toBe(1500000);
+                expect(maxBitrates[0]).toBe(400000);
+                expect(maxBitrates[1]).toBe(800000);
+                expect(maxBitrates[2]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
@@ -1366,8 +1366,8 @@ describe('TPCUtils', () => {
                 expect(activeState[2]).toBe(true);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(200000);
-                expect(maxBitrates[1]).toBe(500000);
+                expect(maxBitrates[0]).toBe(400000);
+                expect(maxBitrates[1]).toBe(800000);
                 expect(maxBitrates[2]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
@@ -1412,7 +1412,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(1500000);
+                expect(maxBitrates[0]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
@@ -1427,7 +1427,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(500000);
+                expect(maxBitrates[0]).toBe(800000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
@@ -1442,7 +1442,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(maxBitrates[0]).toBe(200000);
+                expect(maxBitrates[0]).toBe(400000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
@@ -2533,7 +2533,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(1500000);
+                expect(bitrates[0]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
@@ -2549,7 +2549,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(500000);
+                expect(bitrates[0]).toBe(800000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
@@ -2565,7 +2565,7 @@ describe('TPCUtils', () => {
                 expect(activeState[0]).toBe(true);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(200000);
+                expect(bitrates[0]).toBe(400000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);

@@ -1777,27 +1777,27 @@ export default class JingleSessionPC extends JingleSession {
                     const track = this.peerconnection.getTrackBySSRC(oldSsrc);
 
                     if (track) {
-                        track.setSourceName(undefined);
-                        track.setOwner(undefined);
-                        track._setVideoType(undefined);
+                        this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track);
                     }
                 }
             } else {
-                logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
                 const track = this.peerconnection.getTrackBySSRC(ssrc);
 
+                if (!track || (track.getParticipantId() === owner && track.getSourceName() === source)) {
+                    !track && logger.warn(`Remote track for SSRC=${ssrc} hasn't been created yet,`
+                        + 'not processing the source map');
+                    continue; // eslint-disable-line no-continue
+                }
+                logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
+
                 this._signalingLayer.setSSRCOwner(ssrc, owner, source);
-                track.setSourceName(source);
-                track.setOwner(owner);
 
                 // Update the muted state and the video type on the track since the presence for this track could have
                 // been received before the updated source map is received on the bridge channel.
-                const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
+                const { muted, videoType } = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
 
-                if (peerMediaInfo) {
-                    track._setVideoType(peerMediaInfo.videoType);
-                    this.peerconnection._sourceMutedChanged(source, peerMediaInfo.muted);
-                }
+                muted && this.peerconnection._sourceMutedChanged(source, muted);
+                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, source, videoType);
             }
         }
 

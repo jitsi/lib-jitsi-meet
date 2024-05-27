@@ -139,6 +139,12 @@ export default function TraceablePeerConnection(
     this.isP2P = isP2P;
 
     /**
+     * A map that holds remote tracks signaled on the peerconnection indexed by their SSRC.
+     * @type {Map<number, JitsiRemoteTrack>}
+     */
+    this.remoteTracksBySsrc = new Map();
+
+    /**
      * The map holds remote tracks associated with this peer connection. It maps user's JID to media type and a set of
      * remote tracks.
      * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
@@ -712,6 +718,21 @@ TraceablePeerConnection.prototype.hasAnyTracksOfType = function(mediaType) {
  */
 TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaType) {
     let remoteTracks = [];
+
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        for (const remoteTrack of this.remoteTracksBySsrc.values()) {
+            const owner = remoteTrack.getParticipantId();
+
+            if (owner && (!endpointId || owner === endpointId)) {
+                if (!mediaType || remoteTrack.getType() === mediaType) {
+                    remoteTracks.push(remoteTrack);
+                }
+            }
+        }
+
+        return remoteTracks;
+    }
+
     const endpoints = endpointId ? [ endpointId ] : this.remoteTracks.keys();
 
     for (const endpoint of endpoints) {
@@ -800,6 +821,11 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
             return localTrack;
         }
     }
+
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        return this.remoteTracksBySsrc.get(ssrc);
+    }
+
     for (const remoteTrack of this.getRemoteTracks()) {
         if (remoteTrack.getSSRC() === ssrc) {
             return remoteTrack;
@@ -959,23 +985,37 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         sourceName) {
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},`
         + `type=${mediaType},sourceName=${sourceName}]`);
-    let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
+    let remoteTracksMap;
+    let userTracksByMediaType;
 
-    if (!remoteTracksMap) {
-        remoteTracksMap = new Map();
-        remoteTracksMap.set(MediaType.AUDIO, new Set());
-        remoteTracksMap.set(MediaType.VIDEO, new Set());
-        this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
-    }
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        const existingTrack = this.remoteTracksBySsrc.get(ssrc);
 
-    const userTracksByMediaType = remoteTracksMap.get(mediaType);
+        if (existingTrack) {
+            logger.info(`${this} ignored duplicated track event for SSRC[ssrc=${ssrc},type=${mediaType}]`);
 
-    if (userTracksByMediaType?.size
-        && Array.from(userTracksByMediaType).find(jitsiTrack => jitsiTrack.getTrack() === track)) {
-        // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
-        logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},type=${mediaType}]`);
+            return;
+        }
+    } else {
+        remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
-        return;
+        if (!remoteTracksMap) {
+            remoteTracksMap = new Map();
+            remoteTracksMap.set(MediaType.AUDIO, new Set());
+            remoteTracksMap.set(MediaType.VIDEO, new Set());
+            this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
+        }
+
+        userTracksByMediaType = remoteTracksMap.get(mediaType);
+
+        if (userTracksByMediaType?.size
+            && Array.from(userTracksByMediaType).find(jitsiTrack => jitsiTrack.getTrack() === track)) {
+            // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
+            logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},`
+                + `type=${mediaType}]`);
+
+            return;
+        }
     }
 
     const remoteTrack
@@ -992,7 +1032,12 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 this.isP2P,
                 sourceName);
 
-    userTracksByMediaType.add(remoteTrack);
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        this.remoteTracksBySsrc.set(ssrc, remoteTrack);
+    } else {
+        userTracksByMediaType.add(remoteTrack);
+    }
+
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
 };
 
@@ -1037,26 +1082,6 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
 };
 
 /**
- * Removes all JitsiRemoteTracks associated with given MUC nickname (resource part of the JID).
- *
- * @param {string} owner - The resource part of the MUC JID.
- * @returns {JitsiRemoteTrack[]} - The array of removed tracks.
- */
-TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
-    let removedTracks = [];
-    const remoteTracksByMedia = this.remoteTracks.get(owner);
-
-    if (remoteTracksByMedia) {
-        removedTracks = removedTracks.concat(Array.from(remoteTracksByMedia.get(MediaType.AUDIO)));
-        removedTracks = removedTracks.concat(Array.from(remoteTracksByMedia.get(MediaType.VIDEO)));
-        this.remoteTracks.delete(owner);
-    }
-    logger.debug(`${this} removed remote tracks[endpoint=${owner},count=${removedTracks.length}`);
-
-    return removedTracks;
-};
-
-/**
  * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits {@link RTCEvents.REMOTE_TRACK_REMOVED}.
  *
  * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
@@ -1069,16 +1094,18 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
     toBeRemoved.dispose();
     const participantId = toBeRemoved.getParticipantId();
 
-    if (!participantId && FeatureFlags.isSsrcRewritingSupported()) {
+    if (FeatureFlags.isSsrcRewritingSupported() && !participantId) {
         return;
-    }
-    const userTracksByMediaType = this.remoteTracks.get(participantId);
+    } else if (!FeatureFlags.isSsrcRewritingSupported()) {
+        const userTracksByMediaType = this.remoteTracks.get(participantId);
 
-    if (!userTracksByMediaType) {
-        logger.error(`${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`);
-    } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
-        logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+        if (!userTracksByMediaType) {
+            logger.error(`${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`);
+        } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
+            logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+        }
     }
+
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
 };
 
@@ -1803,10 +1830,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                     = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
             }
 
-            // Avoid configuring the video encodings on Chromium/Safari until simulcast is configured
-            // for the newly added video track using SDP munging which happens during the renegotiation.
+            // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
             const configureEncodingsPromise
-                = !newTrack || (newTrack.getType() === MediaType.VIDEO && browser.usesSdpMungingForSimulcast())
+                = !newTrack || browser.usesSdpMungingForSimulcast()
                     ? Promise.resolve()
                     : this.tpcUtils.setEncodings(newTrack);
 
@@ -2440,14 +2466,21 @@ TraceablePeerConnection.prototype.close = function() {
     this.signalingLayer.off(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
     this.peerconnection.removeEventListener('track', this.onTrack);
 
-    for (const peerTracks of this.remoteTracks.values()) {
-        for (const remoteTracks of peerTracks.values()) {
-            for (const remoteTrack of remoteTracks) {
-                this._removeRemoteTrack(remoteTrack);
+    if (FeatureFlags.isSsrcRewritingSupported()) {
+        for (const remoteTrack of this.remoteTracksBySsrc.values()) {
+            this._removeRemoteTrack(remoteTrack);
+        }
+        this.remoteTracksBySsrc.clear();
+    } else {
+        for (const peerTracks of this.remoteTracks.values()) {
+            for (const remoteTracks of peerTracks.values()) {
+                for (const remoteTrack of remoteTracks) {
+                    this._removeRemoteTrack(remoteTrack);
+                }
             }
         }
+        this.remoteTracks.clear();
     }
-    this.remoteTracks.clear();
 
     this._dtmfSender = null;
     this._dtmfTonesQueue = [];
