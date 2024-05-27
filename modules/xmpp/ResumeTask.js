@@ -137,23 +137,29 @@ export default class ResumeTask {
 
         logger.info('Trying to resume the XMPP connection');
 
-        const url = new URL(this._stropheConn.service);
-        let { search } = url;
-        const pattern = /(previd=)([\w-]+)/;
-        const oldToken = search.match(pattern);
+        let url = this._stropheConn.service;
+        const urlParts = url.split('?');
+        const baseUrl = urlParts[0];
+        const queryString = urlParts[1];
 
-        // Replace previd if the previd value has changed.
-        if (oldToken && oldToken.indexOf(resumeToken) === -1) {
-            search = search.replace(pattern, `$1${resumeToken}`);
+        if (queryString) {
+            const pattern = /(previd=)([\w-]+)/;
+            const prevToken = queryString.match(pattern);
 
-        // Append previd if it doesn't exist.
-        } else if (!oldToken) {
-            search += search.indexOf('?') === -1 ? `?previd=${resumeToken}` : `&previd=${resumeToken}`;
+            if (prevToken) {
+
+                // Replace previd if the previd value has changed.
+                if (prevToken.indexOf(resumeToken) === -1) {
+                    url = `${baseUrl}?${queryString.replace(pattern, `$1${resumeToken}`)}`;
+                }
+            } else {
+                url = `${baseUrl}&previd=${resumeToken}`;
+            }
+        } else {
+            url = `${baseUrl}?previd=${resumeToken}`;
         }
 
-        url.search = search;
-
-        this._stropheConn.service = url.toString();
+        this._stropheConn.service = url;
 
         try {
             streamManagement.resume();
