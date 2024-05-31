@@ -1436,7 +1436,7 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
         }
 
         // Reorder the codecs based on the preferred settings.
-        if (!this._usesCodecSelectionAPI) {
+        if (!this.usesCodecSelectionAPI()) {
             for (const codec of this.codecSettings.codecList.slice().reverse()) {
                 SDPUtil.preferCodec(mLine, codec, this.isP2P);
             }
@@ -1612,7 +1612,7 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
 TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
     const localVideoTrack = this.getLocalVideoTracks()[0];
 
-    if (this._usesCodecSelectionAPI && localVideoTrack) {
+    if (this.usesCodecSelectionAPI() && localVideoTrack) {
         const rtpSender = this.findSenderForTrack(localVideoTrack.getTrack());
 
         if (rtpSender) {
@@ -1703,7 +1703,7 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
 
     this.codecSettings.codecList = codecList;
 
-    if (this._usesCodecSelectionAPI) {
+    if (this.usesCodecSelectionAPI()) {
         this.configureVideoSenderEncodings();
     }
 };
@@ -1902,7 +1902,10 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
  * @returns {boolean}
  */
 TraceablePeerConnection.prototype.usesCodecSelectionAPI = function() {
-    return this._usesCodecSelectionAPI;
+    // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to be
+    // selected.
+    // TODO: Remove this check when the above issue is fixed.
+    return this._usesCodecSelectionAPI && this.codecSettings.codecList[0] !== CodecMimeType.H264;
 };
 
 TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
@@ -2407,7 +2410,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             const expectedPattern = `${MediaType.VIDEO}/${codec.toUpperCase()}`;
 
             // Configure the codec here if its supported.
-            if (this._usesCodecSelectionAPI && currentCodec?.mimeType !== expectedPattern) {
+            if (this.usesCodecSelectionAPI() && currentCodec?.mimeType !== expectedPattern) {
                 const matchingCodec = parameters.codecs.find(pt => pt.mimeType === expectedPattern);
 
                 parameters.encodings[idx].codec = matchingCodec;

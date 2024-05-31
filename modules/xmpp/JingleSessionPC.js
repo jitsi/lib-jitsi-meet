@@ -3,6 +3,7 @@ import $ from 'jquery';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import {
@@ -1184,7 +1185,10 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} setVideoCodecs: ${codecList}`);
             this.peerconnection.setVideoCodecs(codecList);
 
-            if (this.usesCodecSelectionAPI) {
+            // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to
+            // be selected.
+            // TODO: Remove this check when the above issue is fixed.
+            if (this.usesCodecSelectionAPI && codecList[0] !== CodecMimeType.H264) {
                 return;
             }
 
