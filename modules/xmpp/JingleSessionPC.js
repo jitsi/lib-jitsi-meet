@@ -1192,6 +1192,13 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
+            // Skip renegotiation when the selected codec order matches with that of the remote SDP.
+            const currentCodecOrder = this.peerconnection.getConfiguredVideoCodecs();
+
+            if (codecList.every((val, index) => val === currentCodecOrder[index])) {
+                return;
+            }
+
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
                 this._renegotiate()

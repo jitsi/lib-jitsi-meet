@@ -658,7 +658,9 @@ StatsCollector.prototype.processStatsReport = function() {
                     && track?.isVideoTrack()
                     && this.peerconnection.usesCodecSelectionAPI()
                     && before?.totalEncodeTime
-                    && before?.framesEncoded) {
+                    && before?.framesEncoded
+                    && now.frameHeight
+                    && now.frameWidth) {
                     const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
                     const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
                     const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;

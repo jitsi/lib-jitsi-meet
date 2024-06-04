@@ -1960,6 +1960,33 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
 };
 
 /**
+ * Returns the codec to be used for screenshare based on the supported codecs and the preferred codec requested
+ * through config.js setting.
+ *
+ * @param {CodecMimeType} cameraCodec - the preferred codec to be used for the camera track.
+ * @returns {CodecMimeType}
+ */
+TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(cameraCodec) {
+    const { screenshareCodec } = this.codecSettings;
+
+    // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
+    if (!this.usesCodecSelectionAPI()) {
+        return cameraCodec;
+    }
+
+    if (screenshareCodec && this.codecSettings.codecList.find(c => c === screenshareCodec)) {
+        return screenshareCodec;
+    }
+
+    // Default to AV1 for screenshare if its not overriden through config.js.
+    if (this.codecSettings.codecList.find(c => c === CodecMimeType.AV1)) {
+        return CodecMimeType.AV1;
+    }
+
+    return cameraCodec;
+};
+
+/**
  * Munges the stereo flag as well as the opusMaxAverageBitrate in the SDP, based
  * on values set through config.js, if present.
  *
@@ -2330,6 +2357,7 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  */
 TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack, preferredCodec) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
+    const isScreensharingTrack = localVideoTrack.getVideoType() === VideoType.DESKTOP;
 
     if (!videoSender) {
         return Promise.resolve();
@@ -2340,7 +2368,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         return Promise.resolve();
     }
 
-    const isSharingLowFpsScreen = localVideoTrack.getVideoType() === VideoType.DESKTOP && this._capScreenshareBitrate;
+    const isSharingLowFpsScreen = isScreensharingTrack && this._capScreenshareBitrate;
 
     // Set the degradation preference.
     const preference = isSharingLowFpsScreen
@@ -2350,7 +2378,8 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     parameters.degradationPreference = preference;
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
-    const codec = preferredCodec ?? this.getConfiguredVideoCodec(localVideoTrack);
+    const codecForCamera = preferredCodec ?? this.getConfiguredVideoCodec(localVideoTrack);
+    const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera) : codecForCamera;
     const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
     let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);

@@ -30,15 +30,16 @@ export class CodecSelection {
      * @param {string} options.p2p settings (codec list, preferred and disabled) for the p2p connection.
      */
     constructor(conference, options) {
-        this.conference = conference;
-        this.options = options;
         this.codecPreferenceOrder = {};
-        this.visitorCodecs = [];
+        this.conference = conference;
         this.encodeTimeStats = new Map();
+        this.options = options;
+        this.screenshareCodec = {};
+        this.visitorCodecs = [];
 
         for (const connectionType of Object.keys(options)) {
             // eslint-disable-next-line prefer-const
-            let { disabledCodec, preferredCodec, preferenceOrder } = options[connectionType];
+            let { disabledCodec, preferredCodec, preferenceOrder, screenshareCodec } = options[connectionType];
             const supportedCodecs = new Set(this._getSupportedVideoCodecs(connectionType));
 
             // Default preference codec order when no codec preferences are set in config.js
@@ -90,6 +91,11 @@ export class CodecSelection {
 
             logger.info(`Codec preference order for ${connectionType} connection is ${selectedOrder}`);
             this.codecPreferenceOrder[connectionType] = selectedOrder;
+
+            // Set the preferred screenshare codec.
+            if (screenshareCodec && supportedCodecs.has(screenshareCodec)) {
+                this.screenshareCodec[connectionType] = screenshareCodec;
+            }
         }
 
         this.conference.on(
@@ -220,9 +226,7 @@ export class CodecSelection {
         if (!session) {
             return;
         }
-        const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
         const isJvbSession = session === this.conference.jvbJingleSession;
-
         let localPreferredCodecOrder = isJvbSession ? this.codecPreferenceOrder.jvb : this.codecPreferenceOrder.p2p;
 
         // E2EE is curently supported only for VP8 codec.
@@ -276,10 +280,7 @@ export class CodecSelection {
             return;
         }
 
-        // Reconfigure the codecs on the media session.
-        if (!selectedCodecOrder.every((val, index) => val === currentCodecOrder[index])) {
-            session.setVideoCodecs(selectedCodecOrder);
-        }
+        session.setVideoCodecs(selectedCodecOrder);
     }
 
     /**
@@ -305,5 +306,15 @@ export class CodecSelection {
      */
     getCodecPreferenceList(connectionType) {
         return this.codecPreferenceOrder[connectionType];
+    }
+
+    /**
+     * Returns the preferred screenshare codec for the given connection type.
+     *
+     * @param {String} connectionType The media connection type, 'p2p' or 'jvb'.
+     * @returns CodecMimeType
+     */
+    getScreenshareCodec(connectionType) {
+        return this.screenshareCodec[connectionType];
     }
 }

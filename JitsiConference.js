@@ -390,14 +390,20 @@ JitsiConference.prototype._init = function(options = {}) {
                 ? config.videoQuality.mobileCodecPreferenceOrder
                 : config.videoQuality?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec)
+            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
+            screenshareCodec: browser.isMobileDevice()
+                ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
+                : _getCodecMimeType(config.videoQuality?.screenshareCodec)
         },
         p2p: {
             preferenceOrder: browser.isMobileDevice() && config.p2p?.mobileCodecPreferenceOrder
                 ? config.p2p.mobileCodecPreferenceOrder
                 : config.p2p?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec)
+            preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
+            screenshareCodec: browser.isMobileDevice()
+                ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
+                : _getCodecMimeType(config.p2p?.screenshareCodec)
         }
     };
 
@@ -2198,7 +2204,8 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 ...this.options.config,
                 codecSettings: {
                     mediaType: MediaType.VIDEO,
-                    codecList: this.codecSelection.getCodecPreferenceList('jvb')
+                    codecList: this.codecSelection.getCodecPreferenceList('jvb'),
+                    screenshareCodec: this.codecSelection.getScreenshareCodec('jvb')
                 },
                 enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
             });
@@ -2908,7 +2915,8 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             ...this.options.config,
             codecSettings: {
                 mediaType: MediaType.VIDEO,
-                codecList: this.codecSelection.getCodecPreferenceList('p2p')
+                codecList: this.codecSelection.getCodecPreferenceList('p2p'),
+                screenshareCodec: this.codecSelection.getScreenshareCodec('p2p')
             },
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
@@ -3263,7 +3271,8 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             ...this.options.config,
             codecSettings: {
                 mediaType: MediaType.VIDEO,
-                codecList: this.codecSelection.getCodecPreferenceList('p2p')
+                codecList: this.codecSelection.getCodecPreferenceList('p2p'),
+                screenshareCodec: this.codecSelection.getScreenshareCodec('p2p')
             },
             enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
         });
