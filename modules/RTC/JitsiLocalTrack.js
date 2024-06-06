@@ -107,7 +107,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         if (mediaType === MediaType.VIDEO) {
             if (videoType === VideoType.CAMERA) {
                 // Safari returns an empty constraints object, construct the constraints using getSettings.
-                if (!Object.keys(this._constraints).length) {
+                // Firefox in "fingerprint resistance mode" does a similar thing, except a `mediaSource` key is set.
+                if (!this._constraints.height || !this._constraints.width) {
                     this._constraints = {
                         height: { ideal: this.getHeight() },
                         width: { ideal: this.getWidth() }
