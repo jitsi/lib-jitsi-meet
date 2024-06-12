@@ -253,7 +253,6 @@ export class OlmAdapter extends Listenable {
         this._mediaKeyIndex++;
 
         await this.sendKeyInfoToAll();
-
         // TODO: retry failed ones?
 
         return this._mediaKeyIndex;

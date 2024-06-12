@@ -45,10 +45,6 @@ export class ManagedKeyHandler extends KeyHandler {
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this)
         );
-        this._olmAdapter.on(
-            OlmAdapter.events.GENERATE_KEYS,
-            this._onKeyGeneration.bind(this)
-        );
 
         this._olmAdapter.on(
             OlmAdapter.events.GENERATE_KEYS,
