@@ -182,6 +182,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // The source name that will be signaled for this track.
         this._sourceName = null;
 
+        // The primary SSRC associated with the local media track. This will be set after the local desc
+        // is processed once the track is added to the peerconnection.
+        this._ssrc = null;
+
         this._trackMutedTS = 0;
 
         this._onDeviceListWillChange = devices => {
@@ -713,6 +717,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the primary SSRC associated with the track.
+     * @returns {number}
+     */
+    getSsrc() {
+        return this._ssrc;
+    }
+
+    /**
      * Returns if associated MediaStreamTrack is in the 'ended' state
      *
      * @returns {boolean}
@@ -911,6 +923,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     setSourceName(name) {
         this._sourceName = name;
+    }
+
+    /**
+     * Sets the primary SSRC for the track.
+     *
+     * @param {number} ssrc The SSRC.
+     */
+    setSsrc(ssrc) {
+        if (!isNaN(ssrc)) {
+            this._ssrc = ssrc;
+        }
     }
 
     /**
