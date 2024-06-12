@@ -1809,6 +1809,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                 if (oldTrackSSRC) {
                     this.localSSRCs.delete(oldTrack.rtcId);
                     this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
+                    const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
+
+                    newTrack.setSsrc(oldSsrcNum);
                 }
             }
 
@@ -2654,6 +2657,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             if (newSSRCNum !== oldSSRCNum) {
                 oldSSRCNum && logger.error(`${this} Overwriting SSRC for track=${track}] with ssrc=${newSSRC}`);
                 this.localSSRCs.set(track.rtcId, newSSRC);
+                track.setSsrc(newSSRCNum);
                 this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
             }
         } else if (!track.isVideoTrack() && !track.isMuted()) {
