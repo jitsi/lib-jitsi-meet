@@ -3,7 +3,8 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
-import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
+import { NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
+import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 
@@ -276,6 +277,11 @@ export default class Moderator extends Listenable {
             conferenceRequest.properties.sipGatewayEnabled = 'true';
         }
 
+        // check for explicit false, all other cases is considered live
+        if ($(resultIq).find('>conference>property[name=\'live\'][value=\'false\']').length > 0) {
+            conferenceRequest.properties.live = 'false';
+        }
+
         return conferenceRequest;
     }
 
@@ -386,6 +392,16 @@ export default class Moderator extends Listenable {
 
         this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
         logger.info(`Sip gateway enabled: ${this.sipGatewayEnabled}`);
+
+        if (conferenceRequest.properties.live === 'false' && this.options.preferVisitor) {
+            this.getNextTimeout(true);
+
+            logger.info('Conference is not live.');
+
+            this.xmpp.eventEmitter.emit(CONNECTION_FAILED, NOT_LIVE_ERROR);
+
+            return;
+        }
 
         if (conferenceRequest.ready) {
             // Reset the non-error timeout (because we've succeeded here).
