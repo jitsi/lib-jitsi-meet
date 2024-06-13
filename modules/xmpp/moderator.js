@@ -3,7 +3,8 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
-import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
+import { NOT_READY_ERROR } from '../../JitsiConnectionErrors';
+import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 
@@ -402,6 +403,12 @@ export default class Moderator extends Listenable {
 
             logger.info('Conference-request successful, ready to join the MUC.');
             callback();
+        } else if (this.options.preferVisitor) {
+            this.getNextTimeout(true);
+
+            logger.info('Conference not ready for visitors.');
+
+            this.xmpp.eventEmitter.emit(CONNECTION_FAILED, NOT_READY_ERROR);
         } else {
             const waitMs = this.getNextTimeout();
 
