@@ -17,6 +17,11 @@ export enum JitsiConnectionErrors {
     CONNECTION_DROPPED_ERROR = 'connection.droppedError',
 
     /**
+     * Not ready error. When the conference error is not ready according to jicofo.
+     */
+    NOT_LIVE_ERROR = 'connection.notLiveError',
+
+    /**
      * Not specified errors.
      */
     OTHER_ERROR = 'connection.otherError',
@@ -35,6 +40,7 @@ export enum JitsiConnectionErrors {
 
 // exported for backward compatibility
 export const CONNECTION_DROPPED_ERROR = JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
+export const NOT_LIVE_ERROR = JitsiConnectionErrors.NOT_LIVE_ERROR;
 export const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
 export const PASSWORD_REQUIRED = JitsiConnectionErrors.PASSWORD_REQUIRED;
 export const SERVER_ERROR = JitsiConnectionErrors.SERVER_ERROR;
