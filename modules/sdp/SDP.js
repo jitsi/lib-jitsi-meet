@@ -459,6 +459,17 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         if (setupLine) {
             fingerprint.setup = setupLine.substr(8);
         }
+
+        const cryptexLine
+            = SDPUtil.findLine(
+                this.media[mediaindex],
+                'a=cryptex',
+                this.session);
+
+        if (cryptexLine) {
+            fingerprint.cryptex = true;
+        }
+
         elem.attrs(fingerprint);
         elem.up(); // end of fingerprint
     });
@@ -658,6 +669,9 @@ SDP.prototype.jingle2media = function(content) {
             sdp += '\r\n';
             if (fingerprint.hasAttribute('setup')) {
                 sdp += `a=setup:${fingerprint.getAttribute('setup')}\r\n`;
+            }
+            if (fingerprint.getAttribute('cryptex') === 'true') {
+                sdp += 'a=cryptex';
             }
         });
     }
