@@ -80,7 +80,7 @@ const logger = getLogger(__filename);
  * {@link ACTION_JINGLE_SI_TIMEOUT} analytics event is sent (in ms).
  * @type {number}
  */
-const JINGLE_SI_TIMEOUT = 5 * 1000;
+const JINGLE_SI_TIMEOUT = 5000;
 
 /**
  * Checks if a given string is a valid video codec mime type.
