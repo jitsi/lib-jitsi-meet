@@ -2256,7 +2256,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
  */
 JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
     const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
-    const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? false;
+    const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? true;
     const sctpOffered = $(offerIq).find('>content[name="data"]')
         .first().length === 1;
     let wsUrl = null;
