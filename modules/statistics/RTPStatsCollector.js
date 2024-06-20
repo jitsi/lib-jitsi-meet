@@ -651,7 +651,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 codecShortType && ssrcStats.setCodec(codecShortType);
 
                 // Calculate the encodeTime stat for outbound video streams.
-                const track = this.peerconnection.getTrackBySSRC(ssrc, false);
+                const track = this.peerconnection.getTrackBySSRC(ssrc);
 
                 if (now.type === 'outbound-rtp'
                     && now.active
@@ -667,7 +667,7 @@ StatsCollector.prototype.processStatsReport = function() {
                     const encodeTimeStats = {
                         codec: codecShortType,
                         encodeTime: encodeTimePerFrameInMs,
-                        isBandwidthLimited: now.qualityLimitationReason === 'bandwidth',
+                        qualityLimitationReason: now.qualityLimitationReason,
                         resolution,
                         timestamp: now.timestamp
                     };

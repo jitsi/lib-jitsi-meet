@@ -138,8 +138,7 @@ export class CodecSelection {
     }
 
     /**
-     * Processes the encode time stats received for all the local video sources and switches the codec to a low
-     * complexity codec if needed.
+     * Processes the encode time stats received for all the local video sources.
      *
      * @param {TraceablePeerConnection} tpc - the peerconnection for which stats were gathered.
      * @param {Object} stats - the encode time stats for local video sources.
@@ -156,14 +155,14 @@ export class CodecSelection {
         const statsPerTrack = new Map();
 
         for (const ssrc of stats.keys()) {
-            const { codec, encodeTime, isBandwidthLimited, resolution, timestamp } = stats.get(ssrc);
-            const track = tpc.getTrackBySSRC(ssrc, false);
+            const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
+            const track = tpc.getTrackBySSRC(ssrc);
             let existingStats = statsPerTrack.get(track.rtcId);
             const encodeResolution = Math.min(resolution.height, resolution.width);
             const ssrcStats = {
                 encodeResolution,
                 encodeTime,
-                isBandwidthLimited
+                qualityLimitationReason
             };
 
             if (existingStats) {
@@ -187,7 +186,8 @@ export class CodecSelection {
                 .map(stat => stat.encodeTime)
                 .reduce((totalValue, currentValue) => totalValue + currentValue, 0);
             const avgEncodeTime = totalEncodeTime / trackStats.length;
-            const isBandwidthLimited = Boolean(trackStats.find(stat => stat.isBandwidthLimited));
+            const { qualityLimitationReason = 'none' }
+                = trackStats.find(stat => stat.qualityLimitationReason !== 'none') ?? {};
             const encodeResolution = trackStats
                 .map(stat => stat.encodeResolution)
                 .reduce((resolution, currentValue) => Math.max(resolution, currentValue), 0);
@@ -198,7 +198,7 @@ export class CodecSelection {
                 avgEncodeTime,
                 currentCodec,
                 encodeResolution,
-                isBandwidthLimited,
+                qualityLimitationReason,
                 localTrack,
                 timestamp
             };
@@ -210,7 +210,7 @@ export class CodecSelection {
             }
 
             logger.debug(`Encode stats for ${localTrack}: codec=${currentCodec}, time=${avgEncodeTime},`
-                + `resolution=${encodeResolution}, bandwidth limited=${isBandwidthLimited}`);
+                + `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`);
         }
     }
 

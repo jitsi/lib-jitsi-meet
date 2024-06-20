@@ -816,24 +816,17 @@ TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
  * Tries to find {@link JitsiTrack} for given SSRC number. It will search both local and remote tracks bound to this
  * instance.
  * @param {number} ssrc
- * @param {isPrimary} boolean - Whether the SSRC passed is a primary SSRC of a source.
  * @return {JitsiTrack|null}
  */
-TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc, isPrimary = true) {
+TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
     if (typeof ssrc !== 'number') {
         throw new Error(`SSRC ${ssrc} is not a number`);
     }
     for (const localTrack of this.localTracks.values()) {
-        if (isPrimary) {
-            if (this.getLocalSSRC(localTrack) === ssrc) {
-                return localTrack;
-            }
-        } else {
-            const { ssrcs } = this.localSSRCs.get(localTrack.rtcId);
+        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId);
 
-            if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
-                return localTrack;
-            }
+        if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
+            return localTrack;
         }
     }
 
@@ -1614,12 +1607,9 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
 
     if (this.usesCodecSelectionAPI() && localVideoTrack) {
         const rtpSender = this.findSenderForTrack(localVideoTrack.getTrack());
+        const { codecs } = rtpSender.getParameters();
 
-        if (rtpSender) {
-            const { codecs } = rtpSender.getParameters();
-
-            return codecs[0].mimeType.split('/')[1].toLowerCase();
-        }
+        return codecs[0].mimeType.split('/')[1].toLowerCase();
     }
 
     const sdp = this.peerconnection.remoteDescription?.sdp;
@@ -1963,27 +1953,27 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
  * Returns the codec to be used for screenshare based on the supported codecs and the preferred codec requested
  * through config.js setting.
  *
- * @param {CodecMimeType} cameraCodec - the preferred codec to be used for the camera track.
+ * @param {CodecMimeType} defaultCodec - the preferred codec for video tracks.
  * @returns {CodecMimeType}
  */
-TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(cameraCodec) {
-    const { screenshareCodec } = this.codecSettings;
-
+TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(defaultCodec) {
     // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
     if (!this.usesCodecSelectionAPI()) {
-        return cameraCodec;
+        return defaultCodec;
     }
+
+    const { screenshareCodec } = this.codecSettings;
 
     if (screenshareCodec && this.codecSettings.codecList.find(c => c === screenshareCodec)) {
         return screenshareCodec;
     }
 
-    // Default to AV1 for screenshare if its not overriden through config.js.
+    // Default to AV1 for screenshare if its supported and is not overriden through config.js.
     if (this.codecSettings.codecList.find(c => c === CodecMimeType.AV1)) {
         return CodecMimeType.AV1;
     }
 
-    return cameraCodec;
+    return defaultCodec;
 };
 
 /**
