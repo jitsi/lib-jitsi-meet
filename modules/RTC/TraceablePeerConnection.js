@@ -2299,12 +2299,23 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
     const codec = this.getConfiguredVideoCodec();
-    const bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
-    const scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
+    let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
+    let scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
     const sourceName = localVideoTrack.getSourceName();
     let needsUpdate = false;
+
+    // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in VP9 legacy K-SVC mode since
+    // the browser sends only the lowest resolution layer when those are configured. Those fields need to be reset in
+    // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
+    // K-SVC codec.
+    if (codec === CodecMimeType.VP9
+        && this.isSpatialScalabilityOn()
+        && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
+        scaleFactors = scaleFactors.map(() => undefined);
+        bitrates = bitrates.map(() => undefined);
+    }
 
     for (const idx in parameters.encodings) {
         if (parameters.encodings.hasOwnProperty(idx)) {
@@ -2324,20 +2335,13 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             // encodings.
             browser.isFirefox() && (parameters.encodings[idx].degradationPreference = preference);
 
-            // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in legacy K-SVC mode
-            // since the browser sends only the lowest resolution layer when those are configured.
-            if (codec !== CodecMimeType.VP9
-                || !this.isSpatialScalabilityOn()
-                || (browser.supportsScalabilityModeAPI()
-                    && this.tpcUtils.codecSettings[codec].scalabilityModeEnabled)) {
-                if (scaleResolutionDownBy !== scaleFactors[idx]) {
-                    parameters.encodings[idx].scaleResolutionDownBy = scaleFactors[idx];
-                    needsUpdate = true;
-                }
-                if (maxBitrate !== bitrates[idx]) {
-                    parameters.encodings[idx].maxBitrate = bitrates[idx];
-                    needsUpdate = true;
-                }
+            if (scaleResolutionDownBy !== scaleFactors[idx]) {
+                parameters.encodings[idx].scaleResolutionDownBy = scaleFactors[idx];
+                needsUpdate = true;
+            }
+            if (maxBitrate !== bitrates[idx]) {
+                parameters.encodings[idx].maxBitrate = bitrates[idx];
+                needsUpdate = true;
             }
 
             // Configure scalability mode when its supported and enabled.
