@@ -946,6 +946,22 @@ export default class ChatRoom extends Listenable {
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
     }
 
+    /**
+     * Sends a reaction message to the other participants in the conference.
+     * @param {string} reaction - The reaction message to send.
+     * @param {string} messageID - Who is sending the message.
+     * @param {string} receiverID 
+     */
+    sendReaction(reaction, messageID, receiverID) {
+        const msg = receiverID ? $msg({ to: `${this.roomjid}/${receiverID}`, type: "chat" }) : $msg({ to: this.roomjid, type: "groupchat" });
+
+        msg.c("reactions", { id: messageID, xmlns: "urn:xmpp:reactions:0" })
+            .c("reaction", {}, reaction)
+            .up().up().c("store", {xmlns: "urn:xmpp:hints"} );
+
+        this.connection.send(msg);
+    }
+
     /* eslint-disable max-params */
     /**
      * Send private text message to another participant of the conference
