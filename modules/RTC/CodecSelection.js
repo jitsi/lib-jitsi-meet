@@ -166,13 +166,14 @@ export class CodecSelection {
             };
 
             if (existingStats) {
-                existingStats.trackStats.push(ssrcStats);
+                existingStats.codec = codec;
                 existingStats.timestamp = timestamp;
+                existingStats.trackStats.push(ssrcStats);
             } else {
                 existingStats = {
-                    trackStats: [ ssrcStats ],
-                    currentCodec: codec,
-                    timestamp
+                    codec,
+                    timestamp,
+                    trackStats: [ ssrcStats ]
                 };
 
                 statsPerTrack.set(track.rtcId, existingStats);
@@ -181,7 +182,7 @@ export class CodecSelection {
 
         // Aggregate the stats for multiple simulcast streams with different SSRCs but for the same video stream.
         for (const trackId of statsPerTrack.keys()) {
-            const { currentCodec, timestamp, trackStats } = statsPerTrack.get(trackId);
+            const { codec, timestamp, trackStats } = statsPerTrack.get(trackId);
             const totalEncodeTime = trackStats
                 .map(stat => stat.encodeTime)
                 .reduce((totalValue, currentValue) => totalValue + currentValue, 0);
@@ -196,7 +197,7 @@ export class CodecSelection {
             const exisitingStats = this.encodeTimeStats.get(trackId);
             const sourceStats = {
                 avgEncodeTime,
-                currentCodec,
+                codec,
                 encodeResolution,
                 qualityLimitationReason,
                 localTrack,
@@ -209,7 +210,7 @@ export class CodecSelection {
                 this.encodeTimeStats.set(trackId, [ sourceStats ]);
             }
 
-            logger.debug(`Encode stats for ${localTrack}: codec=${currentCodec}, time=${avgEncodeTime},`
+            logger.debug(`Encode stats for ${localTrack}: codec=${codec}, time=${avgEncodeTime},`
                 + `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`);
         }
     }
