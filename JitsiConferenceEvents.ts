@@ -194,6 +194,11 @@ export enum JitsiConferenceEvents {
     E2EE_VERIFICATION_READY = 'conference.e2ee.verification.ready',
 
     /**
+     * Indicates that the encode time stats for the local video sources has been received.
+     */
+    ENCODE_TIME_STATS_RECEIVED = 'conference.encode_time_stats_received',
+
+    /**
      * Indicates that a message from another participant is received on data
      * channel.
      */
@@ -518,6 +523,7 @@ export const DTMF_SUPPORT_CHANGED = JitsiConferenceEvents.DTMF_SUPPORT_CHANGED;
 export const E2EE_VERIFICATION_AVAILABLE = JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE;
 export const E2EE_VERIFICATION_COMPLETED = JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED;
 export const E2EE_VERIFICATION_READY = JitsiConferenceEvents.E2EE_VERIFICATION_READY;
+export const ENCODE_TIME_STATS_RECEIVED = JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED;
 export const ENDPOINT_MESSAGE_RECEIVED = JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED;
 export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;

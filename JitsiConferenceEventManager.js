@@ -734,6 +734,11 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
     });
 
+    conference.statistics.addEncodeTimeStatsListener((tpc, stats) => {
+        conference.eventEmitter.emit(
+            JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED, tpc, stats);
+    });
+
     // if we are in startSilent mode we will not be sending/receiving so nothing to detect
     if (!conference.options.config.startSilent) {
         conference.statistics.addByteSentStatsListener((tpc, stats) => {
