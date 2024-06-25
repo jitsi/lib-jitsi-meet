@@ -981,6 +981,23 @@ JitsiConference.prototype.sendTextMessage = function(message, elementName = 'bod
 };
 
 /**
+ * Sends a reaction to the other participants in the conference
+ * @param reaction the reaction.
+ * @param messageID the ID of the send message.
+ * @param receiverID the intended recipient, if the message is private.
+ * @deprecated Use 'sendReaction' instead. TODO: this should be private.
+ */
+JitsiConference.prototype.sendReaction = function (
+    reaction,
+    messageId,
+    receiverId
+) {
+    if (this.room) {
+        this.room.sendReaction(reaction, messageID, receiverID);
+    }
+};
+
+/**
  * Send private text message to another participant of the conference
  * @param id the id of the participant to send a private message.
  * @param message the text message.
