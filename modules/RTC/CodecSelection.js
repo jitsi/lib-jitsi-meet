@@ -148,7 +148,7 @@ export class CodecSelection {
         const activeSession = this.conference.getActiveMediaSession();
 
         // Process stats only for the active media session.
-        if (activeSession.peerconnection.id !== tpc.id) {
+        if (activeSession.peerconnection !== tpc) {
             return;
         }
 
