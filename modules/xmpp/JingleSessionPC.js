@@ -401,7 +401,7 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.usesCodecSelectionAPI = this.usesCodecSelectionAPI
-            = browser.supportsCodecSelectionAPI() && options.testing?.enableCodecSelectionAPI;
+            = browser.supportsCodecSelectionAPI() && options.testing?.enableCodecSelectionAPI && !this.isP2P;
 
         if (options.videoQuality) {
             const settings = Object.entries(options.videoQuality)
