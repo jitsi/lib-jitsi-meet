@@ -1680,18 +1680,21 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
 
 /**
  * Sets the codec preference on the peerconnection. The codec preference goes into effect when
- * the next renegotiation happens.
+ * the next renegotiation happens for older clients that do not support the codec selection API.
  *
- * @param {CodecMimeType} preferredCodec the preferred codec.
- * @param {CodecMimeType} disabledCodec the codec that needs to be disabled.
+ * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
+ * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
+TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
     if (!this.codecSettings || !codecList?.length) {
         return;
     }
 
     this.codecSettings.codecList = codecList;
+    if (screenshareCodec) {
+        this.codecSettings.screenshareCodec = screenshareCodec;
+    }
 
     if (this.usesCodecSelectionAPI()) {
         this.configureVideoSenderEncodings();

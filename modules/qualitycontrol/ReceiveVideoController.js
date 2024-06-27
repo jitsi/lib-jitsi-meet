@@ -1,7 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import isEqual from 'lodash.isequal';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 
 const logger = getLogger(__filename);
@@ -176,10 +175,6 @@ export default class ReceiveVideoController {
             lastN: this._lastN,
             assumedBandwidthBps: this._assumedBandwidthBps
         });
-
-        this._conference.on(
-            JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-            session => this._onMediaSessionStarted(session));
     }
 
     /**
@@ -202,28 +197,27 @@ export default class ReceiveVideoController {
     }
 
     /**
-     * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
-     * session. The preferred receive frameHeight is applied on the media session.
-     *
-     * @param {JingleSessionPC} mediaSession - the started media session.
-     * @returns {void}
-     * @private
-     */
-    _onMediaSessionStarted(mediaSession) {
-        if (mediaSession.isP2P) {
-            mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
-        } else {
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
-        }
-    }
-
-    /**
      * Returns the lastN value for the conference.
      *
      * @returns {number}
      */
     getLastN() {
         return this._lastN;
+    }
+
+    /**
+     * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
+     * session. The preferred receive frameHeight is applied on the media session.
+     *
+     * @param {JingleSessionPC} mediaSession - the started media session.
+     * @returns {void}
+     */
+    onMediaSessionStarted(mediaSession) {
+        if (mediaSession.isP2P) {
+            mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
+        } else {
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+        }
     }
 
     /**

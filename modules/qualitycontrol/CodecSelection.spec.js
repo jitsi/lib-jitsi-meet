@@ -1,10 +1,11 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents.ts';
-import Listenable from '../util/Listenable.js';
-import JingleSessionPC from '../xmpp/JingleSessionPC.js';
-import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses.js';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { MockRTC, MockSignalingLayerImpl } from '../RTC/MockClasses';
+import Listenable from '../util/Listenable';
+import { nextTick } from '../util/TestUtils';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
+import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses';
 
-import { CodecSelection } from './CodecSelection.js';
-import { MockRTC, MockSignalingLayerImpl } from './MockClasses.js';
+import QualityController from './QualityController';
 
 /**
  * MockParticipant
@@ -23,6 +24,29 @@ class MockParticipant {
      */
     getId() {
         return this.id;
+    }
+}
+
+/**
+ * MockLocalTrack
+ */
+class MockLocalTrack {
+    /**
+     * Constructor
+     * @param {number} resolution
+     * @param {string} videoType
+     */
+    constructor(resolution, videoType) {
+        this.maxEnabledResolution = resolution;
+        this.videoType = videoType;
+    }
+
+    /**
+     * Returns the video type of the mock local track.
+     * @returns {string}
+     */
+    getVideoType() {
+        return this.videoType;
     }
 }
 
@@ -58,6 +82,14 @@ class MockConference extends Listenable {
     }
 
     /**
+     * Returns the active media session.
+     * @returns {JingleSessionPC}
+     */
+    getActiveMediaSession() {
+        return this.jvbJingleSession;
+    }
+
+    /**
      * Returns the list of participants.
      * @returns Array<MockParticipant>
      */
@@ -86,12 +118,12 @@ class MockConference extends Listenable {
 
 describe('Codec Selection', () => {
     /* eslint-disable-next-line no-unused-vars */
-    let codecSelection;
+    let qualityController;
     let conference;
     let connection;
     let jingleSession;
     let options;
-    let participant1, participant2;
+    let participant1, participant2, participant3;
     let rtc;
     const SID = 'sid12345';
 
@@ -122,11 +154,12 @@ describe('Codec Selection', () => {
         beforeEach(() => {
             options = {
                 jvb: {
-                    preferenceOrder: [ 'VP9', 'VP8', 'H264' ]
+                    preferenceOrder: [ 'VP9', 'VP8', 'H264' ],
+                    screenshareCodec: 'VP9'
                 }
             };
 
-            codecSelection = new CodecSelection(conference, options);
+            qualityController = new QualityController(conference, rtc, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
 
@@ -141,7 +174,7 @@ describe('Codec Selection', () => {
             participant2 = new MockParticipant('remote-2');
             conference.addParticipant(participant2, [ 'vp8' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], 'vp9');
 
             // Make p2 leave the call
             conference.removeParticipant(participant2);
@@ -153,13 +186,13 @@ describe('Codec Selection', () => {
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, null, 'vp8');
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], 'vp9');
 
             // Add a third user (newer) to the call.
             participant2 = new MockParticipant('remote-2');
             conference.addParticipant(participant2, [ 'vp9', 'vp8' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], 'vp9');
 
             // Make p1 leave the call
             conference.removeParticipant(participant1);
@@ -176,7 +209,7 @@ describe('Codec Selection', () => {
                 }
             };
 
-            codecSelection = new CodecSelection(conference, options);
+            qualityController = new QualityController(conference, rtc, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
 
@@ -191,7 +224,7 @@ describe('Codec Selection', () => {
             participant2 = new MockParticipant('remote-2');
             conference.addParticipant(participant2, [ 'vp8' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], undefined);
 
             // Make p2 leave the call
             conference.removeParticipant(participant2);
@@ -203,7 +236,7 @@ describe('Codec Selection', () => {
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'h264', 'vp8' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], undefined);
         });
 
         it('and remote endpoints use the old codec selection logic (RN)', () => {
@@ -211,17 +244,86 @@ describe('Codec Selection', () => {
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, null, 'vp8');
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], undefined);
 
             // Add a third user (newer) to the call.
             participant2 = new MockParticipant('remote-2');
             conference.addParticipant(participant2, [ 'vp9', 'vp8', 'h264' ]);
 
-            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8' ], undefined);
 
             // Make p1 leave the call
             conference.removeParticipant(participant1);
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(3);
+        });
+    });
+
+    describe('when codec switching is triggered based on outbound-rtp stats', () => {
+        beforeEach(() => {
+            options = {
+                jvb: {
+                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ]
+                }
+            };
+            jasmine.clock().install();
+            qualityController = new QualityController(conference, rtc, options);
+            spyOn(jingleSession, 'setVideoCodecs');
+        });
+
+        afterEach(() => {
+            jasmine.clock().uninstall();
+        });
+
+        it('and encode resolution is limited by cpu for camera tracks', () => {
+            const localTrack = new MockLocalTrack(720, 'camera');
+
+            participant1 = new MockParticipant('remote-1');
+            conference.addParticipant(participant1, [ 'av1', 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'av1', 'vp9', 'vp8' ], undefined);
+
+            participant2 = new MockParticipant('remote-2');
+            conference.addParticipant(participant2, [ 'av1', 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'av1', 'vp9', 'vp8' ], undefined);
+
+            qualityController._codecController.changeCodecPreferenceOrder(localTrack, 'av1');
+
+            return nextTick(121000).then(() => {
+                expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'av1', 'vp8' ], undefined);
+            })
+            .then(() => {
+                participant3 = new MockParticipant('remote-3');
+                conference.addParticipant(participant3, [ 'av1', 'vp9', 'vp8' ]);
+
+                // Expect the local endpoint to continue sending VP9.
+                expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'av1', 'vp8' ], undefined);
+            });
+        });
+
+        it('and does not change codec if the current codec is already the lowest complexity codec', () => {
+            const localTrack = new MockLocalTrack(720, 'camera');
+
+            qualityController._codecController.codecPreferenceOrder.jvb = [ 'vp8', 'vp9', 'av1' ];
+
+            participant1 = new MockParticipant('remote-1');
+            conference.addParticipant(participant1, [ 'av1', 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
+
+            participant2 = new MockParticipant('remote-2');
+            conference.addParticipant(participant2, [ 'av1', 'vp9', 'vp8' ]);
+            expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
+
+            qualityController._codecController.changeCodecPreferenceOrder(localTrack, 'vp8');
+
+            return nextTick(121000).then(() => {
+                expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
+            })
+            .then(() => {
+                participant3 = new MockParticipant('remote-3');
+                conference.addParticipant(participant3, [ 'av1', 'vp9', 'vp8' ]);
+
+                // Expect the local endpoint to continue sending VP9.
+                expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
+            });
         });
     });
 });
