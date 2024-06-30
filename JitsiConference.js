@@ -1053,7 +1053,7 @@ JitsiConference.prototype.setDisplayName = function(name) {
 JitsiConference.prototype.setIsSilent = function(silent) {
     if (this.room) {
         this.room.addOrReplaceInPresence('silent', {
-            attributes: { xmlns: 'http://jabber.org/protocol/silent' },
+            attributes: { xmlns: 'http://jitsi.org/protocol/silent' },
             value: silent
         }) && this.room.sendPresence();
     }
