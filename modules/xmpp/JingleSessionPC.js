@@ -1177,13 +1177,13 @@ export default class JingleSessionPC extends JingleSession {
      * Updates the codecs on the peerconnection and initiates a renegotiation for the
      * new codec config to take effect.
      *
-     * @param {Array<CodecMimeType>} codecList the preferred codecs.
+     * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
+     * @param {CodecMimeType} screenshareCodec - The preferred screenshare codec.
      */
-    setVideoCodecs(codecList) {
-
+    setVideoCodecs(codecList, screenshareCodec) {
         if (this._assertNotEnded()) {
             logger.info(`${this} setVideoCodecs: ${codecList}`);
-            this.peerconnection.setVideoCodecs(codecList);
+            this.peerconnection.setVideoCodecs(codecList, screenshareCodec);
 
             // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to
             // be selected.

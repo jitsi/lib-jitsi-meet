@@ -1,5 +1,7 @@
 import transform from 'sdp-transform';
 
+import Listenable from '../util/Listenable';
+
 /* eslint-disable no-empty-function */
 /* eslint-disable max-len */
 
@@ -230,7 +232,7 @@ export class MockPeerConnection {
 /**
  * Mock {@link RTC} - add things as needed, but only things useful for all tests.
  */
-export class MockRTC {
+export class MockRTC extends Listenable {
     /**
      * {@link RTC.createPeerConnection}.
      *
