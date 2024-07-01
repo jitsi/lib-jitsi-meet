@@ -299,6 +299,14 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Returns the primary SSRC associated with the track.
+     * @returns {number}
+     */
+    getSsrc() { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
+    }
+
+    /**
      * Returns the ID of the underlying WebRTC Media Stream(if any)
      * @returns {String|null}
      */

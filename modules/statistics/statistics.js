@@ -203,6 +203,14 @@ Statistics.prototype.removeConnectionStatsListener = function(listener) {
         listener);
 };
 
+Statistics.prototype.addEncodeTimeStatsListener = function(listener) {
+    this.eventEmitter.on(StatisticsEvents.ENCODE_TIME_STATS, listener);
+};
+
+Statistics.prototype.removeEncodeTimeStatsListener = function(listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.ENCODE_TIME_STATS, listener);
+};
+
 Statistics.prototype.addByteSentStatsListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
 };

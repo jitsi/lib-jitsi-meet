@@ -5,6 +5,7 @@ import * as exported from "./JitsiConnectionErrors";
 describe( "/JitsiConnectionErrors members", () => {
     const {
         CONNECTION_DROPPED_ERROR,
+        NOT_LIVE_ERROR,
         OTHER_ERROR,
         PASSWORD_REQUIRED,
         SERVER_ERROR,
@@ -21,6 +22,7 @@ describe( "/JitsiConnectionErrors members", () => {
         expect( JitsiConnectionErrors ).toBeDefined();
 
         expect( JitsiConnectionErrors.CONNECTION_DROPPED_ERROR ).toBe( 'connection.droppedError' );
+        expect( JitsiConnectionErrors.NOT_LIVE_ERROR ).toBe( 'connection.notLiveError' );
         expect( JitsiConnectionErrors.OTHER_ERROR ).toBe( 'connection.otherError' );
         expect( JitsiConnectionErrors.PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
         expect( JitsiConnectionErrors.SERVER_ERROR ).toBe( 'connection.serverError' );

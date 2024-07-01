@@ -27,6 +27,7 @@ describe( "/JitsiConferenceEvents members", () => {
         E2EE_VERIFICATION_AVAILABLE,
         E2EE_VERIFICATION_READY,
         E2EE_VERIFICATION_COMPLETED,
+        ENCODE_TIME_STATS_RECEIVED,
         ENDPOINT_MESSAGE_RECEIVED,
         ENDPOINT_STATS_RECEIVED,
         JVB121_STATUS,
@@ -168,6 +169,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
         expect( SILENT_STATUS_CHANGED ).toBe( 'conference.silentStatusChanged' );
+        expect( ENCODE_TIME_STATS_RECEIVED ).toBe( 'conference.encode_time_stats_received' );
 
         expect( JitsiConferenceEvents ).toBeDefined();
 
@@ -190,6 +192,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED ).toBe( 'conference.dominantSpeaker' );
         expect( JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP ).toBe( 'conference.createdTimestamp' );
         expect( JitsiConferenceEvents.DTMF_SUPPORT_CHANGED ).toBe( 'conference.dtmfSupportChanged' );
+        expect( JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED ).toBe( 'conference.encode_time_stats_received' );
         expect( JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED ).toBe( 'conference.endpoint_message_received' );
         expect( JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED ).toBe( 'conference.endpoint_stats_received' );
         expect( JitsiConferenceEvents.JVB121_STATUS ).toBe( 'conference.jvb121Status' );
