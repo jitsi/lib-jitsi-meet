@@ -2353,11 +2353,8 @@ JitsiConference.prototype._rejectIncomingCall = function(jingleSession, options)
     // Terminate the jingle session with a reason
     jingleSession.terminate(
         null /* success callback => we don't care */,
-        error => {
-            logger.warn(
-                'An error occurred while trying to terminate'
-                    + ' invalid Jingle session', error);
-        }, {
+        null, /* error callback => we don't care */
+        {
             reason: options && options.reason,
             reasonDescription: options && options.reasonDescription,
             sendSessionTerminate: true
@@ -2722,12 +2719,11 @@ JitsiConference.prototype.sendApplicationLog = function() { };
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference focus.
  * @param mucJid the full MUC address of the user to be checked.
- * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus,
- * <tt>false</tt> when is not. <tt>null</tt> if we're not in the MUC anymore and
- * are unable to figure out the status or if given <tt>mucJid</tt> is invalid.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus,
+ * <tt>false</tt> when is not.
  */
 JitsiConference.prototype.isFocus = function(mucJid) {
-    return this.room ? this.room.isFocus(mucJid) : null;
+    return this.room?.isFocus(mucJid) ?? false;
 };
 
 /**
