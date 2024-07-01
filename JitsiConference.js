@@ -2325,11 +2325,8 @@ JitsiConference.prototype._rejectIncomingCall = function(jingleSession, options)
     // Terminate the jingle session with a reason
     jingleSession.terminate(
         null /* success callback => we don't care */,
-        error => {
-            logger.warn(
-                'An error occurred while trying to terminate'
-                    + ' invalid Jingle session', error);
-        }, {
+        null, /* error callback => we don't care */
+        {
             reason: options && options.reason,
             reasonDescription: options && options.reasonDescription,
             sendSessionTerminate: true
