@@ -11,9 +11,11 @@ import JingleSessionPC from "../xmpp/JingleSessionPC";
 import { CodecSelection } from "./CodecSelection";
 import ReceiveVideoController from "./ReceiveVideoController";
 import SendVideoController from "./SendVideoController";
+import { VIDEO_CODECS_BY_COMPLEXITY, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 
 const logger = getLogger(__filename);
-const LIMITED_BY_CPU_TIMEOUT = 120000;
+const LIMITED_BY_CPU_TIMEOUT = 60000;
+const LAST_N_THRESHOLD = 3;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
@@ -99,7 +101,11 @@ export default class QualityController {
 
     /**
      * 
-     * @param conference - The JitsiConference instance.
+     * @param {JitsiConference} conference - The JitsiConference instance.
+     * @param {RTC} rtc - RTC instance.
+     * @param {Object} codecSettings - Codec settings for jvb and p2p connections passed to config.js.
+     * @param {boolean} enableAdaptiveMode - Whether the client needs to make runtime adjustments for better video
+     * quality.
      */
     constructor(conference: JitsiConference, rtc: RTC, codecSettings: any, enableAdaptiveMode: boolean) {
         this._conference = conference;
@@ -139,6 +145,59 @@ export default class QualityController {
     }
 
     /**
+     * Adjusts the lastN value so that fewer remote video sources are received from the bridge in an attempt to improve
+     * encode resolution of the outbound video streams.
+     * @returns boolean - Returns true if the lastN was lowered, false otherwise.
+     */
+    _maybeLowerLastN() {
+        const lastN = this.receiveVideoController.getLastN();
+        const videoStreamsReceived = this._conference.getForwardedSources().length;
+
+        if (lastN !== -1 && lastN <= LAST_N_THRESHOLD) {
+            return false;
+        }
+
+        let newLastN = videoStreamsReceived / 2;
+
+        if (lastN === -1 || newLastN < LAST_N_THRESHOLD) {
+            newLastN = LAST_N_THRESHOLD;
+        }
+
+        this.receiveVideoController.setLastN(newLastN);
+
+        return true;
+    }
+
+    /**
+     * Adjusts the requested resolution for remote video sources by updating the receiver constraints in an attempt to
+     * improve the encode resolution of the outbound video streams.
+     * @return {void}
+     */
+    _maybeLowerReceiveResolution() {
+        const currentConstraints = this.receiveVideoController.getCurrentReceiverConstraints();
+        const individualConstraints = currentConstraints.constraints;
+        let maxHeight = 0;
+
+        if (individualConstraints && Object.keys(individualConstraints).length) {
+            /* eslint-disable no-unused-vars */
+            for (const [key, value] of Array.from(Object.entries(individualConstraints))) {
+                const k: string = key;
+                const v: any = value;
+                maxHeight = Math.max(maxHeight, v.maxHeight);
+            }
+        }
+
+        const currentLevel = VIDEO_QUALITY_LEVELS.findIndex(lvl => lvl.height <= maxHeight);
+
+        // Do not lower the resolution to less than 180p.
+        if (currentLevel === VIDEO_QUALITY_LEVELS.length - 3) {
+            return;
+        }
+
+        this.receiveVideoController.setPreferredReceiveMaxFrameHeight(VIDEO_QUALITY_LEVELS[currentLevel + 1].height);
+    }
+
+    /**
      * Updates the codec preference order for the local endpoint on the active media session and switches the video
      * codec if needed.
      *
@@ -148,18 +207,24 @@ export default class QualityController {
     _maybeSwitchVideoCodec(trackId: string): boolean {
         const stats = this._encodeTimeStats.get(trackId);
         const { codec, encodeResolution, localTrack } = stats.get(stats.size() - 1);
+        const codecsByVideoType = VIDEO_CODECS_BY_COMPLEXITY[localTrack.getVideoType()];
+        const codecIndex = codecsByVideoType.findIndex(val => val === codec.toLowerCase());
+
+        // Do nothing if the encoder is using the lowest complexity codec already.
+        if (codecIndex === codecsByVideoType.length - 1) {
+            return false;
+        }
 
         if (!this._limitedByCpuTimeout) {
             this._limitedByCpuTimeout = window.setTimeout(() => {
                 this._limitedByCpuTimeout = undefined;
                 const updatedStats = this._encodeTimeStats.get(trackId);
-                const latestSourceStats = updatedStats[updatedStats.size() - 1];
+                const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
-                if ((latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU 
-                    || encodeResolution < localTrack.maxEnabledResolution)) {
-                    
-                        return this._codecController.changeCodecPreferenceOrder(localTrack, codec)
+                if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
+                    || encodeResolution <  Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())) {
+                        return this.codecController.changeCodecPreferenceOrder(localTrack, codec)
                 }
             }, LIMITED_BY_CPU_TIMEOUT);
         }
@@ -263,9 +328,26 @@ export default class QualityController {
                 return;
             }
 
+            // Do nothing if the limitation reason is bandwidth since the browser will dynamically adapt the outbound
+            // resolution based on available uplink bandwith. Otherwise,
+            // 1. Switch the codec to the lowest complexity one incrementally.
+            // 2. Switch to a lower lastN value, cutting the receive videos by half in every iteration until
+            // LAST_N_THRESHOLD is reached.
+            // 3. Lower the receive resolution of individual streams up to 180p.
             if (qualityLimitationReason === QualityLimitationReason.CPU
-                || encodeResolution < localTrack.maxEnabledResolution) {
-                this._maybeSwitchVideoCodec(trackId);
+                || (encodeResolution < Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())
+                    && qualityLimitationReason !== QualityLimitationReason.BANDWIDTH)) {
+                const codecSwitched = this._maybeSwitchVideoCodec(trackId);
+
+                if (!codecSwitched && !this._limitedByCpuTimeout) {
+                    this.receiveVideoController.setLastNLimitedByCpu(true);
+                    const lastNChanged = this._maybeLowerLastN();
+
+                    if (!lastNChanged) {
+                        this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
+                        this._maybeLowerReceiveResolution();
+                    }
+                }
             }
         }
     }

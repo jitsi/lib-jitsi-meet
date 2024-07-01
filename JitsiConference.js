@@ -473,7 +473,8 @@ JitsiConference.prototype._init = function(options = {}) {
     };
 
     this.qualityController = new QualityController(
-        this, this.rtc,
+        this,
+        this.rtc,
         codecSettings,
         config.videoQuality?.enableAdaptiveMode);
 

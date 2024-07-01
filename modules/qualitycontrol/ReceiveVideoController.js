@@ -9,132 +9,6 @@ const LASTN_UNLIMITED = -1;
 const ASSUMED_BANDWIDTH_BPS = -1;
 
 /**
- * This class translates the legacy signaling format between the client and the bridge (that affects bandwidth
- * allocation) to the new format described here https://github.com/jitsi/jitsi-videobridge/blob/master/doc/allocation.md
- */
-class ReceiverVideoConstraints {
-    /**
-     * Creates a new instance.
-     * @param {Object} options - The instance options:
-     * - lastN: Number of videos to be requested from the bridge.
-     * - assumedBandwidthBps: Number of bps to be requested from the bridge.
-     */
-    constructor(options) {
-        const { lastN, assumedBandwidthBps } = options;
-
-        // The number of videos requested from the bridge.
-        this._lastN = lastN ?? LASTN_UNLIMITED;
-
-        // The number representing the maximum video height the local client should receive from the bridge/peer.
-        this._maxFrameHeight = MAX_HEIGHT;
-
-        // The number representing the assumed count of bps the local client should receive from the bridge.
-        this._assumedBandwidthBps = assumedBandwidthBps ?? ASSUMED_BANDWIDTH_BPS;
-
-        this._receiverVideoConstraints = {
-            assumedBandwidthBps: this._assumedBandwidthBps,
-            constraints: {},
-            defaultConstraints: { 'maxHeight': this._maxFrameHeight },
-            lastN: this._lastN
-        };
-    }
-
-    /**
-     * Returns the receiver video constraints that need to be sent on the bridge channel or to the remote peer.
-     */
-    get constraints() {
-        this._receiverVideoConstraints.assumedBandwidthBps = this._assumedBandwidthBps;
-        this._receiverVideoConstraints.lastN = this._lastN;
-        const individualConstraints = this._receiverVideoConstraints.constraints;
-
-        if (individualConstraints && Object.keys(individualConstraints).length) {
-            /* eslint-disable no-unused-vars */
-            for (const [ key, value ] of Object.entries(individualConstraints)) {
-                value.maxHeight = this._maxFrameHeight;
-            }
-        } else {
-            this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
-        }
-
-        return this._receiverVideoConstraints;
-    }
-
-
-    /**
-     * Updates the assumed bandwidth bps of the ReceiverVideoConstraints sent to the bridge.
-     *
-     * @param {number} assumedBandwidthBps
-     * @requires {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateAssumedBandwidthBps(assumedBandwidthBps) {
-        const changed = this._assumedBandwidthBps !== assumedBandwidthBps;
-
-        if (changed) {
-            this._assumedBandwidthBps = assumedBandwidthBps;
-            logger.debug(`Updating receive assumedBandwidthBps: ${assumedBandwidthBps}`);
-        }
-
-        return changed;
-    }
-
-    /**
-     * Updates the lastN field of the ReceiverVideoConstraints sent to the bridge.
-     *
-     * @param {number} value
-     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateLastN(value) {
-        const changed = this._lastN !== value;
-
-        if (changed) {
-            this._lastN = value;
-            logger.debug(`Updating ReceiverVideoConstraints lastN(${value})`);
-        }
-
-        return changed;
-    }
-
-    /**
-     * Updates the resolution (height requested) in the contraints field of the ReceiverVideoConstraints
-     * sent to the bridge.
-     *
-     * @param {number} maxFrameHeight
-     * @requires {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateReceiveResolution(maxFrameHeight) {
-        const changed = this._maxFrameHeight !== maxFrameHeight;
-
-        if (changed) {
-            this._maxFrameHeight = maxFrameHeight;
-            logger.debug(`Updating receive maxFrameHeight: ${maxFrameHeight}`);
-        }
-
-        return changed;
-    }
-
-    /**
-     * Updates the receiver constraints sent to the bridge.
-     *
-     * @param {Object} videoConstraints
-     * @returns {boolean} Returns true if the the value has been updated, false otherwise.
-     */
-    updateReceiverVideoConstraints(videoConstraints) {
-        const changed = !isEqual(this._receiverVideoConstraints, videoConstraints);
-
-        if (changed) {
-            this._receiverVideoConstraints = videoConstraints;
-
-            if (videoConstraints.defaultConstraints?.maxHeight) {
-                this.updateReceiveResolution(videoConstraints.defaultConstraints.maxHeight);
-            }
-            logger.debug(`Updating ReceiverVideoConstraints ${JSON.stringify(videoConstraints)}`);
-        }
-
-        return changed;
-    }
-}
-
-/**
  * This class manages the receive video contraints for a given {@link JitsiConference}. These constraints are
  * determined by the application based on how the remote video streams need to be displayed. This class is responsible
  * for communicating these constraints to the bridge over the bridge channel.
@@ -170,11 +44,14 @@ export default class ReceiveVideoController {
          */
         this._assumedBandwidthBps = ASSUMED_BANDWIDTH_BPS;
 
+        this._lastNLimitedByCpu = false;
+        this._receiveResolutionLimitedByCpu = false;
+
         // The default receiver video constraints.
-        this._receiverVideoConstraints = new ReceiverVideoConstraints({
-            lastN: this._lastN,
-            assumedBandwidthBps: this._assumedBandwidthBps
-        });
+        this._receiverVideoConstraints = {
+            assumedBandwidthBps: this._assumedBandwidthBps,
+            lastN: this._lastN
+        };
     }
 
     /**
@@ -197,6 +74,23 @@ export default class ReceiveVideoController {
     }
 
     /**
+     * Updates the source based constraints based on the maxHeight set.
+     * @returns {void}
+     */
+    _updateIndividualConstraints() {
+        const individualConstraints = this._receiverVideoConstraints.constraints;
+
+        if (individualConstraints && Object.keys(individualConstraints).length) {
+            /* eslint-disable no-unused-vars */
+            for (const [ key, value ] of Object.entries(individualConstraints)) {
+                value.maxHeight = Math.min(value.maxHeight, this._maxFrameHeight);
+            }
+        } else {
+            this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
+        }
+    }
+
+    /**
      * Returns the lastN value for the conference.
      *
      * @returns {number}
@@ -216,8 +110,16 @@ export default class ReceiveVideoController {
         if (mediaSession.isP2P) {
             mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
         } else {
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
         }
+    }
+
+    /**
+     * Returns the last set of receiver constraints that were set on the bridge channel.
+     * @returns
+     */
+    getCurrentReceiverConstraints() {
+        return this._receiverVideoConstraints;
     }
 
     /**
@@ -227,8 +129,9 @@ export default class ReceiveVideoController {
      * @returns {void}
      */
     setAssumedBandwidthBps(assumedBandwidthBps) {
-        if (this._receiverVideoConstraints.updateAssumedBandwidthBps(assumedBandwidthBps)) {
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+        if (this._receiverVideoConstraints.assumedBandwidthBps !== assumedBandwidthBps) {
+            this._receiverVideoConstraints.assumedBandwidthBps = assumedBandwidthBps;
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
         }
     }
 
@@ -242,9 +145,21 @@ export default class ReceiveVideoController {
     setLastN(value) {
         if (this._lastN !== value) {
             this._lastN = value;
-            if (this._receiverVideoConstraints.updateLastN(value)) {
-                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
-            }
+            this._receiverVideoConstraints.lastN = value;
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+        }
+    }
+
+    /**
+     * Updates the lastNLimitedByCpu field.
+     *
+     * @param {boolean} enabled
+     * @returns {void}
+     */
+    setLastNLimitedByCpu(enabled) {
+        if (this._lastNLimitedByCpu !== enabled) {
+            this._lastNLimitedByCpu = enabled;
+            logger.info(`ReceiveVideoController - Setting the _lastNLimitedByCpu flag to ${enabled}`);
         }
     }
 
@@ -260,8 +175,9 @@ export default class ReceiveVideoController {
         for (const session of this._conference.getMediaSessions()) {
             if (session.isP2P) {
                 session.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(session, maxFrameHeight));
-            } else if (this._receiverVideoConstraints.updateReceiveResolution(maxFrameHeight)) {
-                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints.constraints);
+            } else {
+                this._updateIndividualConstraints();
+                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
             }
         }
     }
@@ -275,6 +191,7 @@ export default class ReceiveVideoController {
         if (!constraints) {
             return;
         }
+
         const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
 
         if (isEndpointsFormat) {
@@ -282,22 +199,26 @@ export default class ReceiveVideoController {
                 '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
             );
         }
-        const constraintsChanged = this._receiverVideoConstraints.updateReceiverVideoConstraints(constraints);
+        const constraintsChanged = !isEqual(this._receiverVideoConstraints, constraints);
 
-        if (constraintsChanged) {
+        if (constraintsChanged || this._lastNLimitedByCpu || this._receiveResolutionLimitedByCpu) {
+            this._receiverVideoConstraints = constraints;
+
             this._assumedBandwidthBps = constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
-            this._lastN = constraints.lastN ?? this._lastN;
+            this._lastN = constraints.lastN && !this._lastNLimitedByCpu ? constraints.lastN : this._lastN;
+            this._receiverVideoConstraints.lastN = this._lastN;
+            this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
 
             // Send the contraints on the bridge channel.
-            this._rtc.setReceiverVideoConstraints(constraints);
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
 
             const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
 
-            if (!p2pSession || !constraints.constraints) {
+            if (!p2pSession || !this._receiverVideoConstraints.constraints) {
                 return;
             }
 
-            const mappedConstraints = Array.from(Object.entries(constraints.constraints))
+            const mappedConstraints = Array.from(Object.entries(this._receiverVideoConstraints.constraints))
                 .map(constraint => {
                     constraint[1] = constraint[1].maxHeight;
 
@@ -308,6 +229,19 @@ export default class ReceiveVideoController {
 
             // Send the receiver constraints to the peer through a "content-modify" message.
             p2pSession.setReceiverVideoConstraint(this._sourceReceiverConstraints);
+        }
+    }
+
+    /**
+     * Updates the receivedResolutioLimitedByCpu field.
+     *
+     * @param {booem} enabled
+     * @return {void}
+     */
+    setReceiveResolutionLimitedByCpu(enabled) {
+        if (this._receiveResolutionLimitedByCpu !== enabled) {
+            this._receiveResolutionLimitedByCpu = enabled;
+            logger.info(`ReceiveVideoController - Setting the _receiveResolutionLimitedByCpu flag to ${enabled}`);
         }
     }
 }
