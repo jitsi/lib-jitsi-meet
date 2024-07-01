@@ -2694,12 +2694,11 @@ JitsiConference.prototype.sendApplicationLog = function() { };
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference focus.
  * @param mucJid the full MUC address of the user to be checked.
- * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus,
- * <tt>false</tt> when is not. <tt>null</tt> if we're not in the MUC anymore and
- * are unable to figure out the status or if given <tt>mucJid</tt> is invalid.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus,
+ * <tt>false</tt> when is not.
  */
 JitsiConference.prototype.isFocus = function(mucJid) {
-    return this.room ? this.room.isFocus(mucJid) : null;
+    return this.room?.isFocus(mucJid) ?? false;
 };
 
 /**

@@ -543,7 +543,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
-        member.isFocus = this.xmpp.moderator.isFocusJid(jid);
+        member.isFocus = this.isFocus(jid);
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
@@ -1643,18 +1643,11 @@ export default class ChatRoom extends Listenable {
      * Checks if the user identified by given <tt>mucJid</tt> is the conference
      * focus.
      * @param mucJid the full MUC address of the user to be checked.
-     * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus
-     * or <tt>false</tt> if is not. When given <tt>mucJid</tt> does not exist in
-     * the MUC then <tt>null</tt> is returned.
+     * @returns {boolean} <tt>true</tt> if MUC user is the conference focus
+     * or <tt>false</tt> if is not.
      */
     isFocus(mucJid) {
-        const member = this.members[mucJid];
-
-        if (member) {
-            return member.isFocus;
-        }
-
-        return null;
+        return this.xmpp.moderator.isFocusJid(mucJid);
     }
 
     /**
