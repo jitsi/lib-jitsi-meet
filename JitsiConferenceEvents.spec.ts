@@ -85,6 +85,7 @@ describe( "/JitsiConferenceEvents members", () => {
         BREAKOUT_ROOMS_MOVE_TO_ROOM,
         BREAKOUT_ROOMS_UPDATED,
         METADATA_UPDATED,
+        SILENT_STATUS_CHANGED,
         JitsiConferenceEvents,
         ...others
     } = exported;
@@ -167,6 +168,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
+        expect( SILENT_STATUS_CHANGED ).toBe( 'conference.silentStatusChanged' );
         expect( ENCODE_TIME_STATS_RECEIVED ).toBe( 'conference.encode_time_stats_received' );
 
         expect( JitsiConferenceEvents ).toBeDefined();
@@ -245,6 +247,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM ).toBe( 'conference.breakout-rooms.move-to-room' );
         expect( JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'conference.breakout-rooms.updated' );
         expect( JitsiConferenceEvents.METADATA_UPDATED ).toBe( 'conference.metadata.updated' );
+        expect( JitsiConferenceEvents.SILENT_STATUS_CHANGED ).toBe( 'conference.silentStatusChanged' );
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_READY ).toBe( 'conference.e2ee.verification.ready' );
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED ).toBe( 'conference.e2ee.verification.completed' );
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE ).toBe( 'conference.e2ee.verification.available' );

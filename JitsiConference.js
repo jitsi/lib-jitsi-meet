@@ -1053,6 +1053,19 @@ JitsiConference.prototype.setDisplayName = function(name) {
 };
 
 /**
+ * Set join without audio
+ * @param silent whether user joined without audio
+ */
+JitsiConference.prototype.setIsSilent = function(silent) {
+    if (this.room) {
+        this.room.addOrReplaceInPresence('silent', {
+            attributes: { xmlns: 'http://jitsi.org/protocol/silent' },
+            value: silent
+        }) && this.room.sendPresence();
+    }
+};
+
+/**
  * Set new subject for this conference. (available only for moderator)
  * @param {string} subject new subject
  */
@@ -1995,6 +2008,21 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
         JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
         id,
         displayName);
+};
+
+JitsiConference.prototype.onSilentStatusChanged = function(jid, isSilent) {
+    const id = Strophe.getResourceFromJid(jid);
+    const participant = this.getParticipantById(id);
+
+    if (!participant) {
+        return;
+    }
+
+    participant.setIsSilent(isSilent);
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.SILENT_STATUS_CHANGED,
+        id,
+        isSilent);
 };
 
 /**

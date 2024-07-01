@@ -267,6 +267,11 @@ export enum XMPPEvents {
     SESSION_ACCEPT_TIMEOUT = 'xmpp.session_accept_timeout',
 
     /**
+     * Event fired when participant joins a meeting without audio.
+     */
+    SILENT_STATUS_CHANGED = 'xmpp.silent_status_changed',
+
+    /**
      * Event fired after successful sending of jingle source-add.
      */
     SOURCE_ADD = 'xmpp.source_add',

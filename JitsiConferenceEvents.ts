@@ -364,6 +364,11 @@ export enum JitsiConferenceEvents {
     SERVER_REGION_CHANGED = 'conference.server_region_changed',
 
     /**
+     * Indicates a user has joined without audio
+     */
+    SILENT_STATUS_CHANGED = 'conference.silentStatusChanged',
+
+    /**
      * Indicates that start muted settings changed.
      */
     START_MUTED_POLICY_CHANGED = 'conference.start_muted_policy_changed',
@@ -550,6 +555,7 @@ export const PHONE_NUMBER_CHANGED = JitsiConferenceEvents.PHONE_NUMBER_CHANGED;
 export const PROPERTIES_CHANGED = JitsiConferenceEvents.PROPERTIES_CHANGED;
 export const RECORDER_STATE_CHANGED = JitsiConferenceEvents.RECORDER_STATE_CHANGED;
 export const SERVER_REGION_CHANGED = JitsiConferenceEvents.SERVER_REGION_CHANGED;
+export const SILENT_STATUS_CHANGED = JitsiConferenceEvents.SILENT_STATUS_CHANGED;
 export const START_MUTED_POLICY_CHANGED = JitsiConferenceEvents.START_MUTED_POLICY_CHANGED;
 export const STARTED_MUTED = JitsiConferenceEvents.STARTED_MUTED;
 export const SUBJECT_CHANGED = JitsiConferenceEvents.SUBJECT_CHANGED;

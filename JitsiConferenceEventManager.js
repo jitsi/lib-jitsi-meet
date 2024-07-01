@@ -345,6 +345,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));
 
+    chatRoom.addListener(XMPPEvents.SILENT_STATUS_CHANGED,
+        conference.onSilentStatusChanged.bind(conference));
+
     chatRoom.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, role => {
         conference.onLocalRoleChanged(role);
     });

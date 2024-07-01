@@ -185,7 +185,8 @@ describe('ChatRoom', () => {
                 undefined,
                 'fulljid',
                 undefined, // features
-                0 // isReplaceParticipant
+                0, // isReplaceParticipant
+                undefined // isSilent
             ]);
         });
 
@@ -220,7 +221,8 @@ describe('ChatRoom', () => {
                 undefined,
                 'jid=attr',
                 undefined, // features
-                0); // isReplaceParticipant
+                0, // isReplaceParticipant
+                undefined); // isSilent
         });
 
         it('parses muc user replacing other user correctly', () => {
@@ -254,7 +256,8 @@ describe('ChatRoom', () => {
               undefined,
               'jid=attr',
               undefined, // features
-              1); // isReplaceParticipant
+              1, // isReplaceParticipant
+              undefined); // isSilent
         });
 
         it('parses identity correctly', () => {
@@ -305,7 +308,8 @@ describe('ChatRoom', () => {
                 undefined,
                 'fulljid',
                 undefined, // features
-                0 // isReplaceParticipant
+                0, // isReplaceParticipant
+                undefined // isSilent
             ]);
         });
 
@@ -342,7 +346,8 @@ describe('ChatRoom', () => {
                 expectedBotType,
                 'fulljid',
                 undefined, // features
-                0 // isReplaceParticipant
+                0, // isReplaceParticipant
+                undefined // isSilent
             ]);
         });
 
