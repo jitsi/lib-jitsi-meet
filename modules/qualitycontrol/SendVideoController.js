@@ -18,18 +18,15 @@ export default class SendVideoController {
      *
      * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
      * the send video quality constraints.
-     * @param {RTC} rtc - the rtc instance that is responsible for sending the messages on the bridge channel.
      */
-    constructor(conference, rtc) {
+    constructor(conference) {
         this._conference = conference;
         this._preferredSendMaxFrameHeight = MAX_LOCAL_RESOLUTION;
-        this._rtc = rtc;
 
         /**
          * Source name based sender constraints.
          * @type {Map<string, number>};
          */
-
         this._sourceSenderConstraints = new Map();
     }
 
@@ -86,10 +83,10 @@ export default class SendVideoController {
     /**
      * Configures the video encodings on the local sources when a media connection is established or becomes active.
      *
-     * @returns {Promise<void[]>}
+     * @returns {void}
      */
     configureConstraintsForLocalSources() {
-        for (const track of this._rtc.getLocalVideoTracks()) {
+        for (const track of this._conference.getLocalVideoTracks()) {
             const sourceName = track.getSourceName();
 
             sourceName && this._propagateSendMaxFrameHeight(sourceName);

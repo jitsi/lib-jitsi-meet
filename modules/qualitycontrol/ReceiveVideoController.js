@@ -19,11 +19,10 @@ export default class ReceiveVideoController {
      *
      * @param {JitsiConference} conference the conference instance for which the new instance will be managing
      * the receive video quality constraints.
-     * @param {RTC} rtc the rtc instance which is responsible for initializing the bridge channel.
      */
-    constructor(conference, rtc) {
+    constructor(conference) {
         this._conference = conference;
-        this._rtc = rtc;
+        this._rtc = conference.rtc;
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
@@ -75,14 +74,14 @@ export default class ReceiveVideoController {
 
     /**
      * Updates the source based constraints based on the maxHeight set.
+     *
      * @returns {void}
      */
     _updateIndividualConstraints() {
         const individualConstraints = this._receiverVideoConstraints.constraints;
 
         if (individualConstraints && Object.keys(individualConstraints).length) {
-            /* eslint-disable no-unused-vars */
-            for (const [ key, value ] of Object.entries(individualConstraints)) {
+            for (const value of Object.values(individualConstraints)) {
                 value.maxHeight = Math.min(value.maxHeight, this._maxFrameHeight);
             }
         } else {

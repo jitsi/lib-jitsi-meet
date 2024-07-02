@@ -5,7 +5,6 @@ import { JitsiConferenceEvents } from "../../JitsiConferenceEvents";
 import { CodecMimeType } from "../../service/RTC/CodecMimeType";
 import RTCEvents from "../../service/RTC/RTCEvents";
 import JitsiLocalTrack from "../RTC/JitsiLocalTrack";
-import RTC from "../RTC/RTC";
 import TraceablePeerConnection from "../RTC/TraceablePeerConnection";
 import JingleSessionPC from "../xmpp/JingleSessionPC";
 import { CodecSelection } from "./CodecSelection";
@@ -14,8 +13,13 @@ import SendVideoController from "./SendVideoController";
 import { VIDEO_CODECS_BY_COMPLEXITY, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
 
 const logger = getLogger(__filename);
+
+// Period for which the client will wait for the cpu limitation flag to be reset in the peerconnection stats before it
+// attempts to rectify the situation by attempting a codec switch.
 const LIMITED_BY_CPU_TIMEOUT = 60000;
-const LAST_N_THRESHOLD = 3;
+
+// The min. value that lastN will be set to while trying to fix video qaulity issues.
+const MIN_LAST_N = 3;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
@@ -96,25 +100,21 @@ export default class QualityController {
     private _encodeTimeStats: Map<string, FixedSizeArray>;
     private _limitedByCpuTimeout: number | undefined;
     private _receiveVideoController: ReceiveVideoController;
-    private _rtc: RTC;
     private _sendVideoController: SendVideoController;
 
     /**
      * 
      * @param {JitsiConference} conference - The JitsiConference instance.
-     * @param {RTC} rtc - RTC instance.
      * @param {Object} codecSettings - Codec settings for jvb and p2p connections passed to config.js.
      * @param {boolean} enableAdaptiveMode - Whether the client needs to make runtime adjustments for better video
      * quality.
      */
-    constructor(conference: JitsiConference, rtc: RTC, codecSettings: any, enableAdaptiveMode: boolean) {
+    constructor(conference: JitsiConference, codecSettings: any, enableAdaptiveMode: boolean) {
         this._conference = conference;
-        this._rtc = rtc;
         this._codecController = new CodecSelection(conference, codecSettings);
         this._enableAdaptiveMode = enableAdaptiveMode;
-
-        this._receiveVideoController = new ReceiveVideoController(conference, rtc);
-        this._sendVideoController = new SendVideoController(conference, conference);
+        this._receiveVideoController = new ReceiveVideoController(conference);
+        this._sendVideoController = new SendVideoController(conference);
         this._encodeTimeStats = new Map();
 
         this._conference.on(
@@ -136,9 +136,9 @@ export default class QualityController {
         this._conference.on(
             JitsiConferenceEvents.USER_LEFT,
             () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession));
-            this._rtc.on(
-                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-                (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
+        this._conference.rtc.on(
+            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+            (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
             (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) => this._processOutboundRtpStats(tpc, stats));
@@ -149,20 +149,21 @@ export default class QualityController {
      * encode resolution of the outbound video streams.
      * @returns boolean - Returns true if the lastN was lowered, false otherwise.
      */
-    _maybeLowerLastN() {
+    _maybeLowerLastN(): boolean {
         const lastN = this.receiveVideoController.getLastN();
         const videoStreamsReceived = this._conference.getForwardedSources().length;
 
-        if (lastN !== -1 && lastN <= LAST_N_THRESHOLD) {
+        if (lastN !== -1 && lastN <= MIN_LAST_N) {
             return false;
         }
 
         let newLastN = videoStreamsReceived / 2;
 
-        if (lastN === -1 || newLastN < LAST_N_THRESHOLD) {
-            newLastN = LAST_N_THRESHOLD;
+        if (lastN === -1 || newLastN < MIN_LAST_N) {
+            newLastN = MIN_LAST_N;
         }
 
+        logger.info(`QualityController - setting lastN=${newLastN}`);
         this.receiveVideoController.setLastN(newLastN);
 
         return true;
@@ -173,15 +174,13 @@ export default class QualityController {
      * improve the encode resolution of the outbound video streams.
      * @return {void}
      */
-    _maybeLowerReceiveResolution() {
+    _maybeLowerReceiveResolution(): void {
         const currentConstraints = this.receiveVideoController.getCurrentReceiverConstraints();
         const individualConstraints = currentConstraints.constraints;
         let maxHeight = 0;
 
         if (individualConstraints && Object.keys(individualConstraints).length) {
-            /* eslint-disable no-unused-vars */
-            for (const [key, value] of Array.from(Object.entries(individualConstraints))) {
-                const k: string = key;
+            for (const value of Object.values(individualConstraints)) {
                 const v: any = value;
                 maxHeight = Math.max(maxHeight, v.maxHeight);
             }
@@ -190,7 +189,7 @@ export default class QualityController {
         const currentLevel = VIDEO_QUALITY_LEVELS.findIndex(lvl => lvl.height <= maxHeight);
 
         // Do not lower the resolution to less than 180p.
-        if (currentLevel === VIDEO_QUALITY_LEVELS.length - 3) {
+        if (VIDEO_QUALITY_LEVELS[currentLevel].height === 180) {
             return;
         }
 

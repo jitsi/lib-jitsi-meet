@@ -208,9 +208,9 @@ export class CodecSelection {
     }
 
     /**
-     * Changes the codec preference order when initiated by the {@link QualityController} to improve video quality.
+     * Changes the codec preference order.
      *
-     * @param {JitsiLocalTrack} localTrack - The local video track for which stats are being processed.
+     * @param {JitsiLocalTrack} localTrack - The local video track.
      * @param {CodecMimeType} codec - The codec used for encoding the given local video track.
      * @returns boolean - Returns true if the codec order has been updated, false otherwise.
      */
@@ -223,24 +223,24 @@ export class CodecSelection {
             .filter(val => Boolean(codecOrder.find(supportedCodec => supportedCodec === val)));
         const codecIndex = codecsByVideoType.findIndex(val => val === codec.toLowerCase());
 
-        if (codecIndex < codecsByVideoType.length - 1) {
-            const newCodec = codecsByVideoType[codecIndex + 1];
-
-            if (localTrack.getVideoType() === VideoType.CAMERA) {
-                const idx = codecOrder.findIndex(val => val === newCodec);
-
-                codecOrder.splice(idx, 1);
-                codecOrder.unshift(newCodec);
-            } else {
-                this.screenshareCodec[connectionType] = newCodec;
-            }
-
-            this.selectPreferredCodec(session);
-
-            return true;
+        if (codecIndex === codecsByVideoType.length - 1) {
+            return false;
         }
 
-        return false;
+        const newCodec = codecsByVideoType[codecIndex + 1];
+
+        if (videoType === VideoType.CAMERA) {
+            const idx = codecOrder.findIndex(val => val === newCodec);
+
+            codecOrder.splice(idx, 1);
+            codecOrder.unshift(newCodec);
+        } else {
+            this.screenshareCodec[connectionType] = newCodec;
+        }
+
+        this.selectPreferredCodec(session);
+
+        return true;
     }
 
     /**
@@ -255,6 +255,6 @@ export class CodecSelection {
         }
 
         this.visitorCodecs = codecList;
-        this._selectPreferredCodec();
+        this.selectPreferredCodec();
     }
 }

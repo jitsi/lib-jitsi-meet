@@ -148,6 +148,7 @@ describe('Codec Selection', () => {
             /* Signaling layer */ conference._signalingLayer,
             /* options */ { });
         conference.jvbJingleSession = jingleSession;
+        conference.rtc = rtc;
     });
 
     describe('when codec preference list is used in config.js', () => {
@@ -159,7 +160,7 @@ describe('Codec Selection', () => {
                 }
             };
 
-            qualityController = new QualityController(conference, rtc, options);
+            qualityController = new QualityController(conference, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
 
@@ -209,7 +210,7 @@ describe('Codec Selection', () => {
                 }
             };
 
-            qualityController = new QualityController(conference, rtc, options);
+            qualityController = new QualityController(conference, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
 
@@ -266,7 +267,7 @@ describe('Codec Selection', () => {
                 }
             };
             jasmine.clock().install();
-            qualityController = new QualityController(conference, rtc, options);
+            qualityController = new QualityController(conference, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
 
@@ -285,7 +286,7 @@ describe('Codec Selection', () => {
             conference.addParticipant(participant2, [ 'av1', 'vp9', 'vp8' ]);
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'av1', 'vp9', 'vp8' ], undefined);
 
-            qualityController._codecController.changeCodecPreferenceOrder(localTrack, 'av1');
+            qualityController.codecController.changeCodecPreferenceOrder(localTrack, 'av1');
 
             return nextTick(121000).then(() => {
                 expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp9', 'av1', 'vp8' ], undefined);
@@ -302,7 +303,7 @@ describe('Codec Selection', () => {
         it('and does not change codec if the current codec is already the lowest complexity codec', () => {
             const localTrack = new MockLocalTrack(720, 'camera');
 
-            qualityController._codecController.codecPreferenceOrder.jvb = [ 'vp8', 'vp9', 'av1' ];
+            qualityController.codecController.codecPreferenceOrder.jvb = [ 'vp8', 'vp9', 'av1' ];
 
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'av1', 'vp9', 'vp8' ]);
@@ -312,7 +313,7 @@ describe('Codec Selection', () => {
             conference.addParticipant(participant2, [ 'av1', 'vp9', 'vp8' ]);
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
 
-            qualityController._codecController.changeCodecPreferenceOrder(localTrack, 'vp8');
+            qualityController.codecController.changeCodecPreferenceOrder(localTrack, 'vp8');
 
             return nextTick(121000).then(() => {
                 expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9', 'av1' ], undefined);
