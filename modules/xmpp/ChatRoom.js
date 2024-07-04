@@ -949,15 +949,15 @@ export default class ChatRoom extends Listenable {
     /**
      * Sends a reaction message to the other participants in the conference.
      * @param {string} reaction - The reaction message to send.
-     * @param {string} messageID - Who is sending the message.
-     * @param {string} receiverID 
+     * @param {string} messageId - Who is sending the message.
+     * @param {string} receiverId 
      */
-    sendReaction(reaction, messageID, receiverID) {
-        const msg = receiverID ? $msg({ to: `${this.roomjid}/${receiverID}`, type: "chat" }) : $msg({ to: this.roomjid, type: "groupchat" });
+    sendReaction(reaction, messageId, receiverId) {
+        const msg = receiverId ? $msg({ to: `${this.roomjid}/${receiverId}`, type: "chat" }) : $msg({ to: this.roomjid, type: "groupchat" });
 
-        msg.c("reactions", { id: messageID, xmlns: "urn:xmpp:reactions:0" })
+        msg.c("reactions", { messageId: messageId, receiverId: receiverId, xmlns: "urn:xmpp:reactions:0" })
             .c("reaction", {}, reaction)
-            .up().up().c("store", {xmlns: "urn:xmpp:hints"} );
+            .up().c("store", {xmlns: "urn:xmpp:hints"} );
 
         this.connection.send(msg);
     }
@@ -1142,6 +1142,22 @@ export default class ChatRoom extends Listenable {
             this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
 
             return true;
+        }
+
+        const reaction = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction').text();
+        const messageId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('messageId');
+        const receiverId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('receiverId');
+
+        if (reaction) {
+
+            if (receiverId) {
+                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reaction, messageId, receiverId);
+
+                // Should I add return true here (would stop the message to be processed further).
+
+            } else {
+                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reaction, messageId);
+            }
         }
 
         const txt = $(msg).find('>body').text();

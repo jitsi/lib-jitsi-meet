@@ -374,6 +374,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         });
 
     chatRoom.addListener(
+        XMPPEvents.REACTION_RECEIVED,
+
+        (from, reaction, messageId, receiverId) => {
+            
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.REACTION_RECEIVED,
+                from, reaction, messageId, receiverId);
+        });
+
+    chatRoom.addListener(
         XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
 
         // eslint-disable-next-line max-params
