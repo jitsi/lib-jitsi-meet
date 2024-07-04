@@ -345,6 +345,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));
 
+    chatRoom.addListener(XMPPEvents.SILENT_STATUS_CHANGED,
+        conference.onSilentStatusChanged.bind(conference));
+
     chatRoom.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, role => {
         conference.onLocalRoleChanged(role);
     });
@@ -742,6 +745,11 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
     conference.statistics.addBeforeDisposedListener(() => {
         conference.eventEmitter.emit(
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
+    });
+
+    conference.statistics.addEncodeTimeStatsListener((tpc, stats) => {
+        conference.eventEmitter.emit(
+            JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED, tpc, stats);
     });
 
     // if we are in startSilent mode we will not be sending/receiving so nothing to detect

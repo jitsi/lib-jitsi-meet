@@ -141,6 +141,18 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser supports the new codec selection API, i.e., checks if dictionary member
+     * RTCRtpEncodingParameters.codec as defined in
+     * https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-codec is supported by the browser. It
+     * allows the application to change the current codec used by each RTCRtpSender without a renegotiation.
+     *
+     * @returns {boolean}
+     */
+    supportsCodecSelectionAPI() {
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(125);
+    }
+
+    /**
      * Returns true if the browser supports Dependency Descriptor header extension.
      *
      * @returns {boolean}

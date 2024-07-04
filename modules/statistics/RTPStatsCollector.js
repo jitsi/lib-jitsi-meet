@@ -84,6 +84,10 @@ SsrcStats.prototype.setCodec = function(codec) {
     this.codec = codec || '';
 };
 
+SsrcStats.prototype.setEncodeStats = function(encodeStats) {
+    this.encodeStats = encodeStats || {};
+};
+
 /**
  *
  */
@@ -493,6 +497,7 @@ StatsCollector.prototype._calculateFps = function(now, before, fieldName) {
  */
 StatsCollector.prototype.processStatsReport = function() {
     const byteSentStats = {};
+    const encodedTimeStatsPerSsrc = new Map();
 
     this.currentStatsReport.forEach(now => {
         const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
@@ -638,13 +643,38 @@ StatsCollector.prototype.processStatsReport = function() {
 
             if (codec) {
                 /**
-                 * The mime type has the following form: video/VP8 or audio/ISAC,
-                 * so we what to keep just the type after the '/', audio and video
-                 * keys will be added on the processing side.
+                 * The mime type has the following form: video/VP8 or audio/ISAC, so we what to keep just the type
+                 * after the '/', audio and video keys will be added on the processing side.
                  */
                 const codecShortType = codec.mimeType.split('/')[1];
 
                 codecShortType && ssrcStats.setCodec(codecShortType);
+
+                // Calculate the encodeTime stat for outbound video streams.
+                const track = this.peerconnection.getTrackBySSRC(ssrc);
+
+                if (now.type === 'outbound-rtp'
+                    && now.active
+                    && track?.isVideoTrack()
+                    && this.peerconnection.usesCodecSelectionAPI()
+                    && before?.totalEncodeTime
+                    && before?.framesEncoded
+                    && now.frameHeight
+                    && now.frameWidth) {
+                    const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
+                    const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
+                    const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;
+                    const encodeTimeStats = {
+                        codec: codecShortType,
+                        encodeTime: encodeTimePerFrameInMs,
+                        qualityLimitationReason: now.qualityLimitationReason,
+                        resolution,
+                        timestamp: now.timestamp
+                    };
+
+                    encodedTimeStatsPerSsrc.set(ssrc, encodeTimeStats);
+                    ssrcStats.setEncodeStats(encodedTimeStatsPerSsrc);
+                }
             }
 
         // Continue to use the 'track' based stats for Firefox and Safari and older versions of Chromium.
@@ -690,6 +720,10 @@ StatsCollector.prototype.processStatsReport = function() {
 
     if (Object.keys(byteSentStats).length) {
         this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
+    }
+
+    if (encodedTimeStatsPerSsrc.size) {
+        this.eventEmitter.emit(StatisticsEvents.ENCODE_TIME_STATS, this.peerconnection, encodedTimeStatsPerSsrc);
     }
 
     this._processAndEmitReport();

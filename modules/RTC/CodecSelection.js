@@ -30,14 +30,16 @@ export class CodecSelection {
      * @param {string} options.p2p settings (codec list, preferred and disabled) for the p2p connection.
      */
     constructor(conference, options) {
-        this.conference = conference;
-        this.options = options;
         this.codecPreferenceOrder = {};
+        this.conference = conference;
+        this.encodeTimeStats = new Map();
+        this.options = options;
+        this.screenshareCodec = {};
         this.visitorCodecs = [];
 
         for (const connectionType of Object.keys(options)) {
             // eslint-disable-next-line prefer-const
-            let { disabledCodec, preferredCodec, preferenceOrder } = options[connectionType];
+            let { disabledCodec, preferredCodec, preferenceOrder, screenshareCodec } = options[connectionType];
             const supportedCodecs = new Set(this._getSupportedVideoCodecs(connectionType));
 
             // Default preference codec order when no codec preferences are set in config.js
@@ -89,6 +91,11 @@ export class CodecSelection {
 
             logger.info(`Codec preference order for ${connectionType} connection is ${selectedOrder}`);
             this.codecPreferenceOrder[connectionType] = selectedOrder;
+
+            // Set the preferred screenshare codec.
+            if (screenshareCodec && supportedCodecs.has(screenshareCodec)) {
+                this.screenshareCodec[connectionType] = screenshareCodec;
+            }
         }
 
         this.conference.on(
@@ -103,6 +110,9 @@ export class CodecSelection {
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             () => this._selectPreferredCodec());
+        this.conference.on(
+            JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
+            (tpc, stats) => this._processEncodeTimeStats(tpc, stats));
     }
 
     /**
@@ -128,6 +138,84 @@ export class CodecSelection {
     }
 
     /**
+     * Processes the encode time stats received for all the local video sources.
+     *
+     * @param {TraceablePeerConnection} tpc - the peerconnection for which stats were gathered.
+     * @param {Object} stats - the encode time stats for local video sources.
+     * @returns {void}
+     */
+    _processEncodeTimeStats(tpc, stats) {
+        const activeSession = this.conference.getActiveMediaSession();
+
+        // Process stats only for the active media session.
+        if (activeSession.peerconnection !== tpc) {
+            return;
+        }
+
+        const statsPerTrack = new Map();
+
+        for (const ssrc of stats.keys()) {
+            const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
+            const track = tpc.getTrackBySSRC(ssrc);
+            let existingStats = statsPerTrack.get(track.rtcId);
+            const encodeResolution = Math.min(resolution.height, resolution.width);
+            const ssrcStats = {
+                encodeResolution,
+                encodeTime,
+                qualityLimitationReason
+            };
+
+            if (existingStats) {
+                existingStats.codec = codec;
+                existingStats.timestamp = timestamp;
+                existingStats.trackStats.push(ssrcStats);
+            } else {
+                existingStats = {
+                    codec,
+                    timestamp,
+                    trackStats: [ ssrcStats ]
+                };
+
+                statsPerTrack.set(track.rtcId, existingStats);
+            }
+        }
+
+        // Aggregate the stats for multiple simulcast streams with different SSRCs but for the same video stream.
+        for (const trackId of statsPerTrack.keys()) {
+            const { codec, timestamp, trackStats } = statsPerTrack.get(trackId);
+            const totalEncodeTime = trackStats
+                .map(stat => stat.encodeTime)
+                .reduce((totalValue, currentValue) => totalValue + currentValue, 0);
+            const avgEncodeTime = totalEncodeTime / trackStats.length;
+            const { qualityLimitationReason = 'none' }
+                = trackStats.find(stat => stat.qualityLimitationReason !== 'none') ?? {};
+            const encodeResolution = trackStats
+                .map(stat => stat.encodeResolution)
+                .reduce((resolution, currentValue) => Math.max(resolution, currentValue), 0);
+            const localTrack = this.conference.getLocalVideoTracks().find(t => t.rtcId === trackId);
+
+            const exisitingStats = this.encodeTimeStats.get(trackId);
+            const sourceStats = {
+                avgEncodeTime,
+                codec,
+                encodeResolution,
+                qualityLimitationReason,
+                localTrack,
+                timestamp
+            };
+
+            if (exisitingStats) {
+                exisitingStats.push(sourceStats);
+            } else {
+                this.encodeTimeStats.set(trackId, [ sourceStats ]);
+            }
+
+            logger.debug(`Encode stats for ${localTrack}: codec=${codec}, time=${avgEncodeTime},`
+                + `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`);
+        }
+    }
+
+    /**
      * Sets the codec on the media session based on the codec preference order configured in config.js and the supported
      * codecs published by the remote participants in their presence.
      *
@@ -139,9 +227,7 @@ export class CodecSelection {
         if (!session) {
             return;
         }
-        const currentCodecOrder = session.peerconnection.getConfiguredVideoCodecs();
         const isJvbSession = session === this.conference.jvbJingleSession;
-
         let localPreferredCodecOrder = isJvbSession ? this.codecPreferenceOrder.jvb : this.codecPreferenceOrder.p2p;
 
         // E2EE is curently supported only for VP8 codec.
@@ -195,10 +281,7 @@ export class CodecSelection {
             return;
         }
 
-        // Reconfigure the codecs on the media session.
-        if (!selectedCodecOrder.every((val, index) => val === currentCodecOrder[index])) {
-            session.setVideoCodecs(selectedCodecOrder);
-        }
+        session.setVideoCodecs(selectedCodecOrder);
     }
 
     /**
@@ -224,5 +307,15 @@ export class CodecSelection {
      */
     getCodecPreferenceList(connectionType) {
         return this.codecPreferenceOrder[connectionType];
+    }
+
+    /**
+     * Returns the preferred screenshare codec for the given connection type.
+     *
+     * @param {String} connectionType The media connection type, 'p2p' or 'jvb'.
+     * @returns CodecMimeType
+     */
+    getScreenshareCodec(connectionType) {
+        return this.screenshareCodec[connectionType];
     }
 }

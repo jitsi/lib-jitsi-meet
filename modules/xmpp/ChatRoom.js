@@ -583,6 +583,9 @@ export default class ChatRoom extends Listenable {
             case 'nick':
                 member.nick = node.value;
                 break;
+            case 'silent':
+                member.isSilent = node.value;
+                break;
             case 'userId':
                 member.id = node.value;
                 break;
@@ -685,7 +688,8 @@ export default class ChatRoom extends Listenable {
                     member.botType,
                     member.jid,
                     member.features,
-                    member.isReplaceParticipant);
+                    member.isReplaceParticipant,
+                    member.isSilent);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
@@ -740,6 +744,11 @@ export default class ChatRoom extends Listenable {
                 memberOfThis.displayName = member.displayName;
             }
 
+            // join without audio
+            if (member.isSilent) {
+                memberOfThis.isSilent = member.isSilent;
+            }
+
             // update stored status message to be able to detect changes
             if (memberOfThis.status !== member.status) {
                 hasStatusUpdate = true;
@@ -775,6 +784,12 @@ export default class ChatRoom extends Listenable {
                         from,
                         displayName);
                 }
+                break;
+            case 'silent':
+                this.eventEmitter.emit(
+                    XMPPEvents.SILENT_STATUS_CHANGED,
+                    from,
+                    member.isSilent);
                 break;
             case 'bridgeNotAvailable':
                 if (member.isFocus && !this.noBridgeAvailable) {

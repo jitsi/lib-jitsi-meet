@@ -3,6 +3,7 @@ import $ from 'jquery';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import {
@@ -399,6 +400,8 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
+        pcOptions.usesCodecSelectionAPI = this.usesCodecSelectionAPI
+            = browser.supportsCodecSelectionAPI() && options.testing?.enableCodecSelectionAPI && !this.isP2P;
 
         if (options.videoQuality) {
             const settings = Object.entries(options.videoQuality)
@@ -1174,13 +1177,27 @@ export default class JingleSessionPC extends JingleSession {
      * Updates the codecs on the peerconnection and initiates a renegotiation for the
      * new codec config to take effect.
      *
-     * @param {CodecMimeType} preferred the preferred codec.
-     * @param {CodecMimeType} disabled the codec that needs to be disabled.
+     * @param {Array<CodecMimeType>} codecList the preferred codecs.
      */
     setVideoCodecs(codecList) {
+
         if (this._assertNotEnded()) {
             logger.info(`${this} setVideoCodecs: ${codecList}`);
             this.peerconnection.setVideoCodecs(codecList);
+
+            // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to
+            // be selected.
+            // TODO: Remove this check when the above issue is fixed.
+            if (this.usesCodecSelectionAPI && codecList[0] !== CodecMimeType.H264) {
+                return;
+            }
+
+            // Skip renegotiation when the selected codec order matches with that of the remote SDP.
+            const currentCodecOrder = this.peerconnection.getConfiguredVideoCodecs();
+
+            if (codecList.every((val, index) => val === currentCodecOrder[index])) {
+                return;
+            }
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
