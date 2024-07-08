@@ -1,6 +1,7 @@
 
 import { Strophe } from 'strophe.js';
 
+
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { MediaType } from './service/RTC/MediaType';
 
@@ -25,9 +26,8 @@ export default class JitsiParticipant {
      * @param {object} identity - the xmpp identity
      * @param {boolean?} isReplacing - whether this is a participant replacing another into the meeting.
      * @param {boolean?} isReplaced - whether this is a participant to be kicked and replaced into the meeting.
-     * @param {boolean?} isSilent - whether participant has joined without audio
      */
-    constructor(jid, conference, displayName, hidden, statsID, status, identity, isReplacing, isReplaced, isSilent) {
+    constructor(jid, conference, displayName, hidden, statsID, status, identity, isReplacing, isReplaced) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -42,7 +42,6 @@ export default class JitsiParticipant {
         this._identity = identity;
         this._isReplacing = isReplacing;
         this._isReplaced = isReplaced;
-        this._isSilent = isSilent;
         this._features = new Set();
 
         /**
@@ -278,13 +277,6 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Boolean} Whether this participant has joined without audio.
-     */
-    isSilent() {
-        return this._isSilent;
-    }
-
-    /**
      * @returns {Boolean} Whether this participant has muted their video.
      */
     isVideoMuted() {
@@ -329,14 +321,6 @@ export default class JitsiParticipant {
      */
     setIsReplacing(newIsReplacing) {
         this._isReplacing = newIsReplacing;
-    }
-
-    /**
-     * Sets whether participant has joined without audio.
-     * @param {boolean} newIsSilent - whether is silent.
-     */
-    setIsSilent(newIsSilent) {
-        this._isSilent = newIsSilent;
     }
 
     /**
