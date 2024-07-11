@@ -223,6 +223,7 @@ export class CodecSelection {
             .filter(val => Boolean(codecOrder.find(supportedCodec => supportedCodec === val)));
         const codecIndex = codecsByVideoType.findIndex(val => val === codec.toLowerCase());
 
+        // Do nothing if we are using the lowest complexity codec already.
         if (codecIndex === codecsByVideoType.length - 1) {
             return false;
         }
@@ -234,8 +235,10 @@ export class CodecSelection {
 
             codecOrder.splice(idx, 1);
             codecOrder.unshift(newCodec);
+            logger.info(`QualityController - switching camera codec to ${newCodec} because of cpu restriction`);
         } else {
             this.screenshareCodec[connectionType] = newCodec;
+            logger.info(`QualityController - switching screenshare codec to ${newCodec} because of cpu restriction`);
         }
 
         this.selectPreferredCodec(session);

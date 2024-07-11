@@ -334,7 +334,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
         // calculated based on the outbound-rtp streams that are currently active for the simulcast case.
         // However for the SVC case, there will be only 1 "outbound-rtp" stream which will have the correct
         // send resolution width and height.
-        if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast()) {
+        if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast(track)) {
             const localSsrcs = this.peerconnection.getLocalVideoSSRCs(track);
 
             for (const localSsrc of localSsrcs) {
