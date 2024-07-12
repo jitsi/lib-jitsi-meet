@@ -192,7 +192,7 @@ export class TPCUtils {
         if (localTrack.isAudioTrack()) {
             return [ { active: this.pc.audioTransferActive } ];
         }
-        const codec = this.pc.getConfiguredVideoCodec();
+        const codec = this.pc.getConfiguredVideoCodec(localTrack);
 
         if (this.pc.isSpatialScalabilityOn()) {
             return this._getVideoStreamEncodings(localTrack, codec);

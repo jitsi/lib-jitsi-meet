@@ -1,7 +1,5 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 const logger = getLogger(__filename);
@@ -20,85 +18,16 @@ export default class SendVideoController {
      *
      * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
      * the send video quality constraints.
-     * @param {RTC} rtc - the rtc instance that is responsible for sending the messages on the bridge channel.
      */
-    constructor(conference, rtc) {
+    constructor(conference) {
         this._conference = conference;
         this._preferredSendMaxFrameHeight = MAX_LOCAL_RESOLUTION;
-        this._rtc = rtc;
 
         /**
          * Source name based sender constraints.
          * @type {Map<string, number>};
          */
-
         this._sourceSenderConstraints = new Map();
-        this._conference.on(
-            JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-            session => this._onMediaSessionStarted(session));
-        this._conference.on(
-            JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
-            () => this._configureConstraintsForLocalSources());
-        this._rtc.on(
-            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            videoConstraints => this._onSenderConstraintsReceived(videoConstraints));
-    }
-
-    /**
-     * Configures the video encodings on the local sources when a media connection is established or becomes active.
-     *
-     * @returns {Promise<void[]>}
-     * @private
-     */
-    _configureConstraintsForLocalSources() {
-        for (const track of this._rtc.getLocalVideoTracks()) {
-            const sourceName = track.getSourceName();
-
-            sourceName && this._propagateSendMaxFrameHeight(sourceName);
-        }
-    }
-
-    /**
-     * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
-     * session. It doesn't mean it's already active though. For example the JVB connection may be created after
-     * the conference has entered the p2p mode already.
-     *
-     * @param {JingleSessionPC} mediaSession - the started media session.
-     * @private
-     */
-    _onMediaSessionStarted(mediaSession) {
-        mediaSession.addListener(
-            MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
-            (session, sourceConstraints) => {
-                session === this._conference.getActiveMediaSession()
-                    && sourceConstraints.forEach(constraint => this._onSenderConstraintsReceived(constraint));
-            });
-    }
-
-    /**
-     * Propagates the video constraints if they have changed.
-     *
-     * @param {Object} videoConstraints - The sender video constraints received from the bridge.
-     * @returns {Promise<void[]>}
-     * @private
-     */
-    _onSenderConstraintsReceived(videoConstraints) {
-        const { maxHeight, sourceName } = videoConstraints;
-        const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
-
-        for (const track of localVideoTracks) {
-            // Propagate the sender constraint only if it has changed.
-            if (track.getSourceName() === sourceName
-                && this._sourceSenderConstraints.get(sourceName) !== maxHeight) {
-                this._sourceSenderConstraints.set(
-                    sourceName,
-                    maxHeight === -1
-                        ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
-                        : maxHeight);
-                logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
-                this._propagateSendMaxFrameHeight(sourceName);
-            }
-        }
     }
 
     /**
@@ -149,6 +78,60 @@ export default class SendVideoController {
         }
 
         return this._preferredSendMaxFrameHeight;
+    }
+
+    /**
+     * Configures the video encodings on the local sources when a media connection is established or becomes active.
+     *
+     * @returns {void}
+     */
+    configureConstraintsForLocalSources() {
+        for (const track of this._conference.getLocalVideoTracks()) {
+            const sourceName = track.getSourceName();
+
+            sourceName && this._propagateSendMaxFrameHeight(sourceName);
+        }
+    }
+
+    /**
+     * Handles the {@link JitsiConferenceEvents.MEDIA_SESSION_STARTED}, that is when the conference creates new media
+     * session. It doesn't mean it's already active though. For example the JVB connection may be created after
+     * the conference has entered the p2p mode already.
+     *
+     * @param {JingleSessionPC} mediaSession - the started media session.
+     */
+    onMediaSessionStarted(mediaSession) {
+        mediaSession.addListener(
+            MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
+            (session, sourceConstraints) => {
+                session === this._conference.getActiveMediaSession()
+                    && sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
+            });
+    }
+
+    /**
+     * Propagates the video constraints if they have changed.
+     *
+     * @param {Object} videoConstraints - The sender video constraints received from the bridge.
+     * @returns {Promise<void[]>}
+     */
+    onSenderConstraintsReceived(videoConstraints) {
+        const { maxHeight, sourceName } = videoConstraints;
+        const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
+
+        for (const track of localVideoTracks) {
+            // Propagate the sender constraint only if it has changed.
+            if (track.getSourceName() === sourceName
+                && this._sourceSenderConstraints.get(sourceName) !== maxHeight) {
+                this._sourceSenderConstraints.set(
+                    sourceName,
+                    maxHeight === -1
+                        ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
+                        : maxHeight);
+                logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
+                this._propagateSendMaxFrameHeight(sourceName);
+            }
+        }
     }
 
     /**
