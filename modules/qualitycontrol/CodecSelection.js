@@ -22,6 +22,12 @@ const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMi
  * connections.
  */
 export class CodecSelection {
+    codecPreferenceOrder: {};
+    conference: any;
+    encodeTimeStats: Map<any, any>;
+    options: any;
+    screenshareCodec: {};
+    visitorCodecs: any[];
     /**
      * Creates a new instance for a given conference.
      *
@@ -148,7 +154,7 @@ export class CodecSelection {
      *
      * @param {JingleSessionPC} mediaSession session for which the codec selection has to be made.
      */
-    selectPreferredCodec(mediaSession) {
+    selectPreferredCodec(mediaSession: JingleSessionPC) {
         const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
 
         if (!session) {
