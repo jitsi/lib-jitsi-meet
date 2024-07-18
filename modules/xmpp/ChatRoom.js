@@ -968,9 +968,10 @@ export default class ChatRoom extends Listenable {
      * @param {string} receiverId 
      */
     sendReaction(reaction, messageId, receiverId) {
+        // Adds the to attribute depending on if the message is private or not.
         const msg = receiverId ? $msg({ to: `${this.roomjid}/${receiverId}`, type: "chat" }) : $msg({ to: this.roomjid, type: "groupchat" });
 
-        msg.c("reactions", { messageId: messageId, receiverId: receiverId, xmlns: "urn:xmpp:reactions:0" })
+        msg.c("reactions", { id: messageId, xmlns: "urn:xmpp:reactions:0" })
             .c("reaction", {}, reaction)
             .up().c("store", {xmlns: "urn:xmpp:hints"} );
 
@@ -1159,21 +1160,25 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
-        const reaction = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction').text();
-        const messageId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('messageId');
-        const receiverId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('receiverId');
+        const reactions = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction');
+        const id = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('id');
+        
+        if (reactions.length > 0) {
+            const reactionList = [];
+        
+            reactions.each((_, reactionElem) => {
+                const reaction = $(reactionElem).text();
+                reactionList.push(reaction);
+            });
 
-        if (reaction) {
-
-            if (receiverId) {
-                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reaction, messageId, receiverId);
-
-                // Should I add return true here (would stop the message to be processed further).
-
-            } else {
-                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reaction, messageId);
-            }
+            console.log(reactionList);
+            console.log(reactions);
+        
+            this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, id);
+        
+            return true;
         }
+        
 
         const txt = $(msg).find('>body').text();
         const subject = $(msg).find('>subject');
@@ -1254,6 +1259,7 @@ export default class ChatRoom extends Listenable {
                 // informing that this is probably a message from a guest to the conference (visitor)
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
+                    // add the sender here and will need to parse the package to find it above
                     from, txt, this.myroomjid, stamp, nick, Boolean(nick));
             }
         }
