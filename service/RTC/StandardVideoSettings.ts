@@ -1,4 +1,5 @@
 import browser from '../../modules/browser';
+import { CodecMimeType } from './CodecMimeType';
 
 // Default simulcast encodings config.
 export const SIM_LAYERS = [
@@ -72,6 +73,19 @@ export const STANDARD_CODEC_SETTINGS = {
         useSimulcast: false, // defaults to SVC.
         useKSVC: true // defaults to L3T3_KEY for SVC mode.
     }
+};
+
+export const VIDEO_CODECS_BY_COMPLEXITY = {
+    'camera' : [
+        CodecMimeType.AV1,
+        CodecMimeType.VP9,
+        CodecMimeType.VP8
+    ],
+    'desktop' : [
+        CodecMimeType.VP9,
+        CodecMimeType.VP8,
+        CodecMimeType.AV1
+    ]
 };
 
 /**

@@ -53,7 +53,8 @@ describe('ReceiveVideoController', () => {
     beforeEach(() => {
         conference = new MockConference();
         rtc = new MockRTC();
-        receiveVideoController = new ReceiveVideoController(conference, rtc);
+        conference.rtc = rtc;
+        receiveVideoController = new ReceiveVideoController(conference);
     });
 
     describe('when sourceNameSignaling is enabled', () => {

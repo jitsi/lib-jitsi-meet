@@ -35,6 +35,10 @@ const DEFAULT_CONSTRAINTS = {
             ideal: 1280,
             max: 1280,
             min: 320
+        },
+        frameRate: {
+            min: 15,
+            max: 30
         }
     }
 };
@@ -88,11 +92,14 @@ function emptyFuncton() {
  * @returns {Object}
  */
 function getConstraints(um = [], options = {}) {
-    // Create a deep copy of the constraints to avoid any modification of
-    // the passed in constraints object.
+    // Create a deep copy of the constraints to avoid any modification of the passed in constraints object.
     const constraints = clonedeep(options.constraints || DEFAULT_CONSTRAINTS);
 
     if (um.indexOf('video') >= 0) {
+        if (!constraints.video) {
+            constraints.video = {};
+        }
+
         // The "resolution" option is a shortcut and takes precendence.
         if (Resolutions[options.resolution]) {
             const r = Resolutions[options.resolution];
@@ -101,8 +108,8 @@ function getConstraints(um = [], options = {}) {
             constraints.video.width = { ideal: r.width };
         }
 
-        if (!constraints.video) {
-            constraints.video = {};
+        if (!constraints.video.frameRate) {
+            constraints.video.frameRate = DEFAULT_CONSTRAINTS.video.frameRate;
         }
 
         // Override the constraints on Safari because of the following webkit bug.
@@ -123,10 +130,8 @@ function getConstraints(um = [], options = {}) {
         }
         if (options.cameraDeviceId) {
             constraints.video.deviceId = { exact: options.cameraDeviceId };
-        } else {
-            const facingMode = options.facingMode || CameraFacingMode.USER;
-
-            constraints.video.facingMode = facingMode;
+        } else if (browser.isMobileDevice()) {
+            constraints.video.facingMode = options.facingMode || CameraFacingMode.USER;
         }
     } else {
         constraints.video = false;

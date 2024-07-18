@@ -4,6 +4,7 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import {
+    CONFERENCE_CREATED_TIMESTAMP,
     CONFERENCE_JOINED,
     CONFERENCE_LEFT,
     CONFERENCE_UNIQUE_ID_SET
@@ -12,6 +13,7 @@ import JitsiConference from '../../JitsiConference';
 import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 import EventEmitter from '../util/EventEmitter';
+import Settings from '../settings/Settings';
 
 const logger = getLogger(__filename);
 
@@ -84,6 +86,16 @@ class RTCStats {
             } = {}
         } = confConfig;
 
+        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields 
+        // that are sent through options might be a bit confusing. Depending on the context, they could 
+        // be intermixed inside ljm, for instance _statsCurrentId might refer to the email field which is stored
+        // in statisticsId or it could have the same value as callStatsUserName.
+        // The following is the mapping between the fields, and a short explanation of each:
+        // statisticsId -> email, this is only send by jitsi-meet if enableEmailInStats option is set.
+        // statisticsDisplayName -> nick, this is only send by jitsi-meet if enableDisplayNameInStats option is set.
+        // localId, this is the unique id that is used to track users throughout stats.
+        const localId = Settings?.callStatsUserName ?? '';
+
         // Reset the trace module in case it wasn't during the previous conference.
         // Closing the underlying websocket connection and deleting the trace obj.
         this.reset();
@@ -125,7 +137,8 @@ class RTCStats {
                 confName,
                 displayName,
                 meetingUniqueId,
-                isBreakoutRoom
+                isBreakoutRoom,
+                localId
             }
 
             this.sendIdentity(identityData);
@@ -139,6 +152,10 @@ class RTCStats {
         conference.once(CONFERENCE_LEFT, () => {
             this.reset();
         });
+
+        conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
+            this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
+        })
     }
 
     /**

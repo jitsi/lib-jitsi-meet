@@ -648,10 +648,12 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
 /**
  * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
  * bridge. Currently this happens always for VP8 and only if simulcast is enabled for VP9/AV1/H264.
+ *
+ * @param {JitsiLocalTrack} localTrack - The local video track.
  * @returns {boolean}
  */
-TraceablePeerConnection.prototype.doesTrueSimulcast = function() {
-    const currentCodec = this.getConfiguredVideoCodec();
+TraceablePeerConnection.prototype.doesTrueSimulcast = function(localTrack) {
+    const currentCodec = this.getConfiguredVideoCodec(localTrack);
 
     return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
 };
@@ -804,10 +806,11 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
 /**
  * Returns the target bitrates configured for the local video source.
  *
+ * @param {JitsiLocalTrack} - The local video track.
  * @returns {Object}
  */
-TraceablePeerConnection.prototype.getTargetVideoBitrates = function() {
-    const currentCodec = this.getConfiguredVideoCodec();
+TraceablePeerConnection.prototype.getTargetVideoBitrates = function(localTrack) {
+    const currentCodec = this.getConfiguredVideoCodec(localTrack);
 
     return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
 };
@@ -1596,17 +1599,17 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
 };
 
 /**
- * Returns the codec that is configured on the client as the preferred video codec.
- * This takes into account the current order of codecs in the local description sdp.
+ * Returns the codec that is configured on the client as the preferred video codec for the given local video track.
  *
- * @returns {CodecMimeType} The codec that is set as the preferred codec to receive
- * video in the local SDP.
+ * @param {JitsiLocalTrack} localTrack - The local video track.
+ * @returns {CodecMimeType} The codec that is set as the preferred codec for the given local video track.
+ *
  */
-TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
-    const localVideoTrack = this.getLocalVideoTracks()[0];
+TraceablePeerConnection.prototype.getConfiguredVideoCodec = function(localTrack) {
+    const localVideoTrack = localTrack ?? this.getLocalVideoTracks()[0];
+    const rtpSender = this.findSenderForTrack(localVideoTrack.getTrack());
 
-    if (this.usesCodecSelectionAPI() && localVideoTrack) {
-        const rtpSender = this.findSenderForTrack(localVideoTrack.getTrack());
+    if (this.usesCodecSelectionAPI() && rtpSender) {
         const { codecs } = rtpSender.getParameters();
 
         return codecs[0].mimeType.split('/')[1].toLowerCase();
@@ -1619,7 +1622,8 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
         return defaultCodec;
     }
     const parsedSdp = transform.parse(sdp);
-    const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
+    const mLine = parsedSdp.media
+        .find(m => m.mid.toString() === this._localTrackTransceiverMids.get(localVideoTrack.rtcId));
     const payload = mLine.payloads.split(' ')[0];
     const { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
 
@@ -1680,18 +1684,21 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
 
 /**
  * Sets the codec preference on the peerconnection. The codec preference goes into effect when
- * the next renegotiation happens.
+ * the next renegotiation happens for older clients that do not support the codec selection API.
  *
- * @param {CodecMimeType} preferredCodec the preferred codec.
- * @param {CodecMimeType} disabledCodec the codec that needs to be disabled.
+ * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
+ * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.setVideoCodecs = function(codecList) {
+TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
     if (!this.codecSettings || !codecList?.length) {
         return;
     }
 
     this.codecSettings.codecList = codecList;
+    if (screenshareCodec) {
+        this.codecSettings.screenshareCodec = screenshareCodec;
+    }
 
     if (this.usesCodecSelectionAPI()) {
         this.configureVideoSenderEncodings();
@@ -1755,9 +1762,7 @@ TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
  * was found.
  */
 TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
-    if (this.peerconnection.getSenders) {
-        return this.peerconnection.getSenders().find(s => s.track === track);
-    }
+    return this.peerconnection.getSenders().find(s => s.track === track);
 };
 
 /**
