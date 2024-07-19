@@ -90,12 +90,30 @@ export default class ReceiveVideoController {
     }
 
     /**
+     * Returns the last set of receiver constraints that were set on the bridge channel.
+     *
+     * @returns {Object}
+     */
+    getCurrentReceiverConstraints() {
+        return this._receiverVideoConstraints;
+    }
+
+    /**
      * Returns the lastN value for the conference.
      *
      * @returns {number}
      */
     getLastN() {
         return this._lastN;
+    }
+
+    /**
+     * Checks whether last-n was lowered because of a cpu limitation.
+     *
+     * @returns {boolean}
+     */
+    isLastNLimitedByCpu() {
+        return this._lastNLimitedByCpu;
     }
 
     /**
@@ -111,14 +129,6 @@ export default class ReceiveVideoController {
         } else {
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
         }
-    }
-
-    /**
-     * Returns the last set of receiver constraints that were set on the bridge channel.
-     * @returns
-     */
-    getCurrentReceiverConstraints() {
-        return this._receiverVideoConstraints;
     }
 
     /**

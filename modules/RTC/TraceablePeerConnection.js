@@ -2162,6 +2162,42 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
 };
 
 /**
+ * Returns the expected send resolution for a local video track based on what encodings are currently active.
+ *
+ * @param {JitsiLocalTrack} localTrack - The local video track.
+ * @returns {number}
+ */
+TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(localTrack) {
+    const captureResolution = localTrack.getCaptureResolution();
+    let result = Math.min(localTrack.maxEnabledResolution, captureResolution);
+
+    if (localTrack.getVideoType() === VideoType.CAMERA) {
+        // Find the closest matching resolution based on the current codec, simulcast config and the requested
+        // resolution by the bridge or the peer.
+        if (this.doesTrueSimulcast(localTrack)) {
+            const sender = this.findSenderForTrack(localTrack.getTrack());
+
+            if (!sender) {
+                return result;
+            }
+
+            const { encodings } = sender.getParameters();
+
+            result = encodings.reduce((maxValue, encoding) => {
+                if (encoding.active) {
+                    // eslint-disable-next-line no-param-reassign
+                    maxValue = Math.max(maxValue, captureResolution / encoding.scaleResolutionDownBy);
+                }
+
+                return maxValue;
+            }, 0);
+        }
+    }
+
+    return result;
+};
+
+/**
  * Configures the stream encodings for the audio tracks that are added to the peerconnection.
  *
  * @param {JitsiLocalTrack} localAudioTrack - The local audio track.
