@@ -19,6 +19,15 @@ const logger = getLogger(__filename);
  * {@code JingleSessionPC}.
  */
 export default class ProxyConnectionPC {
+    _options: {
+        peerJid: any;
+        onError(peerJid: any, errorType: any, details: string): unknown;
+        onRemoteStream(jitsiRemoteTrack: any): unknown;
+        onSendMessage(peerJid: any, iq: any): unknown; pcConfig: {}; isInitiator: boolean; receiveAudio: boolean; receiveVideo: boolean; 
+};
+    _tracks: any[];
+    _peerConnection: JingleSessionPC;
+    _rtc: RTC;
     /**
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
@@ -36,12 +45,15 @@ export default class ProxyConnectionPC {
      */
     constructor(options = {}) {
         this._options = {
+            peerJid: undefined,
             pcConfig: {},
             isInitiator: false,
             receiveAudio: false,
             receiveVideo: false,
             ...options
         };
+
+    
 
         /**
          * Instances of {@code JitsiTrack} associated with this instance of
@@ -92,7 +104,7 @@ export default class ProxyConnectionPC {
             break;
 
         case ACTIONS.TERMINATE:
-            this._onSessionTerminate($jingle);
+            this._onSessionTerminate();
             break;
 
         case ACTIONS.TRANSPORT_INFO:
