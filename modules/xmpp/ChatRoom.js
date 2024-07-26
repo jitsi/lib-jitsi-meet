@@ -1218,11 +1218,13 @@ export default class ChatRoom extends Listenable {
                     nick = nickEl.text();
                 }
 
+                const messageId = $(msg).attr('id');
+                
                 // we will fire explicitly that this is a guest(isGuest:true) to the conference
                 // informing that this is probably a message from a guest to the conference (visitor)
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    from, txt, this.myroomjid, stamp, nick, Boolean(nick));
+                    from, txt, this.myroomjid, stamp, nick, Boolean(nick), messageId);
             }
         }
     }
