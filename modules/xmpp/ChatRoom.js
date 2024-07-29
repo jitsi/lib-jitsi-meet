@@ -1219,7 +1219,7 @@ export default class ChatRoom extends Listenable {
                 }
 
                 const messageId = $(msg).attr('id');
-                
+
                 // we will fire explicitly that this is a guest(isGuest:true) to the conference
                 // informing that this is probably a message from a guest to the conference (visitor)
                 // a message with explicit name set
