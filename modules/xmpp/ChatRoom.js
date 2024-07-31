@@ -1209,9 +1209,12 @@ export default class ChatRoom extends Listenable {
         }
 
         if (txt) {
+
+            const messageId = $(msg).attr('id') || uuidv4();
+
             if (type === 'chat') {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp);
+                        from, txt, this.myroomjid, stamp, messageId);
             } else if (type === 'groupchat') {
                 const nickEl = $(msg).find('>nick');
                 let nick;
@@ -1219,8 +1222,6 @@ export default class ChatRoom extends Listenable {
                 if (nickEl.length > 0) {
                     nick = nickEl.text();
                 }
-
-                const messageId = $(msg).attr('id') || uuidv4();
 
                 // we will fire explicitly that this is a guest(isGuest:true) to the conference
                 // informing that this is probably a message from a guest to the conference (visitor)

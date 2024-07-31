@@ -380,12 +380,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
 
         // eslint-disable-next-line max-params
-        (jid, txt, myJid, ts) => {
-            const id = Strophe.getResourceFromJid(jid);
+        (jid, txt, myJid, ts, messageId) => {
+            const participantId = Strophe.getResourceFromJid(jid);
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                id, txt, ts);
+                participantId, txt, ts, messageId);
         });
 
     chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
