@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
@@ -1218,7 +1220,7 @@ export default class ChatRoom extends Listenable {
                     nick = nickEl.text();
                 }
 
-                const messageId = $(msg).attr('id');
+                const messageId = $(msg).attr('id') || uuidv4();
 
                 // we will fire explicitly that this is a guest(isGuest:true) to the conference
                 // informing that this is probably a message from a guest to the conference (visitor)
