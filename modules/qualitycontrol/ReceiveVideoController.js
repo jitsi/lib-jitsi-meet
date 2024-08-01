@@ -2,11 +2,10 @@ import { getLogger } from '@jitsi/logger';
 import isEqual from 'lodash.isequal';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/StandardVideoQualitySettings';
 
 const logger = getLogger(__filename);
 const MAX_HEIGHT = 2160;
-const LASTN_UNLIMITED = -1;
-const ASSUMED_BANDWIDTH_BPS = -1;
 
 /**
  * This class manages the receive video contraints for a given {@link JitsiConference}. These constraints are
@@ -26,7 +25,7 @@ export default class ReceiveVideoController {
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
-        this._lastN = config?.startLastN ?? (config?.channelLastN || LASTN_UNLIMITED);
+        this._lastN = config?.startLastN ?? (config?.channelLastN || LAST_N_UNLIMITED);
 
         // The number representing the maximum video height the local client should receive from the bridge.
         this._maxFrameHeight = MAX_HEIGHT;

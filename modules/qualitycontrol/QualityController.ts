@@ -10,8 +10,12 @@ import JingleSessionPC from "../xmpp/JingleSessionPC";
 import { CodecSelection } from "./CodecSelection";
 import ReceiveVideoController from "./ReceiveVideoController";
 import SendVideoController from "./SendVideoController";
-import { VIDEO_CODECS_BY_COMPLEXITY, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
-import { VideoType } from '../../service/RTC/VideoType';
+import {
+    DEFAULT_LAST_N,
+    LAST_N_UNLIMITED,
+    VIDEO_CODECS_BY_COMPLEXITY,
+    VIDEO_QUALITY_LEVELS
+} from '../../service/RTC/StandardVideoQualitySettings';
 
 const logger = getLogger(__filename);
 
@@ -21,10 +25,6 @@ const LIMITED_BY_CPU_TIMEOUT = 60000;
 
 // The min. value that lastN will be set to while trying to fix video qaulity issues.
 const MIN_LAST_N = 3;
-
-// Wait time to check if cpu limitation reappears after lastN rampup is attempted for recovery. If it does, all further
-// attempts to bring lastN to configured channelLastN value will be blocked.
-const LAST_N_RAMPUP_TIME = 60000;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
@@ -105,6 +105,7 @@ export class QualityController {
     private _enableAdaptiveMode: boolean;
     private _encodeTimeStats: Map<string, FixedSizeArray>;
     private _isLastNRampupBlocked: boolean;
+    private _lastNRampupTime: number;
     private _lastNRampupTimeout: number | undefined;
     private _limitedByCpuTimeout: number | undefined;
     private _receiveVideoController: ReceiveVideoController;
@@ -113,18 +114,18 @@ export class QualityController {
     /**
      * 
      * @param {JitsiConference} conference - The JitsiConference instance.
-     * @param {Object} codecSettings - Codec settings for jvb and p2p connections passed to config.js.
-     * @param {boolean} enableAdaptiveMode - Whether the client needs to make runtime adjustments for better video
-     * quality.
+     * @param {Object} options - video quality settings passed through config.js.
      */
-    constructor(conference: JitsiConference, codecSettings: any, enableAdaptiveMode: boolean) {
+    constructor(conference: JitsiConference, options) {
         this._conference = conference;
-        this._codecController = new CodecSelection(conference, codecSettings);
-        this._enableAdaptiveMode = enableAdaptiveMode;
+        const { jvb, p2p } = options;
+        this._codecController = new CodecSelection(conference, { jvb, p2p });
+        this._enableAdaptiveMode = options.enableAdaptiveMode;
+        this._encodeTimeStats = new Map();
         this._isLastNRampupBlocked = false;
+        this._lastNRampupTime = options.lastNRampupTime;
         this._receiveVideoController = new ReceiveVideoController(conference);
         this._sendVideoController = new SendVideoController(conference);
-        this._encodeTimeStats = new Map();
 
         this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
@@ -163,25 +164,20 @@ export class QualityController {
      */
     _lowerOrRaiseLastN(cpuLimited: boolean): boolean {
         const lastN = this.receiveVideoController.getLastN();
+        let newLastN = lastN;
 
-        // Do nothing if lastN is already set to zero, i.e., the endpoint is in audio-only mode.
-        if (lastN === 0) {
+        if (cpuLimited && (lastN !== LAST_N_UNLIMITED && lastN <= MIN_LAST_N)) {
             return false;
         }
 
-        let newLastN = lastN;
-
         // If channelLastN is not set or set to -1 in config.js, the client will ramp up lastN to only up to 25.
-        let { channelLastN = 25 } = this._conference.options.config;
+        let { channelLastN = DEFAULT_LAST_N } = this._conference.options.config;
 
-        channelLastN = channelLastN === -1 ? 25 : channelLastN;
+        channelLastN = channelLastN === LAST_N_UNLIMITED ? DEFAULT_LAST_N : channelLastN;
         if (cpuLimited) {
             const videoStreamsReceived = this._conference.getForwardedSources().length;
-            if (lastN !== -1 && lastN <= MIN_LAST_N) {
-                return false;
-            }
-            newLastN = videoStreamsReceived / 2;
 
+            newLastN = videoStreamsReceived / 2;
             if (newLastN < MIN_LAST_N) {
                 newLastN = MIN_LAST_N;
             }
@@ -305,7 +301,7 @@ export class QualityController {
                         } else {
                             this._lowerOrRaiseLastN(false /* raise */);
                         }
-                    }, LAST_N_RAMPUP_TIME);
+                    }, this._lastNRampupTime);
                 }
             }
 
@@ -361,7 +357,8 @@ export class QualityController {
         for (const ssrc of stats.keys()) {
             const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
             const track = tpc.getTrackBySSRC(ssrc);
-            let existingStats = statsPerTrack.get(track.rtcId);
+            const trackId = track.rtcId.toString();
+            let existingStats = statsPerTrack.get(trackId);
             const encodeResolution = Math.min(resolution.height, resolution.width);
             const ssrcStats = {
                 encodeResolution,
@@ -380,7 +377,7 @@ export class QualityController {
                     trackStats: [ ssrcStats ]
                 };
 
-                statsPerTrack.set(track.rtcId, existingStats);
+                statsPerTrack.set(trackId, existingStats);
             }
         }
 
@@ -397,7 +394,7 @@ export class QualityController {
             const encodeResolution: number = trackStats
                 .map((stat: ITrackStats) => stat.encodeResolution)
                 .reduce((resolution: number, currentValue: number) => Math.max(resolution, currentValue), 0);
-            const localTrack = this._conference.getLocalVideoTracks().find(t => t.rtcId === trackId);
+            const localTrack = this._conference.getLocalVideoTracks().find(t => t.rtcId.toString() === trackId);
 
             const exisitingStats: FixedSizeArray = this._encodeTimeStats.get(trackId);
             const sourceStats = {

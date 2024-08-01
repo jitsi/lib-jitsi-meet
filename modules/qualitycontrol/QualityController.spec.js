@@ -24,10 +24,13 @@ describe('QualityController', () => {
     describe('When adaptive mode is enabled', () => {
         beforeEach(() => {
             options = {
+                enableAdaptiveMode: true,
                 jvb: {
                     preferenceOrder: [ 'VP9', 'VP8', 'H264' ],
                     screenshareCodec: 'VP9'
-                }
+                },
+                lastNRampupTime: 60000,
+                p2p: {}
             };
             localTrack = new MockLocalTrack('1', 720, 'camera');
             qualityController = new QualityController(conference, options, true);
@@ -150,6 +153,48 @@ describe('QualityController', () => {
 
             await nextTick(61000);
             expect(qualityController.receiveVideoController.setLastN).toHaveBeenCalledWith(3);
+        });
+    });
+
+    describe('When adaptive mode is disabled', () => {
+        beforeEach(() => {
+            options = {
+                enableAdaptiveMode: false,
+                jvb: {},
+                lastNRampupTime: 60000,
+                p2p: {}
+            };
+            localTrack = new MockLocalTrack('1', 720, 'camera');
+            qualityController = new QualityController(conference, options, true);
+            sourceStats = {
+                avgEncodeTime: 12,
+                codec: 'VP8',
+                encodeResolution: 360,
+                qualityLimitationReason: 'cpu',
+                localTrack,
+                timestamp: 1,
+                tpc
+            };
+
+            qualityController._encodeTimeStats = new Map();
+            data = new FixedSizeArray(10);
+            data.add(sourceStats);
+            qualityController._encodeTimeStats.set(localTrack.rtcId, data);
+            jasmine.clock().install();
+            spyOn(qualityController.receiveVideoController, 'setLastN');
+        });
+
+        afterEach(() => {
+            jasmine.clock().uninstall();
+        });
+
+        it('and the client encounters cpu limitation with lowest complexity codec', async () => {
+            // Start with 10 sources being received.
+            rtc.forwardedSources = [ 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10' ];
+            qualityController.receiveVideoController._lastN = 25;
+            qualityController._performQualityOptimizations(sourceStats);
+
+            expect(qualityController.receiveVideoController.setLastN).toHaveBeenCalledTimes(0);
         });
     });
 });

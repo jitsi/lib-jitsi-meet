@@ -449,7 +449,9 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     // Get the codec preference settings from config.js.
-    const codecSettings = {
+    const qualityOptions = {
+        enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
+        lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
         jvb: {
             preferenceOrder: browser.isMobileDevice() && config.videoQuality?.mobileCodecPreferenceOrder
                 ? config.videoQuality.mobileCodecPreferenceOrder
@@ -472,10 +474,7 @@ JitsiConference.prototype._init = function(options = {}) {
         }
     };
 
-    this.qualityController = new QualityController(
-        this,
-        codecSettings,
-        config.videoQuality?.enableAdaptiveMode);
+    this.qualityController = new QualityController(this, qualityOptions);
 
     if (!this.statistics) {
         this.statistics = new Statistics(this, {
