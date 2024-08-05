@@ -483,6 +483,9 @@ export default class XMPP extends Listenable {
                         if (fr.endsWith('#rename')) {
                             this.breakoutRoomsFeatures.rename = true;
                         }
+                        if (fr.endsWith('#broadcast')) {
+                            this.breakoutRoomsFeatures.broadcast = true;
+                        }
                     });
                 };
 
