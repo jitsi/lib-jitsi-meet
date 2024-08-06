@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
+import { v4 as uuidv4 } from 'uuid';
 
 import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
@@ -1244,9 +1245,12 @@ export default class ChatRoom extends Listenable {
         }
 
         if (txt) {
+
+            const messageId = $(msg).attr('id') || uuidv4();
+
             if (type === 'chat') {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp);
+                        from, txt, this.myroomjid, stamp, messageId);
             } else if (type === 'groupchat') {
                 const nickEl = $(msg).find('>nick');
                 let nick;
