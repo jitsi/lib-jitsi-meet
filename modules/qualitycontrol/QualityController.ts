@@ -103,7 +103,7 @@ export class QualityController {
     private _codecController: CodecSelection;
     private _conference: JitsiConference;
     private _enableAdaptiveMode: boolean;
-    private _encodeTimeStats: Map<string, FixedSizeArray>;
+    private _encodeTimeStats: Map<number, FixedSizeArray>;
     private _isLastNRampupBlocked: boolean;
     private _lastNRampupTime: number;
     private _lastNRampupTimeout: number | undefined;
@@ -116,7 +116,12 @@ export class QualityController {
      * @param {JitsiConference} conference - The JitsiConference instance.
      * @param {Object} options - video quality settings passed through config.js.
      */
-    constructor(conference: JitsiConference, options) {
+    constructor(conference: JitsiConference, options: {
+        enableAdaptiveMode: boolean;
+        jvb: Object;
+        lastNRampupTime: number;
+        p2p: Object;
+    }) {
         this._conference = conference;
         const { jvb, p2p } = options;
         this._codecController = new CodecSelection(conference, { jvb, p2p });
@@ -177,7 +182,7 @@ export class QualityController {
         if (cpuLimited) {
             const videoStreamsReceived = this._conference.getForwardedSources().length;
 
-            newLastN = videoStreamsReceived / 2;
+            newLastN = Math.floor(videoStreamsReceived / 2);
             if (newLastN < MIN_LAST_N) {
                 newLastN = MIN_LAST_N;
             }
@@ -231,10 +236,10 @@ export class QualityController {
      * Updates the codec preference order for the local endpoint on the active media session and switches the video
      * codec if needed.
      *
-     * @param {string} trackId - The track ID of the local video track for which stats have been captured.
+     * @param {number} trackId - The track ID of the local video track for which stats have been captured.
      * @returns {boolean} - Returns true if video codec was changed.
      */
-    _maybeSwitchVideoCodec(trackId: string): boolean {
+    _maybeSwitchVideoCodec(trackId: number): boolean {
         const stats = this._encodeTimeStats.get(trackId);
         const { codec, encodeResolution, localTrack } = stats.get(stats.size() - 1);
         const codecsByVideoType = VIDEO_CODECS_BY_COMPLEXITY[localTrack.getVideoType()];
@@ -277,7 +282,7 @@ export class QualityController {
         }
 
         const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
-        const trackId = localTrack.rtcId.toString();
+        const trackId = localTrack.rtcId;
 
         if (encodeResolution === tpc.calculateExpectedSendResolution(localTrack)) {
             if (this._limitedByCpuTimeout) {
@@ -357,7 +362,7 @@ export class QualityController {
         for (const ssrc of stats.keys()) {
             const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
             const track = tpc.getTrackBySSRC(ssrc);
-            const trackId = track.rtcId.toString();
+            const trackId = track.rtcId;
             let existingStats = statsPerTrack.get(trackId);
             const encodeResolution = Math.min(resolution.height, resolution.width);
             const ssrcStats = {
@@ -394,7 +399,7 @@ export class QualityController {
             const encodeResolution: number = trackStats
                 .map((stat: ITrackStats) => stat.encodeResolution)
                 .reduce((resolution: number, currentValue: number) => Math.max(resolution, currentValue), 0);
-            const localTrack = this._conference.getLocalVideoTracks().find(t => t.rtcId.toString() === trackId);
+            const localTrack = this._conference.getLocalVideoTracks().find(t => t.rtcId === trackId);
 
             const exisitingStats: FixedSizeArray = this._encodeTimeStats.get(trackId);
             const sourceStats = {

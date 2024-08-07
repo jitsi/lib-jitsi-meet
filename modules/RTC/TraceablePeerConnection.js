@@ -2186,7 +2186,7 @@ TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(loc
             result = encodings.reduce((maxValue, encoding) => {
                 if (encoding.active) {
                     // eslint-disable-next-line no-param-reassign
-                    maxValue = Math.max(maxValue, captureResolution / encoding.scaleResolutionDownBy);
+                    maxValue = Math.max(maxValue, Math.floor(captureResolution / encoding.scaleResolutionDownBy));
                 }
 
                 return maxValue;
