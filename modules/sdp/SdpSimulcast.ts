@@ -1,6 +1,6 @@
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import { SIM_LAYERS } from '../../service/RTC/StandardVideoSettings';
+import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
 
 import * as transform from 'sdp-transform';
 

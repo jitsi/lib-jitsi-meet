@@ -141,12 +141,29 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TracablePeerConnection.calculateExpectedSendResolution}.
+     * @param {JitsiLocalTrack} localTrack
+     * @returns {number}
+     */
+    calculateExpectedSendResolution(localTrack) {
+        return localTrack.getCaptureResolution();
+    }
+
+    /**
      * {@link TraceablePeerConnection.createAnswer}.
      *
      * @returns {Promise<Object>}
      */
     createAnswer() {
         return Promise.resolve(/* answer */{});
+    }
+
+    /**
+     * {@link TraceablePeerConnection.doesTrueSimulcast}.
+     * @returns {boolean}
+     */
+    doesTrueSimulcast() {
+        return false;
     }
 
     /**
@@ -240,8 +257,17 @@ export class MockRTC extends Listenable {
      */
     createPeerConnection() {
         this.pc = new MockPeerConnection();
+        this.forwardedSources = [];
 
         return this.pc;
+    }
+
+    /**
+     * Returns the list of sources that the bridge is forwarding to the client.
+     * @returns {Array<string>}
+     */
+    getForwardedSources() {
+        return this.forwardedSources;
     }
 }
 
