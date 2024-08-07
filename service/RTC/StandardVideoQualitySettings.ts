@@ -1,6 +1,18 @@
 import browser from '../../modules/browser';
 import { CodecMimeType } from './CodecMimeType';
 
+// Default value for assumed downlink bandwidth for the local endpoint which tells the bridge to use its own calculated
+// BWE value while determining the number of video streams to route to the endpoint.
+export const ASSUMED_BANDWIDTH_BPS = -1;
+
+// Default lastN value to be used while ramping up lastN after a cpu limitation ceases to exist (if -1 or no value is
+// passed in config.js for channelLastN).
+export const DEFAULT_LAST_N = 25;
+
+// LastN value to be signaled to the bridge when the local endpoint wants to receive all the remote video sources in
+// the call.
+export const LAST_N_UNLIMITED = -1;
+
 // Default simulcast encodings config.
 export const SIM_LAYERS = [
     {
@@ -75,6 +87,11 @@ export const STANDARD_CODEC_SETTINGS = {
     }
 };
 
+/**
+ * Video codecs in descending order of complexity for camera and desktop video types based on the results of manual
+ * performance tests on different platforms. When a CPU limitation is encountered, client switches the call to use the
+ * next codec in the list.
+ */
 export const VIDEO_CODECS_BY_COMPLEXITY = {
     'camera' : [
         CodecMimeType.AV1,
