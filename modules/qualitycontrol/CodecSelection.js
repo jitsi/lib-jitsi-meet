@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
-import { VIDEO_CODECS_BY_COMPLEXITY } from '../../service/RTC/StandardVideoSettings';
+import { VIDEO_CODECS_BY_COMPLEXITY } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 

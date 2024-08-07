@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
-import { SIM_LAYERS } from '../../service/RTC/StandardVideoSettings';
+import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 
 import { MockJitsiLocalTrack, MockPeerConnection } from './MockClasses';

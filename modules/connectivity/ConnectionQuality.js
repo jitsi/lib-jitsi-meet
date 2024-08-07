@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 
 const Resolutions = require('../../service/RTC/Resolutions');
