@@ -11,7 +11,7 @@ import {
     STANDARD_CODEC_SETTINGS,
     VIDEO_QUALITY_LEVELS,
     VIDEO_QUALITY_SETTINGS
-} from '../../service/RTC/StandardVideoSettings';
+} from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';

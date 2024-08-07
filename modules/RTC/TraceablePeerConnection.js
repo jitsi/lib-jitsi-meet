@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
@@ -2159,6 +2159,42 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
         type: description.type,
         sdp: transform.write(parsedSdp)
     });
+};
+
+/**
+ * Returns the expected send resolution for a local video track based on what encodings are currently active.
+ *
+ * @param {JitsiLocalTrack} localTrack - The local video track.
+ * @returns {number}
+ */
+TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(localTrack) {
+    const captureResolution = localTrack.getCaptureResolution();
+    let result = Math.min(localTrack.maxEnabledResolution, captureResolution);
+
+    if (localTrack.getVideoType() === VideoType.CAMERA) {
+        // Find the closest matching resolution based on the current codec, simulcast config and the requested
+        // resolution by the bridge or the peer.
+        if (this.doesTrueSimulcast(localTrack)) {
+            const sender = this.findSenderForTrack(localTrack.getTrack());
+
+            if (!sender) {
+                return result;
+            }
+
+            const { encodings } = sender.getParameters();
+
+            result = encodings.reduce((maxValue, encoding) => {
+                if (encoding.active) {
+                    // eslint-disable-next-line no-param-reassign
+                    maxValue = Math.max(maxValue, Math.floor(captureResolution / encoding.scaleResolutionDownBy));
+                }
+
+                return maxValue;
+            }, 0);
+        }
+    }
+
+    return result;
 };
 
 /**

@@ -10,7 +10,12 @@ import JingleSessionPC from "../xmpp/JingleSessionPC";
 import { CodecSelection } from "./CodecSelection";
 import ReceiveVideoController from "./ReceiveVideoController";
 import SendVideoController from "./SendVideoController";
-import { VIDEO_CODECS_BY_COMPLEXITY, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
+import {
+    DEFAULT_LAST_N,
+    LAST_N_UNLIMITED,
+    VIDEO_CODECS_BY_COMPLEXITY,
+    VIDEO_QUALITY_LEVELS
+} from '../../service/RTC/StandardVideoQualitySettings';
 
 const logger = getLogger(__filename);
 
@@ -47,6 +52,7 @@ interface ISourceStats {
     localTrack: JitsiLocalTrack;
     qualityLimitationReason: QualityLimitationReason;
     timestamp: number;
+    tpc: TraceablePeerConnection;
 };
 
 interface ITrackStats {
@@ -60,7 +66,7 @@ interface IVideoConstraints {
     sourceName: string;
 }
 
-class FixedSizeArray {
+export class FixedSizeArray {
     private _data: ISourceStats[];
     private _maxSize: number;
   
@@ -93,11 +99,14 @@ class FixedSizeArray {
  * by controlling the codec, encode resolution and receive resolution of the remote video streams. It also makes
  * adjustments based on the outbound and inbound rtp stream stats reported by the underlying peer connection.
  */
-export default class QualityController {
+export class QualityController {
     private _codecController: CodecSelection;
     private _conference: JitsiConference;
     private _enableAdaptiveMode: boolean;
-    private _encodeTimeStats: Map<string, FixedSizeArray>;
+    private _encodeTimeStats: Map<number, FixedSizeArray>;
+    private _isLastNRampupBlocked: boolean;
+    private _lastNRampupTime: number;
+    private _lastNRampupTimeout: number | undefined;
     private _limitedByCpuTimeout: number | undefined;
     private _receiveVideoController: ReceiveVideoController;
     private _sendVideoController: SendVideoController;
@@ -105,17 +114,23 @@ export default class QualityController {
     /**
      * 
      * @param {JitsiConference} conference - The JitsiConference instance.
-     * @param {Object} codecSettings - Codec settings for jvb and p2p connections passed to config.js.
-     * @param {boolean} enableAdaptiveMode - Whether the client needs to make runtime adjustments for better video
-     * quality.
+     * @param {Object} options - video quality settings passed through config.js.
      */
-    constructor(conference: JitsiConference, codecSettings: any, enableAdaptiveMode: boolean) {
+    constructor(conference: JitsiConference, options: {
+        enableAdaptiveMode: boolean;
+        jvb: Object;
+        lastNRampupTime: number;
+        p2p: Object;
+    }) {
         this._conference = conference;
-        this._codecController = new CodecSelection(conference, codecSettings);
-        this._enableAdaptiveMode = enableAdaptiveMode;
+        const { jvb, p2p } = options;
+        this._codecController = new CodecSelection(conference, { jvb, p2p });
+        this._enableAdaptiveMode = options.enableAdaptiveMode;
+        this._encodeTimeStats = new Map();
+        this._isLastNRampupBlocked = false;
+        this._lastNRampupTime = options.lastNRampupTime;
         this._receiveVideoController = new ReceiveVideoController(conference);
         this._sendVideoController = new SendVideoController(conference);
-        this._encodeTimeStats = new Map();
 
         this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
@@ -146,24 +161,45 @@ export default class QualityController {
 
     /**
      * Adjusts the lastN value so that fewer remote video sources are received from the bridge in an attempt to improve
-     * encode resolution of the outbound video streams.
-     * @returns boolean - Returns true if the lastN was lowered, false otherwise.
+     * encode resolution of the outbound video streams based on cpuLimited parameter passed. If cpuLimited is false,
+     * the lastN value will slowly be ramped back up to the channelLastN value set in config.js.
+     *
+     * @param {boolean} cpuLimited - whether the endpoint is cpu limited or not.
+     * @returns boolean - Returns true if an action was taken, false otherwise.
      */
-    _maybeLowerLastN(): boolean {
+    _lowerOrRaiseLastN(cpuLimited: boolean): boolean {
         const lastN = this.receiveVideoController.getLastN();
-        const videoStreamsReceived = this._conference.getForwardedSources().length;
+        let newLastN = lastN;
 
-        if (lastN !== -1 && lastN <= MIN_LAST_N) {
+        if (cpuLimited && (lastN !== LAST_N_UNLIMITED && lastN <= MIN_LAST_N)) {
             return false;
         }
 
-        let newLastN = videoStreamsReceived / 2;
+        // If channelLastN is not set or set to -1 in config.js, the client will ramp up lastN to only up to 25.
+        let { channelLastN = DEFAULT_LAST_N } = this._conference.options.config;
 
-        if (lastN === -1 || newLastN < MIN_LAST_N) {
-            newLastN = MIN_LAST_N;
+        channelLastN = channelLastN === LAST_N_UNLIMITED ? DEFAULT_LAST_N : channelLastN;
+        if (cpuLimited) {
+            const videoStreamsReceived = this._conference.getForwardedSources().length;
+
+            newLastN = Math.floor(videoStreamsReceived / 2);
+            if (newLastN < MIN_LAST_N) {
+                newLastN = MIN_LAST_N;
+            }
+
+        // Increment lastN by 1 every LAST_N_RAMPUP_TIME (60) secs.
+        } else if (lastN < channelLastN) {
+            newLastN++;
         }
 
-        logger.info(`QualityController - setting lastN=${newLastN}`);
+        if (newLastN === lastN) {
+            return false;
+        }
+
+        const isStillLimitedByCpu = newLastN < channelLastN;
+
+        this.receiveVideoController.setLastNLimitedByCpu(isStillLimitedByCpu);
+        logger.info(`QualityController - setting lastN=${newLastN}, limitedByCpu=${isStillLimitedByCpu}`);
         this.receiveVideoController.setLastN(newLastN);
 
         return true;
@@ -200,10 +236,10 @@ export default class QualityController {
      * Updates the codec preference order for the local endpoint on the active media session and switches the video
      * codec if needed.
      *
-     * @param {string} trackId - The track ID of the local video track for which stats have been captured.
+     * @param {number} trackId - The track ID of the local video track for which stats have been captured.
      * @returns {boolean} - Returns true if video codec was changed.
      */
-    _maybeSwitchVideoCodec(trackId: string): boolean {
+    _maybeSwitchVideoCodec(trackId: number): boolean {
         const stats = this._encodeTimeStats.get(trackId);
         const { codec, encodeResolution, localTrack } = stats.get(stats.size() - 1);
         const codecsByVideoType = VIDEO_CODECS_BY_COMPLEXITY[localTrack.getVideoType()];
@@ -232,6 +268,80 @@ export default class QualityController {
     }
 
     /**
+     * Adjusts codec, lastN or receive resolution based on the send resolution (of the outbound streams) and limitation
+     * reported by the browser in the WebRTC stats. Recovery is also attempted if the limitation goes away. No action
+     * is taken if the adaptive mode has been disabled through config.js.
+     *
+     * @param {ISourceStats} sourceStats - The outbound-rtp stats for a local video track.
+     * @returns {void}
+     */
+    _performQualityOptimizations(sourceStats: ISourceStats): void {
+        // Do not attempt run time adjustments if the adaptive mode is disabled.
+        if (!this._enableAdaptiveMode) {
+            return;
+        }
+
+        const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
+        const trackId = localTrack.rtcId;
+
+        if (encodeResolution === tpc.calculateExpectedSendResolution(localTrack)) {
+            if (this._limitedByCpuTimeout) {
+                window.clearTimeout(this._limitedByCpuTimeout);
+                this._limitedByCpuTimeout = undefined;
+            }
+
+            if (qualityLimitationReason === QualityLimitationReason.NONE
+                && this.receiveVideoController.isLastNLimitedByCpu()) {
+                if (!this._lastNRampupTimeout && !this._isLastNRampupBlocked) {
+                    // Ramp up the number of received videos if CPU limitation no longer exists. If the cpu
+                    // limitation returns as a consequence, do not attempt to ramp up again, continue to
+                    // increment the lastN value otherwise until it is equal to the channelLastN value.
+                    this._lastNRampupTimeout = window.setTimeout(() => {
+                        this._lastNRampupTimeout = undefined;
+                        const updatedStats = this._encodeTimeStats.get(trackId);
+                        const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
+
+                        if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU) {
+                            this._isLastNRampupBlocked = true;
+                        } else {
+                            this._lowerOrRaiseLastN(false /* raise */);
+                        }
+                    }, this._lastNRampupTime);
+                }
+            }
+
+            return;
+        }
+
+        // Do nothing if the limitation reason is bandwidth since the browser will dynamically adapt the outbound
+        // resolution based on available uplink bandwith. Otherwise,
+        // 1. Switch the codec to the lowest complexity one incrementally.
+        // 2. Switch to a lower lastN value, cutting the receive videos by half in every iteration until
+        // MIN_LAST_N value is reached.
+        // 3. Lower the receive resolution of individual streams up to 180p.
+        if (qualityLimitationReason === QualityLimitationReason.CPU
+            || (encodeResolution < tpc.calculateExpectedSendResolution(localTrack)
+                && qualityLimitationReason !== QualityLimitationReason.BANDWIDTH)) {
+
+            if (this._lastNRampupTimeout) {
+                window.clearTimeout(this._lastNRampupTimeout);
+                this._lastNRampupTimeout = undefined;
+                this._isLastNRampupBlocked = true;
+            }
+            const codecSwitched = this._maybeSwitchVideoCodec(trackId);
+
+            if (!codecSwitched && !this._limitedByCpuTimeout) {
+                const lastNChanged = this._lowerOrRaiseLastN(true /* lower */);
+
+                if (!lastNChanged) {
+                    this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
+                    this._maybeLowerReceiveResolution();
+                }
+            }
+        }
+    }
+
+    /**
      * Processes the outbound RTP stream stats as reported by the WebRTC peerconnection and makes runtime adjustments
      * to the client for better quality experience if the adaptive mode is enabled.
      *
@@ -252,7 +362,8 @@ export default class QualityController {
         for (const ssrc of stats.keys()) {
             const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
             const track = tpc.getTrackBySSRC(ssrc);
-            let existingStats = statsPerTrack.get(track.rtcId);
+            const trackId = track.rtcId;
+            let existingStats = statsPerTrack.get(trackId);
             const encodeResolution = Math.min(resolution.height, resolution.width);
             const ssrcStats = {
                 encodeResolution,
@@ -271,7 +382,7 @@ export default class QualityController {
                     trackStats: [ ssrcStats ]
                 };
 
-                statsPerTrack.set(track.rtcId, existingStats);
+                statsPerTrack.set(trackId, existingStats);
             }
         }
 
@@ -297,7 +408,8 @@ export default class QualityController {
                 encodeResolution,
                 qualityLimitationReason,
                 localTrack,
-                timestamp
+                timestamp,
+                tpc
             };
 
             if (exisitingStats) {
@@ -313,41 +425,7 @@ export default class QualityController {
             logger.debug(`Encode stats for ${localTrack}: codec=${codec}, time=${avgEncodeTime},`
                 + `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`);
 
-            // Do not attempt run time adjustments if the adaptive mode is disabled.
-            if (!this._enableAdaptiveMode) {
-                return;
-            }
-
-            if (encodeResolution === localTrack.maxEnabledResolution) {
-                if (this._limitedByCpuTimeout) {
-                    window.clearTimeout(this._limitedByCpuTimeout);
-                    this._limitedByCpuTimeout = undefined;
-                }
-
-                return;
-            }
-
-            // Do nothing if the limitation reason is bandwidth since the browser will dynamically adapt the outbound
-            // resolution based on available uplink bandwith. Otherwise,
-            // 1. Switch the codec to the lowest complexity one incrementally.
-            // 2. Switch to a lower lastN value, cutting the receive videos by half in every iteration until
-            // LAST_N_THRESHOLD is reached.
-            // 3. Lower the receive resolution of individual streams up to 180p.
-            if (qualityLimitationReason === QualityLimitationReason.CPU
-                || (encodeResolution < Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())
-                    && qualityLimitationReason !== QualityLimitationReason.BANDWIDTH)) {
-                const codecSwitched = this._maybeSwitchVideoCodec(trackId);
-
-                if (!codecSwitched && !this._limitedByCpuTimeout) {
-                    this.receiveVideoController.setLastNLimitedByCpu(true);
-                    const lastNChanged = this._maybeLowerLastN();
-
-                    if (!lastNChanged) {
-                        this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
-                        this._maybeLowerReceiveResolution();
-                    }
-                }
-            }
+            this._performQualityOptimizations(sourceStats);
         }
     }
 
