@@ -536,6 +536,7 @@ export default class JingleSessionPC extends JingleSession {
                 this._iceCheckingStartedTimestamp = now;
                 break;
             case 'connected':
+            case 'completed':
                 // Informs interested parties that the connection has been restored. This includes the case when
                 // media connection to the bridge has been restored after an ICE failure by using session-terminate.
                 if (this.peerconnection.signalingState === 'stable') {
