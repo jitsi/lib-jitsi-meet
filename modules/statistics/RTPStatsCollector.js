@@ -137,7 +137,6 @@ export default function StatsCollector(peerconnection, audioLevelsInterval, stat
     this.peerconnection = peerconnection;
     this.currentStatsReport = null;
     this.previousStatsReport = null;
-    this.audioLevelReportHistory = {};
     this.audioLevelsIntervalId = null;
     this.eventEmitter = eventEmitter;
     this.conferenceStats = new ConferenceStats();
@@ -385,29 +384,6 @@ StatsCollector.prototype._processAndEmitReport = function() {
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
 
-    const avgAudioLevels = {};
-    let localAvgAudioLevels;
-
-    Object.keys(this.audioLevelReportHistory).forEach(ssrc => {
-        const { data, isLocal } = this.audioLevelReportHistory[ssrc];
-        const avgAudioLevel = data.reduce((sum, currentValue) => sum + currentValue) / data.length;
-
-        if (isLocal) {
-            localAvgAudioLevels = avgAudioLevel;
-        } else {
-            const track = this.peerconnection.getTrackBySSRC(Number(ssrc));
-
-            if (track) {
-                const participantId = track.getParticipantId();
-
-                if (participantId) {
-                    avgAudioLevels[participantId] = avgAudioLevel;
-                }
-            }
-        }
-    });
-    this.audioLevelReportHistory = {};
-
     this.eventEmitter.emit(
         StatisticsEvents.CONNECTION_STATS,
         this.peerconnection,
@@ -418,9 +394,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
             resolution: resolutions,
             framerate: framerates,
             codec: codecs,
-            transport: this.conferenceStats.transport,
-            localAvgAudioLevels,
-            avgAudioLevels
+            transport: this.conferenceStats.transport
         });
     this.conferenceStats.transport = [];
 };
