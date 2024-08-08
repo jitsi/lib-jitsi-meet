@@ -30,7 +30,6 @@ import { LiteModeContext } from './modules/litemode/LiteModeContext';
 import { QualityController } from './modules/qualitycontrol/QualityController';
 import RecordingManager from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
-import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
@@ -220,14 +219,6 @@ export default function JitsiConference(options) {
      */
     this.avgRtpStatsReporter
         = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
-
-    /**
-     * Detects issues with the audio of remote participants.
-     * @type {AudioOutputProblemDetector}
-     */
-    if (!options.config.disableAudioLevels) {
-        this._audioOutputProblemDetector = new AudioOutputProblemDetector(this);
-    }
 
     /**
      * Indicates whether the connection is interrupted or not.
@@ -647,11 +638,6 @@ JitsiConference.prototype.leave = async function(reason) {
     if (this.avgRtpStatsReporter) {
         this.avgRtpStatsReporter.dispose();
         this.avgRtpStatsReporter = null;
-    }
-
-    if (this._audioOutputProblemDetector) {
-        this._audioOutputProblemDetector.dispose();
-        this._audioOutputProblemDetector = null;
     }
 
     if (this.e2eping) {

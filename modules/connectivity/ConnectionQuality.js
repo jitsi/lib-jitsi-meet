@@ -366,8 +366,7 @@ export default class ConnectionQuality {
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
             serverRegion: this._localStats.serverRegion,
-            maxEnabledResolution: this._localStats.maxEnabledResolution,
-            avgAudioLevels: this._localStats.localAvgAudioLevels
+            maxEnabledResolution: this._localStats.maxEnabledResolution
         };
 
         try {
@@ -450,8 +449,7 @@ export default class ConnectionQuality {
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
             serverRegion: data.serverRegion,
-            maxEnabledResolution: data.maxEnabledResolution,
-            avgAudioLevels: data.avgAudioLevels
+            maxEnabledResolution: data.maxEnabledResolution
         };
 
         this.eventEmitter.emit(
