@@ -20,6 +20,9 @@ const FROZEN_MACOS_VERSION = '10.15.7';
  * Implements browser capabilities for lib-jitsi-meet.
  */
 export default class BrowserCapabilities extends BrowserDetection {
+    isWebKitBased() {
+        throw new Error('Method not implemented.');
+    }
     /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
