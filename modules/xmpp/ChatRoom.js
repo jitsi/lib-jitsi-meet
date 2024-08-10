@@ -964,12 +964,12 @@ export default class ChatRoom extends Listenable {
 
     /**
      * Sends a reaction message to the other participants in the conference.
-     * @param {string} reaction - The reaction message to send.
-     * @param {string} messageId - Who is sending the message.
-     * @param {string} receiverId 
+     * @param {string} reaction - The reaction being sent.
+     * @param {string} messageId - The id of the message being sent.
+     * @param {string} receiverId - The receiver of the message if it is private.
      */
     sendReaction(reaction, messageId, receiverId) {
-        // Adds the to attribute depending on if the message is private or not.
+        // Adds the 'to' attribute depending on if the message is private or not.
         const msg = receiverId ? $msg({ to: `${this.roomjid}/${receiverId}`, type: "chat" }) : $msg({ to: this.roomjid, type: "groupchat" });
 
         msg.c("reactions", { id: messageId, xmlns: "urn:xmpp:reactions:0" })
@@ -1162,7 +1162,7 @@ export default class ChatRoom extends Listenable {
         }
 
         const reactions = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction');
-        const id = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('id');
+        const messageId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('id');
         
         if (reactions.length > 0) {
             const reactionList = [];
@@ -1172,10 +1172,7 @@ export default class ChatRoom extends Listenable {
                 reactionList.push(reaction);
             });
 
-            console.log(reactionList);
-            console.log(reactions);
-        
-            this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, id);
+            this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
         
             return true;
         }
@@ -1263,8 +1260,7 @@ export default class ChatRoom extends Listenable {
                 // informing that this is probably a message from a guest to the conference (visitor)
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    // add the sender here and will need to parse the package to find it above
-                    from, txt, this.myroomjid, stamp, nick, Boolean(nick));
+                    from, txt, this.myroomjid, stamp, nick, Boolean(nick), messageId);
             }
         }
     }
