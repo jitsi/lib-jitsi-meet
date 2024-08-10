@@ -122,9 +122,9 @@ export enum XMPPEvents {
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',
 
-    /**
-     * Event fired after receiving the confirmation about session accept.
-     */
+
+    // Designates an event indicating that a XMPP reaction in the MUC
+    // was received.
     REACTION_RECEIVED = "xmpp.reaction_received",
 
     // Designates an event indicating that an invite XMPP message in the MUC was
