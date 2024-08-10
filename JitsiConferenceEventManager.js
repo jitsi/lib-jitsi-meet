@@ -380,7 +380,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         XMPPEvents.REACTION_RECEIVED,
 
         (jid, reactionList, messageId) => {
-            
+
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.REACTION_RECEIVED,
                 jid, reactionList, messageId);

@@ -976,11 +976,7 @@ JitsiConference.prototype.sendTextMessage = function(message, elementName = 'bod
  * @param messageId the ID of the message to attach the reaction to.
  * @param receiverId the intended recipient, if the message is private.
  */
-JitsiConference.prototype.sendReaction = function (
-    reaction,
-    messageId,
-    receiverId
-) {
+JitsiConference.prototype.sendReaction = function(reaction, messageId, receiverId) {
     if (this.room) {
         this.room.sendReaction(reaction, messageId, receiverId);
     }
