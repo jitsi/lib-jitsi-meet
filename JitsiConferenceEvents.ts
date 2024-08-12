@@ -285,6 +285,11 @@ export enum JitsiConferenceEvents {
     MESSAGE_RECEIVED = 'conference.messageReceived',
 
     /**
+     * New reaction was received.
+     */
+    REACTION_RECEIVED = 'conference.reactionReceived',
+
+    /**
      * Event fired when the conference metadata is updated.
      */
     METADATA_UPDATED = 'conference.metadata.updated',

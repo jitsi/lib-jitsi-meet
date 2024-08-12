@@ -122,6 +122,10 @@ export enum XMPPEvents {
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',
 
+    // Designates an event indicating that a reaction XMPP message in the MUC
+    // was received.
+    REACTION_RECEIVED = "xmpp.reaction_received",
+
     // Designates an event indicating that an invite XMPP message in the MUC was
     // received.
     INVITE_MESSAGE_RECEIVED = 'xmpp.invite_message_received',

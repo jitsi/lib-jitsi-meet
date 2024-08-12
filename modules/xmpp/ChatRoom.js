@@ -962,6 +962,26 @@ export default class ChatRoom extends Listenable {
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
     }
 
+    /**
+     * Sends a reaction message to the other participants in the conference.
+     * @param {string} reaction - The reaction being sent.
+     * @param {string} messageId - The id of the message being sent.
+     * @param {string} receiverId - The receiver of the message if it is private.
+     */
+    sendReaction(reaction, messageId, receiverId) {
+        // Adds the 'to' attribute depending on if the message is private or not.
+        const msg = receiverId ? $msg({ to: `${this.roomjid}/${receiverId}`,
+            type: 'chat' }) : $msg({ to: this.roomjid,
+            type: 'groupchat' });
+
+        msg.c('reactions', { id: messageId,
+            xmlns: 'urn:xmpp:reactions:0' })
+            .c('reaction', {}, reaction)
+            .up().c('store', { xmlns: 'urn:xmpp:hints' });
+
+        this.connection.send(msg);
+    }
+
     /* eslint-disable max-params */
     /**
      * Send private text message to another participant of the conference
@@ -1143,6 +1163,24 @@ export default class ChatRoom extends Listenable {
 
             return true;
         }
+
+        const reactions = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction');
+
+        if (reactions.length > 0) {
+            const messageId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('id');
+            const reactionList = [];
+
+            reactions.each((_, reactionElem) => {
+                const reaction = $(reactionElem).text();
+
+                reactionList.push(reaction);
+            });
+
+            this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
+
+            return true;
+        }
+
 
         const txt = $(msg).find('>body').text();
         const subject = $(msg).find('>subject');
