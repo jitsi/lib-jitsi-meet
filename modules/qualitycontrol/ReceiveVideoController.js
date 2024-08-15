@@ -213,7 +213,8 @@ export default class ReceiveVideoController {
             this._receiverVideoConstraints = constraints;
 
             this._assumedBandwidthBps = constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
-            this._lastN = constraints.lastN && !this._lastNLimitedByCpu ? constraints.lastN : this._lastN;
+            this._lastN = typeof constraints.lastN !== 'undefined' && !this._lastNLimitedByCpu
+                ? constraints.lastN : this._lastN;
             this._receiverVideoConstraints.lastN = this._lastN;
             this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
 
