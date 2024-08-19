@@ -86,6 +86,7 @@ describe( "/JitsiConferenceEvents members", () => {
         BREAKOUT_ROOMS_UPDATED,
         METADATA_UPDATED,
         SILENT_STATUS_CHANGED,
+        REACTION_RECEIVED,
         JitsiConferenceEvents,
         ...others
     } = exported;
@@ -251,6 +252,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_READY ).toBe( 'conference.e2ee.verification.ready' );
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED ).toBe( 'conference.e2ee.verification.completed' );
         expect( JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE ).toBe( 'conference.e2ee.verification.available' );
+        expect( JitsiConferenceEvents.REACTION_RECEIVED ).toBe( 'conference.reactionReceived' );
     } );
 
 it( "unknown members", () => {
