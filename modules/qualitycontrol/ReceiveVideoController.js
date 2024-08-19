@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import isEqual from 'lodash.isequal';
+import { isEqual } from 'lodash-es';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/StandardVideoQualitySettings';

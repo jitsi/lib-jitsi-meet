@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import isEqual from 'lodash.isequal';
+import { isEqual } from 'lodash-es';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
