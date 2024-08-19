@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
@@ -31,7 +31,7 @@ export class TPCUtils {
      */
     constructor(peerconnection) {
         this.pc = peerconnection;
-        this.codecSettings = clonedeep(STANDARD_CODEC_SETTINGS);
+        this.codecSettings = cloneDeep(STANDARD_CODEC_SETTINGS);
         const videoQualitySettings = this.pc.options?.videoQuality;
 
         if (videoQualitySettings) {

@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash-es';
 import 'webrtc-adapter';
 
 import JitsiTrackError from '../../JitsiTrackError';
@@ -93,7 +93,7 @@ function emptyFuncton() {
  */
 function getConstraints(um = [], options = {}) {
     // Create a deep copy of the constraints to avoid any modification of the passed in constraints object.
-    const constraints = clonedeep(options.constraints || DEFAULT_CONSTRAINTS);
+    const constraints = cloneDeep(options.constraints || DEFAULT_CONSTRAINTS);
 
     if (um.indexOf('video') >= 0) {
         if (!constraints.video) {

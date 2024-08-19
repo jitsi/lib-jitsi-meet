@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
@@ -58,7 +58,7 @@ SDP.prototype.removeUdpCandidates = false;
 SDP.prototype.addMlineForNewLocalSource = function(mediaType) {
     const mid = this.media.length;
     const sdp = transform.parse(this.raw);
-    const mline = clonedeep(sdp.media.find(m => m.type === mediaType));
+    const mline = cloneDeep(sdp.media.find(m => m.type === mediaType));
 
     // Edit media direction, mid and remove the existing ssrc lines in the m-line.
     mline.mid = mid;

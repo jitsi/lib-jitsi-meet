@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import isEqual from 'lodash.isequal';
+import { isEqual } from 'lodash-es';
 import { $msg } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';

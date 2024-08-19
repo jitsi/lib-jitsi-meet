@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import debounce from 'lodash.debounce';
+import { debounce } from 'lodash-es';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 

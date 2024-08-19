@@ -3,7 +3,7 @@
 import { safeJsonParse as _safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import base64js from 'base64-js';
-import isEqual from 'lodash.isequal';
+import { isEqual } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';

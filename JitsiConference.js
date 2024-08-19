@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import isEqual from 'lodash.isequal';
+import { isEqual } from 'lodash-es';
 import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
