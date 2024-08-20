@@ -27,6 +27,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         ICE_STATE_CHANGED,
         NO_BYTES_SENT,
         TRACK_UNMUTED,
+        VIDEO_CODEC_CHANGED,
         createBridgeDownEvent,
         createConnectionFailedEvent,
         createConferenceEvent,
@@ -74,6 +75,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( ICE_STATE_CHANGED ).toBe( 'ice.state.changed' );
         expect( NO_BYTES_SENT ).toBe( 'track.no-bytes-sent' );
         expect( TRACK_UNMUTED ).toBe( 'track.unmuted' );
+        expect( VIDEO_CODEC_CHANGED ).toBe( 'quality.video-codec-changed' );
 
         expect( AnalyticsEvents ).toBeDefined();
 

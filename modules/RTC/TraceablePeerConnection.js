@@ -10,6 +10,7 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
+import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -19,6 +20,7 @@ import SDP from '../sdp/SDP';
 import SDPUtil from '../sdp/SDPUtil';
 import SdpSimulcast from '../sdp/SdpSimulcast';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
+import Statistics from '../statistics/statistics';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
@@ -2388,7 +2390,8 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  */
 TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack, preferredCodec) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
-    const isScreensharingTrack = localVideoTrack.getVideoType() === VideoType.DESKTOP;
+    const videoType = localVideoTrack.getVideoType();
+    const isScreensharingTrack = videoType === VideoType.DESKTOP;
 
     if (!videoSender) {
         return Promise.resolve();
@@ -2475,6 +2478,13 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 
                 parameters.encodings[idx].codec = matchingCodec;
                 needsUpdate = true;
+
+                Statistics.sendAnalytics(
+                    VIDEO_CODEC_CHANGED,
+                    {
+                        value: codec,
+                        videoType
+                    });
             }
         }
     }

@@ -167,7 +167,7 @@ export default class ReceiveVideoController {
     setLastNLimitedByCpu(enabled) {
         if (this._lastNLimitedByCpu !== enabled) {
             this._lastNLimitedByCpu = enabled;
-            logger.info(`ReceiveVideoController - Setting the _lastNLimitedByCpu flag to ${enabled}`);
+            logger.info(`ReceiveVideoController - Setting the lastNLimitedByCpu flag to ${enabled}`);
         }
     }
 
@@ -250,7 +250,7 @@ export default class ReceiveVideoController {
     setReceiveResolutionLimitedByCpu(enabled) {
         if (this._receiveResolutionLimitedByCpu !== enabled) {
             this._receiveResolutionLimitedByCpu = enabled;
-            logger.info(`ReceiveVideoController - Setting the _receiveResolutionLimitedByCpu flag to ${enabled}`);
+            logger.info(`ReceiveVideoController - Setting the receiveResolutionLimitedByCpu flag to ${enabled}`);
         }
     }
 }

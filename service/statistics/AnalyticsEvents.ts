@@ -211,7 +211,16 @@ export enum AnalyticsEvents {
      *      trackType: the type of the track ('local' or 'remote').
      *      value: TODO: document
      */
-    TRACK_UNMUTED = 'track.unmuted'
+    TRACK_UNMUTED = 'track.unmuted',
+
+    /**
+     * Indicates that the video codec changed for a local track.
+     *
+     * Properties:
+     *      value: the video codec mimeType.
+     *      videoType: the videoType of local track, whether its 'camera' or 'desktop'.
+     */
+    VIDEO_CODEC_CHANGED = 'quality.video-codec-changed',
 }
 
 // exported for backward compatibility
@@ -238,6 +247,7 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF = AnalyticsEvents.ICE_ESTABLISHMENT
 export const ICE_STATE_CHANGED = AnalyticsEvents.ICE_STATE_CHANGED;
 export const NO_BYTES_SENT = AnalyticsEvents.NO_BYTES_SENT;
 export const TRACK_UNMUTED = AnalyticsEvents.TRACK_UNMUTED;
+export const VIDEO_CODEC_CHANGED = AnalyticsEvents.VIDEO_CODEC_CHANGED;
 
 /**
  * Creates an operational event which indicates that we have received a
