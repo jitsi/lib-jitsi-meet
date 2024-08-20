@@ -380,10 +380,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         XMPPEvents.REACTION_RECEIVED,
 
         (jid, reactionList, messageId) => {
+            const participantId = Strophe.getResourceFromJid(jid);
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.REACTION_RECEIVED,
-                jid, reactionList, messageId);
+                participantId, reactionList, messageId);
         });
 
     chatRoom.addListener(
