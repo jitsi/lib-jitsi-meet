@@ -6,9 +6,11 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
-    ICE_STATE_CHANGED
+    ICE_STATE_CHANGED,
+    VIDEO_CODEC_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
@@ -1199,6 +1201,13 @@ export default class JingleSessionPC extends JingleSession {
             if (codecList.every((val, index) => val === currentCodecOrder[index])) {
                 return;
             }
+
+            Statistics.sendAnalytics(
+                VIDEO_CODEC_CHANGED,
+                {
+                    value: codecList[0],
+                    videoType: VideoType.CAMERA
+                });
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
