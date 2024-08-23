@@ -127,6 +127,8 @@ export default class ResumeTask {
      * @returns {void}
      */
     _resumeConnection() {
+        this._resumeTimeout = undefined;
+
         const { streamManagement } = this._stropheConn;
         const resumeToken = streamManagement.getResumeToken();
 
