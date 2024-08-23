@@ -826,7 +826,7 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
         throw new Error(`SSRC ${ssrc} is not a number`);
     }
     for (const localTrack of this.localTracks.values()) {
-        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId);
+        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId) ?? { ssrcs: [] };
 
         if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
             return localTrack;
