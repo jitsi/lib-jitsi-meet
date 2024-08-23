@@ -671,7 +671,7 @@ JitsiConference.prototype.leave = async function(reason) {
 
     // Leave the conference. If this.room == null we are calling second time leave().
     if (!this.room) {
-        throw new Error('You have already left the conference');
+        return;
     }
 
     const room = this.room;
