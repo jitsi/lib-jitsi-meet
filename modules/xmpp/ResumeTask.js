@@ -33,6 +33,13 @@ export default class ResumeTask {
     }
 
     /**
+     * @returns {number} - The amount of retries.
+     */
+    get retryCount() {
+        return this._resumeRetryN;
+    }
+
+    /**
      * @returns {number|undefined} - How much the app will wait before trying to resume the XMPP connection. When
      * 'undefined' it means that no resume task was not scheduled.
      */
@@ -81,7 +88,6 @@ export default class ResumeTask {
         //   1st retry: 1.5s - 3s
         //   2nd retry: 3s - 9s
         //   3rd and next retry: 4.5s - 27s
-        this._resumeRetryN = Math.min(3, this._resumeRetryN);
         this._retryDelay = getJitterDelay(
             /* retry */ this._resumeRetryN,
             /* minDelay */ this._resumeRetryN * 1500,

@@ -11,6 +11,11 @@ import PingConnectionPlugin from './strophe.ping';
 const logger = getLogger(__filename);
 
 /**
+ * Maximum number of tries to resume.
+ */
+const MAX_RESUME_TRIES = 3;
+
+/**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
  */
 export default class XmppConnection extends Listenable {
@@ -644,7 +649,13 @@ export default class XmppConnection extends Listenable {
         if (resumeToken) {
             this._resumeTask.schedule();
 
-            return true;
+            const r = this._resumeTask.retryCount <= MAX_RESUME_TRIES;
+
+            if (!r) {
+                logger.warn(`Maximum resume tries reached (${MAX_RESUME_TRIES}), giving up.`);
+            }
+
+            return r;
         }
 
         return false;
