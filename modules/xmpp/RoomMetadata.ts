@@ -43,9 +43,8 @@ export default class RoomMetadata {
      * @param {object} data - data to be stored.
      */
     setMetadata(key, data) {
-        if (!this.isSupported() || !this.room.isModerator()) {
-            logger.error(`Cannot set room metadata - supported:${this.isSupported()},
-                moderator:${this.room.isModerator()}`);
+        if (!this.isSupported()) {
+            logger.error(`Cannot set room metadata - supported:${this.isSupported()}`);
 
             return;
         }
