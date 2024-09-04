@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { cloneDeep } from 'lodash-es';
+import { cloneDeep, isEqual } from 'lodash-es';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -301,6 +301,10 @@ export default class RTC extends Listenable {
      * @param {*} constraints
      */
     setReceiverVideoConstraints(constraints) {
+        if (isEqual(this._receiverVideoConstraints, constraints)) {
+            return;
+        }
+
         this._receiverVideoConstraints = constraints;
 
         if (this._channel && this._channel.isOpen()) {
