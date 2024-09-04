@@ -319,10 +319,7 @@ export class QualityController {
         // 2. Switch to a lower lastN value, cutting the receive videos by half in every iteration until
         // MIN_LAST_N value is reached.
         // 3. Lower the receive resolution of individual streams up to 180p.
-        if (qualityLimitationReason === QualityLimitationReason.CPU
-            || (encodeResolution < tpc.calculateExpectedSendResolution(localTrack)
-                && qualityLimitationReason !== QualityLimitationReason.BANDWIDTH)) {
-
+        if (qualityLimitationReason === QualityLimitationReason.CPU) {
             if (this._lastNRampupTimeout) {
                 window.clearTimeout(this._lastNRampupTimeout);
                 this._lastNRampupTimeout = undefined;
