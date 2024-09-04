@@ -149,6 +149,10 @@ export default class XMPP extends Listenable {
         // Cache of components used for certain features.
         this._components = [];
 
+        // We want to track messages that are received before we process the disco-info components
+        // re-order of receiving we may drop some messages
+        this._preComponentsMsgs = [];
+
         initStropheNativePlugins();
 
         const xmppPing = options.xmppPing || {};
@@ -203,6 +207,8 @@ export default class XMPP extends Listenable {
                 // ignore errors in order to not brake the unload.
             });
         });
+
+        this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
     }
 
     /**
@@ -508,8 +514,9 @@ export default class XMPP extends Listenable {
         this._maybeSendDeploymentInfoStat(true);
 
         if (this._components.length > 0) {
-            this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
+            this._preComponentsMsgs.forEach(this._onPrivateMessage.bind(this));
         }
+        this._preComponentsMsgs = [];
     }
 
     /**
@@ -1038,6 +1045,8 @@ export default class XMPP extends Listenable {
         const from = msg.getAttribute('from');
 
         if (!this._components.includes(from)) {
+            this._preComponentsMsgs.push(msg);
+
             return true;
         }
 
