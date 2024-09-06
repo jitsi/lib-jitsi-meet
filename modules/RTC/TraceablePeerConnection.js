@@ -2127,7 +2127,12 @@ TraceablePeerConnection.prototype._setMaxBitrates = function(description, isLoca
         const localTrack = this.getLocalVideoTracks()
             .find(track => this._localTrackTransceiverMids.get(track.rtcId) === mLine.mid.toString());
 
-        if ((isDoingVp9KSvc || this.tpcUtils._isRunningInFullSvcMode(currentCodec)) && localTrack) {
+        if (localTrack
+            && (isDoingVp9KSvc
+
+                // Setting bitrates in the SDP for SVC codecs is no longer needed in the newer versions where
+                // maxBitrates from the RTCRtpEncodingParameters directly affect the target bitrate for the encoder.
+                || (this.tpcUtils._isRunningInFullSvcMode(currentCodec) && !this.usesCodecSelectionAPI()))) {
             let maxBitrate;
 
             if (localTrack.getVideoType() === VideoType.DESKTOP) {
