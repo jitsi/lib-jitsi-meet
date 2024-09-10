@@ -11,13 +11,13 @@ describe( "/JitsiTranscriptionStatus members", () => {
     } = exported;
 
     it( "known members", () => {
-        expect( ON ).toBe( 'on' );
-        expect( OFF ).toBe( 'off' );
+        expect( ON ).toBe( 'ON' );
+        expect( OFF ).toBe( 'OFF' );
 
         expect( JitsiTranscriptionStatus ).toBeDefined();
 
-        expect( JitsiTranscriptionStatus.ON ).toBe( 'on' );
-        expect( JitsiTranscriptionStatus.OFF ).toBe( 'off' );
+        expect( JitsiTranscriptionStatus.ON ).toBe( 'ON' );
+        expect( JitsiTranscriptionStatus.OFF ).toBe( 'OFF' );
     } );
 
     it( "unknown members", () => {
