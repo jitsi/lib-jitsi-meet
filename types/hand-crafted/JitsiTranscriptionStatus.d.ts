@@ -1,4 +1,4 @@
 export enum JitsiTranscriptionStatus {
-  ON = 'on',
-  OFF = 'off'
+  ON = 'ON',
+  OFF = 'OFF'
 }
