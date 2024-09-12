@@ -444,8 +444,8 @@ JitsiConference.prototype._init = function(options = {}) {
         enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
         lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
         jvb: {
-            preferenceOrder: browser.isMobileDevice() && config.videoQuality?.mobileCodecPreferenceOrder
-                ? config.videoQuality.mobileCodecPreferenceOrder
+            preferenceOrder: browser.isMobileDevice()
+                ? config.videoQuality?.mobileCodecPreferenceOrder
                 : config.videoQuality?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
             preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
@@ -454,8 +454,8 @@ JitsiConference.prototype._init = function(options = {}) {
                 : _getCodecMimeType(config.videoQuality?.screenshareCodec)
         },
         p2p: {
-            preferenceOrder: browser.isMobileDevice() && config.p2p?.mobileCodecPreferenceOrder
-                ? config.p2p.mobileCodecPreferenceOrder
+            preferenceOrder: browser.isMobileDevice()
+                ? config.p2p?.mobileCodecPreferenceOrder
                 : config.p2p?.codecPreferenceOrder,
             disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
             preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
