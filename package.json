@@ -27,7 +27,6 @@
     "jquery": "3.6.1",
     "lodash-es": "4.17.21",
     "patch-package": "6.5.1",
-    "promise.allsettled": "1.0.4",
     "sdp-transform": "2.3.0",
     "strophe.js": "1.5.0",
     "strophejs-plugin-disco": "0.0.2",
