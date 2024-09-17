@@ -13,6 +13,7 @@ import {
     VIDEO_CODEC_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
@@ -68,7 +69,7 @@ function getEndpointId(jidOrEndpointId) {
 function _addSourceElement(description, s, ssrc_, msid) {
 
     description.c('source', {
-        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        xmlns: XEP.SOURCE_ATTRIBUTES,
         ssrc: ssrc_,
         name: s.source
     })
@@ -713,7 +714,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 return;
             }
-            ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
+            ice.xmlns = XEP.ICE_UDP_TRANSPORT;
 
             if (this.usedrip) {
                 if (this.dripContainer.length === 0) {
@@ -768,7 +769,7 @@ export default class JingleSessionPC extends JingleSession {
                 const ice
                     = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
 
-                ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
+                ice.xmlns = XEP.ICE_UDP_TRANSPORT;
                 cand.c('content', {
                     creator: this.initiatorJid === this.localJid
                         ? 'initiator' : 'responder',
@@ -1834,7 +1835,7 @@ export default class JingleSessionPC extends JingleSession {
                 xmlns: 'urn:xmpp:jingle:1',
                 name: mediaType
             }).c('description', {
-                xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                xmlns: XEP.RTP_MEDIA,
                 media: mediaType
             });
 
@@ -1850,16 +1851,16 @@ export default class JingleSessionPC extends JingleSession {
                     if (rtx !== '-1') {
                         _addSourceElement(node, src, rtx, msid);
                         node.c('ssrc-group', {
-                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                            xmlns: XEP.SOURCE_ATTRIBUTES,
                             semantics: 'FID'
                         })
                             .c('source', {
-                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                                xmlns: XEP.SOURCE_ATTRIBUTES,
                                 ssrc
                             })
                             .up()
                             .c('source', {
-                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+                                xmlns: XEP.SOURCE_ATTRIBUTES,
                                 ssrc: rtx
                             })
                             .up()

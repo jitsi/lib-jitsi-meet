@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { $build } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
 const logger = getLogger(__filename);
 
@@ -15,7 +16,7 @@ const logger = getLogger(__filename);
  */
 function _createSourceExtension(owner, sourceCompactJson) {
     const node = $build('source', {
-        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        xmlns: XEP.SOURCE_ATTRIBUTES,
         ssrc: sourceCompactJson.s,
         name: sourceCompactJson.n
     });
@@ -41,13 +42,13 @@ function _createSourceExtension(owner, sourceCompactJson) {
  */
 function _createSsrcGroupExtension(ssrcGroupCompactJson) {
     const node = $build('ssrc-group', {
-        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+        xmlns: XEP.SOURCE_ATTRIBUTES,
         semantics: _getSemantics(ssrcGroupCompactJson[0])
     });
 
     for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
         node.c('source', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0',
+            xmlns: XEP.SOURCE_ATTRIBUTES,
             ssrc: ssrcGroupCompactJson[i]
         }).up();
     }
@@ -83,7 +84,7 @@ function _getOrCreateRtpDescription(iq, mediaType) {
         description = description[0];
     } else {
         description = $build('description', {
-            xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+            xmlns: XEP.RTP_MEDIA,
             media: mediaType
         }).node;
         content.appendChild(description);

@@ -20,10 +20,33 @@ export enum XEP {
     ICE_UDP_TRANSPORT = 'urn:xmpp:jingle:transports:ice-udp:1',
 
     /**
+     * XEP-0166 - Jingle.
+     * https://xmpp.org/extensions/xep-0166.html
+     */
+    JINGLE = 'urn:xmpp:jingle:1',
+
+    /**
+     * XEP-0327 - Rayo for allowing third-party control over media sessions.
+     */
+    RAYO = 'urn:xmpp:rayo:client:1',
+
+    /**
+     * XEP-0167 - Signals support for RTP audio.
+     * https://xmpp.org/extensions/xep-0167.html#support
+     */
+    RTP_AUDIO = 'urn:xmpp:jingle:apps:rtp:audio',
+
+    /**
      * XEP-0293 - Signals the use of RTP Feedback Negotiation.
      * https://xmpp.org/extensions/xep-0293.html
      */
     RTP_FEEDBACK = 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+
+    /**
+     * XEP-0167 - Signals support for RTP video.
+     * https://xmpp.org/extensions/xep-0167.html#support
+     */
+    RTP_VIDEO = 'urn:xmpp:jingle:apps:rtp:video',
 
     /**
      * XEP-0294 - Signals the use of RTP Header Extensions.
