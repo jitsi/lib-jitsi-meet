@@ -3,6 +3,8 @@ import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
+import { MediaType } from '../../service/RTC/MediaType';
+import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import browser from '../browser';
 
 import SDPUtil from './SDPUtil';
@@ -104,9 +106,7 @@ export default class SDP {
             + 's=-\r\n'
             + 't=0 0\r\n';
 
-        // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04
-        // #section-8
-        const groups = $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]');
+        const groups = $(jingle).find(`>group[xmlns='${XEP.BUNDLE_MEDIA}']`);
 
         if (groups.length) {
             groups.each((idx, group) => {
@@ -192,16 +192,16 @@ export default class SDP {
      */
     jingle2media(content) {
         const desc = content.find('>description');
-        const transport = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
+        const transport = content.find(`>transport[xmlns='${XEP.ICE_UDP_TRANSPORT}']`);
         let sdp = '';
-        const sctp = transport.find('>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
+        const sctp = transport.find(`>sctpmap[xmlns='${XEP.SCTP_DATA_CHANNEL}']`);
         const media = { media: desc.attr('media') };
 
         media.port = '9';
         if (content.attr('senders') === 'rejected') {
             media.port = '0';
         }
-        if (transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
+        if (transport.find(`>fingerprint[xmlns='${XEP.DTLS_SRTP}']`).length) {
             media.proto = sctp.length ? 'UDP/DTLS/SCTP' : 'UDP/TLS/RTP/SAVPF';
         } else {
             media.proto = 'UDP/TLS/RTP/SAVPF';
@@ -224,7 +224,6 @@ export default class SDP {
             sdp += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
         }
 
-        // XEP-0176 ICE parameters
         if (transport.length) {
             if (transport.attr('ufrag')) {
                 sdp += `${SDPUtil.buildICEUfrag(transport.attr('ufrag'))}\r\n`;
@@ -232,7 +231,7 @@ export default class SDP {
             if (transport.attr('pwd')) {
                 sdp += `${SDPUtil.buildICEPwd(transport.attr('pwd'))}\r\n`;
             }
-            transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
+            transport.find(`>fingerprint[xmlns='${XEP.DTLS_SRTP}']`).each((_, fingerprint) => {
                 sdp += `a=fingerprint:${fingerprint.getAttribute('hash')} ${$(fingerprint).text()}\r\n`;
                 if (fingerprint.hasAttribute('setup')) {
                     sdp += `a=setup:${fingerprint.getAttribute('setup')}\r\n`;
@@ -240,7 +239,6 @@ export default class SDP {
             });
         }
 
-        // XEP-0176 ICE candidates
         transport.find('>candidate').each((_, candidate) => {
             let protocol = candidate.getAttribute('protocol');
 
@@ -295,24 +293,20 @@ export default class SDP {
                 sdp += '\r\n';
             }
 
-            // XEP-0293
             sdp += this.rtcpFbFromJingle($(payloadType), payloadType.getAttribute('id'));
         });
 
-        // XEP-0293 - Handle RTCP feedback.
         sdp += this.rtcpFbFromJingle(desc, '*');
 
-        // XEP-0294 - Handle RTP header extensions
-        desc.find('>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]').each((_, hdrExt) => {
+        desc.find(`>rtp-hdrext[xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).each((_, hdrExt) => {
             sdp += `a=extmap:${hdrExt.getAttribute('id')} ${hdrExt.getAttribute('uri')}\r\n`;
         });
-        if (desc.find('>extmap-allow-mixed[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]').length > 0) {
+        if (desc.find(`>extmap-allow-mixed[xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).length > 0) {
             sdp += 'a=extmap-allow-mixed\r\n';
         }
 
-        // XEP-0339 handle ssrc-group attributes
         desc
-            .find('>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+            .find(`>ssrc-group[xmlns='${XEP.SOURCE_ATTRIBUTES}']`)
             .each((_, ssrcGroup) => {
                 const semantics = ssrcGroup.getAttribute('semantics');
                 const ssrcs
@@ -326,12 +320,11 @@ export default class SDP {
                 }
             });
 
-        // XEP-0339 handle source attributes
         let userSources = '';
         let nonUserSources = '';
 
         desc
-            .find('>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+            .find(`>source[xmlns='${XEP.SOURCE_ATTRIBUTES}']`)
             .each((_, source) => {
                 const ssrc = source.getAttribute('ssrc');
                 let isUserSource = true;
@@ -381,7 +374,7 @@ export default class SDP {
      */
     rtcpFbFromJingle(elem, payloadtype) {
         let sdp = '';
-        const feedbackElementTrrInt = elem.find('>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+        const feedbackElementTrrInt = elem.find(`>rtcp-fb-trr-int[xmlns='${XEP.RTP_FEEDBACK}']`);
 
         if (feedbackElementTrrInt.length) {
             sdp += 'a=rtcp-fb:* trr-int ';
@@ -389,7 +382,7 @@ export default class SDP {
             sdp += '\r\n';
         }
 
-        const feedbackElements = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+        const feedbackElements = elem.find(`>rtcp-fb[xmlns='${XEP.RTP_FEEDBACK}']`);
 
         feedbackElements.each((_, fb) => {
             sdp += `a=rtcp-fb:${payloadtype} ${fb.getAttribute('type')}`;
@@ -418,13 +411,13 @@ export default class SDP {
 
             if (feedback.type === 'trr-int') {
                 elem.c('rtcp-fb-trr-int', {
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                    xmlns: XEP.RTP_FEEDBACK,
                     value: feedback.params[0]
                 });
                 elem.up();
             } else {
                 elem.c('rtcp-fb', {
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                    xmlns: XEP.RTP_FEEDBACK,
                     type: feedback.type
                 });
                 if (feedback.params.length > 0) {
@@ -443,13 +436,12 @@ export default class SDP {
      * @returns - The updated Jingle message element.
      */
     toJingle(elem, thecreator) {
-        // https://xmpp.org/extensions/xep-0338.html
         SDPUtil.findLines(this.session, 'a=group:').forEach(line => {
             const parts = line.split(' ');
             const semantics = parts.shift().substr(8);
 
             elem.c('group', {
-                xmlns: 'urn:xmpp:jingle:apps:grouping:0',
+                xmlns: XEP.BUNDLE_MEDIA,
                 semantics
             });
             parts.forEach(part => elem.c('content', { name: part }).up());
@@ -459,7 +451,7 @@ export default class SDP {
         this.media.forEach((mediaItem, i) => {
             const mline = SDPUtil.parseMLine(mediaItem.split('\r\n')[0]);
 
-            if (![ 'audio', 'video', 'application' ].includes(mline.media)) {
+            if (![ MediaType.AUDIO, MediaType.VIDEO, MediaType.APPLICATION ].includes(mline.media)) {
                 return;
             }
 
@@ -481,16 +473,16 @@ export default class SDP {
                 elem.attrs({ name: SDPUtil.parseMID(amidline) });
             }
 
-            if (mline.media === 'video' && typeof this.initialLastN === 'number') {
+            if (mline.media === MediaType.VIDEO && typeof this.initialLastN === 'number') {
                 elem.c('initial-last-n', {
                     xmlns: 'jitsi:colibri2',
                     value: this.initialLastN
                 }).up();
             }
 
-            if ([ 'audio', 'video' ].includes(mline.media)) {
+            if ([ MediaType.AUDIO, MediaType.VIDEO ].includes(mline.media)) {
                 elem.c('description', {
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                    xmlns: XEP.RTP_MEDIA,
                     media: mline.media
                 });
                 if (ssrc) {
@@ -502,7 +494,6 @@ export default class SDP {
 
                     elem.c('payload-type', SDPUtil.parseRTPMap(rtpmap));
 
-                    // Put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo value=bar/>.
                     const afmtpline = SDPUtil.findLine(mediaItem, `a=fmtp:${format}`);
 
                     if (afmtpline) {
@@ -526,7 +517,7 @@ export default class SDP {
                             ssrc: availableSsrc,
                             name: sourceName,
                             videoType,
-                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                            xmlns: XEP.SOURCE_ATTRIBUTES
                         });
 
                         const msid = SDPUtil.parseMSIDAttribute(ssrcParameters);
@@ -542,7 +533,6 @@ export default class SDP {
                         elem.up();
                     }
 
-                    // XEP-0339 handle ssrc-group attributes.
                     const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
 
                     ssrcGroupLines.forEach(line => {
@@ -553,7 +543,7 @@ export default class SDP {
                         if (ssrcs.length) {
                             elem.c('ssrc-group', {
                                 semantics,
-                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                                xmlns: XEP.SOURCE_ATTRIBUTES
                             });
                             ssrcs.forEach(s => elem.c('source', { ssrc: s }).up());
                             elem.up();
@@ -570,7 +560,7 @@ export default class SDP {
                     rids.forEach(rid => {
                         elem.c('source', {
                             rid,
-                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                            xmlns: XEP.SOURCE_ATTRIBUTES
                         });
                         elem.up();
                     });
@@ -580,7 +570,7 @@ export default class SDP {
                     if (unifiedSimulcast) {
                         elem.c('rid-group', {
                             semantics: 'SIM',
-                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                            xmlns: XEP.SOURCE_ATTRIBUTES
                         });
                         rids.forEach(rid => elem.c('source', { rid }).up());
                         elem.up();
@@ -593,14 +583,13 @@ export default class SDP {
 
                 this.rtcpFbToJingle(i, elem, '*');
 
-                // XEP-0294
                 const extmapLines = SDPUtil.findLines(mediaItem, 'a=extmap:', this.session);
 
                 extmapLines.forEach(extmapLine => {
                     const extmap = SDPUtil.parseExtmap(extmapLine);
 
                     elem.c('rtp-hdrext', {
-                        xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
+                        xmlns: XEP.RTP_HEADER_EXTENSIONS,
                         uri: extmap.uri,
                         id: extmap.value
                     });
@@ -625,10 +614,9 @@ export default class SDP {
                     elem.up();
                 });
 
-                // Handle extmap-allow-mixed.
                 if (SDPUtil.findLine(mediaItem, 'a=extmap-allow-mixed', this.session)) {
                     elem.c('extmap-allow-mixed', {
-                        xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'
+                        xmlns: XEP.RTP_HEADER_EXTENSIONS
                     });
                     elem.up();
                 }
@@ -670,7 +658,6 @@ export default class SDP {
     transportToJingle(mediaIndex, elem) {
         elem.c('transport');
 
-        // XEP-0343 DTLS/SCTP
         const sctpport = SDPUtil.findLine(this.media[mediaIndex], 'a=sctp-port:', this.session);
         const sctpmap = SDPUtil.findLine(this.media[mediaIndex], 'a=sctpmap:', this.session);
 
@@ -678,7 +665,7 @@ export default class SDP {
             const sctpAttrs = SDPUtil.parseSCTPPort(sctpport);
 
             elem.c('sctpmap', {
-                xmlns: 'urn:xmpp:jingle:transports:dtls-sctp:1',
+                xmlns: XEP.SCTP_DATA_CHANNEL,
                 number: sctpAttrs, // SCTP port
                 protocol: 'webrtc-datachannel' // protocol
             });
@@ -690,7 +677,7 @@ export default class SDP {
             const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
 
             elem.c('sctpmap', {
-                xmlns: 'urn:xmpp:jingle:transports:dtls-sctp:1',
+                xmlns: XEP.SCTP_DATA_CHANNEL,
                 number: sctpAttrs[0], // SCTP port
                 protocol: sctpAttrs[1] // protocol
             });
@@ -700,13 +687,12 @@ export default class SDP {
             elem.up();
         }
 
-        // XEP-0320
         const fingerprints = SDPUtil.findLines(this.media[mediaIndex], 'a=fingerprint:', this.session);
 
         fingerprints.forEach(line => {
             const fingerprint = SDPUtil.parseFingerprint(line);
 
-            fingerprint.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
+            fingerprint.xmlns = XEP.DTLS_SRTP;
 
             elem.c('fingerprint').t(fingerprint.fingerprint);
             delete fingerprint.fingerprint;
@@ -723,10 +709,9 @@ export default class SDP {
         const iceParameters = SDPUtil.iceparams(this.media[mediaIndex], this.session);
 
         if (iceParameters) {
-            iceParameters.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
+            iceParameters.xmlns = XEP.ICE_UDP_TRANSPORT;
             elem.attrs(iceParameters);
 
-            // XEP-0176
             const candidateLines = SDPUtil.findLines(this.media[mediaIndex], 'a=candidate:', this.session);
 
             candidateLines.forEach(line => { // add any a=candidate lines
