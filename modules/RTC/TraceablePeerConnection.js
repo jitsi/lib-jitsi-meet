@@ -1718,18 +1718,6 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 };
 
 /**
- * Returns the sender corresponding to the given media type.
- * @param {MEDIA_TYPE} mediaType - The media type 'audio' or 'video' to be used for the search.
- * @returns {RTPSender|undefined} - The found sender or undefined if no sender
- * was found.
- */
-TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
-    if (this.peerconnection.getSenders) {
-        return this.peerconnection.getSenders().find(s => s.track && s.track.kind === mediaType);
-    }
-};
-
-/**
  * Returns the receiver corresponding to the given MediaStreamTrack.
  *
  * @param {MediaSreamTrack} track - The media stream track used for the search.
@@ -2034,28 +2022,6 @@ TraceablePeerConnection.prototype._mungeOpus = function(description) {
 
             fmtpOpus.config = mungedConfig.trim();
         }
-    }
-
-    return new RTCSessionDescription({
-        type: description.type,
-        sdp: transform.write(parsedSdp)
-    });
-};
-
-/**
- * Munges the SDP to set all directions to inactive and drop all ssrc and ssrc-groups.
- *
- * @param {RTCSessionDescription} description that needs to be munged.
- * @returns {RTCSessionDescription} the munged description.
- */
-TraceablePeerConnection.prototype._mungeInactive = function(description) {
-    const parsedSdp = transform.parse(description.sdp);
-    const mLines = parsedSdp.media;
-
-    for (const mLine of mLines) {
-        mLine.direction = MediaDirection.INACTIVE;
-        mLine.ssrcs = undefined;
-        mLine.ssrcGroups = undefined;
     }
 
     return new RTCSessionDescription({
