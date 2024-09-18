@@ -1,10 +1,5 @@
 export enum MediaType {
     /**
-     * The application type (data over bridge channel).
-     */
-    APPLICATION = 'application',
-
-    /**
      * The audio type.
      */
     AUDIO = 'audio',
@@ -12,5 +7,10 @@ export enum MediaType {
     /**
      * The video type.
      */
-    VIDEO = 'video'
+    VIDEO = 'video',
+
+    /**
+     * The application type (data over bridge channel).
+     */
+    APPLICATION = 'application'
 }
