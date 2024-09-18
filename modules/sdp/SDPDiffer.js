@@ -1,4 +1,6 @@
 
+import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+
 import SDPUtil from './SDPUtil';
 
 // this could be useful in Array.prototype.
@@ -159,9 +161,10 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
         modify.c('content', { name: media.mid });
 
-        modify.c('description',
-            { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
-                media: media.mid });
+        modify.c('description', {
+            xmlns: XEP.RTP_MEDIA,
+            media: media.mid
+        });
 
         // FIXME: not completely sure this operates on blocks and / or handles
         // different ssrcs correctly
@@ -172,7 +175,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
             const sourceName = SDPUtil.parseSourceNameLine(ssrcLines);
             const videoType = SDPUtil.parseVideoTypeLine(ssrcLines);
 
-            modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+            modify.c('source', { xmlns: XEP.SOURCE_ATTRIBUTES });
             modify.attrs({
                 name: sourceName,
                 videoType,
@@ -198,7 +201,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
                 modify.c('ssrc-group', {
                     semantics: ssrcGroup.semantics,
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                    xmlns: XEP.SOURCE_ATTRIBUTES
                 });
 
                 ssrcGroup.ssrcs.forEach(ssrc => {
