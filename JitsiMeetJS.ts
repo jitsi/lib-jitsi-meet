@@ -38,6 +38,9 @@ import { VideoType } from './service/RTC/VideoType';
 
 const logger = Logger.getLogger(__filename);
 
+// Settin the default log levels to info early so that we avoid overriding a log level set externally.
+Logger.setLogLevel(Logger.levels.INFO);
+
 /**
  * Indicates whether GUM has been executed or not.
  */
@@ -136,8 +139,6 @@ export default {
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
-        Logger.setLogLevel(Logger.levels.INFO);
-
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
