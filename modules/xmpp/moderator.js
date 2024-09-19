@@ -293,7 +293,7 @@ export default class Moderator extends Listenable {
      * @returns {Promise} - Resolved when Jicofo allows to join the room. It's never
      * rejected, and it'll keep on pinging Jicofo forever.
      */
-    sendConferenceRequest(roomJid) {
+    sendConferenceRequest(roomJid, skipRedirect) {
         // there is no point of sending conference iq when in visitor mode (disableFocus)
         // when we have sent early the conference request via http
         // we want to skip sending it here, or visitors can loop
@@ -310,7 +310,7 @@ export default class Moderator extends Listenable {
 
                 this.connection.sendIQ(
                     this._createConferenceIq(roomJid),
-                    result => this._handleIqSuccess(roomJid, result, resolve),
+                    result => this._handleIqSuccess(roomJid, result, resolve, skipRedirect),
                     error => this._handleIqError(roomJid, error, resolve));
 
                 // XXX We're pressed for time here because we're beginning a complex
@@ -347,7 +347,7 @@ export default class Moderator extends Listenable {
                         }
                         response.json()
                             .then(resultJson => {
-                                this._handleSuccess(roomJid, resultJson, resolve);
+                                this._handleSuccess(roomJid, resultJson, resolve, skipRedirect);
                             });
                     })
                     .catch(error => {
@@ -365,9 +365,10 @@ export default class Moderator extends Listenable {
      * @param roomJid
      * @param conferenceRequest
      * @param callback
+     * @param skipRedirect
      * @private
      */
-    _handleSuccess(roomJid, conferenceRequest, callback) {
+    _handleSuccess(roomJid, conferenceRequest, callback, skipRedirect) {
         // Reset the error timeout (because we haven't failed here).
         this.getNextErrorTimeout(true);
 
@@ -408,7 +409,7 @@ export default class Moderator extends Listenable {
             this.getNextTimeout(true);
 
             // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
-            if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
+            if (!skipRedirect && conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
                 logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`);
 
                 this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
@@ -518,12 +519,13 @@ export default class Moderator extends Listenable {
      * @param result - the success (i.e. non-error) result of the request that {@link #sendConferenecRequest} sent
      * @param {Function} callback - the function to be called back upon the
      * successful allocation of the conference focus
+     * @param skipRedirect - Whether to skip the redirect.
      */
-    _handleIqSuccess(roomJid, result, callback) {
+    _handleIqSuccess(roomJid, result, callback, skipRedirect) {
         // Setup config options
         const conferenceRequest = this._parseConferenceIq(result);
 
-        this._handleSuccess(roomJid, conferenceRequest, callback);
+        this._handleSuccess(roomJid, conferenceRequest, callback, skipRedirect);
     }
 
     /**

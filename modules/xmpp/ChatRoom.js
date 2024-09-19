@@ -239,7 +239,7 @@ export default class ChatRoom extends Listenable {
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
-                    : this.xmpp.moderator.sendConferenceRequest(this.roomjid);
+                    : this.xmpp.moderator.sendConferenceRequest(this.roomjid, this.options.skipRedirect);
 
             preJoin.then(() => {
                 this.sendPresence(true);
