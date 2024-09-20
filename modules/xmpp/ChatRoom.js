@@ -249,7 +249,8 @@ export default class ChatRoom extends Listenable {
                         this.onConnStatusChanged.bind(this))
                 );
                 resolve();
-            });
+            })
+            .catch(e => logger.trace('PreJoin rejected', e));
         });
     }
 
