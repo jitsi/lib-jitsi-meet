@@ -357,6 +357,9 @@ export default class Moderator extends Listenable {
             }
         }).then(() => {
             this.conferenceRequestSent = true;
+        })
+        .finally(() => {
+            this.xmpp.connection._breakoutMovingToMain = undefined;
         });
     }
 
@@ -411,7 +414,16 @@ export default class Moderator extends Listenable {
             this.getNextTimeout(true);
 
             // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
+            // we ignore redirects when moving from a breakout room to the main room
             if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
+                if (this.connection._breakoutMovingToMain === roomJid) {
+                    logger.info('Skipping redirect as we are moving from breakout to main.');
+
+                    callback();
+
+                    return;
+                }
+
                 logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`);
 
                 this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);

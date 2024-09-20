@@ -239,6 +239,9 @@ export default class ChatRoom extends Listenable {
             const preJoin
                 = this.options.disableFocus
                     ? Promise.resolve()
+                        .finally(() => {
+                            this.xmpp.connection._breakoutMovingToMain = undefined;
+                        })
                     : this.xmpp.moderator.sendConferenceRequest(this.roomjid);
 
             preJoin.then(() => {
