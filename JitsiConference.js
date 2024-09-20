@@ -674,6 +674,13 @@ JitsiConference.prototype.leave = async function(reason) {
         return;
     }
 
+    // let's check is this breakout
+    if (reason === 'switch_room' && this.getBreakoutRooms()?.isBreakoutRoom()) {
+        const mJid = this.getBreakoutRooms().getMainRoomJid();
+
+        this.xmpp.connection._breakoutMovingToMain = mJid;
+    }
+
     const room = this.room;
 
     // Unregister connection state listeners
