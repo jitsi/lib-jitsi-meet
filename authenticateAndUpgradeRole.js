@@ -1,9 +1,13 @@
+import { getLogger } from '@jitsi/logger';
+
 import {
     CONNECTION_DISCONNECTED,
     CONNECTION_ESTABLISHED,
     CONNECTION_FAILED
 } from './JitsiConnectionEvents';
 import XMPP from './modules/xmpp/xmpp';
+
+const logger = getLogger(__filename);
 
 /**
  * @typedef {Object} UpgradeRoleError
@@ -111,7 +115,9 @@ export default function authenticateAndUpgradeRole({
                         // we execute this logic in JitsiConference where we bind the current conference as `this`
                         // At this point we should have the new session ID
                         // stored in the settings. Send a new conference IQ.
-                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid).finally(resolve);
+                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
+                            .catch(e => logger.trace('sendConferenceRequest rejected', e))
+                            .finally(resolve);
                     })
                     .catch(({ error, message }) => {
                         xmpp.disconnect();

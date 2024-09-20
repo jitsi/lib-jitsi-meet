@@ -304,14 +304,14 @@ export default class Moderator extends Listenable {
         // to mark whether we have already sent a conference request
         this.conferenceRequestSent = false;
 
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             if (this.mode === 'xmpp') {
                 logger.info(`Sending conference request over XMPP to ${this.targetJid}`);
 
                 this.connection.sendIQ(
                     this._createConferenceIq(roomJid),
-                    result => this._handleIqSuccess(roomJid, result, resolve),
-                    error => this._handleIqError(roomJid, error, resolve));
+                    result => this._handleIqSuccess(roomJid, result, resolve, reject),
+                    error => this._handleIqError(roomJid, error, resolve, reject));
 
                 // XXX We're pressed for time here because we're beginning a complex
                 // and/or lengthy conference-establishment process which supposedly
@@ -335,11 +335,11 @@ export default class Moderator extends Listenable {
                                         && text.indexOf('400 invalid-session') > 0;
                                     const notAuthorized = response.status === 403;
 
-                                    this._handleError(roomJid, sessionError, notAuthorized, resolve);
+                                    this._handleError(roomJid, sessionError, notAuthorized, resolve, reject);
                                 })
                                 .catch(error => {
                                     logger.warn(`Error: ${error}`);
-                                    this._handleError(roomJid);
+                                    this._handleError(roomJid, undefined, undefined, resolve, reject);
                                 });
 
                             // _handleError has either scheduled a retry or fired an event indicating failure.
@@ -347,12 +347,12 @@ export default class Moderator extends Listenable {
                         }
                         response.json()
                             .then(resultJson => {
-                                this._handleSuccess(roomJid, resultJson, resolve);
+                                this._handleSuccess(roomJid, resultJson, resolve, reject);
                             });
                     })
                     .catch(error => {
                         logger.warn(`Error: ${error}`);
-                        this._handleError(roomJid);
+                        this._handleError(roomJid, undefined, undefined, resolve, reject);
                     });
             }
         }).then(() => {
@@ -365,9 +365,10 @@ export default class Moderator extends Listenable {
      * @param roomJid
      * @param conferenceRequest
      * @param callback
+     * @param errorCallback
      * @private
      */
-    _handleSuccess(roomJid, conferenceRequest, callback) {
+    _handleSuccess(roomJid, conferenceRequest, callback, errorCallback) {
         // Reset the error timeout (because we haven't failed here).
         this.getNextErrorTimeout(true);
 
@@ -400,6 +401,8 @@ export default class Moderator extends Listenable {
 
             this.xmpp.eventEmitter.emit(CONNECTION_FAILED, NOT_LIVE_ERROR);
 
+            errorCallback();
+
             return;
         }
 
@@ -413,6 +416,8 @@ export default class Moderator extends Listenable {
 
                 this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
 
+                errorCallback();
+
                 return;
             }
 
@@ -425,7 +430,7 @@ export default class Moderator extends Listenable {
             logger.info(`Not ready yet, will retry in ${waitMs} ms.`);
             window.setTimeout(
                 () => this.sendConferenceRequest(roomJid)
-                    .then(callback),
+                    .then(callback).catch(errorCallback),
                 waitMs);
         }
     }
@@ -436,9 +441,10 @@ export default class Moderator extends Listenable {
      * @param sessionError
      * @param notAuthorized
      * @param callback
+     * @param errorCallback
      * @private
      */
-    _handleError(roomJid, sessionError, notAuthorized, callback) {
+    _handleError(roomJid, sessionError, notAuthorized, callback, errorCallback) { // eslint-disable-line max-params
         // If the session is invalid, remove and try again without session ID to get
         // a new one
         if (sessionError) {
@@ -451,6 +457,8 @@ export default class Moderator extends Listenable {
             logger.warn('Unauthorized to start the conference');
             this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
 
+            errorCallback();
+
             return;
         }
 
@@ -461,13 +469,16 @@ export default class Moderator extends Listenable {
             logger.info(`Invalid session, will retry after ${waitMs} ms.`);
             this.getNextTimeout(true);
             window.setTimeout(() => this.sendConferenceRequest(roomJid)
-                .then(callback), waitMs);
+                .then(callback)
+                .catch(errorCallback), waitMs);
         } else {
             logger.error('Failed to get a successful response, giving up.');
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
             // TODO: change the event name to something accurate.
             this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
+
+            errorCallback();
         }
     }
 
@@ -478,8 +489,9 @@ export default class Moderator extends Listenable {
      * @param error - the error result of the request that {@link sendConferenceRequest} sent
      * @param {Function} callback - the function to be called back upon the
      * successful allocation of the conference focus
+     * @param errorCallback
      */
-    _handleIqError(roomJid, error, callback) {
+    _handleIqError(roomJid, error, callback, errorCallback) {
         // The reservation system only works over XMPP. Handle the error separately.
         // Check for error returned by the reservation system
         const reservationErr = $(error).find('>error>reservation-error');
@@ -498,6 +510,8 @@ export default class Moderator extends Listenable {
                 errorCode,
                 errorMsg);
 
+            errorCallback();
+
             return;
         }
 
@@ -507,7 +521,7 @@ export default class Moderator extends Listenable {
         // Not authorized to create new room
         const notAuthorized = $(error).find('>error>not-authorized').length > 0;
 
-        this._handleError(roomJid, invalidSession, notAuthorized, callback);
+        this._handleError(roomJid, invalidSession, notAuthorized, callback, errorCallback);
     }
 
     /**
@@ -518,12 +532,13 @@ export default class Moderator extends Listenable {
      * @param result - the success (i.e. non-error) result of the request that {@link #sendConferenecRequest} sent
      * @param {Function} callback - the function to be called back upon the
      * successful allocation of the conference focus
+     * @param errorCallback
      */
-    _handleIqSuccess(roomJid, result, callback) {
+    _handleIqSuccess(roomJid, result, callback, errorCallback) {
         // Setup config options
         const conferenceRequest = this._parseConferenceIq(result);
 
-        this._handleSuccess(roomJid, conferenceRequest, callback);
+        this._handleSuccess(roomJid, conferenceRequest, callback, errorCallback);
     }
 
     /**
