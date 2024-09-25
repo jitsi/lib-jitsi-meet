@@ -88,7 +88,7 @@ export default class SDP {
     containsSSRC(ssrc) {
         const souceMap = this.getMediaSsrcMap();
 
-        return Object.values(souceMap).some(media => media.ssrcs[ssrc]);
+        return Array.from(Object.values(souceMap)).some(media => media.ssrcs[ssrc]);
     }
 
     /**
@@ -141,18 +141,18 @@ export default class SDP {
      * @returns {*}
      */
     getMediaSsrcMap() {
-        const mediaSSRCs = {};
+        const sourceInfo = new Map();
 
         this.media.forEach((mediaItem, mediaindex) => {
             const mid = SDPUtil.parseMID(SDPUtil.findLine(mediaItem, 'a=mid:'));
+            const mline = SDPUtil.parseMLine(mediaItem.split('\r\n')[0]);
             const media = {
                 mediaindex,
+                mediaType: mline.media,
                 mid,
                 ssrcs: {},
                 ssrcGroups: []
             };
-
-            mediaSSRCs[mediaindex] = media;
 
             SDPUtil.findLines(mediaItem, 'a=ssrc:').forEach(line => {
                 const linessrc = line.substring(7).split(' ')[0];
@@ -179,9 +179,11 @@ export default class SDP {
                     });
                 }
             });
+
+            sourceInfo.set(mediaindex, media);
         });
 
-        return mediaSSRCs;
+        return sourceInfo;
     }
 
     /**

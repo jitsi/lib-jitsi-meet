@@ -17,7 +17,7 @@ import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
-import SDPDiffer from '../sdp/SDPDiffer';
+import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
@@ -2334,7 +2334,7 @@ export default class JingleSessionPC extends JingleSession {
             Object.keys(newMedia).forEach(mediaIndex => {
                 const signaledSsrcs = Object.keys(newMedia[mediaIndex].ssrcs);
 
-                mediaType = newMedia[mediaIndex].mid;
+                mediaType = newMedia[mediaIndex].mediaType;
                 if (signaledSsrcs?.length) {
                     ssrcs = ssrcs.concat(signaledSsrcs);
                 }
