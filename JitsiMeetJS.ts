@@ -35,6 +35,7 @@ import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
 import { VideoType } from './service/RTC/VideoType';
+import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
 
 const logger = Logger.getLogger(__filename);
 
@@ -475,6 +476,16 @@ export default {
      */
     setNetworkInfo({ isOnline }) {
         NetworkInfo.updateNetworkInfo({ isOnline });
+    },
+
+    /**
+     * Run a pre-call test to check the network conditions.
+     * 
+     * @param {IceServer} iceServers  - The ICE servers to use for the test,
+     * @returns {Promise<PreCallResult | string>} - A Promise that resolves with the test results or rejects with an error message.
+     */
+    runPreCallTest(iceServers) {
+        return runPreCallTest(iceServers);
     },
 
     /**
