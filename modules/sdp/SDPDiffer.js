@@ -14,8 +14,10 @@ export class SDPDiffer {
      *
      * @param {SDP} mySdp - the new SDP.
      * @param {SDP} othersSdp - the old SDP.
+     * @param {boolean} isP2P - Whether the SDPs belong to a p2p peerconnection.
      */
-    constructor(mySdp, othersSdp) {
+    constructor(mySdp, othersSdp, isP2P = false) {
+        this.isP2P = isP2P;
         this.mySdp = mySdp;
         this.othersSdp = othersSdp;
     }
@@ -53,11 +55,11 @@ export class SDPDiffer {
 
         for (const media of Object.values(diffSourceInfo)) {
             modified = true;
-            modify.c('content', { name: media.mid });
+            modify.c('content', { name: this.isP2P ? media.mid : media.mediaType });
 
             modify.c('description', {
                 xmlns: XEP.RTP_MEDIA,
-                media: media.mid
+                media: media.mediaType
             });
 
             Object.keys(media.ssrcs).forEach(ssrcNum => {

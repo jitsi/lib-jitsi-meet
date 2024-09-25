@@ -1322,9 +1322,6 @@ const getters = {
 
         // For a jvb connection, transform the SDP to Plan B first.
         if (!this.isP2P) {
-            desc = this.interop.toPlanB(desc);
-            this.trace('getLocalDescription::postTransform (Plan B)', dumpSDP(desc));
-
             desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
         }
@@ -1643,7 +1640,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function(localTrack)
  * @returns {Array}
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(description) {
-    const currentSdp = description?.sdp ?? this.peerconnection.localDescription?.sdp;
+    const currentSdp = description?.sdp ?? this.localDescription?.sdp;
 
     if (!currentSdp) {
         return [];
@@ -1746,7 +1743,7 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
-    const localSdp = this.peerconnection.localDescription?.sdp;
+    const localSdp = this.localDescription?.sdp;
 
     if (!localSdp) {
         return;
@@ -2599,9 +2596,7 @@ TraceablePeerConnection.prototype.createOffer = function(constraints) {
     return this._createOfferOrAnswer(true /* offer */, constraints);
 };
 
-TraceablePeerConnection.prototype._createOfferOrAnswer = function(
-        isOffer,
-        constraints) {
+TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, constraints) {
     const logName = isOffer ? 'Offer' : 'Answer';
 
     this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));

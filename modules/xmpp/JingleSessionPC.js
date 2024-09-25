@@ -1009,7 +1009,7 @@ export default class JingleSessionPC extends JingleSession {
             sid: this.sid
         });
 
-        new SDP(offerSdp).toJingle(
+        new SDP(offerSdp, this.isP2P).toJingle(
             init,
             this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
@@ -1198,7 +1198,7 @@ export default class JingleSessionPC extends JingleSession {
     sendSessionAccept(success, failure) {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
-        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
+        const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
         const accept = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
@@ -2347,7 +2347,7 @@ export default class JingleSessionPC extends JingleSession {
         };
 
         // send source-remove IQ.
-        let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
+        let sdpDiffer = new SDPDiffer(newSDP, oldSDP, this.isP2P);
         const remove = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
@@ -2381,7 +2381,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // send source-add IQ.
-        sdpDiffer = new SDPDiffer(oldSDP, newSDP);
+        sdpDiffer = new SDPDiffer(oldSDP, newSDP, this.isP2P);
         const add = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
