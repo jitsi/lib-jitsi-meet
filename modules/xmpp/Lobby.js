@@ -251,7 +251,6 @@ export default class Lobby {
         this.lobbyRoom = this.xmpp.createRoom(
             roomName, {
                 customDomain,
-                disableDiscoInfo: true,
                 disableFocus: true,
                 enableLobby: false
             }
@@ -379,6 +378,8 @@ export default class Lobby {
                     this.lobbyRoom.addOrReplaceInPresence(EMAIL_COMMAND, { value: email })
                         && this.lobbyRoom.sendPresence();
                 }
+
+                this.mainRoom.emit(XMPPEvents.MUC_LOBBY_JOINED, this.lobbyRoom);
             });
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_JOIN_ERROR, reject);
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, reject);

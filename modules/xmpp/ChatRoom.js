@@ -359,6 +359,22 @@ export default class ChatRoom extends Listenable {
                 .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
         this.connection.sendIQ(getInfo, result => {
+            const meetingIdValEl
+                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
+
+            if (meetingIdValEl.length) {
+                this.setMeetingId(meetingIdValEl.text());
+            } else {
+                logger.warn('No meeting ID from backend');
+            }
+
+            if (!this.lobby) {
+                // if this is in the lobby room, we need just the meetingId
+                // only the main room has this.lobby
+
+                return;
+            }
+
             const locked
                 = $(result).find('>query>feature[var="muc_passwordprotected"]')
                     .length
@@ -369,14 +385,6 @@ export default class ChatRoom extends Listenable {
                 this.locked = locked;
             }
 
-            const meetingIdValEl
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
-
-            if (meetingIdValEl.length) {
-                this.setMeetingId(meetingIdValEl.text());
-            } else {
-                logger.warn('No meeting ID from backend');
-            }
 
             const meetingCreatedTSValEl
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_created_timestamp"]>value');

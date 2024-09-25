@@ -152,6 +152,9 @@ export enum XMPPEvents {
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
 
+    // Designates an event indicating that the lobby XMPP MUC is joined.
+    MUC_LOBBY_JOINED = 'xmpp.muc_lobby_joined',
+
     // Designates an event indicating that a participant joined the lobby XMPP MUC.
     MUC_LOBBY_MEMBER_JOINED = 'xmpp.muc_lobby_member_joined',
 

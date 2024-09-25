@@ -5,6 +5,7 @@ import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import {
     CONFERENCE_CREATED_TIMESTAMP,
+    CONFERENCE_FAILED,
     CONFERENCE_JOINED,
     CONFERENCE_LEFT,
     CONFERENCE_UNIQUE_ID_SET
@@ -14,6 +15,8 @@ import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 import EventEmitter from '../util/EventEmitter';
 import Settings from '../settings/Settings';
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
+import { JitsiConferenceErrors } from "../../JitsiConferenceErrors";
 
 const logger = getLogger(__filename);
 
@@ -72,29 +75,15 @@ class RTCStats {
     start(conference: JitsiConference) {
         const {
             options: {
-                config : confConfig = {},
-                name: confName = ''
+                config : confConfig = {}
             } = {},
-            _statsCurrentId : displayName = ''
         } = conference;
 
         const {
             analytics: {
-                rtcstatsEnabled = false,
-                rtcstatsEndpoint: endpoint = '',
-                rtcstatsUseLegacy: useLegacy = false
+                rtcstatsEnabled = false
             } = {}
         } = confConfig;
-
-        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields 
-        // that are sent through options might be a bit confusing. Depending on the context, they could 
-        // be intermixed inside ljm, for instance _statsCurrentId might refer to the email field which is stored
-        // in statisticsId or it could have the same value as callStatsUserName.
-        // The following is the mapping between the fields, and a short explanation of each:
-        // statisticsId -> email, this is only send by jitsi-meet if enableEmailInStats option is set.
-        // statisticsDisplayName -> nick, this is only send by jitsi-meet if enableDisplayNameInStats option is set.
-        // localId, this is the unique id that is used to track users throughout stats.
-        const localId = Settings?.callStatsUserName ?? '';
 
         // Reset the trace module in case it wasn't during the previous conference.
         // Closing the underlying websocket connection and deleting the trace obj.
@@ -113,35 +102,18 @@ class RTCStats {
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
         conference.once(CONFERENCE_JOINED, () => {
-            const traceOptions = {
-                endpoint,
-                meetingFqn: confName,
-                onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
-                useLegacy
-            };
-
-            const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
-            const endpointId = conference.myUserId();
-            const meetingUniqueId = conference.getMeetingUniqueId();
-
-            this._trace = traceInit(traceOptions);
-
-            // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
-            // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
-            // connected and sent once it is established.
-            this._trace.connect(isBreakoutRoom);
-
-            const identityData = {
-                ...confConfig,
-                endpointId,
-                confName,
-                displayName,
-                meetingUniqueId,
-                isBreakoutRoom,
-                localId
+            this._connect(conference, conference.getMeetingUniqueId());
+        });
+        conference.once(CONFERENCE_FAILED, (error) => {
+            if (error === JitsiConferenceErrors.MEMBERS_ONLY_ERROR) {
+                conference.room.eventEmitter.once(XMPPEvents.MUC_LOBBY_JOINED, (lobbyRoom) => {
+                    if (!lobbyRoom?.getMeetingId()) {
+                        lobbyRoom?.eventEmitter.once(XMPPEvents.MEETING_ID_SET, () => {
+                            this._connect(conference, lobbyRoom.getMeetingId());
+                        });
+                    }
+                });
             }
-
-            this.sendIdentity(identityData);
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
@@ -156,6 +128,67 @@ class RTCStats {
         conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
             this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
         })
+    }
+
+    _connect(conference: JitsiConference, meetingUniqueId: string, isLobby = false) {
+        const {
+            options: {
+                config : confConfig = {},
+                name: confName = ''
+            } = {},
+            _statsCurrentId : displayName = ''
+        } = conference;
+
+        const {
+            analytics: {
+                rtcstatsEndpoint: endpoint = '',
+                rtcstatsUseLegacy: useLegacy = false
+            } = {}
+        } = confConfig;
+
+        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields
+        // that are sent through options might be a bit confusing. Depending on the context, they could
+        // be intermixed inside ljm, for instance _statsCurrentId might refer to the email field which is stored
+        // in statisticsId, or it could have the same value as callStatsUserName.
+        // The following is the mapping between the fields, and a short explanation of each:
+        // statisticsId -> email, this is only send by jitsi-meet if enableEmailInStats option is set.
+        // statisticsDisplayName -> nick, this is only send by jitsi-meet if enableDisplayNameInStats option is set.
+        // localId, this is the unique id that is used to track users throughout stats.
+        const localId = Settings?.callStatsUserName ?? '';
+
+        const traceOptions = {
+            endpoint,
+            meetingFqn: confName,
+            onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
+            useLegacy
+        };
+
+        const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
+        const endpointId = conference.myUserId();
+
+        if (this._trace && this._trace.isConnected()) {
+            // in case of lobby we may try to call this twice, once on lobby join and once when admitted
+
+            return;
+        }
+        this._trace = traceInit(traceOptions);
+
+        // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be sent until
+        // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
+        // connected and sent once it is established.
+        this._trace.connect(isBreakoutRoom || isLobby);
+
+        const identityData = {
+            ...confConfig,
+            endpointId,
+            confName,
+            displayName,
+            meetingUniqueId,
+            isBreakoutRoom,
+            localId
+        }
+
+        this.sendIdentity(identityData);
     }
 
     /**
