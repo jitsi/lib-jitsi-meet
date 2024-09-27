@@ -1,4 +1,4 @@
-import PreCallTest from 'vo_precalltest/src/main.js';
+import PreCallTest from '@jitsi/precall-test';
 
 
 export interface PreCallResult {

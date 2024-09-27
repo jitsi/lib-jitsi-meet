@@ -80,8 +80,8 @@ module.exports = (minimize, analyzeBundle) => {
         },
         performance: {
             hints: minimize ? 'error' : false,
-            maxAssetSize: 1.08 * 1024 * 1024,
-            maxEntrypointSize: 1.08 * 1024 * 1024
+            maxAssetSize: 1.09 * 1024 * 1024,
+            maxEntrypointSize: 1.09 * 1024 * 1024
         },
         plugins: [
             new IgnorePlugin({ resourceRegExp: /^(@xmldom\/xmldom|ws)$/ }),
