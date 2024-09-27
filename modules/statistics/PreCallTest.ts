@@ -5,7 +5,7 @@ export interface PreCallResult {
     throughput: number; // Maximum bandwidth reached in kbps  (kilo bits per second).
     fractionalLoss: number; // Packet loss percentage over all the test traffic.
     rtt: number;  // Round trip time in milliseconds.
-    jitter: number; 
+    jitter: number;  // Variation in packet arrival times during the transmission of media.
     mediaConnectivity: boolean; // Whether the data channel was able to send data or not.
 }
 
