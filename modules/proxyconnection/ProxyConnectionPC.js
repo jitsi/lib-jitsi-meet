@@ -19,15 +19,7 @@ const logger = getLogger(__filename);
  * {@code JingleSessionPC}.
  */
 export default class ProxyConnectionPC {
-    _options: {
-        peerJid: any;
-        onError(peerJid: any, errorType: any, details: string): unknown;
-        onRemoteStream(jitsiRemoteTrack: any): unknown;
-        onSendMessage(peerJid: any, iq: any): unknown; pcConfig: {}; isInitiator: boolean; receiveAudio: boolean; receiveVideo: boolean; 
-};
-    _tracks: any[];
-    _peerConnection: JingleSessionPC;
-    _rtc: RTC;
+
     /**
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
@@ -52,8 +44,6 @@ export default class ProxyConnectionPC {
             receiveVideo: false,
             ...options
         };
-
-    
 
         /**
          * Instances of {@code JitsiTrack} associated with this instance of
