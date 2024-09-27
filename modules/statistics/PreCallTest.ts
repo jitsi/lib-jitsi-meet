@@ -16,8 +16,6 @@ export interface IceServer {
     credential?: string;
 }
 
-let preCallTest: any = null
-
 /**
  * Run a pre-call test to check the network conditions. It uses a TURN server to establish
  * a connection between two PeerConnections using the server as a relay. Afterwards it sends 
@@ -29,8 +27,7 @@ let preCallTest: any = null
  */
 export default async function runPreCallTest(iceServers: Array<IceServer>): Promise<PreCallResult | string> {
     // On initialization, the PreCallTest object simply does some checks and some browsers verifications,
-    // these seem to be reusable, so we'll keep the object around.
-    preCallTest || (preCallTest = new PreCallTest())
+    const preCallTest = new PreCallTest();
 
     return new Promise((resolve, reject) => {
         // It's not explicitly stated in the code, but if message is not null, something went wrong,
