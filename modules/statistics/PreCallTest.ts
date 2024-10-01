@@ -23,23 +23,8 @@ export interface IceServer {
  * recorded and returned through a Promise.
  * 
  * @param {Array<IceServer>} - The ICE servers to use for the test, these are passes to the PeerConnection constructor. 
- * @returns {Promise<PreCallResult | string>} - A Promise that resolves with the test results or rejects with an error message.
+ * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error.
  */
 export default async function runPreCallTest(iceServers: Array<IceServer>): Promise<PreCallResult | string> {
-    // On initialization, the PreCallTest object simply does some checks and some browsers verifications,
-    const preCallTest = new PreCallTest();
-
-    return new Promise((resolve, reject) => {
-        // It's not explicitly stated in the code, but if message is not null, something went wrong,
-        // so we'll treat it as an error.
-        preCallTest.start(iceServers, (result, message) => {
-            if (message) {
-                reject(message);
-                
-                return;
-            }
-
-            resolve(result);
-        });
-    });
+    return new PreCallTest().start(iceServers);
 }
