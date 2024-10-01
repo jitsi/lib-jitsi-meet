@@ -21,6 +21,7 @@ import BreakoutRooms from './BreakoutRooms';
 import Lobby from './Lobby';
 import RoomMetadata from './RoomMetadata';
 import XmppConnection from './XmppConnection';
+import { FEATURE_TRANSCRIBER } from './xmpp';
 
 const logger = getLogger(__filename);
 
@@ -833,14 +834,15 @@ export default class ChatRoom extends Listenable {
 
                 const { status } = attributes;
 
-                if (status && status !== this.transcriptionStatus) {
+                if (status && status !== this.transcriptionStatus
+                    && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)) {
                     this.transcriptionStatus = status;
                     this.eventEmitter.emit(
                         XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
-                        status
+                        status,
+                        Strophe.getResourceFromJid(from)
                     );
                 }
-
 
                 break;
             }
@@ -1138,6 +1140,18 @@ export default class ChatRoom extends Listenable {
 
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
             this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
+
+            if (member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)
+                && this.transcriptionStatus !== JitsiTranscriptionStatus.OFF) {
+                this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
+                this.eventEmitter.emit(
+                    XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
+                    this.transcriptionStatus,
+                    Strophe.getResourceFromJid(from),
+                    true /* exited abruptly */
+                );
+            }
+
             if (member?.isFocus) {
                 logger.info('Focus has left the room - leaving conference');
                 this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);

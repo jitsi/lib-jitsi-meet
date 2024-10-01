@@ -104,6 +104,18 @@ export const JITSI_MEET_MUC_TYPE = 'type';
 export const FEATURE_JIGASI = 'http://jitsi.org/protocol/jigasi';
 
 /**
+ * The feature used by jibri participants.
+ * @type {string}
+ */
+export const FEATURE_JIBRI = 'http://jitsi.org/protocol/jibri';
+
+/**
+ * The feature used by jigasi transcriber participants.
+ * @type {string}
+ */
+export const FEATURE_TRANSCRIBER = 'http://jitsi.org/protocol/transcriber';
+
+/**
  * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
  * to avoid additional signaling (disco-info).
  * @type {string}
