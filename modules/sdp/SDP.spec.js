@@ -650,8 +650,6 @@ describe('SDP', () => {
             });
 
             sdp.toJingle(accept, 'responder');
-            console.log(accept.tree());
-
             const { nodeTree } = accept;
             const content = nodeTree.querySelectorAll('jingle>content');
 
