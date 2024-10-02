@@ -1141,7 +1141,7 @@ export default class ChatRoom extends Listenable {
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
             this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
 
-            if (member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)
+            if (member && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)
                 && this.transcriptionStatus !== JitsiTranscriptionStatus.OFF) {
                 this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
                 this.eventEmitter.emit(
