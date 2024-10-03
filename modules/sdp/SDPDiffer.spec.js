@@ -4,6 +4,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 
 import SDP from './SDP';
 import { SDPDiffer } from './SDPDiffer';
+import SampleSdpStrings from './SampleSdpStrings';
 
 /* eslint-disable max-len*/
 
@@ -276,6 +277,53 @@ describe('SDPDiffer', () => {
             expect(addedAudioSources.length).toBe(1);
             expect(addedVideoSources.length).toBe(2);
             expect(addedVideoSourceGroups.length).toBe(1);
+        });
+    });
+
+    describe('getNewMedia', () => {
+        it(' should generate sources for source-remove when SSCRs are missing from the new SDP', () => {
+            const oldSdp = new SDP(SampleSdpStrings.simulcastSdpStr);
+            const newSdp = new SDP(SampleSdpStrings.recvOnlySdpStrChrome);
+
+            let sdpDiffer = new SDPDiffer(newSdp, oldSdp, false);
+            let diff = sdpDiffer.getNewMedia();
+
+            // There should be 2 sources for source-remove.
+            expect(Object.keys(diff).length).toBe(2);
+
+            sdpDiffer = new SDPDiffer(oldSdp, newSdp, false);
+            diff = sdpDiffer.getNewMedia();
+
+            // There should zero sources for source-add.
+            expect(Object.keys(diff).length).toBe(0);
+        });
+
+        it(' should not generate sources for source-remove or source-add if the SDP does not change', () => {
+            const oldSdp = new SDP(SampleSdpStrings.simulcastSdpStr);
+            const newSdp = new SDP(SampleSdpStrings.simulcastSdpStr);
+
+            const sdpDiffer = new SDPDiffer(newSdp, oldSdp, false);
+            const diff = sdpDiffer.getNewMedia();
+
+            // There should be zero sources in diff.
+            expect(Object.keys(diff).length).toBe(0);
+        });
+
+        it(' should generate sources for source-remove and source-add when SSRC changes', () => {
+            const oldSdp = new SDP(SampleSdpStrings.simulcastSdpStr);
+            const newSdp = new SDP(SampleSdpStrings.simulcastDifferentSsrcSdpStr);
+
+            let sdpDiffer = new SDPDiffer(newSdp, oldSdp, false);
+            let diff = sdpDiffer.getNewMedia();
+
+            // There should be 1 source for source-remove.
+            expect(Object.keys(diff).length).toBe(1);
+
+            sdpDiffer = new SDPDiffer(oldSdp, newSdp, false);
+            diff = sdpDiffer.getNewMedia();
+
+            // There should 1 source for source-add.
+            expect(Object.keys(diff).length).toBe(1);
         });
     });
 });
