@@ -367,11 +367,17 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * @param options {object}
  * @param options.connection {JitsiConnection} overrides this.connection
  */
+
+  /**
+   * Class JitsiConferenceOptions:
+   * ...
+   * @property {string} [statisticsId] - The ID to be used for statistics.
+   */
 JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupXMPPListeners();
 
     const { config } = this.options;
-
+    // Use the provided statisticsId if available, otherwise use the default Settings.callStatsUserName
     this._statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
     this.room = this.xmpp.createRoom(
         this.options.name, {
