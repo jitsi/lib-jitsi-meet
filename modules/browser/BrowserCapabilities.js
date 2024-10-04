@@ -137,7 +137,11 @@ export default class BrowserCapabilities extends BrowserDetection {
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
-            && !this.isWebKitBased();
+            && !this.isWebKitBased()
+
+            // Calling this API on Firefox is causing freezes when the local endpoint is the answerer.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1917800
+            && !this.isFirefox();
     }
 
     /**
