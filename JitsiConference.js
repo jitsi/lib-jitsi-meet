@@ -366,7 +366,7 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * Initializes the conference object properties
  * @param options {object}
  * @param options.connection {JitsiConnection} overrides this.connection
- * @property {string} [statisticsId] 
+ * @paramy [statisticsId] {string}  
  */
 
 JitsiConference.prototype._init = function(options = {}) {
