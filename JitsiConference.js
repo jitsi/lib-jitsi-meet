@@ -366,6 +366,7 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * Initializes the conference object properties
  * @param options {object}
  * @param options.connection {JitsiConnection} overrides this.connection
+ * @param {string} [statisticsId]
  */
 JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupXMPPListeners();
