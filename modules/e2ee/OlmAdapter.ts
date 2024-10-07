@@ -80,12 +80,12 @@ export class OlmAdapter extends Listenable {
     private _mediaKeyOlm: Uint8Array;
     private _mediaKeyPQ: Uint8Array;
     private _mediaKeyIndex: number;
-    private _reqs: Map<Uint8Array, Deferred>;
+    private readonly _reqs: Map<Uint8Array, Deferred>;
     private _publicKey: Uint8Array;
     private _privateKey: Uint8Array;
     private _olmAccount: any;
     private _idKeys: any;
-    static events: {
+    static readonly events: {
         PARTICIPANT_E2EE_CHANNEL_READY: string;
         PARTICIPANT_SAS_AVAILABLE: string;
         PARTICIPANT_SAS_READY: string;
