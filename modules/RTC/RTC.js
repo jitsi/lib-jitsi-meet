@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep, isEqual } from 'lodash-es';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -301,6 +301,10 @@ export default class RTC extends Listenable {
      * @param {*} constraints
      */
     setReceiverVideoConstraints(constraints) {
+        if (isEqual(this._receiverVideoConstraints, constraints)) {
+            return;
+        }
+
         this._receiverVideoConstraints = constraints;
 
         if (this._channel && this._channel.isOpen()) {
@@ -369,7 +373,7 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, pcConfig, isP2P, options) {
-        const pcConstraints = clonedeep(RTCUtils.pcConstraints);
+        const pcConstraints = cloneDeep(RTCUtils.pcConstraints);
 
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
@@ -727,7 +731,7 @@ export default class RTC extends Listenable {
         if (this._channel) {
             this._channel.sendMessage(to, payload);
         } else {
-            throw new Error('Channel support is disabled!');
+            throw new Error('BridgeChannel has not been initialized yet');
         }
     }
 

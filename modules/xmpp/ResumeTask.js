@@ -33,6 +33,13 @@ export default class ResumeTask {
     }
 
     /**
+     * @returns {number} - The amount of retries.
+     */
+    get retryCount() {
+        return this._resumeRetryN;
+    }
+
+    /**
      * @returns {number|undefined} - How much the app will wait before trying to resume the XMPP connection. When
      * 'undefined' it means that no resume task was not scheduled.
      */
@@ -47,6 +54,7 @@ export default class ResumeTask {
      */
     schedule() {
         this._cancelResume();
+        this._removeNetworkOnlineListener();
 
         this._resumeRetryN += 1;
 
@@ -80,7 +88,6 @@ export default class ResumeTask {
         //   1st retry: 1.5s - 3s
         //   2nd retry: 3s - 9s
         //   3rd and next retry: 4.5s - 27s
-        this._resumeRetryN = Math.min(3, this._resumeRetryN);
         this._retryDelay = getJitterDelay(
             /* retry */ this._resumeRetryN,
             /* minDelay */ this._resumeRetryN * 1500,
@@ -107,12 +114,27 @@ export default class ResumeTask {
     }
 
     /**
+     * Removes network online listener for the NETWORK_INFO_EVENT event.
+     *
+     * @private
+     * @returns {void}
+     */
+    _removeNetworkOnlineListener() {
+        if (this._networkOnlineListener) {
+            this._networkOnlineListener();
+            this._networkOnlineListener = null;
+        }
+    }
+
+    /**
      * Resumes the XMPP connection using the stream management plugin.
      *
      * @private
      * @returns {void}
      */
     _resumeConnection() {
+        this._resumeTimeout = undefined;
+
         const { streamManagement } = this._stropheConn;
         const resumeToken = streamManagement.getResumeToken();
 
@@ -141,7 +163,11 @@ export default class ResumeTask {
 
         this._stropheConn.service = url.toString();
 
-        streamManagement.resume();
+        try {
+            streamManagement.resume();
+        } catch (e) {
+            logger.error('Failed to resume XMPP connnection', e);
+        }
     }
 
     /**
@@ -152,10 +178,7 @@ export default class ResumeTask {
      */
     cancel() {
         this._cancelResume();
+        this._removeNetworkOnlineListener();
         this._resumeRetryN = 0;
-        if (this._networkOnlineListener) {
-            this._networkOnlineListener();
-            this._networkOnlineListener = null;
-        }
     }
 }

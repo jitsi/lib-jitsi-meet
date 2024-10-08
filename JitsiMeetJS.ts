@@ -19,7 +19,6 @@ import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatu
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import FeatureFlags from './modules/flags/FeatureFlags';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
@@ -36,14 +35,12 @@ import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
 import { VideoType } from './service/RTC/VideoType';
+import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
 
 const logger = Logger.getLogger(__filename);
 
-/**
- * The amount of time to wait until firing
- * {@link JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN} event.
- */
-const USER_MEDIA_SLOW_PROMISE_TIMEOUT = 1000;
+// Settin the default log levels to info early so that we avoid overriding a log level set externally.
+Logger.setLogLevel(Logger.levels.INFO);
 
 /**
  * Indicates whether GUM has been executed or not.
@@ -143,11 +140,10 @@ export default {
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
-        Logger.setLogLevel(Logger.levels.INFO);
-
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
+        JitsiMediaDevices.init();
         Settings.init(options.externalStorage);
         Statistics.init(options);
 
@@ -279,8 +275,6 @@ export default {
      * @param {Array} options.effects optional effects array for the track
      * @param {boolean} options.firePermissionPromptIsShownEvent - if event
      * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
-     * @param {boolean} options.fireSlowPromiseEvent - if event
-     * JitsiMediaDevicesEvents.USER_MEDIA_SLOW_PROMISE_TIMEOUT should be fired
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
@@ -291,18 +285,11 @@ export default {
      * JitsiConferenceError if rejected.
      */
     createLocalTracks(options: ICreateLocalTrackOptions = {}) {
-        let promiseFulfilled = false;
-        const { firePermissionPromptIsShownEvent, fireSlowPromiseEvent, ...restOptions } = options;
+        const { firePermissionPromptIsShownEvent, ...restOptions } = options;
 
         if (firePermissionPromptIsShownEvent && !RTC.arePermissionsGrantedForAvailableDevices()) {
             // @ts-ignore
             JitsiMediaDevices.emit(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
-        } else if (fireSlowPromiseEvent) {
-            window.setTimeout(() => {
-                if (!promiseFulfilled) {
-                    JitsiMediaDevices.emit(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
-                }
-            }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
         }
 
         let isFirstGUM = false;
@@ -321,8 +308,6 @@ export default {
 
         return RTC.obtainAudioAndVideoPermissions(restOptions)
             .then(tracks => {
-                promiseFulfilled = true;
-
                 let endTS = window.performance.now();
 
                 window.connectionTimes['obtainPermissions.end'] = endTS;
@@ -363,8 +348,6 @@ export default {
                 return tracks;
             })
             .catch(error => {
-                promiseFulfilled = true;
-
                 if (error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent(
@@ -466,38 +449,6 @@ export default {
     },
 
     /**
-     * Checks if its possible to enumerate available cameras/microphones.
-     *
-     * @returns {Promise<boolean>} a Promise which will be resolved only once
-     * the WebRTC stack is ready, either with true if the device listing is
-     * available available or with false otherwise.
-     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
-     */
-    isDeviceListAvailable() {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
-
-        return this.mediaDevices.isDeviceListAvailable();
-    },
-
-    /**
-     * Returns true if changing the input (camera / microphone) or output
-     * (audio) device is supported and false if not.
-     *
-     * @param {string} [deviceType] - type of device to change. Default is
-     * {@code undefined} or 'input', 'output' - for audio output device change.
-     * @returns {boolean} {@code true} if available; {@code false}, otherwise.
-     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
-     */
-    isDeviceChangeAvailable(deviceType) {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
-
-        return this.mediaDevices.isDeviceChangeAvailable(deviceType);
-    },
-
-
-    /**
      * Checks if the current environment supports having multiple audio
      * input devices in use simultaneously.
      *
@@ -517,18 +468,6 @@ export default {
     },
 
     /**
-     * Executes callback with list of media devices connected.
-     *
-     * @param {function} callback
-     * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
-     */
-    enumerateDevices(callback) {
-        logger.warn('This method is deprecated, use '
-            + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
-        this.mediaDevices.enumerateDevices(callback);
-    },
-
-    /**
      * Informs lib-jitsi-meet about the current network status.
      *
      * @param {object} state - The network info state.
@@ -537,6 +476,16 @@ export default {
      */
     setNetworkInfo({ isOnline }) {
         NetworkInfo.updateNetworkInfo({ isOnline });
+    },
+
+    /**
+     * Run a pre-call test to check the network conditions.
+     * 
+     * @param {IceServer} iceServers  - The ICE servers to use for the test,
+     * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error message.
+     */
+    runPreCallTest(iceServers) {
+        return runPreCallTest(iceServers);
     },
 
     /**

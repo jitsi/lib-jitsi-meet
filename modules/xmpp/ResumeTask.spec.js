@@ -125,10 +125,6 @@ describe('ResumeTask', () => {
             resumeTask.schedule();
 
             expect(between4500msAnd27seconds(resumeTask.retryDelay)).toBeTruthy();
-
-            // It should remain within the last range after the 3rd retry
-            resumeTask.schedule();
-            expect(between4500msAnd27seconds(resumeTask.retryDelay)).toBeTruthy();
         });
         it('should not increase when internet goes offline/online', () => {
             resumeTask.schedule();

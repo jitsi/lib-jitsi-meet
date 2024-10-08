@@ -1,5 +1,7 @@
 import transform from 'sdp-transform';
 
+import Listenable from '../util/Listenable';
+
 /* eslint-disable no-empty-function */
 /* eslint-disable max-len */
 
@@ -139,12 +141,29 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TracablePeerConnection.calculateExpectedSendResolution}.
+     * @param {JitsiLocalTrack} localTrack
+     * @returns {number}
+     */
+    calculateExpectedSendResolution(localTrack) {
+        return localTrack.getCaptureResolution();
+    }
+
+    /**
      * {@link TraceablePeerConnection.createAnswer}.
      *
      * @returns {Promise<Object>}
      */
     createAnswer() {
         return Promise.resolve(/* answer */{});
+    }
+
+    /**
+     * {@link TraceablePeerConnection.doesTrueSimulcast}.
+     * @returns {boolean}
+     */
+    doesTrueSimulcast() {
+        return false;
     }
 
     /**
@@ -230,7 +249,7 @@ export class MockPeerConnection {
 /**
  * Mock {@link RTC} - add things as needed, but only things useful for all tests.
  */
-export class MockRTC {
+export class MockRTC extends Listenable {
     /**
      * {@link RTC.createPeerConnection}.
      *
@@ -238,8 +257,17 @@ export class MockRTC {
      */
     createPeerConnection() {
         this.pc = new MockPeerConnection();
+        this.forwardedSources = [];
 
         return this.pc;
+    }
+
+    /**
+     * Returns the list of sources that the bridge is forwarding to the client.
+     * @returns {Array<string>}
+     */
+    getForwardedSources() {
+        return this.forwardedSources;
     }
 }
 

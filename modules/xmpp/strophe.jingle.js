@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash-es';
 import { $iq, Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
@@ -206,7 +206,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     fromJid,
                     this.connection,
                     this.mediaConstraints,
-                    clonedeep(pcConfig),
+                    cloneDeep(pcConfig),
                     isP2P,
                     /* initiator */ false);
 

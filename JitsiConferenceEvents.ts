@@ -194,6 +194,11 @@ export enum JitsiConferenceEvents {
     E2EE_VERIFICATION_READY = 'conference.e2ee.verification.ready',
 
     /**
+     * Indicates that the encode time stats for the local video sources has been received.
+     */
+    ENCODE_TIME_STATS_RECEIVED = 'conference.encode_time_stats_received',
+
+    /**
      * Indicates that a message from another participant is received on data
      * channel.
      */
@@ -280,6 +285,11 @@ export enum JitsiConferenceEvents {
     MESSAGE_RECEIVED = 'conference.messageReceived',
 
     /**
+     * New reaction was received.
+     */
+    REACTION_RECEIVED = 'conference.reactionReceived',
+
+    /**
      * Event fired when the conference metadata is updated.
      */
     METADATA_UPDATED = 'conference.metadata.updated',
@@ -357,6 +367,11 @@ export enum JitsiConferenceEvents {
      * @type {string} the region.
      */
     SERVER_REGION_CHANGED = 'conference.server_region_changed',
+
+    /**
+     * Indicates a user has joined without audio
+     */
+    SILENT_STATUS_CHANGED = 'conference.silentStatusChanged',
 
     /**
      * Indicates that start muted settings changed.
@@ -518,6 +533,7 @@ export const DTMF_SUPPORT_CHANGED = JitsiConferenceEvents.DTMF_SUPPORT_CHANGED;
 export const E2EE_VERIFICATION_AVAILABLE = JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE;
 export const E2EE_VERIFICATION_COMPLETED = JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED;
 export const E2EE_VERIFICATION_READY = JitsiConferenceEvents.E2EE_VERIFICATION_READY;
+export const ENCODE_TIME_STATS_RECEIVED = JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED;
 export const ENDPOINT_MESSAGE_RECEIVED = JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED;
 export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
@@ -542,8 +558,10 @@ export const PARTCIPANT_FEATURES_CHANGED = JitsiConferenceEvents.PARTCIPANT_FEAT
 export const PARTICIPANT_PROPERTY_CHANGED = JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED;
 export const PHONE_NUMBER_CHANGED = JitsiConferenceEvents.PHONE_NUMBER_CHANGED;
 export const PROPERTIES_CHANGED = JitsiConferenceEvents.PROPERTIES_CHANGED;
+export const REACTION_RECEIVED = JitsiConferenceEvents.REACTION_RECEIVED;
 export const RECORDER_STATE_CHANGED = JitsiConferenceEvents.RECORDER_STATE_CHANGED;
 export const SERVER_REGION_CHANGED = JitsiConferenceEvents.SERVER_REGION_CHANGED;
+export const SILENT_STATUS_CHANGED = JitsiConferenceEvents.SILENT_STATUS_CHANGED;
 export const START_MUTED_POLICY_CHANGED = JitsiConferenceEvents.START_MUTED_POLICY_CHANGED;
 export const STARTED_MUTED = JitsiConferenceEvents.STARTED_MUTED;
 export const SUBJECT_CHANGED = JitsiConferenceEvents.SUBJECT_CHANGED;

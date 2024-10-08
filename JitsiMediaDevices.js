@@ -20,7 +20,12 @@ class JitsiMediaDevices extends Listenable {
     constructor() {
         super();
         this._permissions = {};
+    }
 
+    /**
+     * Initialize. Start listening for device changes and initialize permissions checks.
+     */
+    init() {
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
@@ -89,7 +94,6 @@ class JitsiMediaDevices extends Listenable {
         });
     }
 
-
     /**
      * Parses a PermissionState object and returns true for granted and false otherwise.
      *
@@ -130,7 +134,7 @@ class JitsiMediaDevices extends Listenable {
             this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
 
             if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
-                // Triggering device list update when the permissiions are granted in order to update
+                // Triggering device list update when the permissions are granted in order to update
                 // the labels the devices.
                 // eslint-disable-next-line no-empty-function
                 this.enumerateDevices(() => {});

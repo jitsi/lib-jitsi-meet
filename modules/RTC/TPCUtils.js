@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import clonedeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
@@ -11,7 +11,7 @@ import {
     STANDARD_CODEC_SETTINGS,
     VIDEO_QUALITY_LEVELS,
     VIDEO_QUALITY_SETTINGS
-} from '../../service/RTC/StandardVideoSettings';
+} from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
@@ -31,7 +31,7 @@ export class TPCUtils {
      */
     constructor(peerconnection) {
         this.pc = peerconnection;
-        this.codecSettings = clonedeep(STANDARD_CODEC_SETTINGS);
+        this.codecSettings = cloneDeep(STANDARD_CODEC_SETTINGS);
         const videoQualitySettings = this.pc.options?.videoQuality;
 
         if (videoQualitySettings) {
@@ -192,7 +192,7 @@ export class TPCUtils {
         if (localTrack.isAudioTrack()) {
             return [ { active: this.pc.audioTransferActive } ];
         }
-        const codec = this.pc.getConfiguredVideoCodec();
+        const codec = this.pc.getConfiguredVideoCodec(localTrack);
 
         if (this.pc.isSpatialScalabilityOn()) {
             return this._getVideoStreamEncodings(localTrack, codec);

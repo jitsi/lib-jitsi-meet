@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoSettings';
+import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 
 const Resolutions = require('../../service/RTC/Resolutions');
@@ -366,8 +366,7 @@ export default class ConnectionQuality {
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
             serverRegion: this._localStats.serverRegion,
-            maxEnabledResolution: this._localStats.maxEnabledResolution,
-            avgAudioLevels: this._localStats.localAvgAudioLevels
+            maxEnabledResolution: this._localStats.maxEnabledResolution
         };
 
         try {
@@ -450,8 +449,7 @@ export default class ConnectionQuality {
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
             serverRegion: data.serverRegion,
-            maxEnabledResolution: data.maxEnabledResolution,
-            avgAudioLevels: data.avgAudioLevels
+            maxEnabledResolution: data.maxEnabledResolution
         };
 
         this.eventEmitter.emit(

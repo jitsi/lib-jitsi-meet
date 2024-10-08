@@ -116,6 +116,17 @@ export enum JitsiConferenceErrors {
     VIDEOBRIDGE_NOT_AVAILABLE = 'conference.videobridgeNotAvailable'
 }
 
+/**
+ * Types that are passed for NOT_ALLOWED_ERROR.
+ */
+export enum AUTH_ERROR_TYPES {
+    GENERAL = 'general',
+    NO_MAIN_PARTICIPANTS = 'no-main-participants',
+    NO_VISITORS_LOBBY = 'no-visitors-lobby',
+    PROMOTION_NOT_ALLOWED = 'promotion-not-allowed',
+    ROOM_CREATION_RESTRICTION = 'room-creation-restriction'
+}
+
 // exported for backward compatibility
 export const AUTHENTICATION_REQUIRED = JitsiConferenceErrors.AUTHENTICATION_REQUIRED;
 export const CHAT_ERROR = JitsiConferenceErrors.CHAT_ERROR;

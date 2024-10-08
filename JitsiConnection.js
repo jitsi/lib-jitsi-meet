@@ -1,3 +1,5 @@
+import { getLogger } from '@jitsi/logger';
+
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import FeatureFlags from './modules/flags/FeatureFlags';
@@ -7,6 +9,8 @@ import {
     CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
+
+const logger = getLogger(__filename);
 
 /**
  * Creates a new connection object for the Jitsi Meet server side video
@@ -67,7 +71,8 @@ JitsiConnection.prototype.connect = function(options = {}) {
         this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name))
             .then(() => {
                 this.xmpp.connect(options.id, options.password);
-            });
+            })
+            .catch(e => logger.trace('sendConferenceRequest rejected', e));
     } else {
         this.xmpp.connect(options.id, options.password);
     }

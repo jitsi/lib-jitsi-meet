@@ -173,8 +173,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addListener(JitsiTrackEvents.TRACK_REMOVED, track => {
-        conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track, owner, sourceName, videoType) => {
+        if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+
+            // Update the owner and other properties on the track.
+            track.setOwner(owner);
+            track.setSourceName(sourceName);
+            track._setVideoType(videoType);
+            owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        }
     });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
@@ -226,11 +234,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.GRACEFUL_SHUTDOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
-
-    chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-        jingleSession => {
-            conference._onIceConnectionFailed(jingleSession);
-        });
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -342,6 +345,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));
 
+    chatRoom.addListener(XMPPEvents.SILENT_STATUS_CHANGED,
+        conference.onSilentStatusChanged.bind(conference));
+
     chatRoom.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, role => {
         conference.onLocalRoleChanged(role);
     });
@@ -362,24 +368,35 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         XMPPEvents.MESSAGE_RECEIVED,
 
         // eslint-disable-next-line max-params
-        (jid, txt, myJid, ts, nick, isGuest) => {
-            const id = Strophe.getResourceFromJid(jid);
+        (jid, txt, myJid, ts, nick, isGuest, messageId) => {
+            const participantId = Strophe.getResourceFromJid(jid);
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.MESSAGE_RECEIVED,
-                id, txt, ts, nick, isGuest);
+                participantId, txt, ts, nick, isGuest, messageId);
+        });
+
+    chatRoom.addListener(
+        XMPPEvents.REACTION_RECEIVED,
+
+        (jid, reactionList, messageId) => {
+            const participantId = Strophe.getResourceFromJid(jid);
+
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.REACTION_RECEIVED,
+                participantId, reactionList, messageId);
         });
 
     chatRoom.addListener(
         XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
 
         // eslint-disable-next-line max-params
-        (jid, txt, myJid, ts) => {
-            const id = Strophe.getResourceFromJid(jid);
+        (jid, txt, myJid, ts, messageId) => {
+            const participantId = Strophe.getResourceFromJid(jid);
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                id, txt, ts);
+                participantId, txt, ts, messageId);
         });
 
     chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
@@ -520,15 +537,11 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     });
 
     rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.VIDEO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.VIDEO);
     });
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
-        for (const session of this.conference.getMediaSessions()) {
-            session.processSourceMap(msg, MediaType.AUDIO);
-        }
+        this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
@@ -733,6 +746,11 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
     conference.statistics.addBeforeDisposedListener(() => {
         conference.eventEmitter.emit(
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
+    });
+
+    conference.statistics.addEncodeTimeStatsListener((tpc, stats) => {
+        conference.eventEmitter.emit(
+            JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED, tpc, stats);
     });
 
     // if we are in startSilent mode we will not be sending/receiving so nothing to detect

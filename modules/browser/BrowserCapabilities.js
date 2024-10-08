@@ -6,6 +6,10 @@ const MIN_REQUIRED_FIREFOX_VERSION = 91;
 const MIN_REQUIRED_SAFARI_VERSION = 14;
 const MIN_REQUIRED_IOS_VERSION = 14;
 
+// Starting with iPadOS 13 the actual Safari / iPadOS version is concealed from the UA string and
+// the system pretends to be macOS 10.15.7. Yeah, you read that right.
+const FROZEN_MACOS_VERSION = '10.15.7';
+
 // TODO: Move this code to js-utils.
 
 // NOTE: Now we are extending BrowserDetection in order to preserve
@@ -90,6 +94,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} true if the browser is supported for iOS devices
      */
     isSupportedIOSBrowser() {
+        // After iPadOS 13 we have no way to know the Safari or iPadOS version, so YOLO.
+        if (!this.isSafari() && this.isWebKitBased() && this.getOSVersion() === FROZEN_MACOS_VERSION) {
+            return true;
+        }
+
         return this._getSafariVersion() >= MIN_REQUIRED_IOS_VERSION
                 || this._getIOSVersion() >= MIN_REQUIRED_IOS_VERSION;
     }
@@ -137,7 +146,23 @@ export default class BrowserCapabilities extends BrowserDetection {
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
-            && !this.isWebKitBased();
+            && !this.isWebKitBased()
+
+            // Calling this API on Firefox is causing freezes when the local endpoint is the answerer.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1917800
+            && !this.isFirefox();
+    }
+
+    /**
+     * Checks if the browser supports the new codec selection API, i.e., checks if dictionary member
+     * RTCRtpEncodingParameters.codec as defined in
+     * https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-codec is supported by the browser. It
+     * allows the application to change the current codec used by each RTCRtpSender without a renegotiation.
+     *
+     * @returns {boolean}
+     */
+    supportsCodecSelectionAPI() {
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(125);
     }
 
     /**

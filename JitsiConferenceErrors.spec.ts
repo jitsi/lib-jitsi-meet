@@ -4,6 +4,7 @@ import * as exported from "./JitsiConferenceErrors";
 
 describe( "/JitsiConferenceErrors members", () => {
     const {
+        AUTH_ERROR_TYPES,
         AUTHENTICATION_REQUIRED,
         CHAT_ERROR,
         SETTINGS_ERROR,
@@ -30,6 +31,11 @@ describe( "/JitsiConferenceErrors members", () => {
     } = exported;
 
     it( "known members", () => {
+        expect( AUTH_ERROR_TYPES.GENERAL ).toBe( 'general' );
+        expect( AUTH_ERROR_TYPES.NO_MAIN_PARTICIPANTS ).toBe( 'no-main-participants' );
+        expect( AUTH_ERROR_TYPES.NO_VISITORS_LOBBY ).toBe( 'no-visitors-lobby' );
+        expect( AUTH_ERROR_TYPES.PROMOTION_NOT_ALLOWED ).toBe( 'promotion-not-allowed' );
+        expect( AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION ).toBe( 'room-creation-restriction' );
         expect( AUTHENTICATION_REQUIRED ).toBe( 'conference.authenticationRequired' );
         expect( CHAT_ERROR ).toBe( 'conference.chatError' );
         expect( SETTINGS_ERROR ).toBe( 'conference.settingsError' );

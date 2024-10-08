@@ -261,11 +261,18 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {Promise}
      */
     dispose() {
+        const p = Promise.resolve();
+
+        if (this.disposed) {
+            return p;
+        }
+
+        this.detach();
         this.removeAllListeners();
 
         this.disposed = true;
 
-        return Promise.resolve();
+        return p;
     }
 
     /**
@@ -288,6 +295,14 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {String|undefined}
      */
     getSourceName() { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
+    }
+
+    /**
+     * Returns the primary SSRC associated with the track.
+     * @returns {number}
+     */
+    getSsrc() { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
     }
 

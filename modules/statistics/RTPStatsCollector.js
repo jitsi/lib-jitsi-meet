@@ -84,6 +84,10 @@ SsrcStats.prototype.setCodec = function(codec) {
     this.codec = codec || '';
 };
 
+SsrcStats.prototype.setEncodeStats = function(encodeStats) {
+    this.encodeStats = encodeStats || {};
+};
+
 /**
  *
  */
@@ -133,7 +137,6 @@ export default function StatsCollector(peerconnection, audioLevelsInterval, stat
     this.peerconnection = peerconnection;
     this.currentStatsReport = null;
     this.previousStatsReport = null;
-    this.audioLevelReportHistory = {};
     this.audioLevelsIntervalId = null;
     this.eventEmitter = eventEmitter;
     this.conferenceStats = new ConferenceStats();
@@ -330,7 +333,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
         // calculated based on the outbound-rtp streams that are currently active for the simulcast case.
         // However for the SVC case, there will be only 1 "outbound-rtp" stream which will have the correct
         // send resolution width and height.
-        if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast()) {
+        if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast(track)) {
             const localSsrcs = this.peerconnection.getLocalVideoSSRCs(track);
 
             for (const localSsrc of localSsrcs) {
@@ -381,29 +384,6 @@ StatsCollector.prototype._processAndEmitReport = function() {
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
 
-    const avgAudioLevels = {};
-    let localAvgAudioLevels;
-
-    Object.keys(this.audioLevelReportHistory).forEach(ssrc => {
-        const { data, isLocal } = this.audioLevelReportHistory[ssrc];
-        const avgAudioLevel = data.reduce((sum, currentValue) => sum + currentValue) / data.length;
-
-        if (isLocal) {
-            localAvgAudioLevels = avgAudioLevel;
-        } else {
-            const track = this.peerconnection.getTrackBySSRC(Number(ssrc));
-
-            if (track) {
-                const participantId = track.getParticipantId();
-
-                if (participantId) {
-                    avgAudioLevels[participantId] = avgAudioLevel;
-                }
-            }
-        }
-    });
-    this.audioLevelReportHistory = {};
-
     this.eventEmitter.emit(
         StatisticsEvents.CONNECTION_STATS,
         this.peerconnection,
@@ -414,9 +394,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
             resolution: resolutions,
             framerate: framerates,
             codec: codecs,
-            transport: this.conferenceStats.transport,
-            localAvgAudioLevels,
-            avgAudioLevels
+            transport: this.conferenceStats.transport
         });
     this.conferenceStats.transport = [];
 };
@@ -493,6 +471,7 @@ StatsCollector.prototype._calculateFps = function(now, before, fieldName) {
  */
 StatsCollector.prototype.processStatsReport = function() {
     const byteSentStats = {};
+    const encodedTimeStatsPerSsrc = new Map();
 
     this.currentStatsReport.forEach(now => {
         const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
@@ -638,13 +617,38 @@ StatsCollector.prototype.processStatsReport = function() {
 
             if (codec) {
                 /**
-                 * The mime type has the following form: video/VP8 or audio/ISAC,
-                 * so we what to keep just the type after the '/', audio and video
-                 * keys will be added on the processing side.
+                 * The mime type has the following form: video/VP8 or audio/ISAC, so we what to keep just the type
+                 * after the '/', audio and video keys will be added on the processing side.
                  */
                 const codecShortType = codec.mimeType.split('/')[1];
 
                 codecShortType && ssrcStats.setCodec(codecShortType);
+
+                // Calculate the encodeTime stat for outbound video streams.
+                const track = this.peerconnection.getTrackBySSRC(ssrc);
+
+                if (now.type === 'outbound-rtp'
+                    && now.active
+                    && track?.isVideoTrack()
+                    && this.peerconnection.usesCodecSelectionAPI()
+                    && before?.totalEncodeTime
+                    && before?.framesEncoded
+                    && now.frameHeight
+                    && now.frameWidth) {
+                    const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
+                    const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
+                    const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;
+                    const encodeTimeStats = {
+                        codec: codecShortType,
+                        encodeTime: encodeTimePerFrameInMs,
+                        qualityLimitationReason: now.qualityLimitationReason,
+                        resolution,
+                        timestamp: now.timestamp
+                    };
+
+                    encodedTimeStatsPerSsrc.set(ssrc, encodeTimeStats);
+                    ssrcStats.setEncodeStats(encodedTimeStatsPerSsrc);
+                }
             }
 
         // Continue to use the 'track' based stats for Firefox and Safari and older versions of Chromium.
@@ -690,6 +694,10 @@ StatsCollector.prototype.processStatsReport = function() {
 
     if (Object.keys(byteSentStats).length) {
         this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
+    }
+
+    if (encodedTimeStatsPerSsrc.size) {
+        this.eventEmitter.emit(StatisticsEvents.ENCODE_TIME_STATS, this.peerconnection, encodedTimeStatsPerSsrc);
     }
 
     this._processAndEmitReport();
