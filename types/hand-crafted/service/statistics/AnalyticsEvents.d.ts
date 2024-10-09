@@ -10,8 +10,6 @@ export enum AnalyticsEvents {
   ACTION_JINGLE_SI_RECEIVED = 'session-initiate.received',
   ACTION_JINGLE_SI_TIMEOUT = 'session-initiate.timeout',
   ACTION_JINGLE_TERMINATE = 'terminate',
-  ACTION_JINGLE_TR_RECEIVED = 'transport-replace.received',
-  ACTION_JINGLE_TR_SUCCESS = 'transport-replace.success',
   ACTION_P2P_DECLINED = 'decline',
   ACTION_P2P_ESTABLISHED = 'established',
   ACTION_P2P_FAILED = 'failed',

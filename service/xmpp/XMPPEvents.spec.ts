@@ -36,8 +36,6 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.FOCUS_DISCONNECTED ).toBe( 'xmpp.focus_disconnected' );
         expect( XMPPEvents.FOCUS_LEFT ).toBe( 'xmpp.focus_left' );
         expect( XMPPEvents.GRACEFUL_SHUTDOWN ).toBe( 'xmpp.graceful_shutdown' );
-        expect( XMPPEvents.ICE_RESTARTING ).toBe( 'rtc.ice_restarting' );
-        expect( XMPPEvents.ICE_RESTART_SUCCESS ).toBe( 'rtc.ice_restart_success' );
         expect( XMPPEvents.KICKED ).toBe( 'xmpp.kicked' );
         expect( XMPPEvents.LOCAL_ROLE_CHANGED ).toBe( 'xmpp.localrole_changed' );
         expect( XMPPEvents.MEETING_ID_SET ).toBe( 'xmpp.meeting_id_set' );

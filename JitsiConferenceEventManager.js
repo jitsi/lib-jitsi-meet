@@ -42,19 +42,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder = new EventEmitterForwarder(chatRoom,
         this.conference.eventEmitter);
 
-    chatRoom.addListener(XMPPEvents.ICE_RESTARTING, jingleSession => {
-        if (!jingleSession.isP2P) {
-            // If using DataChannel as bridge channel, it must be closed
-            // before ICE restart, otherwise Chrome will not trigger "opened"
-            // event for the channel established with the new bridge.
-            // TODO: This may be bypassed when using a WebSocket as bridge
-            // channel.
-            conference.rtc.closeBridgeChannel();
-        }
-
-        // else: there are no DataChannels in P2P session (at least for now)
-    });
-
     chatRoom.addListener(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, (from, features) => {
         const participant = conference.getParticipantById(Strophe.getResourceFromJid(from));
 
@@ -63,17 +50,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             conference.eventEmitter.emit(JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED, participant);
         }
     });
-
-    chatRoom.addListener(
-        XMPPEvents.ICE_RESTART_SUCCESS,
-        (jingleSession, offerIq) => {
-            // The JVB data chanel needs to be reopened in case the conference
-            // has been moved to a new bridge.
-            !jingleSession.isP2P
-                && conference._setBridgeChannel(
-                    offerIq, jingleSession.peerconnection);
-        });
-
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         actor => {

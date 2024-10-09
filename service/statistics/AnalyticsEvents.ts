@@ -75,18 +75,6 @@ export enum AnalyticsEvents {
     ACTION_JINGLE_TERMINATE = 'terminate',
 
     /**
-     * The "action" value for Jingle events which indicates that a transport-replace
-     * was received.
-     */
-    ACTION_JINGLE_TR_RECEIVED = 'transport-replace.received',
-
-    /**
-     * The "action" value for Jingle events which indicates that a transport-replace
-     * succeeded (TODO: verify/fix the documentation)
-     */
-    ACTION_JINGLE_TR_SUCCESS = 'transport-replace.success',
-
-    /**
      * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
      * because the mandatory requirements were not met.
      */
@@ -233,8 +221,6 @@ export const ACTION_JINGLE_SA_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT
 export const ACTION_JINGLE_SI_RECEIVED = AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED;
 export const ACTION_JINGLE_SI_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT;
 export const ACTION_JINGLE_TERMINATE = AnalyticsEvents.ACTION_JINGLE_TERMINATE;
-export const ACTION_JINGLE_TR_RECEIVED = AnalyticsEvents.ACTION_JINGLE_TR_RECEIVED;
-export const ACTION_JINGLE_TR_SUCCESS = AnalyticsEvents.ACTION_JINGLE_TR_SUCCESS;
 export const ACTION_P2P_DECLINED = AnalyticsEvents.ACTION_P2P_DECLINED;
 export const ACTION_P2P_ESTABLISHED = AnalyticsEvents.ACTION_P2P_ESTABLISHED;
 export const ACTION_P2P_FAILED = AnalyticsEvents.ACTION_P2P_FAILED;

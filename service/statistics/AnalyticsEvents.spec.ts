@@ -13,8 +13,6 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         ACTION_JINGLE_SI_RECEIVED,
         ACTION_JINGLE_SI_TIMEOUT,
         ACTION_JINGLE_TERMINATE,
-        ACTION_JINGLE_TR_RECEIVED,
-        ACTION_JINGLE_TR_SUCCESS,
         ACTION_P2P_DECLINED,
         ACTION_P2P_ESTABLISHED,
         ACTION_P2P_FAILED,
@@ -61,8 +59,6 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( ACTION_JINGLE_SI_RECEIVED ).toBe( 'session-initiate.received' );
         expect( ACTION_JINGLE_SI_TIMEOUT ).toBe( 'session-initiate.timeout' );
         expect( ACTION_JINGLE_TERMINATE ).toBe( 'terminate' );
-        expect( ACTION_JINGLE_TR_RECEIVED ).toBe( 'transport-replace.received' );
-        expect( ACTION_JINGLE_TR_SUCCESS ).toBe( 'transport-replace.success' );
         expect( ACTION_P2P_DECLINED ).toBe( 'decline' );
         expect( ACTION_P2P_ESTABLISHED ).toBe( 'established' );
         expect( ACTION_P2P_FAILED ).toBe( 'failed' );
@@ -88,8 +84,6 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED ).toBe( 'session-initiate.received' );
         expect( AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT ).toBe( 'session-initiate.timeout' );
         expect( AnalyticsEvents.ACTION_JINGLE_TERMINATE ).toBe( 'terminate' );
-        expect( AnalyticsEvents.ACTION_JINGLE_TR_RECEIVED ).toBe( 'transport-replace.received' );
-        expect( AnalyticsEvents.ACTION_JINGLE_TR_SUCCESS ).toBe( 'transport-replace.success' );
         expect( AnalyticsEvents.ACTION_P2P_DECLINED ).toBe( 'decline' );
         expect( AnalyticsEvents.ACTION_P2P_ESTABLISHED ).toBe( 'established' );
         expect( AnalyticsEvents.ACTION_P2P_FAILED ).toBe( 'failed' );

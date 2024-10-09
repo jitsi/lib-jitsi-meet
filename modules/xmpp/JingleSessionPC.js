@@ -197,7 +197,7 @@ export default class JingleSessionPC extends JingleSession {
          * The bridge session's identifier. One Jingle session can during
          * it's lifetime participate in multiple bridge sessions managed by
          * Jicofo. A new bridge session is started whenever Jicofo sends
-         * 'session-initiate' or 'transport-replace'.
+         * 'session-initiate'.
          *
          * @type {?string}
          * @private
@@ -277,8 +277,7 @@ export default class JingleSessionPC extends JingleSession {
 
         /**
          * Marks that ICE gathering duration has been reported already. That
-         * prevents reporting it again, after eventual 'transport-replace' (JVB
-         * conference migration/ICE restart).
+         * prevents reporting it again.
          * @type {boolean}
          * @private
          */
@@ -544,13 +543,7 @@ export default class JingleSessionPC extends JingleSession {
                 // media connection to the bridge has been restored after an ICE failure by using session-terminate.
                 if (this.peerconnection.signalingState === 'stable') {
                     isStable = true;
-                    const usesTerminateForRestart = !this.options.enableIceRestart
-                        && this.room.supportsRestartByTerminate();
-
-                    if (this.isReconnect || usesTerminateForRestart) {
-                        this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_RESTORED, this);
-                    }
+                    this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTORED, this);
                 }
 
                 // Add a workaround for an issue on chrome in Unified plan when the local endpoint is the offerer.
@@ -815,45 +808,6 @@ export default class JingleSessionPC extends JingleSession {
         // logger.log('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
-    }
-
-    /**
-     * Sends Jingle 'session-info' message which includes custom Jitsi Meet
-     * 'ice-state' element with the text value 'failed' to let Jicofo know
-     * that the ICE connection has entered the failed state. It can then
-     * choose to re-create JVB channels and send 'transport-replace' to
-     * retry the connection.
-     */
-    sendIceFailedNotification() {
-        const sessionInfo
-            = $iq({
-                to: this.remoteJid,
-                type: 'set' })
-            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
-                action: 'session-info',
-                initiator: this.initiatorJid,
-                sid: this.sid })
-            .c('ice-state', { xmlns: 'http://jitsi.org/protocol/focus' })
-            .t('failed')
-            .up();
-
-        this._bridgeSessionId
-            && sessionInfo.c(
-                'bridge-session', {
-                    xmlns: 'http://jitsi.org/protocol/focus',
-                    id: this._bridgeSessionId
-                });
-
-        this.connection.sendIQ2(
-            sessionInfo, {
-                /*
-                 * This message will be often sent when there are connectivity
-                 * issues, so make it slightly longer than Prosody's default BOSH
-                 * inactivity timeout of 60 seconds.
-                 */
-                timeout: 65
-            })
-            .catch(this.newJingleErrorHandler(sessionInfo));
     }
 
     /**
@@ -1233,111 +1187,6 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
-    /* eslint-enable max-params */
-
-    /**
-     * Although it states "replace transport" it does accept full Jingle offer
-     * which should contain new ICE transport details.
-     * @param jingleOfferElem an element Jingle IQ that contains new offer and
-     *        transport info.
-     * @param success callback called when we succeed to accept new offer.
-     * @param failure function(error) called when we fail to accept new offer.
-     */
-    replaceTransport(jingleOfferElem, success, failure) {
-        if (this.options.enableForcedReload) {
-            const sdp = new SDP(this.peerconnection.localDescription.sdp);
-
-            this.sendTransportAccept(sdp, success, failure);
-            this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTARTED, this);
-
-            return;
-        }
-        this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
-
-        // We need to first reject the 'data' section to have the SCTP stack
-        // cleaned up to signal the known data channel is now invalid. After
-        // that the original offer is set to have the SCTP connection
-        // established with the new bridge.
-        const originalOffer = jingleOfferElem.clone();
-
-        jingleOfferElem
-            .find('>content[name=\'data\']')
-            .attr('senders', 'rejected');
-
-        // Remove all remote sources in order to reset the client's state
-        // for the remote MediaStreams. When a conference is moved to
-        // another bridge it will start streaming with a sequence number
-        // that is not in sync with the most recently seen by the client.
-        // The symptoms include frozen or black video and lots of "failed to
-        // unprotect SRTP packets" in Chrome logs.
-        jingleOfferElem
-            .find('>content>description>source')
-            .remove();
-        jingleOfferElem
-            .find('>content>description>ssrc-group')
-            .remove();
-
-        // On the JVB it's not a real ICE restart and all layers are re-initialized from scratch as Jicofo does
-        // the restart by re-allocating new channels. Chrome (or WebRTC stack) needs to have the DTLS transport layer
-        // reset to start a new handshake with fresh DTLS transport on the bridge. Make it think that the DTLS
-        // fingerprint has changed by setting an all zeros key.
-        const newFingerprint = jingleOfferElem.find('>content>transport>fingerprint');
-
-        newFingerprint.attr('hash', 'sha-1');
-        newFingerprint.text('00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00');
-
-        const workFunction = finishedCallback => {
-            // First set an offer with a rejected 'data' section
-            this.setOfferAnswerCycle(
-                jingleOfferElem,
-                () => {
-                    // Now set the original offer(with the 'data' section)
-                    this.setOfferAnswerCycle(
-                        originalOffer,
-                        () => {
-                            const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-                            if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
-                                localSDP.initialLastN = this.options.channelLastN;
-                            }
-
-                            this.sendTransportAccept(localSDP, success, failure);
-
-                            this.room.eventEmitter.emit(
-                                XMPPEvents.ICE_RESTART_SUCCESS,
-                                this,
-                                originalOffer);
-
-                            finishedCallback();
-                        }, error => finishedCallback(error)
-                    );
-                }, error => finishedCallback(error)
-            );
-        };
-
-        logger.debug(`${this} Queued ICE restart task`);
-
-        // Queue and execute
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    if (error instanceof ClearedQueueError) {
-                        // The session might have been terminated before the task was executed, making it obsolete.
-                        logger.debug(`${this} ICE restart task aborted: session terminated`);
-                        success();
-
-                        return;
-                    }
-                    logger.error(`${this} ICE restart task failed: ${error}`);
-                    failure(error);
-                } else {
-                    logger.debug(`${this} ICE restart task done`);
-                    success();
-                }
-            });
-    }
-
     /**
      * Sends Jingle 'session-accept' message.
      * @param {function()} success callback called when we receive 'RESULT'
@@ -1472,83 +1321,6 @@ export default class JingleSessionPC extends JingleSession {
                 this.sendContentModify();
             }
         }
-    }
-
-    /**
-     * Sends Jingle 'transport-accept' message which is a response to
-     * 'transport-replace'.
-     * @param localSDP the 'SDP' object with local session description
-     * @param success callback called when we receive 'RESULT' packet for
-     *        'transport-replace'
-     * @param failure function(error) called when we receive an error response
-     *        or when the request has timed out.
-     * @private
-     */
-    sendTransportAccept(localSDP, success, failure) {
-        const transportAccept = $iq({ to: this.remoteJid,
-            type: 'set' })
-            .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: 'transport-accept',
-                initiator: this.initiatorJid,
-                sid: this.sid
-            });
-
-        localSDP.media.forEach((medialines, idx) => {
-            const mline = SDPUtil.parseMLine(medialines.split('\r\n')[0]);
-
-            transportAccept.c('content',
-                {
-                    creator:
-                        this.initiatorJid === this.localJid
-                            ? 'initiator'
-                            : 'responder',
-                    name: mline.media
-                }
-            );
-            localSDP.transportToJingle(idx, transportAccept);
-            transportAccept.up();
-        });
-
-        logger.info(`${this} Sending transport-accept`);
-        logger.debug(transportAccept.tree());
-
-        this.connection.sendIQ(transportAccept,
-            success,
-            this.newJingleErrorHandler(transportAccept, failure),
-            IQ_TIMEOUT);
-    }
-
-    /**
-     * Sends Jingle 'transport-reject' message which is a response to
-     * 'transport-replace'.
-     * @param success callback called when we receive 'RESULT' packet for
-     *        'transport-replace'
-     * @param failure function(error) called when we receive an error response
-     *        or when the request has timed out.
-     *
-     * FIXME method should be marked as private, but there's some spaghetti that
-     *       needs to be fixed prior doing that
-     */
-    sendTransportReject(success, failure) {
-        // Send 'transport-reject', so that the focus will
-        // know that we've failed
-        const transportReject = $iq({ to: this.remoteJid,
-            type: 'set' })
-            .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: 'transport-reject',
-                initiator: this.initiatorJid,
-                sid: this.sid
-            });
-
-        logger.info(`${this} Sending 'transport-reject'`);
-        logger.debug(transportReject.tree());
-
-        this.connection.sendIQ(transportReject,
-            success,
-            this.newJingleErrorHandler(transportReject, failure),
-            IQ_TIMEOUT);
     }
 
     /**

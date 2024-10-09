@@ -23,8 +23,6 @@
   FOCUS_DISCONNECTED = 'xmpp.focus_disconnected',
   FOCUS_LEFT = 'xmpp.focus_left',
   GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
-  ICE_RESTARTING = 'rtc.ice_restarting',
-  ICE_RESTART_SUCCESS = 'rtc.ice_restart_success',
   KICKED = 'xmpp.kicked',
   LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
   MEETING_ID_SET = 'xmpp.meeting_id_set',

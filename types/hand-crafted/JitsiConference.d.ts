@@ -14,7 +14,6 @@ export default class JitsiConference {
     name: string;
     config: {
       avgRtpStatsN?: number,
-      enableIceRestart?: boolean,
       p2p?: {
         enabled: boolean,
         backToP2PDelay?: number

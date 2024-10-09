@@ -21,7 +21,6 @@ export default class ChatRoom extends Listenable {
   onConnStatusChanged: ( status: Strophe.Status ) => void;
   onPresence: ( pres: unknown ) => void; // TODO:
   setParticipantPropertyListener: ( listener: unknown ) => void; // TODO:
-  supportsRestartByTerminate: () => boolean;
   processNode: ( node: unknown, from: unknown ) => void; // TODO:
   sendMessage: ( message: unknown, elementName: string ) => void; // TODO:
   sendPrivateMessage: ( id: unknown, message: unknown, elementName: string ) => void; // TODO:
