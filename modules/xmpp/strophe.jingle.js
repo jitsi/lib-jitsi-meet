@@ -249,6 +249,9 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
             break;
         }
+        case 'transport-replace':
+            logger.error(`Ignoring ${action} from ${fromJid} as it is not supported by the client.`);
+            break;
         case 'source-add':
             sess.addRemoteStream($(iq).find('>jingle>content'));
             break;
