@@ -4,13 +4,7 @@ import { cloneDeep } from 'lodash-es';
 import { $iq, Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
-import {
-    ACTION_JINGLE_TR_RECEIVED,
-    ACTION_JINGLE_TR_SUCCESS,
-    createJingleEvent
-} from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import Statistics from '../statistics/statistics';
 import RandomUtil from '../util/RandomUtil';
 
 import ConnectionPlugin from './ConnectionPlugin';
@@ -255,40 +249,9 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
             break;
         }
-        case 'transport-replace': {
-            logger.info('(TIME) Start transport replace:\t', now);
-            const transport = $(iq).find('jingle>content>transport');
-            const candidates = _parseIceCandidates(transport);
-            const iceUfrag = $(transport).attr('ufrag');
-            const icePwd = $(transport).attr('pwd');
-            const dtlsFingerprint = $(transport).find('>fingerprint')?.text();
-
-            logger.debug(`Received ${action} from ${fromJid} with iceUfrag=${iceUfrag},`
-            + ` icePwd=${icePwd}, DTLS fingerprint=${dtlsFingerprint}, candidates=${candidates.join(', ')}`);
-
-            Statistics.sendAnalytics(createJingleEvent(
-                ACTION_JINGLE_TR_RECEIVED,
-                {
-                    p2p: isP2P,
-                    value: now
-                }));
-
-            sess.replaceTransport($(iq).find('>jingle'), () => {
-                const successTime = window.performance.now();
-
-                logger.info('(TIME) Transport replace success:\t', successTime);
-                Statistics.sendAnalytics(createJingleEvent(
-                    ACTION_JINGLE_TR_SUCCESS,
-                    {
-                        p2p: isP2P,
-                        value: successTime
-                    }));
-            }, error => {
-                logger.error('Transport replace failed', error);
-                sess.sendTransportReject();
-            });
+        case 'transport-replace':
+            logger.error(`Ignoring ${action} from ${fromJid} as it is not supported by the client.`);
             break;
-        }
         case 'source-add':
             sess.addRemoteStream($(iq).find('>jingle>content'));
             break;

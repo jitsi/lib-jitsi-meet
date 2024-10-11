@@ -36,9 +36,7 @@ describe('IceFailedHandling', () => {
             // eslint-disable-next-line no-empty-function
             emit: () => { }
         };
-        mockConference.room = {
-            supportsRestartByTerminate: () => false
-        };
+        mockConference.room = {};
         mockConference.xmpp = {
             ping: () => Promise.resolve()
         };
@@ -49,83 +47,11 @@ describe('IceFailedHandling', () => {
         jasmine.clock().uninstall();
     });
 
-    describe('when ICE restarts are disabled', () => {
-        beforeEach(() => {
-            mockConference.options.config.enableIceRestart = false;
-        });
-        it('emits ICE failed with 2 seconds delay after XMPP ping comes through', () => {
-            iceFailedHandling.start();
-
-            return nextTick() // tick for ping
-                .then(() => {
-                    expect(emitEventSpy).not.toHaveBeenCalled();
-
-                    return nextTick(2500); // tick for the 2 sec ice timeout
-                })
-                .then(() => {
-                    expect(emitEventSpy).toHaveBeenCalled();
-                });
-        });
-        it('cancel method cancels the ICE failed event', () => {
-            iceFailedHandling.start();
-
-            return nextTick(1000) // tick for ping
-                .then(() => {
-                    expect(emitEventSpy).not.toHaveBeenCalled();
-                    iceFailedHandling.cancel();
-
-                    return nextTick(2500); // tick for ice timeout
-                })
-                .then(() => {
-                    expect(emitEventSpy).not.toHaveBeenCalled();
-                });
-        });
-    });
-    describe('when ICE restart are enabled', () => {
-        let sendIceFailedSpy;
-
-        beforeEach(() => {
-            mockConference.options.config.enableIceRestart = true;
-            mockConference.jvbJingleSession = {
-                getIceConnectionState: () => 'failed',
-                // eslint-disable-next-line no-empty-function
-                sendIceFailedNotification: () => { }
-            };
-            sendIceFailedSpy = spyOn(mockConference.jvbJingleSession, 'sendIceFailedNotification');
-        });
-        it('send ICE failed notification to Jicofo', () => {
-            iceFailedHandling.start();
-
-            return nextTick() // tick for ping
-                .then(() => nextTick(2500)) // tick for ice timeout
-                .then(() => {
-                    expect(sendIceFailedSpy).toHaveBeenCalled();
-                });
-        });
-        it('not send ICE failed notification to Jicofo if canceled', () => {
-            iceFailedHandling.start();
-
-            // first it send ping which is async - need next tick
-            return nextTick(1000)
-                .then(() => {
-                    expect(sendIceFailedSpy).not.toHaveBeenCalled();
-                    iceFailedHandling.cancel();
-
-                    return nextTick(3000); // tick for ice timeout
-                })
-                .then(() => {
-                    expect(sendIceFailedSpy).not.toHaveBeenCalled();
-                });
-        });
-    });
     describe('if Jingle session restarts are supported', () => {
         let sendSessionTerminateSpy;
 
         beforeEach(() => {
-            mockConference.options.config.enableIceRestart = undefined;
-            mockConference.room = {
-                supportsRestartByTerminate: () => true
-            };
+            mockConference.room = {};
             mockConference.jvbJingleSession = {
                 getIceConnectionState: () => 'failed',
                 // eslint-disable-next-line no-empty-function
@@ -148,15 +74,26 @@ describe('IceFailedHandling', () => {
                         });
                 });
         });
+        it('cancel method cancels the call to terminate session', () => {
+            iceFailedHandling.start();
+
+            return nextTick(1000) // tick for ping
+                .then(() => {
+                    expect(sendSessionTerminateSpy).not.toHaveBeenCalled();
+                    iceFailedHandling.cancel();
+
+                    return nextTick(2500); // tick for ice timeout
+                })
+                .then(() => {
+                    expect(sendSessionTerminateSpy).not.toHaveBeenCalled();
+                });
+        });
     });
     describe('when forced reloads are enabled', () => {
         beforeEach(() => {
-            mockConference.options.config.enableIceRestart = undefined;
             mockConference.options.config.enableForcedReload = true;
 
-            mockConference.room = {
-                supportsRestartByTerminate: () => true
-            };
+            mockConference.room = {};
         });
 
         it('emits conference restarted when force reloads are enabled', () => {
