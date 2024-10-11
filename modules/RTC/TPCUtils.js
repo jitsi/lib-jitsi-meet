@@ -360,12 +360,14 @@ export class TPCUtils {
 
     /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
+    *
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
     * @param {boolean} isInitiator - boolean that indicates if the endpoint is offerer in a p2p connection.
-    * @returns {void}
+    * @returns {RTCRtpTransceiver} - the transceiver that the track was added to.
     */
     addTrack(localTrack, isInitiator) {
         const track = localTrack.getTrack();
+        let transceiver;
 
         if (isInitiator) {
             const streams = [];
@@ -385,13 +387,18 @@ export class TPCUtils {
             if (!browser.isFirefox()) {
                 transceiverInit.sendEncodings = this._getStreamEncodings(localTrack);
             }
-            this.pc.peerconnection.addTransceiver(track, transceiverInit);
+            transceiver = this.pc.peerconnection.addTransceiver(track, transceiverInit);
         } else {
             // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
             // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
             // unused "recv-only" transceiver.
-            this.pc.peerconnection.addTrack(track);
+            const sender = this.pc.peerconnection.addTrack(track);
+
+            // Find the corresponding transceiver that the track was attached to.
+            transceiver = this.pc.peerconnection.getTransceivers().find(t => t.sender === sender);
         }
+
+        return transceiver;
     }
 
     /**
