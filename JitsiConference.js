@@ -364,12 +364,14 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * Initializes the conference object properties
  * @param options {object}
  * @param options.connection {JitsiConnection} overrides this.connection
+ * @param [statisticsId] {string}  
  */
+
 JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupXMPPListeners();
 
     const { config } = this.options;
-
+   
     this._statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
     this.room = this.xmpp.createRoom(
         this.options.name, {
