@@ -413,7 +413,7 @@ export class OlmAdapter extends Listenable {
 
         const { sas, sasMacSent } = olmData.sasVerification;
 
-        if (sas && sas.is_their_key_set() && !sasMacSent) {
+        if (sas?.is_their_key_set() && !sasMacSent) {
             this._sendSasMac(participant);
 
             // Mark the MAC as sent so we don't send it multiple times.
