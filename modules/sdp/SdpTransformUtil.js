@@ -194,18 +194,6 @@ class MLineWrap {
     }
 
     /**
-     * @param {string|null} msid the media stream id or <tt>null</tt> to match
-     * the first SSRC object with any 'msid' value.
-     * @return {Object|undefined} the SSRC object as defined by 'sdp-transform'
-     * lib.
-     */
-    findSSRCByMSID(msid) {
-        return this.ssrcs.find(
-            ssrcObj => ssrcObj.attribute === 'msid'
-                && (msid === null || ssrcObj.value === msid));
-    }
-
-    /**
      * Gets the SSRC count for the underlying media description.
      * @return {number}
      */
@@ -321,13 +309,6 @@ class MLineWrap {
     }
 
     /**
-     * Dumps all SSRC groups of this media description to JSON.
-     */
-    dumpSSRCGroups() {
-        return JSON.stringify(this.mLine.ssrcGroups);
-    }
-
-    /**
      * Removes all SSRC groups which contain given SSRC number at any position.
      * @param {number} ssrc the SSRC for which all matching groups are to be
      * removed.
@@ -353,21 +334,6 @@ class MLineWrap {
         this.mLine.ssrcGroups
             = this.mLine.ssrcGroups
                 .filter(groupInfo => groupInfo.semantics !== semantics);
-    }
-
-    /**
-     * Replaces SSRC (does not affect SSRC groups, but only attributes).
-     * @param {number} oldSSRC the old SSRC number
-     * @param {number} newSSRC the new SSRC number
-     */
-    replaceSSRC(oldSSRC, newSSRC) {
-        if (this.mLine.ssrcs) {
-            this.mLine.ssrcs.forEach(ssrcInfo => {
-                if (ssrcInfo.id === oldSSRC) {
-                    ssrcInfo.id = newSSRC;
-                }
-            });
-        }
     }
 
     /**

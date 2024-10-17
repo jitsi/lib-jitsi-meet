@@ -13,17 +13,14 @@ export class MLineWrap {
   findGroup: ( semantics: string, ssrcs: string ) => unknown | undefined;
   findGroups: ( semantics: string ) => unknown[];
   findGroupByPrimarySSRC: ( semantics: string, primarySSRC: number ) => unknown; // TODO:
-  findSSRCByMSID: ( msid: string | null ) => unknown | undefined; // TODO:
   getSSRCCount: () => number;
   containsAnySSRCGroups: () => boolean;
   getPrimaryVideoSsrc: () => number | undefined;
   getRtxSSRC: ( primarySsrc: number ) => number | undefined;
   getSSRCs: () => number[];
   getPrimaryVideoSSRCs: () => number[];
-  dumpSSRCGroups: () => string;
   removeGroupsWithSSRC: ( ssrc: string ) => void;
   removeGroupsBySemantics: ( semantics: string ) => void;
-  replaceSSRC: ( oldSSRC: number, newSSRC: number ) => void;
   addSSRCGroup: ( group: unknown ) => void; // TODO:
 }
 
