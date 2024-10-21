@@ -40,10 +40,9 @@ export class SDPDiffer {
                 continue; // eslint-disable-line no-continue
             }
 
-            const mySsrcs = Object.keys(mySource.ssrcs);
             const othersSsrcs = Object.keys(othersSource.ssrcs);
 
-            if (othersSsrcs.length && !isEqual([ ...mySsrcs ].sort(), [ ...othersSsrcs ].sort())) {
+            if (othersSsrcs.length && !isEqual(Object.keys(mySource.ssrcs).sort(), [ ...othersSsrcs ].sort())) {
                 diff[index] = othersSource;
             }
         }

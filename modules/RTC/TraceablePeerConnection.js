@@ -332,7 +332,7 @@ export default function TraceablePeerConnection(
      *
      * @type {Map<string, TPCSSRCInfo>}
      */
-    this._ssrcMap = null;
+    this._localSsrcMap = null;
 
     // override as desired
     this.trace = (what, info) => {
@@ -1139,13 +1139,17 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
     const ssrcMap = new Map();
 
     if (!localSDP || typeof localSDP !== 'string') {
-        return ssrcMap;
+        this._localSsrcMap = ssrcMap;
+
+        return;
     }
     const session = transform.parse(localSDP);
     const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
         || mline.direction === MediaDirection.SENDRECV);
 
     if (!Array.isArray(media)) {
+        this._localSsrcMap = ssrcMap;
+
         return;
     }
 
@@ -1170,7 +1174,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
 
             ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
 
-            if (Array.isArray(ssrcGroups)) {
+            if (ssrcGroups?.length) {
                 for (const group of ssrcGroups) {
                     group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
                     ssrcInfo.groups.push(group);
@@ -1196,14 +1200,13 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
             const newSsrc = this._extractPrimarySSRC(ssrcInfo);
 
             if (oldSsrc !== newSsrc) {
-                oldSsrc && logger.error(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
+                oldSsrc && logger.debug(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
                 this.localSSRCs.set(localTrack.rtcId, ssrcInfo);
                 localTrack.setSsrc(newSsrc);
-                this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, localTrack, newSsrc);
             }
         }
     }
-    this._ssrcMap = ssrcMap;
+    this._localSsrcMap = ssrcMap;
 };
 
 /**
@@ -1297,7 +1300,7 @@ const getters = {
         }
 
         // See the method's doc for more info about this transformation.
-        desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._ssrcMap);
+        desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
 
         return desc;
     },
@@ -1485,22 +1488,22 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     try {
         transceiver = this.tpcUtils.addTrack(track, isInitiator);
-
-        if (transceiver?.mid) {
-            this._localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
-        }
-
-        if (track) {
-            if (track.isAudioTrack()) {
-                this._hasHadAudioTrack = true;
-            } else {
-                this._hasHadVideoTrack = true;
-            }
-        }
     } catch (error) {
         logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
 
         return Promise.reject(error);
+    }
+
+    if (transceiver?.mid) {
+        this._localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
+    }
+
+    if (track) {
+        if (track.isAudioTrack()) {
+            this._hasHadAudioTrack = true;
+        } else {
+            this._hasHadVideoTrack = true;
+        }
     }
 
     let promiseChain = Promise.resolve();

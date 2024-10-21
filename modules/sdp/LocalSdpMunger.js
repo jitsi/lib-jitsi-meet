@@ -7,12 +7,9 @@ import browser from '../browser';
 import { SdpTransformWrap } from './SdpTransformUtil';
 
 /**
- * Fakes local SDP exposed to {@link JingleSessionPC} through the local
- * description getter. Modifies the SDP, so that it will contain muted local
- * video tracks description, even though their underlying {MediaStreamTrack}s
- * are no longer in the WebRTC peerconnection. That prevents from SSRC updates
- * being sent to Jicofo/remote peer and prevents sRD/sLD cycle on the remote
- * side.
+ * Fakes local SDP exposed to {@link JingleSessionPC} through the local description getter. Modifies the SDP, so that
+ * the stream identifiers are unique across all of the local PeerConnections and that the source names and video types
+ * are injected so that Jicofo can use them to identify the sources.
  */
 export default class LocalSdpMunger {
 
@@ -28,8 +25,9 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Updates or adds a 'msid' attribute in the format. All other attributes like 'cname', 'label' and 'mslabel' are
-     * removed since these are not processed by Jicofo.
+     * Updates or adds a 'msid' attribute for the local sources in the SDP. Also adds 'sourceName' and 'videoType'
+     * (if applicable) attributes. All other source attributes like 'cname', 'label' and 'mslabel' are removed since
+     * these are not processed by Jicofo.
      *
      * @param {MLineWrap} mediaSection - The media part (audio or video) of the session description which will be
      * modified in place.
