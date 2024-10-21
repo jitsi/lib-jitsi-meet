@@ -1,19 +1,19 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import browser from '../browser';
-import Listenable from '../util/Listenable';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import browser from "../browser";
+import Listenable from "../util/Listenable";
 
-import E2EEContext from './E2EEContext';
-import JitsiConference from '../../JitsiConference';
+import E2EEContext from "./E2EEContext";
+import JitsiConference from "../../JitsiConference";
 
 const logger = getLogger(__filename);
 
 export type KeyInfo = {
-    encryptionKey: Uint8Array,
-    index: number, 
-}
+    encryptionKey?: Uint8Array;
+    index: number;
+};
 /**
  * Abstract class that integrates {@link E2EEContext} with a key management system.
  */
@@ -44,16 +44,19 @@ export abstract class KeyHandler extends Listenable {
 
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
-            this._onMediaSessionStarted.bind(this));
+            this._onMediaSessionStarted.bind(this)
+        );
         this.conference.on(
             JitsiConferenceEvents.TRACK_ADDED,
-            track => track.isLocal() && this._onLocalTrackAdded(track));
-        this.conference.rtc.on(
-            RTCEvents.REMOTE_TRACK_ADDED,
-            (track, tpc) => this._setupReceiverE2EEForTrack(tpc, track));
+            (track) => track.isLocal() && this._onLocalTrackAdded(track)
+        );
+        this.conference.rtc.on(RTCEvents.REMOTE_TRACK_ADDED, (track, tpc) =>
+            this._setupReceiverE2EEForTrack(tpc, track)
+        );
         this.conference.on(
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
-            this._trackMuteChanged.bind(this));
+            this._trackMuteChanged.bind(this)
+        );
     }
 
     /**
@@ -80,10 +83,9 @@ export abstract class KeyHandler extends Listenable {
         if (!enabled) {
             this.e2eeCtx.cleanupAll();
         }
-        
-        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);  
-        this.conference._restartMediaSessions();
 
+        this.conference.setLocalParticipantProperty("e2ee.enabled", enabled);
+        this.conference._restartMediaSessions();
     }
 
     /**
@@ -91,7 +93,7 @@ export abstract class KeyHandler extends Listenable {
      *
      * @returns {Object}
      */
-      get sasVerification() {
+    get sasVerification() {
         return this._olmAdapter;
     }
     /**
@@ -100,7 +102,7 @@ export abstract class KeyHandler extends Listenable {
      * @returns {void}
      */
     setEncryptionKey() {
-        throw new Error('Not implemented by subclass');
+        throw new Error("Not implemented by subclass");
     }
 
     /**
@@ -140,9 +142,15 @@ export abstract class KeyHandler extends Listenable {
         const receiver = tpc.findReceiverForTrack(track.track);
 
         if (receiver) {
-            this.e2eeCtx.handleReceiver(receiver, track.getType(), track.getParticipantId());
+            this.e2eeCtx.handleReceiver(
+                receiver,
+                track.getType(),
+                track.getParticipantId()
+            );
         } else {
-            logger.warn(`Could not handle E2EE for ${track}: receiver not found in: ${tpc}`);
+            logger.warn(
+                `Could not handle E2EE for ${track}: receiver not found in: ${tpc}`
+            );
         }
     }
 
@@ -162,9 +170,15 @@ export abstract class KeyHandler extends Listenable {
         const sender = pc && pc.findSenderForTrack(track.track);
 
         if (sender) {
-            this.e2eeCtx.handleSender(sender, track.getType(), track.getParticipantId());
+            this.e2eeCtx.handleSender(
+                sender,
+                track.getType(),
+                track.getParticipantId()
+            );
         } else {
-            logger.warn(`Could not handle E2EE for ${track}: sender not found in ${pc}`);
+            logger.warn(
+                `Could not handle E2EE for ${track}: sender not found in ${pc}`
+            );
         }
     }
 
@@ -174,7 +188,12 @@ export abstract class KeyHandler extends Listenable {
      * @private
      */
     _trackMuteChanged(track) {
-        if (browser.doesVideoMuteByStreamRemove() && track.isLocal() && track.isVideoTrack() && !track.isMuted()) {
+        if (
+            browser.doesVideoMuteByStreamRemove() &&
+            track.isLocal() &&
+            track.isVideoTrack() &&
+            !track.isMuted()
+        ) {
             for (const session of this.conference.getMediaSessions()) {
                 this._setupSenderE2EEForTrack(session, track);
             }
