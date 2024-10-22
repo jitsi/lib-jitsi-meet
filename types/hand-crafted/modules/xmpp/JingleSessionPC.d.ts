@@ -19,8 +19,6 @@ export default class JingleSessionPC extends JingleSession {
   setAnswer: ( jingleAnswer: unknown ) => void; // TODO:
   setOfferAnswerCycle: ( jingleOfferAnswerIq: JQuery, success: ( params: unknown ) => unknown, failure: ( params: unknown ) => unknown, localTracks?: JitsiLocalTrack[] ) => void; // TODO:
   setVideoCodecs: ( preferred?: CodecMimeType, disabled?: CodecMimeType ) => void;
-  sendSessionAccept: ( success: ( params: unknown ) => unknown, failure: ( params: unknown ) => unknown ) => void; // TODO:
-  sendContentModify: () => void;
   setReceiverVideoConstraint: ( maxFrameHeight: number ) => void;
   setSenderMaxBitrates: () => Promise<void>;
   setSenderVideoConstraint: ( maxFrameHeight: number ) => Promise<unknown>; // TODO:

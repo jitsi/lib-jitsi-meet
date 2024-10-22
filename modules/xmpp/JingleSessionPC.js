@@ -817,6 +817,284 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Sends 'content-modify' IQ in order to ask the remote peer to either stop or resume sending video media or to
+     * adjust sender's video constraints.
+     *
+     * @returns {void}
+     * @private
+     */
+    _sendContentModify() {
+        const senders = this._localSendReceiveVideoActive ? 'both' : 'none';
+        const sessionModify
+            = $iq({
+                to: this.remoteJid,
+                type: 'set'
+            })
+                .c('jingle', {
+                    xmlns: 'urn:xmpp:jingle:1',
+                    action: 'content-modify',
+                    initiator: this.initiatorJid,
+                    sid: this.sid
+                })
+                .c('content', {
+                    name: MediaType.VIDEO,
+                    senders
+                });
+
+        if (typeof this._sourceReceiverConstraints !== 'undefined') {
+            this._sourceReceiverConstraints.forEach((maxHeight, sourceName) => {
+                sessionModify
+                    .c('source-frame-height', { xmlns: 'http://jitsi.org/jitmeet/video' })
+                    .attrs({
+                        sourceName,
+                        maxHeight
+                    });
+
+                sessionModify.up();
+                logger.info(`${this} sending content-modify for source-name: ${sourceName}, maxHeight: ${maxHeight}`);
+            });
+        }
+
+        logger.debug(sessionModify.tree());
+
+        this.connection.sendIQ(
+            sessionModify,
+            null,
+            this.newJingleErrorHandler(sessionModify),
+            IQ_TIMEOUT);
+    }
+
+    /**
+     * Sends given candidate in Jingle 'transport-info' message.
+     *
+     * @param {RTCIceCandidate} candidate the WebRTC ICE candidate instance
+     * @returns {void}
+     * @private
+     */
+    _sendIceCandidate(candidate) {
+        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+        if (candidate && candidate.candidate.length && !this.lasticecandidate) {
+            const ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
+            const jcand = SDPUtil.candidateToJingle(candidate.candidate);
+
+            if (!(ice && jcand)) {
+                logger.error('failed to get ice && jcand');
+
+                return;
+            }
+            ice.xmlns = XEP.ICE_UDP_TRANSPORT;
+
+            if (this.usedrip) {
+                if (this.dripContainer.length === 0) {
+                    setTimeout(() => {
+                        if (this.dripContainer.length === 0) {
+                            return;
+                        }
+                        this._sendIceCandidates(this.dripContainer);
+                        this.dripContainer = [];
+                    }, ICE_CAND_GATHERING_TIMEOUT);
+                }
+                this.dripContainer.push(candidate);
+            } else {
+                this._sendIceCandidates([ candidate ]);
+            }
+        } else {
+            logger.log(`${this} _sendIceCandidate: last candidate`);
+
+            // FIXME: remember to re-think in ICE-restart
+            this.lasticecandidate = true;
+        }
+    }
+
+    /**
+     * Sends given candidates in Jingle 'transport-info' message.
+     *
+     * @param {Array<RTCIceCandidate>} candidates an array of the WebRTC ICE candidate instances.
+     * @returns {void}
+     * @private
+     */
+    _sendIceCandidates(candidates) {
+        if (!this._assertNotEnded('_sendIceCandidates')) {
+
+            return;
+        }
+
+        logger.log(`${this} _sendIceCandidates ${JSON.stringify(candidates)}`);
+        const cand = $iq({ to: this.remoteJid,
+            type: 'set' })
+            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
+                action: 'transport-info',
+                initiator: this.initiatorJid,
+                sid: this.sid });
+
+        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
+
+        for (let mid = 0; mid < localSDP.media.length; mid++) {
+            const cands = candidates.filter(el => el.sdpMLineIndex === mid);
+            const mline
+                = SDPUtil.parseMLine(localSDP.media[mid].split('\r\n')[0]);
+
+            if (cands.length > 0) {
+                const ice
+                    = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
+
+                ice.xmlns = XEP.ICE_UDP_TRANSPORT;
+                cand.c('content', {
+                    creator: this.initiatorJid === this.localJid
+                        ? 'initiator' : 'responder',
+                    name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
+                }).c('transport', ice);
+                for (let i = 0; i < cands.length; i++) {
+                    const candidate
+                        = SDPUtil.candidateToJingle(cands[i].candidate);
+
+                    // Mangle ICE candidate if 'failICE' test option is enabled
+
+                    if (this.failICE) {
+                        candidate.ip = '1.1.1.1';
+                    }
+                    cand.c('candidate', candidate).up();
+                }
+
+                // add fingerprint
+                const fingerprintLine
+                    = SDPUtil.findLine(
+                        localSDP.media[mid],
+                        'a=fingerprint:', localSDP.session);
+
+                if (fingerprintLine) {
+                    const tmp = SDPUtil.parseFingerprint(fingerprintLine);
+
+                    tmp.required = true;
+                    cand.c(
+                        'fingerprint',
+                        { xmlns: 'urn:xmpp:jingle:apps:dtls:0' })
+                        .t(tmp.fingerprint);
+                    delete tmp.fingerprint;
+                    cand.attrs(tmp);
+                    cand.up();
+                }
+                cand.up(); // transport
+                cand.up(); // content
+            }
+        }
+
+        // might merge last-candidate notification into this, but it is called
+        // a lot later. See webrtc issue #2340
+        // logger.log('was this the last candidate', this.lasticecandidate);
+        this.connection.sendIQ(
+            cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
+    }
+
+    /**
+     * Sends Jingle 'session-accept' message.
+     *
+     * @param {function()} success callback called when we receive 'RESULT' packet for the 'session-accept'.
+     * @param {function(error)} failure called when we receive an error response or when the request has timed out.
+     * @returns {void}
+     * @private
+     */
+    _sendSessionAccept(success, failure) {
+        // NOTE: since we're just reading from it, we don't need to be within
+        //  the modification queue to access the local description
+        const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
+        const accept = $iq({ to: this.remoteJid,
+            type: 'set' })
+            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
+                action: 'session-accept',
+                initiator: this.initiatorJid,
+                responder: this.responderJid,
+                sid: this.sid });
+
+        if (this.webrtcIceTcpDisable) {
+            localSDP.removeTcpCandidates = true;
+        }
+        if (this.webrtcIceUdpDisable) {
+            localSDP.removeUdpCandidates = true;
+        }
+        if (this.failICE) {
+            localSDP.failICE = true;
+        }
+        if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
+            localSDP.initialLastN = this.options.channelLastN;
+        }
+        localSDP.toJingle(
+            accept,
+            this.initiatorJid === this.localJid ? 'initiator' : 'responder');
+
+        logger.info(`${this} Sending session-accept`);
+        logger.debug(accept.tree());
+        this.connection.sendIQ(accept,
+            success,
+            this.newJingleErrorHandler(accept, error => {
+                failure(error);
+
+                // 'session-accept' is a critical timeout and we'll
+                // have to restart
+                this.room.eventEmitter.emit(
+                    XMPPEvents.SESSION_ACCEPT_TIMEOUT, this);
+            }),
+            IQ_TIMEOUT);
+
+        // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
+        // fingerprint and setup) ASAP in order to start the connection
+        // establishment.
+        //
+        // FIXME Flushing the connection at this point triggers an issue with
+        // BOSH request handling in Prosody on slow connections.
+        //
+        // The problem is that this request will be quite large and it may take
+        // time before it reaches Prosody. In the meantime Strophe may decide
+        // to send the next one. And it was observed that a small request with
+        // 'transport-info' usually follows this one. It does reach Prosody
+        // before the previous one was completely received. 'rid' on the server
+        // is increased and Prosody ignores the request with 'session-accept'.
+        // It will never reach Jicofo and everything in the request table is
+        // lost. Removing the flush does not guarantee it will never happen, but
+        // makes it much less likely('transport-info' is bundled with
+        // 'session-accept' and any immediate requests).
+        //
+        // this.connection.flush();
+    }
+
+    /**
+     * Sends 'session-initiate' to the remote peer.
+     *
+     * NOTE this method is synchronous and we're not waiting for the RESULT
+     * response which would delay the startup process.
+     *
+     * @param {string} offerSdp  - The local session description which will be used to generate an offer.
+     * @returns {void}
+     * @private
+     */
+    _sendSessionInitiate(offerSdp) {
+        let init = $iq({
+            to: this.remoteJid,
+            type: 'set'
+        }).c('jingle', {
+            xmlns: 'urn:xmpp:jingle:1',
+            action: 'session-initiate',
+            initiator: this.initiatorJid,
+            sid: this.sid
+        });
+
+        new SDP(offerSdp, this.isP2P).toJingle(
+            init,
+            this.isInitiator ? 'initiator' : 'responder');
+        init = init.tree();
+        logger.debug(`${this} Session-initiate: `, init);
+        this.connection.sendIQ(init,
+            () => {
+                logger.info(`${this} Got RESULT for "session-initiate"`);
+            },
+            error => {
+                logger.error(`${this} "session-initiate" error`, error);
+            },
+            IQ_TIMEOUT);
+    }
+
+    /**
      * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
      *
      * @param jingleOffer jQuery selector pointing to the jingle element of the offer IQ
@@ -837,7 +1115,7 @@ export default class JingleSessionPC extends JingleSession {
                 // FIXME we may not care about RESULT packet for session-accept
                 // then we should either call 'success' here immediately or
                 // modify sendSessionAccept method to do that
-                this.sendSessionAccept(() => {
+                this._sendSessionAccept(() => {
                     // Start processing tasks on the modification queue.
                     logger.debug(`${this} Resuming the modification queue after session is established!`);
                     this.modificationQueue.resume();
@@ -1176,7 +1454,7 @@ export default class JingleSessionPC extends JingleSession {
                 this._gatheringReported = true;
             }
             if (this.isP2P) {
-                this.sendIceCandidate(candidate);
+                this._sendIceCandidate(candidate);
             }
         };
 
@@ -1404,7 +1682,7 @@ export default class JingleSessionPC extends JingleSession {
             .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
             .then(() => {
                 this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
-                this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
+                this._sendSessionInitiate(this.peerconnection.localDescription.sdp);
             })
             .then(() => {
                 logger.debug(`${this} invite executed - OK`);
@@ -1930,284 +2208,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Sends 'content-modify' IQ in order to ask the remote peer to either stop or resume sending video media or to
-     * adjust sender's video constraints.
-     *
-     * @returns {void}
-     * @private
-     */
-    sendContentModify() {
-        const senders = this._localSendReceiveVideoActive ? 'both' : 'none';
-        const sessionModify
-            = $iq({
-                to: this.remoteJid,
-                type: 'set'
-            })
-                .c('jingle', {
-                    xmlns: 'urn:xmpp:jingle:1',
-                    action: 'content-modify',
-                    initiator: this.initiatorJid,
-                    sid: this.sid
-                })
-                .c('content', {
-                    name: MediaType.VIDEO,
-                    senders
-                });
-
-        if (typeof this._sourceReceiverConstraints !== 'undefined') {
-            this._sourceReceiverConstraints.forEach((maxHeight, sourceName) => {
-                sessionModify
-                    .c('source-frame-height', { xmlns: 'http://jitsi.org/jitmeet/video' })
-                    .attrs({
-                        sourceName,
-                        maxHeight
-                    });
-
-                sessionModify.up();
-                logger.info(`${this} sending content-modify for source-name: ${sourceName}, maxHeight: ${maxHeight}`);
-            });
-        }
-
-        logger.debug(sessionModify.tree());
-
-        this.connection.sendIQ(
-            sessionModify,
-            null,
-            this.newJingleErrorHandler(sessionModify),
-            IQ_TIMEOUT);
-    }
-
-    /**
-     * Sends given candidate in Jingle 'transport-info' message.
-     *
-     * @param {RTCIceCandidate} candidate the WebRTC ICE candidate instance
-     * @private
-     * @returns {void}
-     */
-    sendIceCandidate(candidate) {
-        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-        if (candidate && candidate.candidate.length && !this.lasticecandidate) {
-            const ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
-            const jcand = SDPUtil.candidateToJingle(candidate.candidate);
-
-            if (!(ice && jcand)) {
-                logger.error('failed to get ice && jcand');
-
-                return;
-            }
-            ice.xmlns = XEP.ICE_UDP_TRANSPORT;
-
-            if (this.usedrip) {
-                if (this.dripContainer.length === 0) {
-                    setTimeout(() => {
-                        if (this.dripContainer.length === 0) {
-                            return;
-                        }
-                        this.sendIceCandidates(this.dripContainer);
-                        this.dripContainer = [];
-                    }, ICE_CAND_GATHERING_TIMEOUT);
-                }
-                this.dripContainer.push(candidate);
-            } else {
-                this.sendIceCandidates([ candidate ]);
-            }
-        } else {
-            logger.log(`${this} sendIceCandidate: last candidate`);
-
-            // FIXME: remember to re-think in ICE-restart
-            this.lasticecandidate = true;
-        }
-    }
-
-    /**
-     * Sends given candidates in Jingle 'transport-info' message.
-     *
-     * @param {Array<RTCIceCandidate>} candidates an array of the WebRTC ICE candidate instances.
-     * @returns {void}
-     * @private
-     */
-    sendIceCandidates(candidates) {
-        if (!this._assertNotEnded('sendIceCandidates')) {
-
-            return;
-        }
-
-        logger.log(`${this} sendIceCandidates ${JSON.stringify(candidates)}`);
-        const cand = $iq({ to: this.remoteJid,
-            type: 'set' })
-            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
-                action: 'transport-info',
-                initiator: this.initiatorJid,
-                sid: this.sid });
-
-        const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-
-        for (let mid = 0; mid < localSDP.media.length; mid++) {
-            const cands = candidates.filter(el => el.sdpMLineIndex === mid);
-            const mline
-                = SDPUtil.parseMLine(localSDP.media[mid].split('\r\n')[0]);
-
-            if (cands.length > 0) {
-                const ice
-                    = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
-
-                ice.xmlns = XEP.ICE_UDP_TRANSPORT;
-                cand.c('content', {
-                    creator: this.initiatorJid === this.localJid
-                        ? 'initiator' : 'responder',
-                    name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
-                }).c('transport', ice);
-                for (let i = 0; i < cands.length; i++) {
-                    const candidate
-                        = SDPUtil.candidateToJingle(cands[i].candidate);
-
-                    // Mangle ICE candidate if 'failICE' test option is enabled
-
-                    if (this.failICE) {
-                        candidate.ip = '1.1.1.1';
-                    }
-                    cand.c('candidate', candidate).up();
-                }
-
-                // add fingerprint
-                const fingerprintLine
-                    = SDPUtil.findLine(
-                        localSDP.media[mid],
-                        'a=fingerprint:', localSDP.session);
-
-                if (fingerprintLine) {
-                    const tmp = SDPUtil.parseFingerprint(fingerprintLine);
-
-                    tmp.required = true;
-                    cand.c(
-                        'fingerprint',
-                        { xmlns: 'urn:xmpp:jingle:apps:dtls:0' })
-                        .t(tmp.fingerprint);
-                    delete tmp.fingerprint;
-                    cand.attrs(tmp);
-                    cand.up();
-                }
-                cand.up(); // transport
-                cand.up(); // content
-            }
-        }
-
-        // might merge last-candidate notification into this, but it is called
-        // a lot later. See webrtc issue #2340
-        // logger.log('was this the last candidate', this.lasticecandidate);
-        this.connection.sendIQ(
-            cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
-    }
-
-    /**
-     * Sends Jingle 'session-accept' message.
-     *
-     * @param {function()} success callback called when we receive 'RESULT' packet for the 'session-accept'.
-     * @param {function(error)} failure called when we receive an error response or when the request has timed out.
-     * @returns {void}
-     * @private
-     */
-    sendSessionAccept(success, failure) {
-        // NOTE: since we're just reading from it, we don't need to be within
-        //  the modification queue to access the local description
-        const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
-        const accept = $iq({ to: this.remoteJid,
-            type: 'set' })
-            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
-                action: 'session-accept',
-                initiator: this.initiatorJid,
-                responder: this.responderJid,
-                sid: this.sid });
-
-        if (this.webrtcIceTcpDisable) {
-            localSDP.removeTcpCandidates = true;
-        }
-        if (this.webrtcIceUdpDisable) {
-            localSDP.removeUdpCandidates = true;
-        }
-        if (this.failICE) {
-            localSDP.failICE = true;
-        }
-        if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
-            localSDP.initialLastN = this.options.channelLastN;
-        }
-        localSDP.toJingle(
-            accept,
-            this.initiatorJid === this.localJid ? 'initiator' : 'responder');
-
-        logger.info(`${this} Sending session-accept`);
-        logger.debug(accept.tree());
-        this.connection.sendIQ(accept,
-            success,
-            this.newJingleErrorHandler(accept, error => {
-                failure(error);
-
-                // 'session-accept' is a critical timeout and we'll
-                // have to restart
-                this.room.eventEmitter.emit(
-                    XMPPEvents.SESSION_ACCEPT_TIMEOUT, this);
-            }),
-            IQ_TIMEOUT);
-
-        // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
-        // fingerprint and setup) ASAP in order to start the connection
-        // establishment.
-        //
-        // FIXME Flushing the connection at this point triggers an issue with
-        // BOSH request handling in Prosody on slow connections.
-        //
-        // The problem is that this request will be quite large and it may take
-        // time before it reaches Prosody. In the meantime Strophe may decide
-        // to send the next one. And it was observed that a small request with
-        // 'transport-info' usually follows this one. It does reach Prosody
-        // before the previous one was completely received. 'rid' on the server
-        // is increased and Prosody ignores the request with 'session-accept'.
-        // It will never reach Jicofo and everything in the request table is
-        // lost. Removing the flush does not guarantee it will never happen, but
-        // makes it much less likely('transport-info' is bundled with
-        // 'session-accept' and any immediate requests).
-        //
-        // this.connection.flush();
-    }
-
-    /**
-     * Sends 'session-initiate' to the remote peer.
-     *
-     * NOTE this method is synchronous and we're not waiting for the RESULT
-     * response which would delay the startup process.
-     *
-     * @param {string} offerSdp  - The local session description which will be used to generate an offer.
-     * @returns {void}
-     * @private
-     */
-    sendSessionInitiate(offerSdp) {
-        let init = $iq({
-            to: this.remoteJid,
-            type: 'set'
-        }).c('jingle', {
-            xmlns: 'urn:xmpp:jingle:1',
-            action: 'session-initiate',
-            initiator: this.initiatorJid,
-            sid: this.sid
-        });
-
-        new SDP(offerSdp, this.isP2P).toJingle(
-            init,
-            this.isInitiator ? 'initiator' : 'responder');
-        init = init.tree();
-        logger.debug(`${this} Session-initiate: `, init);
-        this.connection.sendIQ(init,
-            () => {
-                logger.info(`${this} Got RESULT for "session-initiate"`);
-            },
-            error => {
-                logger.error(`${this} "session-initiate" error`, error);
-            },
-            IQ_TIMEOUT);
-    }
-
-    /**
      * Sets the answer received from the remote peer as the remote description.
      *
      * @param {Element} jingleAnswer - The jingle answer element.
@@ -2237,7 +2237,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.modificationQueue.resume();
                     const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-                    this.sendContentModify();
+                    this._sendContentModify();
                     this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
                 }
             })
@@ -2331,7 +2331,7 @@ export default class JingleSessionPC extends JingleSession {
                     // up our SDP translation chain (simulcast, video mute, RTX etc.)
                     // #2 Sends the max frame height if it was set, before the session-initiate/accept
                     if (this.isP2P && (!this._localSendReceiveVideoActive || this._sourceReceiverConstraints)) {
-                        this.sendContentModify();
+                        this._sendContentModify();
                     }
                 }
 
@@ -2363,7 +2363,7 @@ export default class JingleSessionPC extends JingleSession {
         if (this._localSendReceiveVideoActive !== videoActive) {
             this._localSendReceiveVideoActive = videoActive;
             if (this.isP2P && this.state === JingleSessionState.ACTIVE) {
-                this.sendContentModify();
+                this._sendContentModify();
             }
 
             return this.peerconnection
@@ -2388,7 +2388,7 @@ export default class JingleSessionPC extends JingleSession {
             // Tell the remote peer about our receive constraint. If Jingle session is not yet active the state will
             // be synced after offer/answer.
             if (this.state === JingleSessionState.ACTIVE) {
-                this.sendContentModify();
+                this._sendContentModify();
             }
         }
     }
