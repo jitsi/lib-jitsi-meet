@@ -1139,9 +1139,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
     const ssrcMap = new Map();
 
     if (!localSDP || typeof localSDP !== 'string') {
-        this._localSsrcMap = ssrcMap;
-
-        return;
+        throw new Error('Local SDP must be a valid string, aborting!!');
     }
     const session = transform.parse(localSDP);
     const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY

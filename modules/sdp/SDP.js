@@ -514,9 +514,7 @@ export default class SDP {
                     const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
 
                     ssrcGroupLines.forEach(line => {
-                        const idx = line.indexOf(' ');
-                        const semantics = line.substr(0, idx).substr(13);
-                        const ssrcs = line.substr(14 + semantics.length).split(' ');
+                        const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
 
                         if (ssrcs.length) {
                             const group = Strophe.xmlElement('ssrc-group', {
@@ -605,9 +603,7 @@ export default class SDP {
                     const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
 
                     ssrcGroupLines.forEach(line => {
-                        const idx = line.indexOf(' ');
-                        const semantics = line.substr(0, idx).substr(13);
-                        const ssrcs = line.substr(14 + semantics.length).split(' ');
+                        const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
 
                         if (ssrcs.length) {
                             elem.c('ssrc-group', {
