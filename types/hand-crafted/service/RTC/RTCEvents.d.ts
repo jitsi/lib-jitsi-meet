@@ -8,7 +8,6 @@ export enum RTCEvents {
   PERMISSIONS_CHANGED = 'rtc.permissions_changed',
   SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
   LASTN_VALUE_CHANGED = 'rtc.lastn_value_changed',
-  LOCAL_TRACK_SSRC_UPDATED = 'rtc.local_track_ssrc_updated',
   LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = 'rtc.local_track_max_enabled_resolution_changed',
   TRACK_ATTACHED = 'rtc.track_attached',
   REMOTE_TRACK_ADDED = 'rtc.remote_track_added',

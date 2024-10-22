@@ -14,7 +14,6 @@ describe( "/service/RTC/RTCEvents members", () => {
         PERMISSIONS_CHANGED,
         SENDER_VIDEO_CONSTRAINTS_CHANGED,
         LASTN_VALUE_CHANGED,
-        LOCAL_TRACK_SSRC_UPDATED,
         LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
         TRACK_ATTACHED,
         REMOTE_TRACK_ADDED,
@@ -49,7 +48,6 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
         expect( LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );
-        expect( LOCAL_TRACK_SSRC_UPDATED ).toBe( 'rtc.local_track_ssrc_updated' );
         expect( LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED ).toBe( 'rtc.local_track_max_enabled_resolution_changed' );
         expect( TRACK_ATTACHED ).toBe( 'rtc.track_attached' );
         expect( REMOTE_TRACK_ADDED ).toBe( 'rtc.remote_track_added' );
@@ -79,7 +77,6 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEvents.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
             expect( RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
             expect( RTCEvents.LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );
-            expect( RTCEvents.LOCAL_TRACK_SSRC_UPDATED ).toBe( 'rtc.local_track_ssrc_updated' );
             expect( RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED ).toBe( 'rtc.local_track_max_enabled_resolution_changed' );
             expect( RTCEvents.TRACK_ATTACHED ).toBe( 'rtc.track_attached' );
             expect( RTCEvents.REMOTE_TRACK_ADDED ).toBe( 'rtc.remote_track_added' );
@@ -110,7 +107,6 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEventsDefault.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
             expect( RTCEventsDefault.SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
             expect( RTCEventsDefault.LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );
-            expect( RTCEventsDefault.LOCAL_TRACK_SSRC_UPDATED ).toBe( 'rtc.local_track_ssrc_updated' );
             expect( RTCEventsDefault.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED ).toBe( 'rtc.local_track_max_enabled_resolution_changed' );
             expect( RTCEventsDefault.TRACK_ATTACHED ).toBe( 'rtc.track_attached' );
             expect( RTCEventsDefault.REMOTE_TRACK_ADDED ).toBe( 'rtc.remote_track_added' );
