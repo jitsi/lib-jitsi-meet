@@ -8,7 +8,6 @@ export default class JingleSessionPC extends JingleSession {
   static parseVideoSenders: ( jingleContents: JQuery ) => string | null;
   constructor( sid: string, localJid: string, remoteJid: string, connection: XmppConnection, mediaConstraints: unknown, iceConfig: unknown, isP2P: boolean, isInitiator: boolean ); // TODO:
   doInitialize: ( options: {} ) => void;
-  getRemoteRecvMaxFrameHeight: () => number | undefined;
   sendIceCandidate: ( candidate: RTCIceCandidate ) => void;
   sendIceCandidates: ( candidates: RTCIceCandidate[] ) => void;
   addIceCandidates: ( elem: unknown ) => void; // TODO:
