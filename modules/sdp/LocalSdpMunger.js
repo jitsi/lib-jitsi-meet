@@ -41,9 +41,9 @@ export default class LocalSdpMunger {
         let sourceName;
 
         if (ssrcMap.size) {
-            for (const [ id, trackSsrcs ] of ssrcMap.entries()) {
-                const sortedSources = sources.slice().sort();
+            const sortedSources = sources.slice().sort();
 
+            for (const [ id, trackSsrcs ] of ssrcMap.entries()) {
                 if (isEqual(sortedSources, [ ...trackSsrcs.ssrcs ].sort())) {
                     sourceName = id;
                 }
