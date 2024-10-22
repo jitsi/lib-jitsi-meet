@@ -275,16 +275,14 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.PHONE_NUMBER_CHANGED,
         JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
 
-    chatRoom.setParticipantPropertyListener((node, from) => {
-        const participant = conference.getParticipantById(from);
+    chatRoom.setParticipantPropertyListener((id, prop, value) => {
+        const participant = conference.getParticipantById(id);
 
         if (!participant) {
             return;
         }
 
-        participant.setProperty(
-            node.tagName.substring('jitsi_participant_'.length),
-            node.value);
+        participant.setProperty(prop, value);
     });
 
     chatRoom.addListener(XMPPEvents.KICKED,
