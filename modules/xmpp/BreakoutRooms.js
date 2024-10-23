@@ -7,6 +7,7 @@ const FEATURE_KEY = 'features/breakout-rooms';
 const BREAKOUT_ROOM_ACTIONS = {
     ADD: `${FEATURE_KEY}/add`,
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
+    MESSAGE_TO_ROOM: `${FEATURE_KEY}/message-to-room`,
     REMOVE: `${FEATURE_KEY}/remove`,
     RENAME: `${FEATURE_KEY}/rename`
 };
@@ -88,11 +89,11 @@ export default class BreakoutRooms {
     /**
      * Changes the subject of a breakout room.
      *
-     * @param {string} breakoutRoomJid - JID of the room to be removed.
+     * @param {string} breakoutRoomJid - JID of the room to be renamed.
      * @param {string} subject - A new subject for the breakout room.
      */
     renameBreakoutRoom(breakoutRoomJid, subject) {
-        if (!this.isSupported() || !this.room.isModerator()) {
+        if (!this.isSupported() || !this.isFeatureSupported('rename') || !this.room.isModerator()) {
             logger.error(`Cannot rename breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
 
@@ -129,6 +130,47 @@ export default class BreakoutRooms {
         };
 
         this._sendMessage(message);
+    }
+
+    /**
+     * Sends a message to a breakout room.
+     *
+     * @param {string} roomJid - JID of the room to send the message to.
+     * @param {string} textContent - The message content.
+     */
+    sendMessageToRoom(roomJid, textContent) {
+        if (!this.isSupported() || !this.isFeatureSupported('broadcast') || !this.room.isModerator()) {
+            logger.error(`Cannot send message to room - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        const message = {
+            type: BREAKOUT_ROOM_ACTIONS.MESSAGE_TO_ROOM,
+            roomJid,
+            textContent
+        };
+
+        this._sendMessage(message);
+    }
+
+    /**
+     * Sends a message to all breakout rooms.
+     *
+     * @param {string} textContent - The message content.
+     */
+    sendBroadcastMessage(textContent) {
+        if (!this.isSupported() || !this.isFeatureSupported('broadcast') || !this.room.isModerator()) {
+            logger.error(`Cannot send broadcast message - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        Object.values(this._rooms).forEach(room => {
+            this.sendMessageToRoom(room.jid, textContent);
+        });
     }
 
     /**
