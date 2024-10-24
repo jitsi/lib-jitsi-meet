@@ -1,7 +1,6 @@
 import $ from 'jquery';
 
 import { MockRTC } from '../RTC/MockClasses';
-import FeatureFlags from '../flags/FeatureFlags';
 
 import JingleSessionPC from './JingleSessionPC';
 import * as JingleSessionState from './JingleSessionState';
@@ -64,10 +63,6 @@ describe('JingleSessionPC', () => {
     });
 
     describe('send/receive video constraints w/ source-name', () => {
-        beforeEach(() => {
-            FeatureFlags.init({ });
-        });
-
         it('sends content-modify with recv frame size', () => {
             const sendIQSpy = spyOn(connection, 'sendIQ').and.callThrough();
             const sourceConstraints = new Map();

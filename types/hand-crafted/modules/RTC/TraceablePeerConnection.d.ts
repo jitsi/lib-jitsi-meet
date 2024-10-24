@@ -75,7 +75,7 @@ export default class TraceablePeerConnection {
   getLocalVideoTrack: () => JitsiLocalTrack | undefined;
   hasAnyTracksOfType: ( mediaType: MediaType ) => boolean;
   getRemoteTracks: ( endpointId: string, mediaType: MediaType ) => JitsiRemoteTrack[];
-  getRemoteSourceInfoByParticipant: ( id: string ) => string[]; // TODO:
+  getRemoteSourceInfoByParticipant: ( id: string ) => Map<string, TPCSourceInfo>; // TODO:
   getTargetVideoBitrates: () => unknown; // TODO:
   getTrackBySSRC: ( ssrc: number ) => JitsiTrack | null;
   getSsrcByTrackId: ( id: string ) => number | null;
