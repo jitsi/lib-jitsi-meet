@@ -772,6 +772,8 @@ export default class ChatRoom extends Listenable {
             }
         }
 
+        const participantProperties = new Map();
+
         // after we had fired member or room joined events, lets fire events
         // for the rest info we got in presence
         for (let i = 0; i < nodes.length; i++) {
@@ -816,13 +818,6 @@ export default class ChatRoom extends Listenable {
                     }
 
                     this.eventEmitter.emit(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
-
-                    // Log if Jicofo supports restart by terminate only once. This conference property does not change
-                    // during the call.
-                    if (typeof this.restartByTerminateSupported === 'undefined') {
-                        this.restartByTerminateSupported = properties['support-terminate-restart'] === 'true';
-                        logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
-                    }
                 }
                 break;
             case 'transcription-status': {
@@ -857,9 +852,22 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
-            default:
-                this.processNode(node, from);
+            default: {
+                if (node.tagName.startsWith('jitsi_participant_')) {
+                    participantProperties
+                        .set(node.tagName.substring('jitsi_participant_'.length), node.value);
+                } else {
+                    this.processNode(node, from);
+                }
             }
+            }
+        }
+
+        // All participant properties are in `participantProperties`, call the event handlers now.
+        const participantId = Strophe.getResourceFromJid(from);
+
+        for (const [ key, value ] of participantProperties) {
+            this.participantPropertyListener(participantId, key, value);
         }
 
         // Trigger status message update if necessary
@@ -914,14 +922,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Checks if Jicofo supports restarting Jingle session after 'session-terminate'.
-     * @returns {boolean}
-     */
-    supportsRestartByTerminate() {
-        return this.restartByTerminateSupported;
-    }
-
-    /**
      *
      * @param node
      * @param from
@@ -930,17 +930,11 @@ export default class ChatRoom extends Listenable {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe
         try {
-            let tagHandlers = this.presHandlers[node.tagName];
+            const tagHandlers = this.presHandlers[node.tagName] ?? [];
 
-            if (node.tagName.startsWith('jitsi_participant_')) {
-                tagHandlers = [ this.participantPropertyListener ];
-            }
-
-            if (tagHandlers) {
-                tagHandlers.forEach(handler => {
-                    handler(node, Strophe.getResourceFromJid(from), from);
-                });
-            }
+            tagHandlers.forEach(handler => {
+                handler(node, Strophe.getResourceFromJid(from), from);
+            });
         } catch (e) {
             logger.error(`Error processing:${node.tagName} node.`, e);
         }

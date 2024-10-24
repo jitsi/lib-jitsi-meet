@@ -284,6 +284,21 @@ const SDPUtil = {
     },
 
     /**
+     * Parses the 'a=ssrc-group' line.
+     *
+     * @param {string} line - The media line to parse.
+     * @returns {object}
+     */
+    parseSSRCGroupLine(line) {
+        const parts = line.substr(13).split(' ');
+
+        return {
+            semantics: parts.shift(),
+            ssrcs: parts
+        };
+    },
+
+    /**
      * Gets the source name out of the name attribute "a=ssrc:254321 name:name1".
      *
      * @param {string[]} ssrcLines

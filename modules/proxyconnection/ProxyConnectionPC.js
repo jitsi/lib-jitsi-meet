@@ -225,8 +225,7 @@ export default class ProxyConnectionPC {
             connectionTimes: [],
             eventEmitter: { emit: emitter },
             removeEventListener: () => { /* no op */ },
-            removePresenceListener: () => { /* no-op */ },
-            supportsRestartByTerminate: () => false
+            removePresenceListener: () => { /* no-op */ }
         };
 
         /**

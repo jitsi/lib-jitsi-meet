@@ -327,6 +327,13 @@ export default function TraceablePeerConnection(
      */
     this._localTrackTransceiverMids = new Map();
 
+    /**
+     * Holds the SSRC map for the local tracks.
+     *
+     * @type {Map<string, TPCSSRCInfo>}
+     */
+    this._localSsrcMap = null;
+
     // override as desired
     this.trace = (what, info) => {
         logger.trace(what, info);
@@ -1123,117 +1130,81 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
 };
 
 /**
- * Returns a map with keys msid/mediaType and <tt>TrackSSRCInfo</tt> values.
- * @param {RTCSessionDescription} desc the local description.
- * @return {Map<string,TrackSSRCInfo>}
+ * Processes the local SDP and creates an SSRC map for every local track.
+ *
+ * @param {string} localSDP - SDP from the local description.
+ * @returns {void}
  */
-TraceablePeerConnection.prototype._extractSSRCMap = function(desc) {
-    /**
-     * Track SSRC infos mapped by stream ID (msid) or mediaType (unified-plan)
-     * @type {Map<string,TrackSSRCInfo>}
-     */
+TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localSDP) {
     const ssrcMap = new Map();
 
-    /**
-     * Groups mapped by primary SSRC number
-     * @type {Map<number,Array<SSRCGroupInfo>>}
-     */
-    const groupsMap = new Map();
-
-    if (typeof desc !== 'object' || desc === null
-        || typeof desc.sdp !== 'string') {
-        logger.warn('An empty description was passed as an argument');
-
-        return ssrcMap;
+    if (!localSDP || typeof localSDP !== 'string') {
+        throw new Error('Local SDP must be a valid string, aborting!!');
     }
-
-    const session = transform.parse(desc.sdp);
-
-    if (!Array.isArray(session.media)) {
-        return ssrcMap;
-    }
-
-    let media = session.media;
-
-    media = media.filter(mline => mline.direction === MediaDirection.SENDONLY
+    const session = transform.parse(localSDP);
+    const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
         || mline.direction === MediaDirection.SENDRECV);
 
-    let index = 0;
+    if (!Array.isArray(media)) {
+        this._localSsrcMap = ssrcMap;
 
-    for (const mLine of media) {
-        if (!Array.isArray(mLine.ssrcs)) {
-            continue; // eslint-disable-line no-continue
-        }
-
-        if (Array.isArray(mLine.ssrcGroups)) {
-            for (const group of mLine.ssrcGroups) {
-                if (typeof group.semantics !== 'undefined' && typeof group.ssrcs !== 'undefined') {
-                    // Parse SSRCs and store as numbers
-                    const groupSSRCs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
-                    const primarySSRC = groupSSRCs[0];
-
-                    // Note that group.semantics is already present
-                    group.ssrcs = groupSSRCs;
-
-                    // eslint-disable-next-line max-depth
-                    if (!groupsMap.has(primarySSRC)) {
-                        groupsMap.set(primarySSRC, []);
-                    }
-                    groupsMap.get(primarySSRC).push(group);
-                }
-            }
-
-            const simGroup = mLine.ssrcGroups.find(group => group.semantics === 'SIM');
-
-            // Add a SIM group if its missing in the description (happens on Firefox).
-            if (!simGroup) {
-                const groupSsrcs = mLine.ssrcGroups.map(group => group.ssrcs[0]);
-
-                groupsMap.get(groupSsrcs[0]).push({
-                    semantics: 'SIM',
-                    ssrcs: groupSsrcs
-                });
-            }
-        }
-
-        let ssrcs = mLine.ssrcs;
-
-        // Filter the ssrcs with 'cname' attribute.
-        ssrcs = ssrcs.filter(s => s.attribute === 'cname');
-
-        for (const ssrc of ssrcs) {
-            // Use the mediaType as key for the source map for unified plan clients since msids are not part of
-            // the standard and the unified plan SDPs do not have a proper msid attribute for the sources.
-            // Also the ssrcs for sources do not change for Unified plan clients since RTCRtpSender#replaceTrack is
-            // used for switching the tracks so it is safe to use the mediaType as the key for the TrackSSRCInfo map.
-            const key = `${mLine.type}-${index}`;
-            const ssrcNumber = ssrc.id;
-            let ssrcInfo = ssrcMap.get(key);
-
-            if (!ssrcInfo) {
-                ssrcInfo = {
-                    ssrcs: [],
-                    groups: [],
-                    msid: key
-                };
-                ssrcMap.set(key, ssrcInfo);
-            }
-            ssrcInfo.ssrcs.push(ssrcNumber);
-
-            if (groupsMap.has(ssrcNumber)) {
-                const ssrcGroups = groupsMap.get(ssrcNumber);
-
-                for (const group of ssrcGroups) {
-                    ssrcInfo.groups.push(group);
-                }
-            }
-        }
-
-        // Currently multi-stream is supported for video only.
-        mLine.type === MediaType.VIDEO && index++;
+        return;
     }
 
-    return ssrcMap;
+    for (const localTrack of this.localTracks.values()) {
+        const sourceName = localTrack.getSourceName();
+        const trackIndex = getSourceIndexFromSourceName(sourceName);
+        const mediaType = localTrack.getType();
+        const mLines = media.filter(m => m.type === mediaType);
+        const ssrcGroups = mLines[trackIndex].ssrcGroups;
+        let ssrcs = mLines[trackIndex].ssrcs;
+
+        if (ssrcs?.length) {
+            // Filter the ssrcs with 'cname' attribute.
+            ssrcs = ssrcs.filter(s => s.attribute === 'cname');
+
+            const msid = `${this.rtc.getLocalEndpointId()}-${mediaType}-${trackIndex}`;
+            const ssrcInfo = {
+                ssrcs: [],
+                groups: [],
+                msid
+            };
+
+            ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
+
+            if (ssrcGroups?.length) {
+                for (const group of ssrcGroups) {
+                    group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
+                    ssrcInfo.groups.push(group);
+                }
+
+                const simGroup = ssrcGroups.find(group => group.semantics === 'SIM');
+
+                // Add a SIM group if its missing in the description (happens on Firefox).
+                if (this.isSpatialScalabilityOn() && !simGroup) {
+                    const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
+
+                    ssrcInfo.groups.push({
+                        semantics: 'SIM',
+                        ssrcs: groupSsrcs
+                    });
+                }
+            }
+
+            ssrcMap.set(sourceName, ssrcInfo);
+
+            const oldSsrcInfo = this.localSSRCs.get(localTrack.rtcId);
+            const oldSsrc = this._extractPrimarySSRC(oldSsrcInfo);
+            const newSsrc = this._extractPrimarySSRC(ssrcInfo);
+
+            if (oldSsrc !== newSsrc) {
+                oldSsrc && logger.debug(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
+                this.localSSRCs.set(localTrack.rtcId, ssrcInfo);
+                localTrack.setSsrc(newSsrc);
+            }
+        }
+    }
+    this._localSsrcMap = ssrcMap;
 };
 
 /**
@@ -1322,15 +1293,12 @@ const getters = {
 
         // For a jvb connection, transform the SDP to Plan B first.
         if (!this.isP2P) {
-            desc = this.interop.toPlanB(desc);
-            this.trace('getLocalDescription::postTransform (Plan B)', dumpSDP(desc));
-
             desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
         }
 
         // See the method's doc for more info about this transformation.
-        desc = this.localSdpMunger.transformStreamIdentifiers(desc);
+        desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
 
         return desc;
     },
@@ -1505,6 +1473,7 @@ TraceablePeerConnection.prototype._updateAv1DdHeaders = function(description) {
  */
 TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false) {
     const rtcId = track.rtcId;
+    let transceiver;
 
     logger.info(`${this} adding ${track}`);
     if (this.localTracks.has(rtcId)) {
@@ -1516,18 +1485,23 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
     const webrtcStream = track.getOriginalStream();
 
     try {
-        this.tpcUtils.addTrack(track, isInitiator);
-        if (track) {
-            if (track.isAudioTrack()) {
-                this._hasHadAudioTrack = true;
-            } else {
-                this._hasHadVideoTrack = true;
-            }
-        }
+        transceiver = this.tpcUtils.addTrack(track, isInitiator);
     } catch (error) {
         logger.error(`${this} Adding track=${track} failed: ${error?.message}`);
 
         return Promise.reject(error);
+    }
+
+    if (transceiver?.mid) {
+        this._localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
+    }
+
+    if (track) {
+        if (track.isAudioTrack()) {
+            this._hasHadAudioTrack = true;
+        } else {
+            this._hasHadVideoTrack = true;
+        }
     }
 
     let promiseChain = Promise.resolve();
@@ -1643,7 +1617,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function(localTrack)
  * @returns {Array}
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(description) {
-    const currentSdp = description?.sdp ?? this.peerconnection.localDescription?.sdp;
+    const currentSdp = description?.sdp ?? this.localDescription?.sdp;
 
     if (!currentSdp) {
         return [];
@@ -1746,7 +1720,7 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
-    const localSdp = this.peerconnection.localDescription?.sdp;
+    const localSdp = this.localDescription?.sdp;
 
     if (!localSdp) {
         return;
@@ -1817,23 +1791,21 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
                 }
             }
 
-            if (transceiver) {
-                // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
-                // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
-                // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
-                // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
-                // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
-                // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
-                // be reused on a new m-line and if the remote participant is FF due to
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
-                // That's why we need keep the direction to SENDRECV for FF.
-                //
-                // NOTE: If we return back to the approach of not removing the track for FF and instead using the
-                // enabled property for mute or stopping screensharing we may need to change the direction to
-                // RECVONLY if FF still sends the media even though the enabled flag is set to false.
-                transceiver.direction
-                    = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
-            }
+            // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
+            // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
+            // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
+            // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
+            // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
+            // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
+            // be reused on a new m-line and if the remote participant is FF due to
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
+            // That's why we need keep the direction to SENDRECV for FF.
+            //
+            // NOTE: If we return back to the approach of not removing the track for FF and instead using the
+            // enabled property for mute or stopping screensharing we may need to change the direction to
+            // RECVONLY if FF still sends the media even though the enabled flag is set to false.
+            transceiver.direction
+                = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
 
             // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
             const configureEncodingsPromise
@@ -2599,9 +2571,7 @@ TraceablePeerConnection.prototype.createOffer = function(constraints) {
     return this._createOfferOrAnswer(true /* offer */, constraints);
 };
 
-TraceablePeerConnection.prototype._createOfferOrAnswer = function(
-        isOffer,
-        constraints) {
+TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, constraints) {
     const logName = isOffer ? 'Offer' : 'Answer';
 
     this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
@@ -2631,9 +2601,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            const ssrcMap = this._extractSSRCMap(resultSdp);
-
-            this._processLocalSSRCsMap(ssrcMap);
+            this._processAndExtractSourceInfo(resultSdp.sdp);
 
             resolveFn(resultSdp);
         } catch (e) {
@@ -2718,47 +2686,6 @@ TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
     }
 
     return null;
-};
-
-/**
- * Goes over the SSRC map extracted from the latest local description and tries
- * to match them with the local tracks (by MSID). Will update the values
- * currently stored in the {@link TraceablePeerConnection.localSSRCs} map.
- * @param {Map<string,TrackSSRCInfo>} ssrcMap
- * @private
- */
-TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
-    for (const track of this.localTracks.values()) {
-        const sourceName = track.getSourceName();
-        const sourceIndex = getSourceIndexFromSourceName(sourceName);
-        const sourceIdentifier = `${track.getType()}-${sourceIndex}`;
-
-        if (ssrcMap.has(sourceIdentifier)) {
-            const newSSRC = ssrcMap.get(sourceIdentifier);
-
-            if (!newSSRC) {
-                logger.error(`${this} No SSRC found for stream=${sourceIdentifier}`);
-
-                return;
-            }
-            const oldSSRC = this.localSSRCs.get(track.rtcId);
-            const newSSRCNum = this._extractPrimarySSRC(newSSRC);
-            const oldSSRCNum = this._extractPrimarySSRC(oldSSRC);
-
-            // eslint-disable-next-line no-negated-condition
-            if (newSSRCNum !== oldSSRCNum) {
-                oldSSRCNum && logger.error(`${this} Overwriting SSRC for track=${track}] with ssrc=${newSSRC}`);
-                this.localSSRCs.set(track.rtcId, newSSRC);
-                track.setSsrc(newSSRCNum);
-                this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
-            }
-        } else if (!track.isVideoTrack() && !track.isMuted()) {
-            // It is normal to find no SSRCs for a muted video track in
-            // the local SDP as the recv-only SSRC is no longer munged in.
-            // So log the warning only if it's not a muted video track.
-            logger.warn(`${this} No SSRCs found in the local SDP for track=${track}, stream=${sourceIdentifier}`);
-        }
-    }
 };
 
 /**

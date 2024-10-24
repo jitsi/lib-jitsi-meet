@@ -8,13 +8,10 @@ const logger = getLogger(__filename);
 /**
  * This class deals with shenanigans around JVB media session's ICE failed status handling.
  *
- * If ICE restarts are NOT explicitly enabled by the {@code enableIceRestart} config option, then the conference will
- * delay emitting the {@JitsiConferenceErrors.ICE_FAILED} event by 15 seconds. If the network info module reports
- * the internet offline status then the time will start counting after the internet comes back online.
- *
- * If ICE restart are enabled, then a delayed ICE failed notification to Jicofo will be sent, only if the ICE connection
- * does not recover soon after or before the XMPP connection is restored (if it was ever broken). If ICE fails while
- * the XMPP connection is not broken then the notifications will be sent after 2 seconds delay.
+ * If ICE connection is not re-established within 2 secs after the internet comes back online, the client will initiate
+ * a session restart via 'session-terminate'. This results in Jicofo re-inviting the participant into the conference by
+ * recreating the jvb media session so that there is minimla disruption to the user by default. However, if the
+ * 'enableForcedReload' option is set in config.js, the conference will be forcefully reloaded.
  */
 export default class IceFailedHandling {
     /**
@@ -36,23 +33,15 @@ export default class IceFailedHandling {
             return;
         }
 
-        const { enableForcedReload, enableIceRestart } = this._conference.options.config;
-        const explicitlyDisabled = typeof enableIceRestart !== 'undefined' && !enableIceRestart;
-        const supportsRestartByTerminate = this._conference.room.supportsRestartByTerminate();
-        const useTerminateForRestart = supportsRestartByTerminate && !enableIceRestart;
+        const { enableForcedReload } = this._conference.options.config;
 
-        logger.info('ICE failed,'
-            + ` enableForcedReload: ${enableForcedReload},`
-            + ` enableIceRestart: ${enableIceRestart},`
-            + ` supports restart by terminate: ${supportsRestartByTerminate}`);
+        logger.info(`ICE failed, enableForcedReload: ${enableForcedReload}`);
 
-        if (explicitlyDisabled || (!enableIceRestart && !supportsRestartByTerminate) || enableForcedReload) {
-            logger.info('ICE failed, but ICE restarts are disabled');
-            const reason = enableForcedReload
-                ? JitsiConferenceErrors.CONFERENCE_RESTARTED
-                : JitsiConferenceErrors.ICE_FAILED;
-
-            this._conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, reason);
+        if (enableForcedReload) {
+            logger.info('ICE failed, force reloading the conference');
+            this._conference.eventEmitter.emit(
+                JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.CONFERENCE_RESTARTED);
 
             return;
         }
@@ -65,19 +54,13 @@ export default class IceFailedHandling {
         } else if (jvbConnIceState === 'connected') {
             logger.info('ICE connection restored - not sending ICE failed');
         } else {
-            logger.info('Sending ICE failed - the connection did not recover, '
-                + `ICE state: ${jvbConnIceState}, `
-                + `use 'session-terminate': ${useTerminateForRestart}`);
-            if (useTerminateForRestart) {
-                this._conference._stopJvbSession({
-                    reason: 'connectivity-error',
-                    reasonDescription: 'ICE FAILED',
-                    requestRestart: true,
-                    sendSessionTerminate: true
-                });
-            } else {
-                this._conference.jvbJingleSession.sendIceFailedNotification();
-            }
+            logger.info(`Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`);
+            this._conference._stopJvbSession({
+                reason: 'connectivity-error',
+                reasonDescription: 'ICE FAILED',
+                requestRestart: true,
+                sendSessionTerminate: true
+            });
         }
     }
 

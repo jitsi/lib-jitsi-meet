@@ -31,14 +31,6 @@ export enum RTCEvents {
     LASTN_VALUE_CHANGED = 'rtc.lastn_value_changed',
 
     /**
-     * Event emitted when ssrc for a local track is extracted and stored
-     * in {@link TraceablePeerConnection}.
-     * @param {JitsiLocalTrack} track which ssrc was updated
-     * @param {string} ssrc that was stored
-     */
-    LOCAL_TRACK_SSRC_UPDATED = 'rtc.local_track_ssrc_updated',
-
-    /**
      * The max enabled resolution of a local video track was changed.
      */
     LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = 'rtc.local_track_max_enabled_resolution_changed',
@@ -135,7 +127,6 @@ export const FORWARDED_SOURCES_CHANGED = RTCEvents.FORWARDED_SOURCES_CHANGED;
 export const PERMISSIONS_CHANGED = RTCEvents.PERMISSIONS_CHANGED;
 export const SENDER_VIDEO_CONSTRAINTS_CHANGED = RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED;
 export const LASTN_VALUE_CHANGED = RTCEvents.LASTN_VALUE_CHANGED;
-export const LOCAL_TRACK_SSRC_UPDATED = RTCEvents.LOCAL_TRACK_SSRC_UPDATED;
 export const LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED;
 export const TRACK_ATTACHED = RTCEvents.TRACK_ATTACHED;
 export const REMOTE_TRACK_ADDED = RTCEvents.REMOTE_TRACK_ADDED;
