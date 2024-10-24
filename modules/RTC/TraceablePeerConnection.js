@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { Interop } from '@jitsi/sdp-interop';
+import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
@@ -289,8 +289,6 @@ export default function TraceablePeerConnection(
      */
     this.maxstats = options.maxstats;
 
-    this.interop = new Interop();
-
     this.simulcast = new SdpSimulcast();
 
     /**
@@ -328,11 +326,27 @@ export default function TraceablePeerConnection(
     this._localTrackTransceiverMids = new Map();
 
     /**
-     * Holds the SSRC map for the local tracks.
+     * Holds the SSRC map for the local tracks mapped by their source names.
      *
-     * @type {Map<string, TPCSSRCInfo>}
+     * @type {Map<string, TPCSourceInfo>}
+     * @property {string} msid - The track's MSID.
+     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
+     * @property {string} msid - The track's MSID.
      */
     this._localSsrcMap = null;
+
+    /**
+     * Holds the SSRC map for the remote tracks mapped by their source names.
+     *
+     * @type {Map<string, TPCSourceInfo>}
+     * @property {string} mediaType - The media type of the track.
+     * @property {string} msid - The track's MSID.
+     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
+     * @property {string} msid - The track's MSID.
+     */
+    this._remoteSsrcMap = null;
 
     // override as desired
     this.trace = (what, info) => {
@@ -769,45 +783,37 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
 };
 
 /**
- * Parses the remote description and returns the sdp lines of the sources associated with a remote participant.
+ * Returns the remote sourceInfo for a given source name.
+ *
+ * @param {string} sourceName - The source name.
+ * @returns {TPCSourceInfo}
+ */
+TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sourceName) {
+    const info = this._remoteSsrcMap?.get(sourceName);
+
+    return info ? cloneDeep(info) : null;
+};
+
+/**
+ * Returns a map of source names and their associated SSRCs for the remote participant.
  *
  * @param {string} id Endpoint id of the remote participant.
- * @returns {Array<string>} The sdp lines that have the ssrc information.
+ * @returns {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
  */
 TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id) {
-    const removeSsrcInfo = [];
+    const removeSsrcInfo = new Map();
     const remoteTracks = this.getRemoteTracks(id);
 
     if (!remoteTracks?.length) {
         return removeSsrcInfo;
     }
     const primarySsrcs = remoteTracks.map(track => track.getSSRC());
-    const sdp = new SDP(this.remoteDescription.sdp);
 
-    primarySsrcs.forEach((ssrc, idx) => {
-        for (const media of sdp.media) {
-            let lines = '';
-            let ssrcLines = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
-
-            if (ssrcLines.length) {
-                if (!removeSsrcInfo[idx]) {
-                    removeSsrcInfo[idx] = '';
-                }
-
-                // Check if there are any FID groups present for the primary ssrc.
-                const fidLines = SDPUtil.findLines(media, `a=ssrc-group:FID ${ssrc}`);
-
-                if (fidLines.length) {
-                    const secondarySsrc = fidLines[0].split(' ')[2];
-
-                    lines += `${fidLines[0]}\r\n`;
-                    ssrcLines = ssrcLines.concat(SDPUtil.findLines(media, `a=ssrc:${secondarySsrc}`));
-                }
-                removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
-                removeSsrcInfo[idx] += lines;
-            }
+    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap.entries()) {
+        if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
+            removeSsrcInfo.set(sourceName, sourceInfo);
         }
-    });
+    }
 
     return removeSsrcInfo;
 };
@@ -907,7 +913,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    const remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
+    const remoteSDP = new SDP(this.remoteDescription.sdp);
     let mediaLine;
 
     // Find the matching mline using 'mid' or the 'msid' attr of the stream.
@@ -1136,6 +1142,9 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localSDP) {
+    /**
+     * @type {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
+     */
     const ssrcMap = new Map();
 
     if (!localSDP || typeof localSDP !== 'string') {
@@ -1145,7 +1154,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
     const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
         || mline.direction === MediaDirection.SENDRECV);
 
-    if (!Array.isArray(media)) {
+    if (!media?.length) {
         this._localSsrcMap = ssrcMap;
 
         return;
@@ -1315,10 +1324,6 @@ const getters = {
         if (this.isP2P) {
             // Adjust the media direction for p2p based on whether a local source has been added.
             desc = this._adjustRemoteMediaDirection(desc);
-        } else {
-            // If this is a jvb connection, transform the SDP to Plan B first.
-            desc = this.interop.toPlanB(desc);
-            this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
 
         return desc;
@@ -1591,7 +1596,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function(localTrack)
         return codecs[0].mimeType.split('/')[1].toLowerCase();
     }
 
-    const sdp = this.peerconnection.remoteDescription?.sdp;
+    const sdp = this.remoteDescription?.sdp;
     const defaultCodec = CodecMimeType.VP8;
 
     if (!sdp) {
@@ -1835,6 +1840,27 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
     }
 
     return this.tpcUtils.replaceTrack(localTrack, null).then(() => false);
+};
+
+/**
+ * Updates the remote source map with the given source map for adding or removing sources.
+ *
+ * @param {Map<string, TPCSourceInfo>} sourceMap - The map of source names to their corresponding SSRCs.
+ * @param {boolean} isAdd - Whether the sources are being added or removed.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAdd) {
+    if (this._remoteSsrcMap) {
+        for (const [ sourceName, ssrcInfo ] of sourceMap.entries()) {
+            if (isAdd) {
+                this._remoteSsrcMap.set(sourceName, ssrcInfo);
+            } else {
+                this._remoteSsrcMap.delete(sourceName);
+            }
+        }
+    } else if (isAdd) {
+        this._remoteSsrcMap = sourceMap;
+    }
 };
 
 /**
@@ -2217,12 +2243,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
     remoteDescription = this._mungeOpus(remoteDescription);
 
-    if (!this.isP2P) {
-        const currentDescription = this.peerconnection.remoteDescription;
-
-        remoteDescription = this.interop.toUnifiedPlan(remoteDescription, currentDescription);
-        this.trace('setRemoteDescription::postTransform (Unified)', dumpSDP(remoteDescription));
-    }
     if (this.isSpatialScalabilityOn()) {
         remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
         this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));

@@ -184,6 +184,13 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TraceablePeerConnection.getDesiredMediaDirection}.
+     */
+    getDesiredMediaDirection() {
+        return 'sendrecv';
+    }
+
+    /**
      * {@link TraceablePeerConnection.isSpatialScalabilityOn}.
      *
      * @returns {boolean}
@@ -229,6 +236,12 @@ export class MockPeerConnection {
      */
     setVideoTransferActive() {
         return false;
+    }
+
+    /**
+     * {@link TraceablePeerConnection.updateRemoteSources}.
+     */
+    updateRemoteSources() {
     }
 
     /**
