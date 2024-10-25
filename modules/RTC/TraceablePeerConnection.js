@@ -789,9 +789,7 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
  * @returns {TPCSourceInfo}
  */
 TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sourceName) {
-    const info = this._remoteSsrcMap?.get(sourceName);
-
-    return info ? cloneDeep(info) : null;
+    return cloneDeep(this._remoteSsrcMap?.get(sourceName) ?? null);
 };
 
 /**
