@@ -4,6 +4,11 @@
 
 export enum JitsiConnectionErrors {
     /**
+     * When the conference-request to jicofo fails.
+     */
+    CONFERENCE_REQUEST_FAILED = "connection.conferenceRequestFailed",
+
+    /**
      * Indicates that the connection was dropped with an error which was most likely
      * caused by some networking issues. The dropped term in this context means that
      * the connection was closed unexpectedly (not on user's request).
@@ -39,6 +44,7 @@ export enum JitsiConnectionErrors {
 };
 
 // exported for backward compatibility
+export const CONFERENCE_REQUEST_FAILED = JitsiConnectionErrors.CONFERENCE_REQUEST_FAILED;
 export const CONNECTION_DROPPED_ERROR = JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
 export const NOT_LIVE_ERROR = JitsiConnectionErrors.NOT_LIVE_ERROR;
 export const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
