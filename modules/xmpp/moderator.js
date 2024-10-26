@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
-import { NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
+import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
@@ -339,7 +339,7 @@ export default class Moderator extends Listenable {
                                 })
                                 .catch(error => {
                                     logger.warn(`Error: ${error}`);
-                                    this._handleError(roomJid, undefined, undefined, resolve, reject);
+                                    this._handleError(roomJid, undefined, undefined, resolve, () => reject(error));
                                 });
 
                             // _handleError has either scheduled a retry or fired an event indicating failure.
@@ -352,7 +352,7 @@ export default class Moderator extends Listenable {
                     })
                     .catch(error => {
                         logger.warn(`Error: ${error}`);
-                        this._handleError(roomJid, undefined, undefined, resolve, reject);
+                        this._handleError(roomJid, undefined, undefined, resolve, () => reject(error));
                     });
             }
         }).then(() => {
@@ -487,8 +487,7 @@ export default class Moderator extends Listenable {
             logger.error('Failed to get a successful response, giving up.');
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
-            // TODO: change the event name to something accurate.
-            this.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED);
+            this.xmpp.eventEmitter.emit(CONNECTION_FAILED, CONFERENCE_REQUEST_FAILED);
 
             errorCallback();
         }
