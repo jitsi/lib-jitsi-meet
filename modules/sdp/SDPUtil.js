@@ -3,6 +3,7 @@ const logger = getLogger(__filename);
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
@@ -543,7 +544,7 @@ const SDPUtil = {
             // Can figure it out if there's an FID group
             const fidGroup
                 = videoMLine.ssrcGroups.find(
-                    group => group.semantics === 'FID');
+                    group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
 
             if (fidGroup) {
                 primarySsrc = fidGroup.ssrcs.split(' ')[0];
@@ -552,7 +553,7 @@ const SDPUtil = {
             // Can figure it out if there's a sim group
             const simGroup
                 = videoMLine.ssrcGroups.find(
-                    group => group.semantics === 'SIM');
+                    group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
             if (simGroup) {
                 primarySsrc = simGroup.ssrcs.split(' ')[0];

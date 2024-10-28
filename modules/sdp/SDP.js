@@ -5,6 +5,7 @@ import { Strophe } from 'strophe.js';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import browser from '../browser';
 
@@ -120,8 +121,8 @@ export default class SDP {
                     this.media[idx] = this.media[idx].replace(`m=${media} ${port}`, `m=${media} 0`);
                 }
             }
+            this.raw = this.session + this.media.join('');
         }
-        this.raw = this.session + this.media.join('');
 
         return updatedMidIndices;
     }
@@ -787,7 +788,7 @@ export default class SDP {
 
                     if (unifiedSimulcast) {
                         elem.c('rid-group', {
-                            semantics: 'SIM',
+                            semantics: SSRC_GROUP_SEMANTICS.SIM,
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         });
                         rids.forEach(rid => elem.c('source', { rid }).up());

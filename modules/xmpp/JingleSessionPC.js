@@ -7,6 +7,7 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
@@ -541,71 +542,75 @@ export default class JingleSessionPC extends JingleSession {
          *  }>}
          */
         const sourceDescription = new Map();
+        const sourceElementArray = Array.isArray(sourceElement) ? sourceElement : [ sourceElement ];
 
-        for (const content of sourceElement) {
-            const description = $(content).find('>description');
-            const mediaType = $(description).attr('media');
-            const sources = $(description).find('>source');
+        for (const content of sourceElementArray) {
+            const descriptionsWithSources = $(content).find('>description')
+                .filter((_, el) => $(el).find('>source').length);
 
-            if (!sources.length) {
-                continue; // eslint-disable-line no-continue
-            }
-            for (const source of sources) {
-                const ssrc = $(source).attr('ssrc');
-                const sourceName = $(source).attr('name');
-                const msid = $(source)
-                    .find('>parameter[name="msid"]')
-                    .attr('value');
+            for (const description of descriptionsWithSources) {
+                const mediaType = $(description).attr('media');
+                const sources = $(description).find('>source');
+                const removeSsrcs = [];
 
-                if (sourceDescription.has(sourceName)) {
-                    sourceDescription.get(sourceName).ssrcList?.push(ssrc);
-                } else {
-                    sourceDescription.set(sourceName, {
-                        groups: [],
-                        mediaType,
-                        msid,
-                        ssrcList: [ ssrc ]
-                    });
-                }
+                for (const source of sources) {
+                    const ssrc = $(source).attr('ssrc');
+                    const sourceName = $(source).attr('name');
+                    const msid = $(source)
+                        .find('>parameter[name="msid"]')
+                        .attr('value');
 
-                // Update the source owner and source name.
-                const owner = $(source)
-                    .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                    .attr('owner');
-
-                if (owner && isAdd) {
-                    // JVB source-add.
-                    this._signalingLayer.setSSRCOwner(Number(ssrc), getEndpointId(owner), sourceName);
-                } else if (isAdd) {
-                    // P2P source-add.
-                    this._signalingLayer.setSSRCOwner(Number(ssrc),
-                        Strophe.getResourceFromJid(this.remoteJid), sourceName);
-                } else {
-                    // 'source-remove' from remote peer.
-                    this._signalingLayer.removeSSRCOwners([ Number(ssrc) ]);
-                }
-            }
-
-            const groups = $(description).find('>ssrc-group');
-
-            if (!groups.length) {
-                continue; // eslint-disable-line no-continue
-            }
-
-            for (const group of groups) {
-                const semantics = $(group).attr('semantics');
-                const groupSsrcs = [];
-
-                for (const source of $(group).find('>source')) {
-                    groupSsrcs.push($(source).attr('ssrc'));
-                }
-
-                for (const [ sourceName, { ssrcList } ] of sourceDescription) {
-                    if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
-                        sourceDescription.get(sourceName).groups.push({
-                            semantics,
-                            ssrcs: groupSsrcs
+                    if (sourceDescription.has(sourceName)) {
+                        sourceDescription.get(sourceName).ssrcList?.push(ssrc);
+                    } else {
+                        sourceDescription.set(sourceName, {
+                            groups: [],
+                            mediaType,
+                            msid,
+                            ssrcList: [ ssrc ]
                         });
+                    }
+
+                    // Update the source owner and source name.
+                    const owner = $(source)
+                        .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
+                        .attr('owner');
+
+                    if (owner && isAdd) {
+                        // JVB source-add.
+                        this._signalingLayer.setSSRCOwner(Number(ssrc), getEndpointId(owner), sourceName);
+                    } else if (isAdd) {
+                        // P2P source-add.
+                        this._signalingLayer.setSSRCOwner(Number(ssrc),
+                            Strophe.getResourceFromJid(this.remoteJid), sourceName);
+                    } else {
+                        removeSsrcs.push(Number(ssrc));
+                    }
+                }
+
+                // 'source-remove' from remote peer.
+                removeSsrcs.length && this._signalingLayer.removeSSRCOwners(removeSsrcs);
+                const groups = $(description).find('>ssrc-group');
+
+                if (!groups.length) {
+                    continue; // eslint-disable-line no-continue
+                }
+
+                for (const group of groups) {
+                    const semantics = $(group).attr('semantics');
+                    const groupSsrcs = [];
+
+                    for (const source of $(group).find('>source')) {
+                        groupSsrcs.push($(source).attr('ssrc'));
+                    }
+
+                    for (const [ sourceName, { ssrcList } ] of sourceDescription) {
+                        if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
+                            sourceDescription.get(sourceName).groups.push({
+                                semantics,
+                                ssrcs: groupSsrcs
+                            });
+                        }
                     }
                 }
             }
@@ -1857,8 +1862,8 @@ export default class JingleSessionPC extends JingleSession {
 
                 // Update the SSRC map on the peerconnection.
                 if (sourceInfo) {
-                    this.peerconnection._remoteSsrcMap.delete(oldSourceName);
-                    this.peerconnection._remoteSsrcMap.set(source, sourceInfo);
+                    this.peerconnection.updateRemoteSources(new Map([ [ oldSourceName, sourceInfo ] ]), false);
+                    this.peerconnection.updateRemoteSources(new Map([ [ source, sourceInfo ] ]), true /* isAdd */);
                 }
 
                 // Update the muted state and the video type on the track since the presence for this track could have
@@ -1893,7 +1898,7 @@ export default class JingleSessionPC extends JingleSession {
                         _addSourceElement(node, src, rtx, msid);
                         node.c('ssrc-group', {
                             xmlns: XEP.SOURCE_ATTRIBUTES,
-                            semantics: 'FID'
+                            semantics: SSRC_GROUP_SEMANTICS.FID
                         })
                             .c('source', {
                                 xmlns: XEP.SOURCE_ATTRIBUTES,

@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
+import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
@@ -332,7 +332,6 @@ export default function TraceablePeerConnection(
      * @property {string} msid - The track's MSID.
      * @property {Array<string>} ssrcs - The SSRCs associated with the track.
      * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
-     * @property {string} msid - The track's MSID.
      */
     this._localSsrcMap = null;
 
@@ -342,11 +341,10 @@ export default function TraceablePeerConnection(
      * @type {Map<string, TPCSourceInfo>}
      * @property {string} mediaType - The media type of the track.
      * @property {string} msid - The track's MSID.
-     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
      * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
-     * @property {string} msid - The track's MSID.
+     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
      */
-    this._remoteSsrcMap = null;
+    this._remoteSsrcMap = new Map();
 
     // override as desired
     this.trace = (what, info) => {
@@ -694,7 +692,7 @@ TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
         return ssrcs;
     }
 
-    const ssrcGroup = this.isSpatialScalabilityOn() ? 'SIM' : 'FID';
+    const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
     return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
 };
@@ -807,7 +805,7 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
     }
     const primarySsrcs = remoteTracks.map(track => track.getSSRC());
 
-    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap.entries()) {
+    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap) {
         if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
             removeSsrcInfo.set(sourceName, sourceInfo);
         }
@@ -1152,7 +1150,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
     const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
         || mline.direction === MediaDirection.SENDRECV);
 
-    if (!media?.length) {
+    if (!media.length) {
         this._localSsrcMap = ssrcMap;
 
         return;
@@ -1185,14 +1183,14 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
                     ssrcInfo.groups.push(group);
                 }
 
-                const simGroup = ssrcGroups.find(group => group.semantics === 'SIM');
+                const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
                 // Add a SIM group if its missing in the description (happens on Firefox).
                 if (this.isSpatialScalabilityOn() && !simGroup) {
                     const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
 
                     ssrcInfo.groups.push({
-                        semantics: 'SIM',
+                        semantics: SSRC_GROUP_SEMANTICS.SIM,
                         ssrcs: groupSsrcs
                     });
                 }
@@ -1238,7 +1236,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
 
     // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
     video.ssrcGroups = video.ssrcGroups || [];
-    const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
+    const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
 
     if (video.simulcast || video.simulcast_03) {
         const ssrcs = [];
@@ -1254,7 +1252,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
                 }
             });
         }
-        if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
+        if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
             // Group already exists, no need to do anything
             return desc;
         }
@@ -1264,7 +1262,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
             const simSsrcs = ssrcs.slice(i, i + 3);
 
             video.ssrcGroups.push({
-                semantics: 'SIM',
+                semantics: SSRC_GROUP_SEMANTICS.SIM,
                 ssrcs: simSsrcs.join(' ')
             });
         }
@@ -1848,16 +1846,12 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAdd) {
-    if (this._remoteSsrcMap) {
-        for (const [ sourceName, ssrcInfo ] of sourceMap.entries()) {
-            if (isAdd) {
-                this._remoteSsrcMap.set(sourceName, ssrcInfo);
-            } else {
-                this._remoteSsrcMap.delete(sourceName);
-            }
+    for (const [ sourceName, ssrcInfo ] of sourceMap) {
+        if (isAdd) {
+            this._remoteSsrcMap.set(sourceName, ssrcInfo);
+        } else {
+            this._remoteSsrcMap.delete(sourceName);
         }
-    } else if (isAdd) {
-        this._remoteSsrcMap = sourceMap;
     }
 };
 
