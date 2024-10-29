@@ -245,11 +245,12 @@ export default class SDP {
                 newMline.direction = idx ? 'sendonly' : 'sendrecv';
 
                 // Add the sources and the related FID source group to the new m-line.
-                const group = mLine.ssrcGroups?.find(g => g.ssrcs.includes(ssrc.id.toString()));
+                const ssrcId = ssrc.id.toString();
+                const group = mLine.ssrcGroups?.find(g => g.ssrcs.includes(ssrcId));
 
                 if (group) {
                     newMline.ssrcs.push(ssrc);
-                    const otherSsrc = group.ssrcs.split(' ').find(s => s !== ssrc.id.toString());
+                    const otherSsrc = group.ssrcs.split(' ').find(s => s !== ssrcId);
 
                     if (otherSsrc) {
                         const otherSource = mLine.ssrcs.find(source => source.id.toString() === otherSsrc);
