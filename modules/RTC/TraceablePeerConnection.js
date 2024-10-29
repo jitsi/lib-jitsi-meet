@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { Interop } from '@jitsi/sdp-interop';
+import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
+import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
@@ -289,8 +289,6 @@ export default function TraceablePeerConnection(
      */
     this.maxstats = options.maxstats;
 
-    this.interop = new Interop();
-
     this.simulcast = new SdpSimulcast();
 
     /**
@@ -328,11 +326,25 @@ export default function TraceablePeerConnection(
     this._localTrackTransceiverMids = new Map();
 
     /**
-     * Holds the SSRC map for the local tracks.
+     * Holds the SSRC map for the local tracks mapped by their source names.
      *
-     * @type {Map<string, TPCSSRCInfo>}
+     * @type {Map<string, TPCSourceInfo>}
+     * @property {string} msid - The track's MSID.
+     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
      */
     this._localSsrcMap = null;
+
+    /**
+     * Holds the SSRC map for the remote tracks mapped by their source names.
+     *
+     * @type {Map<string, TPCSourceInfo>}
+     * @property {string} mediaType - The media type of the track.
+     * @property {string} msid - The track's MSID.
+     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
+     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+     */
+    this._remoteSsrcMap = new Map();
 
     // override as desired
     this.trace = (what, info) => {
@@ -680,7 +692,7 @@ TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
         return ssrcs;
     }
 
-    const ssrcGroup = this.isSpatialScalabilityOn() ? 'SIM' : 'FID';
+    const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
     return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
 };
@@ -769,45 +781,35 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
 };
 
 /**
- * Parses the remote description and returns the sdp lines of the sources associated with a remote participant.
+ * Returns the remote sourceInfo for a given source name.
+ *
+ * @param {string} sourceName - The source name.
+ * @returns {TPCSourceInfo}
+ */
+TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sourceName) {
+    return cloneDeep(this._remoteSsrcMap.get(sourceName));
+};
+
+/**
+ * Returns a map of source names and their associated SSRCs for the remote participant.
  *
  * @param {string} id Endpoint id of the remote participant.
- * @returns {Array<string>} The sdp lines that have the ssrc information.
+ * @returns {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
  */
 TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id) {
-    const removeSsrcInfo = [];
+    const removeSsrcInfo = new Map();
     const remoteTracks = this.getRemoteTracks(id);
 
     if (!remoteTracks?.length) {
         return removeSsrcInfo;
     }
     const primarySsrcs = remoteTracks.map(track => track.getSSRC());
-    const sdp = new SDP(this.remoteDescription.sdp);
 
-    primarySsrcs.forEach((ssrc, idx) => {
-        for (const media of sdp.media) {
-            let lines = '';
-            let ssrcLines = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
-
-            if (ssrcLines.length) {
-                if (!removeSsrcInfo[idx]) {
-                    removeSsrcInfo[idx] = '';
-                }
-
-                // Check if there are any FID groups present for the primary ssrc.
-                const fidLines = SDPUtil.findLines(media, `a=ssrc-group:FID ${ssrc}`);
-
-                if (fidLines.length) {
-                    const secondarySsrc = fidLines[0].split(' ')[2];
-
-                    lines += `${fidLines[0]}\r\n`;
-                    ssrcLines = ssrcLines.concat(SDPUtil.findLines(media, `a=ssrc:${secondarySsrc}`));
-                }
-                removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
-                removeSsrcInfo[idx] += lines;
-            }
+    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap) {
+        if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
+            removeSsrcInfo.set(sourceName, sourceInfo);
         }
-    });
+    }
 
     return removeSsrcInfo;
 };
@@ -907,7 +909,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         return;
     }
 
-    const remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
+    const remoteSDP = new SDP(this.remoteDescription.sdp);
     let mediaLine;
 
     // Find the matching mline using 'mid' or the 'msid' attr of the stream.
@@ -1136,6 +1138,9 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
  * @returns {void}
  */
 TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localSDP) {
+    /**
+     * @type {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
+     */
     const ssrcMap = new Map();
 
     if (!localSDP || typeof localSDP !== 'string') {
@@ -1145,7 +1150,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
     const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
         || mline.direction === MediaDirection.SENDRECV);
 
-    if (!Array.isArray(media)) {
+    if (!media.length) {
         this._localSsrcMap = ssrcMap;
 
         return;
@@ -1178,14 +1183,14 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
                     ssrcInfo.groups.push(group);
                 }
 
-                const simGroup = ssrcGroups.find(group => group.semantics === 'SIM');
+                const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
                 // Add a SIM group if its missing in the description (happens on Firefox).
                 if (this.isSpatialScalabilityOn() && !simGroup) {
                     const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
 
                     ssrcInfo.groups.push({
-                        semantics: 'SIM',
+                        semantics: SSRC_GROUP_SEMANTICS.SIM,
                         ssrcs: groupSsrcs
                     });
                 }
@@ -1231,7 +1236,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
 
     // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
     video.ssrcGroups = video.ssrcGroups || [];
-    const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
+    const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
 
     if (video.simulcast || video.simulcast_03) {
         const ssrcs = [];
@@ -1247,7 +1252,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
                 }
             });
         }
-        if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
+        if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
             // Group already exists, no need to do anything
             return desc;
         }
@@ -1257,7 +1262,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
             const simSsrcs = ssrcs.slice(i, i + 3);
 
             video.ssrcGroups.push({
-                semantics: 'SIM',
+                semantics: SSRC_GROUP_SEMANTICS.SIM,
                 ssrcs: simSsrcs.join(' ')
             });
         }
@@ -1315,10 +1320,6 @@ const getters = {
         if (this.isP2P) {
             // Adjust the media direction for p2p based on whether a local source has been added.
             desc = this._adjustRemoteMediaDirection(desc);
-        } else {
-            // If this is a jvb connection, transform the SDP to Plan B first.
-            desc = this.interop.toPlanB(desc);
-            this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
 
         return desc;
@@ -1591,7 +1592,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function(localTrack)
         return codecs[0].mimeType.split('/')[1].toLowerCase();
     }
 
-    const sdp = this.peerconnection.remoteDescription?.sdp;
+    const sdp = this.remoteDescription?.sdp;
     const defaultCodec = CodecMimeType.VP8;
 
     if (!sdp) {
@@ -1835,6 +1836,23 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
     }
 
     return this.tpcUtils.replaceTrack(localTrack, null).then(() => false);
+};
+
+/**
+ * Updates the remote source map with the given source map for adding or removing sources.
+ *
+ * @param {Map<string, TPCSourceInfo>} sourceMap - The map of source names to their corresponding SSRCs.
+ * @param {boolean} isAdd - Whether the sources are being added or removed.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAdd) {
+    for (const [ sourceName, ssrcInfo ] of sourceMap) {
+        if (isAdd) {
+            this._remoteSsrcMap.set(sourceName, ssrcInfo);
+        } else {
+            this._remoteSsrcMap.delete(sourceName);
+        }
+    }
 };
 
 /**
@@ -2217,12 +2235,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     // Munge stereo flag and opusMaxAverageBitrate based on config.js
     remoteDescription = this._mungeOpus(remoteDescription);
 
-    if (!this.isP2P) {
-        const currentDescription = this.peerconnection.remoteDescription;
-
-        remoteDescription = this.interop.toUnifiedPlan(remoteDescription, currentDescription);
-        this.trace('setRemoteDescription::postTransform (Unified)', dumpSDP(remoteDescription));
-    }
     if (this.isSpatialScalabilityOn()) {
         remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
         this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));

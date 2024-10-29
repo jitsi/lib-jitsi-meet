@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { $build } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
 const logger = getLogger(__filename);
@@ -101,9 +102,9 @@ function _getOrCreateRtpDescription(iq, mediaType) {
  */
 function _getSemantics(str) {
     if (str === 'f') {
-        return 'FID';
+        return SSRC_GROUP_SEMANTICS.FID;
     } else if (str === 's') {
-        return 'SIM';
+        return SSRC_GROUP_SEMANTICS.SIM;
     }
 
     return null;

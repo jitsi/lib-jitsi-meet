@@ -1,6 +1,6 @@
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
+import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
 import * as transform from 'sdp-transform';
 
@@ -61,7 +61,7 @@ export default class SdpSimulcast {
         }
 
         mLine.ssrcGroups.push({
-            semantics: 'SIM',
+            semantics: SSRC_GROUP_SEMANTICS.SIM,
             ssrcs: cachedSsrcs.join(' ')
         });
 
@@ -120,7 +120,7 @@ export default class SdpSimulcast {
 
         mLine.ssrcGroups = mLine.ssrcGroups || [];
         mLine.ssrcGroups.push({
-            semantics: 'SIM',
+            semantics: SSRC_GROUP_SEMANTICS.SIM,
             ssrcs: primarySsrc + ' ' + simSsrcs.join(' ')
         });
 
@@ -159,7 +159,7 @@ export default class SdpSimulcast {
      * @returns
      */
     _parseSimLayers(mLine: transform.MediaDescription) : Array<number> | null {
-        const simGroup = mLine.ssrcGroups?.find(group => group.semantics === 'SIM');
+        const simGroup = mLine.ssrcGroups?.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
         if (simGroup) {
             return simGroup.ssrcs.split(' ').map(ssrc => Number(ssrc));
@@ -209,7 +209,7 @@ export default class SdpSimulcast {
             if (numSsrcs.size === 1) {
                 primarySsrc = Number(media.ssrcs[0]?.id);
             } else {
-                const fidGroup = media.ssrcGroups.find(group => group.semantics === 'FID');
+                const fidGroup = media.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
 
                 if (fidGroup) {
                     primarySsrc = Number(fidGroup.ssrcs.split(' ')[0]);

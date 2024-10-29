@@ -1,11 +1,13 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
+import { isEqual } from 'lodash-es';
 import { $build, $iq, Strophe } from 'strophe.js';
 
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import {
     ICE_DURATION,
@@ -370,15 +372,9 @@ export default class JingleSessionPC extends JingleSession {
      */
     _addOrRemoveRemoteStream(isAdd, elem) {
         const logPrefix = isAdd ? 'addRemoteStream' : 'removeRemoteStream';
-
-        if (isAdd) {
-            this.readSsrcInfo(elem);
-        }
-
         const workFunction = finishedCallback => {
-            if (!this.peerconnection.localDescription
-                || !this.peerconnection.localDescription.sdp) {
-                const errMsg = `${logPrefix} - localDescription not ready yet`;
+            if (!this.peerconnection.remoteDescription?.sdp) {
+                const errMsg = `${logPrefix} - received before remoteDescription is set, ignoring!!`;
 
                 logger.error(errMsg);
                 finishedCallback(errMsg);
@@ -388,17 +384,33 @@ export default class JingleSessionPC extends JingleSession {
 
             logger.log(`${this} Processing ${logPrefix}`);
 
-            const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-            const addOrRemoveSsrcInfo
-                = isAdd
-                    ? this._parseSsrcInfoFromSourceAdd(elem, sdp)
-                    : this._parseSsrcInfoFromSourceRemove(elem, sdp);
-            const newRemoteSdp
-                = isAdd
-                    ? this._processRemoteAddSource(addOrRemoveSsrcInfo)
-                    : this._processRemoteRemoveSource(addOrRemoveSsrcInfo);
+            const currentRemoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
+            const sourceDescription = this._processSourceMapFromJingle(elem, isAdd);
 
-            this._renegotiate(newRemoteSdp.raw).then(() => {
+            if (!sourceDescription.size) {
+                logger.debug(`${this} ${logPrefix} - no sources to ${isAdd ? 'add' : 'remove'}`);
+                finishedCallback();
+            }
+
+            logger.debug(`${isAdd ? 'adding' : 'removing'} sources=${Array.from(sourceDescription.keys())}`);
+
+            // Update the remote description.
+            const modifiedMids = currentRemoteSdp.updateRemoteSources(sourceDescription, isAdd);
+
+            for (const mid of modifiedMids) {
+                if (this.isP2P) {
+                    const { media } = SDPUtil.parseMLine(currentRemoteSdp.media[mid].split('\r\n')[0]);
+                    const desiredDirection = this.peerconnection.getDesiredMediaDirection(media, true);
+
+                    [ MediaDirection.RECVONLY, MediaDirection.INACTIVE ].forEach(direction => {
+                        currentRemoteSdp.media[mid] = currentRemoteSdp.media[mid]
+                            .replace(`a=${direction}`, `a=${desiredDirection}`);
+                    });
+                    currentRemoteSdp.raw = currentRemoteSdp.session + currentRemoteSdp.media.join('');
+                }
+            }
+
+            this._renegotiate(currentRemoteSdp.raw).then(() => {
                 logger.log(`${this} ${logPrefix} - OK`);
                 finishedCallback();
             }, error => {
@@ -485,163 +497,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Parse the information from the xml sourceAddElem and translate it into sdp lines.
-     *
-     * @param {jquery xml element} sourceAddElem the source-add element from jingle.
-     * @param {SDP object} currentRemoteSdp the current remote sdp (as of this new source-add).
-     * @returns {list} a list of SDP line strings that should be added to the remote SDP.
-     * @private
-     */
-    _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
-        const addSsrcInfo = [];
-        const self = this;
-
-        $(sourceAddElem).each((i1, content) => {
-            const name = $(content).attr('name');
-            let lines = '';
-
-            $(content)
-                .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
-                .each(function() {
-                    // eslint-disable-next-line no-invalid-this
-                    const semantics = this.getAttribute('semantics');
-                    const ssrcs
-                        = $(this) // eslint-disable-line no-invalid-this
-                            .find('>source')
-                            .map(function() {
-                                // eslint-disable-next-line no-invalid-this
-                                return this.getAttribute('ssrc');
-                            })
-                            .get();
-
-                    if (ssrcs.length) {
-                        lines += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
-                    }
-                });
-
-            // handles both >source and >description>source
-            const tmp
-                = $(content).find(
-                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-
-            /* eslint-disable no-invalid-this */
-            tmp.each(function() {
-                const ssrc = $(this).attr('ssrc');
-
-                if (currentRemoteSdp.containsSSRC(ssrc)) {
-
-                    // Do not print the warning for unified plan p2p case since ssrcs are never removed from the SDP.
-                    !self.isP2P && logger.warn(`${self} Source-add request for existing SSRC: ${ssrc}`);
-
-                    return;
-                }
-
-                // eslint-disable-next-line newline-per-chained-call
-                $(this).find('>parameter').each(function() {
-                    lines += `a=ssrc:${ssrc} ${$(this).attr('name')}`;
-                    if ($(this).attr('value') && $(this).attr('value').length) {
-                        lines += `:${$(this).attr('value')}`;
-                    }
-                    lines += '\r\n';
-                });
-            });
-
-            let midFound = false;
-
-            /* eslint-enable no-invalid-this */
-            currentRemoteSdp.media.forEach((media, i2) => {
-                if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
-                    return;
-                }
-                if (!addSsrcInfo[i2]) {
-                    addSsrcInfo[i2] = '';
-                }
-                addSsrcInfo[i2] += lines;
-                midFound = true;
-            });
-
-            // In p2p unified mode with multi-stream enabled, the new sources will have content name that doesn't exist
-            // in the current remote description. Add a new m-line for this newly signaled source.
-            if (!midFound && this.isP2P) {
-                addSsrcInfo[name] = lines;
-            }
-        });
-
-        return addSsrcInfo;
-    }
-
-    /**
-     * Parse the information from the xml sourceRemoveElem and translate it into sdp lines.
-     *
-     * @param {jquery xml element} sourceRemoveElem the source-remove element from jingle.
-     * @param {SDP object} currentRemoteSdp the current remote sdp (as of this new source-remove).
-     * @returns {list} a list of SDP line strings that should be removed from the remote SDP.
-     * @private
-     */
-    _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
-        const removeSsrcInfo = [];
-
-        $(sourceRemoveElem).each((i1, content) => {
-            const name = $(content).attr('name');
-            let lines = '';
-
-            $(content)
-                .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
-                .each(function() {
-                    /* eslint-disable no-invalid-this */
-                    const semantics = this.getAttribute('semantics');
-                    const ssrcs
-                        = $(this)
-                            .find('>source')
-                            .map(function() {
-                                return this.getAttribute('ssrc');
-                            })
-                            .get();
-
-                    if (ssrcs.length) {
-                        lines
-                            += `a=ssrc-group:${semantics} ${
-                                ssrcs.join(' ')}\r\n`;
-                    }
-
-                    /* eslint-enable no-invalid-this */
-                });
-            const ssrcs = [];
-
-            // handles both >source and >description>source versions
-            const tmp
-                = $(content).find(
-                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-
-            tmp.each(function() {
-                // eslint-disable-next-line no-invalid-this
-                const ssrc = $(this).attr('ssrc');
-
-                ssrcs.push(ssrc);
-            });
-            currentRemoteSdp.media.forEach((media, i2) => {
-                if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
-                    return;
-                }
-                if (!removeSsrcInfo[i2]) {
-                    removeSsrcInfo[i2] = '';
-                }
-                ssrcs.forEach(ssrc => {
-                    const ssrcLines
-                        = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
-
-                    if (ssrcLines.length) {
-                        removeSsrcInfo[i2] += `${ssrcLines.join('\r\n')}\r\n`;
-                    }
-                });
-                removeSsrcInfo[i2] += lines;
-            });
-        });
-
-        return removeSsrcInfo;
-    }
-
-    /**
      * Takes in a jingle offer iq, returns the new sdp offer that can be set as remote description in the
      * peerconnection.
      *
@@ -650,7 +505,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _processNewJingleOfferIq(offerIq) {
-        const remoteSdp = new SDP('');
+        const remoteSdp = new SDP('', this.isP2P);
 
         if (this.webrtcIceTcpDisable) {
             remoteSdp.removeTcpCandidates = true;
@@ -663,100 +518,107 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         remoteSdp.fromJingle(offerIq);
-        this.readSsrcInfo($(offerIq).find('>content'));
+        this._processSourceMapFromJingle($(offerIq).find('>content'));
 
         return remoteSdp;
     }
 
     /**
-     * Adds the given ssrc lines to the current remote sdp.
+     * Parses the SSRC information from the source-add/source-remove element passed and updates the SSRC owners.
      *
-     * @param {list} addSsrcInfo a list of SDP line strings that should be added to the remote SDP.
-     * @returns type {SDP Object} the new remote SDP (after removing the lines in removeSsrcInfo.
-     * @private
+     * @param {jquery xml element} sourceElement the source-add/source-remove element from jingle.
+     * @param {boolean} isAdd true if the sources are being added, false if they are to be removed.
+     * @returns {Map<string, Object>} - The map of source name to ssrcs, msid and groups.
      */
-    _processRemoteAddSource(addSsrcInfo) {
-        let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    _processSourceMapFromJingle(sourceElement, isAdd = true) {
+        /**
+         * Map of source name to ssrcs, mediaType, msid and groups.
+         * @type {Map<string,
+         *  {
+         *      mediaType: string,
+         *      msid: string,
+         *      ssrcList: Array<number>,
+         *      groups: {semantics: string, ssrcs: Array<number>}
+         *  }>}
+         */
+        const sourceDescription = new Map();
+        const sourceElementArray = Array.isArray(sourceElement) ? sourceElement : [ sourceElement ];
 
-        // Add a new m-line in the remote description if the source info for a secondary video source is recceived from
-        // the remote p2p peer when multi-stream support is enabled.
-        if (addSsrcInfo.length > remoteSdp.media.length && this.isP2P) {
-            remoteSdp.addMlineForNewLocalSource(MediaType.VIDEO);
-            remoteSdp = new SDP(remoteSdp.raw);
-        }
-        addSsrcInfo.forEach((lines, idx) => {
-            remoteSdp.media[idx] += lines;
+        for (const content of sourceElementArray) {
+            const descriptionsWithSources = $(content).find('>description')
+                .filter((_, el) => $(el).find('>source').length);
 
-            // Make sure to change the direction to 'sendrecv/sendonly' only for p2p connections. For jvb connections,
-            // a new m-line is added for the new remote sources.
-            if (this.isP2P) {
-                const mediaType = SDPUtil.parseMLine(remoteSdp.media[idx].split('\r\n')[0])?.media;
-                const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, true);
+            for (const description of descriptionsWithSources) {
+                const mediaType = $(description).attr('media');
+                const sources = $(description).find('>source');
+                const removeSsrcs = [];
 
-                [ MediaDirection.RECVONLY, MediaDirection.INACTIVE ].forEach(direction => {
-                    remoteSdp.media[idx] = remoteSdp.media[idx]
-                        .replace(`a=${direction}`, `a=${desiredDirection}`);
-                });
-            }
-        });
-        remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
+                for (const source of sources) {
+                    const ssrc = $(source).attr('ssrc');
+                    const sourceName = $(source).attr('name');
+                    const msid = $(source)
+                        .find('>parameter[name="msid"]')
+                        .attr('value');
 
-        return remoteSdp;
-    }
-
-    /**
-     * Removes the given ssrc lines from the current remote sdp.
-     *
-     * @param {list} removeSsrcInfo a list of SDP line strings that should be removed from the remote SDP.
-     * @returns type {SDP Object} the new remote SDP (after removing the lines in removeSsrcInfo.
-     * @private
-     */
-    _processRemoteRemoveSource(removeSsrcInfo) {
-        const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
-        let ssrcs;
-
-        removeSsrcInfo.forEach(lines => {
-            // eslint-disable-next-line no-param-reassign
-            lines = lines.split('\r\n');
-            lines.pop(); // remove empty last element;
-            ssrcs = lines.map(line => Number(line.split('a=ssrc:')[1]?.split(' ')[0]));
-
-            let mid;
-
-            lines.forEach(line => {
-                mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
-                if (mid > -1) {
-                    remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
-                    if (this.isP2P) {
-                        const mediaType = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0])?.media;
-                        const desiredDirection = this.peerconnection.getDesiredMediaDirection(mediaType, false);
-
-                        [ MediaDirection.SENDRECV, MediaDirection.SENDONLY ].forEach(direction => {
-                            remoteSdp.media[mid] = remoteSdp.media[mid]
-                                .replace(`a=${direction}`, `a=${desiredDirection}`);
-                        });
+                    if (sourceDescription.has(sourceName)) {
+                        sourceDescription.get(sourceName).ssrcList?.push(ssrc);
                     } else {
-                        // Jvb connections will have direction set to 'sendonly' for the remote sources.
-                        remoteSdp.media[mid] = remoteSdp.media[mid]
-                            .replace(`a=${MediaDirection.SENDONLY}`, `a=${MediaDirection.INACTIVE}`);
+                        sourceDescription.set(sourceName, {
+                            groups: [],
+                            mediaType,
+                            msid,
+                            ssrcList: [ ssrc ]
+                        });
+                    }
 
-                        // Reject the m-line so that the browser removes the associated transceiver from the list
-                        // of available transceivers. This will prevent the client from trying to re-use these
-                        // inactive transceivers when additional video sources are added to the peerconnection.
-                        const { media, port } = SDPUtil.parseMLine(remoteSdp.media[mid].split('\r\n')[0]);
+                    // Update the source owner and source name.
+                    const owner = $(source)
+                        .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
+                        .attr('owner');
 
-                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`m=${media} ${port}`, `m=${media} 0`);
+                    if (owner && isAdd) {
+                        // JVB source-add.
+                        this._signalingLayer.setSSRCOwner(Number(ssrc), getEndpointId(owner), sourceName);
+                    } else if (isAdd) {
+                        // P2P source-add.
+                        this._signalingLayer.setSSRCOwner(Number(ssrc),
+                            Strophe.getResourceFromJid(this.remoteJid), sourceName);
+                    } else {
+                        removeSsrcs.push(Number(ssrc));
                     }
                 }
-            });
-        });
 
-        // Update the ssrc owners list.
-        ssrcs?.length && this._signalingLayer.removeSSRCOwners(ssrcs);
+                // 'source-remove' from remote peer.
+                removeSsrcs.length && this._signalingLayer.removeSSRCOwners(removeSsrcs);
+                const groups = $(description).find('>ssrc-group');
 
-        remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
+                if (!groups.length) {
+                    continue; // eslint-disable-line no-continue
+                }
 
-        return remoteSdp;
+                for (const group of groups) {
+                    const semantics = $(group).attr('semantics');
+                    const groupSsrcs = [];
+
+                    for (const source of $(group).find('>source')) {
+                        groupSsrcs.push($(source).attr('ssrc'));
+                    }
+
+                    for (const [ sourceName, { ssrcList } ] of sourceDescription) {
+                        if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
+                            sourceDescription.get(sourceName).groups.push({
+                                semantics,
+                                ssrcs: groupSsrcs
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        sourceDescription.size && this.peerconnection.updateRemoteSources(sourceDescription, isAdd);
+
+        return sourceDescription;
     }
 
     /**
@@ -1232,7 +1094,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const replaceTracks = [];
         const workFunction = finishedCallback => {
-            const remoteSdp = new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
+            const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
             const recvOnlyTransceiver = this.peerconnection.peerconnection.getTransceivers()
                     .find(t => t.receiver.track.kind === MediaType.VIDEO
                         && t.direction === MediaDirection.RECVONLY
@@ -1243,7 +1105,7 @@ export default class JingleSessionPC extends JingleSession {
             // existing one in that case.
             for (const track of localTracks) {
                 if (!this.isP2P || !recvOnlyTransceiver) {
-                    remoteSdp.addMlineForNewLocalSource(track.getType());
+                    remoteSdp.addMlineForNewSource(track.getType());
                 }
             }
 
@@ -1995,6 +1857,14 @@ export default class JingleSessionPC extends JingleSession {
                 logger.debug(`Existing SSRC re-mapped ${ssrc}: new owner=${owner}, source-name=${source}`);
 
                 this._signalingLayer.setSSRCOwner(ssrc, owner, source);
+                const oldSourceName = track.getSourceName();
+                const sourceInfo = this.peerconnection.getRemoteSourceInfoBySourceName(oldSourceName);
+
+                // Update the SSRC map on the peerconnection.
+                if (sourceInfo) {
+                    this.peerconnection.updateRemoteSources(new Map([ [ oldSourceName, sourceInfo ] ]), false);
+                    this.peerconnection.updateRemoteSources(new Map([ [ source, sourceInfo ] ]), true /* isAdd */);
+                }
 
                 // Update the muted state and the video type on the track since the presence for this track could have
                 // been received before the updated source map is received on the bridge channel.
@@ -2028,7 +1898,7 @@ export default class JingleSessionPC extends JingleSession {
                         _addSourceElement(node, src, rtx, msid);
                         node.c('ssrc-group', {
                             xmlns: XEP.SOURCE_ATTRIBUTES,
-                            semantics: 'FID'
+                            semantics: SSRC_GROUP_SEMANTICS.FID
                         })
                             .c('source', {
                                 xmlns: XEP.SOURCE_ATTRIBUTES,
@@ -2056,45 +1926,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Processes the Jingle message received from the peer and updates the SSRC owners for all the sources signaled
-     * in the Jingle message.
-     *
-     * @param {Element} contents - The content element of the jingle message.
-     * @returns {void}
-     */
-    readSsrcInfo(contents) {
-        const ssrcs = $(contents).find('>description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-
-        ssrcs.each((i, ssrcElement) => {
-            const ssrc = Number(ssrcElement.getAttribute('ssrc'));
-            let sourceName;
-
-            if (ssrcElement.hasAttribute('name')) {
-                sourceName = ssrcElement.getAttribute('name');
-            }
-
-            if (this.isP2P) {
-                // In P2P all SSRCs are owner by the remote peer
-                this._signalingLayer.setSSRCOwner(ssrc, Strophe.getResourceFromJid(this.remoteJid), sourceName);
-            } else {
-                $(ssrcElement)
-                    .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                    .each((i3, ssrcInfoElement) => {
-                        const owner = ssrcInfoElement.getAttribute('owner');
-
-                        if (owner?.length) {
-                            if (isNaN(ssrc) || ssrc < 0) {
-                                logger.warn(`${this} Invalid SSRC ${ssrc} value received for ${owner}`);
-                            } else {
-                                this._signalingLayer.setSSRCOwner(ssrc, getEndpointId(owner), sourceName);
-                            }
-                        }
-                    });
-            }
-        });
-    }
-
-    /**
      * Handles a Jingle source-remove message for this Jingle session.
      *
      * @param {Array<Element>} contents - An array of content elements from the source-remove message.
@@ -2114,8 +1945,12 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishCallback => {
             const removeSsrcInfo = this.peerconnection.getRemoteSourceInfoByParticipant(id);
 
-            if (removeSsrcInfo.length) {
-                const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+            if (removeSsrcInfo.size) {
+                logger.debug(`${this} Removing SSRCs for user ${id}, sources=${Array.from(removeSsrcInfo.keys())}`);
+                const newRemoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
+
+                newRemoteSdp.updateRemoteSources(removeSsrcInfo, false /* isAdd */);
+                this.peerconnection.updateRemoteSources(removeSsrcInfo, false /* isAdd */);
 
                 this._renegotiate(newRemoteSdp.raw)
                     .then(() => finishCallback(), error => finishCallback(error));
