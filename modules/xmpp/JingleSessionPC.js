@@ -400,9 +400,11 @@ export default class JingleSessionPC extends JingleSession {
             for (const mid of modifiedMids) {
                 if (this.isP2P) {
                     const { media } = SDPUtil.parseMLine(currentRemoteSdp.media[mid].split('\r\n')[0]);
-                    const desiredDirection = this.peerconnection.getDesiredMediaDirection(media, true);
+                    const desiredDirection = this.peerconnection.getDesiredMediaDirection(media, isAdd);
+                    const currentDirections = isAdd ? [ MediaDirection.RECVONLY, MediaDirection.INACTIVE ]
+                        : [ MediaDirection.SENDRECV, MediaDirection.SENDONLY ];
 
-                    [ MediaDirection.RECVONLY, MediaDirection.INACTIVE ].forEach(direction => {
+                    currentDirections.forEach(direction => {
                         currentRemoteSdp.media[mid] = currentRemoteSdp.media[mid]
                             .replace(`a=${direction}`, `a=${desiredDirection}`);
                     });
