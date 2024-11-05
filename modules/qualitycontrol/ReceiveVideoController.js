@@ -74,14 +74,15 @@ export default class ReceiveVideoController {
     /**
      * Updates the source based constraints based on the maxHeight set.
      *
+     * @param {number} maxFrameHeight - the height to be requested for remote sources.
      * @returns {void}
      */
-    _updateIndividualConstraints() {
+    _updateIndividualConstraints(maxFrameHeight) {
         const individualConstraints = this._receiverVideoConstraints.constraints;
 
         if (individualConstraints && Object.keys(individualConstraints).length) {
             for (const value of Object.values(individualConstraints)) {
-                value.maxHeight = Math.min(value.maxHeight, this._maxFrameHeight);
+                value.maxHeight = maxFrameHeight ?? Math.min(value.maxHeight, this._maxFrameHeight);
             }
         } else {
             this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
@@ -184,7 +185,7 @@ export default class ReceiveVideoController {
             if (session.isP2P) {
                 session.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(session, maxFrameHeight));
             } else {
-                this._updateIndividualConstraints();
+                this._updateIndividualConstraints(maxFrameHeight);
                 this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
             }
         }
