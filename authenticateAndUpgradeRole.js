@@ -117,7 +117,13 @@ export default function authenticateAndUpgradeRole({
                         // stored in the settings. Send a new conference IQ.
                         this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
                             .catch(e => logger.trace('sendConferenceRequest rejected', e))
-                            .finally(resolve);
+                            .finally(() => {
+                                // we need to reset it because of breakout rooms which will
+                                // reuse connection but will invite jicofo
+                                this.room.xmpp.moderator.conferenceRequestSent = false;
+
+                                resolve();
+                            });
                     })
                     .catch(({ error, message }) => {
                         xmpp.disconnect();
