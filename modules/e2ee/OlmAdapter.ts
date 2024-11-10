@@ -85,7 +85,7 @@ export class OlmAdapter extends Listenable {
     private _privateKey: Uint8Array;
     private _olmAccount: any;
     private _idKeys: any;
-    static readonly events: {
+    static events: {
         PARTICIPANT_E2EE_CHANNEL_READY: string;
         PARTICIPANT_SAS_AVAILABLE: string;
         PARTICIPANT_SAS_READY: string;
