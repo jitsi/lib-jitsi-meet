@@ -342,7 +342,8 @@ export default function TraceablePeerConnection(
      * @property {string} mediaType - The media type of the track.
      * @property {string} msid - The track's MSID.
      * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
-     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+     * @property {Array<string>} ssrcList - The SSRCs associated with the track.
+     * @property {VideoType} videoType - The videoType of the track (undefined for audio tracks).
      */
     this._remoteSsrcMap = new Map();
 
@@ -964,47 +965,38 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
 
     const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
     const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
-
-    // Assume default presence state for remote source. Presence can be received after source signaling. This shouldn't
-    // prevent the endpoint from creating a remote track for the source.
-    let muted = true;
-    let videoType = mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined; // 'camera' by default
-
-    if (peerMediaInfo) {
-        muted = peerMediaInfo.muted;
-        videoType = peerMediaInfo.videoType; // can be undefined
-    } else {
-        logger.info(`${this}: no source-info available for ${ownerEndpointId}:${sourceName}, assuming default state`);
-    }
-
-    this._createRemoteTrack(ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted, sourceName);
-};
-
-// FIXME cleanup params
-/* eslint-disable max-params */
-
-/**
- * Initializes a new JitsiRemoteTrack instance with the data provided by
- * the signaling layer and SDP.
- *
- * @param {string} ownerEndpointId the owner's endpoint ID (MUC nickname)
- * @param {MediaStream} stream the WebRTC stream instance
- * @param {MediaStreamTrack} track the WebRTC track instance
- * @param {MediaType} mediaType the track's type of the media
- * @param {VideoType} [videoType] the track's type of the video (if applicable)
- * @param {number} ssrc the track's main SSRC number
- * @param {boolean} muted the initial muted status
- * @param {String} sourceName the track's source name
- */
-TraceablePeerConnection.prototype._createRemoteTrack = function(
-        ownerEndpointId,
+    const trackDetails = {
+        mediaType,
+        muted: peerMediaInfo?.muted ?? true,
         stream,
         track,
-        mediaType,
-        videoType,
-        ssrc,
-        muted,
-        sourceName) {
+        ssrc: trackSsrc,
+        videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined
+    };
+
+    if (this._remoteSsrcMap.has(sourceName)) {
+        trackDetails.videoType = this._remoteSsrcMap.get(sourceName).videoType;
+    }
+
+    this._createRemoteTrack(ownerEndpointId, sourceName, trackDetails);
+};
+
+/**
+ * Initializes a new JitsiRemoteTrack instance with the data provided by the signaling layer and SDP.
+ *
+ * @param {string} ownerEndpointId - The owner's endpoint ID (MUC nickname)
+ * @param {String} sourceName - The track's source name
+ * @param {Object} trackDetails - The track's details.
+ * @param {MediaType} trackDetails.mediaType - media type, 'audio' or 'video'.
+ * @param {boolean} trackDetails.muted - The initial muted status.
+ * @param {number} trackDetails.ssrc - The track's main SSRC number.
+ * @param {MediaStream} trackDetails.stream - The WebRTC stream instance.
+ * @param {MediaStreamTrack} trackDetails.track - The WebRTC track instance.
+ * @param {VideoType} trackDetails.videoType - The track's type of the video (if applicable).
+ */
+TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId, sourceName, trackDetails) {
+    const { mediaType, muted, ssrc, stream, track, videoType } = trackDetails;
+
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},`
         + `type=${mediaType},sourceName=${sourceName}]`);
     let remoteTracksMap;

@@ -73,7 +73,8 @@ function _addSourceElement(description, s, ssrc_, msid) {
     description.c('source', {
         xmlns: XEP.SOURCE_ATTRIBUTES,
         ssrc: ssrc_,
-        name: s.source
+        name: s.source,
+        videoType: s.videoType?.toLowerCase()
     })
         .c('parameter', {
             name: 'msid',
@@ -561,6 +562,7 @@ export default class JingleSessionPC extends JingleSession {
                     const msid = $(source)
                         .find('>parameter[name="msid"]')
                         .attr('value');
+                    const videoType = $(source).attr('videoType');
 
                     if (sourceDescription.has(sourceName)) {
                         sourceDescription.get(sourceName).ssrcList?.push(ssrc);
@@ -569,7 +571,8 @@ export default class JingleSessionPC extends JingleSession {
                             groups: [],
                             mediaType,
                             msid,
-                            ssrcList: [ ssrc ]
+                            ssrcList: [ ssrc ],
+                            videoType
                         });
                     }
 
