@@ -5,6 +5,7 @@ import { $build } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
 const logger = getLogger(__filename);
@@ -13,13 +14,23 @@ const logger = getLogger(__filename);
  * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].
  * @param {*} owner the endpoint ID of the owner of the source.
  * @param {*} sourceCompactJson the compact JSON representation of the source.
+ * @param {boolean} isVideo whether the source is a video source
  * @returns the created "source" XML element.
  */
-function _createSourceExtension(owner, sourceCompactJson) {
+function _createSourceExtension(owner, sourceCompactJson, isVideo = false) {
+    let videoType = sourceCompactJson.v ? VideoType.DESKTOP : undefined;
+
+    // If the video type is not specified, it is assumed to be a camera for video sources.
+    // Jicofo adds the video type only for desktop sharing sources.
+    if (!videoType && isVideo) {
+        videoType = VideoType.CAMERA;
+    }
+
     const node = $build('source', {
         xmlns: XEP.SOURCE_ATTRIBUTES,
         ssrc: sourceCompactJson.s,
-        name: sourceCompactJson.n
+        name: sourceCompactJson.n,
+        videoType
     });
 
     if (sourceCompactJson.m) {
@@ -157,7 +168,7 @@ export function expandSourcesFromJson(iq, jsonMessageXml) {
 
             if (videoSources?.length) {
                 for (let i = 0; i < videoSources.length; i++) {
-                    videoRtpDescription.appendChild(_createSourceExtension(owner, videoSources[i]));
+                    videoRtpDescription.appendChild(_createSourceExtension(owner, videoSources[i], true));
                     ssrcs.push(videoSources[i]?.s);
                 }
             }
