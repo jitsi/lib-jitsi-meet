@@ -971,10 +971,10 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
         stream,
         track,
         ssrc: trackSsrc,
-        videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined
+        videoType: peerMediaInfo?.videoType
     };
 
-    if (this._remoteSsrcMap.has(sourceName)) {
+    if (this._remoteSsrcMap.has(sourceName) && mediaType === MediaType.VIDEO) {
         trackDetails.videoType = this._remoteSsrcMap.get(sourceName).videoType;
     }
 
