@@ -113,7 +113,6 @@ export class ManagedKeyHandler extends KeyHandler {
             console.log(`_setEnabled got error ${e}`);
             return false;
         }
-        // Generate a random key in case we are enabling.
 
         return true;
     }
