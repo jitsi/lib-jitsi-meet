@@ -2103,7 +2103,7 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.resolve();
         }
 
-        return this.peerconnection.tpcUtils.setMediaTransferActive(active)
+        return this.peerconnection.setMediaTransferActive(active)
             .then(() => {
                 this.peerconnection.audioTransferActive = active;
                 this.peerconnection.videoTransferActive = active;
