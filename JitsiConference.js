@@ -80,6 +80,11 @@ const logger = getLogger(__filename);
 const JINGLE_SI_TIMEOUT = 5000;
 
 /**
+ * Default source language for transcribing the local participant.
+ */
+const DEFAULT_TRANSCRIPTION_LANGUAGE = 'en-US';
+
+/**
  * Checks if a given string is a valid video codec mime type.
  *
  * @param {string} codec the codec string that needs to be validated.
@@ -567,8 +572,10 @@ JitsiConference.prototype._init = function(options = {}) {
     // In case the language config is undefined or has the default value that the transcriber uses
     // (in our case Jigasi uses 'en-US'), don't set the participant property in order to avoid
     // needlessly polluting the presence stanza.
-    if (config && config.transcriptionLanguage && config.transcriptionLanguage !== 'en-US') {
-        this.setLocalParticipantProperty('transcription_language', config.transcriptionLanguage);
+    const transcriptionLanguage = config?.transcriptionLanguage ?? DEFAULT_TRANSCRIPTION_LANGUAGE;
+
+    if (transcriptionLanguage !== DEFAULT_TRANSCRIPTION_LANGUAGE) {
+        this.setTranscriptionLanguage(transcriptionLanguage);
     }
 };
 
@@ -2668,7 +2675,20 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
  */
 JitsiConference.prototype.removeLocalParticipantProperty = function(name) {
     this.removeCommand(`jitsi_participant_${name}`);
-    this.room.sendPresence();
+    if (this.room) {
+        this.room.sendPresence();
+    }
+};
+
+/**
+ * Sets the transcription language.
+ * NB: Unlike _init_ here we don't check for the default value since we want to allow
+ * the value to be reset.
+ *
+ * @param lang the new transcription language to be used.
+ */
+JitsiConference.prototype.setTranscriptionLanguage = function(lang) {
+    this.setLocalParticipantProperty('transcription_language', lang);
 };
 
 /**
