@@ -1233,10 +1233,10 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function
         }
     }
 
-    return new RTCSessionDescription({
+    return {
         type: desc.type,
         sdp: transform.write(sdp)
-    });
+    };
 };
 
 /* eslint-disable-next-line vars-on-top */
@@ -1797,10 +1797,10 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
         });
     });
 
-    return new RTCSessionDescription({
+    return {
         type: remoteDescription.type,
         sdp: transformer.toRawSDP()
-    });
+    };
 };
 
 /**
@@ -2458,10 +2458,10 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
 
             if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
                 // eslint-disable-next-line no-param-reassign
-                resultSdp = new RTCSessionDescription({
+                resultSdp = {
                     type: resultSdp.type,
                     sdp: this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp)
-                });
+                };
 
                 this.trace(
                     `create${logName}`

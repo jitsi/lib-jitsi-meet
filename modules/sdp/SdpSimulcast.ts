@@ -227,9 +227,9 @@ export default class SdpSimulcast {
             }
         }
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(session)
-        });
+        };
     }
 }

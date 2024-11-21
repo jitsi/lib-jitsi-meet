@@ -144,9 +144,9 @@ export default class LocalSdpMunger {
             this._transformMediaIdentifiers(videoMLine, ssrcMap);
         }
 
-        return new RTCSessionDescription({
+        return {
             type: sessionDesc.type,
             sdp: transformer.toRawSDP()
-        });
+        };
     }
 }
