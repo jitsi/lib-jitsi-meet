@@ -655,10 +655,10 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.reject(error);
         }
 
-        const remoteDescription = new RTCSessionDescription({
+        const remoteDescription = {
             type: 'offer',
             sdp: remoteSdp
-        });
+        };
 
         const oldLocalSDP = this.peerconnection.localDescription.sdp;
 
@@ -2062,10 +2062,10 @@ export default class JingleSessionPC extends JingleSession {
 
         const newRemoteSdp = this._processNewJingleOfferIq(jingleAnswer);
         const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
-        const remoteDescription = new RTCSessionDescription({
+        const remoteDescription = {
             type: 'answer',
             sdp: newRemoteSdp.raw
-        });
+        };
 
         this.peerconnection.setRemoteDescription(remoteDescription)
             .then(() => {

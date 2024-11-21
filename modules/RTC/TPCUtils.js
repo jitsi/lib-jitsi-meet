@@ -470,10 +470,10 @@ export class TPCUtils {
             mLine.ssrcs = reorderedSsrcs;
         });
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(parsedSdp)
-        });
+        };
     }
 
     /**
@@ -626,10 +626,10 @@ export class TPCUtils {
             }
         });
 
-        return new RTCSessionDescription({
+        return {
             type: desc.type,
             sdp: transform.write(sdp)
-        });
+        };
     }
 
     /**
@@ -703,10 +703,10 @@ export class TPCUtils {
             }
         }
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(parsedSdp)
-        });
+        };
     }
 
     /**
@@ -776,10 +776,10 @@ export class TPCUtils {
             fmtpOpus.config = mungedConfig.trim();
         }
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(parsedSdp)
-        });
+        };
     }
 
     /**
@@ -842,10 +842,10 @@ export class TPCUtils {
             }
         }
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(parsedSdp)
-        });
+        };
     }
 
     /**
@@ -892,9 +892,9 @@ export class TPCUtils {
             }
         });
 
-        return new RTCSessionDescription({
+        return {
             type: description.type,
             sdp: transform.write(parsedSdp)
-        });
+        };
     }
 }
