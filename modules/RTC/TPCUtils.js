@@ -7,6 +7,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import {
     SIM_LAYERS,
+    SSRC_GROUP_SEMANTICS,
     STANDARD_CODEC_SETTINGS,
     VIDEO_QUALITY_LEVELS,
     VIDEO_QUALITY_SETTINGS
@@ -438,12 +439,11 @@ export class TPCUtils {
     }
 
     /**
-     * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e.,
-     * the primary ssrc first and the secondary rtx ssrc later. This is important for unified
-     * plan since we have only one FID group per media description.
-     * @param {Object} description the webRTC session description instance for the remote
-     * description.
-     * @private
+     * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e., the primary ssrc
+     * first and the secondary rtx ssrc later. This is important for unified plan since we have only one FID group per
+     * media description.
+     * @param {Object} description the webRTC session description instance for the remote description.
+     * @returns {Object} the modified webRTC session description instance.
      */
     ensureCorrectOrderOfSsrcs(description) {
         const parsedSdp = transform.parse(description.sdp);
@@ -493,14 +493,15 @@ export class TPCUtils {
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
             const { codecs } = rtpSender.getParameters();
 
-            return codecs[0].mimeType.split('/')[1].toLowerCase();
+            if (codecs?.length) {
+                return codecs[0].mimeType.split('/')[1].toLowerCase();
+            }
         }
 
         const sdp = this.pc.remoteDescription?.sdp;
-        const defaultCodec = CodecMimeType.VP8;
 
         if (!sdp) {
-            return defaultCodec;
+            return CodecMimeType.VP8;
         }
         const parsedSdp = transform.parse(sdp);
         const mLine = parsedSdp.media
@@ -512,17 +513,17 @@ export class TPCUtils {
             return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
         }
 
-        return defaultCodec;
+        return CodecMimeType.VP8;
     }
 
     /**
      * Returns the codecs in the current order of preference as configured on the peerconnection.
      *
-     * @param {RTCSessionDescription} - The local description to be used.
+     * @param {string} - The local SDP to be used.
      * @returns {Array}
      */
-    getConfiguredVideoCodecs(description) {
-        const currentSdp = description?.sdp ?? this.pc.localDescription?.sdp;
+    getConfiguredVideoCodecs(sdp) {
+        const currentSdp = sdp ?? this.pc.localDescription?.sdp;
 
         if (!currentSdp) {
             return [];
@@ -572,6 +573,57 @@ export class TPCUtils {
             active: this.pc.videoTransferActive,
             maxBitrate: this.codecSettings[codec].maxBitratesVideo.high
         } ];
+    }
+
+    /**
+     * Injects a 'SIM' ssrc-group line for simulcast into the given session description object to make Jicofo happy.
+     * This is needed only for Firefox since it does not generate it when simulcast is enabled.
+     *
+     * @param desc A session description object (with 'type' and 'sdp' fields)
+     * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
+     */
+    injectSsrcGroupForUnifiedSimulcast(desc) {
+        const sdp = transform.parse(desc.sdp);
+        const video = sdp.media.find(mline => mline.type === 'video');
+
+        // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
+        video.ssrcGroups = video.ssrcGroups || [];
+        const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
+
+        if (video.simulcast || video.simulcast_03) {
+            const ssrcs = [];
+
+            if (fidGroups && fidGroups.length) {
+                fidGroups.forEach(group => {
+                    ssrcs.push(group.ssrcs.split(' ')[0]);
+                });
+            } else {
+                video.ssrcs.forEach(ssrc => {
+                    if (ssrc.attribute === 'msid') {
+                        ssrcs.push(ssrc.id);
+                    }
+                });
+            }
+            if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
+                // Group already exists, no need to do anything
+                return desc;
+            }
+
+            // Add a SIM group for every 3 FID groups.
+            for (let i = 0; i < ssrcs.length; i += 3) {
+                const simSsrcs = ssrcs.slice(i, i + 3);
+
+                video.ssrcGroups.push({
+                    semantics: SSRC_GROUP_SEMANTICS.SIM,
+                    ssrcs: simSsrcs.join(' ')
+                });
+            }
+        }
+
+        return {
+            type: desc.type,
+            sdp: transform.write(sdp)
+        };
     }
 
     /**
@@ -659,26 +711,22 @@ export class TPCUtils {
     /**
      * Munges the session description to ensure that the codec order is as per the preferred codec settings.
      *
-     * @param {RTCSessionDescription} description - the local/remote description to be munged.
-     * @returns {RTCSessionDescription} - the munged local/remote description.
+     * @param {transform.SessionDescription} parsedSdp that needs to be munged
+     * @returns {transform.SessionDescription} the munged SDP.
      */
-    mungeCodecOrder(description) {
+    mungeCodecOrder(parsedSdp) {
         const codecSettings = this.pc.codecSettings;
 
         if (!codecSettings) {
-            return description;
+            return parsedSdp;
         }
 
+        const mungedSdp = parsedSdp;
         const { isP2P } = this.options;
-        const parsedSdp = transform.parse(description.sdp);
-        const mLines = parsedSdp.media.filter(m => m.type === codecSettings.mediaType);
-
-        if (!mLines.length) {
-            return description;
-        }
+        const mLines = mungedSdp.media.filter(m => m.type === codecSettings.mediaType);
 
         for (const mLine of mLines) {
-            const currentCodecs = this.getConfiguredVideoCodecs(description);
+            const currentCodecs = this.getConfiguredVideoCodecs(transform.write(parsedSdp));
 
             for (const codec of currentCodecs) {
                 if (isP2P) {
@@ -707,28 +755,25 @@ export class TPCUtils {
             }
         }
 
-        return {
-            type: description.type,
-            sdp: transform.write(parsedSdp)
-        };
+        return mungedSdp;
     }
 
     /**
      * Munges the stereo flag as well as the opusMaxAverageBitrate in the SDP, based on values set through config.js,
      * if present.
      *
-     * @param {RTCSessionDescription} description that needs to be munged.
-     * @returns {RTCSessionDescription} the munged description.
+     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
+     * @returns {transform.SessionDescription} the munged SDP.
      */
-    mungeOpus(description) {
+    mungeOpus(parsedSdp) {
         const { audioQuality } = this.options;
 
         if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
-            return description;
+            return parsedSdp;
         }
 
-        const parsedSdp = transform.parse(description.sdp);
-        const mLines = parsedSdp.media.filter(m => m.type === MediaType.AUDIO);
+        const mungedSdp = parsedSdp;
+        const mLines = mungedSdp.media.filter(m => m.type === MediaType.AUDIO);
 
         for (const mLine of mLines) {
             const { payload } = mLine.rtp.find(protocol => protocol.codec === CodecMimeType.OPUS);
@@ -780,30 +825,27 @@ export class TPCUtils {
             fmtpOpus.config = mungedConfig.trim();
         }
 
-        return {
-            type: description.type,
-            sdp: transform.write(parsedSdp)
-        };
+        return mungedSdp;
     }
 
     /**
-     * Munges the session description by setting the max bitrates on the video m-lines when VP9 K-SVC codec is in use.
+     * Munges the session SDP by setting the max bitrates on the video m-lines when VP9 K-SVC codec is in use.
      *
-     * @param {RTCSessionDescription} description - The local/remote description that needs to be munged.
+     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
      * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
-     * @returns {RTCSessionDescription} - The munged local/remote description.
+     * @returns {transform.SessionDescription} The munged SDP.
      */
-    setMaxBitrates(description, isLocalSdp = false) {
+    setMaxBitrates(parsedSdp, isLocalSdp = false) {
         const pcCodecSettings = this.pc.codecSettings;
 
         if (!pcCodecSettings) {
-            return description;
+            return parsedSdp;
         }
-        const parsedSdp = transform.parse(description.sdp);
 
         // Find all the m-lines associated with the local sources.
+        const mungedSdp = parsedSdp;
         const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
-        const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
+        const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
         const currentCodec = pcCodecSettings.codecList[0];
         const codecScalabilityModeSettings = this.codecSettings[currentCodec];
 
@@ -846,26 +888,22 @@ export class TPCUtils {
             }
         }
 
-        return {
-            type: description.type,
-            sdp: transform.write(parsedSdp)
-        };
+        return mungedSdp;
     }
 
     /**
      * Checks if the AV1 Dependency descriptors are negotiated on the bridge peerconnection and removes them from the
-     * description when codec selected is VP8 or VP9.
+     * SDP when codec selected is VP8 or VP9.
      *
-     * @param {RTCSessionDescription} description that needs to be munged.
-     * @returns {RTCSessionDescription} the munged description.
+     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
+     * @returns {string} the munged SDP.
      */
-    updateAv1DdHeaders(description) {
-        const parsedSdp = transform.parse(description.sdp);
-        const mLines = parsedSdp.media.filter(m => m.type === MediaType.VIDEO);
-
-        if (!mLines.length || !browser.supportsDDExtHeaders()) {
-            return description;
+    updateAv1DdHeaders(parsedSdp) {
+        if (!this.supportsDDHeaderExt) {
+            return parsedSdp;
         }
+        const mungedSdp = parsedSdp;
+        const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO);
 
         mLines.forEach((mLine, idx) => {
             const senderMids = Array.from(this.pc.localTrackTransceiverMids.values());
@@ -896,9 +934,6 @@ export class TPCUtils {
             }
         });
 
-        return {
-            type: description.type,
-            sdp: transform.write(parsedSdp)
-        };
+        return mungedSdp;
     }
 }
