@@ -1331,11 +1331,11 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @param {boolean} isInitiator indicates if the endpoint is the offerer.
  * @returns {Promise<void>} - resolved when done.
  */
-TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false) {
+TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator = false) {
     const rtcId = track.rtcId;
 
     if (this.localTracks.has(rtcId)) {
-        return Promise.reject(new Error(`${track} is already in ${this}`));
+        throw new Error(`${track} is already in ${this}`);
     }
 
     logger.info(`${this} adding ${track}`);
@@ -1360,11 +1360,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             transceiverInit.sendEncodings = this.tpcUtils.getStreamEncodings(track);
         }
 
-        try {
-            transceiver = this.peerconnection.addTransceiver(mediaStreamTrack, transceiverInit);
-        } catch (error) {
-            return Promise.reject(new Error(`${this} failed to create transceiver for ${track} - ${error}`));
-        }
+        transceiver = this.peerconnection.addTransceiver(mediaStreamTrack, transceiverInit);
     } else {
         // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
         // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
@@ -1388,14 +1384,10 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
         }
     }
 
-    let promiseChain = Promise.resolve();
-
     // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
-    if (browser.isFirefox()) {
-        promiseChain = promiseChain.then(() => webrtcStream && this._setEncodings(track));
+    if (browser.isFirefox() && webrtcStream) {
+        await this._setEncodings(track);
     }
-
-    return promiseChain;
 };
 
 /**
@@ -1923,7 +1915,7 @@ TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(local
  * @param {JitsiLocalTracj} localTrack - The local track whose outbound stream needs to be configured.
  * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
  */
-TraceablePeerConnection.prototype._configureSenderEncodings = function(localTrack) {
+TraceablePeerConnection.prototype._configureSenderEncodings = async function(localTrack) {
     const mediaType = localTrack.getType();
     const transceiver = localTrack?.track && localTrack.getOriginalStream()
         ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
@@ -1934,12 +1926,11 @@ TraceablePeerConnection.prototype._configureSenderEncodings = function(localTrac
     // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
     // action that triggers 'addTrack' (like unmute) will also configure the encodings and set bitrates after that.
     if (!parameters?.encodings?.length) {
-        return Promise.resolve();
+        return;
     }
 
     parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack);
-
-    return transceiver.sender.setParameters(parameters);
+    await transceiver.sender.setParameters(parameters);
 };
 
 /**
@@ -1949,7 +1940,7 @@ TraceablePeerConnection.prototype._configureSenderEncodings = function(localTrac
  * @param {boolean} enable - whether the streams needs to be enabled or disabled.
  * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
  */
-TraceablePeerConnection.prototype._enableSenderEncodings = function(sender, enable) {
+TraceablePeerConnection.prototype._enableSenderEncodings = async function(sender, enable) {
     const parameters = sender.getParameters();
 
     if (parameters?.encodings?.length) {
@@ -1958,7 +1949,7 @@ TraceablePeerConnection.prototype._enableSenderEncodings = function(sender, enab
         }
     }
 
-    return sender.setParameters(parameters);
+    await sender.setParameters(parameters);
 };
 
 /**
