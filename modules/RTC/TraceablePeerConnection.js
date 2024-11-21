@@ -1187,58 +1187,6 @@ TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
     return ssrcInfo && ssrcInfo.ssrcs[0];
 };
 
-/**
- * When doing unified plan simulcast, we'll have a set of ssrcs but no ssrc-groups on Firefox. Unfortunately, Jicofo
- * will complain if it sees ssrcs with matching msids but no ssrc-group, so a ssrc-group line is injected to make
- * Jicofo happy.
- *
- * @param desc A session description object (with 'type' and 'sdp' fields)
- * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
- */
-TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast = function(desc) {
-    const sdp = transform.parse(desc.sdp);
-    const video = sdp.media.find(mline => mline.type === 'video');
-
-    // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
-    video.ssrcGroups = video.ssrcGroups || [];
-    const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
-
-    if (video.simulcast || video.simulcast_03) {
-        const ssrcs = [];
-
-        if (fidGroups && fidGroups.length) {
-            fidGroups.forEach(group => {
-                ssrcs.push(group.ssrcs.split(' ')[0]);
-            });
-        } else {
-            video.ssrcs.forEach(ssrc => {
-                if (ssrc.attribute === 'msid') {
-                    ssrcs.push(ssrc.id);
-                }
-            });
-        }
-        if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
-            // Group already exists, no need to do anything
-            return desc;
-        }
-
-        // Add a SIM group for every 3 FID groups.
-        for (let i = 0; i < ssrcs.length; i += 3) {
-            const simSsrcs = ssrcs.slice(i, i + 3);
-
-            video.ssrcGroups.push({
-                semantics: SSRC_GROUP_SEMANTICS.SIM,
-                ssrcs: simSsrcs.join(' ')
-            });
-        }
-    }
-
-    return {
-        type: desc.type,
-        sdp: transform.write(sdp)
-    };
-};
-
 /* eslint-disable-next-line vars-on-top */
 const getters = {
     signalingState() {
@@ -1261,9 +1209,8 @@ const getters = {
 
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
-        // For a jvb connection, transform the SDP to Plan B first.
         if (!this.isP2P) {
-            desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
+            desc = this.tpcUtils.injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
         }
 
@@ -1457,7 +1404,7 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * @returns {Array}
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(description) {
-    return this.tpcUtils.getConfiguredVideoCodecs(description);
+    return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
 };
 
 /**
@@ -2001,13 +1948,18 @@ TraceablePeerConnection.prototype._setEncodings = function(localTrack) {
  * @returns {RTCSessionDescription} - The munged description.
  */
 TraceablePeerConnection.prototype._mungeDescription = function(description) {
-    let mungedDescription = description;
-
     this.trace('RTCSessionDescription::preTransform', dumpSDP(description));
-    mungedDescription = this.tpcUtils.mungeOpus(description);
-    mungedDescription = this.tpcUtils.mungeCodecOrder(mungedDescription);
-    mungedDescription = this.tpcUtils.setMaxBitrates(mungedDescription, true);
-    mungedDescription = this.tpcUtils.updateAv1DdHeaders(mungedDescription);
+    let mungedSdp = transform.parse(description.sdp);
+
+    mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
+    mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
+    mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
+    mungedSdp = this.tpcUtils.updateAv1DdHeaders(mungedSdp);
+    const mungedDescription = {
+        type: description.type,
+        sdp: transform.write(mungedSdp)
+    };
+
     this.trace('RTCSessionDescription::postTransform', dumpSDP(mungedDescription));
 
     return mungedDescription;
