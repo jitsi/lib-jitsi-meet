@@ -99,7 +99,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs in case the first ssrc in the SIM group is not present at the top', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, { });
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()
@@ -163,7 +163,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs in case there is a single FID group', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, { });
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()

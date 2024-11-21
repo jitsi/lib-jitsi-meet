@@ -31,8 +31,12 @@ export class TPCUtils {
      * Creates a new instance for a given TraceablePeerConnection
      *
      * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param options - additional options that can be passed to the utility functions.
+     * @param options.audioQuality - the audio quality settings that are used to calculate the audio codec parameters.
+     * @param options.isP2P - whether the connection is a P2P connection.
+     * @param options.videoQuality - the video quality settings that are used to calculate the encoding parameters.
      */
-    constructor(peerconnection, options) {
+    constructor(peerconnection, options = {}) {
         this.pc = peerconnection;
         this.options = options;
         this.codecSettings = cloneDeep(STANDARD_CODEC_SETTINGS);
