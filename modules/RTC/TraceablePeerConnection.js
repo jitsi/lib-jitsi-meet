@@ -1210,7 +1210,7 @@ const getters = {
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
         if (!this.isP2P) {
-            desc = this.tpcUtils.injectSsrcGroupForUnifiedSimulcast(desc);
+            desc = this.tpcUtils.injectSsrcGroupForSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
         }
 
