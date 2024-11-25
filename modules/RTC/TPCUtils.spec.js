@@ -35,7 +35,7 @@ describe('TPCUtils', () => {
 
         it('sort ssrcs associated with all FID ssrc-groups', () => {
             const pc = new MockPeerConnection();
-            const tpcUtils = new TPCUtils(pc, { });
+            const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
                 sdp: getSourceSdp()

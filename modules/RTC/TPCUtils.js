@@ -101,6 +101,7 @@ export class TPCUtils {
      * @param {CodecMimeType} codec - The video codec.
      * @param {number} newHeight - The resolution that needs to be configured for the local video track.
      * @returns {Object} configuration.
+     * @private
      */
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
@@ -160,6 +161,22 @@ export class TPCUtils {
     }
 
     /**
+     * Returns the codecs in the current order of preference in the SDP provided.
+     *
+     * @param {transform.SessionDescription} parsedSdp the parsed SDP object.
+     * @returns {Array<CodecMimeType>}
+     * @private
+     */
+    _getConfiguredVideoCodecsImpl(parsedSdp) {
+        const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
+        const codecs = new Set(mLine.rtp
+            .filter(pt => pt.codec.toLowerCase() !== 'rtx')
+            .map(pt => pt.codec.toLowerCase()));
+
+        return Array.from(codecs);
+    }
+
+    /**
      * The startup configuration for the stream encodings that are applicable to the video stream when a new sender is
      * created on the peerconnection. The initial config takes into account the differences in browser's simulcast
      * implementation.
@@ -172,8 +189,10 @@ export class TPCUtils {
      * scaleResolutionDownBy - the factor by which the encoding is scaled down from the original resolution of the
      *  captured video.
      *
-     * @param {JitsiLocalTrack} localTrack
-     * @param {String} codec
+     * @param {JitsiLocalTrack} localTrack - The local video track.
+     * @param {String} codec - The codec currently in use.
+     * @returns {Array<Object>} - The initial configuration for the stream encodings.
+     * @private
      */
     _getVideoStreamEncodings(localTrack, codec) {
         const captureResolution = localTrack.getCaptureResolution();
@@ -268,8 +287,9 @@ export class TPCUtils {
      * Returns a boolean indicating whether the video encoder is running in full SVC mode, i.e., it sends only one
      * video stream that has both temporal and spatial scalability.
      *
-     * @param {CodecMimeType} codec
-     * @returns boolean
+     * @param {CodecMimeType} codec - The video codec in use.
+     * @returns boolean - true if the video encoder is running in full SVC mode, false otherwise.
+     * @private
      */
     _isRunningInFullSvcMode(codec) {
         return (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1)
@@ -286,7 +306,8 @@ export class TPCUtils {
      * desktop stream at all if only the high resolution stream is enabled.
      *
      * @param {JitsiLocalTrack} localVideoTrack - The local video track.
-     * @returns {boolean}
+     * @returns {boolean} - true if the bitrate needs to be capped for the screenshare track, false otherwise.
+     * @private
      */
     _isScreenshareBitrateCapped(localVideoTrack) {
         return localVideoTrack.getVideoType() === VideoType.DESKTOP
@@ -529,12 +550,8 @@ export class TPCUtils {
             return [];
         }
         const parsedSdp = transform.parse(currentSdp);
-        const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
-        const codecs = new Set(mLine.rtp
-            .filter(pt => pt.codec.toLowerCase() !== 'rtx')
-            .map(pt => pt.codec.toLowerCase()));
 
-        return Array.from(codecs);
+        return this._getConfiguredVideoCodecsImpl(parsedSdp);
     }
 
     /**
@@ -577,12 +594,13 @@ export class TPCUtils {
 
     /**
      * Injects a 'SIM' ssrc-group line for simulcast into the given session description object to make Jicofo happy.
-     * This is needed only for Firefox since it does not generate it when simulcast is enabled.
+     * This is needed only for Firefox since it does not generate it when simulcast is enabled but we run the check
+     * on all browsers just in case as it would break the functionality otherwise.
      *
      * @param desc A session description object (with 'type' and 'sdp' fields)
      * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
      */
-    injectSsrcGroupForUnifiedSimulcast(desc) {
+    injectSsrcGroupForSimulcast(desc) {
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
@@ -726,7 +744,7 @@ export class TPCUtils {
         const mLines = mungedSdp.media.filter(m => m.type === codecSettings.mediaType);
 
         for (const mLine of mLines) {
-            const currentCodecs = this.getConfiguredVideoCodecs(transform.write(parsedSdp));
+            const currentCodecs = this._getConfiguredVideoCodecsImpl(mungedSdp);
 
             for (const codec of currentCodecs) {
                 if (isP2P) {
