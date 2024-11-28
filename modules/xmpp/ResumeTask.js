@@ -69,7 +69,6 @@ export default class ResumeTask {
                     }
                 });
 
-        NetworkInfo.isOnline() && this._scheduleResume();
     }
 
     /**
