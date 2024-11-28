@@ -56,7 +56,6 @@ export default class ResumeTask {
         this._cancelResume();
         this._removeNetworkOnlineListener();
 
-        this._resumeRetryN += 1;
 
         this._networkOnlineListener
             = NetworkInfo.addCancellableListener(
@@ -82,6 +81,8 @@ export default class ResumeTask {
             // NO-OP
             return;
         }
+
+        this._resumeRetryN += 1;
 
         // The retry delay will be:
         //   1st retry: 1.5s - 3s
