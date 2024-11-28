@@ -29,7 +29,7 @@ export default class ResumeTask {
          */
         this._resumeRetryN = 0;
 
-        this._retryDelay = undefined;
+        this._resumeTimeout = undefined;
     }
 
     /**
@@ -37,14 +37,6 @@ export default class ResumeTask {
      */
     get retryCount() {
         return this._resumeRetryN;
-    }
-
-    /**
-     * @returns {number|undefined} - How much the app will wait before trying to resume the XMPP connection. When
-     * 'undefined' it means that no resume task was not scheduled.
-     */
-    get retryDelay() {
-        return this._retryDelay;
     }
 
     /**
@@ -88,14 +80,14 @@ export default class ResumeTask {
         //   1st retry: 1.5s - 3s
         //   2nd retry: 3s - 9s
         //   3rd and next retry: 4.5s - 27s
-        this._retryDelay = getJitterDelay(
+        const retryDelay = getJitterDelay(
             /* retry */ this._resumeRetryN,
             /* minDelay */ this._resumeRetryN * 1500,
             3);
 
-        logger.info(`Will try to resume the XMPP connection in ${this.retryDelay}ms`);
+        logger.info(`Will try to resume the XMPP connection in ${retryDelay}ms`);
 
-        this._resumeTimeout = setTimeout(() => this._resumeConnection(), this.retryDelay);
+        this._resumeTimeout = setTimeout(() => this._resumeConnection(), retryDelay);
     }
 
     /**
@@ -109,7 +101,6 @@ export default class ResumeTask {
             logger.info('Canceling connection resume task');
             clearTimeout(this._resumeTimeout);
             this._resumeTimeout = undefined;
-            this._retryDelay = undefined;
         }
     }
 

@@ -1,6 +1,6 @@
 export default class ResumeTask {
   constructor( stropheConnection: Strophe.Connection );
-  retryDelay: () => number | undefined;
+  retryCount: () => number;
   schedule: () => void;
   cancel: () => void;
 }
