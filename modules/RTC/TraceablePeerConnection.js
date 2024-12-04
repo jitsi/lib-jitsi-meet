@@ -542,7 +542,7 @@ TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoint
  */
 TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
     const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-        && this._supportsDDHeaderExt;
+        && this.tpcUtils.supportsDDHeaderExt;
 
     return !this.options.disableSimulcast
         && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);

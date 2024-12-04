@@ -630,7 +630,6 @@ StatsCollector.prototype.processStatsReport = function() {
                 if (now.type === 'outbound-rtp'
                     && now.active
                     && track?.isVideoTrack()
-                    && this.peerconnection.usesCodecSelectionAPI()
                     && before?.totalEncodeTime
                     && before?.framesEncoded
                     && now.frameHeight

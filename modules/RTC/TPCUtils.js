@@ -917,7 +917,7 @@ export class TPCUtils {
      * @returns {string} the munged SDP.
      */
     updateAv1DdHeaders(parsedSdp) {
-        if (!this.supportsDDHeaderExt) {
+        if (!browser.supportsDDExtHeaders()) {
             return parsedSdp;
         }
         const mungedSdp = parsedSdp;
