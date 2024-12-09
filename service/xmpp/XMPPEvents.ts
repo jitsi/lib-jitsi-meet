@@ -106,6 +106,11 @@ export enum XMPPEvents {
      */
     MEETING_ID_SET = 'xmpp.meeting_id_set',
 
+    /**
+     * Event fired when the room owner is set
+     */
+    ROOM_OWNER_SET = 'xmpp.room_owner_set',
+
     // Designates an event indicating that an XMPP message in the MUC was
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',

@@ -373,6 +373,15 @@ export default class ChatRoom extends Listenable {
             const meetingIdValEl
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
 
+            const roomOwnerValEl
+                    = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_roomOwner"]>value');
+
+            if (roomOwnerValEl && roomOwnerValEl.length) {
+                this.setRoomOwner(roomOwnerValEl.text());
+            } else {
+                logger.warn('No room owner from backend');
+            }
+
             if (meetingIdValEl.length) {
                 this.setMeetingId(meetingIdValEl.text());
             } else {
@@ -457,6 +466,16 @@ export default class ChatRoom extends Listenable {
             }
             this.meetingId = meetingId;
             this.eventEmitter.emit(XMPPEvents.MEETING_ID_SET, meetingId);
+        }
+    }
+
+    setRoomOwner(roomOwner) {
+        if (this.roomOwner !== roomOwner) {
+            if (this.roomOwner) {
+                logger.warn(`Room Owner changed from:${this.roomOwner} to:${roomOwner}`);
+            }
+            this.roomOwner = roomOwner;
+            this.eventEmitter.emit(XMPPEvents.ROOM_OWNER_SET, roomOwner);
         }
     }
 
@@ -631,9 +650,12 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from === this.myroomjid) {
+            // logger.log('dht - affiliation: ', member.affiliation);
+            // logger.log('dht - before role: ', member.role);
             const newRole
-                = member.affiliation === 'owner' ? member.role : 'none';
+                = member.affiliation === 'owner' || member.affiliation === 'admin' ? member.role : 'none';
 
+            // logger.log('dht - after role: ', member.role);
             if (this.role !== newRole) {
                 this.role = newRole;
                 this.eventEmitter.emit(
@@ -1871,6 +1893,10 @@ export default class ChatRoom extends Listenable {
      */
     getMeetingId() {
         return this.meetingId;
+    }
+
+    getRoomOwner() {
+        return this.roomOwner;
     }
 
     /**

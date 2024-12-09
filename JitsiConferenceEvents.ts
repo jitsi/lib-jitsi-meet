@@ -137,6 +137,11 @@ export enum JitsiConferenceEvents {
     CONFERENCE_UNIQUE_ID_SET = 'conference.unique_id_set',
 
     /**
+     * Indicates that the conference room owner identifier has been set.
+     */
+    CONFERENCE_ROOM_OWNER_SET = 'conference.room_owner_set',
+
+    /**
      * Indicates that the aggregate set of codecs supported by the visitors has changed.
      */
     CONFERENCE_VISITOR_CODECS_CHANGED = 'conference.visitor_codecs_changed',
@@ -163,7 +168,7 @@ export enum JitsiConferenceEvents {
 
     /**
      * A connection to the video bridge's data channel has been closed.
-     * This event is only emitted in 
+     * This event is only emitted in
      */
     DATA_CHANNEL_CLOSED = 'conference.dataChannelClosed',
 
@@ -521,6 +526,7 @@ export const CONFERENCE_JOIN_IN_PROGRESS = JitsiConferenceEvents.CONFERENCE_JOIN
 export const CONFERENCE_JOINED = JitsiConferenceEvents.CONFERENCE_JOINED;
 export const CONFERENCE_LEFT = JitsiConferenceEvents.CONFERENCE_LEFT;
 export const CONFERENCE_UNIQUE_ID_SET = JitsiConferenceEvents.CONFERENCE_UNIQUE_ID_SET;
+export const CONFERENCE_ROOM_OWNER_SET = JitsiConferenceEvents.CONFERENCE_ROOM_OWNER_SET;
 export const CONFERENCE_VISITOR_CODECS_CHANGED = JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED;
 export const CONNECTION_ESTABLISHED = JitsiConferenceEvents.CONNECTION_ESTABLISHED;
 export const CONNECTION_INTERRUPTED = JitsiConferenceEvents.CONNECTION_INTERRUPTED;

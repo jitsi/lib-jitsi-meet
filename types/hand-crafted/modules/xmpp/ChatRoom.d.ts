@@ -17,6 +17,7 @@ export default class ChatRoom extends Listenable {
   doLeave: ( reason?: string ) => void;
   discoRoomInfo: () => unknown;
   setMeetingId: ( meetingId: string ) => void;
+  setRoomOwner: (roomOwner: string) => void;
   createNonAnonymousRoom: () => void;
   onConnStatusChanged: ( status: Strophe.Status ) => void;
   onPresence: ( pres: unknown ) => void; // TODO:
@@ -55,6 +56,7 @@ export default class ChatRoom extends Listenable {
   getPhoneNumber: () => string;
   getPhonePin: () => string;
   getMeetingId: () => string;
+  getRoomOwner: () => string;
   muteParticipant: ( jid: string, mute: unknown ) => void; // TODO:
   onMuteVideo: ( iq: unknown ) => void; // TODO:
   onMute: ( iq: unknown ) => void; // TODO:

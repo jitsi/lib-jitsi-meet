@@ -111,6 +111,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.MEETING_ID_SET,
         JitsiConferenceEvents.CONFERENCE_UNIQUE_ID_SET);
 
+    this.chatRoomForwarder.forward(XMPPEvents.ROOM_OWNER_SET,
+        JitsiConferenceEvents.CONFERENCE_ROOM_OWNER_SET);
+
     this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED,
         JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP);
 

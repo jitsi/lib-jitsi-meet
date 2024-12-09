@@ -2580,6 +2580,12 @@ JitsiConference.prototype.getMeetingUniqueId = function() {
     }
 };
 
+JitsiConference.prototype.getRoomOwner = function() {
+    if (this.room) {
+        return this.room.getRoomOwner();
+    }
+};
+
 /**
  * Will return P2P or JVB <tt>TraceablePeerConnection</tt> depending on
  * which connection is currently active.
