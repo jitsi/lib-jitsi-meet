@@ -650,12 +650,9 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from === this.myroomjid) {
-            // logger.log('dht - affiliation: ', member.affiliation);
-            // logger.log('dht - before role: ', member.role);
             const newRole
-                = member.affiliation === 'owner' || member.affiliation === 'admin' ? member.role : 'none';
+                = member.affiliation === 'owner' ? member.role : 'none';
 
-            // logger.log('dht - after role: ', member.role);
             if (this.role !== newRole) {
                 this.role = newRole;
                 this.eventEmitter.emit(
