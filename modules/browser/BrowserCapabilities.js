@@ -71,6 +71,12 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} true if the browser is supported, false otherwise.
      */
     isSupported() {
+        // First check for WebRTC APIs because some "security" extensions are dumb.
+        if (typeof RTCPeerConnection === 'undefined'
+                || !navigator?.mediaDevices?.enumerateDevices || !navigator?.mediaDevices?.getUserMedia) {
+            return false;
+        }
+
         if (this.isSafari() && this._getSafariVersion() < MIN_REQUIRED_SAFARI_VERSION) {
             return false;
         }
