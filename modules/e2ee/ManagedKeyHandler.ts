@@ -305,6 +305,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @returns {Uint8Array}
      * @private
      */
+
     _generateKey() {
         return window.crypto.getRandomValues(new Uint8Array(32));
     }
