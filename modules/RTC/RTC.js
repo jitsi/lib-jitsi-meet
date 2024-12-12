@@ -632,14 +632,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns whether available devices have permissions granted
-     * @returns {Boolean}
-     */
-    static arePermissionsGrantedForAvailableDevices() {
-        return RTCUtils.arePermissionsGrantedForAvailableDevices();
-    }
-
-    /**
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */

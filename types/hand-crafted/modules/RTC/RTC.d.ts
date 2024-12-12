@@ -42,6 +42,5 @@ export default class RTC extends Listenable {
   isInForwardedSources: ( sourceName: string ) => boolean;
   setReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
   setVideoMute: ( value: unknown ) => Promise<unknown>; // TODO:
-  arePermissionsGrantedForAvailableDevices: () => boolean;
   sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:
 }
