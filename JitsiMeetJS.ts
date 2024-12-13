@@ -71,7 +71,6 @@ function getAnalyticsAttributesFromOptions(options) {
 interface ICreateLocalTrackOptions {
     cameraDeviceId?: string;
     devices?: any[];
-    firePermissionPromptIsShownEvent?: boolean;
     fireSlowPromiseEvent?: boolean;
     micDeviceId?: string;
     resolution?: string;
