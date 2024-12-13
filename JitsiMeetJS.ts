@@ -71,7 +71,6 @@ function getAnalyticsAttributesFromOptions(options) {
 interface ICreateLocalTrackOptions {
     cameraDeviceId?: string;
     devices?: any[];
-    firePermissionPromptIsShownEvent?: boolean;
     fireSlowPromiseEvent?: boolean;
     micDeviceId?: string;
     resolution?: string;
@@ -273,8 +272,6 @@ export default {
      * which should be created. should be created or some additional
      * configurations about resolution for example.
      * @param {Array} options.effects optional effects array for the track
-     * @param {boolean} options.firePermissionPromptIsShownEvent - if event
-     * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
@@ -285,13 +282,6 @@ export default {
      * JitsiConferenceError if rejected.
      */
     createLocalTracks(options: ICreateLocalTrackOptions = {}) {
-        const { firePermissionPromptIsShownEvent, ...restOptions } = options;
-
-        if (firePermissionPromptIsShownEvent && !RTC.arePermissionsGrantedForAvailableDevices()) {
-            // @ts-ignore
-            JitsiMediaDevices.emit(JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN, browser.getName());
-        }
-
         let isFirstGUM = false;
         let startTS = window.performance.now();
 
@@ -306,7 +296,7 @@ export default {
         }
         window.connectionTimes['obtainPermissions.start'] = startTS;
 
-        return RTC.obtainAudioAndVideoPermissions(restOptions)
+        return RTC.obtainAudioAndVideoPermissions(options)
             .then(tracks => {
                 let endTS = window.performance.now();
 
@@ -319,7 +309,7 @@ export default {
                 Statistics.sendAnalytics(
                     createGetUserMediaEvent(
                         'success',
-                        getAnalyticsAttributesFromOptions(restOptions)));
+                        getAnalyticsAttributesFromOptions(options)));
 
                 if (this.isCollectingLocalStats()) {
                     for (let i = 0; i < tracks.length; i++) {

@@ -828,14 +828,6 @@ class RTCUtils extends Listenable {
     }
 
     /**
-     * Returns whether available devices have permissions granted
-     * @returns {Boolean}
-     */
-    arePermissionsGrantedForAvailableDevices() {
-        return availableDevices.some(device => Boolean(device.label));
-    }
-
-    /**
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */
