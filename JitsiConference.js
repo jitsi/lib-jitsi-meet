@@ -662,6 +662,7 @@ JitsiConference.prototype.leave = async function(reason) {
 
     this._delayedIceFailed && this._delayedIceFailed.cancel();
 
+    this._maybeClearDeferredStartP2P();
     this._maybeClearSITimeout();
 
     // Close both JVb and P2P JingleSessions
