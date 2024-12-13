@@ -114,7 +114,7 @@ export type JitsiMeetJSType = {
 
   setGlobalLogOptions: ( options: unknown ) => void; // TODO:
 
-  createLocalTracks: ( options: CreateLocalTracksOptions, firePermissionPromptIsShownEvent?: boolean, originalOptions?: CreateLocalTracksOptions ) => Promise<Array<JitsiLocalTrack> | JitsiConferenceErrors>; // TODO:
+  createLocalTracks: ( options: CreateLocalTracksOptions, originalOptions?: CreateLocalTracksOptions ) => Promise<Array<JitsiLocalTrack> | JitsiConferenceErrors>; // TODO:
 
   createTrackVADEmitter: ( localAudioDeviceId: string, sampleRate: 256 | 512 | 1024 | 4096 | 8192 | 16384, vadProcessor: VADProcessor ) => Promise<TrackVADEmitter>;
 
