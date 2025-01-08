@@ -304,6 +304,13 @@ export default class SDP {
         this.media.forEach((mediaItem, mediaindex) => {
             const mid = SDPUtil.parseMID(SDPUtil.findLine(mediaItem, 'a=mid:'));
             const mline = SDPUtil.parseMLine(mediaItem.split('\r\n')[0]);
+            const isRecvOnly = SDPUtil.findLine(mediaItem, `a=${MediaDirection.RECVONLY}`);
+
+            // Do not process recvonly m-lines. Firefox generates recvonly SSRCs for all remote sources.
+            if (isRecvOnly) {
+                return;
+            }
+
             const media = {
                 mediaindex,
                 mediaType: mline.media,
@@ -622,6 +629,7 @@ export default class SDP {
 
             let ssrc = false;
             const assrcline = SDPUtil.findLine(mediaItem, 'a=ssrc:');
+            const isRecvOnly = SDPUtil.findLine(mediaItem, `a=${MediaDirection.RECVONLY}`);
 
             if (assrcline) {
                 ssrc = assrcline.substring(7).split(' ')[0];
@@ -639,7 +647,7 @@ export default class SDP {
                     continue;
                 }
 
-                if (ssrc) {
+                if (ssrc && !isRecvOnly) {
                     const description = $(content).find('description');
                     const ssrcMap = SDPUtil.parseSSRC(mediaItem);
 
@@ -728,7 +736,7 @@ export default class SDP {
                     elem.up();
                 });
 
-                if (ssrc) {
+                if (ssrc && !isRecvOnly) {
                     const ssrcMap = SDPUtil.parseSSRC(mediaItem);
 
                     for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
