@@ -3379,40 +3379,41 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     // Start peer to peer session
     if (!this.p2pJingleSession && shouldBeInP2P) {
         const peer = peerCount && peers[0];
-
-
         const myId = this.myUserId();
         const peersId = peer.getId();
-
-        if (myId > peersId) {
-            logger.debug(
-                'I\'m the bigger peersId - '
-                + 'the other peer should start P2P', myId, peersId);
-
-            return;
-        } else if (myId === peersId) {
-            logger.error('The same IDs ? ', myId, peersId);
-
-            return;
-        }
-
         const jid = peer.getJid();
 
-        if (userLeftEvent) {
-            if (this.deferredStartP2PTask) {
-                logger.error('Deferred start P2P task\'s been set already!');
+        // Force initiator or responder mode for testing if option is passed to config.
+        if (this.options.config.testing?.forceInitiator) {
+            logger.debug(`Forcing P2P initiator, will start P2P with: ${jid}`);
+            this._startP2PSession(jid);
+        } else if (this.options.config.testing?.forceResponder) {
+            logger.debug(`Forcing P2P responder, will wait for the other peer ${jid} to start P2P`);
+        } else {
+            if (myId > peersId) {
+                logger.debug('I\'m the bigger peersId - the other peer should start P2P', myId, peersId);
+
+                return;
+            } else if (myId === peersId) {
+                logger.error('The same IDs ? ', myId, peersId);
 
                 return;
             }
-            logger.info(
-                `Will start P2P with: ${jid} after ${
-                    this.backToP2PDelay} seconds...`);
-            this.deferredStartP2PTask = setTimeout(
-                this._startP2PSession.bind(this, jid),
-                this.backToP2PDelay * 1000);
-        } else {
-            logger.info(`Will start P2P with: ${jid}`);
-            this._startP2PSession(jid);
+
+            if (userLeftEvent) {
+                if (this.deferredStartP2PTask) {
+                    logger.error('Deferred start P2P task\'s been set already!');
+
+                    return;
+                }
+                logger.info(`Will start P2P with: ${jid} after ${this.backToP2PDelay} seconds...`);
+                this.deferredStartP2PTask = setTimeout(
+                    this._startP2PSession.bind(this, jid),
+                    this.backToP2PDelay * 1000);
+            } else {
+                logger.info(`Will start P2P with: ${jid}`);
+                this._startP2PSession(jid);
+            }
         }
     } else if (this.p2pJingleSession && !shouldBeInP2P) {
         logger.info(`Will stop P2P with: ${this.p2pJingleSession.remoteJid}`);
