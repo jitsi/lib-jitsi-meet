@@ -1014,10 +1014,17 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     setSubject(subject) {
+        const valueToProcess = subject ? subject.trim() : subject;
+
+        if (valueToProcess === this.subject) {
+            // subject already set to the new value
+            return;
+        }
+
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
-        msg.c('subject', subject);
+        msg.c('subject', valueToProcess);
         this.connection.send(msg);
     }
 
@@ -1201,6 +1208,7 @@ export default class ChatRoom extends Listenable {
             const subjectText = subject.text();
 
             if (subjectText || subjectText === '') {
+                this.subject = subjectText.trim();
                 this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
                 logger.log(`Subject is changed to ${subjectText}`);
             }
