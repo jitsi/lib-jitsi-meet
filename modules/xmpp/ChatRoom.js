@@ -1014,6 +1014,12 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     setSubject(subject) {
+        if ((subject || subject === '')
+            && subject.trim() === this.subject) {
+            // subject already set to the new value
+            return;
+        }
+
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
@@ -1201,6 +1207,7 @@ export default class ChatRoom extends Listenable {
             const subjectText = subject.text();
 
             if (subjectText || subjectText === '') {
+                this.subject = subjectText.trim();
                 this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
                 logger.log(`Subject is changed to ${subjectText}`);
             }
