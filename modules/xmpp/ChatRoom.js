@@ -1014,16 +1014,17 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     setSubject(subject) {
-        if ((subject || subject === '')
-            && subject.trim() === this.subject) {
-            // subject already set to the new value
+        const valueToProcess = subject ? subject.trim() : subject;
+
+        if (valueToProcess === this.subject) {
+            // subject already set to the new value or new value is undefined
             return;
         }
 
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
-        msg.c('subject', subject);
+        msg.c('subject', valueToProcess);
         this.connection.send(msg);
     }
 
