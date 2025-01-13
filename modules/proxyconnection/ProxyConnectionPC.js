@@ -285,7 +285,7 @@ export default class ProxyConnectionPC {
      * Invoked when a connection related issue has been encountered.
      *
      * @param {string} errorType - The constant indicating the type of the error
-     * that occured.
+     * that occurred.
      * @param {string} details - Optional additional data about the error.
      * @private
      * @returns {void}
