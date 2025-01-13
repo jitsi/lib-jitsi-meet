@@ -10,5 +10,10 @@ export enum VideoType {
     /**
      * The desktop video type.
      */
-    DESKTOP = 'desktop'
+    DESKTOP = 'desktop',
+
+    /**
+     * The high fps desktop video type.
+     */
+    DESKTOP_HIGH_FPS = 'desktop_high_fps'
 }

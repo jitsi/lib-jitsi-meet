@@ -562,7 +562,12 @@ export default class JingleSessionPC extends JingleSession {
                     const msid = $(source)
                         .find('>parameter[name="msid"]')
                         .attr('value');
-                    const videoType = $(source).attr('videoType');
+                    let videoType = $(source).attr('videoType');
+
+                    // If the videoType is DESKTOP_HIGH_FPS for remote tracks, we should treat it as DESKTOP.
+                    if (videoType === VideoType.DESKTOP_HIGH_FPS) {
+                        videoType = VideoType.DESKTOP;
+                    }
 
                     if (sourceDescription.has(sourceName)) {
                         sourceDescription.get(sourceName).ssrcList?.push(ssrc);
