@@ -1017,7 +1017,7 @@ export default class ChatRoom extends Listenable {
         const valueToProcess = subject ? subject.trim() : subject;
 
         if (valueToProcess === this.subject) {
-            // subject already set to the new value or new value is undefined
+            // subject already set to the new value
             return;
         }
 
