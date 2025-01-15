@@ -1220,7 +1220,7 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {void}
      */
     doInitialize(options) {
-        this.failICE = Boolean(options.failICE);
+        this.failICE = Boolean(options.testing?.failICE);
         this.lasticecandidate = false;
         this.options = options;
 
