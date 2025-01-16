@@ -2057,10 +2057,10 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
     }
     const sourceName = localVideoTrack.getSourceName();
 
+    this._senderMaxHeights.set(sourceName, frameHeight);
+
     // Ignore sender constraints if the video track is muted.
     if (localVideoTrack.isMuted()) {
-        this._senderMaxHeights.set(sourceName, frameHeight);
-
         return Promise.resolve();
     }
 
@@ -2125,7 +2125,6 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
     const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
     let scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
-    const sourceName = localVideoTrack.getSourceName();
     let needsUpdate = false;
 
     // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in VP9 legacy K-SVC mode since
@@ -2197,15 +2196,12 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     }
 
     if (!needsUpdate) {
-        this._senderMaxHeights.set(sourceName, frameHeight);
-
         return Promise.resolve();
     }
 
     logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
     return videoSender.setParameters(parameters).then(() => {
-        this._senderMaxHeights.set(sourceName, frameHeight);
         localVideoTrack.maxEnabledResolution = frameHeight;
         this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
     });
