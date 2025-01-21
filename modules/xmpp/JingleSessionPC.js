@@ -553,6 +553,13 @@ export default class JingleSessionPC extends JingleSession {
 
             for (const description of descriptionsWithSources) {
                 const mediaType = $(description).attr('media');
+
+                if (mediaType === MediaType.AUDIO && this.options.startSilent) {
+
+                    // eslint-disable-next-line no-continue
+                    continue;
+                }
+
                 const sources = $(description).find('>source');
                 const removeSsrcs = [];
 
@@ -1835,6 +1842,12 @@ export default class JingleSessionPC extends JingleSession {
         if (!FeatureFlags.isSsrcRewritingSupported()) {
             return;
         }
+
+        if (mediaType === MediaType.AUDIO && this.options.startSilent) {
+
+            return;
+        }
+
         const newSsrcs = [];
 
         for (const src of message.mappedSources) {
