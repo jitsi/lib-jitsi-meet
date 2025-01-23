@@ -38,6 +38,7 @@ export default class LocalSdpMunger {
         const mediaType = mediaSection.mLine.type;
         const mediaDirection = mediaSection.mLine.direction;
         const sources = [ ...new Set(mediaSection.mLine.ssrcs?.map(s => s.id)) ];
+        let trackId = mediaSection.mLine.msid?.split(' ')[1];
         let sourceName;
 
         if (ssrcMap.size) {
@@ -51,8 +52,12 @@ export default class LocalSdpMunger {
             for (const source of sources) {
                 if ((mediaDirection === MediaDirection.SENDONLY || mediaDirection === MediaDirection.SENDRECV)
                     && sourceName) {
-                    const msid = ssrcMap.get(sourceName).msid;
-                    const generatedMsid = `${msid}-${this.tpc.id}`;
+                    const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
+
+                    if (msid) {
+                        trackId = msid.value.split(' ')[1];
+                    }
+                    const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this.tpc.id} ${trackId}-${this.tpc.id}`;
                     const existingMsid = mediaSection.ssrcs
                         .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
