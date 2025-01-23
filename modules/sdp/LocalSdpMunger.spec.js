@@ -109,7 +109,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 if (ssrcLine.attribute === 'msid') {
                     const msid = ssrcLine.value;
 
-                    expect(msid).toBe(`${localEndpointId}-video-0-${tpc.id}`);
+                    expect(msid)
+                        .toBe(`${localEndpointId}-video-0-${tpc.id} bdbd2c0a-7959-4578-8db5-9a6a1aec4ecf-${tpc.id}`);
                 }
             }
         });
