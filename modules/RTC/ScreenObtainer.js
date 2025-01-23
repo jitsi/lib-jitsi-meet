@@ -46,11 +46,13 @@ const ScreenObtainer = {
      * @private
      */
     _createObtainStreamMethod() {
-        if (browser.isElectron()) {
+        const supportsGetDisplayMedia = browser.supportsGetDisplayMedia();
+
+        if (browser.isElectron() && !this.options.electronUseGetDisplayMedia) {
             return this.obtainScreenOnElectron;
-        } else if (browser.isReactNative() && browser.supportsGetDisplayMedia()) {
+        } else if (browser.isReactNative() && supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMediaRN;
-        } else if (browser.supportsGetDisplayMedia()) {
+        } else if (supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMedia;
         }
         logger.log('Screen sharing not supported on ', browser.getName());
