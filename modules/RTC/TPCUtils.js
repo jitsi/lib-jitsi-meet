@@ -512,10 +512,10 @@ export class TPCUtils {
         const rtpSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
 
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
-            const { codecs } = rtpSender.getParameters();
+            const { encodings } = rtpSender.getParameters();
 
-            if (codecs?.length) {
-                return codecs[0].mimeType.split('/')[1].toLowerCase();
+            if (encodings[0].codec) {
+                return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
             }
         }
 
