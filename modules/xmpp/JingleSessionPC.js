@@ -1468,6 +1468,9 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onconnectionstatechange = () => {
             const icestate = this.peerconnection.iceConnectionState;
 
+            logger.log(`(TIME) ${this.isP2P ? 'P2P' : 'JVB'} PC state is now ${this.peerconnection.connectionState} `
+                + `(ICE state ${this.peerconnection.iceConnectionState}):\t`, window.performance.now());
+
             switch (this.peerconnection.connectionState) {
             case 'failed':
                 // Since version 76 Chrome no longer switches ICE connection
