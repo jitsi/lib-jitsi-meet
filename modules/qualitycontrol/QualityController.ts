@@ -1,4 +1,3 @@
-import { throttle } from 'lodash-es';
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from "../../JitsiConference";
@@ -174,8 +173,8 @@ export class QualityController {
         return function (...args) {
             if (!this._timer) {
                 this._timer = setTimeout(() => {
-                    func.apply(this, args);
                     this._timer = null;
+                    func.apply(this, args);
                 }, delay);
             }
         };
