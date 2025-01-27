@@ -560,6 +560,8 @@ JitsiConference.prototype._init = function(options = {}) {
     // creates dominant speaker detection that works only in p2p mode
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
 
+    // We keep this for some time, till all backends are updated to use
+    // the region from the http requests to prosody, after that we can drop it
     if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
         this.setLocalParticipantProperty(
             'region', config.deploymentInfo.userRegion);

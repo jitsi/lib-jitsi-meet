@@ -605,6 +605,10 @@ export default class ChatRoom extends Listenable {
                 member.features = this._extractFeatures(node);
                 break;
             }
+            case 'jitsi_participant_region': {
+                member.region = node.value;
+                break;
+            }
             case 'stat': {
                 const { attributes } = node;
 
@@ -650,6 +654,10 @@ export default class ChatRoom extends Listenable {
                 // set correct initial state of locked
                 if (this.password) {
                     this.locked = true;
+                }
+
+                if (member.region && this.option?.deploymentInfo) {
+                    this.option.deploymentInfo.userRegion = member.region;
                 }
 
                 // Re-send presence in case any presence updates were added,
