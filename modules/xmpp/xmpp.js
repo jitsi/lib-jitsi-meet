@@ -1,6 +1,7 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
+import { unescape } from 'lodash-es';
 import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
@@ -1019,7 +1020,9 @@ export default class XMPP extends Listenable {
         }
 
         try {
-            const json = safeJsonParse(jsonString);
+            // Note: we use `unescape` to also convert HTML entities to UTF-8 since
+            // Jigasi seems to encode them like that in some circumstances.
+            const json = safeJsonParse(unescape(jsonString));
 
             // Handle non-exception-throwing cases:
             // Neither JSON.parse(false) or JSON.parse(1234) throw errors,
