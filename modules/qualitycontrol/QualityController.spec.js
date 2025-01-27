@@ -33,7 +33,7 @@ describe('QualityController', () => {
                 p2p: {}
             };
             localTrack = new MockLocalTrack('1', 720, 'camera');
-            qualityController = new QualityController(conference, options, true);
+            qualityController = new QualityController(conference, options);
             sourceStats = {
                 avgEncodeTime: 12,
                 codec: 'VP8',
@@ -165,7 +165,7 @@ describe('QualityController', () => {
                 p2p: {}
             };
             localTrack = new MockLocalTrack('1', 720, 'camera');
-            qualityController = new QualityController(conference, options, true);
+            qualityController = new QualityController(conference, options);
             sourceStats = {
                 avgEncodeTime: 12,
                 codec: 'VP8',

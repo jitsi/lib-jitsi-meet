@@ -145,18 +145,39 @@ export class QualityController {
         this._conference.on(
             JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED,
             (codecList: CodecMimeType[]) => this._codecController.updateVisitorCodecs(codecList));
-        this._conference.on(
-            JitsiConferenceEvents.USER_JOINED,
-            () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession));
-        this._conference.on(
-            JitsiConferenceEvents.USER_LEFT,
-            () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession));
+
+        // Debounce the calls to codec selection when there is a burst of joins and leaves.
+        const debouncedSelectCodec = this._debounce(
+            () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession),
+            1000);
+        this._conference.on(JitsiConferenceEvents.USER_JOINED, debouncedSelectCodec.bind(this));
+        this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
             (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
             (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) => this._processOutboundRtpStats(tpc, stats));
+    }
+
+    /**
+     * Creates a debounced function that delays the execution of the provided function until after the specified delay
+     * has elapsed. Unlike typical debounce implementations, the timer does not reset when the function is called again
+     * within the delay period.
+     *
+     * @param {Function} func - The function to be debounced.
+     * @param {number} delay - The delay in milliseconds.
+     * @returns {Function} - The debounced function.
+     */
+    _debounce(func: Function, delay: number) {
+        return function (...args) {
+            if (!this._timer) {
+                this._timer = setTimeout(() => {
+                    this._timer = null;
+                    func.apply(this, args);
+                }, delay);
+            }
+        };
     }
 
     /**

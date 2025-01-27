@@ -1436,8 +1436,18 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
         this.codecSettings.screenshareCodec = screenshareCodec;
     }
 
-    if (this.usesCodecSelectionAPI()) {
-        this.configureVideoSenderEncodings();
+    if (!this.usesCodecSelectionAPI()) {
+        return;
+    }
+
+    for (const track of this.getLocalVideoTracks()) {
+        const currentCodec = this.tpcUtils.getConfiguredVideoCodec(track);
+
+        if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
+            this.configureVideoSenderEncodings(track, screenshareCodec);
+        } else if (currentCodec !== codecList[0]) {
+            this.configureVideoSenderEncodings(track);
+        }
     }
 };
 
@@ -1904,16 +1914,16 @@ TraceablePeerConnection.prototype._enableSenderEncodings = async function(sender
  * that is currently selected.
  *
  * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
+ * @param {CodecMimeType} - The preferred codec for the video track.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(localVideoTrack = null) {
-    const preferredCodec = this.codecSettings.codecList[0];
+TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(localVideoTrack, codec) {
+    const preferredCodec = codec ?? this.codecSettings.codecList[0];
 
     if (localVideoTrack) {
-        return this.setSenderVideoConstraints(
-            this._senderMaxHeights.get(localVideoTrack.getSourceName()),
-            localVideoTrack,
-            preferredCodec);
+        const height = this._senderMaxHeights.get(localVideoTrack.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
+
+        return this.setSenderVideoConstraints(height, localVideoTrack, preferredCodec);
     }
     const promises = [];
 

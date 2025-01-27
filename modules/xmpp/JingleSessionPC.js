@@ -2286,7 +2286,6 @@ export default class JingleSessionPC extends JingleSession {
      */
     setVideoCodecs(codecList, screenshareCodec) {
         if (this._assertNotEnded()) {
-            logger.info(`${this} setVideoCodecs: codecList=${codecList}, screenshareCodec=${screenshareCodec}`);
             this.peerconnection.setVideoCodecs(codecList, screenshareCodec);
 
             // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to
@@ -2309,6 +2308,8 @@ export default class JingleSessionPC extends JingleSession {
                     value: codecList[0],
                     videoType: VideoType.CAMERA
                 });
+
+            logger.info(`${this} setVideoCodecs: codecList=${codecList}, screenshareCodec=${screenshareCodec}`);
 
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
