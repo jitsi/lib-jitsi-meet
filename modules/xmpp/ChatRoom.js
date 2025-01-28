@@ -656,8 +656,8 @@ export default class ChatRoom extends Listenable {
                     this.locked = true;
                 }
 
-                if (member.region && this.option?.deploymentInfo) {
-                    this.option.deploymentInfo.userRegion = member.region;
+                if (member.region && this.options?.deploymentInfo) {
+                    this.options.deploymentInfo.userRegion = member.region;
                 }
 
                 // Re-send presence in case any presence updates were added,
