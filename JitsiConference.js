@@ -54,11 +54,13 @@ import RTCEvents from './service/RTC/RTCEvents';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
+import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
     ACTION_JINGLE_RESTART,
     ACTION_JINGLE_SI_RECEIVED,
     ACTION_JINGLE_SI_TIMEOUT,
     ACTION_JINGLE_TERMINATE,
+    ACTION_JVB_ICE_FAILED,
     ACTION_P2P_DECLINED,
     ACTION_P2P_ESTABLISHED,
     ACTION_P2P_FAILED,
@@ -66,6 +68,7 @@ import {
     ICE_ESTABLISHMENT_DURATION_DIFF,
     createConferenceEvent,
     createJingleEvent,
+    createJvbIceFailedEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
@@ -2917,7 +2920,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
             reason: 'connectivity-error',
             reasonDescription: 'ICE FAILED'
         });
-    } else if (session && this.jvbJingleSession === session) {
+    } else if (session && this.jvbJingleSession === session && this._iceRestarts < MAX_CONNECTION_RETRIES) {
         // Use an exponential backoff timer for ICE restarts.
         const jitterDelay = getJitterDelay(this._iceRestarts, 1000 /* min. delay */);
 
@@ -2927,6 +2930,16 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
             this._delayedIceFailed.start(session);
             this._iceRestarts++;
         }, jitterDelay);
+    } else if (this.jvbJingleSession === session) {
+        logger.warn('ICE failed, force reloading the conference after failed attempts to re-establish ICE');
+        Statistics.sendAnalyticsAndLog(
+            createJvbIceFailedEvent(
+                ACTION_JVB_ICE_FAILED,
+                {
+                    participantId: this.myUserId(),
+                    userRegion: this.options.config.deploymentInfo?.userRegion
+                }));
+        this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.ICE_FAILED);
     }
 };
 

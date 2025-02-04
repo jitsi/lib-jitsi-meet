@@ -75,6 +75,11 @@ export enum AnalyticsEvents {
     ACTION_JINGLE_TERMINATE = 'terminate',
 
     /**
+     * The "action" value for JVB events which indicates that the ICE connection has failed after 3 restart attempts
+     */
+    ACTION_JVB_ICE_FAILED = 'jvb.ice.failed',
+
+    /**
      * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
      * because the mandatory requirements were not met.
      */
@@ -221,6 +226,7 @@ export const ACTION_JINGLE_SA_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT
 export const ACTION_JINGLE_SI_RECEIVED = AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED;
 export const ACTION_JINGLE_SI_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT;
 export const ACTION_JINGLE_TERMINATE = AnalyticsEvents.ACTION_JINGLE_TERMINATE;
+export const ACTION_JVB_ICE_FAILED = AnalyticsEvents.ACTION_JVB_ICE_FAILED;
 export const ACTION_P2P_DECLINED = AnalyticsEvents.ACTION_P2P_DECLINED;
 export const ACTION_P2P_ESTABLISHED = AnalyticsEvents.ACTION_P2P_ESTABLISHED;
 export const ACTION_P2P_FAILED = AnalyticsEvents.ACTION_P2P_FAILED;
@@ -331,6 +337,19 @@ export const createGetUserMediaEvent = ( action: 'error' | 'success' | 'warning'
     source: 'get.user.media',
     action,
     attributes
+} );
+
+/**
+ * Creates an event which indicates that the JVB ICE connection has failed event after 3 retries.
+ *
+ * @param action - The action type of the event.
+ * @param attributes - The attributes to be added to the event.
+ * @returns - The event object.
+ */
+export const createJvbIceFailedEvent = ( action: unknown, attributes: object = {} ) => ( {
+    action,
+    attributes,
+    type: AnalyticsEvents.TYPE_OPERATIONAL,
 } );
 
 /**
