@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import { $pres, Strophe } from 'strophe.js';
 import 'strophejs-plugin-stream-management';
 
+import { MAX_CONNECTION_RETRIES } from '../../service/connectivity/Constants';
 import Listenable from '../util/Listenable';
 
 import ResumeTask from './ResumeTask';
@@ -9,11 +10,6 @@ import LastSuccessTracker from './StropheLastSuccess';
 import PingConnectionPlugin from './strophe.ping';
 
 const logger = getLogger(__filename);
-
-/**
- * Maximum number of tries to resume.
- */
-const MAX_RESUME_TRIES = 3;
 
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
@@ -649,10 +645,10 @@ export default class XmppConnection extends Listenable {
         if (resumeToken) {
             this._resumeTask.schedule();
 
-            const r = this._resumeTask.retryCount <= MAX_RESUME_TRIES;
+            const r = this._resumeTask.retryCount <= MAX_CONNECTION_RETRIES;
 
             if (!r) {
-                logger.warn(`Maximum resume tries reached (${MAX_RESUME_TRIES}), giving up.`);
+                logger.warn(`Maximum resume tries reached (${MAX_CONNECTION_RETRIES}), giving up.`);
             }
 
             return r;
