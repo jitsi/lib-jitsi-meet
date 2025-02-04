@@ -1121,8 +1121,8 @@ JitsiConference.prototype.addTrack = function(track) {
 
         // Currently, only adding multiple video streams of different video types is supported.
         // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
-        if (mediaType === MediaType.VIDEO
-            && !localTracks.find(t => t.getVideoType() === track.getVideoType())) {
+        if (this.options.config.testing?.allowMultipleTracks
+            || (mediaType === MediaType.VIDEO && !localTracks.find(t => t.getVideoType() === track.getVideoType()))) {
             const sourceName = getSourceNameForJitsiTrack(
                 this.myUserId(),
                 mediaType,
@@ -1137,7 +1137,7 @@ JitsiConference.prototype.addTrack = function(track) {
             return Promise.all(addTrackPromises)
                 .then(() => {
                     this._setupNewTrack(track);
-                    this._sendBridgeVideoTypeMessage(track);
+                    mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
                     this._updateRoomPresence(this.getActiveMediaSession());
 
                     if (this.isMutedByFocus || this.isVideoMutedByFocus) {
