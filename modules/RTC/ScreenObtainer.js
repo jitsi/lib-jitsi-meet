@@ -298,24 +298,20 @@ const ScreenObtainer = {
                     errorStack: error?.stack
                 };
 
-                logger.error('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
+                logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
 
                 if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
-
-                    return;
                 } else if (errorDetails.errorMsg === 'NotReadableError') {
                     // This can happen under some weird conditions:
                     //  - https://issues.chromium.org/issues/369103607
                     //  - https://issues.chromium.org/issues/353555347
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR));
-
-                    return;
+                } else {
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
                 }
-
-                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
             });
     },
 
