@@ -94,7 +94,12 @@ const ScreenObtainer = {
      * @param {Object} options - Optional parameters.
      */
     obtainScreenOnElectron(onSuccess, onFailure, options = {}) {
-        if (window.JitsiMeetScreenObtainer && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+        if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
+            // Detect if we have the fallback option.
+            if (window.JitsiMeetScreenObtainer?.gDMSupported) {
+                return this.obtainScreenFromGetDisplayMedia(onSuccess, onFailure);
+            }
+
             const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
