@@ -11,6 +11,7 @@ describe( "/JitsiTrackErrors members", () => {
         NOT_FOUND,
         PERMISSION_DENIED,
         SCREENSHARING_GENERIC_ERROR,
+        SCREENSHARING_NOT_SUPPORTED_ERROR,
         SCREENSHARING_USER_CANCELED,
         TIMEOUT,
         TRACK_IS_DISPOSED,
@@ -30,6 +31,7 @@ describe( "/JitsiTrackErrors members", () => {
         expect( NOT_FOUND ).toBe( 'gum.not_found' );
         expect( PERMISSION_DENIED ).toBe( 'gum.permission_denied' );
         expect( SCREENSHARING_GENERIC_ERROR ).toBe( 'gum.screensharing_generic_error' );
+        expect( SCREENSHARING_NOT_SUPPORTED_ERROR ).toBe( 'gdm.screen_sharing_not_supported' );
         expect( SCREENSHARING_USER_CANCELED ).toBe( 'gum.screensharing_user_canceled' );
         expect( TIMEOUT ).toBe( 'gum.timeout' );
         expect( TRACK_IS_DISPOSED ).toBe( 'track.track_is_disposed' );
@@ -47,6 +49,7 @@ describe( "/JitsiTrackErrors members", () => {
         expect( JitsiTrackErrors.NOT_FOUND ).toBe( 'gum.not_found' );
         expect( JitsiTrackErrors.PERMISSION_DENIED ).toBe( 'gum.permission_denied' );
         expect( JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR ).toBe( 'gum.screensharing_generic_error' );
+        expect( JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR ).toBe( 'gdm.screen_sharing_not_supported' );
         expect( JitsiTrackErrors.SCREENSHARING_USER_CANCELED ).toBe( 'gum.screensharing_user_canceled' );
         expect( JitsiTrackErrors.TIMEOUT ).toBe( 'gum.timeout' );
         expect( JitsiTrackErrors.TRACK_IS_DISPOSED ).toBe( 'track.track_is_disposed' );

@@ -36,6 +36,8 @@ const ScreenObtainer = {
         if (!this.obtainStream) {
             logger.info('Desktop sharing disabled');
         }
+
+        this._electronSkipDisplayMedia = false;
     },
 
     /**
@@ -48,7 +50,7 @@ const ScreenObtainer = {
     _createObtainStreamMethod() {
         const supportsGetDisplayMedia = browser.supportsGetDisplayMedia();
 
-        if (browser.isElectron() && !this.options.testing?.electronUseGetDisplayMedia) {
+        if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
         } else if (browser.isReactNative() && supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMediaRN;
@@ -94,12 +96,24 @@ const ScreenObtainer = {
      * @param {Object} options - Optional parameters.
      */
     obtainScreenOnElectron(onSuccess, onFailure, options = {}) {
-        if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
-            // Detect if we have the fallback option.
-            if (window.JitsiMeetScreenObtainer?.gDMSupported) {
-                return this.obtainScreenFromGetDisplayMedia(onSuccess, onFailure);
-            }
+        if (!this._electronSkipDisplayMedia) {
+            // Fall-back to the old API in case of not supported error. This can happen if
+            // an old Electron SDK is used with a new Jitsi Meet + lib-jitsi-meet version.
+            this.obtainScreenFromGetDisplayMedia(onSuccess, err => {
+                if (err.name === JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR) {
+                    // Make sure we don't recurse infinitely.
+                    this._electronSkipDisplayMedia = true;
+                    this.obtainScreenOnElectron(onSuccess, onFailure);
+                } else {
+                    onFailure(err);
+                }
+            });
 
+            return;
+        }
+
+        // TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
+        if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
             const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
@@ -293,14 +307,18 @@ const ScreenObtainer = {
             })
             .catch(error => {
                 const errorDetails = {
-                    errorName: error?.name,
-                    errorMsg: error?.message,
-                    errorStack: error?.stack
+                    errorCode: error.code,
+                    errorName: error.name,
+                    errorMsg: error.message,
+                    errorStack: error.stack
                 };
 
                 logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
 
-                if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
+                if (errorDetails.code === DOMException.NOT_SUPPORTED_ERR) {
+                    // This error is thrown when an Electron client has not set a permissions handler.
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR));
+                } else if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
