@@ -8,6 +8,8 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_USER_CANCELED]
     = 'User canceled screen sharing prompt';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
     = 'Unknown error from screensharing';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]
+    = 'Not supported';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
     = 'Unkown error from desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
