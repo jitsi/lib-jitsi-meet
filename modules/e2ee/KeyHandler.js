@@ -172,4 +172,72 @@ export class KeyHandler extends Listenable {
             }
         }
     }
+}   
+
+class E2EESessionManager {
+    constructor() {
+        this._sessions = new Map();
+        this._initPromises = new Map();
+    }
+
+    _getOrCreateSessionData(participantId) {
+        if (!this._sessions.has(participantId)) {
+            this._sessions.set(participantId, {
+                session: null,
+                state: 'idle' // idle, initializing, active, error
+            });
+        }
+        return this._sessions.get(participantId);
+    }
+
+    async initializeSession(participantId, initFunction) {
+        const sessionData = this._getOrCreateSessionData(participantId);
+
+        if (sessionData.state === 'active') {
+            logger.debug(`Session already active for ${participantId}`);
+            return;
+        }
+
+        if (sessionData.state === 'initializing') {
+            logger.debug(`Waiting for existing initialization for ${participantId}`);
+            return this._initPromises.get(participantId);
+        }
+
+        sessionData.state = 'initializing';
+        const initPromise = (async () => {
+            try {
+                const session = await initFunction();
+                sessionData.session = session;
+                sessionData.state = 'active';
+                return session;
+            } catch (error) {
+                sessionData.state = 'error';
+                throw error;
+            } finally {
+                this._initPromises.delete(participantId);
+            }
+        })();
+
+        this._initPromises.set(participantId, initPromise);
+        return initPromise;
+    }
+
+    hasSession(participantId) {
+        const sessionData = this._sessions.get(participantId);
+        return sessionData?.state === 'active';
+    }
+}
+
+class OlmAdapter {
+    constructor() {
+        this._sessionManager = new E2EESessionManager();
+    }
+
+    async _sendSessionInit(pId) {
+        return this._sessionManager.initializeSession(pId, async () => {
+            const olmData = this._getParticipantOlmData(pId);
+            // ... rest of the initialization ...
+            return olmData.session;
+        });
+    }
 }
