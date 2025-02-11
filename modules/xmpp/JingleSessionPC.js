@@ -1105,10 +1105,6 @@ export default class JingleSessionPC extends JingleSession {
             Promise.reject(new Error('No tracks passed'));
         }
 
-        if (localTracks.find(track => track.getType() !== MediaType.VIDEO)) {
-            return Promise.reject(new Error('Multiple tracks of the given media type are not supported'));
-        }
-
         const replaceTracks = [];
         const workFunction = finishedCallback => {
             const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
