@@ -1,12 +1,20 @@
 import { ReceiverVideoConstraints } from "../qualitycontrol/ReceiveVideoController";
+import { EventEmitter } from "events";
+import JitsiConference from '../../JitsiConference';
 
 export default class BridgeChannel {
-  constructor( peerconnection: unknown, wsUrl: unknown, emitter: unknown ); // TODO:
+  constructor(
+    peerconnection: RTCPeerConnection | null, 
+    wsUrl: string | null, 
+    emitter: EventEmitter, 
+    conference: JitsiConference
+  );
+  
   mode: () => null | "datachannel" | "websocket";
   close: () => void;
   isOpen: () => boolean;
-  sendMessage: ( to: string, payload: unknown ) => void; // TODO:
-  sendSetLastNMessage: ( value: number ) => void;
-  sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:
-  sendReceiverVideoConstraintsMessage: ( constraints: ReceiverVideoConstraints ) => void;
+  sendMessage: (to: string, payload: Record<string, unknown>) => void;
+  sendSetLastNMessage: (value: number) => void;
+  sendEndpointStatsMessage: (payload: Record<string, unknown>) => void;
+  sendReceiverVideoConstraintsMessage: (constraints: ReceiverVideoConstraints) => void;
 }
