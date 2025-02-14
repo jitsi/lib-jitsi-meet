@@ -219,6 +219,11 @@ export default class ReceiveVideoController {
             this._receiverVideoConstraints.lastN = this._lastN;
             this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
 
+            if (constraints.selectedEndpoints && constraints.selectedEndpoints.length === 0) {
+                this._receiverVideoConstraints.selectedEndpoints = undefined;
+            }
+            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+
             // Send the contraints on the bridge channel.
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
 
