@@ -53,4 +53,4 @@ const Resolutions = {
     }
 };
 
-module.exports = Resolutions;
+export default Resolutions;
