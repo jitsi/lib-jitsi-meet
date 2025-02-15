@@ -16,7 +16,7 @@ const HEX_DIGITS = '0123456789abcdef';
  * @param max the maximum value for the generated number
  * @returns random int number
  */
-function randomInt(min, max) {
+function randomInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -25,7 +25,7 @@ function randomInt(min, max) {
  * @param {Array|string} arr source
  * @returns array element or string character
  */
-function randomElement(arr) {
+function randomElement(arr: Array<string> | string) {
     return arr[randomInt(0, arr.length - 1)];
 }
 
@@ -34,7 +34,7 @@ function randomElement(arr) {
  * @param {number} length expected string length
  * @returns {string} random string of specified length
  */
-function randomAlphanumStr(length) {
+function randomAlphanumStr(length:number) {
     let result = '';
 
     for (let i = 0; i < length; i += 1) {
@@ -60,7 +60,7 @@ const RandomUtil = {
      * Returns a random string of hex digits with length 'len'.
      * @param len the length.
      */
-    randomHexString(len) {
+    randomHexString(len:number) {
         let ret = '';
 
         while (len--) { // eslint-disable-line no-param-reassign
