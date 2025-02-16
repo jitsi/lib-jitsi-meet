@@ -48,12 +48,14 @@
     "core-js": "3.19.1",
     "eslint": "8.1.0",
     "eslint-plugin-import": "2.25.2",
+    "husky": "^9.1.7",
     "jasmine-core": "4.2.0",
     "karma": "6.4.0",
     "karma-chrome-launcher": "3.1.1",
     "karma-jasmine": "5.1.0",
     "karma-sourcemap-loader": "0.3.8",
     "karma-webpack": "5.0.0",
+    "lint-staged": "^15.4.3",
     "process": "0.11.10",
     "string-replace-loader": "3.0.3",
     "typescript": "5.0.4",
@@ -69,12 +71,22 @@
     "gen-types": "tsc --declaration --emitDeclarationOnly --outFile types/index.d.ts",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
+    "prepare" : "husky",
     "postinstall": "patch-package",
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls",
     "watch": "webpack --config webpack.config.js --watch --mode development"
+  },
+  "lint-staged": {
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "*.{json,css,md}": [
+    "prettier --write"
+  ]
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",

@@ -1,0 +1,2 @@
+echo -e "#!/bin/sh\n. \"$(dirname \"$0\")/_/husky.sh\"\nnpx lint-staged" > .husky/pre-commit
+chmod +x .husky/pre-commit  # Ensure the script is executable
