@@ -1,36 +1,39 @@
-import { getLogger } from '@jitsi/logger';
-import { cloneDeep } from 'lodash-es';
-import transform from 'sdp-transform';
+import { getLogger } from "@jitsi/logger";
+import { cloneDeep } from "lodash-es";
+import transform from "sdp-transform";
 
-import { CodecMimeType } from '../../service/RTC/CodecMimeType';
-import { MediaDirection } from '../../service/RTC/MediaDirection';
-import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
-import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
-import { VideoType } from '../../service/RTC/VideoType';
-import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
-import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
-import browser from '../browser';
-import FeatureFlags from '../flags/FeatureFlags';
-import LocalSdpMunger from '../sdp/LocalSdpMunger';
-import RtxModifier from '../sdp/RtxModifier';
-import SDP from '../sdp/SDP';
-import SDPUtil from '../sdp/SDPUtil';
-import SdpSimulcast from '../sdp/SdpSimulcast';
-import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
-import Statistics from '../statistics/statistics';
+import { CodecMimeType } from "../../service/RTC/CodecMimeType";
+import { MediaDirection } from "../../service/RTC/MediaDirection";
+import { MediaType } from "../../service/RTC/MediaType";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import * as SignalingEvents from "../../service/RTC/SignalingEvents";
+import { getSourceIndexFromSourceName } from "../../service/RTC/SignalingLayer";
+import {
+    SSRC_GROUP_SEMANTICS,
+    VIDEO_QUALITY_LEVELS,
+} from "../../service/RTC/StandardVideoQualitySettings";
+import { VideoType } from "../../service/RTC/VideoType";
+import { VIDEO_CODEC_CHANGED } from "../../service/statistics/AnalyticsEvents";
+import { SS_DEFAULT_FRAME_RATE } from "../RTC/ScreenObtainer";
+import browser from "../browser";
+import FeatureFlags from "../flags/FeatureFlags";
+import LocalSdpMunger from "../sdp/LocalSdpMunger";
+import RtxModifier from "../sdp/RtxModifier";
+import SDP from "../sdp/SDP";
+import SDPUtil from "../sdp/SDPUtil";
+import SdpSimulcast from "../sdp/SdpSimulcast";
+import { SdpTransformWrap } from "../sdp/SdpTransformUtil";
+import Statistics from "../statistics/statistics";
 
-import JitsiRemoteTrack from './JitsiRemoteTrack';
-import RTCUtils from './RTCUtils';
-import { TPCUtils } from './TPCUtils';
+import JitsiRemoteTrack from "./JitsiRemoteTrack";
+import RTCUtils from "./RTCUtils";
+import { TPCUtils } from "./TPCUtils";
 
 // FIXME SDP tools should end up in some kind of util module
 
 const logger = getLogger(__filename);
-const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
-const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
+const DEGRADATION_PREFERENCE_CAMERA = "maintain-framerate";
+const DEGRADATION_PREFERENCE_DESKTOP = "maintain-resolution";
 
 /* eslint-disable max-params */
 
@@ -63,14 +66,14 @@ const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
  * @constructor
  */
 export default function TraceablePeerConnection(
-        rtc,
-        id,
-        signalingLayer,
-        pcConfig,
-        constraints,
-        isP2P,
-        options) {
-
+    rtc,
+    id,
+    signalingLayer,
+    pcConfig,
+    constraints,
+    isP2P,
+    options
+) {
     /**
      * Indicates whether or not this peer connection instance is actively
      * sending/receiving audio media. When set to <tt>false</tt> the SDP audio
@@ -214,17 +217,28 @@ export default function TraceablePeerConnection(
 
     // SignalingLayer listeners
     this._peerVideoTypeChanged = this._peerVideoTypeChanged.bind(this);
-    this.signalingLayer.on(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+    this.signalingLayer.on(
+        SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
+        this._peerVideoTypeChanged
+    );
 
     this._peerMutedChanged = this._peerMutedChanged.bind(this);
-    this.signalingLayer.on(SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
+    this.signalingLayer.on(
+        SignalingEvents.PEER_MUTED_CHANGED,
+        this._peerMutedChanged
+    );
     this.options = options;
 
     // Setup SignalingLayer listeners for source-name based events.
-    this.signalingLayer.on(SignalingEvents.SOURCE_MUTED_CHANGED,
-        (sourceName, isMuted) => this._sourceMutedChanged(sourceName, isMuted));
-    this.signalingLayer.on(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
-        (sourceName, videoType) => this._sourceVideoTypeChanged(sourceName, videoType));
+    this.signalingLayer.on(
+        SignalingEvents.SOURCE_MUTED_CHANGED,
+        (sourceName, isMuted) => this._sourceMutedChanged(sourceName, isMuted)
+    );
+    this.signalingLayer.on(
+        SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
+        (sourceName, videoType) =>
+            this._sourceVideoTypeChanged(sourceName, videoType)
+    );
 
     // Make sure constraints is properly formatted in order to provide information about whether or not this
     // connection is P2P to rtcstats.
@@ -237,7 +251,9 @@ export default function TraceablePeerConnection(
     if (Array.isArray(safeConstraints.optional)) {
         safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
     } else {
-        logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
+        logger.warn(
+            "Optional param is not an array, rtcstats p2p data is omitted."
+        );
     }
 
     this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
@@ -245,7 +261,7 @@ export default function TraceablePeerConnection(
     this.tpcUtils = new TPCUtils(this, {
         audioQuality: options.audioQuality,
         isP2P: this.isP2P,
-        videoQuality: options.videoQuality
+        videoQuality: options.videoQuality,
     });
     this.updateLog = [];
     this.stats = {};
@@ -265,8 +281,10 @@ export default function TraceablePeerConnection(
      * Flag used to indicate if RTCRtpTransceiver#setCodecPreferences is to be used instead of SDP
      * munging for codec selection.
      */
-    browser.supportsCodecPreferences()
-        && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
+    browser.supportsCodecPreferences() &&
+        logger.info(
+            "Using RTCRtpTransceiver#setCodecPreferences for codec selection"
+        );
 
     /**
      * Flag used to indicate if the codecs are configured using the codec selection API without having the need to
@@ -297,7 +315,10 @@ export default function TraceablePeerConnection(
      * sending SSRC updates on attach/detach and mute/unmute (for video).
      * @type {LocalSdpMunger}
      */
-    this.localSdpMunger = new LocalSdpMunger(this, this.rtc.getLocalEndpointId());
+    this.localSdpMunger = new LocalSdpMunger(
+        this,
+        this.rtc.getLocalEndpointId()
+    );
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -348,61 +369,62 @@ export default function TraceablePeerConnection(
         this.updateLog.push({
             time: new Date(),
             type: what,
-            value: info || ''
+            value: info || "",
         });
     };
     this.onicecandidate = null;
-    this.peerconnection.onicecandidate = event => {
+    this.peerconnection.onicecandidate = (event) => {
         this.trace(
-            'onicecandidate',
-            JSON.stringify(event.candidate, null, ' '));
+            "onicecandidate",
+            JSON.stringify(event.candidate, null, " ")
+        );
 
         if (this.onicecandidate !== null) {
             this.onicecandidate(event);
         }
     };
 
-    this.onTrack = evt => {
+    this.onTrack = (evt) => {
         const stream = evt.streams[0];
 
         this._remoteTrackAdded(stream, evt.track, evt.transceiver);
-        stream.addEventListener('removetrack', e => {
+        stream.addEventListener("removetrack", (e) => {
             this._remoteTrackRemoved(stream, e.track);
         });
     };
-    this.peerconnection.addEventListener('track', this.onTrack);
+    this.peerconnection.addEventListener("track", this.onTrack);
 
     this.onsignalingstatechange = null;
-    this.peerconnection.onsignalingstatechange = event => {
-        this.trace('onsignalingstatechange', this.signalingState);
+    this.peerconnection.onsignalingstatechange = (event) => {
+        this.trace("onsignalingstatechange", this.signalingState);
         if (this.onsignalingstatechange !== null) {
             this.onsignalingstatechange(event);
         }
     };
     this.oniceconnectionstatechange = null;
-    this.peerconnection.oniceconnectionstatechange = event => {
-        this.trace('oniceconnectionstatechange', this.iceConnectionState);
+    this.peerconnection.oniceconnectionstatechange = (event) => {
+        this.trace("oniceconnectionstatechange", this.iceConnectionState);
         if (this.oniceconnectionstatechange !== null) {
             this.oniceconnectionstatechange(event);
         }
     };
     this.onnegotiationneeded = null;
-    this.peerconnection.onnegotiationneeded = event => {
-        this.trace('onnegotiationneeded');
+    this.peerconnection.onnegotiationneeded = (event) => {
+        this.trace("onnegotiationneeded");
         if (this.onnegotiationneeded !== null) {
             this.onnegotiationneeded(event);
         }
     };
     this.onconnectionstatechange = null;
-    this.peerconnection.onconnectionstatechange = event => {
-        this.trace('onconnectionstatechange', this.connectionState);
+    this.peerconnection.onconnectionstatechange = (event) => {
+        this.trace("onconnectionstatechange", this.connectionState);
         if (this.onconnectionstatechange !== null) {
             this.onconnectionstatechange(event);
         }
     };
     this.ondatachannel = null;
-    this.peerconnection.ondatachannel = event => {
-        this.trace('ondatachannel');
+    this.peerconnection.ondatachannel = (event) => {
+        this.trace("ondatachannel");
         if (this.ondatachannel !== null) {
             this.ondatachannel(event);
         }
@@ -410,19 +432,19 @@ export default function TraceablePeerConnection(
 
     if (this.maxstats) {
         this.statsinterval = window.setInterval(() => {
-            this.getStats().then(stats => {
-                if (typeof stats?.result === 'function') {
+            this.getStats().then((stats) => {
+                if (typeof stats?.result === "function") {
                     const results = stats.result();
 
                     for (let i = 0; i < results.length; ++i) {
                         const res = results[i];
 
-                        res.names().forEach(name => {
+                        res.names().forEach((name) => {
                             this._processStat(res, name, res.stat(name));
                         });
                     }
                 } else {
-                    stats.forEach(r => this._processStat(r, '', r));
+                    stats.forEach((r) => this._processStat(r, "", r));
                 }
             });
         }, 1000);
@@ -442,40 +464,42 @@ export default function TraceablePeerConnection(
  * @param statValue the value to add.
  * @private
  */
-TraceablePeerConnection.prototype._processStat
-    = function(report, name, statValue) {
-        const id = `${report.id}-${name}`;
-        let s = this.stats[id];
-        const now = new Date();
+TraceablePeerConnection.prototype._processStat = function (
+    report,
+    name,
+    statValue
+) {
+    const id = `${report.id}-${name}`;
+    let s = this.stats[id];
+    const now = new Date();
 
-        if (!s) {
-            this.stats[id] = s = {
-                startTime: now,
-                endTime: now,
-                values: [],
-                times: []
-            };
-        }
-        s.values.push(statValue);
-        s.times.push(now.getTime());
-        if (s.values.length > this.maxstats) {
-            s.values.shift();
-            s.times.shift();
-        }
-        s.endTime = now;
-    };
+    if (!s) {
+        this.stats[id] = s = {
+            startTime: now,
+            endTime: now,
+            values: [],
+            times: [],
+        };
+    }
+    s.values.push(statValue);
+    s.times.push(now.getTime());
+    if (s.values.length > this.maxstats) {
+        s.values.shift();
+        s.times.shift();
+    }
+    s.endTime = now;
+};
 
 /**
  * Returns a string representation of a SessionDescription object.
  */
-const dumpSDP = function(description) {
-    if (typeof description === 'undefined' || description === null) {
-        return '';
+const dumpSDP = function (description) {
+    if (typeof description === "undefined" || description === null) {
+        return "";
     }
 
     return `type: ${description.type}\r\n${description.sdp}`;
 };
-
 
 /**
  * Forwards the {@link peerconnection.iceConnectionState} state except that it
@@ -485,11 +509,11 @@ const dumpSDP = function(description) {
  * allows to adapt old logic to this new situation.
  * @return {string}
  */
-TraceablePeerConnection.prototype.getConnectionState = function() {
+TraceablePeerConnection.prototype.getConnectionState = function () {
     const state = this.peerconnection.iceConnectionState;
 
-    if (state === 'completed') {
-        return 'connected';
+    if (state === "completed") {
+        return "connected";
     }
 
     return state;
@@ -505,7 +529,10 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
  * local description on the peerconnection.
  * @private
  */
-TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType, isAddOperation = false) {
+TraceablePeerConnection.prototype.getDesiredMediaDirection = function (
+    mediaType,
+    isAddOperation = false
+) {
     return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
 };
 
@@ -516,21 +543,30 @@ TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType,
  * @param {string} mediaType 'audio' or 'video'
  * @returns {Array<RTCRtpReceiver>} list of receivers created by the peerconnection.
  */
-TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoints, mediaType) {
+TraceablePeerConnection.prototype._getReceiversByEndpointIds = function (
+    endpoints,
+    mediaType
+) {
     let remoteTracks = [];
     let receivers = [];
 
     for (const endpoint of endpoints) {
-        remoteTracks = remoteTracks.concat(this.getRemoteTracks(endpoint, mediaType));
+        remoteTracks = remoteTracks.concat(
+            this.getRemoteTracks(endpoint, mediaType)
+        );
     }
 
     // Get the ids of the MediaStreamTracks associated with each of these remote tracks.
-    const remoteTrackIds = remoteTracks.map(remote => remote.track?.id);
+    const remoteTrackIds = remoteTracks.map((remote) => remote.track?.id);
 
-    receivers = this.peerconnection.getReceivers()
-        .filter(receiver => receiver.track
-            && receiver.track.kind === mediaType
-            && remoteTrackIds.find(trackId => trackId === receiver.track.id));
+    receivers = this.peerconnection
+        .getReceivers()
+        .filter(
+            (receiver) =>
+                receiver.track &&
+                receiver.track.kind === mediaType &&
+                remoteTrackIds.find((trackId) => trackId === receiver.track.id)
+        );
 
     return receivers;
 };
@@ -540,12 +576,16 @@ TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoint
  * @return {boolean} <tt>true</tt> if spatial scalability is enabled and active or
  * <tt>false</tt> if it's turned off.
  */
-TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
-    const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-        && this.tpcUtils.supportsDDHeaderExt;
+TraceablePeerConnection.prototype.isSpatialScalabilityOn = function () {
+    const h264SimulcastEnabled =
+        this.tpcUtils.codecSettings[CodecMimeType.H264]
+            .scalabilityModeEnabled && this.tpcUtils.supportsDDHeaderExt;
 
-    return !this.options.disableSimulcast
-        && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
+    return (
+        !this.options.disableSimulcast &&
+        (this.codecSettings.codecList[0] !== CodecMimeType.H264 ||
+            h264SimulcastEnabled)
+    );
 };
 
 /**
@@ -554,7 +594,10 @@ TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
  * @param {VideoType} videoType the new value
  * @private
  */
-TraceablePeerConnection.prototype._peerVideoTypeChanged = function(endpointId, videoType) {
+TraceablePeerConnection.prototype._peerVideoTypeChanged = function (
+    endpointId,
+    videoType
+) {
     // Check if endpointId has a value to avoid action on random track
     if (!endpointId) {
         logger.error(`${this} No endpointID on peerVideoTypeChanged`);
@@ -576,7 +619,11 @@ TraceablePeerConnection.prototype._peerVideoTypeChanged = function(endpointId, v
  * @param {boolean} isMuted the new mute state
  * @private
  */
-TraceablePeerConnection.prototype._peerMutedChanged = function(endpointId, mediaType, isMuted) {
+TraceablePeerConnection.prototype._peerMutedChanged = function (
+    endpointId,
+    mediaType,
+    isMuted
+) {
     // Check if endpointId is a value to avoid doing action on all remote tracks
     if (!endpointId) {
         logger.error(`${this} On peerMuteChanged - no endpoint ID`);
@@ -597,12 +644,19 @@ TraceablePeerConnection.prototype._peerMutedChanged = function(endpointId, media
  * @param {string} sourceName - The name of the remote source.
  * @param {boolean} isMuted - The new mute state.
  */
-TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isMuted) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+TraceablePeerConnection.prototype._sourceMutedChanged = function (
+    sourceName,
+    isMuted
+) {
+    const track = this.getRemoteTracks().find(
+        (t) => t.getSourceName() === sourceName
+    );
 
     if (!track) {
         if (FeatureFlags.isSsrcRewritingSupported()) {
-            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
+            logger.debug(
+                `Remote track not found for source=${sourceName}, mute update failed!`
+            );
         }
 
         return;
@@ -617,8 +671,13 @@ TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isM
  * @param {string} sourceName - The name of the remote source.
  * @param {boolean} isMuted - The new value.
  */
-TraceablePeerConnection.prototype._sourceVideoTypeChanged = function(sourceName, videoType) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+TraceablePeerConnection.prototype._sourceVideoTypeChanged = function (
+    sourceName,
+    videoType
+) {
+    const track = this.getRemoteTracks().find(
+        (t) => t.getSourceName() === sourceName
+    );
 
     if (!track) {
         return;
@@ -633,14 +692,20 @@ TraceablePeerConnection.prototype._sourceVideoTypeChanged = function(sourceName,
  * @param {Array<string>} speakerList list of endpoint ids for which audio levels are to be gathered.
  * @returns {Object} containing ssrc and audio level information as a key-value pair.
  */
-TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
+TraceablePeerConnection.prototype.getAudioLevels = function (speakerList = []) {
     const audioLevels = {};
     const audioReceivers = speakerList.length
         ? this._getReceiversByEndpointIds(speakerList, MediaType.AUDIO)
-        : this.peerconnection.getReceivers()
-            .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
+        : this.peerconnection
+              .getReceivers()
+              .filter(
+                  (receiver) =>
+                      receiver.track &&
+                      receiver.track.kind === MediaType.AUDIO &&
+                      receiver.track.enabled
+              );
 
-    audioReceivers.forEach(remote => {
+    audioReceivers.forEach((remote) => {
         const ssrc = remote.getSynchronizationSources();
 
         if (ssrc && ssrc.length) {
@@ -662,10 +727,13 @@ TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
  * @param {JitsiLocalTrack} localTrack - The local video track.
  * @returns {boolean}
  */
-TraceablePeerConnection.prototype.doesTrueSimulcast = function(localTrack) {
+TraceablePeerConnection.prototype.doesTrueSimulcast = function (localTrack) {
     const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
-    return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
+    return (
+        this.isSpatialScalabilityOn() &&
+        this.tpcUtils.isRunningInSimulcastMode(currentCodec)
+    );
 };
 
 /**
@@ -674,16 +742,23 @@ TraceablePeerConnection.prototype.doesTrueSimulcast = function(localTrack) {
  * @param {JitsiLocalTrack} localTrack
  * @returns
  */
-TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
+TraceablePeerConnection.prototype.getLocalVideoSSRCs = function (localTrack) {
     const ssrcs = [];
 
     if (!localTrack || !localTrack.isVideoTrack()) {
         return ssrcs;
     }
 
-    const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
+    const ssrcGroup = this.isSpatialScalabilityOn()
+        ? SSRC_GROUP_SEMANTICS.SIM
+        : SSRC_GROUP_SEMANTICS.FID;
 
-    return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
+    return (
+        this.localSSRCs
+            .get(localTrack.rtcId)
+            ?.groups?.find((group) => group.semantics === ssrcGroup)?.ssrcs ||
+        ssrcs
+    );
 };
 
 /**
@@ -692,11 +767,11 @@ TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
  * @param {MediaType} [mediaType]
  * @return {Array<JitsiLocalTrack>}
  */
-TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
+TraceablePeerConnection.prototype.getLocalTracks = function (mediaType) {
     let tracks = Array.from(this.localTracks.values());
 
     if (mediaType !== undefined) {
-        tracks = tracks.filter(track => track.getType() === mediaType);
+        tracks = tracks.filter((track) => track.getType() === mediaType);
     }
 
     return tracks;
@@ -707,7 +782,7 @@ TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
  *
  * @returns {Array<JitsiLocalTrack>} - local video tracks.
  */
-TraceablePeerConnection.prototype.getLocalVideoTracks = function() {
+TraceablePeerConnection.prototype.getLocalVideoTracks = function () {
     return this.getLocalTracks(MediaType.VIDEO);
 };
 
@@ -719,7 +794,10 @@ TraceablePeerConnection.prototype.getLocalVideoTracks = function() {
  * specified.
  * @return {Array<JitsiRemoteTrack>}
  */
-TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaType) {
+TraceablePeerConnection.prototype.getRemoteTracks = function (
+    endpointId,
+    mediaType
+) {
     let remoteTracks = [];
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
@@ -736,7 +814,7 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
         return remoteTracks;
     }
 
-    const endpoints = endpointId ? [ endpointId ] : this.remoteTracks.keys();
+    const endpoints = endpointId ? [endpointId] : this.remoteTracks.keys();
 
     for (const endpoint of endpoints) {
         const endpointTracksByMediaType = this.remoteTracks.get(endpoint);
@@ -745,7 +823,11 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
             for (const trackMediaType of endpointTracksByMediaType.keys()) {
                 // per media type filtering
                 if (!mediaType || mediaType === trackMediaType) {
-                    remoteTracks = remoteTracks.concat(Array.from(endpointTracksByMediaType.get(trackMediaType)));
+                    remoteTracks = remoteTracks.concat(
+                        Array.from(
+                            endpointTracksByMediaType.get(trackMediaType)
+                        )
+                    );
                 }
             }
         }
@@ -760,7 +842,9 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaTy
  * @param {string} sourceName - The source name.
  * @returns {TPCSourceInfo}
  */
-TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sourceName) {
+TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function (
+    sourceName
+) {
     return cloneDeep(this._remoteSsrcMap.get(sourceName));
 };
 
@@ -770,17 +854,23 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sou
  * @param {string} id Endpoint id of the remote participant.
  * @returns {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
  */
-TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id) {
+TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function (
+    id
+) {
     const removeSsrcInfo = new Map();
     const remoteTracks = this.getRemoteTracks(id);
 
     if (!remoteTracks?.length) {
         return removeSsrcInfo;
     }
-    const primarySsrcs = remoteTracks.map(track => track.getSSRC());
+    const primarySsrcs = remoteTracks.map((track) => track.getSSRC());
 
-    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap) {
-        if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
+    for (const [sourceName, sourceInfo] of this._remoteSsrcMap) {
+        if (
+            sourceInfo.ssrcList?.some((ssrc) =>
+                primarySsrcs.includes(Number(ssrc))
+            )
+        ) {
             removeSsrcInfo.set(sourceName, sourceInfo);
         }
     }
@@ -794,7 +884,9 @@ TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id
  * @param {JitsiLocalTrack} - The local video track.
  * @returns {Object}
  */
-TraceablePeerConnection.prototype.getTargetVideoBitrates = function(localTrack) {
+TraceablePeerConnection.prototype.getTargetVideoBitrates = function (
+    localTrack
+) {
     const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
     return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
@@ -806,14 +898,16 @@ TraceablePeerConnection.prototype.getTargetVideoBitrates = function(localTrack) 
  * @param {number} ssrc
  * @return {JitsiTrack|null}
  */
-TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
-    if (typeof ssrc !== 'number') {
+TraceablePeerConnection.prototype.getTrackBySSRC = function (ssrc) {
+    if (typeof ssrc !== "number") {
         throw new Error(`SSRC ${ssrc} is not a number`);
     }
     for (const localTrack of this.localTracks.values()) {
-        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId) ?? { ssrcs: [] };
+        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId) ?? {
+            ssrcs: [],
+        };
 
-        if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
+        if (ssrcs.find((localSsrc) => Number(localSsrc) === ssrc)) {
             return localTrack;
         }
     }
@@ -837,9 +931,8 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
  * @param {string} id
  * @return {number|null}
  */
-TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
-
-    const findTrackById = track => track.getTrack().id === id;
+TraceablePeerConnection.prototype.getSsrcByTrackId = function (id) {
+    const findTrackById = (track) => track.getTrack().id === id;
     const localTrack = this.getLocalTracks().find(findTrackById);
 
     if (localTrack) {
@@ -866,7 +959,11 @@ TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
  * @param {RTCRtpTransceiver} transceiver the WebRTC transceiver that is created
  * for the remote participant in unified plan.
  */
-TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, transceiver = null) {
+TraceablePeerConnection.prototype._remoteTrackAdded = function (
+    stream,
+    track,
+    transceiver = null
+) {
     const streamId = stream.id;
     const mediaType = track.kind;
 
@@ -874,11 +971,15 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
         return;
     }
-    logger.info(`${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`);
+    logger.info(
+        `${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`
+    );
 
     // look up an associated JID for a stream id
     if (!mediaType) {
-        logger.error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`);
+        logger.error(
+            `MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`
+        );
 
         return;
     }
@@ -890,61 +991,80 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     if (transceiver?.mid) {
         const mid = transceiver.mid;
 
-        mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
+        mediaLine = remoteSDP.media.find((mls) =>
+            SDPUtil.findLine(mls, `a=mid:${mid}`)
+        );
     } else {
-        mediaLine = remoteSDP.media.find(mls => {
-            const msid = SDPUtil.findLine(mls, 'a=msid:');
+        mediaLine = remoteSDP.media.find((mls) => {
+            const msid = SDPUtil.findLine(mls, "a=msid:");
 
-            return typeof msid === 'string' && streamId === msid.substring(7).split(' ')[0];
+            return (
+                typeof msid === "string" &&
+                streamId === msid.substring(7).split(" ")[0]
+            );
         });
     }
 
     if (!mediaLine) {
-        logger.error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
-                + 'track creation failed!');
+        logger.error(
+            `Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],` +
+                "track creation failed!"
+        );
 
         return;
     }
 
-    let ssrcLines = SDPUtil.findLines(mediaLine, 'a=ssrc:');
+    let ssrcLines = SDPUtil.findLines(mediaLine, "a=ssrc:");
 
-    ssrcLines = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
+    ssrcLines = ssrcLines.filter(
+        (line) => line.indexOf(`msid:${streamId}`) !== -1
+    );
     if (!ssrcLines.length) {
-        logger.error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
-                + 'track creation failed!');
+        logger.error(
+            `No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]` +
+                "track creation failed!"
+        );
 
         return;
     }
 
     // FIXME the length of ssrcLines[0] not verified, but it will fail
     // with global error handler anyway
-    const ssrcStr = ssrcLines[0].substring(7).split(' ')[0];
+    const ssrcStr = ssrcLines[0].substring(7).split(" ")[0];
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
     if (isNaN(trackSsrc) || trackSsrc < 0) {
-        logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-                + 'track creation failed!');
+        logger.error(
+            `Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]` +
+                "track creation failed!"
+        );
 
         return;
     }
 
     if (!ownerEndpointId) {
-        logger.error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-            + 'track creation failed!');
+        logger.error(
+            `No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]` +
+                "track creation failed!"
+        );
 
         return;
     }
 
     const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
-    const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
+    const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(
+        ownerEndpointId,
+        mediaType,
+        sourceName
+    );
     const trackDetails = {
         mediaType,
         muted: peerMediaInfo?.muted ?? true,
         stream,
         track,
         ssrc: trackSsrc,
-        videoType: peerMediaInfo?.videoType
+        videoType: peerMediaInfo?.videoType,
     };
 
     if (this._remoteSsrcMap.has(sourceName) && mediaType === MediaType.VIDEO) {
@@ -967,11 +1087,17 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
  * @param {MediaStreamTrack} trackDetails.track - The WebRTC track instance.
  * @param {VideoType} trackDetails.videoType - The track's type of the video (if applicable).
  */
-TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId, sourceName, trackDetails) {
+TraceablePeerConnection.prototype._createRemoteTrack = function (
+    ownerEndpointId,
+    sourceName,
+    trackDetails
+) {
     const { mediaType, muted, ssrc, stream, track, videoType } = trackDetails;
 
-    logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},`
-        + `type=${mediaType},sourceName=${sourceName}]`);
+    logger.info(
+        `${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},` +
+            `type=${mediaType},sourceName=${sourceName}]`
+    );
     let remoteTracksMap;
     let userTracksByMediaType;
 
@@ -979,7 +1105,9 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId,
         const existingTrack = this.remoteTracksBySsrc.get(ssrc);
 
         if (existingTrack) {
-            logger.info(`${this} ignored duplicated track event for SSRC[ssrc=${ssrc},type=${mediaType}]`);
+            logger.info(
+                `${this} ignored duplicated track event for SSRC[ssrc=${ssrc},type=${mediaType}]`
+            );
 
             return;
         }
@@ -995,29 +1123,35 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId,
 
         userTracksByMediaType = remoteTracksMap.get(mediaType);
 
-        if (userTracksByMediaType?.size
-            && Array.from(userTracksByMediaType).find(jitsiTrack => jitsiTrack.getTrack() === track)) {
+        if (
+            userTracksByMediaType?.size &&
+            Array.from(userTracksByMediaType).find(
+                (jitsiTrack) => jitsiTrack.getTrack() === track
+            )
+        ) {
             // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
-            logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},`
-                + `type=${mediaType}]`);
+            logger.info(
+                `${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},` +
+                    `type=${mediaType}]`
+            );
 
             return;
         }
     }
 
-    const remoteTrack
-        = new JitsiRemoteTrack(
-                this.rtc,
-                this.rtc.conference,
-                ownerEndpointId,
-                stream,
-                track,
-                mediaType,
-                videoType,
-                ssrc,
-                muted,
-                this.isP2P,
-                sourceName);
+    const remoteTrack = new JitsiRemoteTrack(
+        this.rtc,
+        this.rtc.conference,
+        ownerEndpointId,
+        stream,
+        track,
+        mediaType,
+        videoType,
+        ssrc,
+        muted,
+        this.isP2P,
+        sourceName
+    );
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
         this.remoteTracksBySsrc.set(ssrc, remoteTrack);
@@ -1035,7 +1169,10 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId,
  * @param {MediaStreamTrack} track - WebRTC MediaStreamTrack which has been removed from the PeerConnection.
  * @returns {void}
  */
-TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) {
+TraceablePeerConnection.prototype._remoteTrackRemoved = function (
+    stream,
+    track
+) {
     const streamId = stream.id;
     const trackId = track?.id;
 
@@ -1057,7 +1194,10 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
     }
 
     const toBeRemoved = this.getRemoteTracks().find(
-        remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
+        (remoteTrack) =>
+            remoteTrack.getStreamId() === streamId &&
+            remoteTrack.getTrackId() === trackId
+    );
 
     if (!toBeRemoved) {
         logger.error(`${this} remote track removal failed - track not found`);
@@ -1074,9 +1214,11 @@ TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) 
  * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
  * @returns {void}
  */
-TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
-    logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
-        + `trackId=${toBeRemoved.getTrackId()}]`);
+TraceablePeerConnection.prototype._removeRemoteTrack = function (toBeRemoved) {
+    logger.info(
+        `${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},` +
+            `trackId=${toBeRemoved.getTrackId()}]`
+    );
 
     toBeRemoved.dispose();
     const participantId = toBeRemoved.getParticipantId();
@@ -1087,9 +1229,17 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
         const userTracksByMediaType = this.remoteTracks.get(participantId);
 
         if (!userTracksByMediaType) {
-            logger.error(`${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`);
-        } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
-            logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+            logger.error(
+                `${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`
+            );
+        } else if (
+            !userTracksByMediaType
+                .get(toBeRemoved.getType())
+                ?.delete(toBeRemoved)
+        ) {
+            logger.error(
+                `${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`
+            );
         }
     }
 
@@ -1102,18 +1252,23 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
  * @param {string} localSDP - SDP from the local description.
  * @returns {void}
  */
-TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localSDP) {
+TraceablePeerConnection.prototype._processAndExtractSourceInfo = function (
+    localSDP
+) {
     /**
      * @type {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
      */
     const ssrcMap = new Map();
 
-    if (!localSDP || typeof localSDP !== 'string') {
-        throw new Error('Local SDP must be a valid string, aborting!!');
+    if (!localSDP || typeof localSDP !== "string") {
+        throw new Error("Local SDP must be a valid string, aborting!!");
     }
     const session = transform.parse(localSDP);
-    const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
-        || mline.direction === MediaDirection.SENDRECV);
+    const media = session.media.filter(
+        (mline) =>
+            mline.direction === MediaDirection.SENDONLY ||
+            mline.direction === MediaDirection.SENDRECV
+    );
 
     if (!media.length) {
         this._localSsrcMap = ssrcMap;
@@ -1125,38 +1280,44 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
         const sourceName = localTrack.getSourceName();
         const trackIndex = getSourceIndexFromSourceName(sourceName);
         const mediaType = localTrack.getType();
-        const mLines = media.filter(m => m.type === mediaType);
+        const mLines = media.filter((m) => m.type === mediaType);
         const ssrcGroups = mLines[trackIndex].ssrcGroups;
         let ssrcs = mLines[trackIndex].ssrcs;
 
         if (ssrcs?.length) {
             // Filter the ssrcs with 'cname' attribute.
-            ssrcs = ssrcs.filter(s => s.attribute === 'cname');
+            ssrcs = ssrcs.filter((s) => s.attribute === "cname");
 
             const msid = `${this.rtc.getLocalEndpointId()}-${mediaType}-${trackIndex}`;
             const ssrcInfo = {
                 ssrcs: [],
                 groups: [],
-                msid
+                msid,
             };
 
-            ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
+            ssrcs.forEach((ssrc) => ssrcInfo.ssrcs.push(ssrc.id));
 
             if (ssrcGroups?.length) {
                 for (const group of ssrcGroups) {
-                    group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
+                    group.ssrcs = group.ssrcs
+                        .split(" ")
+                        .map((ssrcStr) => parseInt(ssrcStr, 10));
                     ssrcInfo.groups.push(group);
                 }
 
-                const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
+                const simGroup = ssrcGroups.find(
+                    (group) => group.semantics === SSRC_GROUP_SEMANTICS.SIM
+                );
 
                 // Add a SIM group if its missing in the description (happens on Firefox).
                 if (this.isSpatialScalabilityOn() && !simGroup) {
-                    const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
+                    const groupSsrcs = ssrcGroups.map(
+                        (group) => group.ssrcs[0]
+                    );
 
                     ssrcInfo.groups.push({
                         semantics: SSRC_GROUP_SEMANTICS.SIM,
-                        ssrcs: groupSsrcs
+                        ssrcs: groupSsrcs,
                     });
                 }
             }
@@ -1168,7 +1329,10 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
             const newSsrc = this._extractPrimarySSRC(ssrcInfo);
 
             if (oldSsrc !== newSsrc) {
-                oldSsrc && logger.debug(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
+                oldSsrc &&
+                    logger.debug(
+                        `${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`
+                    );
                 this.localSSRCs.set(localTrack.rtcId, ssrcInfo);
                 localTrack.setSsrc(newSsrc);
             }
@@ -1181,7 +1345,7 @@ TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localS
  *
  * @param {JitsiLocalTrack} localTrack
  */
-TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
+TraceablePeerConnection.prototype.getLocalSSRC = function (localTrack) {
     const ssrcInfo = this._getSSRC(localTrack.rtcId);
 
     return ssrcInfo && ssrcInfo.ssrcs[0];
@@ -1202,20 +1366,28 @@ const getters = {
         let desc = this.peerconnection.localDescription;
 
         if (!desc) {
-            logger.debug(`${this} getLocalDescription no localDescription found`);
+            logger.debug(
+                `${this} getLocalDescription no localDescription found`
+            );
 
             return {};
         }
 
-        this.trace('getLocalDescription::preTransform', dumpSDP(desc));
+        this.trace("getLocalDescription::preTransform", dumpSDP(desc));
 
         if (!this.isP2P) {
             desc = this.tpcUtils.injectSsrcGroupForSimulcast(desc);
-            this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
+            this.trace(
+                "getLocalDescription::postTransform (inject ssrc group)",
+                dumpSDP(desc)
+            );
         }
 
         // See the method's doc for more info about this transformation.
-        desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
+        desc = this.localSdpMunger.transformStreamIdentifiers(
+            desc,
+            this._localSsrcMap
+        );
 
         return desc;
     },
@@ -1223,11 +1395,13 @@ const getters = {
         let desc = this.peerconnection.remoteDescription;
 
         if (!desc) {
-            logger.debug(`${this} getRemoteDescription no remoteDescription found`);
+            logger.debug(
+                `${this} getRemoteDescription no remoteDescription found`
+            );
 
             return {};
         }
-        this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
+        this.trace("getRemoteDescription::preTransform", dumpSDP(desc));
 
         if (this.isP2P) {
             // Adjust the media direction for p2p based on whether a local source has been added.
@@ -1235,19 +1409,16 @@ const getters = {
         }
 
         return desc;
-    }
+    },
 };
 
-Object.keys(getters).forEach(prop => {
-    Object.defineProperty(
-        TraceablePeerConnection.prototype,
-        prop, {
-            get: getters[prop]
-        }
-    );
+Object.keys(getters).forEach((prop) => {
+    Object.defineProperty(TraceablePeerConnection.prototype, prop, {
+        get: getters[prop],
+    });
 });
 
-TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
+TraceablePeerConnection.prototype._getSSRC = function (rtcId) {
     return this.localSSRCs.get(rtcId);
 };
 
@@ -1257,7 +1428,7 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
  * @private
  * @returns {boolean} Returns true if 5 fps screensharing is in progress, false otherwise.
  */
-TraceablePeerConnection.prototype.isSharingLowFpsScreen = function() {
+TraceablePeerConnection.prototype.isSharingLowFpsScreen = function () {
     return this._isSharingScreen() && this._capScreenshareBitrate;
 };
 
@@ -1266,10 +1437,12 @@ TraceablePeerConnection.prototype.isSharingLowFpsScreen = function() {
  *
  * @returns {boolean}  Returns true if a desktop track has been added to the peerconnection, false otherwise.
  */
-TraceablePeerConnection.prototype._isSharingScreen = function() {
+TraceablePeerConnection.prototype._isSharingScreen = function () {
     const tracks = this.getLocalVideoTracks();
 
-    return Boolean(tracks.find(track => track.videoType === VideoType.DESKTOP));
+    return Boolean(
+        tracks.find((track) => track.videoType === VideoType.DESKTOP)
+    );
 };
 
 /**
@@ -1278,7 +1451,10 @@ TraceablePeerConnection.prototype._isSharingScreen = function() {
  * @param {boolean} isInitiator indicates if the endpoint is the offerer.
  * @returns {Promise<void>} - resolved when done.
  */
-TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator = false) {
+TraceablePeerConnection.prototype.addTrack = async function (
+    track,
+    isInitiator = false
+) {
     const rtcId = track.rtcId;
 
     if (this.localTracks.has(rtcId)) {
@@ -1300,14 +1476,18 @@ TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator =
         const transceiverInit = {
             direction: MediaDirection.SENDRECV,
             streams,
-            sendEncodings: []
+            sendEncodings: [],
         };
 
         if (!browser.isFirefox()) {
-            transceiverInit.sendEncodings = this.tpcUtils.getStreamEncodings(track);
+            transceiverInit.sendEncodings =
+                this.tpcUtils.getStreamEncodings(track);
         }
 
-        transceiver = this.peerconnection.addTransceiver(mediaStreamTrack, transceiverInit);
+        transceiver = this.peerconnection.addTransceiver(
+            mediaStreamTrack,
+            transceiverInit
+        );
     } else {
         // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
         // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
@@ -1315,11 +1495,16 @@ TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator =
         const sender = this.peerconnection.addTrack(mediaStreamTrack);
 
         // Find the corresponding transceiver that the track was attached to.
-        transceiver = this.peerconnection.getTransceivers().find(t => t.sender === sender);
+        transceiver = this.peerconnection
+            .getTransceivers()
+            .find((t) => t.sender === sender);
     }
 
     if (transceiver?.mid) {
-        this.localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
+        this.localTrackTransceiverMids.set(
+            track.rtcId,
+            transceiver.mid.toString()
+        );
     }
 
     if (track) {
@@ -1344,34 +1529,38 @@ TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator =
  * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
  * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
  */
-TraceablePeerConnection.prototype.addTrackToPc = function(track) {
+TraceablePeerConnection.prototype.addTrackToPc = function (track) {
     logger.info(`${this} Adding track=${track} to PC`);
 
-    if (!this._assertTrackBelongs('addTrackToPc', track)) {
+    if (!this._assertTrackBelongs("addTrackToPc", track)) {
         // Abort
 
-        return Promise.reject('Track not found on the peerconnection');
+        return Promise.reject("Track not found on the peerconnection");
     }
 
     const webRtcStream = track.getOriginalStream();
 
     if (!webRtcStream) {
-        logger.error(`${this} Unable to add track=${track} to PC - no WebRTC stream`);
+        logger.error(
+            `${this} Unable to add track=${track} to PC - no WebRTC stream`
+        );
 
-        return Promise.reject('Stream not found');
+        return Promise.reject("Stream not found");
     }
 
-    return this.replaceTrack(null, track, true /* isMuteOperation */).then(() => {
-        if (track) {
-            if (track.isAudioTrack()) {
-                this._hasHadAudioTrack = true;
-            } else {
-                this._hasHadVideoTrack = true;
+    return this.replaceTrack(null, track, true /* isMuteOperation */).then(
+        () => {
+            if (track) {
+                if (track.isAudioTrack()) {
+                    this._hasHadAudioTrack = true;
+                } else {
+                    this._hasHadVideoTrack = true;
+                }
             }
-        }
 
-        return false;
-    });
+            return false;
+        }
+    );
 };
 
 /**
@@ -1385,13 +1574,16 @@ TraceablePeerConnection.prototype.addTrackToPc = function(track) {
  * <tt>false</tt> otherwise.
  * @private
  */
-TraceablePeerConnection.prototype._assertTrackBelongs = function(
-        methodName,
-        localTrack) {
+TraceablePeerConnection.prototype._assertTrackBelongs = function (
+    methodName,
+    localTrack
+) {
     const doesBelong = this.localTracks.has(localTrack?.rtcId);
 
     if (!doesBelong) {
-        logger.error(`${this} ${methodName}: track=${localTrack} does not belong to pc`);
+        logger.error(
+            `${this} ${methodName}: track=${localTrack} does not belong to pc`
+        );
     }
 
     return doesBelong;
@@ -1403,7 +1595,9 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * @param {RTCSessionDescription} - The local description to be used.
  * @returns {Array}
  */
-TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(description) {
+TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function (
+    description
+) {
     return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
 };
 
@@ -1412,7 +1606,9 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(descriptio
  *
  * @param {number} maxFps framerate to be used for desktop track capture.
  */
-TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) {
+TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function (
+    maxFps
+) {
     const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
 
     this._capScreenshareBitrate = this.isSpatialScalabilityOn() && lowFps;
@@ -1426,7 +1622,10 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
+TraceablePeerConnection.prototype.setVideoCodecs = function (
+    codecList,
+    screenshareCodec
+) {
     if (!this.codecSettings || !codecList?.length) {
         return;
     }
@@ -1443,7 +1642,11 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
     for (const track of this.getLocalVideoTracks()) {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(track);
 
-        if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
+        if (
+            screenshareCodec &&
+            track.getVideoType() === VideoType.DESKTOP &&
+            screenshareCodec !== currentCodec
+        ) {
             this.configureVideoSenderEncodings(track, screenshareCodec);
         } else if (currentCodec !== codecList[0]) {
             this.configureVideoSenderEncodings(track);
@@ -1458,14 +1661,16 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
  * FIXME It should probably remove a boolean just like {@link removeTrackFromPc}
  *       The same applies to addTrack.
  */
-TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
+TraceablePeerConnection.prototype.removeTrack = function (localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
 
     this.trace(
-        'removeStream',
-        localTrack.rtcId, webRtcStream ? webRtcStream.id : undefined);
+        "removeStream",
+        localTrack.rtcId,
+        webRtcStream ? webRtcStream.id : undefined
+    );
 
-    if (!this._assertTrackBelongs('removeStream', localTrack)) {
+    if (!this._assertTrackBelongs("removeStream", localTrack)) {
         // Abort - nothing to be done here
         return;
     }
@@ -1484,8 +1689,8 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
  * @returns {RTCRtpReceiver|undefined} - The found receiver or undefined if no receiver
  * was found.
  */
-TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
-    return this.peerconnection.getReceivers().find(r => r.track === track);
+TraceablePeerConnection.prototype.findReceiverForTrack = function (track) {
+    return this.peerconnection.getReceivers().find((r) => r.track === track);
 };
 
 /**
@@ -1495,8 +1700,8 @@ TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
  * @returns {RTCRtpSender|undefined} - The found sender or undefined if no sender
  * was found.
  */
-TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
-    return this.peerconnection.getSenders().find(s => s.track === track);
+TraceablePeerConnection.prototype.findSenderForTrack = function (track) {
+    return this.peerconnection.getSenders().find((s) => s.track === track);
 };
 
 /**
@@ -1505,21 +1710,28 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
+TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function (
+    localTracks
+) {
     const localSdp = this.localDescription?.sdp;
 
     if (!localSdp) {
         return;
     }
 
-    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-        const tracks = localTracks.filter(t => t.getType() === mediaType);
+    [MediaType.AUDIO, MediaType.VIDEO].forEach((mediaType) => {
+        const tracks = localTracks.filter((t) => t.getType() === mediaType);
         const parsedSdp = transform.parse(localSdp);
-        const mLines = parsedSdp.media.filter(mline => mline.type === mediaType);
+        const mLines = parsedSdp.media.filter(
+            (mline) => mline.type === mediaType
+        );
 
         tracks.forEach((track, idx) => {
             if (!this.localTrackTransceiverMids.has(track.rtcId)) {
-                this.localTrackTransceiverMids.set(track.rtcId, mLines[idx].mid.toString());
+                this.localTrackTransceiverMids.set(
+                    track.rtcId,
+                    mLines[idx].mid.toString()
+                );
             }
         });
     });
@@ -1537,9 +1749,15 @@ TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(l
  * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
  * Otherwise no renegotiation is needed.
  */
-TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack, isMuteOperation = false) {
+TraceablePeerConnection.prototype.replaceTrack = function (
+    oldTrack,
+    newTrack,
+    isMuteOperation = false
+) {
     if (!(oldTrack || newTrack)) {
-        logger.info(`${this} replaceTrack called with no new track and no old track`);
+        logger.info(
+            `${this} replaceTrack called with no new track and no old track`
+        );
 
         return Promise.resolve();
     }
@@ -1550,114 +1768,141 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack, is
     const mediaType = newTrack?.getType() ?? oldTrack?.getType();
     const localTracks = this.getLocalTracks(mediaType);
     const track = newTrack?.getTrack() ?? null;
-    const isNewLocalSource = localTracks?.length
-        && !oldTrack
-        && newTrack
-        && !localTracks.find(t => t === newTrack);
+    const isNewLocalSource =
+        localTracks?.length &&
+        !oldTrack &&
+        newTrack &&
+        !localTracks.find((t) => t === newTrack);
 
     // If old track exists, replace the track on the corresponding sender.
     if (oldTrack && !oldTrack.isMuted()) {
-        transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
+        transceiver = this.peerconnection
+            .getTransceivers()
+            .find((t) => t.sender.track === oldTrack.getTrack());
 
-    // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
-    // As part of the track addition, a new m-line was added to the remote description with direction set to
-    // recvonly.
+        // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
+        // As part of the track addition, a new m-line was added to the remote description with direction set to
+        // recvonly.
     } else if (isNewLocalSource) {
         transceiver = this.peerconnection.getTransceivers().find(
-            t => t.receiver.track.kind === mediaType
-            && t.direction === MediaDirection.RECVONLY
+            (t) =>
+                t.receiver.track.kind === mediaType &&
+                t.direction === MediaDirection.RECVONLY &&
+                // Re-use any existing recvonly transceiver (if available) for p2p case.
+                ((this.isP2P &&
+                    t.currentDirection === MediaDirection.RECVONLY) ||
+                    (t.currentDirection === MediaDirection.INACTIVE &&
+                        !t.stopped))
+        );
 
-            // Re-use any existing recvonly transceiver (if available) for p2p case.
-            && ((this.isP2P && t.currentDirection === MediaDirection.RECVONLY)
-                || (t.currentDirection === MediaDirection.INACTIVE && !t.stopped)));
-
-    // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
-    // otherwise it is assumed to be the first local track that was added to the peerconnection.
+        // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
+        // otherwise it is assumed to be the first local track that was added to the peerconnection.
     } else {
-        transceiver = this.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
-        const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
+        transceiver = this.peerconnection
+            .getTransceivers()
+            .find((t) => t.receiver.track.kind === mediaType);
+        const sourceName =
+            newTrack?.getSourceName() ?? oldTrack?.getSourceName();
 
         if (sourceName) {
             const trackIndex = getSourceIndexFromSourceName(sourceName);
 
             if (this.isP2P) {
-                transceiver = this.peerconnection.getTransceivers()
-                    .filter(t => t.receiver.track.kind === mediaType)[trackIndex];
+                transceiver = this.peerconnection
+                    .getTransceivers()
+                    .filter((t) => t.receiver.track.kind === mediaType)[
+                    trackIndex
+                ];
             } else if (oldTrack) {
-                const transceiverMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
+                const transceiverMid = this.localTrackTransceiverMids.get(
+                    oldTrack.rtcId
+                );
 
-                transceiver = this.peerconnection.getTransceivers().find(t => t.mid === transceiverMid);
+                transceiver = this.peerconnection
+                    .getTransceivers()
+                    .find((t) => t.mid === transceiverMid);
             } else if (trackIndex) {
-                transceiver = this.peerconnection.getTransceivers()
-                        .filter(t => t.receiver.track.kind === mediaType
-                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
+                transceiver = this.peerconnection
+                    .getTransceivers()
+                    .filter(
+                        (t) =>
+                            t.receiver.track.kind === mediaType &&
+                            t.direction !== MediaDirection.RECVONLY
+                    )[trackIndex];
             }
         }
     }
 
     if (!transceiver) {
         return Promise.reject(
-            new Error(`Replace track failed - no transceiver for old: ${oldTrack}, new: ${newTrack}`));
+            new Error(
+                `Replace track failed - no transceiver for old: ${oldTrack}, new: ${newTrack}`
+            )
+        );
     }
 
-    return transceiver.sender.replaceTrack(track)
-        .then(() => {
-            if (isMuteOperation) {
-                return Promise.resolve();
+    return transceiver.sender.replaceTrack(track).then(() => {
+        if (isMuteOperation) {
+            return Promise.resolve();
+        }
+        if (oldTrack) {
+            this.localTracks.delete(oldTrack.rtcId);
+            this.localTrackTransceiverMids.delete(oldTrack.rtcId);
+        }
+
+        if (newTrack) {
+            if (newTrack.isAudioTrack()) {
+                this._hasHadAudioTrack = true;
+            } else {
+                this._hasHadVideoTrack = true;
             }
-            if (oldTrack) {
-                this.localTracks.delete(oldTrack.rtcId);
-                this.localTrackTransceiverMids.delete(oldTrack.rtcId);
+            this.localTrackTransceiverMids.set(
+                newTrack.rtcId,
+                transceiver?.mid?.toString()
+            );
+            this.localTracks.set(newTrack.rtcId, newTrack);
+        }
+
+        // Update the local SSRC cache for the case when one track gets replaced with another and no
+        // renegotiation is triggered as a result of this.
+        if (oldTrack && newTrack) {
+            const oldTrackSSRC = this.localSSRCs.get(oldTrack.rtcId);
+
+            if (oldTrackSSRC) {
+                this.localSSRCs.delete(oldTrack.rtcId);
+                this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
+                const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
+
+                newTrack.setSsrc(oldSsrcNum);
             }
+        }
 
-            if (newTrack) {
-                if (newTrack.isAudioTrack()) {
-                    this._hasHadAudioTrack = true;
-                } else {
-                    this._hasHadVideoTrack = true;
-                }
-                this.localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
-                this.localTracks.set(newTrack.rtcId, newTrack);
-            }
+        // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
+        // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
+        // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
+        // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
+        // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
+        // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
+        // be reused on a new m-line and if the remote participant is FF due to
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
+        // That's why we need keep the direction to SENDRECV for FF.
+        //
+        // NOTE: If we return back to the approach of not removing the track for FF and instead using the
+        // enabled property for mute or stopping screensharing we may need to change the direction to
+        // RECVONLY if FF still sends the media even though the enabled flag is set to false.
+        transceiver.direction =
+            newTrack || browser.isFirefox()
+                ? MediaDirection.SENDRECV
+                : MediaDirection.RECVONLY;
 
-            // Update the local SSRC cache for the case when one track gets replaced with another and no
-            // renegotiation is triggered as a result of this.
-            if (oldTrack && newTrack) {
-                const oldTrackSSRC = this.localSSRCs.get(oldTrack.rtcId);
+        // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
+        const configureEncodingsPromise =
+            !newTrack || browser.usesSdpMungingForSimulcast()
+                ? Promise.resolve()
+                : this._setEncodings(newTrack);
 
-                if (oldTrackSSRC) {
-                    this.localSSRCs.delete(oldTrack.rtcId);
-                    this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
-                    const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
-
-                    newTrack.setSsrc(oldSsrcNum);
-                }
-            }
-
-            // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
-            // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
-            // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
-            // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
-            // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
-            // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
-            // be reused on a new m-line and if the remote participant is FF due to
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
-            // That's why we need keep the direction to SENDRECV for FF.
-            //
-            // NOTE: If we return back to the approach of not removing the track for FF and instead using the
-            // enabled property for mute or stopping screensharing we may need to change the direction to
-            // RECVONLY if FF still sends the media even though the enabled flag is set to false.
-            transceiver.direction
-                = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
-
-            // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
-            const configureEncodingsPromise
-                = !newTrack || browser.usesSdpMungingForSimulcast()
-                    ? Promise.resolve()
-                    : this._setEncodings(newTrack);
-
-            return configureEncodingsPromise.then(() => this.isP2P);
-        });
+        return configureEncodingsPromise.then(() => this.isP2P);
+    });
 };
 
 /**
@@ -1667,17 +1912,23 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack, is
  * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
  * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
  */
-TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
+TraceablePeerConnection.prototype.removeTrackFromPc = function (localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
 
-    this.trace('removeTrack', localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
+    this.trace(
+        "removeTrack",
+        localTrack.rtcId,
+        webRtcStream ? webRtcStream.id : null
+    );
 
-    if (!this._assertTrackBelongs('removeTrack', localTrack)) {
+    if (!this._assertTrackBelongs("removeTrack", localTrack)) {
         // Abort - nothing to be done here
-        return Promise.reject('Track not found in the peerconnection');
+        return Promise.reject("Track not found in the peerconnection");
     }
 
-    return this.replaceTrack(localTrack, null, true /* isMuteOperation */).then(() => false);
+    return this.replaceTrack(localTrack, null, true /* isMuteOperation */).then(
+        () => false
+    );
 };
 
 /**
@@ -1687,8 +1938,11 @@ TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
  * @param {boolean} isAdd - Whether the sources are being added or removed.
  * @returns {void}
  */
-TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAdd) {
-    for (const [ sourceName, ssrcInfo ] of sourceMap) {
+TraceablePeerConnection.prototype.updateRemoteSources = function (
+    sourceMap,
+    isAdd
+) {
+    for (const [sourceName, ssrcInfo] of sourceMap) {
         if (isAdd) {
             this._remoteSsrcMap.set(sourceName, ssrcInfo);
         } else {
@@ -1702,15 +1956,18 @@ TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAd
  *
  * @returns {boolean}
  */
-TraceablePeerConnection.prototype.usesCodecSelectionAPI = function() {
+TraceablePeerConnection.prototype.usesCodecSelectionAPI = function () {
     // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to be
     // selected.
     // TODO: Remove this check when the above issue is fixed.
-    return this._usesCodecSelectionAPI && this.codecSettings.codecList[0] !== CodecMimeType.H264;
+    return (
+        this._usesCodecSelectionAPI &&
+        this.codecSettings.codecList[0] !== CodecMimeType.H264
+    );
 };
 
-TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
-    this.trace('createDataChannel', label, opts);
+TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
+    this.trace("createDataChannel", label, opts);
 
     return this.peerconnection.createDataChannel(label, opts);
 };
@@ -1723,10 +1980,12 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
  * @returns the transformed remoteDescription.
  * @private
  */
-TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteDescription) {
+TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function (
+    remoteDescription
+) {
     const transformer = new SdpTransformWrap(remoteDescription.sdp);
 
-    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+    [MediaType.AUDIO, MediaType.VIDEO].forEach((mediaType) => {
         const media = transformer.selectMedia(mediaType);
         const localSources = this.getLocalTracks(mediaType).length;
         const remoteSources = this.getRemoteTracks(null, mediaType).length;
@@ -1741,22 +2000,26 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
             } else if (!remoteSources) {
                 mLine.direction = MediaDirection.RECVONLY;
 
-            // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
-            // the second one needs to be set to 'recvonly'.
+                // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
+                // the second one needs to be set to 'recvonly'.
             } else if (localSources > remoteSources) {
-                mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
+                mLine.direction = idx
+                    ? MediaDirection.RECVONLY
+                    : MediaDirection.SENDRECV;
 
-            // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
-            // the second one needs to be set to 'sendonly'.
+                // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
+                // the second one needs to be set to 'sendonly'.
             } else {
-                mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
+                mLine.direction = idx
+                    ? MediaDirection.SENDONLY
+                    : MediaDirection.SENDRECV;
             }
         });
     });
 
     return {
         type: remoteDescription.type,
-        sdp: transformer.toRawSDP()
+        sdp: transformer.toRawSDP(),
     };
 };
 
@@ -1767,7 +2030,9 @@ TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteD
  * @param {CodecMimeType} defaultCodec - the preferred codec for video tracks.
  * @returns {CodecMimeType}
  */
-TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(defaultCodec) {
+TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function (
+    defaultCodec
+) {
     // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
     if (!this.usesCodecSelectionAPI()) {
         return defaultCodec;
@@ -1775,12 +2040,15 @@ TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(de
 
     const { screenshareCodec } = this.codecSettings;
 
-    if (screenshareCodec && this.codecSettings.codecList.find(c => c === screenshareCodec)) {
+    if (
+        screenshareCodec &&
+        this.codecSettings.codecList.find((c) => c === screenshareCodec)
+    ) {
         return screenshareCodec;
     }
 
     // Default to AV1 for screenshare if its supported and is not overriden through config.js.
-    if (this.codecSettings.codecList.find(c => c === CodecMimeType.AV1)) {
+    if (this.codecSettings.codecList.find((c) => c === CodecMimeType.AV1)) {
         return CodecMimeType.AV1;
     }
 
@@ -1790,7 +2058,7 @@ TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(de
 /**
  * Sets up the _dtlsTransport object and initializes callbacks for it.
  */
-TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
+TraceablePeerConnection.prototype._initializeDtlsTransport = function () {
     // We are assuming here that we only have one bundled transport here
     if (!this.peerconnection.getSenders || this._dtlsTransport) {
         return;
@@ -1801,12 +2069,15 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
     if (senders.length !== 0 && senders[0].transport) {
         this._dtlsTransport = senders[0].transport;
 
-        this._dtlsTransport.onerror = error => {
+        this._dtlsTransport.onerror = (error) => {
             logger.error(`${this} DtlsTransport error: ${error}`);
         };
 
         this._dtlsTransport.onstatechange = () => {
-            this.trace('dtlsTransport.onstatechange', this._dtlsTransport.state);
+            this.trace(
+                "dtlsTransport.onstatechange",
+                this._dtlsTransport.state
+            );
         };
     }
 };
@@ -1817,7 +2088,9 @@ TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
  * @param {JitsiLocalTrack} localTrack - The local video track.
  * @returns {number}
  */
-TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(localTrack) {
+TraceablePeerConnection.prototype.calculateExpectedSendResolution = function (
+    localTrack
+) {
     const captureResolution = localTrack.getCaptureResolution();
     let result = Math.min(localTrack.maxEnabledResolution, captureResolution);
 
@@ -1836,7 +2109,12 @@ TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(loc
             result = encodings.reduce((maxValue, encoding) => {
                 if (encoding.active) {
                     // eslint-disable-next-line no-param-reassign
-                    maxValue = Math.max(maxValue, Math.floor(captureResolution / encoding.scaleResolutionDownBy));
+                    maxValue = Math.max(
+                        maxValue,
+                        Math.floor(
+                            captureResolution / encoding.scaleResolutionDownBy
+                        )
+                    );
                 }
 
                 return maxValue;
@@ -1853,7 +2131,9 @@ TraceablePeerConnection.prototype.calculateExpectedSendResolution = function(loc
  * @param {JitsiLocalTrack} localAudioTrack - The local audio track.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(localAudioTrack = null) {
+TraceablePeerConnection.prototype.configureAudioSenderEncodings = function (
+    localAudioTrack = null
+) {
     if (localAudioTrack) {
         return this._setEncodings(localAudioTrack);
     }
@@ -1872,11 +2152,18 @@ TraceablePeerConnection.prototype.configureAudioSenderEncodings = function(local
  * @param {JitsiLocalTracj} localTrack - The local track whose outbound stream needs to be configured.
  * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
  */
-TraceablePeerConnection.prototype._configureSenderEncodings = async function(localTrack) {
+TraceablePeerConnection.prototype._configureSenderEncodings = async function (
+    localTrack
+) {
     const mediaType = localTrack.getType();
-    const transceiver = localTrack?.track && localTrack.getOriginalStream()
-        ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
-        : this.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
+    const transceiver =
+        localTrack?.track && localTrack.getOriginalStream()
+            ? this.peerconnection
+                  .getTransceivers()
+                  .find((t) => t.sender?.track?.id === localTrack.getTrackId())
+            : this.peerconnection
+                  .getTransceivers()
+                  .find((t) => t.receiver?.track?.kind === mediaType);
     const parameters = transceiver?.sender?.getParameters();
 
     // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
@@ -1897,7 +2184,10 @@ TraceablePeerConnection.prototype._configureSenderEncodings = async function(loc
  * @param {boolean} enable - whether the streams needs to be enabled or disabled.
  * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
  */
-TraceablePeerConnection.prototype._enableSenderEncodings = async function(sender, enable) {
+TraceablePeerConnection.prototype._enableSenderEncodings = async function (
+    sender,
+    enable
+) {
     const parameters = sender.getParameters();
 
     if (parameters?.encodings?.length) {
@@ -1917,20 +2207,33 @@ TraceablePeerConnection.prototype._enableSenderEncodings = async function(sender
  * @param {CodecMimeType} - The preferred codec for the video track.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(localVideoTrack, codec) {
+TraceablePeerConnection.prototype.configureVideoSenderEncodings = function (
+    localVideoTrack,
+    codec
+) {
     const preferredCodec = codec ?? this.codecSettings.codecList[0];
 
     if (localVideoTrack) {
-        const height = this._senderMaxHeights.get(localVideoTrack.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
+        const height =
+            this._senderMaxHeights.get(localVideoTrack.getSourceName()) ??
+            VIDEO_QUALITY_LEVELS[0].height;
 
-        return this.setSenderVideoConstraints(height, localVideoTrack, preferredCodec);
+        return this.setSenderVideoConstraints(
+            height,
+            localVideoTrack,
+            preferredCodec
+        );
     }
     const promises = [];
 
     for (const track of this.getLocalVideoTracks()) {
-        const maxHeight = this._senderMaxHeights.get(track.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
+        const maxHeight =
+            this._senderMaxHeights.get(track.getSourceName()) ??
+            VIDEO_QUALITY_LEVELS[0].height;
 
-        promises.push(this.setSenderVideoConstraints(maxHeight, track, preferredCodec));
+        promises.push(
+            this.setSenderVideoConstraints(maxHeight, track, preferredCodec)
+        );
     }
 
     return Promise.allSettled(promises);
@@ -1942,9 +2245,11 @@ TraceablePeerConnection.prototype.configureVideoSenderEncodings = function(local
  * @param {JitsiLocalTrack} localTrack - the current track in use for which the encodings are to be set.
  * @returns {Promise<void>} - resolved when done.
  */
-TraceablePeerConnection.prototype._setEncodings = function(localTrack) {
+TraceablePeerConnection.prototype._setEncodings = function (localTrack) {
     if (localTrack.getType() === MediaType.VIDEO) {
-        return this._updateVideoSenderParameters(() => this._configureSenderEncodings(localTrack));
+        return this._updateVideoSenderParameters(() =>
+            this._configureSenderEncodings(localTrack)
+        );
     }
 
     return this._configureSenderEncodings(localTrack);
@@ -1957,8 +2262,8 @@ TraceablePeerConnection.prototype._setEncodings = function(localTrack) {
  * @param {RTCSessionDescription} description - The description to be munged.
  * @returns {RTCSessionDescription} - The munged description.
  */
-TraceablePeerConnection.prototype._mungeDescription = function(description) {
-    this.trace('RTCSessionDescription::preTransform', dumpSDP(description));
+TraceablePeerConnection.prototype._mungeDescription = function (description) {
+    this.trace("RTCSessionDescription::preTransform", dumpSDP(description));
     let mungedSdp = transform.parse(description.sdp);
 
     mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
@@ -1967,10 +2272,13 @@ TraceablePeerConnection.prototype._mungeDescription = function(description) {
     mungedSdp = this.tpcUtils.updateAv1DdHeaders(mungedSdp);
     const mungedDescription = {
         type: description.type,
-        sdp: transform.write(mungedSdp)
+        sdp: transform.write(mungedSdp),
     };
 
-    this.trace('RTCSessionDescription::postTransform', dumpSDP(mungedDescription));
+    this.trace(
+        "RTCSessionDescription::postTransform",
+        dumpSDP(mungedDescription)
+    );
 
     return mungedDescription;
 };
@@ -1981,30 +2289,40 @@ TraceablePeerConnection.prototype._mungeDescription = function(description) {
  * @param {RTCSessionDescription} description - The local description to be set.
  * @returns {Promise<void>} - Resolved when the operation is successful and rejected with an error otherwise.
  */
-TraceablePeerConnection.prototype.setLocalDescription = function(description) {
+TraceablePeerConnection.prototype.setLocalDescription = function (description) {
     let localDescription = description;
 
     localDescription = this._mungeDescription(localDescription);
 
     return new Promise((resolve, reject) => {
-        this.peerconnection.setLocalDescription(localDescription)
-            .then(() => {
-                this.trace('setLocalDescriptionOnSuccess');
+        this.peerconnection.setLocalDescription(localDescription).then(
+            () => {
+                this.trace("setLocalDescriptionOnSuccess");
                 const localUfrag = SDPUtil.getUfrag(localDescription.sdp);
 
                 if (localUfrag !== this.localUfrag) {
                     this.localUfrag = localUfrag;
-                    this.eventEmitter.emit(RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
+                    this.eventEmitter.emit(
+                        RTCEvents.LOCAL_UFRAG_CHANGED,
+                        this,
+                        localUfrag
+                    );
                 }
 
                 this._initializeDtlsTransport();
 
                 resolve();
-            }, err => {
-                this.trace('setLocalDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
+            },
+            (err) => {
+                this.trace("setLocalDescriptionOnFailure", err);
+                this.eventEmitter.emit(
+                    RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
+                    err,
+                    this
+                );
                 reject(err);
-            });
+            }
+        );
     });
 };
 
@@ -2014,37 +2332,57 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
  * @param {RTCSessionDescription} description - The remote description to be set.
  * @returns {Promise<void>} - Resolved when the operation is successful and rejected with an error otherwise.
  */
-TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
+TraceablePeerConnection.prototype.setRemoteDescription = function (
+    description
+) {
     let remoteDescription = description;
 
     if (this.isSpatialScalabilityOn()) {
-        remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
-        this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));
+        remoteDescription =
+            this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
+        this.trace(
+            "setRemoteDescription::postTransform (sim receive)",
+            dumpSDP(remoteDescription)
+        );
     }
-    remoteDescription = this.tpcUtils.ensureCorrectOrderOfSsrcs(remoteDescription);
-    this.trace('setRemoteDescription::postTransform (correct ssrc order)', dumpSDP(remoteDescription));
+    remoteDescription =
+        this.tpcUtils.ensureCorrectOrderOfSsrcs(remoteDescription);
+    this.trace(
+        "setRemoteDescription::postTransform (correct ssrc order)",
+        dumpSDP(remoteDescription)
+    );
 
     remoteDescription = this._mungeDescription(remoteDescription);
 
     return new Promise((resolve, reject) => {
-        this.peerconnection.setRemoteDescription(remoteDescription)
-            .then(() => {
-                this.trace('setRemoteDescriptionOnSuccess');
+        this.peerconnection.setRemoteDescription(remoteDescription).then(
+            () => {
+                this.trace("setRemoteDescriptionOnSuccess");
                 const remoteUfrag = SDPUtil.getUfrag(remoteDescription.sdp);
 
                 if (remoteUfrag !== this.remoteUfrag) {
                     this.remoteUfrag = remoteUfrag;
-                    this.eventEmitter.emit(RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
+                    this.eventEmitter.emit(
+                        RTCEvents.REMOTE_UFRAG_CHANGED,
+                        this,
+                        remoteUfrag
+                    );
                 }
 
                 this._initializeDtlsTransport();
 
                 resolve();
-            }, err => {
-                this.trace('setRemoteDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED, err, this);
+            },
+            (err) => {
+                this.trace("setRemoteDescriptionOnFailure", err);
+                this.eventEmitter.emit(
+                    RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
+                    err,
+                    this
+                );
                 reject(err);
-            });
+            }
+        );
     });
 };
 
@@ -2058,12 +2396,16 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack, preferredCodec) {
+TraceablePeerConnection.prototype.setSenderVideoConstraints = function (
+    frameHeight,
+    localVideoTrack,
+    preferredCodec
+) {
     if (frameHeight < 0 || isNaN(frameHeight)) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
     if (!localVideoTrack) {
-        throw new Error('Local video track is missing');
+        throw new Error("Local video track is missing");
     }
     const sourceName = localVideoTrack.getSourceName();
 
@@ -2076,8 +2418,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
 
     const codec = preferredCodec ?? this.codecSettings.codecList[0];
 
-    return this._updateVideoSenderParameters(
-        () => this._updateVideoSenderEncodings(frameHeight, localVideoTrack, codec));
+    return this._updateVideoSenderParameters(() =>
+        this._updateVideoSenderEncodings(frameHeight, localVideoTrack, codec)
+    );
 };
 
 /**
@@ -2088,9 +2431,11 @@ TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeig
  * @param {Function} nextFunction - The function to be called when the last video sender update promise is settled.
  * @returns {Promise}
  */
-TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFunction) {
-    const nextPromise = this._lastVideoSenderUpdatePromise
-        .finally(nextFunction);
+TraceablePeerConnection.prototype._updateVideoSenderParameters = function (
+    nextFunction
+) {
+    const nextPromise =
+        this._lastVideoSenderUpdatePromise.finally(nextFunction);
 
     this._lastVideoSenderUpdatePromise = nextPromise;
 
@@ -2105,7 +2450,11 @@ TraceablePeerConnection.prototype._updateVideoSenderParameters = function(nextFu
  * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHeight, localVideoTrack, preferredCodec) {
+TraceablePeerConnection.prototype._updateVideoSenderEncodings = function (
+    frameHeight,
+    localVideoTrack,
+    preferredCodec
+) {
     const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
     const videoType = localVideoTrack.getVideoType();
     const isScreensharingTrack = videoType === VideoType.DESKTOP;
@@ -2119,7 +2468,8 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         return Promise.resolve();
     }
 
-    const isSharingLowFpsScreen = isScreensharingTrack && this._capScreenshareBitrate;
+    const isSharingLowFpsScreen =
+        isScreensharingTrack && this._capScreenshareBitrate;
 
     // Set the degradation preference.
     const preference = isSharingLowFpsScreen
@@ -2129,21 +2479,43 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     parameters.degradationPreference = preference;
 
     // Calculate the encodings active state based on the resolution requested by the bridge.
-    const codecForCamera = preferredCodec ?? this.tpcUtils.getConfiguredVideoCodec(localVideoTrack);
-    const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera) : codecForCamera;
-    const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
-    let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
-    const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
-    let scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(localVideoTrack, codec, frameHeight);
+    const codecForCamera =
+        preferredCodec ??
+        this.tpcUtils.getConfiguredVideoCodec(localVideoTrack);
+    const codec = isScreensharingTrack
+        ? this._getPreferredCodecForScreenshare(codecForCamera)
+        : codecForCamera;
+    const activeState = this.tpcUtils.calculateEncodingsActiveState(
+        localVideoTrack,
+        codec,
+        frameHeight
+    );
+    let bitrates = this.tpcUtils.calculateEncodingsBitrates(
+        localVideoTrack,
+        codec,
+        frameHeight
+    );
+    const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(
+        localVideoTrack,
+        codec,
+        frameHeight
+    );
+    let scaleFactors = this.tpcUtils.calculateEncodingsScaleFactor(
+        localVideoTrack,
+        codec,
+        frameHeight
+    );
     let needsUpdate = false;
 
     // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in VP9 legacy K-SVC mode since
     // the browser sends only the lowest resolution layer when those are configured. Those fields need to be reset in
     // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
     // K-SVC codec.
-    if (codec === CodecMimeType.VP9
-        && this.isSpatialScalabilityOn()
-        && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
+    if (
+        codec === CodecMimeType.VP9 &&
+        this.isSpatialScalabilityOn() &&
+        !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled
+    ) {
         scaleFactors = scaleFactors.map(() => undefined);
         bitrates = bitrates.map(() => undefined);
     }
@@ -2155,7 +2527,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
                 codec: currentCodec = undefined,
                 maxBitrate = undefined,
                 scalabilityMode = undefined,
-                scaleResolutionDownBy = undefined
+                scaleResolutionDownBy = undefined,
             } = parameters.encodings[idx];
 
             if (active !== activeState[idx]) {
@@ -2165,10 +2537,12 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
 
             // Firefox doesn't follow the spec and lets application specify the degradation preference on the
             // encodings.
-            browser.isFirefox() && (parameters.encodings[idx].degradationPreference = preference);
+            browser.isFirefox() &&
+                (parameters.encodings[idx].degradationPreference = preference);
 
             if (scaleResolutionDownBy !== scaleFactors[idx]) {
-                parameters.encodings[idx].scaleResolutionDownBy = scaleFactors[idx];
+                parameters.encodings[idx].scaleResolutionDownBy =
+                    scaleFactors[idx];
                 needsUpdate = true;
             }
             if (maxBitrate !== bitrates[idx]) {
@@ -2179,7 +2553,8 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             // Configure scalability mode when its supported and enabled.
             if (scalabilityModes) {
                 if (scalabilityMode !== scalabilityModes[idx]) {
-                    parameters.encodings[idx].scalabilityMode = scalabilityModes[idx];
+                    parameters.encodings[idx].scalabilityMode =
+                        scalabilityModes[idx];
                     needsUpdate = true;
                 }
             } else {
@@ -2189,18 +2564,21 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
             const expectedPattern = `${MediaType.VIDEO}/${codec.toUpperCase()}`;
 
             // Configure the codec here if its supported.
-            if (this.usesCodecSelectionAPI() && currentCodec?.mimeType !== expectedPattern) {
-                const matchingCodec = parameters.codecs.find(pt => pt.mimeType === expectedPattern);
+            if (
+                this.usesCodecSelectionAPI() &&
+                currentCodec?.mimeType !== expectedPattern
+            ) {
+                const matchingCodec = parameters.codecs.find(
+                    (pt) => pt.mimeType === expectedPattern
+                );
 
                 parameters.encodings[idx].codec = matchingCodec;
                 needsUpdate = true;
 
-                Statistics.sendAnalytics(
-                    VIDEO_CODEC_CHANGED,
-                    {
-                        value: codec,
-                        videoType
-                    });
+                Statistics.sendAnalytics(VIDEO_CODEC_CHANGED, {
+                    value: codec,
+                    videoType,
+                });
             }
         }
     }
@@ -2209,11 +2587,18 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
         return Promise.resolve();
     }
 
-    logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
+    logger.info(
+        `${this} setting max height=${frameHeight},encodings=${JSON.stringify(
+            parameters.encodings
+        )}`
+    );
 
     return videoSender.setParameters(parameters).then(() => {
         localVideoTrack.maxEnabledResolution = frameHeight;
-        this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
+        this.eventEmitter.emit(
+            RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
+            localVideoTrack
+        );
     });
 };
 
@@ -2227,34 +2612,50 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
  * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
  * otherwise.
  */
-TraceablePeerConnection.prototype.setMediaTransferActive = function(enable, mediaType) {
-    logger.info(`${this} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
+TraceablePeerConnection.prototype.setMediaTransferActive = function (
+    enable,
+    mediaType
+) {
+    logger.info(
+        `${this} ${enable ? "Resuming" : "Suspending"} media transfer.`
+    );
 
-    const senders = this.peerconnection.getSenders()
-        .filter(s => Boolean(s.track) && (!mediaType || s.track.kind === mediaType));
+    const senders = this.peerconnection
+        .getSenders()
+        .filter(
+            (s) =>
+                Boolean(s.track) && (!mediaType || s.track.kind === mediaType)
+        );
     const promises = [];
 
     for (const sender of senders) {
         if (sender.track.kind === MediaType.VIDEO) {
-            promises.push(this._updateVideoSenderParameters(() => this._enableSenderEncodings(sender, enable)));
+            promises.push(
+                this._updateVideoSenderParameters(() =>
+                    this._enableSenderEncodings(sender, enable)
+                )
+            );
         } else {
             promises.push(this._enableSenderEncodings(sender, enable));
         }
     }
 
-    return Promise.allSettled(promises)
-        .then(settledResult => {
-            const errors = settledResult
-                .filter(result => result.status === 'rejected')
-                .map(result => result.reason);
+    return Promise.allSettled(promises).then((settledResult) => {
+        const errors = settledResult
+            .filter((result) => result.status === "rejected")
+            .map((result) => result.reason);
 
-            if (errors.length) {
-                return Promise.reject(new Error('Failed to change encodings on the RTCRtpSenders'
-                    + `${errors.join(' ')}`));
-            }
+        if (errors.length) {
+            return Promise.reject(
+                new Error(
+                    "Failed to change encodings on the RTCRtpSenders" +
+                        `${errors.join(" ")}`
+                )
+            );
+        }
 
-            return Promise.resolve();
-        });
+        return Promise.resolve();
+    });
 };
 
 /**
@@ -2265,7 +2666,7 @@ TraceablePeerConnection.prototype.setMediaTransferActive = function(enable, medi
  * @return {Promise} A promise that is resolved when the change is succesful, rejected otherwise.
  * @public
  */
-TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
+TraceablePeerConnection.prototype.setVideoTransferActive = function (active) {
     logger.debug(`${this} video transfer active: ${active}`);
     const changed = this.videoTransferActive !== active;
 
@@ -2287,22 +2688,36 @@ TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
  *
  * @returns {void}
  */
-TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, interToneGap = 200) {
+TraceablePeerConnection.prototype.sendTones = function (
+    tones,
+    duration = 200,
+    interToneGap = 200
+) {
     if (!this._dtmfSender) {
         if (this.peerconnection.getSenders) {
-            const rtpSender = this.peerconnection.getSenders().find(s => s.dtmf);
+            const rtpSender = this.peerconnection
+                .getSenders()
+                .find((s) => s.dtmf);
 
             this._dtmfSender = rtpSender && rtpSender.dtmf;
-            this._dtmfSender && logger.info(`${this} initialized DTMFSender using getSenders`);
+            this._dtmfSender &&
+                logger.info(`${this} initialized DTMFSender using getSenders`);
         }
 
         if (!this._dtmfSender) {
-            const localAudioTrack = Array.from(this.localTracks.values()).find(t => t.isAudioTrack());
+            const localAudioTrack = Array.from(this.localTracks.values()).find(
+                (t) => t.isAudioTrack()
+            );
 
             if (this.peerconnection.createDTMFSender && localAudioTrack) {
-                this._dtmfSender = this.peerconnection.createDTMFSender(localAudioTrack.getTrack());
+                this._dtmfSender = this.peerconnection.createDTMFSender(
+                    localAudioTrack.getTrack()
+                );
             }
-            this._dtmfSender && logger.info(`${this} initialized DTMFSender using deprecated createDTMFSender`);
+            this._dtmfSender &&
+                logger.info(
+                    `${this} initialized DTMFSender using deprecated createDTMFSender`
+                );
         }
 
         if (this._dtmfSender) {
@@ -2315,7 +2730,7 @@ TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, in
             this._dtmfTonesQueue.push({
                 tones,
                 duration,
-                interToneGap
+                interToneGap,
             });
 
             return;
@@ -2336,10 +2751,10 @@ TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, in
  * @private
  * @returns {void}
  */
-TraceablePeerConnection.prototype._onToneChange = function(event) {
+TraceablePeerConnection.prototype._onToneChange = function (event) {
     // An empty event.tone indicates the current tones have finished playing.
     // Automatically start playing any queued tones on finish.
-    if (this._dtmfSender && event.tone === '' && this._dtmfTonesQueue.length) {
+    if (this._dtmfSender && event.tone === "" && this._dtmfTonesQueue.length) {
         const { tones, duration, interToneGap } = this._dtmfTonesQueue.shift();
 
         this._dtmfSender.insertDTMF(tones, duration, interToneGap);
@@ -2351,13 +2766,19 @@ TraceablePeerConnection.prototype._onToneChange = function(event) {
  * tracks by emitting {@link RTCEvents.REMOTE_TRACK_REMOVED} for each one of
  * them.
  */
-TraceablePeerConnection.prototype.close = function() {
-    this.trace('stop');
+TraceablePeerConnection.prototype.close = function () {
+    this.trace("stop");
 
     // Off SignalingEvents
-    this.signalingLayer.off(SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
-    this.signalingLayer.off(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
-    this.peerconnection.removeEventListener('track', this.onTrack);
+    this.signalingLayer.off(
+        SignalingEvents.PEER_MUTED_CHANGED,
+        this._peerMutedChanged
+    );
+    this.signalingLayer.off(
+        SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
+        this._peerVideoTypeChanged
+    );
+    this.peerconnection.removeEventListener("track", this.onTrack);
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
         for (const remoteTrack of this.remoteTracksBySsrc.values()) {
@@ -2389,42 +2810,57 @@ TraceablePeerConnection.prototype.close = function() {
     this.peerconnection.close();
 };
 
-TraceablePeerConnection.prototype.createAnswer = function(constraints) {
+TraceablePeerConnection.prototype.createAnswer = function (constraints) {
     return this._createOfferOrAnswer(false /* answer */, constraints);
 };
 
-TraceablePeerConnection.prototype.createOffer = function(constraints) {
+TraceablePeerConnection.prototype.createOffer = function (constraints) {
     return this._createOfferOrAnswer(true /* offer */, constraints);
 };
 
-TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, constraints) {
-    const logName = isOffer ? 'Offer' : 'Answer';
+TraceablePeerConnection.prototype._createOfferOrAnswer = function (
+    isOffer,
+    constraints
+) {
+    const logName = isOffer ? "Offer" : "Answer";
 
-    this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
+    this.trace(`create${logName}`, JSON.stringify(constraints, null, " "));
 
     const handleSuccess = (resultSdp, resolveFn, rejectFn) => {
         try {
             this.trace(
-                `create${logName}OnSuccess::preTransform`, dumpSDP(resultSdp));
+                `create${logName}OnSuccess::preTransform`,
+                dumpSDP(resultSdp)
+            );
 
             // Munge local description to add 3 SSRCs for video tracks when spatial scalability is enabled.
-            if (this.isSpatialScalabilityOn() && browser.usesSdpMungingForSimulcast()) {
+            if (
+                this.isSpatialScalabilityOn() &&
+                browser.usesSdpMungingForSimulcast()
+            ) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
-                this.trace(`create${logName} OnSuccess::postTransform (simulcast)`, dumpSDP(resultSdp));
+                this.trace(
+                    `create${logName} OnSuccess::postTransform (simulcast)`,
+                    dumpSDP(resultSdp)
+                );
             }
 
-            if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
+            if (
+                !this.options.disableRtx &&
+                browser.usesSdpMungingForSimulcast()
+            ) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = {
                     type: resultSdp.type,
-                    sdp: this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp)
+                    sdp: this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp),
                 };
 
                 this.trace(
-                    `create${logName}`
-                         + 'OnSuccess::postTransform (rtx modifier)',
-                    dumpSDP(resultSdp));
+                    `create${logName}` +
+                        "OnSuccess::postTransform (rtx modifier)",
+                    dumpSDP(resultSdp)
+                );
             }
 
             this._processAndExtractSourceInfo(resultSdp.sdp);
@@ -2433,7 +2869,11 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
         } catch (e) {
             this.trace(`create${logName}OnError`, e);
             this.trace(`create${logName}OnError`, dumpSDP(resultSdp));
-            logger.error(`${this} create${logName}OnError`, e, dumpSDP(resultSdp));
+            logger.error(
+                `${this} create${logName}OnError`,
+                e,
+                dumpSDP(resultSdp)
+            );
 
             rejectFn(e);
         }
@@ -2441,10 +2881,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
 
     const handleFailure = (err, rejectFn) => {
         this.trace(`create${logName}OnFailure`, err);
-        const eventType
-            = isOffer
-                ? RTCEvents.CREATE_OFFER_FAILED
-                : RTCEvents.CREATE_ANSWER_FAILED;
+        const eventType = isOffer
+            ? RTCEvents.CREATE_OFFER_FAILED
+            : RTCEvents.CREATE_ANSWER_FAILED;
 
         this.eventEmitter.emit(eventType, err, this);
 
@@ -2455,8 +2894,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
     // the correct preference order.
     if (browser.supportsCodecPreferences() && this.codecSettings) {
         const { codecList, mediaType } = this.codecSettings;
-        const transceivers = this.peerconnection.getTransceivers()
-            .filter(t => t.receiver && t.receiver?.track?.kind === mediaType);
+        const transceivers = this.peerconnection
+            .getTransceivers()
+            .filter((t) => t.receiver && t.receiver?.track?.kind === mediaType);
         let capabilities = RTCRtpReceiver.getCapabilities(mediaType)?.codecs;
 
         if (transceivers.length && capabilities) {
@@ -2464,16 +2904,23 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
             for (const codec of codecList.slice().reverse()) {
                 // Move the desired codecs (all variations of it as well) to the beginning of the list
                 /* eslint-disable-next-line arrow-body-style */
-                capabilities.sort(caps => {
-                    return caps.mimeType.toLowerCase() === `${mediaType}/${codec}` ? -1 : 1;
+                capabilities.sort((caps) => {
+                    return caps.mimeType.toLowerCase() ===
+                        `${mediaType}/${codec}`
+                        ? -1
+                        : 1;
                 });
             }
 
             // Disable ulpfec and RED on the p2p peerconnection.
             if (this.isP2P && mediaType === MediaType.VIDEO) {
-                capabilities = capabilities
-                    .filter(caps => caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}`
-                            && caps.mimeType.toLowerCase() !== `${MediaType.VIDEO}/${CodecMimeType.RED}`);
+                capabilities = capabilities.filter(
+                    (caps) =>
+                        caps.mimeType.toLowerCase() !==
+                            `${MediaType.VIDEO}/${CodecMimeType.ULPFEC}` &&
+                        caps.mimeType.toLowerCase() !==
+                            `${MediaType.VIDEO}/${CodecMimeType.RED}`
+                );
             }
 
             // Apply codec preference to all the transceivers associated with the given media type.
@@ -2492,10 +2939,10 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
             oaPromise = this.peerconnection.createAnswer(constraints);
         }
 
-        oaPromise
-            .then(
-                sdp => handleSuccess(sdp, resolve, reject),
-                error => handleFailure(error, reject));
+        oaPromise.then(
+            (sdp) => handleSuccess(sdp, resolve, reject),
+            (error) => handleFailure(error, reject)
+        );
     });
 };
 
@@ -2504,7 +2951,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
  * @param {TrackSSRCInfo} ssrcObj
  * @return {number|null} the primary SSRC or <tt>null</tt>
  */
-TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
+TraceablePeerConnection.prototype._extractPrimarySSRC = function (ssrcObj) {
     if (ssrcObj && ssrcObj.groups && ssrcObj.groups.length) {
         return ssrcObj.groups[0].ssrcs[0];
     } else if (ssrcObj && ssrcObj.ssrcs && ssrcObj.ssrcs.length) {
@@ -2519,7 +2966,7 @@ TraceablePeerConnection.prototype._extractPrimarySSRC = function(ssrcObj) {
  * @param {number} ssrc - SSRC.
  * @return {boolean} - Whether this is a new SSRC.
  */
-TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {
+TraceablePeerConnection.prototype.addRemoteSsrc = function (ssrc) {
     const existing = this.remoteSSRCs.has(ssrc);
 
     if (!existing) {
@@ -2529,13 +2976,20 @@ TraceablePeerConnection.prototype.addRemoteSsrc = function(ssrc) {
     return !existing;
 };
 
-TraceablePeerConnection.prototype.addIceCandidate = function(candidate) {
-    this.trace('addIceCandidate', JSON.stringify({
-        candidate: candidate.candidate,
-        sdpMid: candidate.sdpMid,
-        sdpMLineIndex: candidate.sdpMLineIndex,
-        usernameFragment: candidate.usernameFragment
-    }, null, ' '));
+TraceablePeerConnection.prototype.addIceCandidate = function (candidate) {
+    this.trace(
+        "addIceCandidate",
+        JSON.stringify(
+            {
+                candidate: candidate.candidate,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex,
+                usernameFragment: candidate.usernameFragment,
+            },
+            null,
+            " "
+        )
+    );
 
     return this.peerconnection.addIceCandidate(candidate);
 };
@@ -2546,7 +3000,7 @@ TraceablePeerConnection.prototype.addIceCandidate = function(candidate) {
  * @returns {Promise<Object>} Promise which resolves with data providing statistics about
  * the peerconnection.
  */
-TraceablePeerConnection.prototype.getStats = function() {
+TraceablePeerConnection.prototype.getStats = function () {
     return this.peerconnection.getStats();
 };
 
@@ -2555,6 +3009,6 @@ TraceablePeerConnection.prototype.getStats = function() {
  * instance.
  * @return {string}
  */
-TraceablePeerConnection.prototype.toString = function() {
-    return `TPC[id=${this.id},type=${this.isP2P ? 'P2P' : 'JVB'}]`;
+TraceablePeerConnection.prototype.toString = function () {
+    return `TPC[id=${this.id},type=${this.isP2P ? "P2P" : "JVB"}]`;
 };
