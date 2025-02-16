@@ -3,6 +3,11 @@ module.exports = {
         requireConfigFile: false
     },
     'extends': [
-        '@jitsi/eslint-config'
-    ]
+        '@jitsi/eslint-config',
+        'plugin:prettier/recommended'
+    ],
+    plugins: ['prettier'],
+    rules: {
+        'prettier/prettier': 'error'
+    }
 };
