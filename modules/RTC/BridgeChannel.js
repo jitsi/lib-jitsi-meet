@@ -1,9 +1,9 @@
-import { safeJsonParse } from '@jitsi/js-utils/json';
-import { getLogger } from '@jitsi/logger';
+import { safeJsonParse } from "@jitsi/js-utils/json";
+import { getLogger } from "@jitsi/logger";
 
-import RTCEvents from '../../service/RTC/RTCEvents';
-import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
-import Statistics from '../statistics/statistics';
+import RTCEvents from "../../service/RTC/RTCEvents";
+import { createBridgeChannelClosedEvent } from "../../service/statistics/AnalyticsEvents";
+import Statistics from "../statistics/statistics";
 
 const logger = getLogger(__filename);
 
@@ -25,13 +25,17 @@ export default class BridgeChannel {
      */
     constructor(peerconnection, wsUrl, emitter, conference) {
         if (!peerconnection && !wsUrl) {
-            throw new TypeError('At least peerconnection or wsUrl must be given');
+            throw new TypeError(
+                "At least peerconnection or wsUrl must be given",
+            );
         } else if (peerconnection && wsUrl) {
-            throw new TypeError('Just one of peerconnection or wsUrl must be given');
+            throw new TypeError(
+                "Just one of peerconnection or wsUrl must be given",
+            );
         }
 
         if (peerconnection) {
-            logger.debug('constructor() with peerconnection');
+            logger.debug("constructor() with peerconnection");
         } else {
             logger.debug(`constructor() with wsUrl:"${wsUrl}"`);
         }
@@ -63,17 +67,18 @@ export default class BridgeChannel {
         // If a RTCPeerConnection is given, listen for new RTCDataChannel
         // event.
         if (peerconnection) {
-            const datachannel
-                = peerconnection.createDataChannel(
-                    'JVB data channel', {
-                        protocol: 'http://jitsi.org/protocols/colibri'
-                    });
+            const datachannel = peerconnection.createDataChannel(
+                "JVB data channel",
+                {
+                    protocol: "http://jitsi.org/protocols/colibri",
+                },
+            );
 
             // Handle the RTCDataChannel.
             this._handleChannel(datachannel);
-            this._mode = 'datachannel';
+            this._mode = "datachannel";
 
-        // Otherwise create a WebSocket connection.
+            // Otherwise create a WebSocket connection.
         } else if (wsUrl) {
             this._areRetriesEnabled = true;
             this._wsUrl = wsUrl;
@@ -92,7 +97,7 @@ export default class BridgeChannel {
 
         // Handle the WebSocket.
         this._handleChannel(ws);
-        this._mode = 'websocket';
+        this._mode = "websocket";
     }
 
     /**
@@ -104,8 +109,10 @@ export default class BridgeChannel {
         let timeoutS = 1;
 
         const reload = () => {
-            const isConnecting = this._channel && (this._channel.readyState === 'connecting'
-                    || this._channel.readyState === WebSocket.CONNECTING);
+            const isConnecting =
+                this._channel &&
+                (this._channel.readyState === "connecting" ||
+                    this._channel.readyState === WebSocket.CONNECTING);
 
             // Should not spawn new websockets while one is already trying to connect.
             if (isConnecting) {
@@ -190,8 +197,11 @@ export default class BridgeChannel {
      * @return {boolean}
      */
     isOpen() {
-        return this._channel && (this._channel.readyState === 'open'
-            || this._channel.readyState === WebSocket.OPEN);
+        return (
+            this._channel &&
+            (this._channel.readyState === "open" ||
+                this._channel.readyState === WebSocket.OPEN)
+        );
     }
 
     /**
@@ -201,8 +211,8 @@ export default class BridgeChannel {
      */
     sendEndpointStatsMessage(payload) {
         this._send({
-            colibriClass: 'EndpointStats',
-            ...payload
+            colibriClass: "EndpointStats",
+            ...payload,
         });
     }
 
@@ -217,9 +227,9 @@ export default class BridgeChannel {
      */
     sendMessage(to, payload) {
         this._send({
-            colibriClass: 'EndpointMessage',
+            colibriClass: "EndpointMessage",
             msgPayload: payload,
-            to
+            to,
         });
     }
 
@@ -231,8 +241,8 @@ export default class BridgeChannel {
         logger.log(`Sending lastN=${value}.`);
 
         this._send({
-            colibriClass: 'LastNChangedEvent',
-            lastN: value
+            colibriClass: "LastNChangedEvent",
+            lastN: value,
         });
     }
 
@@ -242,10 +252,12 @@ export default class BridgeChannel {
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
     sendReceiverVideoConstraintsMessage(constraints) {
-        logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
+        logger.log(
+            `Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`,
+        );
         this._send({
-            colibriClass: 'ReceiverVideoConstraints',
-            ...constraints
+            colibriClass: "ReceiverVideoConstraints",
+            ...constraints,
         });
     }
 
@@ -257,11 +269,13 @@ export default class BridgeChannel {
      * @returns {void}
      */
     sendSourceVideoTypeMessage(sourceName, videoType) {
-        logger.info(`Sending SourceVideoTypeMessage with video type ${sourceName}: ${videoType}`);
+        logger.info(
+            `Sending SourceVideoTypeMessage with video type ${sourceName}: ${videoType}`,
+        );
         this._send({
-            colibriClass: 'SourceVideoTypeMessage',
+            colibriClass: "SourceVideoTypeMessage",
             sourceName,
-            videoType
+            videoType,
         });
     }
 
@@ -279,10 +293,10 @@ export default class BridgeChannel {
             emitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
         };
 
-        channel.onerror = event => {
+        channel.onerror = (event) => {
             // WS error events contain no information about the failure (this is available in the onclose event) and
             // the event references the WS object itself, which causes hangs on mobile.
-            if (this._mode !== 'websocket') {
+            if (this._mode !== "websocket") {
                 logger.error(`Channel error: ${event.message}`);
             }
         };
@@ -294,7 +308,11 @@ export default class BridgeChannel {
             try {
                 obj = safeJsonParse(data);
             } catch (error) {
-                logger.error('Failed to parse channel message as JSON: ', data, error);
+                logger.error(
+                    "Failed to parse channel message as JSON: ",
+                    data,
+                    error,
+                );
 
                 return;
             }
@@ -302,80 +320,128 @@ export default class BridgeChannel {
             const colibriClass = obj.colibriClass;
 
             switch (colibriClass) {
-            case 'DominantSpeakerEndpointChangeEvent': {
-                const { dominantSpeakerEndpoint, previousSpeakers = [], silence } = obj;
+                case "DominantSpeakerEndpointChangeEvent": {
+                    const {
+                        dominantSpeakerEndpoint,
+                        previousSpeakers = [],
+                        silence,
+                    } = obj;
 
-                logger.debug(`Dominant speaker: ${dominantSpeakerEndpoint}, previous speakers: ${previousSpeakers}`);
-                emitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED, dominantSpeakerEndpoint, previousSpeakers, silence);
-                break;
-            }
-            case 'EndpointConnectivityStatusChangeEvent': {
-                const endpoint = obj.endpoint;
-                const isActive = obj.active === 'true';
-
-                logger.info(`Endpoint connection status changed: ${endpoint} active=${isActive}`);
-                emitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED, endpoint, isActive);
-
-                break;
-            }
-            case 'EndpointMessage': {
-                emitter.emit(RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from, obj.msgPayload);
-
-                break;
-            }
-            case 'EndpointStats': {
-                emitter.emit(RTCEvents.ENDPOINT_STATS_RECEIVED, obj.from, obj);
-
-                break;
-            }
-            case 'ForwardedSources': {
-                const forwardedSources = obj.forwardedSources;
-
-                logger.info(`New forwarded sources: ${forwardedSources}`);
-                emitter.emit(RTCEvents.FORWARDED_SOURCES_CHANGED, forwardedSources);
-
-                break;
-            }
-            case 'SenderSourceConstraints': {
-                if (typeof obj.sourceName === 'string' && typeof obj.maxHeight === 'number') {
-                    logger.info(`SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`);
-                    emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, obj);
-                } else {
-                    logger.error(`Invalid SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`);
+                    logger.debug(
+                        `Dominant speaker: ${dominantSpeakerEndpoint}, previous speakers: ${previousSpeakers}`,
+                    );
+                    emitter.emit(
+                        RTCEvents.DOMINANT_SPEAKER_CHANGED,
+                        dominantSpeakerEndpoint,
+                        previousSpeakers,
+                        silence,
+                    );
+                    break;
                 }
-                break;
-            }
-            case 'ServerHello': {
-                logger.info(`Received ServerHello, version=${obj.version}.`);
-                break;
-            }
-            case 'VideoSourcesMap': {
-                logger.info(`Received VideoSourcesMap: ${JSON.stringify(obj.mappedSources)}`);
-                emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);
-                break;
-            }
-            case 'AudioSourcesMap': {
-                logger.info(`Received AudioSourcesMap: ${JSON.stringify(obj.mappedSources)}`);
-                emitter.emit(RTCEvents.AUDIO_SSRCS_REMAPPED, obj);
-                break;
-            }
-            default: {
-                logger.debug('Channel JSON-formatted message: ', obj);
+                case "EndpointConnectivityStatusChangeEvent": {
+                    const endpoint = obj.endpoint;
+                    const isActive = obj.active === "true";
 
-                // The received message appears to be appropriately formatted
-                // (i.e. is a JSON object which assigns a value to the
-                // mandatory property colibriClass) so don't just swallow it,
-                // expose it to public consumption.
-                emitter.emit(`rtc.datachannel.${colibriClass}`, obj);
-            }
+                    logger.info(
+                        `Endpoint connection status changed: ${endpoint} active=${isActive}`,
+                    );
+                    emitter.emit(
+                        RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
+                        endpoint,
+                        isActive,
+                    );
+
+                    break;
+                }
+                case "EndpointMessage": {
+                    emitter.emit(
+                        RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
+                        obj.from,
+                        obj.msgPayload,
+                    );
+
+                    break;
+                }
+                case "EndpointStats": {
+                    emitter.emit(
+                        RTCEvents.ENDPOINT_STATS_RECEIVED,
+                        obj.from,
+                        obj,
+                    );
+
+                    break;
+                }
+                case "ForwardedSources": {
+                    const forwardedSources = obj.forwardedSources;
+
+                    logger.info(`New forwarded sources: ${forwardedSources}`);
+                    emitter.emit(
+                        RTCEvents.FORWARDED_SOURCES_CHANGED,
+                        forwardedSources,
+                    );
+
+                    break;
+                }
+                case "SenderSourceConstraints": {
+                    if (
+                        typeof obj.sourceName === "string" &&
+                        typeof obj.maxHeight === "number"
+                    ) {
+                        logger.info(
+                            `SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`,
+                        );
+                        emitter.emit(
+                            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                            obj,
+                        );
+                    } else {
+                        logger.error(
+                            `Invalid SenderSourceConstraints: ${obj.sourceName} - ${obj.maxHeight}`,
+                        );
+                    }
+                    break;
+                }
+                case "ServerHello": {
+                    logger.info(
+                        `Received ServerHello, version=${obj.version}.`,
+                    );
+                    break;
+                }
+                case "VideoSourcesMap": {
+                    logger.info(
+                        `Received VideoSourcesMap: ${JSON.stringify(obj.mappedSources)}`,
+                    );
+                    emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);
+                    break;
+                }
+                case "AudioSourcesMap": {
+                    logger.info(
+                        `Received AudioSourcesMap: ${JSON.stringify(obj.mappedSources)}`,
+                    );
+                    emitter.emit(RTCEvents.AUDIO_SSRCS_REMAPPED, obj);
+                    break;
+                }
+                default: {
+                    logger.debug("Channel JSON-formatted message: ", obj);
+
+                    // The received message appears to be appropriately formatted
+                    // (i.e. is a JSON object which assigns a value to the
+                    // mandatory property colibriClass) so don't just swallow it,
+                    // expose it to public consumption.
+                    emitter.emit(`rtc.datachannel.${colibriClass}`, obj);
+                }
             }
         };
 
-        channel.onclose = event => {
-            logger.debug(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
+        channel.onclose = (event) => {
+            logger.debug(
+                `Channel closed by ${this._closedFromClient ? "client" : "server"}`,
+            );
 
             if (channel !== this._channel) {
-                logger.debug('Skip close handler, channel instance is not equal to stored one');
+                logger.debug(
+                    "Skip close handler, channel instance is not equal to stored one",
+                );
 
                 return;
             }
@@ -384,22 +450,24 @@ export default class BridgeChannel {
             // code 1001. However, the same code is also used by Cloudflare when it terminates the ws. Therefore, check
             // for the number of remote participants in the call and abort retries only when the endpoint is the only
             // endpoint in the call.
-            const isGracefulClose = this._closedFromClient
-                || (event.code === 1001 && this._conference.getParticipantCount() === 1);
+            const isGracefulClose =
+                this._closedFromClient ||
+                (event.code === 1001 &&
+                    this._conference.getParticipantCount() === 1);
 
             if (!isGracefulClose) {
                 const { code, reason } = event;
 
                 logger.error(`Channel closed: ${code} ${reason}`);
 
-                if (this._mode === 'websocket') {
+                if (this._mode === "websocket") {
                     this._retryWebSocketConnection(event);
 
                     // We only want to send this event the first time the failure happens.
                     if (this._connected !== false) {
                         emitter.emit(RTCEvents.DATA_CHANNEL_CLOSED, {
                             code,
-                            reason
+                            reason,
                         });
                     }
                 }
@@ -426,8 +494,8 @@ export default class BridgeChannel {
         const channel = this._channel;
 
         if (!this.isOpen()) {
-            logger.error('Bridge Channel send: no opened channel.');
-            throw new Error('No opened channel');
+            logger.error("Bridge Channel send: no opened channel.");
+            throw new Error("No opened channel");
         }
 
         channel.send(JSON.stringify(jsonObject));

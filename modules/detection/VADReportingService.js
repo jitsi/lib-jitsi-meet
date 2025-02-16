@@ -1,9 +1,9 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import EventEmitter from '../util/EventEmitter';
+import EventEmitter from "../util/EventEmitter";
 
-import * as DetectionEvents from './DetectionEvents';
-import TrackVADEmitter from './TrackVADEmitter';
+import * as DetectionEvents from "./DetectionEvents";
+import TrackVADEmitter from "./TrackVADEmitter";
 
 const logger = getLogger(__filename);
 
@@ -24,7 +24,6 @@ const SCRIPT_NODE_SAMPLE_RATE = 4096;
  * a new service needs to be created and the old discarded.
  */
 export default class VADReportingService extends EventEmitter {
-
     /**
      *
      * @param {number} intervalDelay - Delay at which to publish VAD score for monitored devices.
@@ -38,7 +37,6 @@ export default class VADReportingService extends EventEmitter {
          * Map containing context for devices currently being monitored by the reporting service.
          */
         this._contextMap = new Map();
-
 
         /**
          * State flag, check if the instance was destroyed.
@@ -55,8 +53,9 @@ export default class VADReportingService extends EventEmitter {
          */
         this._intervalId = null;
 
-
-        logger.log(`Constructed VADReportingService with publish interval of: ${intervalDelay}`);
+        logger.log(
+            `Constructed VADReportingService with publish interval of: ${intervalDelay}`,
+        );
     }
 
     /**
@@ -77,45 +76,63 @@ export default class VADReportingService extends EventEmitter {
         const vadReportingService = new VADReportingService(intervalDelay);
         const emitterPromiseArray = [];
 
-        const audioDeviceList = micDeviceList.filter(device => device.kind === 'audioinput');
+        const audioDeviceList = micDeviceList.filter(
+            (device) => device.kind === "audioinput",
+        );
 
         // Create a TrackVADEmitter for each provided audio input device.
         for (const micDevice of audioDeviceList) {
-            logger.log(`Initializing VAD context for mic: ${micDevice.label} -> ${micDevice.deviceId}`);
+            logger.log(
+                `Initializing VAD context for mic: ${micDevice.label} -> ${micDevice.deviceId}`,
+            );
 
             const emitterPromise = createVADProcessor()
-            .then(rnnoiseProcessor =>
-                TrackVADEmitter.create(micDevice.deviceId, SCRIPT_NODE_SAMPLE_RATE, rnnoiseProcessor))
-            .then(emitter => {
-                emitter.on(
-                    DetectionEvents.VAD_SCORE_PUBLISHED,
-                    vadReportingService._devicePublishVADScore.bind(vadReportingService)
-                );
-                emitter.start();
+                .then((rnnoiseProcessor) =>
+                    TrackVADEmitter.create(
+                        micDevice.deviceId,
+                        SCRIPT_NODE_SAMPLE_RATE,
+                        rnnoiseProcessor,
+                    ),
+                )
+                .then((emitter) => {
+                    emitter.on(
+                        DetectionEvents.VAD_SCORE_PUBLISHED,
+                        vadReportingService._devicePublishVADScore.bind(
+                            vadReportingService,
+                        ),
+                    );
+                    emitter.start();
 
-                return {
-                    vadEmitter: emitter,
-                    deviceInfo: micDevice,
-                    scoreArray: []
-                };
-            });
+                    return {
+                        vadEmitter: emitter,
+                        deviceInfo: micDevice,
+                        scoreArray: [],
+                    };
+                });
 
             emitterPromiseArray.push(emitterPromise);
         }
 
         // Once all the TrackVADEmitter promises are resolved get the ones that were successfully initialized and start
         // monitoring them.
-        return Promise.allSettled(emitterPromiseArray).then(outcomeArray => {
+        return Promise.allSettled(emitterPromiseArray).then((outcomeArray) => {
+            const successfulPromises = outcomeArray.filter(
+                (p) => p.status === "fulfilled",
+            );
+            const rejectedPromises = outcomeArray.filter(
+                (p) => p.status === "rejected",
+            );
 
-            const successfulPromises = outcomeArray.filter(p => p.status === 'fulfilled');
-            const rejectedPromises = outcomeArray.filter(p => p.status === 'rejected');
-
-
-            const availableDeviceContexts = successfulPromises.map(p => p.value);
-            const rejectReasons = rejectedPromises.map(p => p.value);
+            const availableDeviceContexts = successfulPromises.map(
+                (p) => p.value,
+            );
+            const rejectReasons = rejectedPromises.map((p) => p.value);
 
             for (const reason of rejectReasons) {
-                logger.error('Failed to acquire audio device with error: ', reason);
+                logger.error(
+                    "Failed to acquire audio device with error: ",
+                    reason,
+                );
             }
 
             vadReportingService._setVADContextArray(availableDeviceContexts);
@@ -155,7 +172,7 @@ export default class VADReportingService extends EventEmitter {
      * @returns {void}.
      */
     _startPublish() {
-        logger.log('VADReportingService started publishing.');
+        logger.log("VADReportingService started publishing.");
         this._intervalId = setInterval(() => {
             this._reportVadScore();
         }, this._intervalDelay);
@@ -173,11 +190,11 @@ export default class VADReportingService extends EventEmitter {
 
         // Go through each device and compute cumulated VAD score.
 
-        for (const [ deviceId, vadContext ] of this._contextMap) {
+        for (const [deviceId, vadContext] of this._contextMap) {
             const nrOfVADScores = vadContext.scoreArray.length;
             let vadSum = 0;
 
-            vadContext.scoreArray.forEach(vadScore => {
+            vadContext.scoreArray.forEach((vadScore) => {
                 vadSum += vadScore.score;
             });
 
@@ -189,11 +206,11 @@ export default class VADReportingService extends EventEmitter {
             vadComputeScoreArray.push({
                 timestamp: computeTimestamp,
                 score: avgVAD,
-                deviceId
+                deviceId,
             });
         }
 
-        logger.log('VADReportingService reported.', vadComputeScoreArray);
+        logger.log("VADReportingService reported.", vadComputeScoreArray);
 
         /**
          * Once the computation for all the tracked devices is done, fire an event containing all the necessary
@@ -237,7 +254,7 @@ export default class VADReportingService extends EventEmitter {
             return;
         }
 
-        logger.log('Destroying VADReportingService.');
+        logger.log("Destroying VADReportingService.");
 
         if (this._intervalId) {
             clearInterval(this._intervalId);

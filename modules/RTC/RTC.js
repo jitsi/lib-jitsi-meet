@@ -1,18 +1,17 @@
-import { getLogger } from '@jitsi/logger';
-import { cloneDeep, isEqual } from 'lodash-es';
+import { getLogger } from "@jitsi/logger";
+import { cloneDeep, isEqual } from "lodash-es";
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import browser from '../browser';
-import Listenable from '../util/Listenable';
-import { safeCounterIncrement } from '../util/MathUtil';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import { MediaType } from "../../service/RTC/MediaType";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import browser from "../browser";
+import Listenable from "../util/Listenable";
+import { safeCounterIncrement } from "../util/MathUtil";
 
-import BridgeChannel from './BridgeChannel';
-import JitsiLocalTrack from './JitsiLocalTrack';
-import RTCUtils from './RTCUtils';
-import TraceablePeerConnection from './TraceablePeerConnection';
-
+import BridgeChannel from "./BridgeChannel";
+import JitsiLocalTrack from "./JitsiLocalTrack";
+import RTCUtils from "./RTCUtils";
+import TraceablePeerConnection from "./TraceablePeerConnection";
 
 const logger = getLogger(__filename);
 
@@ -45,7 +44,7 @@ let rtcTrackIdCounter = 0;
  * }}
  */
 function _createLocalTracks(mediaStreamMetaData = []) {
-    return mediaStreamMetaData.map(metaData => {
+    return mediaStreamMetaData.map((metaData) => {
         const {
             constraints,
             sourceId,
@@ -53,7 +52,7 @@ function _createLocalTracks(mediaStreamMetaData = []) {
             stream,
             track,
             videoType,
-            effects
+            effects,
         } = metaData;
 
         const { deviceId, facingMode } = track.getSettings();
@@ -74,7 +73,7 @@ function _createLocalTracks(mediaStreamMetaData = []) {
             stream,
             track,
             videoType: videoType || null,
-            effects
+            effects,
         });
     });
 }
@@ -127,22 +126,24 @@ export default class RTC extends Listenable {
         this._forwardedSources = null;
 
         // The forwarded sources change listener.
-        this._forwardedSourcesChangeListener = this._onForwardedSourcesChanged.bind(this);
+        this._forwardedSourcesChangeListener =
+            this._onForwardedSourcesChanged.bind(this);
 
         this._onDeviceListChanged = this._onDeviceListChanged.bind(this);
-        this._updateAudioOutputForAudioTracks = this._updateAudioOutputForAudioTracks.bind(this);
+        this._updateAudioOutputForAudioTracks =
+            this._updateAudioOutputForAudioTracks.bind(this);
 
         // Switch audio output device on all remote audio tracks. Local audio
         // tracks handle this event by themselves.
-        if (RTCUtils.isDeviceChangeAvailable('output')) {
+        if (RTCUtils.isDeviceChangeAvailable("output")) {
             RTCUtils.addListener(
                 RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                this._updateAudioOutputForAudioTracks
+                this._updateAudioOutputForAudioTracks,
             );
 
             RTCUtils.addListener(
                 RTCEvents.DEVICE_LIST_CHANGED,
-                this._onDeviceListChanged
+                this._onDeviceListChanged,
             );
         }
     }
@@ -153,11 +154,20 @@ export default class RTC extends Listenable {
      * @returns {void}
      */
     destroy() {
-        RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this._updateAudioOutputForAudioTracks);
-        RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED, this._onDeviceListChanged);
+        RTCUtils.removeListener(
+            RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._updateAudioOutputForAudioTracks,
+        );
+        RTCUtils.removeListener(
+            RTCEvents.DEVICE_LIST_CHANGED,
+            this._onDeviceListChanged,
+        );
 
         if (this._channelOpenListener) {
-            this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
+            this.removeListener(
+                RTCEvents.DATA_CHANNEL_OPEN,
+                this._channelOpenListener,
+            );
         }
     }
 
@@ -182,8 +192,9 @@ export default class RTC extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     static obtainAudioAndVideoPermissions(options) {
-        return RTCUtils.obtainAudioAndVideoPermissions(options)
-            .then(tracksInfo => _createLocalTracks(tracksInfo));
+        return RTCUtils.obtainAudioAndVideoPermissions(options).then(
+            (tracksInfo) => _createLocalTracks(tracksInfo),
+        );
     }
 
     /**
@@ -195,34 +206,54 @@ export default class RTC extends Listenable {
      * @param {string} [wsUrl] WebSocket URL.
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
-        this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter, this.conference);
+        this._channel = new BridgeChannel(
+            peerconnection,
+            wsUrl,
+            this.eventEmitter,
+            this.conference,
+        );
 
         this._channelOpenListener = () => {
             const logError = (error, msgType, value) => {
-                logger.error(`Cannot send ${msgType}(${JSON.stringify(value)}) endpoint message`, error);
+                logger.error(
+                    `Cannot send ${msgType}(${JSON.stringify(value)}) endpoint message`,
+                    error,
+                );
             };
 
             // When the channel becomes available, tell the bridge about video selections so that it can do adaptive
             // simulcast, we want the notification to trigger even if userJid is undefined, or null.
             if (this._receiverVideoConstraints) {
                 try {
-                    this._channel.sendReceiverVideoConstraintsMessage(this._receiverVideoConstraints);
+                    this._channel.sendReceiverVideoConstraintsMessage(
+                        this._receiverVideoConstraints,
+                    );
                 } catch (error) {
-                    logError(error, 'ReceiverVideoConstraints', this._receiverVideoConstraints);
+                    logError(
+                        error,
+                        "ReceiverVideoConstraints",
+                        this._receiverVideoConstraints,
+                    );
                 }
             }
-            if (typeof this._lastN !== 'undefined' && this._lastN !== -1) {
+            if (typeof this._lastN !== "undefined" && this._lastN !== -1) {
                 try {
                     this._channel.sendSetLastNMessage(this._lastN);
                 } catch (error) {
-                    logError(error, 'LastNChangedEvent', this._lastN);
+                    logError(error, "LastNChangedEvent", this._lastN);
                 }
             }
         };
-        this.addListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
+        this.addListener(
+            RTCEvents.DATA_CHANNEL_OPEN,
+            this._channelOpenListener,
+        );
 
         // Add forwarded sources change listener.
-        this.addListener(RTCEvents.FORWARDED_SOURCES_CHANGED, this._forwardedSourcesChangeListener);
+        this.addListener(
+            RTCEvents.FORWARDED_SOURCES_CHANGED,
+            this._forwardedSourcesChangeListener,
+        );
     }
 
     /**
@@ -251,18 +282,24 @@ export default class RTC extends Listenable {
 
         this._forwardedSources = forwardedSources;
 
-        leavingForwardedSources = oldForwardedSources.filter(sourceName => !this.isInForwardedSources(sourceName));
+        leavingForwardedSources = oldForwardedSources.filter(
+            (sourceName) => !this.isInForwardedSources(sourceName),
+        );
 
         enteringForwardedSources = forwardedSources.filter(
-            sourceName => oldForwardedSources.indexOf(sourceName) === -1);
+            (sourceName) => oldForwardedSources.indexOf(sourceName) === -1,
+        );
 
-        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
-            + `${enteringForwardedSources} at ${timestamp}`);
+        logger.debug(
+            `Fowarded sources changed leaving=${leavingForwardedSources}, entering=` +
+                `${enteringForwardedSources} at ${timestamp}`,
+        );
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
             leavingForwardedSources,
             enteringForwardedSources,
-            timestamp);
+            timestamp,
+        );
     }
 
     /**
@@ -277,7 +314,7 @@ export default class RTC extends Listenable {
             // it is not managed by the PeerConnection.
             // The reference is cleared to disable any logic related to the
             // channel.
-            if (this._channel && this._channel.mode === 'websocket') {
+            if (this._channel && this._channel.mode === "websocket") {
                 this._channel.close();
             }
 
@@ -376,28 +413,30 @@ export default class RTC extends Listenable {
         const pcConstraints = cloneDeep(RTCUtils.pcConstraints);
 
         if (options.enableInsertableStreams) {
-            logger.debug('E2EE - setting insertable streams constraints');
+            logger.debug("E2EE - setting insertable streams constraints");
             pcConfig.encodedInsertableStreams = true;
         }
 
         if (options.forceTurnRelay) {
-            pcConfig.iceTransportPolicy = 'relay';
+            pcConfig.iceTransportPolicy = "relay";
         }
 
         // Set the RTCBundlePolicy to max-bundle so that only one set of ice candidates is generated.
         // The default policy generates separate ice candidates for audio and video connections.
         // This change is necessary for Unified plan to work properly on Chrome and Safari.
-        pcConfig.bundlePolicy = 'max-bundle';
+        pcConfig.bundlePolicy = "max-bundle";
 
         peerConnectionIdCounter = safeCounterIncrement(peerConnectionIdCounter);
 
-        const newConnection
-            = new TraceablePeerConnection(
-                this,
-                peerConnectionIdCounter,
-                signaling,
-                pcConfig, pcConstraints,
-                isP2P, options);
+        const newConnection = new TraceablePeerConnection(
+            this,
+            peerConnectionIdCounter,
+            signaling,
+            pcConfig,
+            pcConstraints,
+            isP2P,
+            options,
+        );
 
         this.peerConnections.set(newConnection.id, newConnection);
 
@@ -424,7 +463,6 @@ export default class RTC extends Listenable {
         }
 
         return false;
-
     }
 
     /**
@@ -433,7 +471,7 @@ export default class RTC extends Listenable {
      */
     addLocalTrack(track) {
         if (!track) {
-            throw new Error('track must not be null nor undefined');
+            throw new Error("track must not be null nor undefined");
         }
 
         this.localTracks.push(track);
@@ -495,8 +533,7 @@ export default class RTC extends Listenable {
         let tracks = this.localTracks.slice();
 
         if (mediaType !== undefined) {
-            tracks = tracks.filter(
-                track => track.getType() === mediaType);
+            tracks = tracks.filter((track) => track.getType() === mediaType);
         }
 
         return tracks;
@@ -530,7 +567,7 @@ export default class RTC extends Listenable {
     setAudioMute(value) {
         const mutePromises = [];
 
-        this.getLocalTracks(MediaType.AUDIO).forEach(audioTrack => {
+        this.getLocalTracks(MediaType.AUDIO).forEach((audioTrack) => {
             // this is a Promise
             mutePromises.push(value ? audioTrack.mute() : audioTrack.unmute());
         });
@@ -541,18 +578,17 @@ export default class RTC extends Listenable {
     }
 
     /**
-    * Set mute for all local video streams attached to the conference.
-    * @param value The mute value.
-    * @returns {Promise}
-    */
+     * Set mute for all local video streams attached to the conference.
+     * @param value The mute value.
+     * @returns {Promise}
+     */
     setVideoMute(value) {
         const mutePromises = [];
 
-        this.getLocalTracks(MediaType.VIDEO)
-            .forEach(videoTrack => {
-                // this is a Promise
-                mutePromises.push(value ? videoTrack.mute() : videoTrack.unmute());
-            });
+        this.getLocalTracks(MediaType.VIDEO).forEach((videoTrack) => {
+            // this is a Promise
+            mutePromises.push(value ? videoTrack.mute() : videoTrack.unmute());
+        });
 
         // We return a Promise from all Promises so we can wait for their
         // execution.
@@ -705,7 +741,8 @@ export default class RTC extends Listenable {
             return;
         } else if (track.isLocal() !== isLocal) {
             logger.error(
-                `${track} was expected to ${isLocal ? 'be' : 'not be'} local`);
+                `${track} was expected to ${isLocal ? "be" : "not be"} local`,
+            );
         }
 
         track.setAudioLevel(audioLevel, tpc);
@@ -723,7 +760,7 @@ export default class RTC extends Listenable {
         if (this._channel) {
             this._channel.sendMessage(to, payload);
         } else {
-            throw new Error('BridgeChannel has not been initialized yet');
+            throw new Error("BridgeChannel has not been initialized yet");
         }
     }
 
@@ -762,8 +799,10 @@ export default class RTC extends Listenable {
      * support, otherwise we return false.
      */
     isInForwardedSources(sourceName) {
-        return !this._forwardedSources // forwardedSources not initialised yet.
-            || this._forwardedSources.indexOf(sourceName) > -1;
+        return (
+            !this._forwardedSources || // forwardedSources not initialised yet.
+            this._forwardedSources.indexOf(sourceName) > -1
+        );
     }
 
     /**

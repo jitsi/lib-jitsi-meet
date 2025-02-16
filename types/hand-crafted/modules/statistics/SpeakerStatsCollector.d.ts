@@ -1,6 +1,6 @@
-import JitsiConference from '../../JitsiConference';
+import JitsiConference from "../../JitsiConference";
 
 export default class SpeakerStatsCollector {
-  constructor( conference: JitsiConference );
-  getStats: () => unknown; // TODO:
+    constructor(conference: JitsiConference);
+    getStats: () => unknown; // TODO:
 }

@@ -1,7 +1,7 @@
-import { RunningAverage } from './MathUtil';
+import { RunningAverage } from "./MathUtil";
 
-describe('running average', () => {
-    it('should work', () => {
+describe("running average", () => {
+    it("should work", () => {
         const rAvg = new RunningAverage();
 
         // 1 / 1

@@ -1,6 +1,6 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import SignalingLayer from '../../service/RTC/SignalingLayer';
+import SignalingLayer from "../../service/RTC/SignalingLayer";
 
 const logger = getLogger(__filename);
 
@@ -30,14 +30,16 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
+    getPeerMediaInfo(owner, mediaType, sourceName) {
+        // eslint-disable-line no-unused-vars
         return {};
     }
 
     /**
      * @inheritDoc
      */
-    getPeerSourceInfo(owner, sourceName) { // eslint-disable-line no-unused-vars
+    getPeerSourceInfo(owner, sourceName) {
+        // eslint-disable-line no-unused-vars
         return undefined;
     }
 
@@ -51,7 +53,8 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+    getTrackSourceName(ssrc) {
+        // eslint-disable-line no-unused-vars
         return undefined;
     }
 
@@ -80,7 +83,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * @inheritDoc
      */
     setSSRCOwner(ssrc, endpointId) {
-        if (typeof ssrc !== 'number') {
+        if (typeof ssrc !== "number") {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
 
@@ -89,7 +92,9 @@ export default class CustomSignalingLayer extends SignalingLayer {
         const existingOwner = this.ssrcOwners.get(ssrc);
 
         if (existingOwner && existingOwner !== endpointId) {
-            logger.error(`SSRC owner re-assigned from ${existingOwner} to ${endpointId}`);
+            logger.error(
+                `SSRC owner re-assigned from ${existingOwner} to ${endpointId}`,
+            );
         }
         this.ssrcOwners.set(ssrc, endpointId);
     }
@@ -97,14 +102,16 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackMuteStatus(sourceName, muted) { // eslint-disable-line no-unused-vars
+    setTrackMuteStatus(sourceName, muted) {
+        // eslint-disable-line no-unused-vars
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    setTrackVideoType(sourceName, videoType) {
+        // eslint-disable-line no-unused-vars
         return false;
     }
 
@@ -113,8 +120,8 @@ export default class CustomSignalingLayer extends SignalingLayer {
      */
     updateSsrcOwnersOnLeave(id) {
         const ssrcs = Array.from(this.ssrcOwners)
-            .filter(entry => entry[1] === id)
-            .map(entry => entry[0]);
+            .filter((entry) => entry[1] === id)
+            .map((entry) => entry[0]);
 
         if (!ssrcs?.length) {
             return;

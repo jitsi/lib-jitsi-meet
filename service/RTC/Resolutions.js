@@ -1,56 +1,56 @@
 const Resolutions = {
-    '2160': {
+    2160: {
         width: 3840,
-        height: 2160
+        height: 2160,
     },
-    '4k': {
+    "4k": {
         width: 3840,
-        height: 2160
+        height: 2160,
     },
-    '1080': {
+    1080: {
         width: 1920,
-        height: 1080
+        height: 1080,
     },
-    'fullhd': {
+    fullhd: {
         width: 1920,
-        height: 1080
+        height: 1080,
     },
-    '720': {
+    720: {
         width: 1280,
-        height: 720
+        height: 720,
     },
-    'hd': {
+    hd: {
         width: 1280,
-        height: 720
+        height: 720,
     },
-    '540': {
+    540: {
         width: 960,
-        height: 540
+        height: 540,
     },
-    'qhd': {
+    qhd: {
         width: 960,
-        height: 540
+        height: 540,
     },
-    '480': {
+    480: {
         width: 640,
-        height: 480
+        height: 480,
     },
-    'vga': {
+    vga: {
         width: 640,
-        height: 480
+        height: 480,
     },
-    '360': {
+    360: {
         width: 640,
-        height: 360
+        height: 360,
     },
-    '240': {
+    240: {
         width: 320,
-        height: 240
+        height: 240,
     },
-    '180': {
+    180: {
         width: 320,
-        height: 180
-    }
+        height: 180,
+    },
 };
 
 module.exports = Resolutions;

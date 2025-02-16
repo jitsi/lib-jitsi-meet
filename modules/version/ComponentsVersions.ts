@@ -1,4 +1,4 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
 const logger = getLogger(__filename);
 
@@ -6,7 +6,7 @@ const logger = getLogger(__filename);
  * Discovers component versions in a conference.
  */
 export default class ComponentsVersions {
-    versions: {[key: string]: string};
+    versions: { [key: string]: string };
     conference: any;
 
     /**
@@ -21,7 +21,10 @@ export default class ComponentsVersions {
         this.versions = {};
 
         this.conference = conference;
-        this.conference.addCommandListener('versions', this._processVersions.bind(this));
+        this.conference.addCommandListener(
+            "versions",
+            this._processVersions.bind(this),
+        );
     }
 
     /**
@@ -35,12 +38,13 @@ export default class ComponentsVersions {
         if (!this.conference.isFocus(mucJid)) {
             logger.warn(
                 `Received versions not from the focus user: ${versions}`,
-                mucJid);
+                mucJid,
+            );
 
             return;
         }
 
-        versions.children.forEach(component => {
+        versions.children.forEach((component) => {
             const name = component.attributes.name;
             const version = component.value;
 

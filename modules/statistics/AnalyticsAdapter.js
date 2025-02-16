@@ -1,12 +1,12 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
 import {
     TYPE_OPERATIONAL,
     TYPE_PAGE,
     TYPE_TRACK,
-    TYPE_UI
-} from '../../service/statistics/AnalyticsEvents';
-import browser from '../browser';
+    TYPE_UI,
+} from "../../service/statistics/AnalyticsEvents";
+import browser from "../browser";
 
 const MAX_CACHE_SIZE = 100;
 
@@ -100,11 +100,11 @@ class AnalyticsAdapter {
          * with.
          * @type {null}
          */
-        this.conferenceName = '';
+        this.conferenceName = "";
 
         this.addPermanentProperties({
-            'user_agent': navigator.userAgent,
-            'browser_name': browser.getName()
+            user_agent: navigator.userAgent,
+            browser_name: browser.getName(),
         });
     }
 
@@ -112,11 +112,11 @@ class AnalyticsAdapter {
      * Dispose analytics. Clears all handlers.
      */
     dispose() {
-        logger.debug('Disposing of analytics adapter.');
+        logger.debug("Disposing of analytics adapter.");
 
         if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
-            this.analyticsHandlers.forEach(handler => {
-                if (typeof handler.dispose === 'function') {
+            this.analyticsHandlers.forEach((handler) => {
+                if (typeof handler.dispose === "function") {
                     handler.dispose();
                 }
             });
@@ -145,7 +145,7 @@ class AnalyticsAdapter {
 
         this.cache = null;
         if (cache) {
-            cache.forEach(event => this._sendEvent(event));
+            cache.forEach((event) => this._sendEvent(event));
         }
     }
 
@@ -155,12 +155,14 @@ class AnalyticsAdapter {
      * @returns {void}
      */
     _setUserProperties() {
-        this.analyticsHandlers.forEach(handler => {
+        this.analyticsHandlers.forEach((handler) => {
             try {
                 handler.setUserProperties(this.permanentProperties);
             } catch (error) {
-                logger.warn('Error in setUserProperties method of one of the '
-                    + `analytics handlers: ${error}`);
+                logger.warn(
+                    "Error in setUserProperties method of one of the " +
+                        `analytics handlers: ${error}`,
+                );
             }
         });
     }
@@ -178,7 +180,7 @@ class AnalyticsAdapter {
     addPermanentProperties(properties) {
         this.permanentProperties = {
             ...this.permanentProperties,
-            ...properties
+            ...properties,
         };
 
         this._setUserProperties();
@@ -191,7 +193,7 @@ class AnalyticsAdapter {
      */
     setConferenceName(name) {
         this.conferenceName = name;
-        this.addPermanentProperties({ 'conference_name': name });
+        this.addPermanentProperties({ conference_name: name });
     }
 
     /**
@@ -214,21 +216,22 @@ class AnalyticsAdapter {
 
         let event = null;
 
-        if (typeof eventName === 'string') {
+        if (typeof eventName === "string") {
             event = {
                 type: TYPE_OPERATIONAL,
                 action: eventName,
                 actionSubject: eventName,
                 source: eventName,
-                attributes: properties
+                attributes: properties,
             };
-        } else if (typeof eventName === 'object') {
+        } else if (typeof eventName === "object") {
             event = eventName;
         }
 
         if (!this._verifyRequiredFields(event)) {
             logger.error(
-                `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
+                `Dropping a mis-formatted event: ${JSON.stringify(event)}`,
+            );
 
             return;
         }
@@ -259,8 +262,12 @@ class AnalyticsAdapter {
 
         const type = event.type;
 
-        if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
-            && type !== TYPE_UI && type !== TYPE_TRACK) {
+        if (
+            type !== TYPE_OPERATIONAL &&
+            type !== TYPE_PAGE &&
+            type !== TYPE_UI &&
+            type !== TYPE_TRACK
+        ) {
             logger.error(`Unknown event type: ${type}`);
 
             return false;
@@ -274,30 +281,35 @@ class AnalyticsAdapter {
         // parameters required by the handler API are missing.
         event.action = event.action || event.name || event.actionSubject;
         event.actionSubject = event.actionSubject || event.name || event.action;
-        event.source = event.source || event.name || event.action
-            || event.actionSubject;
+        event.source =
+            event.source || event.name || event.action || event.actionSubject;
 
         if (!event.action || !event.actionSubject || !event.source) {
             logger.error(
-                'Required field missing (action, actionSubject or source)');
+                "Required field missing (action, actionSubject or source)",
+            );
 
             return false;
         }
 
         // Track events have additional required fields.
         if (type === TYPE_TRACK) {
-            event.objectType = event.objectType || 'generic-object-type';
-            event.containerType = event.containerType || 'conference';
-            if (event.containerType === 'conference' && !event.containerId) {
+            event.objectType = event.objectType || "generic-object-type";
+            event.containerType = event.containerType || "conference";
+            if (event.containerType === "conference" && !event.containerId) {
                 event.containerId = this.conferenceName;
             }
 
-
-            if (!event.objectType || !event.objectId
-                || !event.containerType || !event.containerId) {
+            if (
+                !event.objectType ||
+                !event.objectId ||
+                !event.containerType ||
+                !event.containerId
+            ) {
                 logger.error(
-                    'Required field missing (containerId, containerType, '
-                        + 'objectId or objectType)');
+                    "Required field missing (containerId, containerType, " +
+                        "objectId or objectType)",
+                );
 
                 return false;
             }
@@ -327,7 +339,6 @@ class AnalyticsAdapter {
         }
 
         return false;
-
     }
 
     /**
@@ -339,7 +350,7 @@ class AnalyticsAdapter {
         if (this._maybeCacheEvent(event)) {
             // The event was consumed by the cache.
         } else {
-            this.analyticsHandlers.forEach(handler => {
+            this.analyticsHandlers.forEach((handler) => {
                 try {
                     handler.sendEvent(event);
                 } catch (e) {

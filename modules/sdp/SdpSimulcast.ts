@@ -1,8 +1,11 @@
-import { MediaDirection } from '../../service/RTC/MediaDirection';
-import { MediaType } from '../../service/RTC/MediaType';
-import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { MediaDirection } from "../../service/RTC/MediaDirection";
+import { MediaType } from "../../service/RTC/MediaType";
+import {
+    SIM_LAYERS,
+    SSRC_GROUP_SEMANTICS,
+} from "../../service/RTC/StandardVideoQualitySettings";
 
-import * as transform from 'sdp-transform';
+import * as transform from "sdp-transform";
 
 interface Description {
     type: RTCSdpType;
@@ -37,12 +40,12 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-     _fillSsrcsFromCache(mLine: transform.MediaDescription) : any {
+    _fillSsrcsFromCache(mLine: transform.MediaDescription): any {
         const mid = mLine.mid;
         const cachedSsrcs = this._ssrcCache.get(mid);
         const newSsrcs = this._parseSimLayers(mLine);
-        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], 'msid');
-        const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], 'cname');
+        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], "msid");
+        const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], "cname");
 
         mLine.ssrcs = [];
         mLine.ssrcGroups = [];
@@ -50,19 +53,19 @@ export default class SdpSimulcast {
         for (const ssrc of cachedSsrcs) {
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: 'msid',
-                value: newMsid
+                attribute: "msid",
+                value: newMsid,
             });
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: 'cname',
-                value: newCname
+                attribute: "cname",
+                value: newCname,
             });
         }
 
         mLine.ssrcGroups.push({
             semantics: SSRC_GROUP_SEMANTICS.SIM,
-            ssrcs: cachedSsrcs.join(' ')
+            ssrcs: cachedSsrcs.join(" "),
         });
 
         return mLine;
@@ -76,21 +79,27 @@ export default class SdpSimulcast {
      * @param primarySsrc
      * @returns
      */
-    _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number) : any {
-        const cname = this._getSsrcAttribute(mLine, primarySsrc, 'cname');
-        let msid = this._getSsrcAttribute(mLine, primarySsrc, 'msid');
-        const addAssociatedAttributes = (mLine: transform.MediaDescription, ssrc: number) => {
+    _generateNewSsrcsForSimulcast(
+        mLine: transform.MediaDescription,
+        primarySsrc: number,
+    ): any {
+        const cname = this._getSsrcAttribute(mLine, primarySsrc, "cname");
+        let msid = this._getSsrcAttribute(mLine, primarySsrc, "msid");
+        const addAssociatedAttributes = (
+            mLine: transform.MediaDescription,
+            ssrc: number,
+        ) => {
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: 'cname',
-                value: cname
+                attribute: "cname",
+                value: cname,
             });
             mLine.ssrcs.push({
                 id: ssrc,
-                attribute: 'msid',
-                value: msid
+                attribute: "msid",
+                value: msid,
             });
-        }
+        };
 
         // In Unified-plan mode, the a=ssrc lines with the msid attribute are not present (only cname attributes are
         // present) in the answers that Chrome and Safari generate for an offer received from Jicofo. Generate these
@@ -99,13 +108,13 @@ export default class SdpSimulcast {
             msid = mLine.msid;
             const primarySsrcs = mLine.ssrcs;
 
-            primarySsrcs.forEach(ssrc => {
+            primarySsrcs.forEach((ssrc) => {
                 mLine.ssrcs.push({
                     id: ssrc.id,
-                    attribute: 'msid',
-                    value: msid
+                    attribute: "msid",
+                    value: msid,
                 });
-            })
+            });
         }
 
         // Generate SIM layers.
@@ -121,7 +130,7 @@ export default class SdpSimulcast {
         mLine.ssrcGroups = mLine.ssrcGroups || [];
         mLine.ssrcGroups.push({
             semantics: SSRC_GROUP_SEMANTICS.SIM,
-            ssrcs: primarySsrc + ' ' + simSsrcs.join(' ')
+            ssrcs: primarySsrc + " " + simSsrcs.join(" "),
         });
 
         return mLine;
@@ -132,7 +141,7 @@ export default class SdpSimulcast {
      *
      * @returns
      */
-    _generateSsrc() : number {
+    _generateSsrc(): number {
         const max = 0xffffffff;
 
         return Math.floor(Math.random() * max);
@@ -146,10 +155,16 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string) : string | undefined {
+    _getSsrcAttribute(
+        mLine: transform.MediaDescription,
+        ssrc: number,
+        attributeName: string,
+    ): string | undefined {
         return mLine.ssrcs?.find(
-            ssrcInfo => Number(ssrcInfo.id) === ssrc
-            && ssrcInfo.attribute === attributeName)?.value;
+            (ssrcInfo) =>
+                Number(ssrcInfo.id) === ssrc &&
+                ssrcInfo.attribute === attributeName,
+        )?.value;
     }
 
     /**
@@ -158,15 +173,17 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription) : Array<number> | null {
-        const simGroup = mLine.ssrcGroups?.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
+    _parseSimLayers(mLine: transform.MediaDescription): Array<number> | null {
+        const simGroup = mLine.ssrcGroups?.find(
+            (group) => group.semantics === SSRC_GROUP_SEMANTICS.SIM,
+        );
 
         if (simGroup) {
-            return simGroup.ssrcs.split(' ').map(ssrc => Number(ssrc));
+            return simGroup.ssrcs.split(" ").map((ssrc) => Number(ssrc));
         }
 
         if (mLine.ssrcs?.length) {
-            return [ Number(mLine.ssrcs[0].id) ];
+            return [Number(mLine.ssrcs[0].id)];
         }
 
         return null;
@@ -181,7 +198,7 @@ export default class SdpSimulcast {
      * @param description
      * @returns
      */
-    mungeLocalDescription(description: Description) : Description {
+    mungeLocalDescription(description: Description): Description {
         if (!description || !description.sdp) {
             return description;
         }
@@ -189,7 +206,10 @@ export default class SdpSimulcast {
 
         for (let media of session.media) {
             // Ignore recvonly and inactive transceivers created for remote sources.
-            if (media.direction === MediaDirection.RECVONLY || media.direction === MediaDirection.INACTIVE) {
+            if (
+                media.direction === MediaDirection.RECVONLY ||
+                media.direction === MediaDirection.INACTIVE
+            ) {
                 continue;
             }
 
@@ -198,21 +218,29 @@ export default class SdpSimulcast {
                 continue;
             }
             const mid = media.mid;
-            const numSsrcs = new Set(media.ssrcs?.map(ssrcInfo => ssrcInfo.id));
+            const numSsrcs = new Set(
+                media.ssrcs?.map((ssrcInfo) => ssrcInfo.id),
+            );
             const numGroups = media.ssrcGroups?.length ?? 0;
             let primarySsrc: number;
 
             // Do not munge if the description has no ssrcs or if simulcast is already enabled.
-            if (numSsrcs.size === 0 || numSsrcs.size > 2 || (numSsrcs.size === 2 && numGroups === 0)) {
+            if (
+                numSsrcs.size === 0 ||
+                numSsrcs.size > 2 ||
+                (numSsrcs.size === 2 && numGroups === 0)
+            ) {
                 continue;
             }
             if (numSsrcs.size === 1) {
                 primarySsrc = Number(media.ssrcs[0]?.id);
             } else {
-                const fidGroup = media.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
+                const fidGroup = media.ssrcGroups.find(
+                    (group) => group.semantics === SSRC_GROUP_SEMANTICS.FID,
+                );
 
                 if (fidGroup) {
-                    primarySsrc = Number(fidGroup.ssrcs.split(' ')[0]);
+                    primarySsrc = Number(fidGroup.ssrcs.split(" ")[0]);
                 }
             }
 
@@ -229,7 +257,7 @@ export default class SdpSimulcast {
 
         return {
             type: description.type,
-            sdp: transform.write(session)
+            sdp: transform.write(session),
         };
     }
 }

@@ -1,8 +1,8 @@
-import browser from '../browser';
+import browser from "../browser";
 
-import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
-import { ManagedKeyHandler } from './ManagedKeyHandler';
-import { OlmAdapter } from './OlmAdapter';
+import { ExternallyManagedKeyHandler } from "./ExternallyManagedKeyHandler";
+import { ManagedKeyHandler } from "./ManagedKeyHandler";
+import { OlmAdapter } from "./OlmAdapter";
 
 /**
  * This module integrates {@link KeyHandler} with {@link JitsiConference} in order to enable E2E encryption.
@@ -41,8 +41,11 @@ export class E2EEncryption {
             return false;
         }
 
-        return browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform());
+        return (
+            browser.supportsInsertableStreams() ||
+            (config.enableEncodedTransformSupport &&
+                browser.supportsEncodedTransform())
+        );
     }
 
     /**
@@ -93,6 +96,9 @@ export class E2EEncryption {
      * @returns {void}
      */
     markParticipantVerified(participant, isVerified) {
-        this._keyHandler.sasVerification?.markParticipantVerified(participant, isVerified);
+        this._keyHandler.sasVerification?.markParticipantVerified(
+            participant,
+            isVerified,
+        );
     }
 }

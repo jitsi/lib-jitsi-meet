@@ -1,8 +1,7 @@
-import { getLogger } from '@jitsi/logger';
-import { $iq, Strophe } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import { $iq, Strophe } from "strophe.js";
 
-import ConnectionPlugin from './ConnectionPlugin';
-
+import ConnectionPlugin from "./ConnectionPlugin";
 
 const logger = getLogger(__filename);
 
@@ -39,16 +38,28 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param {Object} options.pingOptions - The ping options if any.
      * @constructor
      */
-    constructor({ getTimeSinceLastServerResponse, onPingThresholdExceeded, pingOptions = {} }) {
+    constructor({
+        getTimeSinceLastServerResponse,
+        onPingThresholdExceeded,
+        pingOptions = {},
+    }) {
         super();
         this.failedPings = 0;
         this._onPingThresholdExceeded = onPingThresholdExceeded;
         this._getTimeSinceLastServerResponse = getTimeSinceLastServerResponse;
 
-        this.pingInterval = typeof pingOptions.interval === 'number' ? pingOptions.interval : PING_DEFAULT_INTERVAL;
-        this.pingTimeout = typeof pingOptions.timeout === 'number' ? pingOptions.timeout : PING_DEFAULT_TIMEOUT;
-        this.pingThreshold = typeof pingOptions.threshold === 'number'
-            ? pingOptions.threshold : PING_DEFAULT_THRESHOLD;
+        this.pingInterval =
+            typeof pingOptions.interval === "number"
+                ? pingOptions.interval
+                : PING_DEFAULT_INTERVAL;
+        this.pingTimeout =
+            typeof pingOptions.timeout === "number"
+                ? pingOptions.timeout
+                : PING_DEFAULT_TIMEOUT;
+        this.pingThreshold =
+            typeof pingOptions.threshold === "number"
+                ? pingOptions.threshold
+                : PING_DEFAULT_THRESHOLD;
 
         // The number of timestamps of send pings to keep.
         // The current value is 2 minutes.
@@ -62,7 +73,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      */
     init(connection) {
         super.init(connection);
-        Strophe.addNamespace('PING', 'urn:xmpp:ping');
+        Strophe.addNamespace("PING", "urn:xmpp:ping");
     }
 
     /* eslint-disable max-params */
@@ -79,13 +90,12 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         this._addPingExecutionTimestamp();
 
         const iq = $iq({
-            type: 'get',
-            to: jid
+            type: "get",
+            to: jid,
         });
 
-        iq.c('ping', { xmlns: Strophe.NS.PING });
-        this.connection.sendIQ2(iq, { timeout })
-            .then(success, error);
+        iq.c("ping", { xmlns: Strophe.NS.PING });
+        this.connection.sendIQ2(iq, { timeout }).then(success, error);
     }
 
     /* eslint-enable max-params */
@@ -99,13 +109,15 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
     startInterval(remoteJid) {
         clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
-
             // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
             // let's skip the ping
 
             const now = Date.now();
 
-            if (this._getTimeSinceLastServerResponse() < now - this._lastServerCheck) {
+            if (
+                this._getTimeSinceLastServerResponse() <
+                now - this._lastServerCheck
+            ) {
                 // do this just to keep in sync the intervals so we can detect suspended device
                 this._addPingExecutionTimestamp();
 
@@ -115,24 +127,31 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                 return;
             }
 
-            this.ping(remoteJid, () => {
-                // server response is measured on raw input and ping response time is measured after all the xmpp
-                // processing is done in js, so there can be some misalignment when we do the check above.
-                // That's why we store the last time we got the response
-                this._lastServerCheck = this._getTimeSinceLastServerResponse() + Date.now();
+            this.ping(
+                remoteJid,
+                () => {
+                    // server response is measured on raw input and ping response time is measured after all the xmpp
+                    // processing is done in js, so there can be some misalignment when we do the check above.
+                    // That's why we store the last time we got the response
+                    this._lastServerCheck =
+                        this._getTimeSinceLastServerResponse() + Date.now();
 
-                this.failedPings = 0;
-            }, error => {
-                this.failedPings += 1;
-                const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
+                    this.failedPings = 0;
+                },
+                (error) => {
+                    this.failedPings += 1;
+                    const errmsg = `Ping ${error ? "error" : "timeout"}`;
 
-                if (this.failedPings >= this.pingThreshold) {
-                    logger.error(errmsg, error);
-                    this._onPingThresholdExceeded && this._onPingThresholdExceeded();
-                } else {
-                    logger.warn(errmsg, error);
-                }
-            }, this.pingTimeout);
+                    if (this.failedPings >= this.pingThreshold) {
+                        logger.error(errmsg, error);
+                        this._onPingThresholdExceeded &&
+                            this._onPingThresholdExceeded();
+                    } else {
+                        logger.warn(errmsg, error);
+                    }
+                },
+                this.pingTimeout,
+            );
         }, this.pingInterval);
         logger.info(`XMPP pings will be sent every ${this.pingInterval} ms`);
     }
@@ -145,7 +164,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
             window.clearInterval(this.intervalId);
             this.intervalId = null;
             this.failedPings = 0;
-            logger.info('Ping interval cleared');
+            logger.info("Ping interval cleared");
         }
     }
 
@@ -182,7 +201,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         let maxInterval = 0;
         let previousTS = pingIntervals[0];
 
-        pingIntervals.forEach(e => {
+        pingIntervals.forEach((e) => {
             const currentInterval = e - previousTS;
 
             if (currentInterval > maxInterval) {

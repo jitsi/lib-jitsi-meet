@@ -1,8 +1,8 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import EventEmitter from '../util/EventEmitter';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+import EventEmitter from "../util/EventEmitter";
 
-import * as DetectionEvents from './DetectionEvents';
+import * as DetectionEvents from "./DetectionEvents";
 
 // We wait a certain time interval for constant silence input from the current device to account for
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
@@ -30,7 +30,10 @@ export default class NoAudioSignalDetection extends EventEmitter {
         this._timeoutTrigger = null;
         this._hasAudioInput = null;
 
-        conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
+        conference.on(
+            JitsiConferenceEvents.TRACK_ADDED,
+            this._trackAdded.bind(this),
+        );
     }
 
     /**
@@ -40,7 +43,6 @@ export default class NoAudioSignalDetection extends EventEmitter {
         clearTimeout(this._timeoutTrigger);
         this._timeoutTrigger = null;
     }
-
 
     /**
      * Generated event triggered by a change in the current conference audio input state.
@@ -57,7 +59,10 @@ export default class NoAudioSignalDetection extends EventEmitter {
         // the event.
         if (this._hasAudioInput === null || this._hasAudioInput !== status) {
             this._hasAudioInput = status;
-            this.emit(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, this._hasAudioInput);
+            this.emit(
+                DetectionEvents.AUDIO_INPUT_STATE_CHANGE,
+                this._hasAudioInput,
+            );
         }
     }
 
@@ -127,18 +132,15 @@ export default class NoAudioSignalDetection extends EventEmitter {
             this._clearTriggerTimeout();
 
             // Listen for the audio levels on the newly added audio track
-            track.on(
-                JitsiTrackEvents.NO_AUDIO_INPUT,
-                audioLevel => {
-                    this._handleNoAudioInputDetection(audioLevel);
-                }
-            );
+            track.on(JitsiTrackEvents.NO_AUDIO_INPUT, (audioLevel) => {
+                this._handleNoAudioInputDetection(audioLevel);
+            });
             track.on(
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                audioLevel => {
+                (audioLevel) => {
                     this._handleNoAudioInputDetection(audioLevel);
                     this._handleAudioInputStateChange(audioLevel);
-                }
+                },
             );
         }
     }

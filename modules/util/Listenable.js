@@ -1,4 +1,4 @@
-import EventEmitter from './EventEmitter';
+import EventEmitter from "./EventEmitter";
 
 /**
  * The class implements basic event operations - add/remove listener.

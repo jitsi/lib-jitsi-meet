@@ -1,4 +1,4 @@
-import { BrowserDetection } from '@jitsi/js-utils';
+import { BrowserDetection } from "@jitsi/js-utils";
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
@@ -8,7 +8,7 @@ const MIN_REQUIRED_IOS_VERSION = 14;
 
 // Starting with iPadOS 13 the actual Safari / iPadOS version is concealed from the UA string and
 // the system pretends to be macOS 10.15.7. Yeah, you read that right.
-const FROZEN_MACOS_VERSION = '10.15.7';
+const FROZEN_MACOS_VERSION = "10.15.7";
 
 // TODO: Move this code to js-utils.
 
@@ -28,7 +28,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @return {boolean} <tt>true</tt> if the current browser supports this strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return this.isChromiumBased() || this.isWebKitBased() || this.isFirefox();
+        return (
+            this.isChromiumBased() || this.isWebKitBased() || this.isFirefox()
+        );
     }
 
     /**
@@ -37,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isAndroidBrowser() {
-        return !this.isReactNative() && this.getOS() === 'Android';
+        return !this.isReactNative() && this.getOS() === "Android";
     }
 
     /**
@@ -46,14 +48,18 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isIosBrowser() {
-        return !this.isReactNative() && this.getOS() === 'iOS';
+        return !this.isReactNative() && this.getOS() === "iOS";
     }
 
     /**
      * Checks if the client is running on a mobile device.
      */
     isMobileDevice() {
-        return this.isAndroidBrowser() || this.isIosBrowser() || this.isReactNative();
+        return (
+            this.isAndroidBrowser() ||
+            this.isIosBrowser() ||
+            this.isReactNative()
+        );
     }
 
     /**
@@ -62,7 +68,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} Whether the current context is a TWA.
      */
     isTwa() {
-        return 'matchMedia' in window && window.matchMedia('(display-mode:standalone)').matches;
+        return (
+            "matchMedia" in window &&
+            window.matchMedia("(display-mode:standalone)").matches
+        );
     }
 
     /**
@@ -72,19 +81,31 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isSupported() {
         // First check for WebRTC APIs because some "security" extensions are dumb.
-        if (typeof RTCPeerConnection === 'undefined'
-                || !navigator?.mediaDevices?.enumerateDevices || !navigator?.mediaDevices?.getUserMedia) {
+        if (
+            typeof RTCPeerConnection === "undefined" ||
+            !navigator?.mediaDevices?.enumerateDevices ||
+            !navigator?.mediaDevices?.getUserMedia
+        ) {
             return false;
         }
 
-        if (this.isSafari() && this._getSafariVersion() < MIN_REQUIRED_SAFARI_VERSION) {
+        if (
+            this.isSafari() &&
+            this._getSafariVersion() < MIN_REQUIRED_SAFARI_VERSION
+        ) {
             return false;
         }
 
-        return (this.isChromiumBased() && this.isEngineVersionGreaterThan(MIN_REQUIRED_CHROME_VERSION - 1))
-            || (this.isFirefox() && this.isVersionGreaterThan(MIN_REQUIRED_FIREFOX_VERSION - 1))
-            || this.isReactNative()
-            || this.isWebKitBased();
+        return (
+            (this.isChromiumBased() &&
+                this.isEngineVersionGreaterThan(
+                    MIN_REQUIRED_CHROME_VERSION - 1,
+                )) ||
+            (this.isFirefox() &&
+                this.isVersionGreaterThan(MIN_REQUIRED_FIREFOX_VERSION - 1)) ||
+            this.isReactNative() ||
+            this.isWebKitBased()
+        );
     }
 
     /**
@@ -101,12 +122,18 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isSupportedIOSBrowser() {
         // After iPadOS 13 we have no way to know the Safari or iPadOS version, so YOLO.
-        if (!this.isSafari() && this.isWebKitBased() && this.getOSVersion() === FROZEN_MACOS_VERSION) {
+        if (
+            !this.isSafari() &&
+            this.isWebKitBased() &&
+            this.getOSVersion() === FROZEN_MACOS_VERSION
+        ) {
             return true;
         }
 
-        return this._getSafariVersion() >= MIN_REQUIRED_IOS_VERSION
-                || this._getIOSVersion() >= MIN_REQUIRED_IOS_VERSION;
+        return (
+            this._getSafariVersion() >= MIN_REQUIRED_IOS_VERSION ||
+            this._getIOSVersion() >= MIN_REQUIRED_IOS_VERSION
+        );
     }
 
     /**
@@ -116,7 +143,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isUserInteractionRequiredForUnmute() {
-        return this.isFirefox() && this.isVersionLessThan('68');
+        return this.isFirefox() && this.isVersionLessThan("68");
     }
 
     /**
@@ -145,18 +172,22 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsCodecPreferences() {
-        return Boolean(window.RTCRtpTransceiver
-            && 'setCodecPreferences' in window.RTCRtpTransceiver.prototype
-            && window.RTCRtpReceiver
-            && typeof window.RTCRtpReceiver.getCapabilities !== 'undefined')
-
+        return (
+            Boolean(
+                window.RTCRtpTransceiver &&
+                    "setCodecPreferences" in
+                        window.RTCRtpTransceiver.prototype &&
+                    window.RTCRtpReceiver &&
+                    typeof window.RTCRtpReceiver.getCapabilities !==
+                        "undefined",
+            ) &&
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
-            && !this.isWebKitBased()
-
+            !this.isWebKitBased() &&
             // Calling this API on Firefox is causing freezes when the local endpoint is the answerer.
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1917800
-            && !this.isFirefox();
+            !this.isFirefox()
+        );
     }
 
     /**
@@ -185,9 +216,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @return {boolean}
      */
     supportsDeviceChangeEvent() {
-        return navigator.mediaDevices
-            && typeof navigator.mediaDevices.ondevicechange !== 'undefined'
-            && typeof navigator.mediaDevices.addEventListener !== 'undefined';
+        return (
+            navigator.mediaDevices &&
+            typeof navigator.mediaDevices.ondevicechange !== "undefined" &&
+            typeof navigator.mediaDevices.addEventListener !== "undefined"
+        );
     }
 
     /**
@@ -196,16 +229,22 @@ export default class BrowserCapabilities extends BrowserDetection {
      * 50ms to execute on the main thread.
      */
     supportsPerformanceObserver() {
-        return typeof window.PerformanceObserver !== 'undefined'
-            && PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
+        return (
+            typeof window.PerformanceObserver !== "undefined" &&
+            PerformanceObserver.supportedEntryTypes.indexOf("longtask") > -1
+        );
     }
 
     /**
      * Checks if the current browser supports audio level stats on the receivers.
      */
     supportsReceiverStats() {
-        return typeof window.RTCRtpReceiver !== 'undefined'
-            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
+        return (
+            typeof window.RTCRtpReceiver !== "undefined" &&
+            Object.keys(RTCRtpReceiver.prototype).indexOf(
+                "getSynchronizationSources",
+            ) > -1
+        );
     }
 
     /**
@@ -260,7 +299,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesSdpMungingForSimulcast() {
-        return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
+        return (
+            this.isChromiumBased() ||
+            this.isReactNative() ||
+            this.isWebKitBased()
+        );
     }
 
     /**
@@ -276,10 +319,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia() {
-        return typeof navigator.getDisplayMedia !== 'undefined'
-            || (typeof navigator.mediaDevices !== 'undefined'
-                && typeof navigator.mediaDevices.getDisplayMedia
-                    !== 'undefined');
+        return (
+            typeof navigator.getDisplayMedia !== "undefined" ||
+            (typeof navigator.mediaDevices !== "undefined" &&
+                typeof navigator.mediaDevices.getDisplayMedia !== "undefined")
+        );
     }
 
     /**
@@ -300,8 +344,12 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
     supportsInsertableStreams() {
-        if (!(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedStreams)) {
+        if (
+            !(
+                typeof window.RTCRtpSender !== "undefined" &&
+                window.RTCRtpSender.prototype.createEncodedStreams
+            )
+        ) {
             return false;
         }
 
@@ -310,7 +358,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         const stream = new ReadableStream();
 
         try {
-            window.postMessage(stream, '*', [ stream ]);
+            window.postMessage(stream, "*", [stream]);
 
             return true;
         } catch {
@@ -322,12 +370,18 @@ export default class BrowserCapabilities extends BrowserDetection {
      * Whether the browser supports the RED format for audio.
      */
     supportsAudioRed() {
-        return Boolean(window.RTCRtpSender
-            && window.RTCRtpSender.getCapabilities
-            && window.RTCRtpSender.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red')
-            && window.RTCRtpReceiver
-            && window.RTCRtpReceiver.getCapabilities
-            && window.RTCRtpReceiver.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red'));
+        return Boolean(
+            window.RTCRtpSender &&
+                window.RTCRtpSender.getCapabilities &&
+                window.RTCRtpSender.getCapabilities("audio").codecs.some(
+                    (codec) => codec.mimeType === "audio/red",
+                ) &&
+                window.RTCRtpReceiver &&
+                window.RTCRtpReceiver.getCapabilities &&
+                window.RTCRtpReceiver.getCapabilities("audio").codecs.some(
+                    (codec) => codec.mimeType === "audio/red",
+                ),
+        );
     }
 
     /**
@@ -347,7 +401,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     supportsRTX() {
         // Disable RTX on Firefox up to 96 because we prefer simulcast over RTX
         // see https://bugzilla.mozilla.org/show_bug.cgi?id=1738504
-        return !(this.isFirefox() && this.isVersionLessThan('96'));
+        return !(this.isFirefox() && this.isVersionLessThan("96"));
     }
 
     /**

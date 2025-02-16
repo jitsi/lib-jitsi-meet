@@ -1,8 +1,8 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import Listenable from '../util/Listenable';
+import Listenable from "../util/Listenable";
 
-export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
+export const NETWORK_INFO_EVENT = "NETWORK_INFO_CHANGED";
 
 const logger = getLogger(__filename);
 
@@ -20,7 +20,7 @@ export class NetworkInfo extends Listenable {
     constructor() {
         super();
         this._current = {
-            isOnline: true
+            isOnline: true,
         };
     }
 
@@ -32,9 +32,9 @@ export class NetworkInfo extends Listenable {
      * otherwise.
      */
     updateNetworkInfo({ isOnline }) {
-        logger.debug('updateNetworkInfo', { isOnline });
+        logger.debug("updateNetworkInfo", { isOnline });
         this._current = {
-            isOnline: isOnline === true
+            isOnline: isOnline === true,
         };
         this.eventEmitter.emit(NETWORK_INFO_EVENT, this._current);
     }

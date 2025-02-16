@@ -1,6 +1,6 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import { createAudioContext } from './WebAudioUtils';
+import { createAudioContext } from "./WebAudioUtils";
 
 const logger = getLogger(__filename);
 
@@ -25,7 +25,7 @@ export default class AudioMixer {
      */
     addMediaStream(stream) {
         if (!stream.getAudioTracks()) {
-            logger.warn('Added MediaStream doesn\'t contain audio tracks.');
+            logger.warn("Added MediaStream doesn't contain audio tracks.");
         }
 
         this._streamsToMix.push(stream);
@@ -47,7 +47,9 @@ export default class AudioMixer {
         this._audioContext = createAudioContext();
 
         if (!this._streamsToMix.length) {
-            logger.warn('No MediaStream\'s added to AudioMixer, nothing will happen.');
+            logger.warn(
+                "No MediaStream's added to AudioMixer, nothing will happen.",
+            );
 
             return null;
         }
@@ -57,7 +59,8 @@ export default class AudioMixer {
         this._mixedMSD = this._audioContext.createMediaStreamDestination();
 
         for (const stream of this._streamsToMix) {
-            const streamMSS = this._audioContext.createMediaStreamSource(stream);
+            const streamMSS =
+                this._audioContext.createMediaStreamSource(stream);
 
             streamMSS.connect(this._mixedMSD);
 

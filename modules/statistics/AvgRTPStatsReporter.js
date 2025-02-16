@@ -1,19 +1,17 @@
-import { getLogger } from '@jitsi/logger';
-import { isEqual } from 'lodash-es';
+import { getLogger } from "@jitsi/logger";
+import { isEqual } from "lodash-es";
 
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import { MediaType } from '../../service/RTC/MediaType';
-import { VideoType } from '../../service/RTC/VideoType';
-import * as ConnectionQualityEvents
-    from '../../service/connectivity/ConnectionQualityEvents';
+import * as ConferenceEvents from "../../JitsiConferenceEvents";
+import { MediaType } from "../../service/RTC/MediaType";
+import { VideoType } from "../../service/RTC/VideoType";
+import * as ConnectionQualityEvents from "../../service/connectivity/ConnectionQualityEvents";
 import {
     createRtpStatsEvent,
-    createTransportStatsEvent
-} from '../../service/statistics/AnalyticsEvents';
-import browser from '../browser';
+    createTransportStatsEvent,
+} from "../../service/statistics/AnalyticsEvents";
+import browser from "../browser";
 
-import Statistics from './statistics';
-
+import Statistics from "./statistics";
 
 const logger = getLogger(__filename);
 
@@ -40,12 +38,15 @@ class AverageStatReport {
      * @param {number} nextValue
      */
     addNext(nextValue) {
-        if (typeof nextValue === 'undefined') {
+        if (typeof nextValue === "undefined") {
             return;
         }
 
-        if (typeof nextValue !== 'number') {
-            logger.error(`${this.name} - invalid value for idx: ${this.count}`, nextValue);
+        if (typeof nextValue !== "number") {
+            logger.error(
+                `${this.name} - invalid value for idx: ${this.count}`,
+                nextValue,
+            );
         } else if (!isNaN(nextValue)) {
             this.sum += nextValue;
             this.samples.push(nextValue);
@@ -122,7 +123,7 @@ class ConnectionAvgStats {
          * Average round trip time reported by the ICE candidate pair.
          * @type {AverageStatReport}
          */
-        this._avgRTT = new AverageStatReport('rtt');
+        this._avgRTT = new AverageStatReport("rtt");
 
         /**
          * Map stores average RTT to the JVB reported by remote participants.
@@ -162,17 +163,19 @@ class ConnectionAvgStats {
         const conference = avgRtpStatsReporter._conference;
 
         conference.statistics.addConnectionStatsListener(
-            this._onConnectionStats);
+            this._onConnectionStats,
+        );
 
         if (!this.isP2P) {
-            this._onUserLeft = id => this._avgRemoteRTTMap.delete(id);
+            this._onUserLeft = (id) => this._avgRemoteRTTMap.delete(id);
             conference.on(ConferenceEvents.USER_LEFT, this._onUserLeft);
 
-            this._onRemoteStatsUpdated
-                = (id, data) => this._processRemoteStats(id, data);
+            this._onRemoteStatsUpdated = (id, data) =>
+                this._processRemoteStats(id, data);
             conference.on(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
-                this._onRemoteStatsUpdated);
+                this._onRemoteStatsUpdated,
+            );
         }
     }
 
@@ -183,7 +186,7 @@ class ConnectionAvgStats {
      */
     _calculateAvgStats(data) {
         if (!data) {
-            logger.error('No stats');
+            logger.error("No stats");
 
             return;
         }
@@ -202,16 +205,16 @@ class ConnectionAvgStats {
 
                 const batchReport = {
                     p2p: this.isP2P,
-                    'conference_size': conference.getParticipantCount()
+                    conference_size: conference.getParticipantCount(),
                 };
 
                 if (data.transport && data.transport.length) {
                     Object.assign(batchReport, {
-                        'local_candidate_type':
+                        local_candidate_type:
                             data.transport[0].localCandidateType,
-                        'remote_candidate_type':
+                        remote_candidate_type:
                             data.transport[0].remoteCandidateType,
-                        'transport_type': data.transport[0].type
+                        transport_type: data.transport[0].type,
                     });
                 }
 
@@ -219,13 +222,14 @@ class ConnectionAvgStats {
 
                 if (this.isP2P) {
                     // Report RTT diff only for P2P.
-                    const jvbEnd2EndRTT = this
-                        ._avgRtpStatsReporter.jvbStatsMonitor._avgEnd2EndRTT;
+                    const jvbEnd2EndRTT =
+                        this._avgRtpStatsReporter.jvbStatsMonitor
+                            ._avgEnd2EndRTT;
 
                     if (!isNaN(jvbEnd2EndRTT)) {
                         // eslint-disable-next-line dot-notation
-                        batchReport['rtt_diff']
-                            = this._avgRTT.calculate() - jvbEnd2EndRTT;
+                        batchReport["rtt_diff"] =
+                            this._avgRTT.calculate() - jvbEnd2EndRTT;
                     }
                 } else {
                     // Report end to end RTT only for JVB.
@@ -236,7 +240,7 @@ class ConnectionAvgStats {
 
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
                         // eslint-disable-next-line dot-notation
-                        batchReport['end2end_rtt_avg'] = this._avgEnd2EndRTT;
+                        batchReport["end2end_rtt_avg"] = this._avgEnd2EndRTT;
                     }
                 }
 
@@ -254,7 +258,8 @@ class ConnectionAvgStats {
      * @private
      */
     _calculateAvgRemoteRTT() {
-        let count = 0, sum = 0;
+        let count = 0,
+            sum = 0;
 
         // FIXME should we ignore RTT for participant
         // who "is having connectivity issues" ?
@@ -279,7 +284,7 @@ class ConnectionAvgStats {
      * @private
      */
     _processRemoteStats(id, data) {
-        const validData = typeof data.jvbRTT === 'number';
+        const validData = typeof data.jvbRTT === "number";
         let rttAvg = this._avgRemoteRTTMap.get(id);
 
         if (!rttAvg && validData) {
@@ -310,18 +315,17 @@ class ConnectionAvgStats {
      *
      */
     dispose() {
-
         const conference = this._avgRtpStatsReporter._conference;
 
         conference.statistics.removeConnectionStatsListener(
-            this._onConnectionStats);
+            this._onConnectionStats,
+        );
         if (!this.isP2P) {
             conference.off(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
-                this._onRemoteStatsUpdated);
-            conference.off(
-                ConferenceEvents.USER_LEFT,
-                this._onUserLeft);
+                this._onRemoteStatsUpdated,
+            );
+            conference.off(ConferenceEvents.USER_LEFT, this._onUserLeft);
         }
     }
 }
@@ -353,7 +357,7 @@ export default class AvgRTPStatsReporter {
         if (n > 0) {
             logger.info(`Avg RTP stats will be calculated every ${n} samples`);
         } else {
-            logger.info('Avg RTP stats reports are disabled.');
+            logger.info("Avg RTP stats reports are disabled.");
 
             // Do not initialize
             return;
@@ -380,8 +384,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgAudioBitrateUp
-            = new AverageStatReport('bitrate_audio_upload');
+        this._avgAudioBitrateUp = new AverageStatReport("bitrate_audio_upload");
 
         /**
          * Average audio download bitrate
@@ -389,8 +392,9 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgAudioBitrateDown
-            = new AverageStatReport('bitrate_audio_download');
+        this._avgAudioBitrateDown = new AverageStatReport(
+            "bitrate_audio_download",
+        );
 
         /**
          * Average video upload bitrate
@@ -398,8 +402,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgVideoBitrateUp
-            = new AverageStatReport('bitrate_video_upload');
+        this._avgVideoBitrateUp = new AverageStatReport("bitrate_video_upload");
 
         /**
          * Average video download bitrate
@@ -407,8 +410,9 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgVideoBitrateDown
-            = new AverageStatReport('bitrate_video_download');
+        this._avgVideoBitrateDown = new AverageStatReport(
+            "bitrate_video_download",
+        );
 
         /**
          * Average upload bandwidth
@@ -416,8 +420,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgBandwidthUp
-            = new AverageStatReport('bandwidth_upload');
+        this._avgBandwidthUp = new AverageStatReport("bandwidth_upload");
 
         /**
          * Average download bandwidth
@@ -425,8 +428,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgBandwidthDown
-            = new AverageStatReport('bandwidth_download');
+        this._avgBandwidthDown = new AverageStatReport("bandwidth_download");
 
         /**
          * Average total packet loss
@@ -434,8 +436,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgPacketLossTotal
-            = new AverageStatReport('packet_loss_total');
+        this._avgPacketLossTotal = new AverageStatReport("packet_loss_total");
 
         /**
          * Average upload packet loss
@@ -443,8 +444,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgPacketLossUp
-            = new AverageStatReport('packet_loss_upload');
+        this._avgPacketLossUp = new AverageStatReport("packet_loss_upload");
 
         /**
          * Average download packet loss
@@ -452,15 +452,14 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgPacketLossDown
-            = new AverageStatReport('packet_loss_download');
+        this._avgPacketLossDown = new AverageStatReport("packet_loss_download");
 
         /**
          * Average FPS for remote videos
          * @type {AverageStatReport}
          * @private
          */
-        this._avgRemoteFPS = new AverageStatReport('framerate_remote');
+        this._avgRemoteFPS = new AverageStatReport("framerate_remote");
 
         /**
          * Average FPS for remote screen streaming videos (reported only if not
@@ -468,15 +467,16 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgRemoteScreenFPS
-            = new AverageStatReport('framerate_screen_remote');
+        this._avgRemoteScreenFPS = new AverageStatReport(
+            "framerate_screen_remote",
+        );
 
         /**
          * Average FPS for local video (camera)
          * @type {AverageStatReport}
          * @private
          */
-        this._avgLocalFPS = new AverageStatReport('framerate_local');
+        this._avgLocalFPS = new AverageStatReport("framerate_local");
 
         /**
          * Average FPS for local screen streaming video (reported only if not
@@ -484,8 +484,9 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgLocalScreenFPS
-            = new AverageStatReport('framerate_screen_local');
+        this._avgLocalScreenFPS = new AverageStatReport(
+            "framerate_screen_local",
+        );
 
         /**
          * Average pixels for remote screen streaming videos (reported only if
@@ -493,8 +494,7 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgRemoteCameraPixels
-            = new AverageStatReport('pixels_remote');
+        this._avgRemoteCameraPixels = new AverageStatReport("pixels_remote");
 
         /**
          * Average pixels for remote screen streaming videos (reported only if
@@ -502,16 +502,16 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgRemoteScreenPixels
-            = new AverageStatReport('pixels_screen_remote');
+        this._avgRemoteScreenPixels = new AverageStatReport(
+            "pixels_screen_remote",
+        );
 
         /**
          * Average pixels for local video (camera)
          * @type {AverageStatReport}
          * @private
          */
-        this._avgLocalCameraPixels
-            = new AverageStatReport('pixels_local');
+        this._avgLocalCameraPixels = new AverageStatReport("pixels_local");
 
         /**
          * Average pixels for local screen streaming video (reported only if not
@@ -519,8 +519,9 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgLocalScreenPixels
-            = new AverageStatReport('pixels_screen_local');
+        this._avgLocalScreenPixels = new AverageStatReport(
+            "pixels_screen_local",
+        );
 
         /**
          * Average connection quality as defined by
@@ -528,46 +529,44 @@ export default class AvgRTPStatsReporter {
          * @type {AverageStatReport}
          * @private
          */
-        this._avgCQ = new AverageStatReport('connection_quality');
+        this._avgCQ = new AverageStatReport("connection_quality");
 
         this._cachedTransportStats = undefined;
 
-        this._onLocalStatsUpdated = data => {
+        this._onLocalStatsUpdated = (data) => {
             this._calculateAvgStats(data);
             this._maybeSendTransportAnalyticsEvent(data);
         };
         conference.on(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-            this._onLocalStatsUpdated);
+            this._onLocalStatsUpdated,
+        );
 
         this._onP2PStatusChanged = () => {
-            logger.debug('Resetting average stats calculation');
+            logger.debug("Resetting average stats calculation");
             this._resetAvgStats();
             this.jvbStatsMonitor._resetAvgStats();
             this.p2pStatsMonitor._resetAvgStats();
         };
-        conference.on(
-            ConferenceEvents.P2P_STATUS,
-            this._onP2PStatusChanged);
+        conference.on(ConferenceEvents.P2P_STATUS, this._onP2PStatusChanged);
 
         this._onJvb121StatusChanged = (oldStatus, newStatus) => {
             // We want to reset only on the transition from false => true,
             // because otherwise those stats are resetted on JVB <=> P2P
             // transition.
             if (newStatus === true) {
-                logger.info('Resetting JVB avg RTP stats');
+                logger.info("Resetting JVB avg RTP stats");
                 this._resetAvgJvbStats();
             }
         };
         conference.on(
             ConferenceEvents.JVB121_STATUS,
-            this._onJvb121StatusChanged);
+            this._onJvb121StatusChanged,
+        );
 
-        this.jvbStatsMonitor
-            = new ConnectionAvgStats(this, false /* JVB */, n);
+        this.jvbStatsMonitor = new ConnectionAvgStats(this, false /* JVB */, n);
 
-        this.p2pStatsMonitor
-            = new ConnectionAvgStats(this, true /* P2P */, n);
+        this.p2pStatsMonitor = new ConnectionAvgStats(this, true /* P2P */, n);
     }
 
     /**
@@ -577,9 +576,8 @@ export default class AvgRTPStatsReporter {
      * @private
      */
     _calculateAvgStats(data) {
-
         if (!data) {
-            logger.error('No stats');
+            logger.error("No stats");
 
             return;
         }
@@ -588,7 +586,6 @@ export default class AvgRTPStatsReporter {
         const confSize = this._conference.getParticipantCount();
 
         if (!isP2P && confSize < 2) {
-
             // There's no point in collecting stats for a JVB conference of 1.
             // That happens for short period of time after everyone leaves
             // the room, until Jicofo terminates the session.
@@ -625,7 +622,7 @@ export default class AvgRTPStatsReporter {
 
             return;
         } else if (!resolution) {
-            logger.error('No resolution');
+            logger.error("No resolution");
 
             return;
         }
@@ -650,53 +647,83 @@ export default class AvgRTPStatsReporter {
         if (frameRate) {
             this._avgRemoteFPS.addNext(
                 this._calculateAvgVideoFps(
-                    frameRate, false /* remote */, VideoType.CAMERA));
+                    frameRate,
+                    false /* remote */,
+                    VideoType.CAMERA,
+                ),
+            );
             this._avgRemoteScreenFPS.addNext(
                 this._calculateAvgVideoFps(
-                    frameRate, false /* remote */, VideoType.DESKTOP));
+                    frameRate,
+                    false /* remote */,
+                    VideoType.DESKTOP,
+                ),
+            );
 
             this._avgLocalFPS.addNext(
                 this._calculateAvgVideoFps(
-                    frameRate, true /* local */, VideoType.CAMERA));
+                    frameRate,
+                    true /* local */,
+                    VideoType.CAMERA,
+                ),
+            );
             this._avgLocalScreenFPS.addNext(
                 this._calculateAvgVideoFps(
-                    frameRate, true /* local */, VideoType.DESKTOP));
+                    frameRate,
+                    true /* local */,
+                    VideoType.DESKTOP,
+                ),
+            );
         }
 
         if (resolution) {
             this._avgRemoteCameraPixels.addNext(
                 this._calculateAvgVideoPixels(
-                    resolution, false /* remote */, VideoType.CAMERA));
+                    resolution,
+                    false /* remote */,
+                    VideoType.CAMERA,
+                ),
+            );
 
             this._avgRemoteScreenPixels.addNext(
                 this._calculateAvgVideoPixels(
-                    resolution, false /* remote */, VideoType.DESKTOP));
+                    resolution,
+                    false /* remote */,
+                    VideoType.DESKTOP,
+                ),
+            );
 
             this._avgLocalCameraPixels.addNext(
                 this._calculateAvgVideoPixels(
-                    resolution, true /* local */, VideoType.CAMERA));
+                    resolution,
+                    true /* local */,
+                    VideoType.CAMERA,
+                ),
+            );
 
             this._avgLocalScreenPixels.addNext(
                 this._calculateAvgVideoPixels(
-                    resolution, true /* local */, VideoType.DESKTOP));
+                    resolution,
+                    true /* local */,
+                    VideoType.DESKTOP,
+                ),
+            );
         }
 
         this._sampleIdx += 1;
 
         if (this._sampleIdx >= this._n) {
-
             const batchReport = {
                 p2p: isP2P,
-                'conference_size': confSize
+                conference_size: confSize,
             };
 
             if (data.transport && data.transport.length) {
                 Object.assign(batchReport, {
-                    'local_candidate_type':
-                        data.transport[0].localCandidateType,
-                    'remote_candidate_type':
+                    local_candidate_type: data.transport[0].localCandidateType,
+                    remote_candidate_type:
                         data.transport[0].remoteCandidateType,
-                    'transport_type': data.transport[0].type
+                    transport_type: data.transport[0].type,
                 });
             }
 
@@ -758,16 +785,18 @@ export default class AvgRTPStatsReporter {
 
         for (const peerID of Object.keys(peerResolutions)) {
             if (isLocal ? peerID === myID : peerID !== myID) {
-                const participant
-                    = isLocal
-                        ? null
-                        : this._conference.getParticipantById(peerID);
+                const participant = isLocal
+                    ? null
+                    : this._conference.getParticipantById(peerID);
                 const videosResolution = peerResolutions[peerID];
 
                 // Do not continue without participant for non local peerID
                 if ((isLocal || participant) && videosResolution) {
                     const peerAvgPixels = this._calculatePeerAvgVideoPixels(
-                        videosResolution, participant, videoType);
+                        videosResolution,
+                        participant,
+                        videoType,
+                    );
 
                     if (!isNaN(peerAvgPixels)) {
                         peerPixelsSum += peerAvgPixels;
@@ -792,7 +821,7 @@ export default class AvgRTPStatsReporter {
      * @private
      */
     _calculatePeerAvgVideoPixels(videos, participant, videoType) {
-        let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
+        let ssrcs = Object.keys(videos).map((ssrc) => Number(ssrc));
         let videoTracks = null;
 
         // NOTE that this method is supposed to be called for the stats
@@ -802,31 +831,33 @@ export default class AvgRTPStatsReporter {
         if (participant) {
             videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
             if (videoTracks) {
-                ssrcs
-                    = ssrcs.filter(
-                        ssrc => videoTracks.find(
-                            track =>
-                                !track.isMuted()
-                                    && track.getSSRC() === ssrc
-                                    && track.videoType === videoType));
+                ssrcs = ssrcs.filter((ssrc) =>
+                    videoTracks.find(
+                        (track) =>
+                            !track.isMuted() &&
+                            track.getSSRC() === ssrc &&
+                            track.videoType === videoType,
+                    ),
+                );
             }
         } else {
             videoTracks = this._conference.getLocalTracks(MediaType.VIDEO);
-            ssrcs
-                = ssrcs.filter(
-                    ssrc => videoTracks.find(
-                        track =>
-                            !track.isMuted()
-                                && tpc.getLocalSSRC(track) === ssrc
-                                && track.videoType === videoType));
+            ssrcs = ssrcs.filter((ssrc) =>
+                videoTracks.find(
+                    (track) =>
+                        !track.isMuted() &&
+                        tpc.getLocalSSRC(track) === ssrc &&
+                        track.videoType === videoType,
+                ),
+            );
         }
 
         let peerPixelsSum = 0;
         let peerSsrcCount = 0;
 
         for (const ssrc of ssrcs) {
-            const peerSsrcPixels
-                = Number(videos[ssrc].height) * Number(videos[ssrc].width);
+            const peerSsrcPixels =
+                Number(videos[ssrc].height) * Number(videos[ssrc].width);
 
             // FPS is reported as 0 for users with no video
             if (!isNaN(peerSsrcPixels) && peerSsrcPixels > 0) {
@@ -837,7 +868,6 @@ export default class AvgRTPStatsReporter {
 
         return peerPixelsSum / peerSsrcCount;
     }
-
 
     /**
      * Calculates average FPS for the report
@@ -855,16 +885,18 @@ export default class AvgRTPStatsReporter {
 
         for (const peerID of Object.keys(frameRate)) {
             if (isLocal ? peerID === myID : peerID !== myID) {
-                const participant
-                    = isLocal
-                        ? null : this._conference.getParticipantById(peerID);
+                const participant = isLocal
+                    ? null
+                    : this._conference.getParticipantById(peerID);
                 const videosFps = frameRate[peerID];
 
                 // Do not continue without participant for non local peerID
                 if ((isLocal || participant) && videosFps) {
-                    const peerAvgFPS
-                        = this._calculatePeerAvgVideoFps(
-                            videosFps, participant, videoType);
+                    const peerAvgFPS = this._calculatePeerAvgVideoFps(
+                        videosFps,
+                        participant,
+                        videoType,
+                    );
 
                     if (!isNaN(peerAvgFPS)) {
                         peerFpsSum += peerAvgFPS;
@@ -889,7 +921,7 @@ export default class AvgRTPStatsReporter {
      * @private
      */
     _calculatePeerAvgVideoFps(videos, participant, videoType) {
-        let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
+        let ssrcs = Object.keys(videos).map((ssrc) => Number(ssrc));
         let videoTracks = null;
 
         // NOTE that this method is supposed to be called for the stats
@@ -899,21 +931,25 @@ export default class AvgRTPStatsReporter {
         if (participant) {
             videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
             if (videoTracks) {
-                ssrcs
-                    = ssrcs.filter(
-                        ssrc => videoTracks.find(
-                            track => !track.isMuted()
-                                && track.getSSRC() === ssrc
-                                && track.videoType === videoType));
+                ssrcs = ssrcs.filter((ssrc) =>
+                    videoTracks.find(
+                        (track) =>
+                            !track.isMuted() &&
+                            track.getSSRC() === ssrc &&
+                            track.videoType === videoType,
+                    ),
+                );
             }
         } else {
             videoTracks = this._conference.getLocalTracks(MediaType.VIDEO);
-            ssrcs
-                = ssrcs.filter(
-                    ssrc => videoTracks.find(
-                        track => !track.isMuted()
-                            && tpc.getLocalSSRC(track) === ssrc
-                            && track.videoType === videoType));
+            ssrcs = ssrcs.filter((ssrc) =>
+                videoTracks.find(
+                    (track) =>
+                        !track.isMuted() &&
+                        tpc.getLocalSSRC(track) === ssrc &&
+                        track.videoType === videoType,
+                ),
+            );
         }
 
         let peerFpsSum = 0;
@@ -945,12 +981,15 @@ export default class AvgRTPStatsReporter {
         }
         const transportStats = {
             p2p: data.transport[0].p2p,
-            'local_candidate_type': data.transport[0].localCandidateType,
-            'remote_candidate_type': data.transport[0].remoteCandidateType,
-            'transport_type': data.transport[0].type
+            local_candidate_type: data.transport[0].localCandidateType,
+            remote_candidate_type: data.transport[0].remoteCandidateType,
+            transport_type: data.transport[0].type,
         };
 
-        if (!this._cachedTransportStats || !isEqual(transportStats, this._cachedTransportStats)) {
+        if (
+            !this._cachedTransportStats ||
+            !isEqual(transportStats, this._cachedTransportStats)
+        ) {
             this._cachedTransportStats = transportStats;
             Statistics.sendAnalytics(createTransportStatsEvent(transportStats));
         }
@@ -1007,13 +1046,16 @@ export default class AvgRTPStatsReporter {
     dispose() {
         this._conference.off(
             ConferenceEvents.P2P_STATUS,
-            this._onP2PStatusChanged);
+            this._onP2PStatusChanged,
+        );
         this._conference.off(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-            this._onLocalStatsUpdated);
+            this._onLocalStatsUpdated,
+        );
         this._conference.off(
             ConferenceEvents.JVB121_STATUS,
-            this._onJvb121StatusChanged);
+            this._onJvb121StatusChanged,
+        );
         this.jvbStatsMonitor.dispose();
         this.p2pStatsMonitor.dispose();
     }

@@ -1,1 +1,1 @@
-declare const nextTick: ( advanceTimer?: number ) => Promise<void>;
+declare const nextTick: (advanceTimer?: number) => Promise<void>;

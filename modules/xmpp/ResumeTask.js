@@ -1,10 +1,10 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
 import {
     NETWORK_INFO_EVENT,
-    default as NetworkInfo
-} from '../connectivity/NetworkInfo';
-import { getJitterDelay } from '../util/Retry';
+    default as NetworkInfo,
+} from "../connectivity/NetworkInfo";
+import { getJitterDelay } from "../util/Retry";
 
 const logger = getLogger(__filename);
 
@@ -58,16 +58,16 @@ export default class ResumeTask {
 
         this._resumeRetryN += 1;
 
-        this._networkOnlineListener
-            = NetworkInfo.addCancellableListener(
-                NETWORK_INFO_EVENT,
-                ({ isOnline }) => {
-                    if (isOnline) {
-                        this._scheduleResume();
-                    } else {
-                        this._cancelResume();
-                    }
-                });
+        this._networkOnlineListener = NetworkInfo.addCancellableListener(
+            NETWORK_INFO_EVENT,
+            ({ isOnline }) => {
+                if (isOnline) {
+                    this._scheduleResume();
+                } else {
+                    this._cancelResume();
+                }
+            },
+        );
 
         NetworkInfo.isOnline() && this._scheduleResume();
     }
@@ -79,7 +79,6 @@ export default class ResumeTask {
      */
     _scheduleResume() {
         if (this._resumeTimeout) {
-
             // NO-OP
             return;
         }
@@ -91,11 +90,17 @@ export default class ResumeTask {
         this._retryDelay = getJitterDelay(
             /* retry */ this._resumeRetryN,
             /* minDelay */ this._resumeRetryN * 1500,
-            3);
+            3,
+        );
 
-        logger.info(`Will try to resume the XMPP connection in ${this.retryDelay}ms`);
+        logger.info(
+            `Will try to resume the XMPP connection in ${this.retryDelay}ms`,
+        );
 
-        this._resumeTimeout = setTimeout(() => this._resumeConnection(), this.retryDelay);
+        this._resumeTimeout = setTimeout(
+            () => this._resumeConnection(),
+            this.retryDelay,
+        );
     }
 
     /**
@@ -106,7 +111,7 @@ export default class ResumeTask {
      */
     _cancelResume() {
         if (this._resumeTimeout) {
-            logger.info('Canceling connection resume task');
+            logger.info("Canceling connection resume task");
             clearTimeout(this._resumeTimeout);
             this._resumeTimeout = undefined;
             this._retryDelay = undefined;
@@ -143,7 +148,7 @@ export default class ResumeTask {
             return;
         }
 
-        logger.info('Trying to resume the XMPP connection');
+        logger.info("Trying to resume the XMPP connection");
 
         const url = new URL(this._stropheConn.service);
         let { search } = url;
@@ -154,9 +159,12 @@ export default class ResumeTask {
         if (oldToken && oldToken.indexOf(resumeToken) === -1) {
             search = search.replace(pattern, `$1${resumeToken}`);
 
-        // Append previd if it doesn't exist.
+            // Append previd if it doesn't exist.
         } else if (!oldToken) {
-            search += search.indexOf('?') === -1 ? `?previd=${resumeToken}` : `&previd=${resumeToken}`;
+            search +=
+                search.indexOf("?") === -1
+                    ? `?previd=${resumeToken}`
+                    : `&previd=${resumeToken}`;
         }
 
         url.search = search;
@@ -166,7 +174,7 @@ export default class ResumeTask {
         try {
             streamManagement.resume();
         } catch (e) {
-            logger.error('Failed to resume XMPP connnection', e);
+            logger.error("Failed to resume XMPP connnection", e);
         }
     }
 

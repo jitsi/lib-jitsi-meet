@@ -1,19 +1,21 @@
-import { safeJsonParse } from '@jitsi/js-utils/json';
-import { getLogger } from '@jitsi/logger';
-import { Strophe } from 'strophe.js';
+import { safeJsonParse } from "@jitsi/js-utils/json";
+import { getLogger } from "@jitsi/logger";
+import { Strophe } from "strophe.js";
 
-import { MediaType } from '../../service/RTC/MediaType';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
-import { VideoType } from '../../service/RTC/VideoType';
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import FeatureFlags from '../flags/FeatureFlags';
+import { MediaType } from "../../service/RTC/MediaType";
+import * as SignalingEvents from "../../service/RTC/SignalingEvents";
+import SignalingLayer, {
+    getMediaTypeFromSourceName,
+} from "../../service/RTC/SignalingLayer";
+import { VideoType } from "../../service/RTC/VideoType";
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
+import FeatureFlags from "../flags/FeatureFlags";
 
-import { filterNodeFromPresenceJSON } from './ChatRoom';
+import { filterNodeFromPresenceJSON } from "./ChatRoom";
 
 const logger = getLogger(__filename);
 
-export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
+export const SOURCE_INFO_PRESENCE_ELEMENT = "SourceInfo";
 
 /**
  * Default XMPP implementation of the {@link SignalingLayer} interface. Obtains
@@ -44,13 +46,13 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * @type {Map<SourceName, SourceInfo>}
          * @private
          */
-        this._localSourceState = { };
+        this._localSourceState = {};
 
         /**
          * @type {Map<EndpointId, Map<SourceName, SourceInfo>>}
          * @private
          */
-        this._remoteSourceState = { };
+        this._remoteSourceState = {};
     }
 
     /**
@@ -63,7 +65,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
         if (this.chatRoom) {
             return this.chatRoom.addOrReplaceInPresence(
                 SOURCE_INFO_PRESENCE_ELEMENT,
-                { value: JSON.stringify(this._localSourceState) });
+                { value: JSON.stringify(this._localSourceState) },
+            );
         }
 
         return false;
@@ -83,35 +86,39 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
                 MediaType.AUDIO,
-                muted);
+                muted,
+            );
         };
 
         this._audioMuteHandler = (node, from) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
-                emitAudioMutedEvent(from, node.value === 'true');
+                emitAudioMutedEvent(from, node.value === "true");
             }
         };
-        room.addPresenceListener('audiomuted', this._audioMuteHandler);
+        room.addPresenceListener("audiomuted", this._audioMuteHandler);
 
         const emitVideoMutedEvent = (endpointId, muted) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
                 MediaType.VIDEO,
-                muted);
+                muted,
+            );
         };
 
         this._videoMuteHandler = (node, from) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
-                emitVideoMutedEvent(from, node.value === 'true');
+                emitVideoMutedEvent(from, node.value === "true");
             }
         };
-        room.addPresenceListener('videomuted', this._videoMuteHandler);
+        room.addPresenceListener("videomuted", this._videoMuteHandler);
 
         const emitVideoTypeEvent = (endpointId, videoType) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
-                endpointId, videoType);
+                endpointId,
+                videoType,
+            );
         };
 
         this._videoTypeHandler = (node, from) => {
@@ -119,36 +126,48 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 emitVideoTypeEvent(from, node.value);
             }
         };
-        room.addPresenceListener('videoType', this._videoTypeHandler);
+        room.addPresenceListener("videoType", this._videoTypeHandler);
 
         // Add handlers for presence in the new format.
         this._sourceInfoHandler = (node, mucNick) => {
             const endpointId = mucNick;
             const { value } = node;
             const sourceInfoJSON = safeJsonParse(value);
-            const emitEventsFromHere = this._doesEndpointSendNewSourceInfo(endpointId);
-            const endpointSourceState
-                = this._remoteSourceState[endpointId] || (this._remoteSourceState[endpointId] = {});
+            const emitEventsFromHere =
+                this._doesEndpointSendNewSourceInfo(endpointId);
+            const endpointSourceState =
+                this._remoteSourceState[endpointId] ||
+                (this._remoteSourceState[endpointId] = {});
 
             for (const sourceName of Object.keys(sourceInfoJSON)) {
                 let sourceChanged = false;
                 const mediaType = getMediaTypeFromSourceName(sourceName);
                 const newMutedState = Boolean(sourceInfoJSON[sourceName].muted);
-                const oldSourceState = endpointSourceState[sourceName]
-                    || (endpointSourceState[sourceName] = { sourceName });
+                const oldSourceState =
+                    endpointSourceState[sourceName] ||
+                    (endpointSourceState[sourceName] = { sourceName });
 
                 if (oldSourceState.muted !== newMutedState) {
                     sourceChanged = true;
                     oldSourceState.muted = newMutedState;
-                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
-                        this.eventEmitter.emit(SignalingEvents.SOURCE_MUTED_CHANGED, sourceName, newMutedState);
+                    if (
+                        emitEventsFromHere &&
+                        !this._localSourceState[sourceName]
+                    ) {
+                        this.eventEmitter.emit(
+                            SignalingEvents.SOURCE_MUTED_CHANGED,
+                            sourceName,
+                            newMutedState,
+                        );
                     }
                 }
 
                 // Assume a default videoType of 'camera' for video sources.
-                const newVideoType = mediaType === MediaType.VIDEO
-                    ? sourceInfoJSON[sourceName].videoType ?? VideoType.CAMERA
-                    : undefined;
+                const newVideoType =
+                    mediaType === MediaType.VIDEO
+                        ? (sourceInfoJSON[sourceName].videoType ??
+                          VideoType.CAMERA)
+                        : undefined;
 
                 if (oldSourceState.videoType !== newVideoType) {
                     oldSourceState.videoType = newVideoType;
@@ -156,8 +175,15 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
                     // Since having a mix of eps that do/don't support multi-stream in the same call is supported, emit
                     // SOURCE_VIDEO_TYPE_CHANGED event when the remote source changes videoType.
-                    if (emitEventsFromHere && !this._localSourceState[sourceName]) {
-                        this.eventEmitter.emit(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, sourceName, newVideoType);
+                    if (
+                        emitEventsFromHere &&
+                        !this._localSourceState[sourceName]
+                    ) {
+                        this.eventEmitter.emit(
+                            SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
+                            sourceName,
+                            newVideoType,
+                        );
                     }
                 }
 
@@ -167,7 +193,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
                         sourceName,
                         mucNick,
                         newMutedState,
-                        newVideoType);
+                        newVideoType,
+                    );
                 }
             }
 
@@ -180,15 +207,18 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 }
             }
         };
-        room.addPresenceListener('SourceInfo', this._sourceInfoHandler);
+        room.addPresenceListener("SourceInfo", this._sourceInfoHandler);
 
         // Cleanup when participant leaves
-        this._memberLeftHandler = jid => {
+        this._memberLeftHandler = (jid) => {
             const endpointId = Strophe.getResourceFromJid(jid);
 
             delete this._remoteSourceState[endpointId];
         };
-        room.addEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
+        room.addEventListener(
+            XMPPEvents.MUC_MEMBER_LEFT,
+            this._memberLeftHandler,
+        );
     }
 
     /**
@@ -201,7 +231,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
     _doesEndpointSendNewSourceInfo(endpointId) {
         const presence = this.chatRoom?.getLastPresence(endpointId);
 
-        return Boolean(presence && presence.find(node => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
+        return Boolean(
+            presence &&
+                presence.find(
+                    (node) => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT,
+                ),
+        );
     }
 
     /**
@@ -227,7 +262,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
             if (this.chatRoom) {
                 return this.chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
-            logger.warn('Requested peer media info, before room was set');
+            logger.warn("Requested peer media info, before room was set");
         };
 
         const lastPresence = this.chatRoom?.getLastPresence(owner);
@@ -246,16 +281,22 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         const mediaInfo = {
-            muted: true
+            muted: true,
         };
 
         if (mediaType === MediaType.VIDEO) {
             mediaInfo.videoType = undefined;
-            const codecListNode = filterNodeFromPresenceJSON(lastPresence, 'jitsi_participant_codecList');
-            const codecTypeNode = filterNodeFromPresenceJSON(lastPresence, 'jitsi_participant_codecType');
+            const codecListNode = filterNodeFromPresenceJSON(
+                lastPresence,
+                "jitsi_participant_codecList",
+            );
+            const codecTypeNode = filterNodeFromPresenceJSON(
+                lastPresence,
+                "jitsi_participant_codecType",
+            );
 
             if (codecListNode.length) {
-                mediaInfo.codecList = codecListNode[0].value?.split(',') ?? [];
+                mediaInfo.codecList = codecListNode[0].value?.split(",") ?? [];
             } else if (codecTypeNode.length > 0) {
                 mediaInfo.codecType = codecTypeNode[0].value;
             }
@@ -271,11 +312,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const mediaType = getMediaTypeFromSourceName(sourceName);
         const mediaInfo = {
             muted: true, // muted by default
-            videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
+            videoType:
+                mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined, // 'camera' by default
         };
 
         return this._remoteSourceState[owner]
-            ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
+            ? (this._remoteSourceState[owner][sourceName] ?? mediaInfo)
             : undefined;
     }
 
@@ -316,15 +358,27 @@ export default class SignalingLayerImpl extends SignalingLayer {
         this.chatRoom = room;
         if (oldChatRoom) {
             oldChatRoom.removePresenceListener(
-                'audiomuted', this._audioMuteHandler);
+                "audiomuted",
+                this._audioMuteHandler,
+            );
             oldChatRoom.removePresenceListener(
-                'videomuted', this._videoMuteHandler);
+                "videomuted",
+                this._videoMuteHandler,
+            );
             oldChatRoom.removePresenceListener(
-                'videoType', this._videoTypeHandler);
-            this._sourceInfoHandler
-                && oldChatRoom.removePresenceListener(SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
-            this._memberLeftHandler
-                && oldChatRoom.removeEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
+                "videoType",
+                this._videoTypeHandler,
+            );
+            this._sourceInfoHandler &&
+                oldChatRoom.removePresenceListener(
+                    SOURCE_INFO_PRESENCE_ELEMENT,
+                    this._sourceInfoHandler,
+                );
+            this._memberLeftHandler &&
+                oldChatRoom.removeEventListener(
+                    XMPPEvents.MUC_MEMBER_LEFT,
+                    this._memberLeftHandler,
+                );
         }
         if (room) {
             this._bindChatRoomEventHandlers(room);
@@ -336,7 +390,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     setSSRCOwner(ssrc, newEndpointId, newSourceName) {
-        if (typeof ssrc !== 'number') {
+        if (typeof ssrc !== "number") {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
 
@@ -350,12 +404,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
             if (endpointId !== newEndpointId || sourceName !== newSourceName) {
                 this._logOwnerChangedMessage(
                     `SSRC owner re-assigned from ${existingOwner}(source-name=${sourceName}) to ${
-                        newEndpointId}(source-name=${newSourceName})`);
+                        newEndpointId
+                    }(source-name=${newSourceName})`,
+                );
             }
         }
         this.ssrcOwners.set(ssrc, {
             endpointId: newEndpointId,
-            sourceName: newSourceName
+            sourceName: newSourceName,
         });
     }
 
@@ -387,7 +443,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         if (this._localSourceState[sourceName].videoType !== videoType) {
             // Include only if not a camera (default)
-            this._localSourceState[sourceName].videoType = videoType === VideoType.CAMERA ? undefined : videoType;
+            this._localSourceState[sourceName].videoType =
+                videoType === VideoType.CAMERA ? undefined : videoType;
 
             return this._addLocalSourceInfoToPresence();
         }
@@ -413,5 +470,4 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         this.removeSSRCOwners(ssrcs);
     }
-
 }

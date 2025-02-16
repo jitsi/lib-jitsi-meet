@@ -1,6 +1,8 @@
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import TraceablePeerConnection from "../RTC/TraceablePeerConnection";
 
 export default class LocalSdpMunger {
-  constructor( tpc: TraceablePeerConnection, localEndpointId: string );
-  transformStreamIdentifiers: ( sessionDesc: RTCSessionDescription ) => RTCSessionDescription;
+    constructor(tpc: TraceablePeerConnection, localEndpointId: string);
+    transformStreamIdentifiers: (
+        sessionDesc: RTCSessionDescription,
+    ) => RTCSessionDescription;
 }

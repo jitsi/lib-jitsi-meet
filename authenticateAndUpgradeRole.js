@@ -1,11 +1,11 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
 import {
     CONNECTION_DISCONNECTED,
     CONNECTION_ESTABLISHED,
-    CONNECTION_FAILED
-} from './JitsiConnectionEvents';
-import XMPP from './modules/xmpp/xmpp';
+    CONNECTION_FAILED,
+} from "./JitsiConnectionEvents";
+import XMPP from "./modules/xmpp/xmpp";
 
 const logger = getLogger(__filename);
 
@@ -69,7 +69,7 @@ export default function authenticateAndUpgradeRole({
 
     // 2. Let the API client/consumer know as soon as the XMPP user has been
     //    successfully logged in.
-    onLoginSuccessful
+    onLoginSuccessful,
 }) {
     let canceled = false;
     let rejectPromise;
@@ -81,69 +81,69 @@ export default function authenticateAndUpgradeRole({
         // Promise's reject function.
         rejectPromise = reject;
 
+        xmpp.addListener(CONNECTION_DISCONNECTED, () => {
+            xmpp = undefined;
+        });
+        xmpp.addListener(CONNECTION_ESTABLISHED, () => {
+            if (canceled) {
+                return;
+            }
 
-        xmpp.addListener(
-            CONNECTION_DISCONNECTED,
-            () => {
-                xmpp = undefined;
-            });
-        xmpp.addListener(
-            CONNECTION_ESTABLISHED,
-            () => {
-                if (canceled) {
-                    return;
-                }
+            // Let the caller know that the XMPP login was successful.
+            onLoginSuccessful && onLoginSuccessful();
 
-                // Let the caller know that the XMPP login was successful.
-                onLoginSuccessful && onLoginSuccessful();
+            // Now authenticate with Jicofo and get a new session ID.
+            const room = xmpp.createRoom(
+                this.options.name,
+                this.options.config,
+                onCreateResource,
+            );
 
-                // Now authenticate with Jicofo and get a new session ID.
-                const room = xmpp.createRoom(
-                    this.options.name,
-                    this.options.config,
-                    onCreateResource
-                );
+            room.xmpp.moderator
+                .authenticate(room.roomjid)
+                .then(() => {
+                    xmpp && xmpp.disconnect();
 
-                room.xmpp.moderator.authenticate(room.roomjid)
-                    .then(() => {
-                        xmpp && xmpp.disconnect();
+                    if (canceled) {
+                        return;
+                    }
 
-                        if (canceled) {
-                            return;
-                        }
+                    // we execute this logic in JitsiConference where we bind the current conference as `this`
+                    // At this point we should have the new session ID
+                    // stored in the settings. Send a new conference IQ.
+                    this.room.xmpp.moderator
+                        .sendConferenceRequest(this.room.roomjid)
+                        .catch((e) =>
+                            logger.trace("sendConferenceRequest rejected", e),
+                        )
+                        .finally(() => {
+                            // we need to reset it because of breakout rooms which will
+                            // reuse connection but will invite jicofo
+                            this.room.xmpp.moderator.conferenceRequestSent = false;
 
-                        // we execute this logic in JitsiConference where we bind the current conference as `this`
-                        // At this point we should have the new session ID
-                        // stored in the settings. Send a new conference IQ.
-                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
-                            .catch(e => logger.trace('sendConferenceRequest rejected', e))
-                            .finally(() => {
-                                // we need to reset it because of breakout rooms which will
-                                // reuse connection but will invite jicofo
-                                this.room.xmpp.moderator.conferenceRequestSent = false;
-
-                                resolve();
-                            });
-                    })
-                    .catch(({ error, message }) => {
-                        xmpp.disconnect();
-
-                        reject({
-                            authenticationError: error,
-                            message
+                            resolve();
                         });
+                })
+                .catch(({ error, message }) => {
+                    xmpp.disconnect();
+
+                    reject({
+                        authenticationError: error,
+                        message,
                     });
-            });
+                });
+        });
         xmpp.addListener(
             CONNECTION_FAILED,
             (connectionError, message, credentials) => {
                 reject({
                     connectionError,
                     credentials,
-                    message
+                    message,
                 });
                 xmpp = undefined;
-            });
+            },
+        );
 
         canceled || xmpp.connect(id, password);
     });

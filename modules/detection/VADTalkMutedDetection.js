@@ -1,8 +1,7 @@
-import EventEmitter from '../util/EventEmitter';
-import { calculateAverage } from '../util/MathUtil';
+import EventEmitter from "../util/EventEmitter";
+import { calculateAverage } from "../util/MathUtil";
 
-import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
-
+import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from "./DetectionEvents";
 
 /**
  * The threshold which the average VAD values for a span of time needs to exceed to trigger an event.
@@ -137,7 +136,10 @@ export default class VADTalkMutedDetection extends EventEmitter {
             this._scoreArray.push(vadScore.score);
 
             // Start gathering VAD scores for the configured period of time.
-            this._processTimeout = setTimeout(this._calculateVADScore, PROCESS_TIME_FRAME_SPAN_MS);
+            this._processTimeout = setTimeout(
+                this._calculateVADScore,
+                PROCESS_TIME_FRAME_SPAN_MS,
+            );
         }
     }
 

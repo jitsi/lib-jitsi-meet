@@ -1,11 +1,10 @@
+import Logger from "@jitsi/logger";
+import watchRTC from "@testrtc/watchrtc-sdk";
 
-import Logger from '@jitsi/logger';
-import watchRTC from '@testrtc/watchrtc-sdk';
+import browser from "../browser";
 
-import browser from '../browser';
-
-import { isAnalyticsEnabled, isWatchRTCEnabled } from './functions';
-import { IWatchRTCConfiguration } from './interfaces';
+import { isAnalyticsEnabled, isWatchRTCEnabled } from "./functions";
+import { IWatchRTCConfiguration } from "./interfaces";
 
 const logger = Logger.getLogger(__filename);
 
@@ -25,15 +24,18 @@ class WatchRTCHandler {
      */
     init(options: any): void {
         if (isWatchRTCEnabled(options)) {
-
             // @ts-ignore
             if (browser.isReactNative()) {
-                logger.warn('Cannot initialize WatchRTC in a react native environment!');
+                logger.warn(
+                    "Cannot initialize WatchRTC in a react native environment!",
+                );
                 return;
             }
 
             if (!isAnalyticsEnabled(options)) {
-                logger.error('Cannot initialize WatchRTC when analytics or third party requests are disabled.');
+                logger.error(
+                    "Cannot initialize WatchRTC when analytics or third party requests are disabled.",
+                );
                 return;
             }
 
@@ -43,12 +45,12 @@ class WatchRTCHandler {
                         rtcApiKey: options.watchRTCConfigParams.rtcApiKey,
                     });
                     this.options = options.watchRTCConfigParams;
-                    logger.info('WatchRTC initialized.');
+                    logger.info("WatchRTC initialized.");
                 } else {
-                    logger.error('WatchRTC is enabled but missing API key.');
+                    logger.error("WatchRTC is enabled but missing API key.");
                 }
             } catch (error) {
-                logger.error('Failed to initialize WatchRTC: ', error);
+                logger.error("Failed to initialize WatchRTC: ", error);
             }
         }
     }
@@ -64,13 +66,17 @@ class WatchRTCHandler {
     start(roomName: string, userName: string): void {
         try {
             if (this.options) {
-                this.options.rtcRoomId = this.options.rtcRoomId ? this.options.rtcRoomId : roomName;
-                this.options.rtcPeerId = this.options.rtcPeerId ? this.options.rtcPeerId : userName;
+                this.options.rtcRoomId = this.options.rtcRoomId
+                    ? this.options.rtcRoomId
+                    : roomName;
+                this.options.rtcPeerId = this.options.rtcPeerId
+                    ? this.options.rtcPeerId
+                    : userName;
                 watchRTC.setConfig(this.options);
-                logger.info('WatchRTC setConfig.');
+                logger.info("WatchRTC setConfig.");
             }
         } catch (error) {
-            logger.error('Failed to start WatchRTC session: ', error);
+            logger.error("Failed to start WatchRTC session: ", error);
         }
     }
 }

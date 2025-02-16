@@ -1,8 +1,8 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import Listenable from '../util/Listenable';
+import Listenable from "../util/Listenable";
 
-import * as JingleSessionState from './JingleSessionState';
+import * as JingleSessionState from "./JingleSessionState";
 
 const logger = getLogger(__filename);
 
@@ -12,7 +12,6 @@ const logger = getLogger(__filename);
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
  */
 export default class JingleSession extends Listenable {
-
     /* eslint-disable max-params */
 
     /**
@@ -26,13 +25,14 @@ export default class JingleSession extends Listenable {
      * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
      */
     constructor(
-            sid,
-            localJid,
-            remoteJid,
-            connection,
-            mediaConstraints,
-            pcConfig,
-            isInitiator) {
+        sid,
+        localJid,
+        remoteJid,
+        connection,
+        mediaConstraints,
+        pcConfig,
+        isInitiator,
+    ) {
         super();
         this.sid = sid;
         this.localJid = localJid;
@@ -114,8 +114,7 @@ export default class JingleSession extends Listenable {
      */
     initialize(room, rtc, signalingLayer, options) {
         if (this.state !== null) {
-            const errmsg
-                = `attempt to initiate on session ${this.sid}
+            const errmsg = `attempt to initiate on session ${this.sid}
                    in state ${this.state}`;
 
             logger.error(errmsg);
@@ -136,7 +135,7 @@ export default class JingleSession extends Listenable {
      * @param {Object} options - The options specific to the implementing class.
      * @protected
      */
-    doInitialize(options) { } // eslint-disable-line no-unused-vars, no-empty-function, max-len
+    doInitialize(options) {} // eslint-disable-line no-unused-vars, no-empty-function, max-len
 
     /* eslint-disable no-unused-vars, no-empty-function */
 

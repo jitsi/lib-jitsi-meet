@@ -1,4 +1,4 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
 import JitsiConference from "../../JitsiConference";
 import { JitsiConferenceEvents } from "../../JitsiConferenceEvents";
@@ -14,8 +14,8 @@ import {
     DEFAULT_LAST_N,
     LAST_N_UNLIMITED,
     VIDEO_CODECS_BY_COMPLEXITY,
-    VIDEO_QUALITY_LEVELS
-} from '../../service/RTC/StandardVideoQualitySettings';
+    VIDEO_QUALITY_LEVELS,
+} from "../../service/RTC/StandardVideoQualitySettings";
 
 const logger = getLogger(__filename);
 
@@ -27,10 +27,10 @@ const LIMITED_BY_CPU_TIMEOUT = 60000;
 const MIN_LAST_N = 3;
 
 enum QualityLimitationReason {
-    BANDWIDTH = 'bandwidth',
-    CPU = 'cpu',
-    NONE = 'none'
-};
+    BANDWIDTH = "bandwidth",
+    CPU = "cpu",
+    NONE = "none",
+}
 
 interface IResolution {
     height: number;
@@ -53,10 +53,10 @@ interface ISourceStats {
     qualityLimitationReason: QualityLimitationReason;
     timestamp: number;
     tpc: TraceablePeerConnection;
-};
+}
 
 interface ITrackStats {
-    encodeResolution: number
+    encodeResolution: number;
     encodeTime: number;
     qualityLimitationReason: QualityLimitationReason;
 }
@@ -69,24 +69,24 @@ interface IVideoConstraints {
 export class FixedSizeArray {
     private _data: ISourceStats[];
     private _maxSize: number;
-  
+
     constructor(size: number) {
-      this._maxSize = size;
-      this._data = [];
+        this._maxSize = size;
+        this._data = [];
     }
-  
+
     add(item: ISourceStats): void {
-      if (this._data.length >= this._maxSize) {
-        this._data.shift();
-      }
-      this._data.push(item);
+        if (this._data.length >= this._maxSize) {
+            this._data.shift();
+        }
+        this._data.push(item);
     }
-  
+
     get(index: number): ISourceStats | undefined {
-      if (index < 0 || index >= this._data.length) {
-        throw new Error("Index out of bounds");
-      }
-      return this._data[index];
+        if (index < 0 || index >= this._data.length) {
+            throw new Error("Index out of bounds");
+        }
+        return this._data[index];
     }
 
     size(): number {
@@ -112,16 +112,19 @@ export class QualityController {
     private _sendVideoController: SendVideoController;
 
     /**
-     * 
+     *
      * @param {JitsiConference} conference - The JitsiConference instance.
      * @param {Object} options - video quality settings passed through config.js.
      */
-    constructor(conference: JitsiConference, options: {
-        enableAdaptiveMode: boolean;
-        jvb: Object;
-        lastNRampupTime: number;
-        p2p: Object;
-    }) {
+    constructor(
+        conference: JitsiConference,
+        options: {
+            enableAdaptiveMode: boolean;
+            jvb: Object;
+            lastNRampupTime: number;
+            p2p: Object;
+        },
+    ) {
         this._conference = conference;
         const { jvb, p2p } = options;
         this._codecController = new CodecSelection(conference, { jvb, p2p });
@@ -138,26 +141,49 @@ export class QualityController {
                 this._codecController.selectPreferredCodec(session);
                 this._receiveVideoController.onMediaSessionStarted(session);
                 this._sendVideoController.onMediaSessionStarted(session);
-            });
+            },
+        );
         this._conference.on(
-                JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
-                () => this._sendVideoController.configureConstraintsForLocalSources());
+            JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
+            () =>
+                this._sendVideoController.configureConstraintsForLocalSources(),
+        );
         this._conference.on(
             JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED,
-            (codecList: CodecMimeType[]) => this._codecController.updateVisitorCodecs(codecList));
+            (codecList: CodecMimeType[]) =>
+                this._codecController.updateVisitorCodecs(codecList),
+        );
 
         // Debounce the calls to codec selection when there is a burst of joins and leaves.
         const debouncedSelectCodec = this._debounce(
-            () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession),
-            1000);
-        this._conference.on(JitsiConferenceEvents.USER_JOINED, debouncedSelectCodec.bind(this));
-        this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
+            () =>
+                this._codecController.selectPreferredCodec(
+                    this._conference.jvbJingleSession,
+                ),
+            1000,
+        );
+        this._conference.on(
+            JitsiConferenceEvents.USER_JOINED,
+            debouncedSelectCodec.bind(this),
+        );
+        this._conference.on(
+            JitsiConferenceEvents.USER_LEFT,
+            debouncedSelectCodec.bind(this),
+        );
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
+            (videoConstraints: IVideoConstraints) =>
+                this._sendVideoController.onSenderConstraintsReceived(
+                    videoConstraints,
+                ),
+        );
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
-            (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) => this._processOutboundRtpStats(tpc, stats));
+            (
+                tpc: TraceablePeerConnection,
+                stats: Map<number, IOutboundRtpStats>,
+            ) => this._processOutboundRtpStats(tpc, stats),
+        );
     }
 
     /**
@@ -192,23 +218,25 @@ export class QualityController {
         const lastN = this.receiveVideoController.getLastN();
         let newLastN = lastN;
 
-        if (cpuLimited && (lastN !== LAST_N_UNLIMITED && lastN <= MIN_LAST_N)) {
+        if (cpuLimited && lastN !== LAST_N_UNLIMITED && lastN <= MIN_LAST_N) {
             return false;
         }
 
         // If channelLastN is not set or set to -1 in config.js, the client will ramp up lastN to only up to 25.
         let { channelLastN = DEFAULT_LAST_N } = this._conference.options.config;
 
-        channelLastN = channelLastN === LAST_N_UNLIMITED ? DEFAULT_LAST_N : channelLastN;
+        channelLastN =
+            channelLastN === LAST_N_UNLIMITED ? DEFAULT_LAST_N : channelLastN;
         if (cpuLimited) {
-            const videoStreamsReceived = this._conference.getForwardedSources().length;
+            const videoStreamsReceived =
+                this._conference.getForwardedSources().length;
 
             newLastN = Math.floor(videoStreamsReceived / 2);
             if (newLastN < MIN_LAST_N) {
                 newLastN = MIN_LAST_N;
             }
 
-        // Increment lastN by 1 every LAST_N_RAMPUP_TIME (60) secs.
+            // Increment lastN by 1 every LAST_N_RAMPUP_TIME (60) secs.
         } else if (lastN < channelLastN) {
             newLastN++;
         }
@@ -220,7 +248,9 @@ export class QualityController {
         const isStillLimitedByCpu = newLastN < channelLastN;
 
         this.receiveVideoController.setLastNLimitedByCpu(isStillLimitedByCpu);
-        logger.info(`QualityController - setting lastN=${newLastN}, limitedByCpu=${isStillLimitedByCpu}`);
+        logger.info(
+            `QualityController - setting lastN=${newLastN}, limitedByCpu=${isStillLimitedByCpu}`,
+        );
         this.receiveVideoController.setLastN(newLastN);
 
         return true;
@@ -232,25 +262,33 @@ export class QualityController {
      * @return {void}
      */
     _maybeLowerReceiveResolution(): void {
-        const currentConstraints = this.receiveVideoController.getCurrentReceiverConstraints();
+        const currentConstraints =
+            this.receiveVideoController.getCurrentReceiverConstraints();
         const individualConstraints = currentConstraints.constraints;
         let maxHeight = 0;
 
-        if (individualConstraints && Object.keys(individualConstraints).length) {
+        if (
+            individualConstraints &&
+            Object.keys(individualConstraints).length
+        ) {
             for (const value of Object.values(individualConstraints)) {
                 const v: any = value;
                 maxHeight = Math.max(maxHeight, v.maxHeight);
             }
         }
 
-        const currentLevel = VIDEO_QUALITY_LEVELS.findIndex(lvl => lvl.height <= maxHeight);
+        const currentLevel = VIDEO_QUALITY_LEVELS.findIndex(
+            (lvl) => lvl.height <= maxHeight,
+        );
 
         // Do not lower the resolution to less than 180p.
         if (VIDEO_QUALITY_LEVELS[currentLevel].height === 180) {
             return;
         }
 
-        this.receiveVideoController.setPreferredReceiveMaxFrameHeight(VIDEO_QUALITY_LEVELS[currentLevel + 1].height);
+        this.receiveVideoController.setPreferredReceiveMaxFrameHeight(
+            VIDEO_QUALITY_LEVELS[currentLevel + 1].height,
+        );
     }
 
     /**
@@ -262,9 +300,14 @@ export class QualityController {
      */
     _maybeSwitchVideoCodec(trackId: number): boolean {
         const stats = this._encodeTimeStats.get(trackId);
-        const { codec, encodeResolution, localTrack } = stats.get(stats.size() - 1);
-        const codecsByVideoType = VIDEO_CODECS_BY_COMPLEXITY[localTrack.getVideoType()];
-        const codecIndex = codecsByVideoType.findIndex(val => val === codec.toLowerCase());
+        const { codec, encodeResolution, localTrack } = stats.get(
+            stats.size() - 1,
+        );
+        const codecsByVideoType =
+            VIDEO_CODECS_BY_COMPLEXITY[localTrack.getVideoType()];
+        const codecIndex = codecsByVideoType.findIndex(
+            (val) => val === codec.toLowerCase(),
+        );
 
         // Do nothing if the encoder is using the lowest complexity codec already.
         if (codecIndex === codecsByVideoType.length - 1) {
@@ -275,12 +318,24 @@ export class QualityController {
             this._limitedByCpuTimeout = window.setTimeout(() => {
                 this._limitedByCpuTimeout = undefined;
                 const updatedStats = this._encodeTimeStats.get(trackId);
-                const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
+                const latestSourceStats: ISourceStats = updatedStats.get(
+                    updatedStats.size() - 1,
+                );
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
-                if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
-                    || encodeResolution <  Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())) {
-                        return this.codecController.changeCodecPreferenceOrder(localTrack, codec)
+                if (
+                    latestSourceStats.qualityLimitationReason ===
+                        QualityLimitationReason.CPU ||
+                    encodeResolution <
+                        Math.min(
+                            localTrack.maxEnabledResolution,
+                            localTrack.getCaptureResolution(),
+                        )
+                ) {
+                    return this.codecController.changeCodecPreferenceOrder(
+                        localTrack,
+                        codec,
+                    );
                 }
             }, LIMITED_BY_CPU_TIMEOUT);
         }
@@ -302,17 +357,22 @@ export class QualityController {
             return;
         }
 
-        const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
+        const { encodeResolution, localTrack, qualityLimitationReason, tpc } =
+            sourceStats;
         const trackId = localTrack.rtcId;
 
-        if (encodeResolution === tpc.calculateExpectedSendResolution(localTrack)) {
+        if (
+            encodeResolution === tpc.calculateExpectedSendResolution(localTrack)
+        ) {
             if (this._limitedByCpuTimeout) {
                 window.clearTimeout(this._limitedByCpuTimeout);
                 this._limitedByCpuTimeout = undefined;
             }
 
-            if (qualityLimitationReason === QualityLimitationReason.NONE
-                && this.receiveVideoController.isLastNLimitedByCpu()) {
+            if (
+                qualityLimitationReason === QualityLimitationReason.NONE &&
+                this.receiveVideoController.isLastNLimitedByCpu()
+            ) {
                 if (!this._lastNRampupTimeout && !this._isLastNRampupBlocked) {
                     // Ramp up the number of received videos if CPU limitation no longer exists. If the cpu
                     // limitation returns as a consequence, do not attempt to ramp up again, continue to
@@ -320,9 +380,13 @@ export class QualityController {
                     this._lastNRampupTimeout = window.setTimeout(() => {
                         this._lastNRampupTimeout = undefined;
                         const updatedStats = this._encodeTimeStats.get(trackId);
-                        const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
+                        const latestSourceStats: ISourceStats =
+                            updatedStats.get(updatedStats.size() - 1);
 
-                        if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU) {
+                        if (
+                            latestSourceStats.qualityLimitationReason ===
+                            QualityLimitationReason.CPU
+                        ) {
                             this._isLastNRampupBlocked = true;
                         } else {
                             this._lowerOrRaiseLastN(false /* raise */);
@@ -352,7 +416,9 @@ export class QualityController {
                 const lastNChanged = this._lowerOrRaiseLastN(true /* lower */);
 
                 if (!lastNChanged) {
-                    this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
+                    this.receiveVideoController.setReceiveResolutionLimitedByCpu(
+                        true,
+                    );
                     this._maybeLowerReceiveResolution();
                 }
             }
@@ -367,7 +433,10 @@ export class QualityController {
      * @param {Map<number, IOutboundRtpStats>} stats - Outbound-rtp stream stats per SSRC.
      * @returns void
      */
-    _processOutboundRtpStats(tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>): void {
+    _processOutboundRtpStats(
+        tpc: TraceablePeerConnection,
+        stats: Map<number, IOutboundRtpStats>,
+    ): void {
         const activeSession = this._conference.getActiveMediaSession();
 
         // Process stats only for the active media session.
@@ -378,15 +447,24 @@ export class QualityController {
         const statsPerTrack = new Map();
 
         for (const ssrc of stats.keys()) {
-            const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
+            const {
+                codec,
+                encodeTime,
+                qualityLimitationReason,
+                resolution,
+                timestamp,
+            } = stats.get(ssrc);
             const track = tpc.getTrackBySSRC(ssrc);
             const trackId = track.rtcId;
             let existingStats = statsPerTrack.get(trackId);
-            const encodeResolution = Math.min(resolution.height, resolution.width);
+            const encodeResolution = Math.min(
+                resolution.height,
+                resolution.width,
+            );
             const ssrcStats = {
                 encodeResolution,
                 encodeTime,
-                qualityLimitationReason
+                qualityLimitationReason,
             };
 
             if (existingStats) {
@@ -397,7 +475,7 @@ export class QualityController {
                 existingStats = {
                     codec,
                     timestamp,
-                    trackStats: [ ssrcStats ]
+                    trackStats: [ssrcStats],
                 };
 
                 statsPerTrack.set(trackId, existingStats);
@@ -409,17 +487,31 @@ export class QualityController {
             const { codec, timestamp, trackStats } = statsPerTrack.get(trackId);
             const totalEncodeTime = trackStats
                 .map((stat: ITrackStats) => stat.encodeTime)
-                .reduce((totalValue: number, currentValue: number) => totalValue + currentValue, 0);
+                .reduce(
+                    (totalValue: number, currentValue: number) =>
+                        totalValue + currentValue,
+                    0,
+                );
             const avgEncodeTime: number = totalEncodeTime / trackStats.length;
-            const { qualityLimitationReason = QualityLimitationReason.NONE }
-                = trackStats
-                    .find((stat: ITrackStats) => stat.qualityLimitationReason !== QualityLimitationReason.NONE) ?? {};
+            const { qualityLimitationReason = QualityLimitationReason.NONE } =
+                trackStats.find(
+                    (stat: ITrackStats) =>
+                        stat.qualityLimitationReason !==
+                        QualityLimitationReason.NONE,
+                ) ?? {};
             const encodeResolution: number = trackStats
                 .map((stat: ITrackStats) => stat.encodeResolution)
-                .reduce((resolution: number, currentValue: number) => Math.max(resolution, currentValue), 0);
-            const localTrack = this._conference.getLocalVideoTracks().find(t => t.rtcId === trackId);
+                .reduce(
+                    (resolution: number, currentValue: number) =>
+                        Math.max(resolution, currentValue),
+                    0,
+                );
+            const localTrack = this._conference
+                .getLocalVideoTracks()
+                .find((t) => t.rtcId === trackId);
 
-            const exisitingStats: FixedSizeArray = this._encodeTimeStats.get(trackId);
+            const exisitingStats: FixedSizeArray =
+                this._encodeTimeStats.get(trackId);
             const sourceStats = {
                 avgEncodeTime,
                 codec,
@@ -427,7 +519,7 @@ export class QualityController {
                 qualityLimitationReason,
                 localTrack,
                 timestamp,
-                tpc
+                tpc,
             };
 
             if (exisitingStats) {
@@ -440,8 +532,10 @@ export class QualityController {
                 this._encodeTimeStats.set(trackId, data);
             }
 
-            logger.debug(`Encode stats for ${localTrack}: codec=${codec}, time=${avgEncodeTime},`
-                + `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`);
+            logger.debug(
+                `Encode stats for ${localTrack}: codec=${codec}, time=${avgEncodeTime},` +
+                    `resolution=${encodeResolution}, qualityLimitationReason=${qualityLimitationReason}`,
+            );
 
             this._performQualityOptimizations(sourceStats);
         }

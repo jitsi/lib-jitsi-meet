@@ -1,28 +1,25 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "module": "es6",
-    "sourceMap": true,
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "lib": [
-      "esnext",
-      "dom"
-    ],
-    "outDir": "dist/esm/",
-  },
-  "exclude": [
-    "dist",
-    "doc",
-    "types",
-    "**/*.spec.js",
-    "**/*.spec.ts",
-    "*.conf*.js",
-    "index.js",
-    "lib-jitsi-meet.*.js",
-    "webpack*.js",
-  ]
+    "compilerOptions": {
+        "target": "es6",
+        "module": "es6",
+        "sourceMap": true,
+        "allowJs": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "lib": ["esnext", "dom"],
+        "outDir": "dist/esm/"
+    },
+    "exclude": [
+        "dist",
+        "doc",
+        "types",
+        "**/*.spec.js",
+        "**/*.spec.ts",
+        "*.conf*.js",
+        "index.js",
+        "lib-jitsi-meet.*.js",
+        "webpack*.js"
+    ]
 }

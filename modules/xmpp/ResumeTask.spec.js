@@ -1,7 +1,9 @@
-import networkInfo, { default as NetworkInfo } from '../connectivity/NetworkInfo';
-import { nextTick } from '../util/TestUtils';
+import networkInfo, {
+    default as NetworkInfo,
+} from "../connectivity/NetworkInfo";
+import { nextTick } from "../util/TestUtils";
 
-import ResumeTask from './ResumeTask';
+import ResumeTask from "./ResumeTask";
 
 /**
  * A mock of the stream management plugin.
@@ -11,16 +13,14 @@ class MockStreamManagement {
      * @return {string}
      */
     getResumeToken() {
-        return '1234';
+        return "1234";
     }
 
     /**
      * @returns {void}
      */
     // eslint-disable-next-line no-empty-function,require-jsdoc
-    resume() {
-
-    }
+    resume() {}
 }
 
 /**
@@ -32,11 +32,11 @@ class MockStropheConection {
      */
     constructor() {
         this.streamManagement = new MockStreamManagement();
-        this.service = 'wss://something.com/xmpp-websocket';
+        this.service = "wss://something.com/xmpp-websocket";
     }
 }
 
-describe('ResumeTask', () => {
+describe("ResumeTask", () => {
     let connection, resumeTask;
 
     beforeEach(() => {
@@ -53,9 +53,9 @@ describe('ResumeTask', () => {
         // Need to unregister the listener added to the networkInfo global
         resumeTask.cancel();
     });
-    describe('the retry task', () => {
-        it('should be scheduled immediately if the internet is online', () => {
-            const retrySpy = spyOn(connection.streamManagement, 'resume');
+    describe("the retry task", () => {
+        it("should be scheduled immediately if the internet is online", () => {
+            const retrySpy = spyOn(connection.streamManagement, "resume");
 
             resumeTask.schedule();
 
@@ -65,7 +65,7 @@ describe('ResumeTask', () => {
                 expect(retrySpy).toHaveBeenCalled();
             });
         });
-        it('should be scheduled when the internet comes back online', () => {
+        it("should be scheduled when the internet comes back online", () => {
             NetworkInfo.updateNetworkInfo({ isOnline: false });
 
             resumeTask.schedule();
@@ -76,8 +76,8 @@ describe('ResumeTask', () => {
 
             expect(resumeTask.retryDelay).not.toBe(undefined);
         });
-        it('should not execute first scheduled and then canceled', () => {
-            const retrySpy = spyOn(connection.streamManagement, 'resume');
+        it("should not execute first scheduled and then canceled", () => {
+            const retrySpy = spyOn(connection.streamManagement, "resume");
 
             resumeTask.schedule();
 
@@ -89,7 +89,7 @@ describe('ResumeTask', () => {
                 expect(retrySpy).not.toHaveBeenCalled();
             });
         });
-        it('should be rescheduled if internet goes offline/online', () => {
+        it("should be rescheduled if internet goes offline/online", () => {
             resumeTask.schedule();
 
             expect(resumeTask.retryDelay).not.toBe(undefined);
@@ -103,30 +103,35 @@ describe('ResumeTask', () => {
             expect(resumeTask.retryDelay).not.toBe(undefined);
         });
     });
-    describe('the retryDelay', () => {
-        const between1and3seconds = delay => delay >= 1000 && delay <= 3000;
-        const between3and9seconds = delay => delay >= 3000 && delay <= 9000;
-        const between4500msAnd27seconds = delay => delay >= 4500 && delay <= 27000;
+    describe("the retryDelay", () => {
+        const between1and3seconds = (delay) => delay >= 1000 && delay <= 3000;
+        const between3and9seconds = (delay) => delay >= 3000 && delay <= 9000;
+        const between4500msAnd27seconds = (delay) =>
+            delay >= 4500 && delay <= 27000;
 
-        it('should be between 1 - 3 seconds for the first attempt', () => {
+        it("should be between 1 - 3 seconds for the first attempt", () => {
             resumeTask.schedule();
 
             expect(between1and3seconds(resumeTask.retryDelay)).toBeTruthy();
         });
-        it('should be between 3 - 9 seconds for the second attempt', () => {
+        it("should be between 3 - 9 seconds for the second attempt", () => {
             resumeTask.schedule();
             resumeTask.schedule();
 
-            expect(between3and9seconds(resumeTask.retryDelay)).toBeTruthy(`retryDelay=${resumeTask.retryDelay}`);
+            expect(between3and9seconds(resumeTask.retryDelay)).toBeTruthy(
+                `retryDelay=${resumeTask.retryDelay}`,
+            );
         });
-        it('should be between 4.5 - 27 seconds for the third attempt', () => {
+        it("should be between 4.5 - 27 seconds for the third attempt", () => {
             resumeTask.schedule();
             resumeTask.schedule();
             resumeTask.schedule();
 
-            expect(between4500msAnd27seconds(resumeTask.retryDelay)).toBeTruthy();
+            expect(
+                between4500msAnd27seconds(resumeTask.retryDelay),
+            ).toBeTruthy();
         });
-        it('should not increase when internet goes offline/online', () => {
+        it("should not increase when internet goes offline/online", () => {
             resumeTask.schedule();
 
             networkInfo.updateNetworkInfo({ isOnline: false });

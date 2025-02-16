@@ -1,4 +1,4 @@
-import Listenable from '../util/Listenable';
+import Listenable from "../util/Listenable";
 
 /**
  * Creates ConnectionPlugin class that extends the passed class.
@@ -36,5 +36,5 @@ export default getConnectionPluginDefinition();
 /**
  * ConnectionPlugin class that extends Listenable.
  */
-export const ConnectionPluginListenable
-    = getConnectionPluginDefinition(Listenable);
+export const ConnectionPluginListenable =
+    getConnectionPluginDefinition(Listenable);

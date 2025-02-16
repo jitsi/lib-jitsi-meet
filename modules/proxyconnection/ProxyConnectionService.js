@@ -1,14 +1,14 @@
-import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
-import { $iq } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import $ from "jquery";
+import { $iq } from "strophe.js";
 
-import { MediaType } from '../../service/RTC/MediaType';
-import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
-import { VideoType } from '../../service/RTC/VideoType';
-import RTC from '../RTC/RTC';
+import { MediaType } from "../../service/RTC/MediaType";
+import { getSourceNameForJitsiTrack } from "../../service/RTC/SignalingLayer";
+import { VideoType } from "../../service/RTC/VideoType";
+import RTC from "../RTC/RTC";
 
-import ProxyConnectionPC from './ProxyConnectionPC';
-import { ACTIONS } from './constants';
+import ProxyConnectionPC from "./ProxyConnectionPC";
+import { ACTIONS } from "./constants";
 
 const logger = getLogger(__filename);
 
@@ -33,10 +33,7 @@ export default class ProxyConnectionService {
      * arguments passed in are the jid to send the message to and the message.
      */
     constructor(options = {}) {
-        const {
-            jitsiConnection,
-            ...otherOptions
-        } = options;
+        const { jitsiConnection, ...otherOptions } = options;
 
         /**
          * Holds a reference to the collection of all callbacks.
@@ -44,8 +41,10 @@ export default class ProxyConnectionService {
          * @type {Object}
          */
         this._options = {
-            pcConfig: jitsiConnection && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
-            ...otherOptions
+            pcConfig:
+                jitsiConnection &&
+                jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
+            ...otherOptions,
         };
 
         /**
@@ -85,25 +84,23 @@ export default class ProxyConnectionService {
         // If a proxy connection has already been established and messages come
         // from another peer jid then those messages should be replied to with
         // a rejection.
-        if (this._peerConnection
-            && this._peerConnection.getPeerJid() !== peerJid) {
-            this._onFatalError(
-                peerJid,
-                ACTIONS.CONNECTION_ERROR,
-                'rejected'
-            );
+        if (
+            this._peerConnection &&
+            this._peerConnection.getPeerJid() !== peerJid
+        ) {
+            this._onFatalError(peerJid, ACTIONS.CONNECTION_ERROR, "rejected");
 
             return;
         }
 
         const iq = this._convertStringToXML(message.data.iq);
-        const $jingle = iq && iq.find('jingle');
-        const action = $jingle && $jingle.attr('action');
+        const $jingle = iq && iq.find("jingle");
+        const action = $jingle && $jingle.attr("action");
 
         if (action === ACTIONS.INITIATE) {
             this._peerConnection = this._createPeerConnection(peerJid, {
                 isInitiator: false,
-                receiveVideo: true
+                receiveVideo: true,
             });
         }
 
@@ -115,9 +112,11 @@ export default class ProxyConnectionService {
 
         // Take additional steps to ensure the peer connection is cleaned up
         // if it is to be closed.
-        if (action === ACTIONS.CONNECTION_ERROR
-            || action === ACTIONS.UNAVAILABLE
-            || action === ACTIONS.TERMINATE) {
+        if (
+            action === ACTIONS.CONNECTION_ERROR ||
+            action === ACTIONS.UNAVAILABLE ||
+            action === ACTIONS.TERMINATE
+        ) {
             this._selfCloseConnection();
         }
 
@@ -136,11 +135,15 @@ export default class ProxyConnectionService {
     start(peerJid, localTracks = []) {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
-            receiveVideo: false
+            receiveVideo: false,
         });
 
         localTracks.forEach((localTrack, localTrackIndex) => {
-            const localSourceNameTrack = getSourceNameForJitsiTrack('peer', localTrack.getType(), localTrackIndex);
+            const localSourceNameTrack = getSourceNameForJitsiTrack(
+                "peer",
+                localTrack.getType(),
+                localTrackIndex,
+            );
 
             localTrack.setSourceName(localSourceNameTrack);
         });
@@ -171,11 +174,11 @@ export default class ProxyConnectionService {
      */
     _convertStringToXML(xml) {
         try {
-            const xmlDom = new DOMParser().parseFromString(xml, 'text/xml');
+            const xmlDom = new DOMParser().parseFromString(xml, "text/xml");
 
             return $(xmlDom);
         } catch (e) {
-            logger.error('Attempted to convert incorrectly formatted xml');
+            logger.error("Attempted to convert incorrectly formatted xml");
 
             return null;
         }
@@ -194,7 +197,7 @@ export default class ProxyConnectionService {
      */
     _createPeerConnection(peerJid, options = {}) {
         if (!peerJid) {
-            throw new Error('Cannot create ProxyConnectionPC without a peer.');
+            throw new Error("Cannot create ProxyConnectionPC without a peer.");
         }
 
         const pcOptions = {
@@ -203,7 +206,7 @@ export default class ProxyConnectionService {
             onRemoteStream: this._onRemoteStream,
             onSendMessage: this._onSendMessage,
             peerJid,
-            ...options
+            ...options,
         };
 
         return new ProxyConnectionPC(pcOptions);
@@ -223,26 +226,32 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onFatalError(peerJid, errorType, details = '') {
+    _onFatalError(peerJid, errorType, details = "") {
         logger.error(
-            'Received a proxy connection error', peerJid, errorType, details);
+            "Received a proxy connection error",
+            peerJid,
+            errorType,
+            details,
+        );
 
         const iq = $iq({
             to: peerJid,
-            type: 'set'
+            type: "set",
         })
-            .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: errorType
+            .c("jingle", {
+                xmlns: "urn:xmpp:jingle:1",
+                action: errorType,
             })
-            .c('details')
+            .c("details")
             .t(details)
             .up();
 
         this._onSendMessage(peerJid, iq);
 
-        if (this._peerConnection
-            && this._peerConnection.getPeerJid() === peerJid) {
+        if (
+            this._peerConnection &&
+            this._peerConnection.getPeerJid() === peerJid
+        ) {
             this._selfCloseConnection();
         }
     }
@@ -260,7 +269,7 @@ export default class ProxyConnectionService {
      */
     _onRemoteStream(jitsiRemoteTrack) {
         if (!this._options.onRemoteStream) {
-            logger.error('Remote track received without callback.');
+            logger.error("Remote track received without callback.");
             jitsiRemoteTrack.dispose();
 
             return;
@@ -271,24 +280,23 @@ export default class ProxyConnectionService {
 
         if (isVideo) {
             videoType = this._options.convertVideoToDesktop
-                ? VideoType.DESKTOP : VideoType.CAMERA;
+                ? VideoType.DESKTOP
+                : VideoType.CAMERA;
         }
 
         // Grab the webrtc media stream and pipe it through the same processing
         // that would occur for a locally obtained media stream.
         const mediaStream = jitsiRemoteTrack.getOriginalStream();
-        const jitsiLocalTracks = RTC.createLocalTracks(
-            [
-                {
-                    deviceId:
-                        `proxy:${this._peerConnection.getPeerJid()}`,
-                    mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
-                    sourceType: 'proxy',
-                    stream: mediaStream,
-                    track: mediaStream.getVideoTracks()[0],
-                    videoType
-                }
-            ]);
+        const jitsiLocalTracks = RTC.createLocalTracks([
+            {
+                deviceId: `proxy:${this._peerConnection.getPeerJid()}`,
+                mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+                sourceType: "proxy",
+                stream: mediaStream,
+                track: mediaStream.getVideoTracks()[0],
+                videoType,
+            },
+        ]);
 
         this._options.onRemoteStream(jitsiLocalTracks[0]);
     }
@@ -307,12 +315,13 @@ export default class ProxyConnectionService {
         }
 
         try {
-            const stringifiedIq
-                = new XMLSerializer().serializeToString(iq.nodeTree || iq);
+            const stringifiedIq = new XMLSerializer().serializeToString(
+                iq.nodeTree || iq,
+            );
 
             this._options.onSendMessage(peerJid, { iq: stringifiedIq });
         } catch (e) {
-            logger.error('Attempted to send an incorrectly formatted iq.');
+            logger.error("Attempted to send an incorrectly formatted iq.");
         }
     }
 
@@ -325,7 +334,6 @@ export default class ProxyConnectionService {
     _selfCloseConnection() {
         this.stop();
 
-        this._options.onConnectionClosed
-            && this._options.onConnectionClosed();
+        this._options.onConnectionClosed && this._options.onConnectionClosed();
     }
 }

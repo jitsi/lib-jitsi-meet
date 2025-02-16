@@ -1,1 +1,3 @@
-export function createAudioContext( options: unknown ): AudioContext | unknown | undefined; // TODO
+export function createAudioContext(
+    options: unknown,
+): AudioContext | unknown | undefined; // TODO

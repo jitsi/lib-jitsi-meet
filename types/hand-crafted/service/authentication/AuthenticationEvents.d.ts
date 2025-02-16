@@ -1,3 +1,3 @@
 export enum AuthenticationEvents {
-  IDENTITY_UPDATED = 'authentication.identity_updated'
+    IDENTITY_UPDATED = "authentication.identity_updated",
 }

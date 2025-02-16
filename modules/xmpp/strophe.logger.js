@@ -1,6 +1,6 @@
-import { Strophe } from 'strophe.js';
+import { Strophe } from "strophe.js";
 
-import ConnectionPlugin from './ConnectionPlugin';
+import ConnectionPlugin from "./ConnectionPlugin";
 
 /**
  *  Logs raw stanzas and makes them available for download as JSON
@@ -29,7 +29,7 @@ class StropheLogger extends ConnectionPlugin {
      * @param stanza
      */
     logIncoming(stanza) {
-        this.log.push([ new Date().getTime(), 'incoming', stanza ]);
+        this.log.push([new Date().getTime(), "incoming", stanza]);
     }
 
     /**
@@ -37,13 +37,13 @@ class StropheLogger extends ConnectionPlugin {
      * @param stanza
      */
     logOutgoing(stanza) {
-        this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
+        this.log.push([new Date().getTime(), "outgoing", stanza]);
     }
 }
 
 /**
  *
  */
-export default function() {
-    Strophe.addConnectionPlugin('logger', new StropheLogger());
+export default function () {
+    Strophe.addConnectionPlugin("logger", new StropheLogger());
 }

@@ -1,15 +1,14 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
 
-import SpeakerStats from './SpeakerStats';
-
+import SpeakerStats from "./SpeakerStats";
 
 /**
  * The value to use for the "type" field for messages sent
  * over the data channel that contain a face landmark.
  */
 
-const FACE_LANDMARK_MESSAGE_TYPE = 'face-landmarks';
+const FACE_LANDMARK_MESSAGE_TYPE = "face-landmarks";
 
 /**
  * A collection for tracking speaker stats. Attaches listeners
@@ -26,10 +25,9 @@ export default class SpeakerStatsCollector {
     constructor(conference) {
         this.stats = {
             users: {
-
                 // userId: SpeakerStats
             },
-            dominantSpeakerId: null
+            dominantSpeakerId: null,
         };
 
         const userId = conference.myUserId();
@@ -39,28 +37,34 @@ export default class SpeakerStatsCollector {
 
         conference.addEventListener(
             JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED,
-            this._onDominantSpeaker.bind(this));
+            this._onDominantSpeaker.bind(this),
+        );
         conference.addEventListener(
             JitsiConferenceEvents.USER_JOINED,
-            this._onUserJoin.bind(this));
+            this._onUserJoin.bind(this),
+        );
         conference.addEventListener(
             JitsiConferenceEvents.USER_LEFT,
-            this._onUserLeave.bind(this));
+            this._onUserLeave.bind(this),
+        );
         conference.addEventListener(
             JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
-            this._onDisplayNameChange.bind(this));
+            this._onDisplayNameChange.bind(this),
+        );
 
         conference.on(
             JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-                (participant, { type, faceLandmarks }) => {
-                    if (type === FACE_LANDMARK_MESSAGE_TYPE) {
-                        this._onFaceLandmarkAdd(participant.getId(), faceLandmarks);
-                    }
-                });
+            (participant, { type, faceLandmarks }) => {
+                if (type === FACE_LANDMARK_MESSAGE_TYPE) {
+                    this._onFaceLandmarkAdd(participant.getId(), faceLandmarks);
+                }
+            },
+        );
         if (conference.xmpp) {
             conference.xmpp.addListener(
                 XMPPEvents.SPEAKER_STATS_RECEIVED,
-                this._updateStats.bind(this));
+                this._updateStats.bind(this),
+            );
         }
     }
 
@@ -75,12 +79,13 @@ export default class SpeakerStatsCollector {
      * @private
      */
     _onDominantSpeaker(dominantSpeakerId, previous, silence) {
-        const oldDominantSpeaker
-            = this.stats.users[this.stats.dominantSpeakerId];
+        const oldDominantSpeaker =
+            this.stats.users[this.stats.dominantSpeakerId];
         const newDominantSpeaker = this.stats.users[dominantSpeakerId];
 
         oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false);
-        newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true, silence);
+        newDominantSpeaker &&
+            newDominantSpeaker.setDominantSpeaker(true, silence);
         this.stats.dominantSpeakerId = dominantSpeakerId;
     }
 
@@ -98,7 +103,10 @@ export default class SpeakerStatsCollector {
         }
 
         if (!this.stats.users[userId]) {
-            this.stats.users[userId] = new SpeakerStats(userId, participant.getDisplayName());
+            this.stats.users[userId] = new SpeakerStats(
+                userId,
+                participant.getDisplayName(),
+            );
         }
     }
 
@@ -167,7 +175,8 @@ export default class SpeakerStatsCollector {
      * @private
      */
     _updateStats(newStats) {
-        for (const userId in newStats) { // eslint-disable-line guard-for-in
+        for (const userId in newStats) {
+            // eslint-disable-line guard-for-in
             let speakerStatsToUpdate;
             const newParticipant = this.conference.getParticipantById(userId);
 
@@ -177,21 +186,26 @@ export default class SpeakerStatsCollector {
                     speakerStatsToUpdate = this.stats.users[userId];
 
                     if (!speakerStatsToUpdate.getDisplayName()) {
-                        speakerStatsToUpdate
-                            .setDisplayName(newStats[userId].displayName);
+                        speakerStatsToUpdate.setDisplayName(
+                            newStats[userId].displayName,
+                        );
                     }
                 } else {
                     speakerStatsToUpdate = new SpeakerStats(
-                        userId, newStats[userId].displayName);
+                        userId,
+                        newStats[userId].displayName,
+                    );
                     this.stats.users[userId] = speakerStatsToUpdate;
                     speakerStatsToUpdate.markAsHasLeft();
                 }
 
-                speakerStatsToUpdate.totalDominantSpeakerTime
-                    = newStats[userId].totalDominantSpeakerTime;
+                speakerStatsToUpdate.totalDominantSpeakerTime =
+                    newStats[userId].totalDominantSpeakerTime;
 
                 if (Array.isArray(newStats[userId].faceLandmarks)) {
-                    speakerStatsToUpdate.setFaceLandmarks(newStats[userId].faceLandmarks);
+                    speakerStatsToUpdate.setFaceLandmarks(
+                        newStats[userId].faceLandmarks,
+                    );
                 }
             }
         }

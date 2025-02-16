@@ -1,1 +1,5 @@
-export function getJitterDelay( retry: number, minDelay?: number, base?: number ): number;
+export function getJitterDelay(
+    retry: number,
+    minDelay?: number,
+    base?: number,
+): number;

@@ -1,41 +1,42 @@
-import Logger from '@jitsi/logger';
+import Logger from "@jitsi/logger";
 
-import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import JitsiConnection from './JitsiConnection';
-import * as JitsiConnectionErrors from './JitsiConnectionErrors';
-import * as JitsiConnectionEvents from './JitsiConnectionEvents';
-import JitsiMediaDevices from './JitsiMediaDevices';
-import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
-import JitsiTrackError from './JitsiTrackError';
-import * as JitsiTrackErrors from './JitsiTrackErrors';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
-import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
-import RTC from './modules/RTC/RTC';
-import RTCStats from './modules/RTCStats/RTCStats';
-import browser from './modules/browser';
-import NetworkInfo from './modules/connectivity/NetworkInfo';
-import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
-import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
-import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import ProxyConnectionService
-    from './modules/proxyconnection/ProxyConnectionService';
-import recordingConstants from './modules/recording/recordingConstants';
-import Settings from './modules/settings/Settings';
-import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import Statistics from './modules/statistics/statistics';
-import ScriptUtil from './modules/util/ScriptUtil';
-import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
-import AudioMixer from './modules/webaudio/AudioMixer';
-import { MediaType } from './service/RTC/MediaType';
-import * as ConnectionQualityEvents
-    from './service/connectivity/ConnectionQualityEvents';
-import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
-import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
-import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
-import { VideoType } from './service/RTC/VideoType';
-import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
+import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import JitsiConnection from "./JitsiConnection";
+import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
+import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
+import JitsiMediaDevices from "./JitsiMediaDevices";
+import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import JitsiTrackError from "./JitsiTrackError";
+import * as JitsiTrackErrors from "./JitsiTrackErrors";
+import * as JitsiTrackEvents from "./JitsiTrackEvents";
+import * as JitsiTranscriptionStatus from "./JitsiTranscriptionStatus";
+import RTC from "./modules/RTC/RTC";
+import RTCStats from "./modules/RTCStats/RTCStats";
+import browser from "./modules/browser";
+import NetworkInfo from "./modules/connectivity/NetworkInfo";
+import { TrackStreamingStatus } from "./modules/connectivity/TrackStreamingStatus";
+import getActiveAudioDevice from "./modules/detection/ActiveDeviceDetector";
+import * as DetectionEvents from "./modules/detection/DetectionEvents";
+import TrackVADEmitter from "./modules/detection/TrackVADEmitter";
+import ProxyConnectionService from "./modules/proxyconnection/ProxyConnectionService";
+import recordingConstants from "./modules/recording/recordingConstants";
+import Settings from "./modules/settings/Settings";
+import LocalStatsCollector from "./modules/statistics/LocalStatsCollector";
+import Statistics from "./modules/statistics/statistics";
+import ScriptUtil from "./modules/util/ScriptUtil";
+import * as VideoSIPGWConstants from "./modules/videosipgw/VideoSIPGWConstants";
+import AudioMixer from "./modules/webaudio/AudioMixer";
+import { MediaType } from "./service/RTC/MediaType";
+import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
+import * as E2ePingEvents from "./service/e2eping/E2ePingEvents";
+import { createGetUserMediaEvent } from "./service/statistics/AnalyticsEvents";
+import * as RTCStatsEvents from "./modules/RTCStats/RTCStatsEvents";
+import { VideoType } from "./service/RTC/VideoType";
+import runPreCallTest, {
+    IceServer,
+    PreCallResult,
+} from "./modules/statistics/PreCallTest";
 
 const logger = Logger.getLogger(__filename);
 
@@ -57,9 +58,10 @@ let hasGUMExecuted = false;
 function getAnalyticsAttributesFromOptions(options) {
     const attributes: any = {};
 
-    attributes['audio_requested'] = options.devices.includes('audio');
-    attributes['video_requested'] = options.devices.includes('video');
-    attributes['screen_sharing_requested'] = options.devices.includes('desktop');
+    attributes["audio_requested"] = options.devices.includes("audio");
+    attributes["video_requested"] = options.devices.includes("video");
+    attributes["screen_sharing_requested"] =
+        options.devices.includes("desktop");
 
     if (attributes.video_requested) {
         attributes.resolution = options.resolution;
@@ -76,7 +78,7 @@ interface ICreateLocalTrackOptions {
     resolution?: string;
 }
 
-type desktopSharingSourceType = 'screen' | 'window';
+type desktopSharingSourceType = "screen" | "window";
 
 interface IJitsiMeetJSOptions {
     desktopSharingSources?: Array<desktopSharingSourceType>;
@@ -86,22 +88,21 @@ interface IJitsiMeetJSOptions {
     flags?: {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
-    }
+    };
 }
 
 interface ICreateLocalTrackFromMediaStreamOptions {
-    stream: MediaStream,
-    sourceType: string,
-    mediaType: MediaType,
-    videoType?: VideoType
+    stream: MediaStream;
+    sourceType: string;
+    mediaType: MediaType;
+    videoType?: VideoType;
 }
 
 /**
  * The public API of the Jitsi Meet library (a.k.a. {@code JitsiMeetJS}).
  */
 export default {
-
-    version: '{#COMMIT_HASH#}',
+    version: "{#COMMIT_HASH#}",
 
     JitsiConnection,
 
@@ -118,7 +119,7 @@ export default {
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         transcriptionStatus: JitsiTranscriptionStatus,
-        trackStreamingStatus: TrackStreamingStatus
+        trackStreamingStatus: TrackStreamingStatus,
     },
     events: {
         conference: JitsiConferenceEvents,
@@ -128,22 +129,24 @@ export default {
         mediaDevices: JitsiMediaDevicesEvents,
         connectionQuality: ConnectionQualityEvents,
         e2eping: E2ePingEvents,
-        rtcstats: RTCStatsEvents
+        rtcstats: RTCStatsEvents,
     },
     errors: {
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
-        track: JitsiTrackErrors
+        track: JitsiTrackErrors,
     },
     errorTypes: {
-        JitsiTrackError
+        JitsiTrackError,
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
         // @ts-ignore
-        logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
+        logger.info(
+            `This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`,
+        );
 
         JitsiMediaDevices.init();
         Settings.init(options.externalStorage);
@@ -156,7 +159,7 @@ export default {
         }
 
         if (options.enableAnalyticsLogging !== true) {
-            logger.warn('Analytics disabled, disposing.');
+            logger.warn("Analytics disabled, disposing.");
             this.analytics.dispose();
         }
 
@@ -222,7 +225,7 @@ export default {
          */
         on(event, handler) {
             RTCStats.events.on(event, handler);
-        }
+        },
     },
 
     /**
@@ -258,12 +261,12 @@ export default {
     },
 
     /**
-    * Sets global options which will be used by all loggers. Changing these
-    * works even after other loggers are created.
-    *
-    * @param options
-    * @see Logger.setGlobalOptions
-    */
+     * Sets global options which will be used by all loggers. Changing these
+     * works even after other loggers are created.
+     *
+     * @param options
+     * @see Logger.setGlobalOptions
+     */
     setGlobalLogOptions(options) {
         Logger.setGlobalOptions(options);
     },
@@ -295,82 +298,92 @@ export default {
         if (!hasGUMExecuted) {
             hasGUMExecuted = true;
             isFirstGUM = true;
-            window.connectionTimes['firstObtainPermissions.start'] = startTS;
+            window.connectionTimes["firstObtainPermissions.start"] = startTS;
         }
-        window.connectionTimes['obtainPermissions.start'] = startTS;
+        window.connectionTimes["obtainPermissions.start"] = startTS;
 
         return RTC.obtainAudioAndVideoPermissions(options)
-            .then(tracks => {
+            .then((tracks) => {
                 let endTS = window.performance.now();
 
-                window.connectionTimes['obtainPermissions.end'] = endTS;
+                window.connectionTimes["obtainPermissions.end"] = endTS;
 
                 if (isFirstGUM) {
-                    window.connectionTimes['firstObtainPermissions.end'] = endTS;
+                    window.connectionTimes["firstObtainPermissions.end"] =
+                        endTS;
                 }
 
                 Statistics.sendAnalytics(
                     createGetUserMediaEvent(
-                        'success',
-                        getAnalyticsAttributesFromOptions(options)));
+                        "success",
+                        getAnalyticsAttributesFromOptions(options),
+                    ),
+                );
 
                 if (this.isCollectingLocalStats()) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
                         if (track.getType() === MediaType.AUDIO) {
-                            Statistics.startLocalStats(track,
-                                track.setAudioLevel.bind(track));
+                            Statistics.startLocalStats(
+                                track,
+                                track.setAudioLevel.bind(track),
+                            );
                         }
                     }
                 }
 
                 // set real device ids
-                const currentlyAvailableMediaDevices
-                    = RTC.getCurrentlyAvailableMediaDevices();
+                const currentlyAvailableMediaDevices =
+                    RTC.getCurrentlyAvailableMediaDevices();
 
                 if (currentlyAvailableMediaDevices) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
                         track._setRealDeviceIdFromDeviceList(
-                            currentlyAvailableMediaDevices);
+                            currentlyAvailableMediaDevices,
+                        );
                     }
                 }
 
                 return tracks;
             })
-            .catch(error => {
-                if (error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
+            .catch((error) => {
+                if (
+                    error.name === JitsiTrackErrors.SCREENSHARING_USER_CANCELED
+                ) {
                     Statistics.sendAnalytics(
-                        createGetUserMediaEvent(
-                            'warning',
-                            {
-                                reason: 'extension install user canceled'
-                            }));
+                        createGetUserMediaEvent("warning", {
+                            reason: "extension install user canceled",
+                        }),
+                    );
                 } else if (error.name === JitsiTrackErrors.NOT_FOUND) {
-                    const attributes
-                        = getAnalyticsAttributesFromOptions(options);
+                    const attributes =
+                        getAnalyticsAttributesFromOptions(options);
 
-                    attributes.reason = 'device not found';
-                    attributes.devices = error.gum.devices.join('.');
+                    attributes.reason = "device not found";
+                    attributes.devices = error.gum.devices.join(".");
                     Statistics.sendAnalytics(
-                        createGetUserMediaEvent('error', attributes));
+                        createGetUserMediaEvent("error", attributes),
+                    );
                 } else {
-                    const attributes
-                        = getAnalyticsAttributesFromOptions(options);
+                    const attributes =
+                        getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = error.name;
                     Statistics.sendAnalytics(
-                        createGetUserMediaEvent('error', attributes));
+                        createGetUserMediaEvent("error", attributes),
+                    );
                 }
 
                 let endTS = window.performance.now();
 
-                window.connectionTimes['obtainPermissions.end'] = endTS;
+                window.connectionTimes["obtainPermissions.end"] = endTS;
 
                 if (isFirstGUM) {
-                    window.connectionTimes['firstObtainPermissions.end'] = endTS;
+                    window.connectionTimes["firstObtainPermissions.end"] =
+                        endTS;
                 }
 
                 return Promise.reject(error);
@@ -384,22 +397,33 @@ export default {
      * @returns {Array<JitsiLocalTrack>} - created local tracks
      */
     createLocalTracksFromMediaStreams(tracksInfo) {
-        return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
-            const tracks = trackInfo.stream.getTracks()
-                .filter(track => track.kind === trackInfo.mediaType);
+        return RTC.createLocalTracks(
+            tracksInfo.map((trackInfo) => {
+                const tracks = trackInfo.stream
+                    .getTracks()
+                    .filter((track) => track.kind === trackInfo.mediaType);
 
-            if (!tracks || tracks.length === 0) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
-            }
+                if (!tracks || tracks.length === 0) {
+                    throw new JitsiTrackError(
+                        JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND,
+                        null,
+                        null,
+                    );
+                }
 
-            if (tracks.length > 1) {
-                throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM, null, null);
-            }
+                if (tracks.length > 1) {
+                    throw new JitsiTrackError(
+                        JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM,
+                        null,
+                        null,
+                    );
+                }
 
-            trackInfo.track = tracks[0];
+                trackInfo.track = tracks[0];
 
-            return trackInfo;
-        }));
+                return trackInfo;
+            }),
+        );
     },
 
     /**
@@ -419,7 +443,11 @@ export default {
      * @returns {Promise<TrackVADEmitter>}
      */
     createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
-        return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
+        return TrackVADEmitter.create(
+            localAudioDeviceId,
+            sampleRate,
+            vadProcessor,
+        );
     },
 
     /**
@@ -457,7 +485,10 @@ export default {
      * @param {boolean} True if stats are being collected for local tracks.
      */
     isCollectingLocalStats() {
-        return Statistics.audioLevelsEnabled && LocalStatsCollector.isLocalStatsSupported();
+        return (
+            Statistics.audioLevelsEnabled &&
+            LocalStatsCollector.isLocalStatsSupported()
+        );
     },
 
     /**
@@ -487,6 +518,6 @@ export default {
      */
     util: {
         ScriptUtil,
-        browser
-    }
+        browser,
+    },
 };

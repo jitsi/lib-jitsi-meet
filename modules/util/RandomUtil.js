@@ -1,14 +1,14 @@
 /**
  * @const
  */
-const ALPHANUM
-    = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const ALPHANUM =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /**
  * Hexadecimal digits.
  * @const
  */
-const HEX_DIGITS = '0123456789abcdef';
+const HEX_DIGITS = "0123456789abcdef";
 
 /**
  * Generates random int within the range [min, max]
@@ -35,7 +35,7 @@ function randomElement(arr) {
  * @returns {string} random string of specified length
  */
 function randomAlphanumStr(length) {
-    let result = '';
+    let result = "";
 
     for (let i = 0; i < length; i += 1) {
         result += randomElement(ALPHANUM);
@@ -61,9 +61,10 @@ const RandomUtil = {
      * @param len the length.
      */
     randomHexString(len) {
-        let ret = '';
+        let ret = "";
 
-        while (len--) { // eslint-disable-line no-param-reassign
+        while (len--) {
+            // eslint-disable-line no-param-reassign
             ret += this.randomHexDigit();
         }
 
@@ -71,7 +72,7 @@ const RandomUtil = {
     },
     randomElement,
     randomAlphanumStr,
-    randomInt
+    randomInt,
 };
 
 module.exports = RandomUtil;

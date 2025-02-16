@@ -1,47 +1,46 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
-import browser from '../browser';
-import Statistics from '../statistics/statistics';
-import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
-import { VideoType } from '../../service/RTC/VideoType';
-import RTC from '../RTC/RTC';
+import { JitsiConferenceEvents } from "../../JitsiConferenceEvents";
+import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import { createTrackStreamingStatusEvent } from "../../service/statistics/AnalyticsEvents";
+import browser from "../browser";
+import Statistics from "../statistics/statistics";
+import JitsiRemoteTrack from "../RTC/JitsiRemoteTrack";
+import { VideoType } from "../../service/RTC/VideoType";
+import RTC from "../RTC/RTC";
 
 /** Track streaming statuses. */
 export enum TrackStreamingStatus {
-
     /**
      * Status indicating that streaming is currently active.
      */
-    ACTIVE = 'active',
+    ACTIVE = "active",
 
     /**
      * Status indicating that streaming is currently inactive.
      * Inactive means the streaming was stopped on purpose from the bridge, like exiting forwarded sources or
      * adaptivity decided to drop video because of not enough bandwidth.
      */
-    INACTIVE = 'inactive',
+    INACTIVE = "inactive",
 
     /**
      * Status indicating that streaming is currently interrupted.
      */
-    INTERRUPTED = 'interrupted',
+    INTERRUPTED = "interrupted",
 
     /**
      * Status indicating that streaming is currently restoring.
      */
-    RESTORING = 'restoring',
-  }
+    RESTORING = "restoring",
+}
 
 type StreamingStatusMap = {
-    videoType?: VideoType,
-    startedMs?: number,
-    p2p?: boolean,
-    streamingStatus?: string,
-    value?: number
+    videoType?: VideoType;
+    startedMs?: number;
+    p2p?: boolean;
+    streamingStatus?: string;
+    value?: number;
 };
 
 const logger = getLogger(__filename);
@@ -151,11 +150,11 @@ export class TrackStreamingStatusImpl {
      * @private
      */
     static _getNewStateForJvbMode(
-            isInForwardedSources: boolean,
-            isRestoringTimedout: boolean,
-            isVideoMuted: boolean,
-            isVideoTrackFrozen: boolean): TrackStreamingStatus {
-
+        isInForwardedSources: boolean,
+        isRestoringTimedout: boolean,
+        isVideoMuted: boolean,
+        isVideoTrackFrozen: boolean,
+    ): TrackStreamingStatus {
         // We are currently not checking the endpoint connection status received from the JVB.
         if (isVideoMuted) {
             // If the connection is active according to JVB and the track is video muted there is no way for the
@@ -169,14 +168,18 @@ export class TrackStreamingStatusImpl {
                 // If the video is playing we're good
                 return TrackStreamingStatus.ACTIVE;
             } else if (isInForwardedSources) {
-                return isRestoringTimedout ? TrackStreamingStatus.INTERRUPTED : TrackStreamingStatus.RESTORING;
+                return isRestoringTimedout
+                    ? TrackStreamingStatus.INTERRUPTED
+                    : TrackStreamingStatus.RESTORING;
             }
 
             return TrackStreamingStatus.INACTIVE;
         }
 
         // Because this browser is incapable of detecting frozen video we must rely on the forwarded sources value
-        return isInForwardedSources ? TrackStreamingStatus.ACTIVE : TrackStreamingStatus.INACTIVE;
+        return isInForwardedSources
+            ? TrackStreamingStatus.ACTIVE
+            : TrackStreamingStatus.INACTIVE;
     }
 
     /* eslint-enable max-params*/
@@ -190,14 +193,18 @@ export class TrackStreamingStatusImpl {
      * @return {TrackStreamingStatus}
      * @private
      */
-    static _getNewStateForP2PMode(isVideoMuted: boolean, isVideoTrackFrozen: boolean): TrackStreamingStatus {
+    static _getNewStateForP2PMode(
+        isVideoMuted: boolean,
+        isVideoTrackFrozen: boolean,
+    ): TrackStreamingStatus {
         if (!browser.supportsVideoMuteOnConnInterrupted()) {
             // There's no way to detect problems in P2P when there's no video track frozen detection...
             return TrackStreamingStatus.ACTIVE;
         }
 
         return isVideoMuted || !isVideoTrackFrozen
-            ? TrackStreamingStatus.ACTIVE : TrackStreamingStatus.INTERRUPTED;
+            ? TrackStreamingStatus.ACTIVE
+            : TrackStreamingStatus.INTERRUPTED;
     }
 
     /**
@@ -214,11 +221,16 @@ export class TrackStreamingStatusImpl {
      * @param {number} [options.outOfForwardedSourcesTimeout=500] custom value for
      * {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.
      */
-    constructor(rtc: RTC, conference: any, track: JitsiRemoteTrack, options: {
-        outOfForwardedSourcesTimeout: number,
-        p2pRtcMuteTimeout: number,
-        rtcMuteTimeout: number
-    }) {
+    constructor(
+        rtc: RTC,
+        conference: any,
+        track: JitsiRemoteTrack,
+        options: {
+            outOfForwardedSourcesTimeout: number;
+            p2pRtcMuteTimeout: number;
+            rtcMuteTimeout: number;
+        },
+    ) {
         this.rtc = rtc;
         this.conference = conference;
         this.track = track;
@@ -228,14 +240,20 @@ export class TrackStreamingStatusImpl {
         this.streamingStatusMap = {};
         this.trackTimer = null;
 
-        this.outOfForwardedSourcesTimeout = typeof options.outOfForwardedSourcesTimeout === 'number'
-            ? options.outOfForwardedSourcesTimeout : DEFAULT_NOT_IN_FORWARDED_SOURCES_TIMEOUT;
+        this.outOfForwardedSourcesTimeout =
+            typeof options.outOfForwardedSourcesTimeout === "number"
+                ? options.outOfForwardedSourcesTimeout
+                : DEFAULT_NOT_IN_FORWARDED_SOURCES_TIMEOUT;
 
-        this.p2pRtcMuteTimeout = typeof options.p2pRtcMuteTimeout === 'number'
-            ? options.p2pRtcMuteTimeout : DEFAULT_P2P_RTC_MUTE_TIMEOUT;
+        this.p2pRtcMuteTimeout =
+            typeof options.p2pRtcMuteTimeout === "number"
+                ? options.p2pRtcMuteTimeout
+                : DEFAULT_P2P_RTC_MUTE_TIMEOUT;
 
-        this.rtcMuteTimeout = typeof options.rtcMuteTimeout === 'number'
-            ? options.rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
+        this.rtcMuteTimeout =
+            typeof options.rtcMuteTimeout === "number"
+                ? options.rtcMuteTimeout
+                : DEFAULT_RTC_MUTE_TIMEOUT;
         logger.info(`RtcMuteTimeout set to: ${this.rtcMuteTimeout}`);
     }
 
@@ -250,7 +268,9 @@ export class TrackStreamingStatusImpl {
 
         return this.rtc.isInForwardedSources(sourceName)
             ? this.rtcMuteTimeout
-            : this.conference.isP2PActive() ? this.p2pRtcMuteTimeout : this.outOfForwardedSourcesTimeout;
+            : this.conference.isP2PActive()
+              ? this.p2pRtcMuteTimeout
+              : this.outOfForwardedSourcesTimeout;
     }
 
     /**
@@ -268,24 +288,41 @@ export class TrackStreamingStatusImpl {
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute" events for video type tracks when they stop
         // receiving data which is often a sign that remote user is having connectivity issues.
         if (browser.supportsVideoMuteOnConnInterrupted()) {
-
             this._onTrackRtcMuted = this.onTrackRtcMuted.bind(this);
-            this.rtc.addListener(RTCEvents.REMOTE_TRACK_MUTE, this._onTrackRtcMuted);
+            this.rtc.addListener(
+                RTCEvents.REMOTE_TRACK_MUTE,
+                this._onTrackRtcMuted,
+            );
 
             this._onTrackRtcUnmuted = this.onTrackRtcUnmuted.bind(this);
-            this.rtc.addListener(RTCEvents.REMOTE_TRACK_UNMUTE, this._onTrackRtcUnmuted);
+            this.rtc.addListener(
+                RTCEvents.REMOTE_TRACK_UNMUTE,
+                this._onTrackRtcUnmuted,
+            );
 
             // Listened which will be bound to JitsiRemoteTrack to listen for signalling mute/unmute events.
-            this._onSignallingMuteChanged = this.onSignallingMuteChanged.bind(this);
-            this.track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onSignallingMuteChanged);
+            this._onSignallingMuteChanged =
+                this.onSignallingMuteChanged.bind(this);
+            this.track.on(
+                JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                this._onSignallingMuteChanged,
+            );
 
             // Used to send an analytics event when the video type changes.
-            this._onTrackVideoTypeChanged = this.onTrackVideoTypeChanged.bind(this);
-            this.track.on(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, this._onTrackVideoTypeChanged);
+            this._onTrackVideoTypeChanged =
+                this.onTrackVideoTypeChanged.bind(this);
+            this.track.on(
+                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
+                this._onTrackVideoTypeChanged,
+            );
         }
 
-        this._onForwardedSourcesChanged = this.onForwardedSourcesChanged.bind(this);
-        this.conference.on(JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED, this._onForwardedSourcesChanged);
+        this._onForwardedSourcesChanged =
+            this.onForwardedSourcesChanged.bind(this);
+        this.conference.on(
+            JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
+            this._onForwardedSourcesChanged,
+        );
 
         this._onLastNValueChanged = this.figureOutStreamingStatus.bind(this);
         this.rtc.on(RTCEvents.LASTN_VALUE_CHANGED, this._onLastNValueChanged);
@@ -296,17 +333,38 @@ export class TrackStreamingStatusImpl {
      */
     dispose(): void {
         if (browser.supportsVideoMuteOnConnInterrupted()) {
-            this.rtc.removeListener(RTCEvents.REMOTE_TRACK_MUTE, this._onTrackRtcMuted);
-            this.rtc.removeListener(RTCEvents.REMOTE_TRACK_UNMUTE, this._onTrackRtcUnmuted);
+            this.rtc.removeListener(
+                RTCEvents.REMOTE_TRACK_MUTE,
+                this._onTrackRtcMuted,
+            );
+            this.rtc.removeListener(
+                RTCEvents.REMOTE_TRACK_UNMUTE,
+                this._onTrackRtcUnmuted,
+            );
 
-            this.track.off(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onSignallingMuteChanged);
-            this.track.off(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, this._onTrackVideoTypeChanged);
+            this.track.off(
+                JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                this._onSignallingMuteChanged,
+            );
+            this.track.off(
+                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
+                this._onTrackVideoTypeChanged,
+            );
         }
 
-        this.conference.off(JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED, this._onForwardedSourcesChanged);
-        this.conference.off(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
+        this.conference.off(
+            JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
+            this._onForwardedSourcesChanged,
+        );
+        this.conference.off(
+            JitsiConferenceEvents.P2P_STATUS,
+            this._onP2PStatus,
+        );
         this.conference.off(JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
-        this.rtc.removeListener(RTCEvents.LASTN_VALUE_CHANGED, this._onLastNValueChanged);
+        this.rtc.removeListener(
+            RTCEvents.LASTN_VALUE_CHANGED,
+            this._onLastNValueChanged,
+        );
 
         this.clearTimeout();
         this.clearRtcMutedTimestamp();
@@ -320,15 +378,20 @@ export class TrackStreamingStatusImpl {
      */
     _changeStreamingStatus(newStatus: TrackStreamingStatus): void {
         if (this.track.getTrackStreamingStatus() !== newStatus) {
-
             const sourceName = this.track.getSourceName();
 
             this.track._setTrackStreamingStatus(newStatus);
 
-            logger.debug(`Emit track streaming status(${Date.now()}) ${sourceName}: ${newStatus}`);
+            logger.debug(
+                `Emit track streaming status(${Date.now()}) ${sourceName}: ${newStatus}`,
+            );
 
             // It's common for the event listeners to access the JitsiRemoteTrack. Thus pass it as a parameter here.
-            this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, this.track, newStatus);
+            this.track.emit(
+                JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
+                this.track,
+                newStatus,
+            );
         }
     }
 
@@ -367,7 +430,11 @@ export class TrackStreamingStatusImpl {
         const rtcMutedTimestamp = this.rtcMutedTimestamp;
         const timeout = this._getVideoFrozenTimeout();
 
-        return isVideoRTCMuted && typeof rtcMutedTimestamp === 'number' && (Date.now() - rtcMutedTimestamp) >= timeout;
+        return (
+            isVideoRTCMuted &&
+            typeof rtcMutedTimestamp === "number" &&
+            Date.now() - rtcMutedTimestamp >= timeout
+        );
     }
 
     /**
@@ -385,16 +452,17 @@ export class TrackStreamingStatusImpl {
         const isVideoTrackFrozen = this.isVideoTrackFrozen();
         const isInForwardedSources = this.rtc.isInForwardedSources(sourceName);
 
-        const newState
-            = inP2PMode
-                ? TrackStreamingStatusImpl._getNewStateForP2PMode(
-                    isVideoMuted,
-                    isVideoTrackFrozen)
-                : TrackStreamingStatusImpl._getNewStateForJvbMode(
-                    isInForwardedSources,
-                    isRestoringTimedOut,
-                    isVideoMuted,
-                    isVideoTrackFrozen);
+        const newState = inP2PMode
+            ? TrackStreamingStatusImpl._getNewStateForP2PMode(
+                  isVideoMuted,
+                  isVideoTrackFrozen,
+              )
+            : TrackStreamingStatusImpl._getNewStateForJvbMode(
+                  isInForwardedSources,
+                  isRestoringTimedOut,
+                  isVideoMuted,
+                  isVideoTrackFrozen,
+              );
 
         // if the new state is not restoring clear timers and timestamps that we use to track the restoring state
         if (newState !== TrackStreamingStatus.RESTORING) {
@@ -403,21 +471,24 @@ export class TrackStreamingStatusImpl {
 
         logger.debug(
             `Figure out conn status for ${sourceName}, is video muted: ${
-                isVideoMuted} video track frozen: ${
-                isVideoTrackFrozen} p2p mode: ${
-                inP2PMode} is in forwarded sources: ${
-                isInForwardedSources} currentStatus => newStatus: ${
-                this.track.getTrackStreamingStatus()} => ${newState}`);
+                isVideoMuted
+            } video track frozen: ${isVideoTrackFrozen} p2p mode: ${
+                inP2PMode
+            } is in forwarded sources: ${
+                isInForwardedSources
+            } currentStatus => newStatus: ${this.track.getTrackStreamingStatus()} => ${newState}`,
+        );
 
         const oldStreamingStatus = this.streamingStatusMap || {};
 
         // Send an analytics event (guard on either the p2p flag or the streaming status has changed since the last
         // time this code block run).
-        if (!('p2p' in oldStreamingStatus)
-            || !('streamingStatus' in oldStreamingStatus)
-            || oldStreamingStatus.p2p !== inP2PMode
-            || oldStreamingStatus.streamingStatus !== newState) {
-
+        if (
+            !("p2p" in oldStreamingStatus) ||
+            !("streamingStatus" in oldStreamingStatus) ||
+            oldStreamingStatus.p2p !== inP2PMode ||
+            oldStreamingStatus.streamingStatus !== newState
+        ) {
             const nowMs = Date.now();
 
             this.maybeSendTrackStreamingStatusEvent(nowMs);
@@ -426,12 +497,12 @@ export class TrackStreamingStatusImpl {
                 ...oldStreamingStatus,
                 streamingStatus: newState,
                 p2p: inP2PMode,
-                startedMs: nowMs
+                startedMs: nowMs,
             };
 
             // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the video type is not in
             // oldStreamingStatus.
-            if (!('videoType' in this.streamingStatusMap)) {
+            if (!("videoType" in this.streamingStatusMap)) {
                 this.streamingStatusMap.videoType = this.track.getVideoType();
             }
         }
@@ -446,13 +517,17 @@ export class TrackStreamingStatusImpl {
     maybeSendTrackStreamingStatusEvent(nowMs: number): void {
         const trackStreamingStatus = this.streamingStatusMap;
 
-        if (trackStreamingStatus
-            && 'startedMs' in trackStreamingStatus
-            && 'videoType' in trackStreamingStatus
-            && 'streamingStatus' in trackStreamingStatus
-            && 'p2p' in trackStreamingStatus) {
+        if (
+            trackStreamingStatus &&
+            "startedMs" in trackStreamingStatus &&
+            "videoType" in trackStreamingStatus &&
+            "streamingStatus" in trackStreamingStatus &&
+            "p2p" in trackStreamingStatus
+        ) {
             trackStreamingStatus.value = nowMs - trackStreamingStatus.startedMs;
-            Statistics.sendAnalytics(createTrackStreamingStatusEvent(trackStreamingStatus));
+            Statistics.sendAnalytics(
+                createTrackStreamingStatusEvent(trackStreamingStatus),
+            );
         }
     }
 
@@ -465,10 +540,10 @@ export class TrackStreamingStatusImpl {
      * @private
      */
     onForwardedSourcesChanged(
-            leavingForwardedSources: string[] = [],
-            enteringForwardedSources: string[] = [],
-            timestamp: number): void {
-
+        leavingForwardedSources: string[] = [],
+        enteringForwardedSources: string[] = [],
+        timestamp: number,
+    ): void {
         const sourceName = this.track.getSourceName();
 
         // If the browser doesn't fire the mute/onmute events when the remote peer stops/starts sending media,
@@ -481,13 +556,15 @@ export class TrackStreamingStatusImpl {
         if (leavingForwardedSources.includes(sourceName)) {
             this.track._clearEnteredForwardedSourcesTimestamp();
             this._clearRestoringTimer();
-            browser.supportsVideoMuteOnConnInterrupted() && this.figureOutStreamingStatus();
+            browser.supportsVideoMuteOnConnInterrupted() &&
+                this.figureOutStreamingStatus();
         }
 
         if (enteringForwardedSources.includes(sourceName)) {
             // store the timestamp this track is entering forwarded sources
             this.track._setEnteredForwardedSourcesTimestamp(timestamp);
-            browser.supportsVideoMuteOnConnInterrupted() && this.figureOutStreamingStatus();
+            browser.supportsVideoMuteOnConnInterrupted() &&
+                this.figureOutStreamingStatus();
         }
     }
 
@@ -513,10 +590,14 @@ export class TrackStreamingStatusImpl {
      * @private
      */
     _isRestoringTimedout(): boolean {
-        const enteredForwardedSourcesTimestamp = this.track._getEnteredForwardedSourcesTimestamp();
+        const enteredForwardedSourcesTimestamp =
+            this.track._getEnteredForwardedSourcesTimestamp();
 
-        if (enteredForwardedSourcesTimestamp
-            && (Date.now() - enteredForwardedSourcesTimestamp) >= DEFAULT_RESTORING_TIMEOUT) {
+        if (
+            enteredForwardedSourcesTimestamp &&
+            Date.now() - enteredForwardedSourcesTimestamp >=
+                DEFAULT_RESTORING_TIMEOUT
+        ) {
             return true;
         }
 
@@ -525,7 +606,10 @@ export class TrackStreamingStatusImpl {
         const rTimer = this.restoringTimer;
 
         if (!rTimer) {
-            this.restoringTimer = setTimeout(() => this.figureOutStreamingStatus(), DEFAULT_RESTORING_TIMEOUT);
+            this.restoringTimer = setTimeout(
+                () => this.figureOutStreamingStatus(),
+                DEFAULT_RESTORING_TIMEOUT,
+            );
         }
 
         return false;
@@ -571,7 +655,9 @@ export class TrackStreamingStatusImpl {
             const timeout = this._getVideoFrozenTimeout();
 
             this.trackTimer = window.setTimeout(() => {
-                logger.debug(`Set track RTC muted for: ${sourceName} after the timeout of ${timeout} ms`);
+                logger.debug(
+                    `Set track RTC muted for: ${sourceName} after the timeout of ${timeout} ms`,
+                );
                 this.clearTimeout();
                 this.figureOutStreamingStatus();
             }, timeout);
@@ -625,9 +711,9 @@ export class TrackStreamingStatusImpl {
         this.maybeSendTrackStreamingStatusEvent(nowMs);
 
         this.streamingStatusMap = {
-            ...this.streamingStatusMap || {},
+            ...(this.streamingStatusMap || {}),
             videoType: type,
-            startedMs: nowMs
+            startedMs: nowMs,
         };
     }
 }

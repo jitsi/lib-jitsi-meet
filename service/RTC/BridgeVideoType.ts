@@ -6,20 +6,20 @@ export enum BridgeVideoType {
     /**
      * The camera video type.
      */
-    CAMERA = 'camera',
+    CAMERA = "camera",
 
     /**
      * The low fps desktop video type.
      */
-    DESKTOP = 'desktop',
+    DESKTOP = "desktop",
 
     /**
      * The high fps desktop video type.
      */
-    DESKTOP_HIGH_FPS = 'desktop_high_fps',
+    DESKTOP_HIGH_FPS = "desktop_high_fps",
 
     /**
      * Video type when no local source is present.
      */
-    NONE = 'none'
+    NONE = "none",
 }

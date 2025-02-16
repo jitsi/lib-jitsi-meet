@@ -1,13 +1,13 @@
-import { getLogger } from '@jitsi/logger';
-import { $pres, Strophe } from 'strophe.js';
-import 'strophejs-plugin-stream-management';
+import { getLogger } from "@jitsi/logger";
+import { $pres, Strophe } from "strophe.js";
+import "strophejs-plugin-stream-management";
 
-import { MAX_CONNECTION_RETRIES } from '../../service/connectivity/Constants';
-import Listenable from '../util/Listenable';
+import { MAX_CONNECTION_RETRIES } from "../../service/connectivity/Constants";
+import Listenable from "../util/Listenable";
 
-import ResumeTask from './ResumeTask';
-import LastSuccessTracker from './StropheLastSuccess';
-import PingConnectionPlugin from './strophe.ping';
+import ResumeTask from "./ResumeTask";
+import LastSuccessTracker from "./StropheLastSuccess";
+import PingConnectionPlugin from "./strophe.ping";
 
 const logger = getLogger(__filename);
 
@@ -22,8 +22,8 @@ export default class XmppConnection extends Listenable {
      */
     static get Events() {
         return {
-            CONN_STATUS_CHANGED: 'CONN_STATUS_CHANGED',
-            CONN_SHARD_CHANGED: 'CONN_SHARD_CHANGED'
+            CONN_STATUS_CHANGED: "CONN_STATUS_CHANGED",
+            CONN_SHARD_CHANGED: "CONN_SHARD_CHANGED",
         };
     }
 
@@ -52,18 +52,32 @@ export default class XmppConnection extends Listenable {
      * if missing the serviceUrl url will be used.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
-    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }) {
+    constructor({
+        enableWebsocketResume,
+        websocketKeepAlive,
+        websocketKeepAliveUrl,
+        serviceUrl,
+        shard,
+        xmppPing,
+    }) {
         super();
         this._options = {
-            enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
+            enableWebsocketResume:
+                typeof enableWebsocketResume === "undefined"
+                    ? true
+                    : enableWebsocketResume,
             pingOptions: xmppPing,
             shard,
-            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive),
-            websocketKeepAliveUrl
+            websocketKeepAlive:
+                typeof websocketKeepAlive === "undefined"
+                    ? 60 * 1000
+                    : Number(websocketKeepAlive),
+            websocketKeepAliveUrl,
         };
 
         this._stropheConn = new Strophe.Connection(serviceUrl);
-        this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
+        this._usesWebsocket =
+            serviceUrl.startsWith("ws:") || serviceUrl.startsWith("wss:");
 
         // The default maxRetries is 5, which is too long.
         this._stropheConn.maxRetries = 3;
@@ -90,12 +104,15 @@ export default class XmppConnection extends Listenable {
         // Ping plugin is mandatory for the Websocket mode to work correctly. It's used to detect when the connection
         // is broken (WebSocket/TCP connection not closed gracefully).
         this.addConnectionPlugin(
-            'ping',
+            "ping",
             new PingConnectionPlugin({
-                getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
-                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
-                pingOptions: xmppPing
-            }));
+                getTimeSinceLastServerResponse: () =>
+                    this.getTimeSinceLastSuccess(),
+                onPingThresholdExceeded: () =>
+                    this._onPingErrorThresholdExceeded(),
+                pingOptions: xmppPing,
+            }),
+        );
 
         // tracks whether this is the initial connection or a reconnect
         this._oneSuccessfulConnect = false;
@@ -107,10 +124,17 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean}
      */
     get connected() {
-        const websocket = this._stropheConn && this._stropheConn._proto && this._stropheConn._proto.socket;
+        const websocket =
+            this._stropheConn &&
+            this._stropheConn._proto &&
+            this._stropheConn._proto.socket;
 
-        return (this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED)
-            && (!this.isUsingWebSocket || (websocket && websocket.readyState === WebSocket.OPEN));
+        return (
+            (this._status === Strophe.Status.CONNECTED ||
+                this._status === Strophe.Status.ATTACHED) &&
+            (!this.isUsingWebSocket ||
+                (websocket && websocket.readyState === WebSocket.OPEN))
+        );
     }
 
     /**
@@ -164,7 +188,10 @@ export default class XmppConnection extends Listenable {
      * @returns {string}
      */
     get lastResponseHeaders() {
-        return this._stropheConn._proto && this._stropheConn._proto.lastResponseHeaders;
+        return (
+            this._stropheConn._proto &&
+            this._stropheConn._proto.lastResponseHeaders
+        );
     }
 
     /**
@@ -261,7 +288,13 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     attach(jid, sid, rid, callback, ...args) {
-        this._stropheConn.attach(jid, sid, rid, this._stropheConnectionCb.bind(this, callback), ...args);
+        this._stropheConn.attach(
+            jid,
+            sid,
+            rid,
+            this._stropheConnectionCb.bind(this, callback),
+            ...args,
+        );
     }
 
     /**
@@ -271,7 +304,12 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     connect(jid, pass, callback, ...args) {
-        this._stropheConn.connect(jid, pass, this._stropheConnectionCb.bind(this, callback), ...args);
+        this._stropheConn.connect(
+            jid,
+            pass,
+            this._stropheConnectionCb.bind(this, callback),
+            ...args,
+        );
     }
 
     /* eslint-enable max-params */
@@ -290,7 +328,10 @@ export default class XmppConnection extends Listenable {
 
         let blockCallback = false;
 
-        if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+        if (
+            status === Strophe.Status.CONNECTED ||
+            status === Strophe.Status.ATTACHED
+        ) {
             this._maybeEnableStreamResume();
 
             // after connecting - immediately check whether shard changed,
@@ -303,7 +344,9 @@ export default class XmppConnection extends Listenable {
             this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
-            this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
+            this.ping.startInterval(
+                this._options.pingOptions?.domain || this.domain,
+            );
         } else if (status === Strophe.Status.DISCONNECTED) {
             this.ping.stopInterval();
 
@@ -316,7 +359,10 @@ export default class XmppConnection extends Listenable {
 
         if (!blockCallback) {
             targetCallback(status, ...args);
-            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+            this.eventEmitter.emit(
+                XmppConnection.Events.CONN_STATUS_CHANGED,
+                status,
+            );
         }
     }
 
@@ -327,7 +373,7 @@ export default class XmppConnection extends Listenable {
      */
     _clearDeferredIQs() {
         for (const deferred of this._deferredIQs) {
-            deferred.reject(new Error('disconnect'));
+            deferred.reject(new Error("disconnect"));
         }
         this._deferredIQs = [];
     }
@@ -390,20 +436,25 @@ export default class XmppConnection extends Listenable {
      */
     _maybeEnableStreamResume() {
         if (!this._options.enableWebsocketResume) {
-
             return;
         }
 
         const { streamManagement } = this._stropheConn;
 
         if (!this.isUsingWebSocket) {
-            logger.warn('Stream resume enabled, but WebSockets are not enabled');
+            logger.warn(
+                "Stream resume enabled, but WebSockets are not enabled",
+            );
         } else if (!streamManagement) {
-            logger.warn('Stream resume enabled, but Strophe streamManagement plugin is not installed');
+            logger.warn(
+                "Stream resume enabled, but Strophe streamManagement plugin is not installed",
+            );
         } else if (!streamManagement.isSupported()) {
-            logger.warn('Stream resume enabled, but XEP-0198 is not supported by the server');
+            logger.warn(
+                "Stream resume enabled, but XEP-0198 is not supported by the server",
+            );
         } else if (!streamManagement.getResumeToken()) {
-            logger.info('Enabling XEP-0198 stream management');
+            logger.info("Enabling XEP-0198 stream management");
             streamManagement.enable(/* resume */ true);
         }
     }
@@ -418,17 +469,27 @@ export default class XmppConnection extends Listenable {
         const { websocketKeepAlive } = this._options;
 
         if (this._usesWebsocket && websocketKeepAlive > 0) {
-            this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
+            this._wsKeepAlive ||
+                logger.info(
+                    `WebSocket keep alive interval: ${websocketKeepAlive}ms`,
+                );
             clearTimeout(this._wsKeepAlive);
 
-            const intervalWithJitter = /* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000);
+            const intervalWithJitter =
+                /* base */ websocketKeepAlive +
+                /* jitter */ Math.random() * 60 * 1000;
 
-            logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
+            logger.debug(
+                `Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`,
+            );
 
             this._wsKeepAlive = setTimeout(
-                () => this._keepAliveAndCheckShard()
-                    .then(() => this._maybeStartWSKeepAlive()),
-                intervalWithJitter);
+                () =>
+                    this._keepAliveAndCheckShard().then(() =>
+                        this._maybeStartWSKeepAlive(),
+                    ),
+                intervalWithJitter,
+            );
         }
     }
 
@@ -440,27 +501,34 @@ export default class XmppConnection extends Listenable {
      */
     _keepAliveAndCheckShard() {
         const { shard, websocketKeepAliveUrl } = this._options;
-        const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
-            : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
+        const url = websocketKeepAliveUrl
+            ? websocketKeepAliveUrl
+            : this.service
+                  .replace("wss://", "https://")
+                  .replace("ws://", "http://");
 
         return fetch(url)
-            .then(response => {
-
+            .then((response) => {
                 // skips header checking if there is no info in options
                 if (!shard) {
                     return;
                 }
 
-                const responseShard = response.headers.get('x-jitsi-shard');
+                const responseShard = response.headers.get("x-jitsi-shard");
 
                 if (responseShard !== shard) {
                     logger.error(
-                        `Detected that shard changed from ${shard} to ${responseShard}`);
-                    this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
+                        `Detected that shard changed from ${shard} to ${responseShard}`,
+                    );
+                    this.eventEmitter.emit(
+                        XmppConnection.Events.CONN_SHARD_CHANGED,
+                    );
                 }
             })
-            .catch(error => {
-                logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
+            .catch((error) => {
+                logger.error(`Websocket Keep alive failed for url: ${url}`, {
+                    error,
+                });
             });
     }
 
@@ -479,9 +547,10 @@ export default class XmppConnection extends Listenable {
 
                 this.sendIQ(
                     deferred.iq,
-                    result => deferred.resolve(result),
-                    error => deferred.reject(error),
-                    timeLeft);
+                    (result) => deferred.resolve(result),
+                    (error) => deferred.reject(error),
+                    timeLeft,
+                );
             }
         }
 
@@ -496,10 +565,14 @@ export default class XmppConnection extends Listenable {
      */
     send(stanza) {
         if (!this.connected) {
-            logger.error(`Trying to send stanza while not connected. Status:${this._status} Proto:${
-                this.isUsingWebSocket ? this._stropheConn?._proto?.socket?.readyState : 'bosh'
-            }`);
-            throw new Error('Not connected');
+            logger.error(
+                `Trying to send stanza while not connected. Status:${this._status} Proto:${
+                    this.isUsingWebSocket
+                        ? this._stropheConn?._proto?.socket?.readyState
+                        : "bosh"
+                }`,
+            );
+            throw new Error("Not connected");
         }
         this._stropheConn.send(stanza);
     }
@@ -516,7 +589,7 @@ export default class XmppConnection extends Listenable {
      */
     sendIQ(elem, callback, errback, timeout) {
         if (!this.connected) {
-            errback('Not connected');
+            errback("Not connected");
 
             return;
         }
@@ -539,9 +612,10 @@ export default class XmppConnection extends Listenable {
             if (this.connected) {
                 this.sendIQ(
                     iq,
-                    result => resolve(result),
-                    error => reject(error),
-                    timeout);
+                    (result) => resolve(result),
+                    (error) => reject(error),
+                    timeout,
+                );
             } else {
                 const deferred = {
                     iq,
@@ -554,7 +628,7 @@ export default class XmppConnection extends Listenable {
 
                         // Strophe calls with undefined on timeout
                         reject(undefined);
-                    }, timeout)
+                    }, timeout),
                 };
 
                 this._deferredIQs.push(deferred);
@@ -569,7 +643,9 @@ export default class XmppConnection extends Listenable {
      */
     _onPingErrorThresholdExceeded() {
         if (this.isUsingWebSocket) {
-            logger.warn('Ping error threshold exceeded - killing the WebSocket');
+            logger.warn(
+                "Ping error threshold exceeded - killing the WebSocket",
+            );
             this.closeWebsocket();
         }
     }
@@ -587,7 +663,7 @@ export default class XmppConnection extends Listenable {
      */
     sendPresence(elem, callback, errback, timeout) {
         if (!this.connected) {
-            errback('Not connected');
+            errback("Not connected");
 
             return;
         }
@@ -600,27 +676,33 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean} - true if the beacon was sent.
      */
     sendUnavailableBeacon() {
-        if (!navigator.sendBeacon || this._stropheConn.disconnecting || !this._stropheConn.connected) {
+        if (
+            !navigator.sendBeacon ||
+            this._stropheConn.disconnecting ||
+            !this._stropheConn.connected
+        ) {
             return false;
         }
 
         this._stropheConn._changeConnectStatus(Strophe.Status.DISCONNECTING);
         this._stropheConn.disconnecting = true;
 
-        const body = this._stropheConn._proto._buildBody()
-            .attrs({
-                type: 'terminate'
-            });
+        const body = this._stropheConn._proto._buildBody().attrs({
+            type: "terminate",
+        });
         const pres = $pres({
             xmlns: Strophe.NS.CLIENT,
-            type: 'unavailable'
+            type: "unavailable",
         });
 
         body.cnode(pres.tree());
 
         const res = navigator.sendBeacon(
-            this.service.indexOf('https://') === -1 ? `https:${this.service}` : this.service,
-            Strophe.serialize(body.tree()));
+            this.service.indexOf("https://") === -1
+                ? `https:${this.service}`
+                : this.service,
+            Strophe.serialize(body.tree()),
+        );
 
         logger.info(`Successfully send unavailable beacon ${res}`);
 
@@ -640,7 +722,8 @@ export default class XmppConnection extends Listenable {
      */
     _tryResumingConnection() {
         const { streamManagement } = this._stropheConn;
-        const resumeToken = streamManagement && streamManagement.getResumeToken();
+        const resumeToken =
+            streamManagement && streamManagement.getResumeToken();
 
         if (resumeToken) {
             this._resumeTask.schedule();
@@ -648,7 +731,9 @@ export default class XmppConnection extends Listenable {
             const r = this._resumeTask.retryCount <= MAX_CONNECTION_RETRIES;
 
             if (!r) {
-                logger.warn(`Maximum resume tries reached (${MAX_CONNECTION_RETRIES}), giving up.`);
+                logger.warn(
+                    `Maximum resume tries reached (${MAX_CONNECTION_RETRIES}), giving up.`,
+                );
             }
 
             return r;

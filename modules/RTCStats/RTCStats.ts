@@ -1,19 +1,22 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
-import traceInit from '@jitsi/rtcstats/trace-ws';
+import rtcstatsInit from "@jitsi/rtcstats/rtcstats";
+import traceInit from "@jitsi/rtcstats/trace-ws";
 
 import {
     CONFERENCE_CREATED_TIMESTAMP,
     CONFERENCE_JOINED,
     CONFERENCE_LEFT,
-    CONFERENCE_UNIQUE_ID_SET
-} from '../../JitsiConferenceEvents';
-import JitsiConference from '../../JitsiConference';
-import { IRTCStatsConfiguration } from './interfaces';
-import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
-import EventEmitter from '../util/EventEmitter';
-import Settings from '../settings/Settings';
+    CONFERENCE_UNIQUE_ID_SET,
+} from "../../JitsiConferenceEvents";
+import JitsiConference from "../../JitsiConference";
+import { IRTCStatsConfiguration } from "./interfaces";
+import {
+    RTC_STATS_PC_EVENT,
+    RTC_STATS_WC_DISCONNECTED,
+} from "./RTCStatsEvents";
+import EventEmitter from "../util/EventEmitter";
+import Settings from "../settings/Settings";
 
 const logger = getLogger(__filename);
 
@@ -38,10 +41,10 @@ class RTCStats {
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
-                rtcstatsPollInterval: pollInterval= 10000,
+                rtcstatsPollInterval: pollInterval = 10000,
                 rtcstatsSendSdp: sendSdp = false,
-                rtcstatsEnabled = false
-            } = {}
+                rtcstatsEnabled = false,
+            } = {},
         } = initConfig;
 
         // If rtcstats is not enabled or already initialized, do nothing.
@@ -51,10 +54,13 @@ class RTCStats {
 
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
-            { pollInterval,
-              useLegacy,
-              sendSdp,
-              eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
+            {
+                pollInterval,
+                useLegacy,
+                sendSdp,
+                eventCallback: (event) =>
+                    this.events.emit(RTC_STATS_PC_EVENT, event),
+            },
         );
 
         this._initialized = true;
@@ -71,30 +77,27 @@ class RTCStats {
      */
     start(conference: JitsiConference) {
         const {
-            options: {
-                config : confConfig = {},
-                name: confName = ''
-            } = {},
-            _statsCurrentId : displayName = ''
+            options: { config: confConfig = {}, name: confName = "" } = {},
+            _statsCurrentId: displayName = "",
         } = conference;
 
         const {
             analytics: {
                 rtcstatsEnabled = false,
-                rtcstatsEndpoint: endpoint = '',
-                rtcstatsUseLegacy: useLegacy = false
-            } = {}
+                rtcstatsEndpoint: endpoint = "",
+                rtcstatsUseLegacy: useLegacy = false,
+            } = {},
         } = confConfig;
 
-        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields 
-        // that are sent through options might be a bit confusing. Depending on the context, they could 
+        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields
+        // that are sent through options might be a bit confusing. Depending on the context, they could
         // be intermixed inside ljm, for instance _statsCurrentId might refer to the email field which is stored
         // in statisticsId or it could have the same value as callStatsUserName.
         // The following is the mapping between the fields, and a short explanation of each:
         // statisticsId -> email, this is only send by jitsi-meet if enableEmailInStats option is set.
         // statisticsDisplayName -> nick, this is only send by jitsi-meet if enableDisplayNameInStats option is set.
         // localId, this is the unique id that is used to track users throughout stats.
-        const localId = Settings?.callStatsUserName ?? '';
+        const localId = Settings?.callStatsUserName ?? "";
 
         // Reset the trace module in case it wasn't during the previous conference.
         // Closing the underlying websocket connection and deleting the trace obj.
@@ -105,7 +108,9 @@ class RTCStats {
 
         // If rtcstats proxy module is not initialized, do nothing.
         if (!this._initialized) {
-            logger.error('Calling start before RTCStats proxy module is initialized.');
+            logger.error(
+                "Calling start before RTCStats proxy module is initialized.",
+            );
 
             return;
         }
@@ -116,11 +121,14 @@ class RTCStats {
             const traceOptions = {
                 endpoint,
                 meetingFqn: confName,
-                onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
-                useLegacy
+                onCloseCallback: (event) =>
+                    this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
+                useLegacy,
             };
 
-            const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
+            const isBreakoutRoom = Boolean(
+                conference.getBreakoutRooms()?.isBreakoutRoom(),
+            );
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
@@ -138,15 +146,15 @@ class RTCStats {
                 displayName,
                 meetingUniqueId,
                 isBreakoutRoom,
-                localId
-            }
+                localId,
+            };
 
             this.sendIdentity(identityData);
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
         conference.once(CONFERENCE_UNIQUE_ID_SET, (meetingUniqueId) => {
-            this.sendIdentity({meetingUniqueId});
+            this.sendIdentity({ meetingUniqueId });
         });
 
         conference.once(CONFERENCE_LEFT, () => {
@@ -154,8 +162,8 @@ class RTCStats {
         });
 
         conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
-            this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
-        })
+            this.sendStatsEntry("conferenceStartTimestamp", null, timestamp);
+        });
     }
 
     /**
@@ -165,7 +173,7 @@ class RTCStats {
      * @returns {void}
      */
     sendIdentity(identityData) {
-        this._trace?.identity('identity', null, identityData);
+        this._trace?.identity("identity", null, identityData);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { EventEmitter as NodeEventEmitter } from 'events';
+import { EventEmitter as NodeEventEmitter } from "events";
 
 /**
  * The class creates our own EventEmitter instance

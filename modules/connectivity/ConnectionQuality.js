@@ -1,13 +1,13 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import * as RTCEvents from '../../service/RTC/RTCEvents';
-import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
-import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import * as ConferenceEvents from "../../JitsiConferenceEvents";
+import * as RTCEvents from "../../service/RTC/RTCEvents";
+import { VIDEO_QUALITY_LEVELS } from "../../service/RTC/StandardVideoQualitySettings";
+import * as ConnectionQualityEvents from "../../service/connectivity/ConnectionQualityEvents";
 
-const Resolutions = require('../../service/RTC/Resolutions');
-const { VideoType } = require('../../service/RTC/VideoType');
-const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
+const Resolutions = require("../../service/RTC/Resolutions");
+const { VideoType } = require("../../service/RTC/VideoType");
+const { XMPPEvents } = require("../../service/xmpp/XMPPEvents");
 
 const logger = getLogger(__filename);
 
@@ -15,7 +15,7 @@ const logger = getLogger(__filename);
  * The value to use for the "type" field for messages sent by ConnectionQuality
  * over the data channel.
  */
-const STATS_MESSAGE_TYPE = 'stats';
+const STATS_MESSAGE_TYPE = "stats";
 
 /**
  * The maximum bitrate to use as a measurement against the participant's current
@@ -41,7 +41,7 @@ function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
     let height = Math.min(resolution.height, resolution.width);
 
     // Find the first format with height no bigger than ours.
-    let qualityLevel = VIDEO_QUALITY_LEVELS.find(f => f.height <= height);
+    let qualityLevel = VIDEO_QUALITY_LEVELS.find((f) => f.height <= height);
 
     if (qualityLevel && simulcast) {
         // Sum the target fields from all simulcast layers for the given
@@ -49,7 +49,9 @@ function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
         for (height = qualityLevel.height; height >= 180; height /= 2) {
             const targetHeight = height;
 
-            qualityLevel = VIDEO_QUALITY_LEVELS.find(f => f.height === targetHeight);
+            qualityLevel = VIDEO_QUALITY_LEVELS.find(
+                (f) => f.height === targetHeight,
+            );
             if (qualityLevel) {
                 target += bitrates[qualityLevel.level];
             } else {
@@ -64,7 +66,10 @@ function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
 
     // Allow for an additional 1 second for ramp up -- delay any initial drop
     // of connection quality by 1 second. Convert target from bps to kbps.
-    return Math.min(target / 1000, rampUp(Math.max(0, millisSinceStart - 1000)));
+    return Math.min(
+        target / 1000,
+        rampUp(Math.max(0, millisSinceStart - 1000)),
+    );
 }
 
 /**
@@ -110,7 +115,7 @@ export default class ConnectionQuality {
          */
         this._localStats = {
             connectionQuality: 100,
-            jvbRTT: undefined
+            jvbRTT: undefined,
         };
 
         /**
@@ -148,23 +153,23 @@ export default class ConnectionQuality {
 
         // TODO: consider ignoring these events and letting the user of
         // lib-jitsi-meet handle these separately.
-        conference.on(
-            ConferenceEvents.CONNECTION_INTERRUPTED,
-            () => {
-                this._updateLocalConnectionQuality(0);
-                this.eventEmitter.emit(
-                    ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-                    this._localStats);
-                this._broadcastLocalStats();
-            });
+        conference.on(ConferenceEvents.CONNECTION_INTERRUPTED, () => {
+            this._updateLocalConnectionQuality(0);
+            this.eventEmitter.emit(
+                ConnectionQualityEvents.LOCAL_STATS_UPDATED,
+                this._localStats,
+            );
+            this._broadcastLocalStats();
+        });
 
         conference.room.addListener(
             XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
             (jingleSession, newState) => {
-                if (!jingleSession.isP2P && newState === 'connected') {
+                if (!jingleSession.isP2P && newState === "connected") {
                     this._timeIceConnected = window.performance.now();
                 }
-            });
+            },
+        );
 
         // Listen to DataChannel message from other participants in the
         // conference, and update the _remoteStats field accordingly.
@@ -175,59 +180,62 @@ export default class ConnectionQuality {
             (participant, payload) => {
                 if (payload.type === STATS_MESSAGE_TYPE) {
                     this._updateRemoteStats(
-                        participant.getId(), payload.values);
+                        participant.getId(),
+                        payload.values,
+                    );
                 }
-            });
+            },
+        );
 
         conference.on(
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
             (participant, payload) => {
                 this._updateRemoteStats(participant.getId(), payload);
-            });
+            },
+        );
 
         if (!this._options.config.disableLocalStats) {
             // Listen to local statistics events originating from the RTC module and update the _localStats field.
-            conference.statistics.addConnectionStatsListener(this._updateLocalStats.bind(this));
+            conference.statistics.addConnectionStatsListener(
+                this._updateLocalStats.bind(this),
+            );
         }
 
         // Save the last time we were unmuted.
-        conference.on(
-            ConferenceEvents.TRACK_MUTE_CHANGED,
-            track => {
-                if (track.isVideoTrack()) {
-                    if (track.isMuted()) {
-                        this._timeVideoUnmuted = -1;
-                    } else {
-                        this._maybeUpdateUnmuteTime();
-                    }
-                }
-            });
-        conference.on(
-            ConferenceEvents.TRACK_ADDED,
-            track => {
-                if (track.isVideoTrack() && !track.isMuted()) {
+        conference.on(ConferenceEvents.TRACK_MUTE_CHANGED, (track) => {
+            if (track.isVideoTrack()) {
+                if (track.isMuted()) {
+                    this._timeVideoUnmuted = -1;
+                } else {
                     this._maybeUpdateUnmuteTime();
                 }
-            });
+            }
+        });
+        conference.on(ConferenceEvents.TRACK_ADDED, (track) => {
+            if (track.isVideoTrack() && !track.isMuted()) {
+                this._maybeUpdateUnmuteTime();
+            }
+        });
         conference.rtc.on(
             RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
-            track => {
-                this._localStats.maxEnabledResolution = track.maxEnabledResolution;
-            });
+            (track) => {
+                this._localStats.maxEnabledResolution =
+                    track.maxEnabledResolution;
+            },
+        );
 
         conference.on(
             ConferenceEvents.SERVER_REGION_CHANGED,
-            serverRegion => {
+            (serverRegion) => {
                 this._localStats.serverRegion = serverRegion;
-            });
-
-        conference.on(
-            ConferenceEvents.PROPERTIES_CHANGED,
-            properties => {
-                this._localStats.bridgeCount
-                    = Number((properties || {})['bridge-count']);
-            }
+            },
         );
+
+        conference.on(ConferenceEvents.PROPERTIES_CHANGED, (properties) => {
+            this._localStats.bridgeCount = Number(
+                (properties || {})["bridge-count"],
+            );
+        });
     }
 
     /**
@@ -248,7 +256,6 @@ export default class ConnectionQuality {
      * @returns {*} the newly calculated connection quality.
      */
     _calculateConnectionQuality(videoType, isMuted, resolutionName) {
-
         // resolutionName is an index into Resolutions (where "720" is
         // "1280x720" and "960" is "960x720" ...).
         const resolution = Resolutions[resolutionName];
@@ -280,14 +287,19 @@ export default class ConnectionQuality {
             }
         }
 
-        if (isMuted || !resolution || videoType === VideoType.DESKTOP
-            || this._timeIceConnected < 0
-            || this._timeVideoUnmuted < 0) {
-
+        if (
+            isMuted ||
+            !resolution ||
+            videoType === VideoType.DESKTOP ||
+            this._timeIceConnected < 0 ||
+            this._timeVideoUnmuted < 0
+        ) {
             // Calculate a value based on packet loss only.
             if (packetLoss === undefined) {
-                logger.error('Cannot calculate connection quality, unknown '
-                    + 'packet loss.');
+                logger.error(
+                    "Cannot calculate connection quality, unknown " +
+                        "packet loss.",
+                );
                 quality = 100;
             } else if (packetLoss <= 2) {
                 quality = 100; // Full 5 bars.
@@ -308,22 +320,25 @@ export default class ConnectionQuality {
 
             if (activeTPC) {
                 // Time since sending of video was enabled.
-                const millisSinceStart = window.performance.now()
-                    - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
-                const statsInterval = this._options.config?.pcStatsInterval ?? 10000;
+                const millisSinceStart =
+                    window.performance.now() -
+                    Math.max(this._timeVideoUnmuted, this._timeIceConnected);
+                const statsInterval =
+                    this._options.config?.pcStatsInterval ?? 10000;
 
                 // Expected sending bitrate in perfect conditions.
                 let target = getTarget(
                     activeTPC.doesTrueSimulcast(),
                     resolution,
                     millisSinceStart,
-                    activeTPC.getTargetVideoBitrates());
+                    activeTPC.getTargetVideoBitrates(),
+                );
 
                 target = Math.min(target, MAX_TARGET_BITRATE);
 
                 // Calculate the quality only after the stats are available (after video was enabled).
                 if (millisSinceStart > statsInterval) {
-                    quality = 100 * this._localStats.bitrate.upload / target;
+                    quality = (100 * this._localStats.bitrate.upload) / target;
                 }
             }
 
@@ -337,9 +352,14 @@ export default class ConnectionQuality {
         if (this._lastConnectionQualityUpdate > 0) {
             const maxIncreasePerSecond = 2;
             const prevConnectionQuality = this._localStats.connectionQuality;
-            const diffSeconds = (window.performance.now() - this._lastConnectionQualityUpdate) / 1000;
+            const diffSeconds =
+                (window.performance.now() - this._lastConnectionQualityUpdate) /
+                1000;
 
-            quality = Math.min(quality, prevConnectionQuality + (diffSeconds * maxIncreasePerSecond));
+            quality = Math.min(
+                quality,
+                prevConnectionQuality + diffSeconds * maxIncreasePerSecond,
+            );
         }
 
         return Math.min(100, quality);
@@ -366,7 +386,7 @@ export default class ConnectionQuality {
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
             serverRegion: this._localStats.serverRegion,
-            maxEnabledResolution: this._localStats.maxEnabledResolution
+            maxEnabledResolution: this._localStats.maxEnabledResolution,
         };
 
         try {
@@ -386,9 +406,10 @@ export default class ConnectionQuality {
     _updateLocalStats(tpc, data) {
         // Update jvbRTT
         if (!tpc.isP2P) {
-            const jvbRTT
-                = data.transport
-                    && data.transport.length && data.transport[0].rtt;
+            const jvbRTT =
+                data.transport &&
+                data.transport.length &&
+                data.transport[0].rtt;
 
             this._localStats.jvbRTT = jvbRTT ? jvbRTT : undefined;
         }
@@ -400,15 +421,19 @@ export default class ConnectionQuality {
         }
 
         let key;
-        const updateLocalConnectionQuality
-            = !this._conference.isConnectionInterrupted();
-        const localVideoTrack
-            = this._conference.getLocalVideoTrack();
-        const videoType
-            = localVideoTrack ? localVideoTrack.videoType : undefined;
+        const updateLocalConnectionQuality =
+            !this._conference.isConnectionInterrupted();
+        const localVideoTrack = this._conference.getLocalVideoTrack();
+        const videoType = localVideoTrack
+            ? localVideoTrack.videoType
+            : undefined;
         const isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
         const resolution = localVideoTrack
-            ? Math.min(localVideoTrack.resolution, localVideoTrack.maxEnabledResolution) : null;
+            ? Math.min(
+                  localVideoTrack.resolution,
+                  localVideoTrack.maxEnabledResolution,
+              )
+            : null;
 
         if (!isMuted) {
             this._maybeUpdateUnmuteTime();
@@ -427,12 +452,15 @@ export default class ConnectionQuality {
                 this._calculateConnectionQuality(
                     videoType,
                     isMuted,
-                    resolution));
+                    resolution,
+                ),
+            );
         }
 
         this.eventEmitter.emit(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-            this._localStats);
+            this._localStats,
+        );
         this._broadcastLocalStats();
     }
 
@@ -449,13 +477,14 @@ export default class ConnectionQuality {
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
             serverRegion: data.serverRegion,
-            maxEnabledResolution: data.maxEnabledResolution
+            maxEnabledResolution: data.maxEnabledResolution,
         };
 
         this.eventEmitter.emit(
             ConnectionQualityEvents.REMOTE_STATS_UPDATED,
             id,
-            this._remoteStats[id]);
+            this._remoteStats[id],
+        );
     }
 
     /**

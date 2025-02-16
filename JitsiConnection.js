@@ -1,14 +1,14 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import JitsiConference from './JitsiConference';
-import * as JitsiConnectionEvents from './JitsiConnectionEvents';
-import FeatureFlags from './modules/flags/FeatureFlags';
-import Statistics from './modules/statistics/statistics';
-import XMPP from './modules/xmpp/xmpp';
+import JitsiConference from "./JitsiConference";
+import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
+import FeatureFlags from "./modules/flags/FeatureFlags";
+import Statistics from "./modules/statistics/statistics";
+import XMPP from "./modules/xmpp/xmpp";
 import {
     CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
-    createConnectionFailedEvent
-} from './service/statistics/AnalyticsEvents';
+    createConnectionFailedEvent,
+} from "./service/statistics/AnalyticsEvents";
 
 const logger = getLogger(__filename);
 
@@ -33,26 +33,31 @@ export default function JitsiConnection(appID, token, options) {
     this.xmpp = new XMPP(options, token);
 
     /* eslint-disable max-params */
-    this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
+    this.addEventListener(
+        JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg, credentials, details) => {
             Statistics.sendAnalyticsAndLog(
-                createConnectionFailedEvent(errType, msg, details));
-        });
+                createConnectionFailedEvent(errType, msg, details),
+            );
+        },
+    );
     /* eslint-enable max-params */
 
-    this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-        msg => {
+    this.addEventListener(
+        JitsiConnectionEvents.CONNECTION_DISCONNECTED,
+        (msg) => {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
             // XXX Do we need the difference in handling between the log and
             // analytics event here?
             if (msg) {
-                Statistics.sendAnalytics(
-                    ANALYTICS_CONNECTION_DISCONNECTED,
-                    { message: msg });
+                Statistics.sendAnalytics(ANALYTICS_CONNECTION_DISCONNECTED, {
+                    message: msg,
+                });
             }
-        });
+        },
+    );
 }
 
 /**
@@ -65,14 +70,19 @@ export default function JitsiConnection(appID, token, options) {
  * the established xmpp connection will be used, even in the case where we have configured conference http request url
  * to be used.
  */
-JitsiConnection.prototype.connect = function(options = {}) {
+JitsiConnection.prototype.connect = function (options = {}) {
     // if we get redirected, we set disableFocus to skip sending the conference request twice
-    if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
-        this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name))
+    if (
+        this.xmpp.moderator.targetUrl &&
+        !this.options.disableFocus &&
+        options.name
+    ) {
+        this.xmpp.moderator
+            .sendConferenceRequest(this.xmpp.getRoomJid(options.name))
             .then(() => {
                 this.xmpp.connect(options.id, options.password);
             })
-            .catch(e => logger.trace('sendConferenceRequest rejected', e));
+            .catch((e) => logger.trace("sendConferenceRequest rejected", e));
     } else {
         this.xmpp.connect(options.id, options.password);
     }
@@ -85,7 +95,7 @@ JitsiConnection.prototype.connect = function(options = {}) {
  *
  * @param options {object} connecting options - rid, sid and jid.
  */
-JitsiConnection.prototype.attach = function(options) {
+JitsiConnection.prototype.attach = function (options) {
     this.xmpp.attach(options);
 };
 
@@ -93,7 +103,7 @@ JitsiConnection.prototype.attach = function(options) {
  * Disconnect the client from the server.
  * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
  */
-JitsiConnection.prototype.disconnect = function(...args) {
+JitsiConnection.prototype.disconnect = function (...args) {
     // XXX Forward any arguments passed to JitsiConnection.disconnect to
     // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
     // may optionally pass the event which triggered the disconnect in order to
@@ -106,7 +116,7 @@ JitsiConnection.prototype.disconnect = function(...args) {
  *
  * @returns {string} The jid of the participant.
  */
-JitsiConnection.prototype.getJid = function() {
+JitsiConnection.prototype.getJid = function () {
     return this.xmpp.getJid();
 };
 
@@ -114,7 +124,7 @@ JitsiConnection.prototype.getJid = function() {
  * This method allows renewal of the tokens if they are expiring.
  * @param token the new token.
  */
-JitsiConnection.prototype.setToken = function(token) {
+JitsiConnection.prototype.setToken = function (token) {
     this.token = token;
 };
 
@@ -126,11 +136,11 @@ JitsiConnection.prototype.setToken = function(token) {
  * that will be created.
  * @returns {JitsiConference} returns the new conference object.
  */
-JitsiConnection.prototype.initJitsiConference = function(name, options) {
+JitsiConnection.prototype.initJitsiConference = function (name, options) {
     return new JitsiConference({
         name,
         config: options,
-        connection: this
+        connection: this,
     });
 };
 
@@ -139,7 +149,7 @@ JitsiConnection.prototype.initJitsiConference = function(name, options) {
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.addEventListener = function(event, listener) {
+JitsiConnection.prototype.addEventListener = function (event, listener) {
     this.xmpp.addListener(event, listener);
 };
 
@@ -148,14 +158,14 @@ JitsiConnection.prototype.addEventListener = function(event, listener) {
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.removeEventListener = function(event, listener) {
+JitsiConnection.prototype.removeEventListener = function (event, listener) {
     this.xmpp.removeListener(event, listener);
 };
 
 /**
  * Returns measured connectionTimes.
  */
-JitsiConnection.prototype.getConnectionTimes = function() {
+JitsiConnection.prototype.getConnectionTimes = function () {
     return this.xmpp.connectionTimes;
 };
 
@@ -166,7 +176,7 @@ JitsiConnection.prototype.getConnectionTimes = function() {
  * @param {boolean} submit if true - the new list of features will be
  * immediately submitted to the others.
  */
-JitsiConnection.prototype.addFeature = function(feature, submit = false) {
+JitsiConnection.prototype.addFeature = function (feature, submit = false) {
     this.xmpp.caps.addFeature(feature, submit, true);
 };
 
@@ -177,14 +187,14 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
  * @param {boolean} submit if true - the new list of features will be
  * immediately submitted to the others.
  */
-JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
+JitsiConnection.prototype.removeFeature = function (feature, submit = false) {
     this.xmpp.caps.removeFeature(feature, submit, true);
 };
 
 /**
  * Get object with internal logs.
  */
-JitsiConnection.prototype.getLogs = function() {
+JitsiConnection.prototype.getLogs = function () {
     const data = this.xmpp.getJingleLog();
 
     const metadata = {};

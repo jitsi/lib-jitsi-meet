@@ -1,12 +1,12 @@
-import { safeJsonParse } from '@jitsi/js-utils/json';
-import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
-import { $build } from 'strophe.js';
+import { safeJsonParse } from "@jitsi/js-utils/json";
+import { getLogger } from "@jitsi/logger";
+import $ from "jquery";
+import { $build } from "strophe.js";
 
-import { MediaType } from '../../service/RTC/MediaType';
-import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
-import { VideoType } from '../../service/RTC/VideoType';
-import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { MediaType } from "../../service/RTC/MediaType";
+import { SSRC_GROUP_SEMANTICS } from "../../service/RTC/StandardVideoQualitySettings";
+import { VideoType } from "../../service/RTC/VideoType";
+import { XEP } from "../../service/xmpp/XMPPExtensioProtocols";
 
 const logger = getLogger(__filename);
 
@@ -26,22 +26,22 @@ function _createSourceExtension(owner, sourceCompactJson, isVideo = false) {
         videoType = VideoType.CAMERA;
     }
 
-    const node = $build('source', {
+    const node = $build("source", {
         xmlns: XEP.SOURCE_ATTRIBUTES,
         ssrc: sourceCompactJson.s,
         name: sourceCompactJson.n,
-        videoType
+        videoType,
     });
 
     if (sourceCompactJson.m) {
-        node.c('parameter', {
-            name: 'msid',
-            value: sourceCompactJson.m
+        node.c("parameter", {
+            name: "msid",
+            value: sourceCompactJson.m,
         }).up();
     }
-    node.c('ssrc-info', {
-        xmlns: 'http://jitsi.org/jitmeet',
-        owner
+    node.c("ssrc-info", {
+        xmlns: "http://jitsi.org/jitmeet",
+        owner,
     }).up();
 
     return node.node;
@@ -53,15 +53,15 @@ function _createSourceExtension(owner, sourceCompactJson, isVideo = false) {
  * @returns the created "ssrc-group" element.
  */
 function _createSsrcGroupExtension(ssrcGroupCompactJson) {
-    const node = $build('ssrc-group', {
+    const node = $build("ssrc-group", {
         xmlns: XEP.SOURCE_ATTRIBUTES,
-        semantics: _getSemantics(ssrcGroupCompactJson[0])
+        semantics: _getSemantics(ssrcGroupCompactJson[0]),
     });
 
     for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
-        node.c('source', {
+        node.c("source", {
             xmlns: XEP.SOURCE_ATTRIBUTES,
-            ssrc: ssrcGroupCompactJson[i]
+            ssrc: ssrcGroupCompactJson[i],
         }).up();
     }
 
@@ -76,7 +76,7 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson) {
  * @returns the RTP description element with the given media type.
  */
 function _getOrCreateRtpDescription(iq, mediaType) {
-    const jingle = $(iq).find('jingle')[0];
+    const jingle = $(iq).find("jingle")[0];
     let content = $(jingle).find(`content[name="${mediaType}"]`);
     let description;
 
@@ -84,20 +84,20 @@ function _getOrCreateRtpDescription(iq, mediaType) {
         content = content[0];
     } else {
         // I'm not suree if "creator" and "senders" are required.
-        content = $build('content', {
-            name: mediaType
+        content = $build("content", {
+            name: mediaType,
         }).node;
         jingle.appendChild(content);
     }
 
-    description = $(content).find('description');
+    description = $(content).find("description");
 
     if (description.length) {
         description = description[0];
     } else {
-        description = $build('description', {
+        description = $build("description", {
             xmlns: XEP.RTP_MEDIA,
-            media: mediaType
+            media: mediaType,
         }).node;
         content.appendChild(description);
     }
@@ -112,9 +112,9 @@ function _getOrCreateRtpDescription(iq, mediaType) {
  * @returns the SSRC group semantics corresponding to [str].
  */
 function _getSemantics(str) {
-    if (str === 'f') {
+    if (str === "f") {
         return SSRC_GROUP_SEMANTICS.FID;
-    } else if (str === 's') {
+    } else if (str === "s") {
         return SSRC_GROUP_SEMANTICS.SIM;
     }
 
@@ -139,7 +139,9 @@ export function expandSourcesFromJson(iq, jsonMessageXml) {
     try {
         json = safeJsonParse(jsonMessageXml.textContent);
     } catch (error) {
-        logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
+        logger.error(
+            `json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`,
+        );
 
         return null;
     }
@@ -168,26 +170,34 @@ export function expandSourcesFromJson(iq, jsonMessageXml) {
 
             if (videoSources?.length) {
                 for (let i = 0; i < videoSources.length; i++) {
-                    videoRtpDescription.appendChild(_createSourceExtension(owner, videoSources[i], true));
+                    videoRtpDescription.appendChild(
+                        _createSourceExtension(owner, videoSources[i], true),
+                    );
                     ssrcs.push(videoSources[i]?.s);
                 }
             }
 
             if (videoSsrcGroups?.length) {
                 for (let i = 0; i < videoSsrcGroups.length; i++) {
-                    videoRtpDescription.appendChild(_createSsrcGroupExtension(videoSsrcGroups[i]));
+                    videoRtpDescription.appendChild(
+                        _createSsrcGroupExtension(videoSsrcGroups[i]),
+                    );
                 }
             }
             if (audioSources?.length) {
                 for (let i = 0; i < audioSources.length; i++) {
-                    audioRtpDescription.appendChild(_createSourceExtension(owner, audioSources[i]));
+                    audioRtpDescription.appendChild(
+                        _createSourceExtension(owner, audioSources[i]),
+                    );
                     ssrcs.push(audioSources[i]?.s);
                 }
             }
 
             if (audioSsrcGroups?.length) {
                 for (let i = 0; i < audioSsrcGroups.length; i++) {
-                    audioRtpDescription.appendChild(_createSsrcGroupExtension(audioSsrcGroups[i]));
+                    audioRtpDescription.appendChild(
+                        _createSsrcGroupExtension(audioSsrcGroups[i]),
+                    );
                 }
             }
             ssrcMap.set(owner, ssrcs);

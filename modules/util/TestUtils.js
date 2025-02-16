@@ -8,5 +8,5 @@
 export function nextTick(advanceTimer) {
     advanceTimer && jasmine.clock().tick(advanceTimer);
 
-    return new Promise(resolve => process.nextTick(resolve));
+    return new Promise((resolve) => process.nextTick(resolve));
 }

@@ -1,17 +1,17 @@
-import $ from 'jquery';
-import { Strophe } from 'strophe.js'; // eslint-disable-line camelcase
+import $ from "jquery";
+import { Strophe } from "strophe.js"; // eslint-disable-line camelcase
 
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import Listenable from '../util/Listenable';
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
+import Listenable from "../util/Listenable";
 
-import sha1 from './sha1';
+import sha1 from "./sha1";
 
 /**
  * The property
  */
-const IDENTITY_PROPERTIES = [ 'category', 'type', 'lang', 'name' ];
-const IDENTITY_PROPERTIES_FOR_COMPARE = [ 'category', 'type', 'lang' ];
-const HASH = 'sha-1';
+const IDENTITY_PROPERTIES = ["category", "type", "lang", "name"];
+const IDENTITY_PROPERTIES_FOR_COMPARE = ["category", "type", "lang"];
+const HASH = "sha-1";
 
 /**
  *
@@ -21,8 +21,9 @@ const HASH = 'sha-1';
 function compareIdentities(a, b) {
     let res = 0;
 
-    IDENTITY_PROPERTIES_FOR_COMPARE.some(key =>
-        (res = ((a[key] > b[key]) && 1) || ((a[key] < b[key]) && -1)) !== 0
+    IDENTITY_PROPERTIES_FOR_COMPARE.some(
+        (key) =>
+            (res = (a[key] > b[key] && 1) || (a[key] < b[key] && -1)) !== 0,
     );
 
     return res;
@@ -36,17 +37,22 @@ function compareIdentities(a, b) {
  * @returns {string}
  */
 function generateSha(identities, features) {
-    const sortedIdentities = identities.sort(compareIdentities).reduce(
-        (accumulatedValue, identity) => `${
-            IDENTITY_PROPERTIES.reduce(
-                (tmp, key, idx) =>
-                    tmp
-                        + (idx === 0 ? '' : '/')
-                        + (identity[key] ? identity[key] : ''),
-                '')
-        }<`, '');
-    const sortedFeatures = features.sort().reduce(
-        (tmp, feature) => `${tmp + feature}<`, '');
+    const sortedIdentities = identities
+        .sort(compareIdentities)
+        .reduce(
+            (accumulatedValue, identity) =>
+                `${IDENTITY_PROPERTIES.reduce(
+                    (tmp, key, idx) =>
+                        tmp +
+                        (idx === 0 ? "" : "/") +
+                        (identity[key] ? identity[key] : ""),
+                    "",
+                )}<`,
+            "",
+        );
+    const sortedFeatures = features
+        .sort()
+        .reduce((tmp, feature) => `${tmp + feature}<`, "");
 
     return sha1.b64_sha1(sortedIdentities + sortedFeatures);
 }
@@ -60,18 +66,22 @@ export function parseDiscoInfo(node) {
     const features = new Set();
     const identities = new Set();
 
-    $(node).find('>query>feature')
-        .each((_, el) => features.add(el.getAttribute('var')));
-    $(node).find('>query>identity')
-        .each((_, el) => identities.add({
-            type: el.getAttribute('type'),
-            name: el.getAttribute('name'),
-            category: el.getAttribute('category')
-        }));
+    $(node)
+        .find(">query>feature")
+        .each((_, el) => features.add(el.getAttribute("var")));
+    $(node)
+        .find(">query>identity")
+        .each((_, el) =>
+            identities.add({
+                type: el.getAttribute("type"),
+                name: el.getAttribute("name"),
+                category: el.getAttribute("category"),
+            }),
+        );
 
     return {
         features,
-        identities
+        identities,
     };
 }
 
@@ -85,17 +95,17 @@ export default class Caps extends Listenable {
      * @param {String} node the value of the node attribute of the "c" xml node
      * that will be sent to the other participants
      */
-    constructor(connection = {}, node = 'http://jitsi.org/jitsimeet') {
+    constructor(connection = {}, node = "http://jitsi.org/jitsimeet") {
         super();
         this.node = node;
         this.disco = connection.disco;
         if (!this.disco) {
             throw new Error(
-                'Missing strophe-plugins '
-                + '(disco plugin is required)!');
+                "Missing strophe-plugins " + "(disco plugin is required)!",
+            );
         }
 
-        this.version = '';
+        this.version = "";
         this.rooms = new Set();
 
         // We keep track of features added outside the library and we publish them
@@ -104,15 +114,17 @@ export default class Caps extends Listenable {
 
         const emuc = connection.emuc;
 
-        emuc.addListener(XMPPEvents.EMUC_ROOM_ADDED,
-            room => this._addChatRoom(room));
-        emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED,
-            room => this._removeChatRoom(room));
-        Object.keys(emuc.rooms).forEach(jid => {
+        emuc.addListener(XMPPEvents.EMUC_ROOM_ADDED, (room) =>
+            this._addChatRoom(room),
+        );
+        emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED, (room) =>
+            this._removeChatRoom(room),
+        );
+        Object.keys(emuc.rooms).forEach((jid) => {
             this._addChatRoom(emuc.rooms[jid]);
         });
 
-        Strophe.addNamespace('CAPS', 'http://jabber.org/protocol/caps');
+        Strophe.addNamespace("CAPS", "http://jabber.org/protocol/caps");
         this.disco.addFeature(Strophe.NS.CAPS);
     }
 
@@ -132,7 +144,9 @@ export default class Caps extends Listenable {
 
         if (external && !this.externalFeatures.has(feature)) {
             this.externalFeatures.add(feature);
-            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
+            this.rooms.forEach((room) =>
+                this._updateRoomWithExternalFeatures(room),
+            );
         }
 
         if (submit) {
@@ -154,7 +168,9 @@ export default class Caps extends Listenable {
 
         if (external && this.externalFeatures.has(feature)) {
             this.externalFeatures.delete(feature);
-            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
+            this.rooms.forEach((room) =>
+                this._updateRoomWithExternalFeatures(room),
+            );
         }
 
         if (submit) {
@@ -166,7 +182,7 @@ export default class Caps extends Listenable {
      * Sends new presence stanza for every room from the list of rooms.
      */
     submit() {
-        this.rooms.forEach(room => room.sendPresence());
+        this.rooms.forEach((room) => room.sendPresence());
     }
 
     /**
@@ -176,18 +192,18 @@ export default class Caps extends Listenable {
      */
     _updateRoomWithExternalFeatures(room) {
         if (this.externalFeatures.size === 0) {
-            room.removeFromPresence('features');
+            room.removeFromPresence("features");
         } else {
             const children = [];
 
-            this.externalFeatures.forEach(f => {
+            this.externalFeatures.forEach((f) => {
                 children.push({
-                    'tagName': 'feature',
-                    attributes: { 'var': f }
+                    tagName: "feature",
+                    attributes: { var: f },
                 });
             });
 
-            room.addOrReplaceInPresence('features', { children });
+            room.addOrReplaceInPresence("features", { children });
         }
     }
 
@@ -211,9 +227,15 @@ export default class Caps extends Listenable {
      */
     _getDiscoInfo(jid, node, timeout) {
         return new Promise((resolve, reject) =>
-            this.disco.info(jid, node, response => {
-                resolve(parseDiscoInfo(response));
-            }, reject, timeout)
+            this.disco.info(
+                jid,
+                node,
+                (response) => {
+                    resolve(parseDiscoInfo(response));
+                },
+                reject,
+                timeout,
+            ),
         );
     }
 
@@ -243,13 +265,13 @@ export default class Caps extends Listenable {
      * @param {ChatRoom} room the room.
      */
     _fixChatRoomPresenceMap(room) {
-        room.addOrReplaceInPresence('c', {
+        room.addOrReplaceInPresence("c", {
             attributes: {
                 xmlns: Strophe.NS.CAPS,
                 hash: HASH,
                 node: this.node,
-                ver: this.version
-            }
+                ver: this.version,
+            },
         });
     }
 
@@ -258,15 +280,17 @@ export default class Caps extends Listenable {
      */
     _notifyVersionChanged() {
         // update the version for all rooms
-        this.rooms.forEach(room => this._fixChatRoomPresenceMap(room));
+        this.rooms.forEach((room) => this._fixChatRoomPresenceMap(room));
     }
 
     /**
      * Generates the value for the "ver" attribute.
      */
     _generateVersion() {
-        this.version
-            = generateSha(this.disco._identities, this.disco._features);
+        this.version = generateSha(
+            this.disco._identities,
+            this.disco._features,
+        );
 
         this._notifyVersionChanged();
     }

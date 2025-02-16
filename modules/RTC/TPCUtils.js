@@ -1,27 +1,32 @@
-import { getLogger } from '@jitsi/logger';
-import { cloneDeep } from 'lodash-es';
-import transform from 'sdp-transform';
+import { getLogger } from "@jitsi/logger";
+import { cloneDeep } from "lodash-es";
+import transform from "sdp-transform";
 
-import { CodecMimeType } from '../../service/RTC/CodecMimeType';
-import { MediaDirection } from '../../service/RTC/MediaDirection';
-import { MediaType } from '../../service/RTC/MediaType';
+import { CodecMimeType } from "../../service/RTC/CodecMimeType";
+import { MediaDirection } from "../../service/RTC/MediaDirection";
+import { MediaType } from "../../service/RTC/MediaType";
 import {
     SIM_LAYERS,
     SSRC_GROUP_SEMANTICS,
     STANDARD_CODEC_SETTINGS,
     VIDEO_QUALITY_LEVELS,
-    VIDEO_QUALITY_SETTINGS
-} from '../../service/RTC/StandardVideoQualitySettings';
-import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
-import { VideoType } from '../../service/RTC/VideoType';
-import browser from '../browser';
-import SDPUtil from '../sdp/SDPUtil';
+    VIDEO_QUALITY_SETTINGS,
+} from "../../service/RTC/StandardVideoQualitySettings";
+import { VideoEncoderScalabilityMode } from "../../service/RTC/VideoEncoderScalabilityMode";
+import { VideoType } from "../../service/RTC/VideoType";
+import browser from "../browser";
+import SDPUtil from "../sdp/SDPUtil";
 
 const logger = getLogger(__filename);
-const DD_HEADER_EXT_URI
-    = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
+const DD_HEADER_EXT_URI =
+    "https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension";
 const DD_HEADER_EXT_ID = 11;
-const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
+const VIDEO_CODECS = [
+    CodecMimeType.AV1,
+    CodecMimeType.H264,
+    CodecMimeType.VP8,
+    CodecMimeType.VP9,
+];
 
 /**
  * Handles all the utility functions for the TraceablePeerConnection class, like calculating the encoding parameters,
@@ -57,18 +62,21 @@ export class TPCUtils {
         if (videoQualitySettings) {
             for (const codec of VIDEO_CODECS) {
                 const codecConfig = videoQualitySettings[codec];
-                const bitrateSettings = codecConfig?.maxBitratesVideo
-
+                const bitrateSettings =
+                    codecConfig?.maxBitratesVideo ??
                     // Read the deprecated settings for max bitrates.
-                    ?? (videoQualitySettings.maxbitratesvideo
-                        && videoQualitySettings.maxbitratesvideo[codec.toUpperCase()]);
+                    (videoQualitySettings.maxbitratesvideo &&
+                        videoQualitySettings.maxbitratesvideo[
+                            codec.toUpperCase()
+                        ]);
 
                 if (bitrateSettings) {
                     const settings = Object.values(VIDEO_QUALITY_SETTINGS);
 
-                    [ ...settings, 'ssHigh' ].forEach(value => {
+                    [...settings, "ssHigh"].forEach((value) => {
                         if (bitrateSettings[value]) {
-                            this.codecSettings[codec].maxBitratesVideo[value] = bitrateSettings[value];
+                            this.codecSettings[codec].maxBitratesVideo[value] =
+                                bitrateSettings[value];
                         }
                     });
                 }
@@ -77,15 +85,19 @@ export class TPCUtils {
                     continue; // eslint-disable-line no-continue
                 }
 
-                const scalabilityModeEnabled = this.codecSettings[codec].scalabilityModeEnabled
-                    && (typeof codecConfig.scalabilityModeEnabled === 'undefined'
-                        || codecConfig.scalabilityModeEnabled);
+                const scalabilityModeEnabled =
+                    this.codecSettings[codec].scalabilityModeEnabled &&
+                    (typeof codecConfig.scalabilityModeEnabled ===
+                        "undefined" ||
+                        codecConfig.scalabilityModeEnabled);
 
                 if (scalabilityModeEnabled) {
-                    typeof codecConfig.useSimulcast !== 'undefined'
-                        && (this.codecSettings[codec].useSimulcast = codecConfig.useSimulcast);
-                    typeof codecConfig.useKSVC !== 'undefined'
-                        && (this.codecSettings[codec].useKSVC = codecConfig.useKSVC);
+                    typeof codecConfig.useSimulcast !== "undefined" &&
+                        (this.codecSettings[codec].useSimulcast =
+                            codecConfig.useSimulcast);
+                    typeof codecConfig.useKSVC !== "undefined" &&
+                        (this.codecSettings[codec].useKSVC =
+                            codecConfig.useKSVC);
                 } else {
                     this.codecSettings[codec].scalabilityModeEnabled = false;
                 }
@@ -106,12 +118,18 @@ export class TPCUtils {
     _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const trackCaptureHeight = localVideoTrack.getCaptureResolution();
-        const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
-        const desktopShareBitrate = this.options.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
-        const isScreenshare = localVideoTrack.getVideoType() === VideoType.DESKTOP;
+        const effectiveNewHeight =
+            newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
+        const desktopShareBitrate =
+            this.options.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
+        const isScreenshare =
+            localVideoTrack.getVideoType() === VideoType.DESKTOP;
         let scalabilityMode = this.codecSettings[codec].useKSVC
-            ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
-        const { height, level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= effectiveNewHeight);
+            ? VideoEncoderScalabilityMode.L3T3_KEY
+            : VideoEncoderScalabilityMode.L3T3;
+        const { height, level } = VIDEO_QUALITY_LEVELS.find(
+            (lvl) => lvl.height <= effectiveNewHeight,
+        );
         let maxBitrate;
         let scaleResolutionDownBy = SIM_LAYERS[2].scaleFactor;
 
@@ -122,11 +140,15 @@ export class TPCUtils {
             maxBitrate = codecBitrates.ssHigh;
         } else {
             maxBitrate = codecBitrates[level];
-            effectiveNewHeight && (scaleResolutionDownBy = trackCaptureHeight / effectiveNewHeight);
+            effectiveNewHeight &&
+                (scaleResolutionDownBy =
+                    trackCaptureHeight / effectiveNewHeight);
 
             if (height !== effectiveNewHeight) {
-                logger.debug(`Quality level with height=${height} was picked when requested height=${newHeight} for`
-                    + `track with capture height=${trackCaptureHeight}`);
+                logger.debug(
+                    `Quality level with height=${height} was picked when requested height=${newHeight} for` +
+                        `track with capture height=${trackCaptureHeight}`,
+                );
             }
         }
 
@@ -134,7 +156,7 @@ export class TPCUtils {
             active: effectiveNewHeight > 0,
             maxBitrate,
             scalabilityMode,
-            scaleResolutionDownBy
+            scaleResolutionDownBy,
         };
 
         if (!config.active || isScreenshare) {
@@ -143,18 +165,20 @@ export class TPCUtils {
 
         // Configure the sender to send all 3 spatial layers for resolutions 720p and higher.
         switch (level) {
-        case VIDEO_QUALITY_SETTINGS.ULTRA:
-        case VIDEO_QUALITY_SETTINGS.FULL:
-        case VIDEO_QUALITY_SETTINGS.HIGH:
-            config.scalabilityMode = this.codecSettings[codec].useKSVC
-                ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3;
-            break;
-        case VIDEO_QUALITY_SETTINGS.STANDARD:
-            config.scalabilityMode = this.codecSettings[codec].useKSVC
-                ? VideoEncoderScalabilityMode.L2T3_KEY : VideoEncoderScalabilityMode.L2T3;
-            break;
-        default:
-            config.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
+            case VIDEO_QUALITY_SETTINGS.ULTRA:
+            case VIDEO_QUALITY_SETTINGS.FULL:
+            case VIDEO_QUALITY_SETTINGS.HIGH:
+                config.scalabilityMode = this.codecSettings[codec].useKSVC
+                    ? VideoEncoderScalabilityMode.L3T3_KEY
+                    : VideoEncoderScalabilityMode.L3T3;
+                break;
+            case VIDEO_QUALITY_SETTINGS.STANDARD:
+                config.scalabilityMode = this.codecSettings[codec].useKSVC
+                    ? VideoEncoderScalabilityMode.L2T3_KEY
+                    : VideoEncoderScalabilityMode.L2T3;
+                break;
+            default:
+                config.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
         }
 
         return config;
@@ -168,10 +192,12 @@ export class TPCUtils {
      * @private
      */
     _getConfiguredVideoCodecsImpl(parsedSdp) {
-        const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
-        const codecs = new Set(mLine.rtp
-            .filter(pt => pt.codec.toLowerCase() !== 'rtx')
-            .map(pt => pt.codec.toLowerCase()));
+        const mLine = parsedSdp.media.find((m) => m.type === MediaType.VIDEO);
+        const codecs = new Set(
+            mLine.rtp
+                .filter((pt) => pt.codec.toLowerCase() !== "rtx")
+                .map((pt) => pt.codec.toLowerCase()),
+        );
 
         return Array.from(codecs);
     }
@@ -198,11 +224,13 @@ export class TPCUtils {
         const captureResolution = localTrack.getCaptureResolution();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
-        let effectiveScaleFactors = SIM_LAYERS.map(sim => sim.scaleFactor);
+        let effectiveScaleFactors = SIM_LAYERS.map((sim) => sim.scaleFactor);
         let cameraMaxbitrate;
 
         if (videoType === VideoType.CAMERA) {
-            const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= captureResolution);
+            const { level } = VIDEO_QUALITY_LEVELS.find(
+                (lvl) => lvl.height <= captureResolution,
+            );
 
             cameraMaxbitrate = codecBitrates[level];
             if (level === VIDEO_QUALITY_SETTINGS.ULTRA) {
@@ -213,16 +241,25 @@ export class TPCUtils {
                 effectiveScaleFactors[0] = 6.0; // 180p
             }
         }
-        const maxBitrate = videoType === VideoType.DESKTOP
-            ? codecBitrates.ssHigh : cameraMaxbitrate;
-        let effectiveBitrates = [ codecBitrates.low, codecBitrates.standard, maxBitrate ];
+        const maxBitrate =
+            videoType === VideoType.DESKTOP
+                ? codecBitrates.ssHigh
+                : cameraMaxbitrate;
+        let effectiveBitrates = [
+            codecBitrates.low,
+            codecBitrates.standard,
+            maxBitrate,
+        ];
 
         // The SSRCs on older versions of Firefox are reversed in SDP, i.e., they have resolution order of 1:2:4 as
         // opposed to Chromium and other browsers. This has been reverted in Firefox 117 as part of the below commit.
         // https://hg.mozilla.org/mozilla-central/rev/b0348f1f8d7197fb87158ba74542d28d46133997
         // This revert seems to be applied only to camera tracks, the desktop stream encodings still have the
         // resolution order of 4:2:1.
-        if (browser.isFirefox() && (videoType === VideoType.DESKTOP || browser.isVersionLessThan(117))) {
+        if (
+            browser.isFirefox() &&
+            (videoType === VideoType.DESKTOP || browser.isVersionLessThan(117))
+        ) {
             effectiveBitrates = effectiveBitrates.reverse();
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }
@@ -232,26 +269,29 @@ export class TPCUtils {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[0],
                 rid: SIM_LAYERS[0].rid,
-                scaleResolutionDownBy: effectiveScaleFactors[0]
+                scaleResolutionDownBy: effectiveScaleFactors[0],
             },
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[1],
                 rid: SIM_LAYERS[1].rid,
-                scaleResolutionDownBy: effectiveScaleFactors[1]
+                scaleResolutionDownBy: effectiveScaleFactors[1],
             },
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[2],
                 rid: SIM_LAYERS[2].rid,
-                scaleResolutionDownBy: effectiveScaleFactors[2]
-            }
+                scaleResolutionDownBy: effectiveScaleFactors[2],
+            },
         ];
 
         if (this.codecSettings[codec].scalabilityModeEnabled) {
             // Configure all 3 encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
             // always since that is the only supported mode when DD header extension is negotiated for H.264.
-            if (this.codecSettings[codec].useSimulcast || codec === CodecMimeType.H264) {
+            if (
+                this.codecSettings[codec].useSimulcast ||
+                codec === CodecMimeType.H264
+            ) {
                 for (const encoding of standardSimulcastEncodings) {
                     encoding.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
                 }
@@ -267,16 +307,17 @@ export class TPCUtils {
                     rid: SIM_LAYERS[0].rid,
                     scaleResolutionDownBy: effectiveScaleFactors[2],
                     scalabilityMode: this.codecSettings[codec].useKSVC
-                        ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3
+                        ? VideoEncoderScalabilityMode.L3T3_KEY
+                        : VideoEncoderScalabilityMode.L3T3,
                 },
                 {
                     active: false,
-                    maxBitrate: 0
+                    maxBitrate: 0,
                 },
                 {
                     active: false,
-                    maxBitrate: 0
-                }
+                    maxBitrate: 0,
+                },
             ];
         }
 
@@ -292,9 +333,11 @@ export class TPCUtils {
      * @private
      */
     _isRunningInFullSvcMode(codec) {
-        return (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1)
-            && this.codecSettings[codec].scalabilityModeEnabled
-            && !this.codecSettings[codec].useSimulcast;
+        return (
+            (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1) &&
+            this.codecSettings[codec].scalabilityModeEnabled &&
+            !this.codecSettings[codec].useSimulcast
+        );
     }
 
     /**
@@ -310,9 +353,11 @@ export class TPCUtils {
      * @private
      */
     _isScreenshareBitrateCapped(localVideoTrack) {
-        return localVideoTrack.getVideoType() === VideoType.DESKTOP
-            && this.pc._capScreenshareBitrate
-            && !browser.isWebKitBased();
+        return (
+            localVideoTrack.getVideoType() === VideoType.DESKTOP &&
+            this.pc._capScreenshareBitrate &&
+            !browser.isWebKitBased()
+        );
     }
 
     /**
@@ -326,44 +371,57 @@ export class TPCUtils {
      */
     calculateEncodingsActiveState(localVideoTrack, codec, newHeight) {
         const height = localVideoTrack.getCaptureResolution();
-        const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack, codec);
+        const videoStreamEncodings = this._getVideoStreamEncodings(
+            localVideoTrack,
+            codec,
+        );
         const encodingsState = videoStreamEncodings
-        .map(encoding => height / encoding.scaleResolutionDownBy)
-        .map((frameHeight, idx) => {
-            let activeState = false;
+            .map((encoding) => height / encoding.scaleResolutionDownBy)
+            .map((frameHeight, idx) => {
+                let activeState = false;
 
-            // When video is suspended on the media session.
-            if (!this.pc.videoTransferActive) {
-                return activeState;
-            }
-
-            // Single video stream.
-            if (!this.pc.isSpatialScalabilityOn() || this._isRunningInFullSvcMode(codec)) {
-                const { active } = this._calculateActiveEncodingParams(localVideoTrack, codec, newHeight);
-
-                return idx === 0 ? active : activeState;
-            }
-
-            if (newHeight > 0) {
-                if (localVideoTrack.getVideoType() === VideoType.CAMERA) {
-                    activeState = frameHeight <= newHeight
-
-                        // Keep the LD stream enabled even when the LD stream's resolution is higher than of the
-                        // requested resolution. This can happen when camera is captured at high resolutions like 4k
-                        // but the requested resolution is 180. Since getParameters doesn't give us information about
-                        // the resolutions of the simulcast encodings, we have to rely on our initial config for the
-                        // simulcast streams.
-                        || videoStreamEncodings[idx]?.scaleResolutionDownBy === SIM_LAYERS[0].scaleFactor;
-                } else {
-                    // For screenshare, keep the HD layer enabled always and the lower layers only for high fps
-                    // screensharing.
-                    activeState = videoStreamEncodings[idx].scaleResolutionDownBy === SIM_LAYERS[2].scaleFactor
-                        || !this._isScreenshareBitrateCapped(localVideoTrack);
+                // When video is suspended on the media session.
+                if (!this.pc.videoTransferActive) {
+                    return activeState;
                 }
-            }
 
-            return activeState;
-        });
+                // Single video stream.
+                if (
+                    !this.pc.isSpatialScalabilityOn() ||
+                    this._isRunningInFullSvcMode(codec)
+                ) {
+                    const { active } = this._calculateActiveEncodingParams(
+                        localVideoTrack,
+                        codec,
+                        newHeight,
+                    );
+
+                    return idx === 0 ? active : activeState;
+                }
+
+                if (newHeight > 0) {
+                    if (localVideoTrack.getVideoType() === VideoType.CAMERA) {
+                        activeState =
+                            frameHeight <= newHeight ||
+                            // Keep the LD stream enabled even when the LD stream's resolution is higher than of the
+                            // requested resolution. This can happen when camera is captured at high resolutions like 4k
+                            // but the requested resolution is 180. Since getParameters doesn't give us information about
+                            // the resolutions of the simulcast encodings, we have to rely on our initial config for the
+                            // simulcast streams.
+                            videoStreamEncodings[idx]?.scaleResolutionDownBy ===
+                                SIM_LAYERS[0].scaleFactor;
+                    } else {
+                        // For screenshare, keep the HD layer enabled always and the lower layers only for high fps
+                        // screensharing.
+                        activeState =
+                            videoStreamEncodings[idx].scaleResolutionDownBy ===
+                                SIM_LAYERS[2].scaleFactor ||
+                            !this._isScreenshareBitrateCapped(localVideoTrack);
+                    }
+                }
+
+                return activeState;
+            });
 
         return encodingsState;
     }
@@ -379,14 +437,24 @@ export class TPCUtils {
      */
     calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
-        const desktopShareBitrate = this.options.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
-        const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack, codec)
-        .map((encoding, idx) => {
+        const desktopShareBitrate =
+            this.options.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
+        const encodingsBitrates = this._getVideoStreamEncodings(
+            localVideoTrack,
+            codec,
+        ).map((encoding, idx) => {
             let bitrate = encoding.maxBitrate;
 
             // Single video stream.
-            if (!this.pc.isSpatialScalabilityOn() || this._isRunningInFullSvcMode(codec)) {
-                const { maxBitrate } = this._calculateActiveEncodingParams(localVideoTrack, codec, newHeight);
+            if (
+                !this.pc.isSpatialScalabilityOn() ||
+                this._isRunningInFullSvcMode(codec)
+            ) {
+                const { maxBitrate } = this._calculateActiveEncodingParams(
+                    localVideoTrack,
+                    codec,
+                    newHeight,
+                );
 
                 return idx === 0 ? maxBitrate : 0;
             }
@@ -411,7 +479,10 @@ export class TPCUtils {
      * @returns {Array<VideoEncoderScalabilityMode> | undefined}
      */
     calculateEncodingsScalabilityMode(localVideoTrack, codec, maxHeight) {
-        if (!this.pc.isSpatialScalabilityOn() || !this.codecSettings[codec].scalabilityModeEnabled) {
+        if (
+            !this.pc.isSpatialScalabilityOn() ||
+            !this.codecSettings[codec].scalabilityModeEnabled
+        ) {
             return;
         }
 
@@ -419,13 +490,16 @@ export class TPCUtils {
         const scalabilityModes = [
             VideoEncoderScalabilityMode.L1T3,
             VideoEncoderScalabilityMode.L1T3,
-            VideoEncoderScalabilityMode.L1T3
+            VideoEncoderScalabilityMode.L1T3,
         ];
 
         // Full SVC mode.
         if (this._isRunningInFullSvcMode(codec)) {
-            const { scalabilityMode }
-                = this._calculateActiveEncodingParams(localVideoTrack, codec, maxHeight);
+            const { scalabilityMode } = this._calculateActiveEncodingParams(
+                localVideoTrack,
+                codec,
+                maxHeight,
+            );
 
             scalabilityModes[0] = scalabilityMode;
             scalabilityModes[1] = undefined;
@@ -447,16 +521,23 @@ export class TPCUtils {
      * @returns {Array<float>}
      */
     calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
-        if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
-            return this._getVideoStreamEncodings(localVideoTrack, codec)
-                .map(encoding => encoding.scaleResolutionDownBy);
+        if (
+            this.pc.isSpatialScalabilityOn() &&
+            this.isRunningInSimulcastMode(codec)
+        ) {
+            return this._getVideoStreamEncodings(localVideoTrack, codec).map(
+                (encoding) => encoding.scaleResolutionDownBy,
+            );
         }
 
         // Single video stream.
-        const { scaleResolutionDownBy }
-            = this._calculateActiveEncodingParams(localVideoTrack, codec, maxHeight);
+        const { scaleResolutionDownBy } = this._calculateActiveEncodingParams(
+            localVideoTrack,
+            codec,
+            maxHeight,
+        );
 
-        return [ scaleResolutionDownBy, undefined, undefined ];
+        return [scaleResolutionDownBy, undefined, undefined];
     }
 
     /**
@@ -469,7 +550,7 @@ export class TPCUtils {
     ensureCorrectOrderOfSsrcs(description) {
         const parsedSdp = transform.parse(description.sdp);
 
-        parsedSdp.media.forEach(mLine => {
+        parsedSdp.media.forEach((mLine) => {
             if (mLine.type === MediaType.AUDIO) {
                 return;
             }
@@ -480,15 +561,17 @@ export class TPCUtils {
 
             const ssrcs = new Set();
 
-            mLine.ssrcGroups.map(group =>
+            mLine.ssrcGroups.map((group) =>
                 group.ssrcs
-                    .split(' ')
+                    .split(" ")
                     .filter(Boolean)
-                    .forEach(ssrc => ssrcs.add(ssrc))
+                    .forEach((ssrc) => ssrcs.add(ssrc)),
             );
 
-            ssrcs.forEach(ssrc => {
-                const sources = mLine.ssrcs.filter(source => source.id.toString() === ssrc);
+            ssrcs.forEach((ssrc) => {
+                const sources = mLine.ssrcs.filter(
+                    (source) => source.id.toString() === ssrc,
+                );
 
                 reorderedSsrcs = reorderedSsrcs.concat(sources);
             });
@@ -497,7 +580,7 @@ export class TPCUtils {
 
         return {
             type: description.type,
-            sdp: transform.write(parsedSdp)
+            sdp: transform.write(parsedSdp),
         };
     }
 
@@ -509,13 +592,15 @@ export class TPCUtils {
      */
     getConfiguredVideoCodec(localTrack) {
         const localVideoTrack = localTrack ?? this.pc.getLocalVideoTracks()[0];
-        const rtpSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
+        const rtpSender = this.pc.findSenderForTrack(
+            localVideoTrack.getTrack(),
+        );
 
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
             const { encodings } = rtpSender.getParameters();
 
             if (encodings[0].codec) {
-                return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
+                return encodings[0].codec.mimeType.split("/")[1].toLowerCase();
             }
         }
 
@@ -525,13 +610,20 @@ export class TPCUtils {
             return CodecMimeType.VP8;
         }
         const parsedSdp = transform.parse(sdp);
-        const mLine = parsedSdp.media
-            .find(m => m.mid.toString() === this.pc.localTrackTransceiverMids.get(localVideoTrack.rtcId));
-        const payload = mLine.payloads.split(' ')[0];
-        const { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
+        const mLine = parsedSdp.media.find(
+            (m) =>
+                m.mid.toString() ===
+                this.pc.localTrackTransceiverMids.get(localVideoTrack.rtcId),
+        );
+        const payload = mLine.payloads.split(" ")[0];
+        const { codec } = mLine.rtp.find(
+            (rtp) => rtp.payload === Number(payload),
+        );
 
         if (codec) {
-            return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+            return Object.values(CodecMimeType).find(
+                (value) => value === codec.toLowerCase(),
+            );
         }
 
         return CodecMimeType.VP8;
@@ -565,10 +657,14 @@ export class TPCUtils {
         const hasLocalSource = this.pc.getLocalTracks(mediaType).length > 0;
 
         if (isAddOperation) {
-            return hasLocalSource ? MediaDirection.SENDRECV : MediaDirection.SENDONLY;
+            return hasLocalSource
+                ? MediaDirection.SENDRECV
+                : MediaDirection.SENDONLY;
         }
 
-        return hasLocalSource ? MediaDirection.RECVONLY : MediaDirection.INACTIVE;
+        return hasLocalSource
+            ? MediaDirection.RECVONLY
+            : MediaDirection.INACTIVE;
     }
 
     /**
@@ -578,7 +674,7 @@ export class TPCUtils {
      */
     getStreamEncodings(localTrack) {
         if (localTrack.isAudioTrack()) {
-            return [ { active: this.pc.audioTransferActive } ];
+            return [{ active: this.pc.audioTransferActive }];
         }
         const codec = this.getConfiguredVideoCodec(localTrack);
 
@@ -586,10 +682,12 @@ export class TPCUtils {
             return this._getVideoStreamEncodings(localTrack, codec);
         }
 
-        return [ {
-            active: this.pc.videoTransferActive,
-            maxBitrate: this.codecSettings[codec].maxBitratesVideo.high
-        } ];
+        return [
+            {
+                active: this.pc.videoTransferActive,
+                maxBitrate: this.codecSettings[codec].maxBitratesVideo.high,
+            },
+        ];
     }
 
     /**
@@ -602,27 +700,33 @@ export class TPCUtils {
      */
     injectSsrcGroupForSimulcast(desc) {
         const sdp = transform.parse(desc.sdp);
-        const video = sdp.media.find(mline => mline.type === 'video');
+        const video = sdp.media.find((mline) => mline.type === "video");
 
         // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
         video.ssrcGroups = video.ssrcGroups || [];
-        const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
+        const fidGroups = video.ssrcGroups.filter(
+            (group) => group.semantics === SSRC_GROUP_SEMANTICS.FID,
+        );
 
         if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
             if (fidGroups && fidGroups.length) {
-                fidGroups.forEach(group => {
-                    ssrcs.push(group.ssrcs.split(' ')[0]);
+                fidGroups.forEach((group) => {
+                    ssrcs.push(group.ssrcs.split(" ")[0]);
                 });
             } else {
-                video.ssrcs.forEach(ssrc => {
-                    if (ssrc.attribute === 'msid') {
+                video.ssrcs.forEach((ssrc) => {
+                    if (ssrc.attribute === "msid") {
                         ssrcs.push(ssrc.id);
                     }
                 });
             }
-            if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
+            if (
+                video.ssrcGroups.find(
+                    (group) => group.semantics === SSRC_GROUP_SEMANTICS.SIM,
+                )
+            ) {
                 // Group already exists, no need to do anything
                 return desc;
             }
@@ -633,14 +737,14 @@ export class TPCUtils {
 
                 video.ssrcGroups.push({
                     semantics: SSRC_GROUP_SEMANTICS.SIM,
-                    ssrcs: simSsrcs.join(' ')
+                    ssrcs: simSsrcs.join(" "),
                 });
             }
         }
 
         return {
             type: desc.type,
-            sdp: transform.write(sdp)
+            sdp: transform.write(sdp),
         };
     }
 
@@ -662,33 +766,40 @@ export class TPCUtils {
         const rids = [
             {
                 id: SIM_LAYERS[0].rid,
-                direction: 'recv'
+                direction: "recv",
             },
             {
                 id: SIM_LAYERS[1].rid,
-                direction: 'recv'
+                direction: "recv",
             },
             {
                 id: SIM_LAYERS[2].rid,
-                direction: 'recv'
-            }
+                direction: "recv",
+            },
         ];
 
-        const ridLine = rids.map(val => val.id).join(';');
+        const ridLine = rids.map((val) => val.id).join(";");
         const simulcastLine = `recv ${ridLine}`;
         const sdp = transform.parse(desc.sdp);
-        const mLines = sdp.media.filter(m => m.type === MediaType.VIDEO);
-        const senderMids = Array.from(this.pc.localTrackTransceiverMids.values());
+        const mLines = sdp.media.filter((m) => m.type === MediaType.VIDEO);
+        const senderMids = Array.from(
+            this.pc.localTrackTransceiverMids.values(),
+        );
 
         mLines.forEach((mLine, idx) => {
             // Make sure the simulcast recv line is only set on video descriptions that are associated with senders.
-            if (senderMids.find(sender => mLine.mid.toString() === sender.toString()) || idx === 0) {
+            if (
+                senderMids.find(
+                    (sender) => mLine.mid.toString() === sender.toString(),
+                ) ||
+                idx === 0
+            ) {
                 if (!mLine.simulcast_03 || !mLine.simulcast) {
                     mLine.rids = rids;
 
                     // eslint-disable-next-line camelcase
                     mLine.simulcast_03 = {
-                        value: simulcastLine
+                        value: simulcastLine,
                     };
                 }
             } else {
@@ -702,7 +813,7 @@ export class TPCUtils {
 
         return {
             type: desc.type,
-            sdp: transform.write(sdp)
+            sdp: transform.write(sdp),
         };
     }
 
@@ -714,16 +825,18 @@ export class TPCUtils {
      * @returns {boolean}
      */
     isRunningInSimulcastMode(codec) {
-        return codec === CodecMimeType.VP8 // VP8 always
-
+        return (
+            codec === CodecMimeType.VP8 || // VP8 always
             // K-SVC mode for VP9 when no scalability mode is set. Though only one outbound-rtp stream is present,
             // three separate encodings have to be configured.
-            || (!this.codecSettings[codec].scalabilityModeEnabled && codec === CodecMimeType.VP9)
-
+            (!this.codecSettings[codec].scalabilityModeEnabled &&
+                codec === CodecMimeType.VP9) ||
             // When scalability is enabled, always for H.264, and only when simulcast is explicitly enabled via
             // config.js for VP9 and AV1 since full SVC is the default mode for these 2 codecs.
-            || (this.codecSettings[codec].scalabilityModeEnabled
-                && (codec === CodecMimeType.H264 || this.codecSettings[codec].useSimulcast));
+            (this.codecSettings[codec].scalabilityModeEnabled &&
+                (codec === CodecMimeType.H264 ||
+                    this.codecSettings[codec].useSimulcast))
+        );
     }
 
     /**
@@ -741,7 +854,9 @@ export class TPCUtils {
 
         const mungedSdp = parsedSdp;
         const { isP2P } = this.options;
-        const mLines = mungedSdp.media.filter(m => m.type === codecSettings.mediaType);
+        const mLines = mungedSdp.media.filter(
+            (m) => m.type === codecSettings.mediaType,
+        );
 
         for (const mLine of mLines) {
             const currentCodecs = this._getConfiguredVideoCodecsImpl(mungedSdp);
@@ -754,12 +869,22 @@ export class TPCUtils {
                     // 2. There are multiple VP9 payload types generated by the browser, more payload types are added
                     //   if the endpoint doesn't have a local video source. Therefore, strip all the high profile codec
                     //   variants for VP9 so that only one payload type for VP9 is negotiated between the peers.
-                    if (codec === CodecMimeType.H264 || codec === CodecMimeType.VP9) {
-                        SDPUtil.stripCodec(mLine, codec, true /* high profile */);
+                    if (
+                        codec === CodecMimeType.H264 ||
+                        codec === CodecMimeType.VP9
+                    ) {
+                        SDPUtil.stripCodec(
+                            mLine,
+                            codec,
+                            true /* high profile */,
+                        );
                     }
 
                     // Do not negotiate ULPFEC and RED either.
-                    if (codec === CodecMimeType.ULPFEC || codec === CodecMimeType.RED) {
+                    if (
+                        codec === CodecMimeType.ULPFEC ||
+                        codec === CodecMimeType.RED
+                    ) {
                         SDPUtil.stripCodec(mLine, codec, false);
                     }
                 }
@@ -786,27 +911,37 @@ export class TPCUtils {
     mungeOpus(parsedSdp) {
         const { audioQuality } = this.options;
 
-        if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
+        if (
+            !audioQuality?.enableOpusDtx &&
+            !audioQuality?.stereo &&
+            !audioQuality?.opusMaxAverageBitrate
+        ) {
             return parsedSdp;
         }
 
         const mungedSdp = parsedSdp;
-        const mLines = mungedSdp.media.filter(m => m.type === MediaType.AUDIO);
+        const mLines = mungedSdp.media.filter(
+            (m) => m.type === MediaType.AUDIO,
+        );
 
         for (const mLine of mLines) {
-            const { payload } = mLine.rtp.find(protocol => protocol.codec === CodecMimeType.OPUS);
+            const { payload } = mLine.rtp.find(
+                (protocol) => protocol.codec === CodecMimeType.OPUS,
+            );
 
             if (!payload) {
                 // eslint-disable-next-line no-continue
                 continue;
             }
 
-            let fmtpOpus = mLine.fmtp.find(protocol => protocol.payload === payload);
+            let fmtpOpus = mLine.fmtp.find(
+                (protocol) => protocol.payload === payload,
+            );
 
             if (!fmtpOpus) {
                 fmtpOpus = {
                     payload,
-                    config: ''
+                    config: "",
                 };
             }
 
@@ -819,7 +954,8 @@ export class TPCUtils {
             }
 
             if (audioQuality?.opusMaxAverageBitrate) {
-                fmtpConfig.maxaveragebitrate = audioQuality.opusMaxAverageBitrate;
+                fmtpConfig.maxaveragebitrate =
+                    audioQuality.opusMaxAverageBitrate;
                 sdpChanged = true;
             }
 
@@ -834,7 +970,7 @@ export class TPCUtils {
                 continue;
             }
 
-            let mungedConfig = '';
+            let mungedConfig = "";
 
             for (const key of Object.keys(fmtpConfig)) {
                 mungedConfig += `${key}=${fmtpConfig[key]}; `;
@@ -862,41 +998,60 @@ export class TPCUtils {
 
         // Find all the m-lines associated with the local sources.
         const mungedSdp = parsedSdp;
-        const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
-        const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
+        const direction = isLocalSdp
+            ? MediaDirection.RECVONLY
+            : MediaDirection.SENDONLY;
+        const mLines = mungedSdp.media.filter(
+            (m) => m.type === MediaType.VIDEO && m.direction !== direction,
+        );
         const currentCodec = pcCodecSettings.codecList[0];
         const codecScalabilityModeSettings = this.codecSettings[currentCodec];
 
         for (const mLine of mLines) {
-            const isDoingVp9KSvc = currentCodec === CodecMimeType.VP9
-                && !codecScalabilityModeSettings.scalabilityModeEnabled;
-            const localTrack = this.pc.getLocalVideoTracks()
-                .find(track => this.pc.localTrackTransceiverMids.get(track.rtcId) === mLine.mid.toString());
+            const isDoingVp9KSvc =
+                currentCodec === CodecMimeType.VP9 &&
+                !codecScalabilityModeSettings.scalabilityModeEnabled;
+            const localTrack = this.pc
+                .getLocalVideoTracks()
+                .find(
+                    (track) =>
+                        this.pc.localTrackTransceiverMids.get(track.rtcId) ===
+                        mLine.mid.toString(),
+                );
 
-            if (localTrack
-                && (isDoingVp9KSvc
-
+            if (
+                localTrack &&
+                (isDoingVp9KSvc ||
                     // Setting bitrates in the SDP for SVC codecs is no longer needed in the newer versions where
                     // maxBitrates from the RTCRtpEncodingParameters directly affect the target bitrate for the encoder.
-                    || (this._isRunningInFullSvcMode(currentCodec) && !this.pc.usesCodecSelectionAPI()))) {
+                    (this._isRunningInFullSvcMode(currentCodec) &&
+                        !this.pc.usesCodecSelectionAPI()))
+            ) {
                 let maxBitrate;
 
                 if (localTrack.getVideoType() === VideoType.DESKTOP) {
-                    maxBitrate = codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
+                    maxBitrate =
+                        codecScalabilityModeSettings.maxBitratesVideo.ssHigh;
                 } else {
-                    const { level } = VIDEO_QUALITY_LEVELS.find(lvl => lvl.height <= localTrack.getCaptureResolution());
+                    const { level } = VIDEO_QUALITY_LEVELS.find(
+                        (lvl) =>
+                            lvl.height <= localTrack.getCaptureResolution(),
+                    );
 
-                    maxBitrate = codecScalabilityModeSettings.maxBitratesVideo[level];
+                    maxBitrate =
+                        codecScalabilityModeSettings.maxBitratesVideo[level];
                 }
 
                 const limit = Math.floor(maxBitrate / 1000);
 
                 // Use only the highest spatial layer bitrates for now as there is no API available yet for configuring
                 // the bitrates on the individual SVC layers.
-                mLine.bandwidth = [ {
-                    type: 'AS',
-                    limit
-                } ];
+                mLine.bandwidth = [
+                    {
+                        type: "AS",
+                        limit,
+                    },
+                ];
             } else {
                 // Clear the bandwidth limit in SDP when VP9 is no longer the preferred codec.
                 // This is needed on react native clients as react-native-webrtc returns the
@@ -921,30 +1076,45 @@ export class TPCUtils {
             return parsedSdp;
         }
         const mungedSdp = parsedSdp;
-        const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO);
+        const mLines = mungedSdp.media.filter(
+            (m) => m.type === MediaType.VIDEO,
+        );
 
         mLines.forEach((mLine, idx) => {
-            const senderMids = Array.from(this.pc.localTrackTransceiverMids.values());
+            const senderMids = Array.from(
+                this.pc.localTrackTransceiverMids.values(),
+            );
             const isSender = senderMids.length
-                ? senderMids.find(mid => mLine.mid.toString() === mid.toString())
+                ? senderMids.find(
+                      (mid) => mLine.mid.toString() === mid.toString(),
+                  )
                 : idx === 0;
-            const payload = mLine.payloads.split(' ')[0];
-            let { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
+            const payload = mLine.payloads.split(" ")[0];
+            let { codec } = mLine.rtp.find(
+                (rtp) => rtp.payload === Number(payload),
+            );
 
             codec = codec.toLowerCase();
 
             if (isSender && mLine.ext?.length) {
-                const headerIndex = mLine.ext.findIndex(ext => ext.uri === DD_HEADER_EXT_URI);
-                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
+                const headerIndex = mLine.ext.findIndex(
+                    (ext) => ext.uri === DD_HEADER_EXT_URI,
+                );
+                const shouldNegotiateHeaderExts =
+                    codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
 
                 if (!this.supportsDDHeaderExt && headerIndex >= 0) {
                     this.supportsDDHeaderExt = true;
                 }
 
-                if (this.supportsDDHeaderExt && shouldNegotiateHeaderExts && headerIndex < 0) {
+                if (
+                    this.supportsDDHeaderExt &&
+                    shouldNegotiateHeaderExts &&
+                    headerIndex < 0
+                ) {
                     mLine.ext.push({
                         value: DD_HEADER_EXT_ID,
-                        uri: DD_HEADER_EXT_URI
+                        uri: DD_HEADER_EXT_URI,
                     });
                 } else if (!shouldNegotiateHeaderExts && headerIndex >= 0) {
                     mLine.ext.splice(headerIndex, 1);

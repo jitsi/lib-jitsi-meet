@@ -1,11 +1,11 @@
-import { getLogger } from '@jitsi/logger';
-import { debounce } from 'lodash-es';
+import { getLogger } from "@jitsi/logger";
+import { debounce } from "lodash-es";
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
-import { KeyHandler } from './KeyHandler';
-import { OlmAdapter } from './OlmAdapter';
-import { importKey, ratchet } from './crypto-utils';
+import { KeyHandler } from "./KeyHandler";
+import { OlmAdapter } from "./OlmAdapter";
+import { importKey, ratchet } from "./crypto-utils";
 
 const logger = getLogger(__filename);
 
@@ -34,34 +34,39 @@ export class ManagedKeyHandler extends KeyHandler {
         // Olm signalling events.
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
-            this._onParticipantKeyUpdated.bind(this));
+            this._onParticipantKeyUpdated.bind(this),
+        );
 
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_SAS_READY,
-            this._onParticipantSasReady.bind(this));
+            this._onParticipantSasReady.bind(this),
+        );
 
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_SAS_AVAILABLE,
-            this._onParticipantSasAvailable.bind(this));
+            this._onParticipantSasAvailable.bind(this),
+        );
 
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
-            this._onParticipantVerificationCompleted.bind(this));
+            this._onParticipantVerificationCompleted.bind(this),
+        );
 
         this.conference.on(
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
-            this._onParticipantPropertyChanged.bind(this));
+            this._onParticipantPropertyChanged.bind(this),
+        );
         this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
-            this._onParticipantJoined.bind(this));
+            this._onParticipantJoined.bind(this),
+        );
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
-            this._onParticipantLeft.bind(this));
-        this.conference.on(
-                JitsiConferenceEvents.CONFERENCE_JOINED,
-                () => {
-                    this._conferenceJoined = true;
-                });
+            this._onParticipantLeft.bind(this),
+        );
+        this.conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, () => {
+            this._conferenceJoined = true;
+        });
     }
 
     /**
@@ -108,14 +113,16 @@ export class ManagedKeyHandler extends KeyHandler {
      */
     async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
         switch (name) {
-        case 'e2ee.idKey':
-            logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
-            break;
-        case 'e2ee.enabled':
-            if (!newValue && this.enabled) {
-                this._olmAdapter.clearParticipantSession(participant);
-            }
-            break;
+            case "e2ee.idKey":
+                logger.debug(
+                    `Participant ${participant.getId()} updated their id key: ${newValue}`,
+                );
+                break;
+            case "e2ee.enabled":
+                if (!newValue && this.enabled) {
+                    this._olmAdapter.clearParticipantSession(participant);
+                }
+                break;
         }
     }
 
@@ -148,7 +155,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _rotateKeyImpl() {
-        logger.debug('Rotating key');
+        logger.debug("Rotating key");
 
         this._key = this._generateKey();
         const index = await this._olmAdapter.updateKey(this._key);
@@ -162,7 +169,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     async _ratchetKeyImpl() {
-        logger.debug('Ratchetting key');
+        logger.debug("Ratchetting key");
 
         const material = await importKey(this._key);
         const newKey = await ratchet(material);
@@ -196,7 +203,11 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantSasReady(pId, sas) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_READY, pId, sas);
+        this.conference.eventEmitter.emit(
+            JitsiConferenceEvents.E2EE_VERIFICATION_READY,
+            pId,
+            sas,
+        );
     }
 
     /**
@@ -206,9 +217,11 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantSasAvailable(pId) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
+        this.conference.eventEmitter.emit(
+            JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE,
+            pId,
+        );
     }
-
 
     /**
      * Handles the SAS completed event.
@@ -218,7 +231,12 @@ export class ManagedKeyHandler extends KeyHandler {
      * @private
      */
     _onParticipantVerificationCompleted(pId, success, message) {
-        this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED, pId, success, message);
+        this.conference.eventEmitter.emit(
+            JitsiConferenceEvents.E2EE_VERIFICATION_COMPLETED,
+            pId,
+            success,
+            message,
+        );
     }
 
     /**

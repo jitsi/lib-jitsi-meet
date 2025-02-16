@@ -1,8 +1,11 @@
-import { getLogger } from '@jitsi/logger';
-import { isEqual } from 'lodash-es';
+import { getLogger } from "@jitsi/logger";
+import { isEqual } from "lodash-es";
 
-import { MediaType } from '../../service/RTC/MediaType';
-import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/StandardVideoQualitySettings';
+import { MediaType } from "../../service/RTC/MediaType";
+import {
+    ASSUMED_BANDWIDTH_BPS,
+    LAST_N_UNLIMITED,
+} from "../../service/RTC/StandardVideoQualitySettings";
 
 const logger = getLogger(__filename);
 const MAX_HEIGHT = 2160;
@@ -25,7 +28,8 @@ export default class ReceiveVideoController {
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
-        this._lastN = config?.startLastN ?? (config?.channelLastN || LAST_N_UNLIMITED);
+        this._lastN =
+            config?.startLastN ?? (config?.channelLastN || LAST_N_UNLIMITED);
 
         // The number representing the maximum video height the local client should receive from the bridge.
         this._maxFrameHeight = MAX_HEIGHT;
@@ -48,7 +52,7 @@ export default class ReceiveVideoController {
         // The default receiver video constraints.
         this._receiverVideoConstraints = {
             assumedBandwidthBps: this._assumedBandwidthBps,
-            lastN: this._lastN
+            lastN: this._lastN,
         };
     }
 
@@ -61,7 +65,11 @@ export default class ReceiveVideoController {
      */
     _getDefaultSourceReceiverConstraints(mediaSession, maxFrameHeight) {
         const height = maxFrameHeight ?? MAX_HEIGHT;
-        const remoteVideoTracks = mediaSession.peerconnection?.getRemoteTracks(null, MediaType.VIDEO) || [];
+        const remoteVideoTracks =
+            mediaSession.peerconnection?.getRemoteTracks(
+                null,
+                MediaType.VIDEO,
+            ) || [];
         const receiverConstraints = new Map();
 
         for (const track of remoteVideoTracks) {
@@ -78,14 +86,22 @@ export default class ReceiveVideoController {
      * @returns {void}
      */
     _updateIndividualConstraints(maxFrameHeight) {
-        const individualConstraints = this._receiverVideoConstraints.constraints;
+        const individualConstraints =
+            this._receiverVideoConstraints.constraints;
 
-        if (individualConstraints && Object.keys(individualConstraints).length) {
+        if (
+            individualConstraints &&
+            Object.keys(individualConstraints).length
+        ) {
             for (const value of Object.values(individualConstraints)) {
-                value.maxHeight = maxFrameHeight ?? Math.min(value.maxHeight, this._maxFrameHeight);
+                value.maxHeight =
+                    maxFrameHeight ??
+                    Math.min(value.maxHeight, this._maxFrameHeight);
             }
         } else {
-            this._receiverVideoConstraints.defaultConstraints = { 'maxHeight': this._maxFrameHeight };
+            this._receiverVideoConstraints.defaultConstraints = {
+                maxHeight: this._maxFrameHeight,
+            };
         }
     }
 
@@ -125,9 +141,13 @@ export default class ReceiveVideoController {
      */
     onMediaSessionStarted(mediaSession) {
         if (mediaSession.isP2P) {
-            mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
+            mediaSession.setReceiverVideoConstraint(
+                this._getDefaultSourceReceiverConstraints(mediaSession),
+            );
         } else {
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+            this._rtc.setReceiverVideoConstraints(
+                this._receiverVideoConstraints,
+            );
         }
     }
 
@@ -138,9 +158,15 @@ export default class ReceiveVideoController {
      * @returns {void}
      */
     setAssumedBandwidthBps(assumedBandwidthBps) {
-        if (this._receiverVideoConstraints.assumedBandwidthBps !== assumedBandwidthBps) {
-            this._receiverVideoConstraints.assumedBandwidthBps = assumedBandwidthBps;
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+        if (
+            this._receiverVideoConstraints.assumedBandwidthBps !==
+            assumedBandwidthBps
+        ) {
+            this._receiverVideoConstraints.assumedBandwidthBps =
+                assumedBandwidthBps;
+            this._rtc.setReceiverVideoConstraints(
+                this._receiverVideoConstraints,
+            );
         }
     }
 
@@ -155,7 +181,9 @@ export default class ReceiveVideoController {
         if (this._lastN !== value) {
             this._lastN = value;
             this._receiverVideoConstraints.lastN = value;
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+            this._rtc.setReceiverVideoConstraints(
+                this._receiverVideoConstraints,
+            );
         }
     }
 
@@ -168,7 +196,9 @@ export default class ReceiveVideoController {
     setLastNLimitedByCpu(enabled) {
         if (this._lastNLimitedByCpu !== enabled) {
             this._lastNLimitedByCpu = enabled;
-            logger.info(`ReceiveVideoController - Setting the lastNLimitedByCpu flag to ${enabled}`);
+            logger.info(
+                `ReceiveVideoController - Setting the lastNLimitedByCpu flag to ${enabled}`,
+            );
         }
     }
 
@@ -183,10 +213,17 @@ export default class ReceiveVideoController {
 
         for (const session of this._conference.getMediaSessions()) {
             if (session.isP2P) {
-                session.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(session, maxFrameHeight));
+                session.setReceiverVideoConstraint(
+                    this._getDefaultSourceReceiverConstraints(
+                        session,
+                        maxFrameHeight,
+                    ),
+                );
             } else {
                 this._updateIndividualConstraints(maxFrameHeight);
-                this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+                this._rtc.setReceiverVideoConstraints(
+                    this._receiverVideoConstraints,
+                );
             }
         }
     }
@@ -201,44 +238,66 @@ export default class ReceiveVideoController {
             return;
         }
 
-        const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
+        const isEndpointsFormat = Object.keys(constraints).includes(
+            "onStageEndpoints",
+            "selectedEndpoints",
+        );
 
         if (isEndpointsFormat) {
             throw new Error(
-                '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
+                '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.',
             );
         }
-        const constraintsChanged = !isEqual(this._receiverVideoConstraints, constraints);
+        const constraintsChanged = !isEqual(
+            this._receiverVideoConstraints,
+            constraints,
+        );
 
-        if (constraintsChanged || this._lastNLimitedByCpu || this._receiveResolutionLimitedByCpu) {
+        if (
+            constraintsChanged ||
+            this._lastNLimitedByCpu ||
+            this._receiveResolutionLimitedByCpu
+        ) {
             this._receiverVideoConstraints = constraints;
 
-            this._assumedBandwidthBps = constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
-            this._lastN = typeof constraints.lastN !== 'undefined' && !this._lastNLimitedByCpu
-                ? constraints.lastN : this._lastN;
+            this._assumedBandwidthBps =
+                constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
+            this._lastN =
+                typeof constraints.lastN !== "undefined" &&
+                !this._lastNLimitedByCpu
+                    ? constraints.lastN
+                    : this._lastN;
             this._receiverVideoConstraints.lastN = this._lastN;
-            this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
+            this._receiveResolutionLimitedByCpu &&
+                this._updateIndividualConstraints();
 
             // Send the contraints on the bridge channel.
-            this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+            this._rtc.setReceiverVideoConstraints(
+                this._receiverVideoConstraints,
+            );
 
-            const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
+            const p2pSession = this._conference
+                .getMediaSessions()
+                .find((session) => session.isP2P);
 
             if (!p2pSession || !this._receiverVideoConstraints.constraints) {
                 return;
             }
 
-            const mappedConstraints = Array.from(Object.entries(this._receiverVideoConstraints.constraints))
-                .map(constraint => {
-                    constraint[1] = constraint[1].maxHeight;
+            const mappedConstraints = Array.from(
+                Object.entries(this._receiverVideoConstraints.constraints),
+            ).map((constraint) => {
+                constraint[1] = constraint[1].maxHeight;
 
-                    return constraint;
-                });
+                return constraint;
+            });
 
             this._sourceReceiverConstraints = new Map(mappedConstraints);
 
             // Send the receiver constraints to the peer through a "content-modify" message.
-            p2pSession.setReceiverVideoConstraint(this._sourceReceiverConstraints);
+            p2pSession.setReceiverVideoConstraint(
+                this._sourceReceiverConstraints,
+            );
         }
     }
 
@@ -251,7 +310,9 @@ export default class ReceiveVideoController {
     setReceiveResolutionLimitedByCpu(enabled) {
         if (this._receiveResolutionLimitedByCpu !== enabled) {
             this._receiveResolutionLimitedByCpu = enabled;
-            logger.info(`ReceiveVideoController - Setting the receiveResolutionLimitedByCpu flag to ${enabled}`);
+            logger.info(
+                `ReceiveVideoController - Setting the receiveResolutionLimitedByCpu flag to ${enabled}`,
+            );
         }
     }
 }

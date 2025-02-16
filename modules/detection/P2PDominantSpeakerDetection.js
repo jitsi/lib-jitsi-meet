@@ -1,5 +1,5 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import RTCEvents from "../../service/RTC/RTCEvents";
 
 /**
  * The value which we use to say, every sound over this threshold
@@ -27,7 +27,8 @@ export default class P2PDominantSpeakerDetection {
 
         conference.addEventListener(
             JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            this._audioLevel.bind(this));
+            this._audioLevel.bind(this),
+        );
 
         this.myUserID = this.conference.myUserId();
     }
@@ -39,19 +40,21 @@ export default class P2PDominantSpeakerDetection {
      * @param {number} audioLevel - The audio level.
      */
     _audioLevel(id, audioLevel) {
-
         // we do not process if p2p is not active
         // or audio level is under certain threshold
         // or if the audio level is for local audio track which is muted
-        if (!this.conference.isP2PActive()
-            || audioLevel <= SPEECH_DETECT_THRESHOLD
-            || (id === this.myUserID
-                    && this.conference.getLocalAudioTrack().isMuted())) {
+        if (
+            !this.conference.isP2PActive() ||
+            audioLevel <= SPEECH_DETECT_THRESHOLD ||
+            (id === this.myUserID &&
+                this.conference.getLocalAudioTrack().isMuted())
+        ) {
             return;
         }
 
         this.conference.rtc.eventEmitter.emit(
             RTCEvents.DOMINANT_SPEAKER_CHANGED,
-            id);
+            id,
+        );
     }
 }

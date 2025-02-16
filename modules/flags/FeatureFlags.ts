@@ -1,4 +1,4 @@
-import browser from '../browser';
+import browser from "../browser";
 
 /**
  * A global module for accessing information about different feature flags state.
@@ -6,7 +6,7 @@ import browser from '../browser';
 class FeatureFlags {
     private _runInLiteMode: boolean;
     private _ssrcRewriting: boolean;
-    
+
     /**
      * Configures the module.
      *
@@ -14,7 +14,10 @@ class FeatureFlags {
      * @param {boolean=} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
      * @param {boolean=} flags.ssrcRewritingEnabled - Use SSRC rewriting.
      */
-    init(flags: { runInLiteMode?: boolean | undefined; ssrcRewritingEnabled?: boolean | undefined; }) {
+    init(flags: {
+        runInLiteMode?: boolean | undefined;
+        ssrcRewritingEnabled?: boolean | undefined;
+    }) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
     }

@@ -1,7 +1,7 @@
-import FeatureFlags from '../flags/FeatureFlags';
-import Listenable from '../util/Listenable';
+import FeatureFlags from "../flags/FeatureFlags";
+import Listenable from "../util/Listenable";
 
-import ReceiveVideoController from './ReceiveVideoController';
+import ReceiveVideoController from "./ReceiveVideoController";
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
@@ -15,7 +15,7 @@ class MockConference extends Listenable {
     constructor() {
         super();
         this.options = {
-            config: {}
+            config: {},
         };
 
         this.activeMediaSession = undefined;
@@ -40,12 +40,11 @@ export class MockRTC extends Listenable {
     }
 
     // eslint-disable-next-line no-empty-function
-    setReceiverVideoConstraints() {
-    }
+    setReceiverVideoConstraints() {}
 }
 
 /* eslint-enable require-jsdoc */
-describe('ReceiveVideoController', () => {
+describe("ReceiveVideoController", () => {
     let conference;
     let rtc;
     let receiveVideoController;
@@ -57,35 +56,37 @@ describe('ReceiveVideoController', () => {
         receiveVideoController = new ReceiveVideoController(conference);
     });
 
-    describe('when sourceNameSignaling is enabled', () => {
+    describe("when sourceNameSignaling is enabled", () => {
         beforeEach(() => {
-            FeatureFlags.init({ });
+            FeatureFlags.init({});
         });
 
-        it('should call setReceiverVideoConstraints with the source names format.', () => {
-            const rtcSpy = spyOn(rtc, 'setReceiverVideoConstraints');
+        it("should call setReceiverVideoConstraints with the source names format.", () => {
+            const rtcSpy = spyOn(rtc, "setReceiverVideoConstraints");
             const constraints = {
-                onStageSources: [ 'A_camera_1', 'B_screen_2', 'C_camera_1' ],
-                selectedSources: [ 'A_camera_1' ]
+                onStageSources: ["A_camera_1", "B_screen_2", "C_camera_1"],
+                selectedSources: ["A_camera_1"],
             };
 
             receiveVideoController.setReceiverConstraints(constraints);
             expect(rtcSpy).toHaveBeenCalledWith(constraints);
         });
 
-        it('should not allow the endpoints format.', () => {
+        it("should not allow the endpoints format.", () => {
             const constraints = {
-                onStageEndpoints: [ 'A', 'B', 'C' ],
-                selectedEndpoints: [ 'A' ]
+                onStageEndpoints: ["A", "B", "C"],
+                selectedEndpoints: ["A"],
             };
 
             try {
                 receiveVideoController.setReceiverConstraints(constraints);
                 fail();
             } catch (error) {
-                expect(error).toEqual(new Error(
-                    '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
-                ));
+                expect(error).toEqual(
+                    new Error(
+                        '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.',
+                    ),
+                );
             }
         });
     });

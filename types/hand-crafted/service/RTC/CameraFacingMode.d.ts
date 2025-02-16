@@ -1,4 +1,4 @@
 export enum CameraFacingMode {
-  ENVIRONMENT = 'environment',
-  USER = 'user'
+    ENVIRONMENT = "environment",
+    USER = "user",
 }

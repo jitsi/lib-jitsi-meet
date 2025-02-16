@@ -10,7 +10,9 @@ function integerHash(string) {
         return 0;
     }
 
-    let char, hash = 0, i;
+    let char,
+        hash = 0,
+        i;
 
     for (i = 0; i < string.length; i++) {
         char = string.charCodeAt(i);
