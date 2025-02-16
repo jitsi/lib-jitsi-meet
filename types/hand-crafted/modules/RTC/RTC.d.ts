@@ -1,46 +1,71 @@
-import Listenable from '../util/Listenable';
-import JitsiLocalTrack from './JitsiLocalTrack';
-import JitsiRemoteTrack from './JitsiRemoteTrack';
-import TraceablePeerConnection from './TraceablePeerConnection';
-import { MediaType } from '../../service/RTC/MediaType';
-import SignalingLayer from '../../service/RTC/SignalingLayer';
+import Listenable from "../util/Listenable";
+import JitsiLocalTrack from "./JitsiLocalTrack";
+import JitsiRemoteTrack from "./JitsiRemoteTrack";
+import TraceablePeerConnection from "./TraceablePeerConnection";
+import { MediaType } from "../../service/RTC/MediaType";
+import SignalingLayer from "../../service/RTC/SignalingLayer";
+import { CodecMimeType } from "../../service/RTC/CodecMimeType";
 
 export default class RTC extends Listenable {
-  destroy: () => void;
-  static createLocalTracks: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
-  static obtainAudioAndVideoPermissions: ( options: { devices: unknown[], resolution: string, cameraDeviceId: string, micDeviceId: string } ) => Promise<unknown>; // TODO:
-  initializeBridgeChannel: ( perrconnection: RTCPeerConnection, wsUrl: string ) => void;
-  onCallEnded: () => void;
-  setDesktopSharingFrameRate: (maxFps: number) => void;
-  static addListener: ( eventType: string, listener: unknown ) => void; // TODO: this should be typed to an enum of eventTypes with appropriate definition for the listeners
-  static removeListener: ( eventType: string, listener: unknown ) => void; // TODO: this should be typed to an enum of eventTypes with appropriate definition for the listeners
-  static init: ( options: unknown ) => unknown; // TODO:
-  createPeerConnection: ( signalling: SignalingLayer, iceConfig: unknown, isP2P: boolean, options: { enableInsertableStreams: boolean, disableSimulcast: boolean, disableRtx: boolean, startSilent: boolean } ) => TraceablePeerConnection; // TODO:
-  addLocalTrack: ( track: unknown ) => void; // TODO:
-  getLocalVideoTrack: () => JitsiLocalTrack | undefined;
-  getLocalAudioTrack: () => JitsiLocalTrack | undefined;
-  getLocalEndpointId: () => string;
-  getLocalTracks: ( mediaType: MediaType ) => JitsiLocalTrack[];
-  getRemoteTracks: ( mediaType: MediaType ) => JitsiRemoteTrack[];
-  setAudioMute: ( value: unknown ) => Promise<unknown>; // TODO:
-  removeLocalTrack: ( track: unknown ) => void; // TODO:
-  static attachMediaStream: ( elSelector: unknown, stream: unknown ) => unknown; // TODO:
-  static isDeviceListAvailable: () => unknown; // TODO:
-  static isDeviceChangeAvailable: ( deviceType: string ) => boolean; // TODO: check if deviceType should be an enum
-  static isWebRtcSupported: () => boolean;
-  static getAudioOutputDevice: () => string;
-  static getCurrentlyAvailableMediaDevices: () => unknown[]; // TODO:
-  static getEventDataForActiveDevice: () => MediaDeviceInfo;
-  static setAudioOutputDevice: ( deviceId: string ) => Promise<unknown>; // TODO:
-  static enumerateDevices: ( callback: () => unknown ) => void; // TODO:
-  static stopMediaStream: ( mediaStream: MediaStream ) => void;
-  static isDesktopSharingEnabled: () => boolean;
-  closeBridgeChannel: () => void;
-  setAudioLevel: ( tpc: TraceablePeerConnection, ssrc: number, audioLevel: number, isLocal: boolean ) => void;
-  sendChannelMessage: ( to: string, payload: unknown ) => void; // TODO:
-  setLastN: ( value: number ) => void;
-  isInForwardedSources: ( sourceName: string ) => boolean;
-  setReceiverVideoConstraints: ( constraints: unknown ) => void; // TODO:
-  setVideoMute: ( value: unknown ) => Promise<unknown>; // TODO:
-  sendEndpointStatsMessage: ( payload: unknown ) => void; // TODO:
+    destroy: () => void;
+    static createLocalTracks: (tracksInfo: Array<object>) => Array<JitsiLocalTrack>;
+    static obtainAudioAndVideoPermissions: (options: {
+        devices?: Array<string>;
+        resolution?: string;
+        cameraDeviceId?: string;
+        micDeviceId?: string;
+    }) => Promise<Array<JitsiLocalTrack>>;
+    initializeBridgeChannel: (peerconnection?: RTCPeerConnection, wsUrl?: string) => void;
+    onCallEnded: () => void;
+    setDesktopSharingFrameRate: (maxFps: number) => void;
+    setReceiverVideoConstraints: (constraints: object) => void;
+    sendSourceVideoType: (sourceName: string, videoType: string) => void;
+    static addListener: (eventType: string, listener: Function) => void;
+    static removeListener: (eventType: string, listener: Function) => void;
+    static init: (options: object) => unknown;
+    createPeerConnection: (
+        signaling: SignalingLayer,
+        pcConfig: RTCConfiguration,
+        isP2P: boolean,
+        options: {
+            enableInsertableStreams?: boolean;
+            disableSimulcast?: boolean;
+            disableRtx?: boolean;
+            startSilent?: boolean;
+            forceTurnRelay?: boolean;
+            audioQuality?: object;
+            videoQuality?: object;
+            codecSettings?: Array<CodecMimeType>;
+            capScreenshareBitrate?: boolean;
+        }
+    ) => TraceablePeerConnection;
+    addLocalTrack: (track: JitsiLocalTrack) => void;
+    getForwardedSources: () => Array<string> | null;
+    getLocalVideoTrack: () => JitsiLocalTrack | undefined;
+    getLocalVideoTracks: () => Array<JitsiLocalTrack>;
+    getLocalAudioTrack: () => JitsiLocalTrack | undefined;
+    getLocalEndpointId: () => string;
+    getLocalTracks: (mediaType?: MediaType) => Array<JitsiLocalTrack>;
+    getRemoteTracks: (mediaType?: MediaType) => Array<JitsiRemoteTrack>;
+    setAudioMute: (value: boolean) => Promise<void>;
+    setVideoMute: (value: boolean) => Promise<void>;
+    removeLocalTrack: (track: JitsiLocalTrack) => void;
+    static attachMediaStream: (elSelector: HTMLElement, stream: MediaStream) => void;
+    static isDeviceListAvailable: () => boolean;
+    static isDeviceChangeAvailable: (deviceType?: string) => boolean;
+    static isWebRtcSupported: () => boolean;
+    static getAudioOutputDevice: () => string;
+    static getCurrentlyAvailableMediaDevices: () => Array<MediaDeviceInfo>;
+    static getEventDataForActiveDevice: (device: MediaDeviceInfo) => MediaDeviceInfo;
+    static setAudioOutputDevice: (deviceId: string) => Promise<void>;
+    static enumerateDevices: (callback: (devices: Array<MediaDeviceInfo>) => void) => void;
+    static stopMediaStream: (mediaStream: MediaStream) => void;
+    static isDesktopSharingEnabled: () => boolean;
+    closeBridgeChannel: () => void;
+    setAudioLevel: (tpc: TraceablePeerConnection, ssrc: number, audioLevel: number, isLocal: boolean) => void;
+    sendChannelMessage: (to: string, payload: object) => void;
+    setLastN: (value: number) => void;
+    isInForwardedSources: (sourceName: string) => boolean;
+    sendEndpointStatsMessage: (payload: object) => void;
+    _updateAudioOutputForAudioTracks: (deviceId: string) => void;
 }
