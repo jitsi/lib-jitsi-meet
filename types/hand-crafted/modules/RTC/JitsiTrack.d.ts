@@ -6,35 +6,49 @@ import TraceablePeerConnection from "./TraceablePeerConnection";
 
 export default class JitsiTrack extends EventEmitter {
     constructor(
-        conference: JitsiConference,
-        stream: unknown,
-        track: unknown,
-        streamInactiveHandler: unknown,
+        conference: JitsiConference | null,
+        stream: MediaStream,
+        track: MediaStreamTrack,
+        streamInactiveHandler: Function,
         trackMediaType: MediaType,
         videoType: VideoType
-    ); // TODO:
+    );
     readonly conference: null | JitsiConference;
+    audioLevel: number;
+    containers: HTMLElement[];
+    handlers: Map<string, Function>;
+    type: MediaType;
     disposed: boolean;
-    getVideoType: () => VideoType;
-    getType: () => MediaType;
-    isAudioTrack: () => boolean;
-    isWebRTCTrackMuted: () => boolean;
-    isVideoTrack: () => boolean;
-    isLocal: () => boolean;
-    isLocalAudioTrack: () => boolean;
+    _addMediaStreamInactiveHandler: (handler: Function) => void;
+    _attachTTFMTracker: (container: HTMLElement) => void;
+    _onTrackAttach: (container: HTMLElement) => void;
+    _onTrackDetach: (container: HTMLElement) => void;
+    _setHandler: (type: string, handler: Function) => void;
+    _setStream: (stream: MediaStream) => void;
+    _unregisterHandlers: () => void;
+    attach: (container: HTMLElement) => Promise<void>;
+    detach: (container?: HTMLElement) => void;
+    dispose: () => Promise<void>;
+    getId: () => string | null;
     getOriginalStream: () => MediaStream;
+    getSourceName: () => string | undefined;
+    getSsrc: () => number;
     getStreamId: () => string | null;
     getTrack: () => MediaStreamTrack;
     getTrackLabel: () => string;
     getTrackId: () => string | null;
+    getType: () => MediaType;
     getUsageLabel: () => string;
-    attach: (container: HTMLElement) => void;
-    detach: (container: HTMLElement) => void;
-    dispose: () => void;
-    isScreenSharing: () => boolean;
-    getId: () => string | null;
+    getVideoType: () => VideoType;
+    getHeight: () => number;
+    getWidth: () => number;
     isActive: () => boolean;
-    setAudioLevel: (audioLevel: number, tpc: TraceablePeerConnection) => void;
-    setAudioOutput: (audioOutputDeviceId: "" | string) => Promise<unknown>; // TODO: what will this promise contain?
-    addEventListener: (type: string, listener: (event: any) => void) => void;
+    isAudioTrack: () => boolean;
+    isLocal: () => boolean;
+    isLocalAudioTrack: () => boolean;
+    isVideoTrack: () => boolean;
+    isWebRTCTrackMuted: () => boolean;
+    setAudioLevel: (audioLevel: number, tpc?: TraceablePeerConnection) => void;
+    setAudioOutput: (audioOutputDeviceId: string) => Promise<void>;
+    setSourceName: (name: string) => void;
 }
