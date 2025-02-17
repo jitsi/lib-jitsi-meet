@@ -105,5 +105,7 @@ export class RunningAverage {
  * @returns {number} - x - y or 0 if x or is not a number.
  */
 export function safeSubtract(x:unknown, y:unknown):number {
-    return typeof x === 'number' && typeof y === 'number' ? x - y : 0;
+    const numX = Number(x);
+    const numY = Number(y);
+    return !Number.isNaN(x) && !Number.isNaN(y) ? numX - numY : 0;
 }
