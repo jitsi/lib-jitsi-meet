@@ -1,15 +1,12 @@
+import { Strophe } from "strophe.js";
 
-import { Strophe } from 'strophe.js';
-
-
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import { MediaType } from './service/RTC/MediaType';
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import { MediaType } from "./service/RTC/MediaType";
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
  */
 export default class JitsiParticipant {
-
     /* eslint-disable max-params */
 
     /**
@@ -28,14 +25,25 @@ export default class JitsiParticipant {
      * @param {boolean?} isReplaced - whether this is a participant to be kicked and replaced into the meeting.
      * @param {boolean?} isSilent - whether participant has joined without audio
      */
-    constructor(jid, conference, displayName, hidden, statsID, status, identity, isReplacing, isReplaced, isSilent) {
+    constructor(
+        jid,
+        conference,
+        displayName,
+        hidden,
+        statsID,
+        status,
+        identity,
+        isReplacing,
+        isReplaced,
+        isSilent,
+    ) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
         this._displayName = displayName;
         this._supportsDTMF = false;
         this._tracks = [];
-        this._role = 'none';
+        this._role = "none";
         this._status = status;
         this._hidden = hidden;
         this._statsID = statsID;
@@ -73,7 +81,8 @@ export default class JitsiParticipant {
         return this.getTracks().reduce(
             (muted, track) =>
                 muted && (track.getType() !== mediaType || track.isMuted()),
-            true);
+            true,
+        );
     }
 
     /**
@@ -88,7 +97,7 @@ export default class JitsiParticipant {
         let sourceByMediaType = this._sources.get(mediaType);
         const sourceInfo = {
             muted,
-            videoType
+            videoType,
         };
 
         if (sourceByMediaType?.size) {
@@ -217,7 +226,9 @@ export default class JitsiParticipant {
      * participant, for given media type.
      */
     getTracksByMediaType(mediaType) {
-        return this.getTracks().filter(track => track.getType() === mediaType);
+        return this.getTracks().filter(
+            (track) => track.getType() === mediaType,
+        );
     }
 
     /**
@@ -252,14 +263,14 @@ export default class JitsiParticipant {
      * recorder).
      */
     isHiddenFromRecorder() {
-        return this._identity?.user?.['hidden-from-recorder'] === 'true';
+        return this._identity?.user?.["hidden-from-recorder"] === "true";
     }
 
     /**
      * @returns {Boolean} Whether this participant is a moderator or not.
      */
     isModerator() {
-        return this._role === 'moderator';
+        return this._role === "moderator";
     }
 
     /**
@@ -356,7 +367,8 @@ export default class JitsiParticipant {
                 this,
                 name,
                 oldValue,
-                value);
+                value,
+            );
         }
     }
 

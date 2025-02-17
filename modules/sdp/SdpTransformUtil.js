@@ -1,6 +1,6 @@
-import * as transform from 'sdp-transform';
+import * as transform from "sdp-transform";
 
-import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { SSRC_GROUP_SEMANTICS } from "../../service/RTC/StandardVideoQualitySettings";
 
 /**
  * Parses the primary SSRC of given SSRC group.
@@ -8,7 +8,7 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
  * @return {Number} the primary SSRC number
  */
 export function parsePrimarySSRC(group) {
-    return parseInt(group.ssrcs.split(' ')[0], 10);
+    return parseInt(group.ssrcs.split(" ")[0], 10);
 }
 
 /**
@@ -17,7 +17,7 @@ export function parsePrimarySSRC(group) {
  * @return {Number} the secondary SSRC number
  */
 export function parseSecondarySSRC(group) {
-    return parseInt(group.ssrcs.split(' ')[1], 10);
+    return parseInt(group.ssrcs.split(" ")[1], 10);
 }
 
 /**
@@ -31,9 +31,8 @@ function _getSSRCCount(mLine) {
     }
 
     return mLine.ssrcs
-        .map(ssrcInfo => ssrcInfo.id)
-        .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
-        .length;
+        .map((ssrcInfo) => ssrcInfo.id)
+        .filter((ssrc, index, array) => array.indexOf(ssrc) === index).length;
 }
 
 /**
@@ -41,7 +40,6 @@ function _getSSRCCount(mLine) {
  * utility methods for common SDP/SSRC related operations.
  */
 class MLineWrap {
-
     /**
      * Creates new <tt>MLineWrap</t>>
      * @param {Object} mLine the media line object as defined by 'sdp-transform'
@@ -49,7 +47,7 @@ class MLineWrap {
      */
     constructor(mLine) {
         if (!mLine) {
-            throw new Error('mLine is undefined');
+            throw new Error("mLine is undefined");
         }
 
         this.mLine = mLine;
@@ -127,9 +125,9 @@ class MLineWrap {
      */
     getSSRCAttrValue(ssrcNumber, attrName) {
         const attribute = this.ssrcs.find(
-            ssrcObj => ssrcObj.id === ssrcNumber
-            && ssrcObj.attribute === attrName);
-
+            (ssrcObj) =>
+                ssrcObj.id === ssrcNumber && ssrcObj.attribute === attrName,
+        );
 
         return attribute && attribute.value;
     }
@@ -144,8 +142,9 @@ class MLineWrap {
             return;
         }
 
-        this.mLine.ssrcs
-            = this.mLine.ssrcs.filter(ssrcObj => ssrcObj.id !== ssrcNum);
+        this.mLine.ssrcs = this.mLine.ssrcs.filter(
+            (ssrcObj) => ssrcObj.id !== ssrcNum,
+        );
     }
 
     /**
@@ -167,9 +166,10 @@ class MLineWrap {
      */
     findGroup(semantics, ssrcs) {
         return this.ssrcGroups.find(
-            group =>
-                group.semantics === semantics
-                    && (!ssrcs || ssrcs === group.ssrcs));
+            (group) =>
+                group.semantics === semantics &&
+                (!ssrcs || ssrcs === group.ssrcs),
+        );
     }
 
     /**
@@ -179,8 +179,7 @@ class MLineWrap {
      * the 'sdp-transform' lib.
      */
     findGroups(semantics) {
-        return this.ssrcGroups.filter(
-            group => group.semantics === semantics);
+        return this.ssrcGroups.filter((group) => group.semantics === semantics);
     }
 
     /**
@@ -191,8 +190,10 @@ class MLineWrap {
      */
     findGroupByPrimarySSRC(semantics, primarySSRC) {
         return this.ssrcGroups.find(
-            group => group.semantics === semantics
-                && parsePrimarySSRC(group) === primarySSRC);
+            (group) =>
+                group.semantics === semantics &&
+                parsePrimarySSRC(group) === primarySSRC,
+        );
     }
 
     /**
@@ -220,9 +221,8 @@ class MLineWrap {
     getPrimaryVideoSsrc() {
         const mediaType = this.mLine.type;
 
-        if (mediaType !== 'video') {
-            throw new Error(
-                `getPrimarySsrc doesn't work with '${mediaType}'`);
+        if (mediaType !== "video") {
+            throw new Error(`getPrimarySsrc doesn't work with '${mediaType}'`);
         }
 
         const numSsrcs = _getSSRCCount(this.mLine);
@@ -244,13 +244,12 @@ class MLineWrap {
             if (fidGroup) {
                 return parsePrimarySSRC(fidGroup);
             }
-            const fecGroup = this.findGroup('FEC-FR');
+            const fecGroup = this.findGroup("FEC-FR");
 
             if (fecGroup) {
                 return parsePrimarySSRC(fecGroup);
             }
         }
-
     }
 
     /**
@@ -262,8 +261,10 @@ class MLineWrap {
      * one)
      */
     getRtxSSRC(primarySsrc) {
-        const fidGroup = this.findGroupByPrimarySSRC(SSRC_GROUP_SEMANTICS.FID, primarySsrc);
-
+        const fidGroup = this.findGroupByPrimarySSRC(
+            SSRC_GROUP_SEMANTICS.FID,
+            primarySsrc,
+        );
 
         return fidGroup && parseSecondarySSRC(fidGroup);
     }
@@ -274,7 +275,7 @@ class MLineWrap {
      */
     getSSRCs() {
         return this.ssrcs
-            .map(ssrcInfo => ssrcInfo.id)
+            .map((ssrcInfo) => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index);
     }
 
@@ -286,9 +287,10 @@ class MLineWrap {
     getPrimaryVideoSSRCs() {
         const mediaType = this.mLine.type;
 
-        if (mediaType !== 'video') {
+        if (mediaType !== "video") {
             throw new Error(
-                `getPrimaryVideoSSRCs doesn't work with ${mediaType}`);
+                `getPrimaryVideoSSRCs doesn't work with ${mediaType}`,
+            );
         }
 
         const videoSSRCs = this.getSSRCs();
@@ -297,13 +299,14 @@ class MLineWrap {
             // Right now, FID and FEC-FR groups are the only ones we parse to
             // disqualify streams.  If/when others arise we'll
             // need to add support for them here
-            if (ssrcGroupInfo.semantics === SSRC_GROUP_SEMANTICS.FID
-                    || ssrcGroupInfo.semantics === 'FEC-FR') {
+            if (
+                ssrcGroupInfo.semantics === SSRC_GROUP_SEMANTICS.FID ||
+                ssrcGroupInfo.semantics === "FEC-FR"
+            ) {
                 // secondary streams should be filtered out
                 const secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
 
-                videoSSRCs.splice(
-                    videoSSRCs.indexOf(secondarySsrc), 1);
+                videoSSRCs.splice(videoSSRCs.indexOf(secondarySsrc), 1);
             }
         }
 
@@ -320,8 +323,9 @@ class MLineWrap {
             return;
         }
 
-        this.mLine.ssrcGroups = this.mLine.ssrcGroups
-            .filter(groupInfo => groupInfo.ssrcs.indexOf(`${ssrc}`) === -1);
+        this.mLine.ssrcGroups = this.mLine.ssrcGroups.filter(
+            (groupInfo) => groupInfo.ssrcs.indexOf(`${ssrc}`) === -1,
+        );
     }
 
     /**
@@ -333,9 +337,9 @@ class MLineWrap {
             return;
         }
 
-        this.mLine.ssrcGroups
-            = this.mLine.ssrcGroups
-                .filter(groupInfo => groupInfo.semantics !== semantics);
+        this.mLine.ssrcGroups = this.mLine.ssrcGroups.filter(
+            (groupInfo) => groupInfo.semantics !== semantics,
+        );
     }
 
     /**
@@ -365,7 +369,6 @@ class MLineWrap {
  * }
  */
 export class SdpTransformWrap {
-
     /**
      * Creates new instance and parses the raw SDP into objects using
      * 'sdp-transform' lib.
@@ -385,8 +388,8 @@ export class SdpTransformWrap {
      */
     selectMedia(mediaType) {
         const selectedMLines = this.parsedSDP.media
-            .filter(mLine => mLine.type === mediaType)
-            .map(mLine => new MLineWrap(mLine));
+            .filter((mLine) => mLine.type === mediaType)
+            .map((mLine) => new MLineWrap(mLine));
 
         return selectedMLines ?? null;
     }

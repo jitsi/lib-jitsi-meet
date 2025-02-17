@@ -1,4 +1,3 @@
-
 /**
  * Promise-like object which can be passed around for resolving it later. It
  * implements the "thenable" interface, so it can be used wherever a Promise
@@ -37,7 +36,7 @@ export default class Deferred {
      */
     setRejectTimeout(ms) {
         this._timeout = setTimeout(() => {
-            this.reject(new Error('timeout'));
+            this.reject(new Error("timeout"));
         }, ms);
     }
 }

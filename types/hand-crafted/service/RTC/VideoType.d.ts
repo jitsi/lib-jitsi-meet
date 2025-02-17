@@ -1,4 +1,4 @@
 export enum VideoType {
-  CAMERA = 'camera',
-  DESKTOP = 'desktop',
+    CAMERA = "camera",
+    DESKTOP = "desktop",
 }

@@ -1,13 +1,13 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import RTCEvents from '../../service/RTC/RTCEvents';
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import RTC from '../RTC/RTC';
-import JingleSessionPC from '../xmpp/JingleSessionPC';
-import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
+import RTCEvents from "../../service/RTC/RTCEvents";
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
+import RTC from "../RTC/RTC";
+import JingleSessionPC from "../xmpp/JingleSessionPC";
+import { DEFAULT_STUN_SERVERS } from "../xmpp/xmpp";
 
-import CustomSignalingLayer from './CustomSignalingLayer';
-import { ACTIONS } from './constants';
+import CustomSignalingLayer from "./CustomSignalingLayer";
+import { ACTIONS } from "./constants";
 
 const logger = getLogger(__filename);
 
@@ -40,7 +40,7 @@ export default class ProxyConnectionPC {
             isInitiator: false,
             receiveAudio: false,
             receiveVideo: false,
-            ...options
+            ...options,
         };
 
         /**
@@ -82,22 +82,22 @@ export default class ProxyConnectionPC {
      * @returns {void}
      */
     processMessage($jingle) {
-        switch ($jingle.attr('action')) {
-        case ACTIONS.ACCEPT:
-            this._onSessionAccept($jingle);
-            break;
+        switch ($jingle.attr("action")) {
+            case ACTIONS.ACCEPT:
+                this._onSessionAccept($jingle);
+                break;
 
-        case ACTIONS.INITIATE:
-            this._onSessionInitiate($jingle);
-            break;
+            case ACTIONS.INITIATE:
+                this._onSessionInitiate($jingle);
+                break;
 
-        case ACTIONS.TERMINATE:
-            this._onSessionTerminate($jingle);
-            break;
+            case ACTIONS.TERMINATE:
+                this._onSessionTerminate($jingle);
+                break;
 
-        case ACTIONS.TRANSPORT_INFO:
-            this._onTransportInfo($jingle);
-            break;
+            case ACTIONS.TRANSPORT_INFO:
+                this._onTransportInfo($jingle);
+                break;
         }
     }
 
@@ -165,16 +165,18 @@ export default class ProxyConnectionPC {
             // spot has no signalling it will not be in a meeting where this is used.
             connected: true,
             jingle: {
-                terminate: () => { /** no-op */ }
+                terminate: () => {
+                    /** no-op */
+                },
             },
             sendIQ: this._onSendMessage,
 
             // Returns empty function, because it does not add any listeners for real.
             // eslint-disable-next-line no-empty-function
-            addEventListener: () => () => { },
+            addEventListener: () => () => {},
 
             // eslint-disable-next-line no-empty-function
-            addCancellableListener: () => () => { }
+            addCancellableListener: () => () => {},
         };
 
         /**
@@ -187,7 +189,7 @@ export default class ProxyConnectionPC {
          */
         const pcConfigStub = {
             iceServers: DEFAULT_STUN_SERVERS,
-            ...this._options.pcConfig
+            ...this._options.pcConfig,
         };
 
         /**
@@ -202,12 +204,12 @@ export default class ProxyConnectionPC {
          * @type {Function}
          * @returns {void}
          */
-        const emitter = event => {
+        const emitter = (event) => {
             switch (event) {
-            case XMPPEvents.CONNECTION_ICE_FAILED:
-            case XMPPEvents.CONNECTION_FAILED:
-                this._onError(ACTIONS.CONNECTION_ERROR, event);
-                break;
+                case XMPPEvents.CONNECTION_ICE_FAILED:
+                case XMPPEvents.CONNECTION_FAILED:
+                    this._onError(ACTIONS.CONNECTION_ERROR, event);
+                    break;
             }
         };
 
@@ -220,12 +222,20 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const roomStub = {
-            addEventListener: () => { /* no op */ },
-            addPresenceListener: () => { /* no-op */ },
+            addEventListener: () => {
+                /* no op */
+            },
+            addPresenceListener: () => {
+                /* no-op */
+            },
             connectionTimes: [],
             eventEmitter: { emit: emitter },
-            removeEventListener: () => { /* no op */ },
-            removePresenceListener: () => { /* no-op */ }
+            removeEventListener: () => {
+                /* no op */
+            },
+            removePresenceListener: () => {
+                /* no-op */
+            },
         };
 
         /**
@@ -233,7 +243,7 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const conferenceStub = {
-            myUserId: () => ''
+            myUserId: () => "",
         };
 
         /**
@@ -251,7 +261,7 @@ export default class ProxyConnectionPC {
          */
         this._rtc.addListener(
             RTCEvents.REMOTE_TRACK_ADDED,
-            this._onRemoteStream
+            this._onRemoteStream,
         );
 
         const peerConnection = new JingleSessionPC(
@@ -261,11 +271,11 @@ export default class ProxyConnectionPC {
             connectionStub, // connection
             {
                 offerToReceiveAudio: this._options.receiveAudio,
-                offerToReceiveVideo: this._options.receiveVideo
+                offerToReceiveVideo: this._options.receiveVideo,
             }, // mediaConstraints
             pcConfigStub, // pcConfig
             true, // isP2P
-            this._options.isInitiator // isInitiator
+            this._options.isInitiator, // isInitiator
         );
 
         const signalingLayer = new CustomSignalingLayer();
@@ -276,7 +286,12 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, this._rtc, signalingLayer, configStub);
+        peerConnection.initialize(
+            roomStub,
+            this._rtc,
+            signalingLayer,
+            configStub,
+        );
 
         return peerConnection;
     }
@@ -290,7 +305,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onError(errorType, details = '') {
+    _onError(errorType, details = "") {
         this._options.onError(this._options.peerJid, errorType, details);
     }
 
@@ -338,7 +353,7 @@ export default class ProxyConnectionPC {
      */
     _onSessionAccept($jingle) {
         if (!this._peerConnection) {
-            logger.error('Received an answer when no peer connection exists.');
+            logger.error("Received an answer when no peer connection exists.");
 
             return;
         }
@@ -356,7 +371,7 @@ export default class ProxyConnectionPC {
      */
     _onSessionInitiate($jingle) {
         if (this._peerConnection) {
-            logger.error('Received an offer when an offer was already sent.');
+            logger.error("Received an offer when an offer was already sent.");
 
             return;
         }
@@ -365,13 +380,16 @@ export default class ProxyConnectionPC {
 
         this._peerConnection.acceptOffer(
             $jingle,
-            () => { /** no-op */ },
-            () => this._onError(
-                this._options.peerJid,
-                ACTIONS.CONNECTION_ERROR,
-                'session initiate error'
-            ),
-            []
+            () => {
+                /** no-op */
+            },
+            () =>
+                this._onError(
+                    this._options.peerJid,
+                    ACTIONS.CONNECTION_ERROR,
+                    "session initiate error",
+                ),
+            [],
         );
     }
 
@@ -383,7 +401,7 @@ export default class ProxyConnectionPC {
      * @returns {void}
      */
     _onSessionTerminate() {
-        this._tracks.forEach(track => track.dispose());
+        this._tracks.forEach((track) => track.dispose());
         this._tracks = [];
 
         if (this._peerConnection) {
@@ -393,7 +411,7 @@ export default class ProxyConnectionPC {
         if (this._rtc) {
             this._rtc.removeListener(
                 RTCEvents.REMOTE_TRACK_ADDED,
-                this._onRemoteStream
+                this._onRemoteStream,
             );
 
             this._rtc.destroy();

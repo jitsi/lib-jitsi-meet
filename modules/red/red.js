@@ -24,12 +24,14 @@ export class RFC2198Encoder {
         if (targetRedundancy > this.targetRedundancy) {
             this.frameBuffer = new Array(targetRedundancy);
             for (let i = 0; i < currentBuffer.length; i++) {
-                this.frameBuffer[i + targetRedundancy - this.targetRedundancy] = currentBuffer[i];
+                this.frameBuffer[i + targetRedundancy - this.targetRedundancy] =
+                    currentBuffer[i];
             }
         } else if (targetRedundancy < this.targetRedundancy) {
             this.frameBuffer = new Array(targetRedundancy);
             for (let i = 0; i < this.frameBuffer.length; i++) {
-                this.frameBuffer[i] = currentBuffer[i + this.targetRedundancy - targetRedundancy];
+                this.frameBuffer[i] =
+                    currentBuffer[i + this.targetRedundancy - targetRedundancy];
             }
         }
         this.targetRedundancy = targetRedundancy;
@@ -71,7 +73,9 @@ export class RFC2198Encoder {
 
         newFrame.timestamp = encodedFrame.timestamp;
 
-        let allFrames = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
+        let allFrames = this.frameBuffer
+            .filter((x) => Boolean(x))
+            .concat(newFrame);
 
         // TODO: determine how much we can fit into the available size (which we need to assume as 1190 bytes or so)
         let needLength = 1 + newFrame.length;
@@ -79,9 +83,12 @@ export class RFC2198Encoder {
         for (let i = allFrames.length - 2; i >= 0; i--) {
             const frame = allFrames[i];
 
-
             // TODO: timestamp wraparound?
-            if ((allFrames[i + 1].timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP >= 16384) {
+            if (
+                (allFrames[i + 1].timestamp - frame.timestamp + MAX_TIMESTAMP) %
+                    MAX_TIMESTAMP >=
+                16384
+            ) {
                 allFrames = allFrames.slice(i + 1);
                 break;
             }
@@ -98,12 +105,17 @@ export class RFC2198Encoder {
             const frame = allFrames[i];
 
             // Ensure correct behaviour on wraparound.
-            const tOffset = (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP;
+            const tOffset =
+                (encodedFrame.timestamp - frame.timestamp + MAX_TIMESTAMP) %
+                MAX_TIMESTAMP;
 
             // eslint-disable-next-line no-bitwise
             newView.setUint8(frameOffset, (this.payloadType & 0x7f) | 0x80);
             // eslint-disable-next-line no-bitwise
-            newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
+            newView.setUint16(
+                frameOffset + 1,
+                (tOffset << 2) ^ (frame.byteLength >> 8),
+            );
             newView.setUint8(frameOffset + 3, frame.byteLength & 0xff); // eslint-disable-line no-bitwise
             frameOffset += 4;
         }
@@ -126,4 +138,3 @@ export class RFC2198Encoder {
         controller.enqueue(encodedFrame);
     }
 }
-

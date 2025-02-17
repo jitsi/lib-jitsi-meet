@@ -9,18 +9,18 @@ export enum Events {
      * @param {boolean} isLocal - <tt>true</tt> if <tt>ssrc</tt> identifies the
      * local endpoint/participant; otherwise, <tt>false</tt>.
      */
-    AUDIO_LEVEL = 'statistics.audioLevel',
+    AUDIO_LEVEL = "statistics.audioLevel",
 
     /**
      * An event fired just before the statistics module gets disposes and it's
      * the last chance to submit logs.
      */
-    BEFORE_DISPOSED = 'statistics.before_disposed',
+    BEFORE_DISPOSED = "statistics.before_disposed",
 
     /**
      * An event carrying all statistics by ssrc.
      */
-    BYTE_SENT_STATS = 'statistics.byte_sent_stats',
+    BYTE_SENT_STATS = "statistics.byte_sent_stats",
 
     /**
      * An event carrying connection statistics.
@@ -29,18 +29,18 @@ export enum Events {
      * event such as <tt>bandwidth</tt>, <tt>bitrate</tt>, <tt>packetLoss</tt>,
      * <tt>resolution</tt>, and <tt>transport</tt>.
      */
-    CONNECTION_STATS = 'statistics.connectionstats',
+    CONNECTION_STATS = "statistics.connectionstats",
 
     /**
      * An event carrying the encode time stats for all the local video sources.
      */
-    ENCODE_TIME_STATS = 'statistics.encode_time_stats',
+    ENCODE_TIME_STATS = "statistics.encode_time_stats",
 
     /**
      * An event carrying performance stats.
      */
-    LONG_TASKS_STATS = 'statistics.long_tasks_stats'
-};
+    LONG_TASKS_STATS = "statistics.long_tasks_stats",
+}
 
 // exported for backward compatibility
 export const AUDIO_LEVEL = Events.AUDIO_LEVEL;

@@ -1,6 +1,6 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import MediaSessionEvents from '../xmpp/MediaSessionEvents';
+import MediaSessionEvents from "../xmpp/MediaSessionEvents";
 
 const logger = getLogger(__filename);
 const MAX_LOCAL_RESOLUTION = 2160;
@@ -40,14 +40,21 @@ export default class SendVideoController {
      */
     _propagateSendMaxFrameHeight(sourceName) {
         if (!sourceName) {
-            throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
+            throw new Error(
+                "sourceName missing for calculating the sendMaxHeight for video tracks",
+            );
         }
         const sendMaxFrameHeight = this._selectSendMaxFrameHeight(sourceName);
         const promises = [];
 
         if (sendMaxFrameHeight >= 0) {
             for (const session of this._conference.getMediaSessions()) {
-                promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight, sourceName));
+                promises.push(
+                    session.setSenderVideoConstraint(
+                        sendMaxFrameHeight,
+                        sourceName,
+                    ),
+                );
             }
         }
 
@@ -64,15 +71,23 @@ export default class SendVideoController {
      */
     _selectSendMaxFrameHeight(sourceName) {
         if (!sourceName) {
-            throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
+            throw new Error(
+                "sourceName missing for calculating the sendMaxHeight for video tracks",
+            );
         }
         const activeMediaSession = this._conference.getActiveMediaSession();
         const remoteRecvMaxFrameHeight = activeMediaSession
             ? this._sourceSenderConstraints.get(sourceName)
             : undefined;
 
-        if (this._preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight >= 0) {
-            return Math.min(this._preferredSendMaxFrameHeight, remoteRecvMaxFrameHeight);
+        if (
+            this._preferredSendMaxFrameHeight >= 0 &&
+            remoteRecvMaxFrameHeight >= 0
+        ) {
+            return Math.min(
+                this._preferredSendMaxFrameHeight,
+                remoteRecvMaxFrameHeight,
+            );
         } else if (remoteRecvMaxFrameHeight >= 0) {
             return remoteRecvMaxFrameHeight;
         }
@@ -104,9 +119,12 @@ export default class SendVideoController {
         mediaSession.addListener(
             MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
             (session, sourceConstraints) => {
-                session === this._conference.getActiveMediaSession()
-                    && sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
-            });
+                session === this._conference.getActiveMediaSession() &&
+                    sourceConstraints.forEach((constraint) =>
+                        this.onSenderConstraintsReceived(constraint),
+                    );
+            },
+        );
     }
 
     /**
@@ -121,14 +139,22 @@ export default class SendVideoController {
 
         for (const track of localVideoTracks) {
             // Propagate the sender constraint only if it has changed.
-            if (track.getSourceName() === sourceName
-                && this._sourceSenderConstraints.get(sourceName) !== maxHeight) {
+            if (
+                track.getSourceName() === sourceName &&
+                this._sourceSenderConstraints.get(sourceName) !== maxHeight
+            ) {
                 this._sourceSenderConstraints.set(
                     sourceName,
                     maxHeight === -1
-                        ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
-                        : maxHeight);
-                logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
+                        ? Math.min(
+                              MAX_LOCAL_RESOLUTION,
+                              this._preferredSendMaxFrameHeight,
+                          )
+                        : maxHeight,
+                );
+                logger.debug(
+                    `Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`,
+                );
                 this._propagateSendMaxFrameHeight(sourceName);
             }
         }

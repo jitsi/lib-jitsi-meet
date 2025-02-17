@@ -1,7 +1,7 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as JitsiConferenceErrors from "../../JitsiConferenceErrors";
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
 const logger = getLogger(__filename);
 
@@ -38,28 +38,32 @@ export default class IceFailedHandling {
         logger.info(`ICE failed, enableForcedReload: ${enableForcedReload}`);
 
         if (enableForcedReload) {
-            logger.info('ICE failed, force reloading the conference');
+            logger.info("ICE failed, force reloading the conference");
             this._conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
-                JitsiConferenceErrors.CONFERENCE_RESTARTED);
+                JitsiConferenceErrors.CONFERENCE_RESTARTED,
+            );
 
             return;
         }
 
         const jvbConnection = this._conference.jvbJingleSession;
-        const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
+        const jvbConnIceState =
+            jvbConnection && jvbConnection.getIceConnectionState();
 
         if (!jvbConnection) {
-            logger.warn('Not sending ICE failed - no JVB connection');
-        } else if (jvbConnIceState === 'connected') {
-            logger.info('ICE connection restored - not sending ICE failed');
+            logger.warn("Not sending ICE failed - no JVB connection");
+        } else if (jvbConnIceState === "connected") {
+            logger.info("ICE connection restored - not sending ICE failed");
         } else {
-            logger.info(`Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`);
+            logger.info(
+                `Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`,
+            );
             this._conference._stopJvbSession({
-                reason: 'connectivity-error',
-                reasonDescription: 'ICE FAILED',
+                reason: "connectivity-error",
+                reasonDescription: "ICE FAILED",
                 requestRestart: true,
-                sendSessionTerminate: true
+                sendSessionTerminate: true,
             });
         }
     }
@@ -86,9 +90,13 @@ export default class IceFailedHandling {
                     }, 2000);
                 }
             },
-            error => {
-                logger.error('PING error/timeout - not sending ICE failed', error);
-            });
+            (error) => {
+                logger.error(
+                    "PING error/timeout - not sending ICE failed",
+                    error,
+                );
+            },
+        );
     }
 
     /**

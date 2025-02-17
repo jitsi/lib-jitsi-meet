@@ -1,4 +1,4 @@
-const currentExecutingScript = require('current-executing-script');
+const currentExecutingScript = require("current-executing-script");
 
 /* eslint-disable max-params */
 
@@ -22,15 +22,9 @@ const ScriptUtil = {
      * @param loadCallback on load callback function
      * @param errorCallback callback to be called on error loading the script
      */
-    loadScript(
-            src,
-            async,
-            prepend,
-            relativeURL,
-            loadCallback,
-            errorCallback) {
+    loadScript(src, async, prepend, relativeURL, loadCallback, errorCallback) {
         const d = document;
-        const tagName = 'script';
+        const tagName = "script";
         const script = d.createElement(tagName);
         const referenceNode = d.getElementsByTagName(tagName)[0];
 
@@ -43,8 +37,10 @@ const ScriptUtil = {
 
             if (scriptEl) {
                 const scriptSrc = scriptEl.src;
-                const baseScriptSrc
-                    = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
+                const baseScriptSrc = scriptSrc.substring(
+                    0,
+                    scriptSrc.lastIndexOf("/") + 1,
+                );
 
                 if (scriptSrc && baseScriptSrc) {
                     // eslint-disable-next-line no-param-reassign
@@ -66,7 +62,7 @@ const ScriptUtil = {
         } else {
             referenceNode.parentNode.appendChild(script);
         }
-    }
+    },
 };
 
 /* eslint-enable max-params */

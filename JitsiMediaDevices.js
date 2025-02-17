@@ -1,13 +1,13 @@
-import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
-import RTC from './modules/RTC/RTC';
-import browser from './modules/browser';
-import Listenable from './modules/util/Listenable';
-import { MediaType } from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
+import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import RTC from "./modules/RTC/RTC";
+import browser from "./modules/browser";
+import Listenable from "./modules/util/Listenable";
+import { MediaType } from "./service/RTC/MediaType";
+import RTCEvents from "./service/RTC/RTCEvents";
 
-const AUDIO_PERMISSION_NAME = 'microphone';
-const PERMISSION_GRANTED_STATUS = 'granted';
-const VIDEO_PERMISSION_NAME = 'camera';
+const AUDIO_PERMISSION_NAME = "microphone";
+const PERMISSION_GRANTED_STATUS = "granted";
+const VIDEO_PERMISSION_NAME = "camera";
 
 /**
  * Media devices utilities for Jitsi.
@@ -26,21 +26,21 @@ class JitsiMediaDevices extends Listenable {
      * Initialize. Start listening for device changes and initialize permissions checks.
      */
     init() {
-        RTC.addListener(
-            RTCEvents.DEVICE_LIST_CHANGED,
-            devices =>
-                this.eventEmitter.emit(
-                    JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
-                    devices));
+        RTC.addListener(RTCEvents.DEVICE_LIST_CHANGED, (devices) =>
+            this.eventEmitter.emit(
+                JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
+                devices,
+            ),
+        );
 
         // We would still want to update the permissions cache in case the permissions API is not supported.
-        RTC.addListener(
-            RTCEvents.PERMISSIONS_CHANGED,
-            permissions => this._handlePermissionsChange(permissions));
+        RTC.addListener(RTCEvents.PERMISSIONS_CHANGED, (permissions) =>
+            this._handlePermissionsChange(permissions),
+        );
 
         // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are
         // implemented. If supported add onchange listeners.
-        this._permissionsApiSupported = new Promise(resolve => {
+        this._permissionsApiSupported = new Promise((resolve) => {
             if (!navigator.permissions) {
                 resolve(false);
 
@@ -51,46 +51,57 @@ class JitsiMediaDevices extends Listenable {
 
             const promises = [];
 
-            promises.push(navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
-                .then(status => {
-                    this._handlePermissionsChange({
-                        [MediaType.VIDEO]: this._parsePermissionState(status)
-                    });
-                    status.onchange = function() {
-                        try {
-                            self._handlePermissionsChange({
-                                [MediaType.VIDEO]: self._parsePermissionState(this)
-                            });
-                        } catch (error) {
-                            // Nothing to do.
-                        }
-                    };
+            promises.push(
+                navigator.permissions
+                    .query({ name: VIDEO_PERMISSION_NAME })
+                    .then((status) => {
+                        this._handlePermissionsChange({
+                            [MediaType.VIDEO]:
+                                this._parsePermissionState(status),
+                        });
+                        status.onchange = function () {
+                            try {
+                                self._handlePermissionsChange({
+                                    [MediaType.VIDEO]:
+                                        self._parsePermissionState(this),
+                                });
+                            } catch (error) {
+                                // Nothing to do.
+                            }
+                        };
 
-                    return true;
-                })
-                .catch(() => false));
+                        return true;
+                    })
+                    .catch(() => false),
+            );
 
-            promises.push(navigator.permissions.query({ name: AUDIO_PERMISSION_NAME })
-                .then(status => {
-                    this._handlePermissionsChange({
-                        [MediaType.AUDIO]: this._parsePermissionState(status)
-                    });
-                    status.onchange = function() {
-                        try {
-                            self._handlePermissionsChange({
-                                [MediaType.AUDIO]: self._parsePermissionState(this)
-                            });
-                        } catch (error) {
-                            // Nothing to do.
-                        }
-                    };
+            promises.push(
+                navigator.permissions
+                    .query({ name: AUDIO_PERMISSION_NAME })
+                    .then((status) => {
+                        this._handlePermissionsChange({
+                            [MediaType.AUDIO]:
+                                this._parsePermissionState(status),
+                        });
+                        status.onchange = function () {
+                            try {
+                                self._handlePermissionsChange({
+                                    [MediaType.AUDIO]:
+                                        self._parsePermissionState(this),
+                                });
+                            } catch (error) {
+                                // Nothing to do.
+                            }
+                        };
 
-                    return true;
-                })
-                .catch(() => false));
+                        return true;
+                    })
+                    .catch(() => false),
+            );
 
-            Promise.all(promises).then(results => resolve(results.every(supported => supported)));
-
+            Promise.all(promises).then((results) =>
+                resolve(results.every((supported) => supported)),
+            );
         });
     }
 
@@ -107,7 +118,7 @@ class JitsiMediaDevices extends Listenable {
         // for backwards compatibility.
         const status = permissionStatus.state || permissionStatus.status;
 
-        if (typeof status !== 'string') {
+        if (typeof status !== "string") {
             throw new TypeError();
         }
 
@@ -122,18 +133,26 @@ class JitsiMediaDevices extends Listenable {
      * @param {Object} permissions - Object with the permissions.
      */
     _handlePermissionsChange(permissions) {
-        const hasPermissionsChanged
-            = [ MediaType.AUDIO, MediaType.VIDEO ]
-                .some(type => type in permissions && permissions[type] !== this._permissions[type]);
+        const hasPermissionsChanged = [MediaType.AUDIO, MediaType.VIDEO].some(
+            (type) =>
+                type in permissions &&
+                permissions[type] !== this._permissions[type],
+        );
 
         if (hasPermissionsChanged) {
             this._permissions = {
                 ...this._permissions,
-                ...permissions
+                ...permissions,
             };
-            this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
+            this.eventEmitter.emit(
+                JitsiMediaDevicesEvents.PERMISSIONS_CHANGED,
+                this._permissions,
+            );
 
-            if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
+            if (
+                this._permissions[MediaType.AUDIO] ||
+                this._permissions[MediaType.VIDEO]
+            ) {
                 // Triggering device list update when the permissions are granted in order to update
                 // the labels the devices.
                 // eslint-disable-next-line no-empty-function
@@ -179,7 +198,7 @@ class JitsiMediaDevices extends Listenable {
      * @returns {Promise<boolean>}
      */
     isDevicePermissionGranted(type) {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             // Shortcut: first check if we already know the permission was
             // granted.
             if (type in this._permissions) {
@@ -189,7 +208,7 @@ class JitsiMediaDevices extends Listenable {
             }
 
             // Check using the Permissions API.
-            this._permissionsApiSupported.then(supported => {
+            this._permissionsApiSupported.then((supported) => {
                 if (!supported) {
                     resolve(false);
 
@@ -199,38 +218,47 @@ class JitsiMediaDevices extends Listenable {
                 const promises = [];
 
                 switch (type) {
-                case MediaType.VIDEO:
-                    promises.push(
-                        navigator.permissions.query({
-                            name: VIDEO_PERMISSION_NAME
-                        }));
-                    break;
-                case MediaType.AUDIO:
-                    promises.push(
-                        navigator.permissions.query({
-                            name: AUDIO_PERMISSION_NAME
-                        }));
-                    break;
-                default:
-                    promises.push(
-                        navigator.permissions.query({
-                            name: VIDEO_PERMISSION_NAME
-                        }));
-                    promises.push(
-                        navigator.permissions.query({
-                            name: AUDIO_PERMISSION_NAME
-                        }));
+                    case MediaType.VIDEO:
+                        promises.push(
+                            navigator.permissions.query({
+                                name: VIDEO_PERMISSION_NAME,
+                            }),
+                        );
+                        break;
+                    case MediaType.AUDIO:
+                        promises.push(
+                            navigator.permissions.query({
+                                name: AUDIO_PERMISSION_NAME,
+                            }),
+                        );
+                        break;
+                    default:
+                        promises.push(
+                            navigator.permissions.query({
+                                name: VIDEO_PERMISSION_NAME,
+                            }),
+                        );
+                        promises.push(
+                            navigator.permissions.query({
+                                name: AUDIO_PERMISSION_NAME,
+                            }),
+                        );
                 }
 
                 Promise.all(promises).then(
-                    results => resolve(results.every(permissionStatus => {
-                        try {
-                            return this._parsePermissionState(permissionStatus);
-                        } catch {
-                            return false;
-                        }
-                    })),
-                    () => resolve(false)
+                    (results) =>
+                        resolve(
+                            results.every((permissionStatus) => {
+                                try {
+                                    return this._parsePermissionState(
+                                        permissionStatus,
+                                    );
+                                } catch {
+                                    return false;
+                                }
+                            }),
+                        ),
+                    () => resolve(false),
                 );
             });
         });
@@ -243,8 +271,8 @@ class JitsiMediaDevices extends Listenable {
      */
     isMultipleAudioInputSupported() {
         return !(
-            (browser.isFirefox() && browser.isVersionLessThan('101'))
-            || browser.isIosBrowser()
+            (browser.isFirefox() && browser.isVersionLessThan("101")) ||
+            browser.isIosBrowser()
         );
     }
 

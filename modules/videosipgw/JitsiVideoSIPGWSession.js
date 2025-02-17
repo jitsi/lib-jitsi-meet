@@ -1,9 +1,9 @@
-import { getLogger } from '@jitsi/logger';
-import { $iq } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import { $iq } from "strophe.js";
 
-import Listenable from '../util/Listenable';
+import Listenable from "../util/Listenable";
 
-import * as VideoSIPGWConstants from './VideoSIPGWConstants';
+import * as VideoSIPGWConstants from "./VideoSIPGWConstants";
 
 const logger = getLogger(__filename);
 
@@ -11,14 +11,13 @@ const logger = getLogger(__filename);
  * The event name for current sip video session state changed.
  * @type {string} event name for sip video session state changed.
  */
-const STATE_CHANGED = 'STATE_CHANGED';
+const STATE_CHANGED = "STATE_CHANGED";
 
 /**
  * Jitsi video SIP GW session. Holding its state and able to start/stop it.
  * When session is in OFF or FAILED stated it cannot be used anymore.
  */
 export default class JitsiVideoSIPGWSession extends Listenable {
-
     /**
      * Creates new session with the desired sip address and display name.
      *
@@ -49,14 +48,16 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * Stops the current session.
      */
     stop() {
-        if (this.state === VideoSIPGWConstants.STATE_OFF
-            || this.state === VideoSIPGWConstants.STATE_FAILED) {
-            logger.warn('Video SIP GW session already stopped or failed!');
+        if (
+            this.state === VideoSIPGWConstants.STATE_OFF ||
+            this.state === VideoSIPGWConstants.STATE_FAILED
+        ) {
+            logger.warn("Video SIP GW session already stopped or failed!");
 
             return;
         }
 
-        this._sendJibriIQ('stop');
+        this._sendJibriIQ("stop");
     }
 
     /**
@@ -65,16 +66,18 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     start() {
         // if state is off, this session was active for some reason
         // and we should create new one, rather than reusing it
-        if (this.state === VideoSIPGWConstants.STATE_ON
-            || this.state === VideoSIPGWConstants.STATE_OFF
-            || this.state === VideoSIPGWConstants.STATE_PENDING
-            || this.state === VideoSIPGWConstants.STATE_RETRYING) {
-            logger.warn('Video SIP GW session already started!');
+        if (
+            this.state === VideoSIPGWConstants.STATE_ON ||
+            this.state === VideoSIPGWConstants.STATE_OFF ||
+            this.state === VideoSIPGWConstants.STATE_PENDING ||
+            this.state === VideoSIPGWConstants.STATE_RETRYING
+        ) {
+            logger.warn("Video SIP GW session already started!");
 
             return;
         }
 
-        this._sendJibriIQ('start');
+        this._sendJibriIQ("start");
     }
 
     /**
@@ -93,15 +96,13 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         const oldState = this.state;
 
         this.state = newState;
-        this.eventEmitter.emit(STATE_CHANGED,
-            {
-                address: this.sipAddress,
-                failureReason,
-                oldState,
-                newState: this.state,
-                displayName: this.displayName
-            }
-        );
+        this.eventEmitter.emit(STATE_CHANGED, {
+            address: this.sipAddress,
+            failureReason,
+            oldState,
+            newState: this.state,
+            displayName: this.displayName,
+        });
     }
 
     /**
@@ -131,27 +132,31 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      */
     _sendJibriIQ(action) {
         const attributes = {
-            'xmlns': 'http://jitsi.org/protocol/jibri',
-            'action': action,
-            sipaddress: this.sipAddress
+            xmlns: "http://jitsi.org/protocol/jibri",
+            action: action,
+            sipaddress: this.sipAddress,
         };
 
         attributes.displayname = this.displayName;
 
         const iq = $iq({
             to: this.chatRoom.focusMucJid,
-            type: 'set' })
-            .c('jibri', attributes)
+            type: "set",
+        })
+            .c("jibri", attributes)
             .up();
 
         logger.debug(`${action} video SIP GW session`, iq.nodeTree);
         this.chatRoom.connection.sendIQ(
             iq,
             () => {}, // eslint-disable-line no-empty-function
-            error => {
+            (error) => {
                 logger.error(
-                    `Failed to ${action} video SIP GW session, error: `, error);
+                    `Failed to ${action} video SIP GW session, error: `,
+                    error,
+                );
                 this.setState(VideoSIPGWConstants.STATE_FAILED);
-            });
+            },
+        );
     }
 }

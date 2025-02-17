@@ -1,6 +1,6 @@
-import { $iq } from 'strophe.js';
+import { $iq } from "strophe.js";
 
-import recordingXMLUtils from './recordingXMLUtils';
+import recordingXMLUtils from "./recordingXMLUtils";
 
 /**
  * Represents a recording session.
@@ -15,7 +15,7 @@ export default class JibriSession {
         this._connection = options.connection;
         this._mode = options.mode;
         this._jibriJid = null;
-        this._statusFromJicofo = '';
+        this._statusFromJicofo = "";
 
         this._setSessionID(options.sessionID);
         this.setStatus(options.status);
@@ -186,28 +186,30 @@ export default class JibriSession {
         return new Promise((resolve, reject) => {
             this._connection.sendIQ(
                 this._createIQ({
-                    action: 'start',
+                    action: "start",
                     appData,
                     focusMucJid,
                     broadcastId,
-                    streamId
+                    streamId,
                 }),
-                result => {
+                (result) => {
                     // All users will eventually receive the 'pending' status
                     // from the backend, but for the user initiating the session
                     // it's better to give some instant feedback that recording
                     // is starting so fire 'pending' here manually.
-                    this.setStatus('pending');
+                    this.setStatus("pending");
                     this._setSessionID(
-                        recordingXMLUtils.getSessionIdFromIq(result));
+                        recordingXMLUtils.getSessionIdFromIq(result),
+                    );
 
                     resolve();
                 },
-                error => {
+                (error) => {
                     this._setErrorFromIq(error);
 
                     reject(error);
-                });
+                },
+            );
         });
     }
 
@@ -224,11 +226,12 @@ export default class JibriSession {
         return new Promise((resolve, reject) => {
             this._connection.sendIQ(
                 this._createIQ({
-                    action: 'stop',
-                    focusMucJid
+                    action: "stop",
+                    focusMucJid,
                 }),
                 resolve,
-                reject);
+                reject,
+            );
         });
     }
 
@@ -251,17 +254,17 @@ export default class JibriSession {
     _createIQ({ action, appData, broadcastId, focusMucJid, streamId }) {
         return $iq({
             to: focusMucJid,
-            type: 'set'
+            type: "set",
         })
-        .c('jibri', {
-            'xmlns': 'http://jitsi.org/protocol/jibri',
-            'action': action,
-            'app_data': appData,
-            'recording_mode': this._mode,
-            'streamid': streamId,
-            'you_tube_broadcast_id': broadcastId
-        })
-        .up();
+            .c("jibri", {
+                xmlns: "http://jitsi.org/protocol/jibri",
+                action: action,
+                app_data: appData,
+                recording_mode: this._mode,
+                streamid: streamId,
+                you_tube_broadcast_id: broadcastId,
+            })
+            .up();
     }
 
     /**
@@ -272,7 +275,7 @@ export default class JibriSession {
      * @returns {void}
      */
     _setErrorFromIq(errorIq) {
-        const error = errorIq.getElementsByTagName('error')[0];
+        const error = errorIq.getElementsByTagName("error")[0];
 
         this.setError(error.children[0].tagName);
     }

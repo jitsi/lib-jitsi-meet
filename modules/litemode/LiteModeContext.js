@@ -1,12 +1,12 @@
 /* global TransformStream */
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import RTCEvents from '../../service/RTC/RTCEvents';
-import FeatureFlags from '../flags/FeatureFlags';
+import RTCEvents from "../../service/RTC/RTCEvents";
+import FeatureFlags from "../flags/FeatureFlags";
 
 // Flag to set on receivers to avoid setting up the lite mode
 // more than once.
-const kJitsiLiteMode = Symbol('kJitsiLiteMode');
+const kJitsiLiteMode = Symbol("kJitsiLiteMode");
 
 const logger = getLogger(__filename);
 
@@ -24,9 +24,9 @@ export class LiteModeContext {
             return;
         }
 
-        conference.rtc.on(
-            RTCEvents.REMOTE_TRACK_ADDED,
-            (track, tpc) => this._setupLiteModeForTrack(tpc, track));
+        conference.rtc.on(RTCEvents.REMOTE_TRACK_ADDED, (track, tpc) =>
+            this._setupLiteModeForTrack(tpc, track),
+        );
     }
 
     /**
@@ -42,7 +42,9 @@ export class LiteModeContext {
         const receiver = tpc.findReceiverForTrack(track.track);
 
         if (!receiver) {
-            logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
+            logger.warn(
+                `Could not set up lite mode for ${track}: receiver not found in: ${tpc}`,
+            );
 
             return;
         }
@@ -57,9 +59,11 @@ export class LiteModeContext {
         const transformStream = new TransformStream({
             transform: () => {
                 // Don't call controller.enqueue(encodedFrame), and so drop everything
-            }
+            },
         });
 
-        receiverStreams.readable.pipeThrough(transformStream).pipeTo(receiverStreams.writable);
+        receiverStreams.readable
+            .pipeThrough(transformStream)
+            .pipeTo(receiverStreams.writable);
     }
 }

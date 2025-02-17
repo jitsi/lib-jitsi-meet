@@ -1,8 +1,8 @@
-import RTC from '../RTC/RTC';
-import EventEmitter from '../util/EventEmitter';
-import { createAudioContext } from '../webaudio/WebAudioUtils';
+import RTC from "../RTC/RTC";
+import EventEmitter from "../util/EventEmitter";
+import { createAudioContext } from "../webaudio/WebAudioUtils";
 
-import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
+import { VAD_SCORE_PUBLISHED } from "./DetectionEvents";
 
 /**
  * Connects an audio JitsiLocalTrack to a vadProcessor using WebAudio ScriptProcessorNode.
@@ -48,7 +48,9 @@ export default class TrackVADEmitter extends EventEmitter {
         /**
          * The AudioContext instance with the preferred sample frequency.
          */
-        this._audioContext = createAudioContext({ sampleRate: vadProcessor.getRequiredPCMFrequency() });
+        this._audioContext = createAudioContext({
+            sampleRate: vadProcessor.getRequiredPCMFrequency(),
+        });
 
         /**
          * PCM Sample size expected by the VAD Processor instance. We cache it here as this value is used extensively,
@@ -79,15 +81,21 @@ export default class TrackVADEmitter extends EventEmitter {
      */
     static create(micDeviceId, procNodeSampleRate, vadProcessor) {
         return RTC.obtainAudioAndVideoPermissions({
-            devices: [ 'audio' ],
-            micDeviceId
-        }).then(localTrack => {
+            devices: ["audio"],
+            micDeviceId,
+        }).then((localTrack) => {
             // We only expect one audio track when specifying a device id.
             if (!localTrack[0]) {
-                throw new Error(`Failed to create jitsi local track for device id: ${micDeviceId}`);
+                throw new Error(
+                    `Failed to create jitsi local track for device id: ${micDeviceId}`,
+                );
             }
 
-            return new TrackVADEmitter(procNodeSampleRate, vadProcessor, localTrack[0]);
+            return new TrackVADEmitter(
+                procNodeSampleRate,
+                vadProcessor,
+                localTrack[0],
+            );
 
             // We have no exception handling at this point as there is nothing to clean up, the vadProcessor
             // life cycle is handled by whoever created this instance.
@@ -100,7 +108,9 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {void}
      */
     _initializeAudioContext() {
-        this._audioSource = this._audioContext.createMediaStreamSource(this._localTrack.stream);
+        this._audioSource = this._audioContext.createMediaStreamSource(
+            this._localTrack.stream,
+        );
 
         // TODO AudioProcessingNode is deprecated in the web audio specifications and the recommended replacement
         // is audio worklet, however at the point of implementation AudioProcessingNode was still de de facto way
@@ -108,7 +118,11 @@ export default class TrackVADEmitter extends EventEmitter {
         // was only available in Chrome. This todo is just a reminder that we should replace AudioProcessingNode
         // with audio worklet when it's mature enough and has more browser support.
         // We don't need stereo for determining the VAD score so we create a single channel processing node.
-        this._audioProcessingNode = this._audioContext.createScriptProcessor(this._procNodeSampleRate, 1, 1);
+        this._audioProcessingNode = this._audioContext.createScriptProcessor(
+            this._procNodeSampleRate,
+            1,
+            1,
+        );
     }
 
     /**
@@ -125,22 +139,28 @@ export default class TrackVADEmitter extends EventEmitter {
     _onAudioProcess(audioEvent) {
         // Prepend the residue PCM buffer from the previous process callback.
         const inData = audioEvent.inputBuffer.getChannelData(0);
-        const completeInData = [ ...this._bufferResidue, ...inData ];
+        const completeInData = [...this._bufferResidue, ...inData];
         const sampleTimestamp = Date.now();
 
         let i = 0;
 
-        for (; i + this._vadSampleSize < completeInData.length; i += this._vadSampleSize) {
+        for (
+            ;
+            i + this._vadSampleSize < completeInData.length;
+            i += this._vadSampleSize
+        ) {
             const pcmSample = completeInData.slice(i, i + this._vadSampleSize);
 
             // The VAD processor might change the values inside the array so we make a copy.
-            const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample.slice());
+            const vadScore = this._vadProcessor.calculateAudioFrameVAD(
+                pcmSample.slice(),
+            );
 
             this.emit(VAD_SCORE_PUBLISHED, {
                 timestamp: sampleTimestamp,
                 score: vadScore,
                 pcmData: pcmSample,
-                deviceId: this._localTrack.getDeviceId()
+                deviceId: this._localTrack.getDeviceId(),
             });
         }
 
@@ -190,7 +210,6 @@ export default class TrackVADEmitter extends EventEmitter {
     getDeviceId() {
         return this._localTrack.getDeviceId();
     }
-
 
     /**
      * Get the associated track label.

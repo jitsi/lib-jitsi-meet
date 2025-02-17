@@ -1,8 +1,8 @@
-import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
-import { VideoType } from '../../service/RTC/VideoType';
-import { MockRTC, MockSignalingLayerImpl } from '../RTC/MockClasses';
-import Listenable from '../util/Listenable';
-import JingleSessionPC from '../xmpp/JingleSessionPC';
+import { JitsiConferenceEvents } from "../../JitsiConferenceEvents";
+import { VideoType } from "../../service/RTC/VideoType";
+import { MockRTC, MockSignalingLayerImpl } from "../RTC/MockClasses";
+import Listenable from "../util/Listenable";
+import JingleSessionPC from "../xmpp/JingleSessionPC";
 
 /**
  * MockParticipant
@@ -63,7 +63,7 @@ export class MockLocalTrack {
  * MockConference
  */
 export class MockConference extends Listenable {
-    options: { config: {}; };
+    options: { config: {} };
     activeMediaSession: JingleSessionPC;
     jvbJingleSession: JingleSessionPC;
     mediaSessions: JingleSessionPC[];
@@ -77,7 +77,7 @@ export class MockConference extends Listenable {
     constructor(rtc: MockRTC) {
         super();
         this.options = {
-            config: {}
+            config: {},
         };
 
         this.activeMediaSession = undefined;
@@ -94,9 +94,18 @@ export class MockConference extends Listenable {
      * @param {Array<string>} codecList
      * @param {String} codecType
      */
-    addParticipant(participant: MockParticipant, codecList: Array<string>, codecType: string): void {
+    addParticipant(
+        participant: MockParticipant,
+        codecList: Array<string>,
+        codecType: string,
+    ): void {
         this.participants.push(participant);
-        this._signalingLayer.setPeerMediaInfo(true, participant.getId(), codecList, codecType);
+        this._signalingLayer.setPeerMediaInfo(
+            true,
+            participant.getId(),
+            codecList,
+            codecType,
+        );
         this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED);
     }
 
@@ -120,7 +129,7 @@ export class MockConference extends Listenable {
      * Returns the list of participants.
      * @returns Array<MockParticipant>
      */
-    getParticipants(): Array<MockParticipant>  {
+    getParticipants(): Array<MockParticipant> {
         return this.participants;
     }
 
@@ -137,8 +146,13 @@ export class MockConference extends Listenable {
      * @param {MockParticipant} endpoint
      */
     removeParticipant(endpoint: MockParticipant): void {
-        this.participants = this.participants.filter(p => p !== endpoint);
-        this._signalingLayer.setPeerMediaInfo(false, endpoint.getId(), undefined, undefined);
+        this.participants = this.participants.filter((p) => p !== endpoint);
+        this._signalingLayer.setPeerMediaInfo(
+            false,
+            endpoint.getId(),
+            undefined,
+            undefined,
+        );
         this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT);
     }
 }

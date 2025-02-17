@@ -1,16 +1,21 @@
 /* eslint-disable newline-per-chained-call */
-import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
-import { $iq } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import $ from "jquery";
+import { $iq } from "strophe.js";
 
-import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
-import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
-import Settings from '../settings/Settings';
-import Listenable from '../util/Listenable';
+import {
+    CONFERENCE_REQUEST_FAILED,
+    NOT_LIVE_ERROR,
+} from "../../JitsiConnectionErrors";
+import {
+    CONNECTION_FAILED,
+    CONNECTION_REDIRECTED,
+} from "../../JitsiConnectionEvents";
+import Settings from "../settings/Settings";
+import Listenable from "../util/Listenable";
 
-const AuthenticationEvents
-    = require('../../service/authentication/AuthenticationEvents');
-const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
+const AuthenticationEvents = require("../../service/authentication/AuthenticationEvents");
+const { XMPPEvents } = require("../../service/xmpp/XMPPEvents");
 
 const logger = getLogger(__filename);
 
@@ -22,7 +27,7 @@ function createExpBackoffTimer(step) {
     let count = 1;
     const maxTimeout = 120000;
 
-    return function(reset) {
+    return function (reset) {
         // Reset call
         if (reset) {
             count = 1;
@@ -72,7 +77,7 @@ export default class Moderator extends Listenable {
         this.targetUrl = this.options.conferenceRequestUrl;
 
         // Whether to send conference requests over HTTP or XMPP
-        this.mode = this.targetUrl ? 'http' : 'xmpp';
+        this.mode = this.targetUrl ? "http" : "xmpp";
         logger.info(`Using ${this.mode} for conference requests.`);
 
         // The set of JIDs known to belong to jicofo. Populated from configuration
@@ -91,7 +96,9 @@ export default class Moderator extends Listenable {
         function listener(event) {
             if (event.data && event.data.sessionId) {
                 if (event.origin !== window.location.origin) {
-                    logger.warn(`Ignoring sessionId from different origin: ${event.origin}`);
+                    logger.warn(
+                        `Ignoring sessionId from different origin: ${event.origin}`,
+                    );
 
                     return;
                 }
@@ -103,9 +110,9 @@ export default class Moderator extends Listenable {
 
         // Register
         if (window.addEventListener) {
-            window.addEventListener('message', listener, false);
+            window.addEventListener("message", listener, false);
         } else {
-            window.attachEvent('onmessage', listener);
+            window.attachEvent("onmessage", listener);
         }
     }
 
@@ -183,7 +190,7 @@ export default class Moderator extends Listenable {
         const conferenceRequest = {
             properties,
             machineUid: Settings.machineId,
-            room: roomJid
+            room: roomJid,
         };
 
         if (sessionId) {
@@ -191,7 +198,7 @@ export default class Moderator extends Listenable {
         }
 
         if (!config.iAmRecorder && !config.iAmSipGateway) {
-            conferenceRequest.properties['visitors-version'] = 1;
+            conferenceRequest.properties["visitors-version"] = 1;
 
             if (this.options.preferVisitor) {
                 conferenceRequest.properties.visitor = true;
@@ -212,27 +219,25 @@ export default class Moderator extends Listenable {
         // Generate create conference IQ
         const elem = $iq({
             to: this.targetJid,
-            type: 'set'
+            type: "set",
         });
 
-        elem.c('conference', {
-            xmlns: 'http://jitsi.org/protocol/focus',
+        elem.c("conference", {
+            xmlns: "http://jitsi.org/protocol/focus",
             room: roomJid,
-            'machine-uid': conferenceRequest.machineUid
+            "machine-uid": conferenceRequest.machineUid,
         });
 
         if (conferenceRequest.sessionId) {
-            elem.attrs({ 'session-id': conferenceRequest.sessionId });
+            elem.attrs({ "session-id": conferenceRequest.sessionId });
         }
 
         for (const k in conferenceRequest.properties) {
             if (conferenceRequest.properties.hasOwnProperty(k)) {
-                elem.c(
-                    'property', {
-                        name: k,
-                        value: conferenceRequest.properties[k]
-                    })
-                    .up();
+                elem.c("property", {
+                    name: k,
+                    value: conferenceRequest.properties[k],
+                }).up();
             }
         }
 
@@ -249,37 +254,49 @@ export default class Moderator extends Listenable {
         const conferenceRequest = { properties: {} };
 
         conferenceRequest.focusJid = $(resultIq)
-            .find('conference')
-            .attr('focusjid');
+            .find("conference")
+            .attr("focusjid");
         conferenceRequest.sessionId = $(resultIq)
-            .find('conference')
-            .attr('session-id');
+            .find("conference")
+            .attr("session-id");
         conferenceRequest.identity = $(resultIq)
-            .find('>conference')
-            .attr('identity');
-        conferenceRequest.ready = $(resultIq)
-            .find('conference')
-            .attr('ready') === 'true';
-        conferenceRequest.vnode = $(resultIq)
-            .find('conference')
-            .attr('vnode');
+            .find(">conference")
+            .attr("identity");
+        conferenceRequest.ready =
+            $(resultIq).find("conference").attr("ready") === "true";
+        conferenceRequest.vnode = $(resultIq).find("conference").attr("vnode");
 
-        if ($(resultIq).find('>conference>property[name=\'authentication\'][value=\'true\']').length > 0) {
-            conferenceRequest.properties.authentication = 'true';
+        if (
+            $(resultIq).find(
+                ">conference>property[name='authentication'][value='true']",
+            ).length > 0
+        ) {
+            conferenceRequest.properties.authentication = "true";
         }
 
-        if ($(resultIq).find('>conference>property[name=\'externalAuth\'][value=\'true\']').length > 0) {
-            conferenceRequest.properties.externalAuth = 'true';
+        if (
+            $(resultIq).find(
+                ">conference>property[name='externalAuth'][value='true']",
+            ).length > 0
+        ) {
+            conferenceRequest.properties.externalAuth = "true";
         }
 
         // Check if jicofo has jigasi support enabled.
-        if ($(resultIq).find('>conference>property[name=\'sipGatewayEnabled\'][value=\'true\']').length > 0) {
-            conferenceRequest.properties.sipGatewayEnabled = 'true';
+        if (
+            $(resultIq).find(
+                ">conference>property[name='sipGatewayEnabled'][value='true']",
+            ).length > 0
+        ) {
+            conferenceRequest.properties.sipGatewayEnabled = "true";
         }
 
         // check for explicit false, all other cases is considered live
-        if ($(resultIq).find('>conference>property[name=\'live\'][value=\'false\']').length > 0) {
-            conferenceRequest.properties.live = 'false';
+        if (
+            $(resultIq).find(">conference>property[name='live'][value='false']")
+                .length > 0
+        ) {
+            conferenceRequest.properties.live = "false";
         }
 
         return conferenceRequest;
@@ -305,13 +322,18 @@ export default class Moderator extends Listenable {
         this.conferenceRequestSent = false;
 
         return new Promise((resolve, reject) => {
-            if (this.mode === 'xmpp') {
-                logger.info(`Sending conference request over XMPP to ${this.targetJid}`);
+            if (this.mode === "xmpp") {
+                logger.info(
+                    `Sending conference request over XMPP to ${this.targetJid}`,
+                );
 
                 this.connection.sendIQ(
                     this._createConferenceIq(roomJid),
-                    result => this._handleIqSuccess(roomJid, result, resolve, reject),
-                    error => this._handleIqError(roomJid, error, resolve, reject));
+                    (result) =>
+                        this._handleIqSuccess(roomJid, result, resolve, reject),
+                    (error) =>
+                        this._handleIqError(roomJid, error, resolve, reject),
+                );
 
                 // XXX We're pressed for time here because we're beginning a complex
                 // and/or lengthy conference-establishment process which supposedly
@@ -319,48 +341,81 @@ export default class Moderator extends Listenable {
                 // decide to send our IQ.
                 this.connection.flush();
             } else {
-                logger.info(`Sending conference request over HTTP to ${this.targetUrl}`);
+                logger.info(
+                    `Sending conference request over HTTP to ${this.targetUrl}`,
+                );
                 fetch(this.targetUrl, {
-                    method: 'POST',
-                    body: JSON.stringify(this._createConferenceRequest(roomJid)),
-                    headers: { 'Content-Type': 'application/json' }
+                    method: "POST",
+                    body: JSON.stringify(
+                        this._createConferenceRequest(roomJid),
+                    ),
+                    headers: { "Content-Type": "application/json" },
                 })
-                    .then(response => {
+                    .then((response) => {
                         if (!response.ok) {
-                            response.text()
-                                .then(text => {
-                                    logger.warn(`Received HTTP ${response.status} ${
-                                        response.statusText}. Body: ${text}`);
-                                    const sessionError = response.status === 400
-                                        && text.indexOf('400 invalid-session') > 0;
-                                    const notAuthorized = response.status === 403;
+                            response
+                                .text()
+                                .then((text) => {
+                                    logger.warn(
+                                        `Received HTTP ${response.status} ${
+                                            response.statusText
+                                        }. Body: ${text}`,
+                                    );
+                                    const sessionError =
+                                        response.status === 400 &&
+                                        text.indexOf("400 invalid-session") > 0;
+                                    const notAuthorized =
+                                        response.status === 403;
 
-                                    this._handleError(roomJid, sessionError, notAuthorized, resolve, reject);
+                                    this._handleError(
+                                        roomJid,
+                                        sessionError,
+                                        notAuthorized,
+                                        resolve,
+                                        reject,
+                                    );
                                 })
-                                .catch(error => {
+                                .catch((error) => {
                                     logger.warn(`Error: ${error}`);
-                                    this._handleError(roomJid, undefined, undefined, resolve, () => reject(error));
+                                    this._handleError(
+                                        roomJid,
+                                        undefined,
+                                        undefined,
+                                        resolve,
+                                        () => reject(error),
+                                    );
                                 });
 
                             // _handleError has either scheduled a retry or fired an event indicating failure.
                             return;
                         }
-                        response.json()
-                            .then(resultJson => {
-                                this._handleSuccess(roomJid, resultJson, resolve, reject);
-                            });
+                        response.json().then((resultJson) => {
+                            this._handleSuccess(
+                                roomJid,
+                                resultJson,
+                                resolve,
+                                reject,
+                            );
+                        });
                     })
-                    .catch(error => {
+                    .catch((error) => {
                         logger.warn(`Error: ${error}`);
-                        this._handleError(roomJid, undefined, undefined, resolve, () => reject(error));
+                        this._handleError(
+                            roomJid,
+                            undefined,
+                            undefined,
+                            resolve,
+                            () => reject(error),
+                        );
                     });
             }
-        }).then(() => {
-            this.conferenceRequestSent = true;
         })
-        .finally(() => {
-            this.xmpp.connection._breakoutMovingToMain = undefined;
-        });
+            .then(() => {
+                this.conferenceRequestSent = true;
+            })
+            .finally(() => {
+                this.xmpp.connection._breakoutMovingToMain = undefined;
+            });
     }
 
     /**
@@ -379,10 +434,11 @@ export default class Moderator extends Listenable {
             logger.info(`Adding focus JID: ${conferenceRequest.focusJid}`);
             this.focusUserJids.add(conferenceRequest.focusJid);
         } else {
-            logger.warn('Conference request response contained no focusJid.');
+            logger.warn("Conference request response contained no focusJid.");
         }
 
-        const authenticationEnabled = conferenceRequest.properties.authentication === 'true';
+        const authenticationEnabled =
+            conferenceRequest.properties.authentication === "true";
 
         logger.info(`Authentication enabled: ${authenticationEnabled}`);
 
@@ -392,15 +448,21 @@ export default class Moderator extends Listenable {
         }
 
         this.eventEmitter.emit(
-            AuthenticationEvents.IDENTITY_UPDATED, authenticationEnabled, conferenceRequest.identity);
+            AuthenticationEvents.IDENTITY_UPDATED,
+            authenticationEnabled,
+            conferenceRequest.identity,
+        );
 
         this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
         logger.info(`Sip gateway enabled: ${this.sipGatewayEnabled}`);
 
-        if (conferenceRequest.properties.live === 'false' && this.options.preferVisitor) {
+        if (
+            conferenceRequest.properties.live === "false" &&
+            this.options.preferVisitor
+        ) {
             this.getNextTimeout(true);
 
-            logger.info('Conference is not live.');
+            logger.info("Conference is not live.");
 
             this.xmpp.eventEmitter.emit(CONNECTION_FAILED, NOT_LIVE_ERROR);
 
@@ -415,25 +477,39 @@ export default class Moderator extends Listenable {
 
             // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
             // we ignore redirects when moving from a breakout room to the main room
-            if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
+            if (
+                conferenceRequest.vnode &&
+                !this.options.iAmRecorder &&
+                !this.options.iAmSipGateway
+            ) {
                 if (this.connection._breakoutMovingToMain === roomJid) {
-                    logger.info('Skipping redirect as we are moving from breakout to main.');
+                    logger.info(
+                        "Skipping redirect as we are moving from breakout to main.",
+                    );
 
                     callback();
 
                     return;
                 }
 
-                logger.warn(`Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`);
+                logger.warn(
+                    `Redirected to: ${conferenceRequest.vnode} with focusJid ${conferenceRequest.focusJid}`,
+                );
 
-                this.xmpp.eventEmitter.emit(CONNECTION_REDIRECTED, conferenceRequest.vnode, conferenceRequest.focusJid);
+                this.xmpp.eventEmitter.emit(
+                    CONNECTION_REDIRECTED,
+                    conferenceRequest.vnode,
+                    conferenceRequest.focusJid,
+                );
 
                 errorCallback();
 
                 return;
             }
 
-            logger.info('Conference-request successful, ready to join the MUC.');
+            logger.info(
+                "Conference-request successful, ready to join the MUC.",
+            );
             callback();
         } else {
             const waitMs = this.getNextTimeout();
@@ -441,9 +517,12 @@ export default class Moderator extends Listenable {
             // This was a successful response, but the "ready" flag is not set. Retry after a timeout.
             logger.info(`Not ready yet, will retry in ${waitMs} ms.`);
             window.setTimeout(
-                () => this.sendConferenceRequest(roomJid)
-                    .then(callback).catch(errorCallback),
-                waitMs);
+                () =>
+                    this.sendConferenceRequest(roomJid)
+                        .then(callback)
+                        .catch(errorCallback),
+                waitMs,
+            );
         }
     }
 
@@ -456,17 +535,24 @@ export default class Moderator extends Listenable {
      * @param errorCallback
      * @private
      */
-    _handleError(roomJid, sessionError, notAuthorized, callback, errorCallback) { // eslint-disable-line max-params
+    _handleError(
+        roomJid,
+        sessionError,
+        notAuthorized,
+        callback,
+        errorCallback,
+    ) {
+        // eslint-disable-line max-params
         // If the session is invalid, remove and try again without session ID to get
         // a new one
         if (sessionError) {
-            logger.info('Session expired! - removing');
+            logger.info("Session expired! - removing");
             Settings.sessionId = undefined;
         }
 
         // Not authorized to create new room
         if (notAuthorized) {
-            logger.warn('Unauthorized to start the conference');
+            logger.warn("Unauthorized to start the conference");
             this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
 
             errorCallback();
@@ -480,14 +566,21 @@ export default class Moderator extends Listenable {
             // If the session is invalid, retry a limited number of times and then fire an error.
             logger.info(`Invalid session, will retry after ${waitMs} ms.`);
             this.getNextTimeout(true);
-            window.setTimeout(() => this.sendConferenceRequest(roomJid)
-                .then(callback)
-                .catch(errorCallback), waitMs);
+            window.setTimeout(
+                () =>
+                    this.sendConferenceRequest(roomJid)
+                        .then(callback)
+                        .catch(errorCallback),
+                waitMs,
+            );
         } else {
-            logger.error('Failed to get a successful response, giving up.');
+            logger.error("Failed to get a successful response, giving up.");
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
-            this.xmpp.eventEmitter.emit(CONNECTION_FAILED, CONFERENCE_REQUEST_FAILED);
+            this.xmpp.eventEmitter.emit(
+                CONNECTION_FAILED,
+                CONFERENCE_REQUEST_FAILED,
+            );
 
             errorCallback();
         }
@@ -505,12 +598,12 @@ export default class Moderator extends Listenable {
     _handleIqError(roomJid, error, callback, errorCallback) {
         // The reservation system only works over XMPP. Handle the error separately.
         // Check for error returned by the reservation system
-        const reservationErr = $(error).find('>error>reservation-error');
+        const reservationErr = $(error).find(">error>reservation-error");
 
         if (reservationErr.length) {
             // Trigger error event
-            const errorCode = reservationErr.attr('error-code');
-            const errorTextNode = $(error).find('>error>text');
+            const errorCode = reservationErr.attr("error-code");
+            const errorTextNode = $(error).find(">error>text");
             let errorMsg;
 
             if (errorTextNode) {
@@ -519,20 +612,29 @@ export default class Moderator extends Listenable {
             this.eventEmitter.emit(
                 XMPPEvents.RESERVATION_ERROR,
                 errorCode,
-                errorMsg);
+                errorMsg,
+            );
 
             errorCallback();
 
             return;
         }
 
-        const invalidSession = Boolean($(error).find('>error>session-invalid').length
-                || $(error).find('>error>not-acceptable').length);
+        const invalidSession = Boolean(
+            $(error).find(">error>session-invalid").length ||
+                $(error).find(">error>not-acceptable").length,
+        );
 
         // Not authorized to create new room
-        const notAuthorized = $(error).find('>error>not-authorized').length > 0;
+        const notAuthorized = $(error).find(">error>not-authorized").length > 0;
 
-        this._handleError(roomJid, invalidSession, notAuthorized, callback, errorCallback);
+        this._handleError(
+            roomJid,
+            invalidSession,
+            notAuthorized,
+            callback,
+            errorCallback,
+        );
     }
 
     /**
@@ -549,7 +651,12 @@ export default class Moderator extends Listenable {
         // Setup config options
         const conferenceRequest = this._parseConferenceIq(result);
 
-        this._handleSuccess(roomJid, conferenceRequest, callback, errorCallback);
+        this._handleSuccess(
+            roomJid,
+            conferenceRequest,
+            callback,
+            errorCallback,
+        );
     }
 
     /**
@@ -561,28 +668,27 @@ export default class Moderator extends Listenable {
         return new Promise((resolve, reject) => {
             this.connection.sendIQ(
                 this._createConferenceIq(roomJid),
-                result => {
+                (result) => {
                     const sessionId = $(result)
-                        .find('conference')
-                        .attr('session-id');
+                        .find("conference")
+                        .attr("session-id");
 
                     if (sessionId) {
                         logger.info(`Received sessionId:  ${sessionId}`);
                         Settings.sessionId = sessionId;
                     } else {
-                        logger.warn('Response did not contain a session-id');
+                        logger.warn("Response did not contain a session-id");
                     }
 
                     resolve();
                 },
-                errorIq => reject({
-                    error: $(errorIq)
-                        .find('iq>error :first')
-                        .prop('tagName'),
-                    message: $(errorIq)
-                        .find('iq>error>text')
-                        .text()
-                })
+                (errorIq) =>
+                    reject({
+                        error: $(errorIq)
+                            .find("iq>error :first")
+                            .prop("tagName"),
+                        message: $(errorIq).find("iq>error>text").text(),
+                    }),
             );
         });
     }
@@ -594,7 +700,7 @@ export default class Moderator extends Listenable {
     logout(callback) {
         const iq = $iq({
             to: this.targetJid,
-            type: 'set'
+            type: "set",
         });
         const { sessionId } = Settings;
 
@@ -603,20 +709,20 @@ export default class Moderator extends Listenable {
 
             return;
         }
-        iq.c('logout', {
-            xmlns: 'http://jitsi.org/protocol/focus',
-            'session-id': sessionId
+        iq.c("logout", {
+            xmlns: "http://jitsi.org/protocol/focus",
+            "session-id": sessionId,
         });
         this.connection.sendIQ(
             iq,
-            result => {
-                logger.info('Log out OK', result);
+            (result) => {
+                logger.info("Log out OK", result);
                 Settings.sessionId = undefined;
                 callback();
             },
-            error => {
-                logger.error('Logout error', error);
-            }
+            (error) => {
+                logger.error("Logout error", error);
+            },
         );
     }
 }

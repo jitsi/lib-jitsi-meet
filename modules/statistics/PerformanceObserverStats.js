@@ -1,8 +1,7 @@
+import { getLogger } from "@jitsi/logger";
 
-import { getLogger } from '@jitsi/logger';
-
-import * as StatisticsEvents from '../../service/statistics/Events';
-import { RunningAverage } from '../util/MathUtil';
+import * as StatisticsEvents from "../../service/statistics/Events";
+import { RunningAverage } from "../util/MathUtil";
 
 const logger = getLogger(__filename);
 const MILLI_SECONDS = 1000;
@@ -37,7 +36,7 @@ export class PerformanceObserverStats {
     getLongTasksStats() {
         return {
             avgRatePerMinute: (this.stats.getAverage() * SECONDS).toFixed(2), // calc rate per min
-            maxDurationMs: this.maxDuration
+            maxDurationMs: this.maxDuration,
         };
     }
 
@@ -48,20 +47,24 @@ export class PerformanceObserverStats {
      */
     startObserver() {
         // Create a handler for when the long task event is fired.
-        this.longTaskEventHandler = list => {
+        this.longTaskEventHandler = (list) => {
             const entries = list.getEntries();
 
             for (const task of entries) {
                 this.longTasks++;
-                this.maxDuration = Math.max(this.maxDuration, task.duration).toFixed(3);
+                this.maxDuration = Math.max(
+                    this.maxDuration,
+                    task.duration,
+                ).toFixed(3);
             }
         };
 
         // Create an observer for monitoring long tasks.
-        logger.info('Creating a Performance Observer for monitoring Long Tasks');
+        logger.info(
+            "Creating a Performance Observer for monitoring Long Tasks",
+        );
         this.observer = new PerformanceObserver(this.longTaskEventHandler);
-        this.observer.observe({ type: 'longtask',
-            buffered: true });
+        this.observer.observe({ type: "longtask", buffered: true });
         const startTime = Date.now();
 
         // Calculate the average # of events/sec and emit a stats event.
@@ -74,7 +77,9 @@ export class PerformanceObserverStats {
 
             this.stats.addNext(rate);
             this.eventEmitter.emit(
-                StatisticsEvents.LONG_TASKS_STATS, this.getLongTasksStats());
+                StatisticsEvents.LONG_TASKS_STATS,
+                this.getLongTasksStats(),
+            );
 
             // Reset the counter and start counting events again.
             this.longTasks = 0;

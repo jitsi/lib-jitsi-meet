@@ -1,1 +1,1 @@
-export function integerHash( string: string ): number;
+export function integerHash(string: string): number;

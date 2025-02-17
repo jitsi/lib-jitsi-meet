@@ -1,14 +1,16 @@
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import { VideoType } from '../../service/RTC/VideoType';
-import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
-import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
-import Statistics from '../statistics/statistics';
+import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+import { VideoType } from "../../service/RTC/VideoType";
+import { createTtfmEvent } from "../../service/statistics/AnalyticsEvents";
+import TrackStreamingStatusImpl, {
+    TrackStreamingStatus,
+} from "../connectivity/TrackStreamingStatus";
+import Statistics from "../statistics/statistics";
 
-import JitsiTrack from './JitsiTrack';
+import JitsiTrack from "./JitsiTrack";
 
-const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require("@jitsi/logger").getLogger(__filename);
 
-const RTCEvents = require('../../service/RTC/RTCEvents');
+const RTCEvents = require("../../service/RTC/RTCEvents");
 
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;
@@ -17,7 +19,15 @@ let ttfmTrackerVideoAttached = false;
  * List of container events that we are going to process. _onContainerEventHandler will be added as listener to the
  * container for every event in the list.
  */
-const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled', 'suspend', 'waiting' ];
+const containerEvents = [
+    "abort",
+    "canplaythrough",
+    "ended",
+    "error",
+    "stalled",
+    "suspend",
+    "waiting",
+];
 
 /* eslint-disable max-params */
 
@@ -45,17 +55,18 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @constructor
      */
     constructor(
-            rtc,
-            conference,
-            ownerEndpointId,
-            stream,
-            track,
-            mediaType,
-            videoType,
-            ssrc,
-            muted,
-            isP2P,
-            sourceName) {
+        rtc,
+        conference,
+        ownerEndpointId,
+        stream,
+        track,
+        mediaType,
+        videoType,
+        ssrc,
+        muted,
+        isP2P,
+        sourceName,
+    ) {
         super(
             conference,
             stream,
@@ -64,11 +75,12 @@ export default class JitsiRemoteTrack extends JitsiTrack {
                 // Nothing to do if the track is inactive.
             },
             mediaType,
-            videoType);
+            videoType,
+        );
         this.rtc = rtc;
 
         // Prevent from mixing up type of SSRC which should be a number
-        if (typeof ssrc !== 'number') {
+        if (typeof ssrc !== "number") {
             throw new TypeError(`SSRC ${ssrc} is not a number`);
         }
         this.ssrc = ssrc;
@@ -88,7 +100,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this._enteredForwardedSourcesTimestamp = null;
 
         this.addEventListener = this.on = this._addEventListener.bind(this);
-        this.removeEventListener = this.off = this._removeEventListener.bind(this);
+        this.removeEventListener = this.off =
+            this._removeEventListener.bind(this);
 
         logger.debug(`New remote track created: ${this}`);
 
@@ -102,8 +115,11 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             this._bindTrackHandlers();
         }
         this._containerHandlers = {};
-        containerEvents.forEach(event => {
-            this._containerHandlers[event] = this._containerEventHandler.bind(this, event);
+        containerEvents.forEach((event) => {
+            this._containerHandlers[event] = this._containerEventHandler.bind(
+                this,
+                event,
+            );
         });
     }
 
@@ -114,9 +130,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {void}
      */
     _bindTrackHandlers() {
-        this.track.addEventListener('mute', () => this._onTrackMute());
-        this.track.addEventListener('unmute', () => this._onTrackUnmute());
-        this.track.addEventListener('ended', () => {
+        this.track.addEventListener("mute", () => this._onTrackMute());
+        this.track.addEventListener("unmute", () => this._onTrackUnmute());
+        this.track.addEventListener("ended", () => {
             logger.debug(`"onended" event(${Date.now()}): ${this}`);
         });
     }
@@ -131,12 +147,17 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _addEventListener(event, handler) {
         super.addListener(event, handler);
 
-        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
-            && this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
-            && !this._trackStreamingStatusImpl
+        if (
+            event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED &&
+            this.listenerCount(
+                JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
+            ) &&
+            !this._trackStreamingStatusImpl
         ) {
             this._initTrackStreamingStatus();
-            logger.debug(`Initializing track streaming status: ${this._sourceName}`);
+            logger.debug(
+                `Initializing track streaming status: ${this._sourceName}`,
+            );
         }
     }
 
@@ -149,11 +170,14 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     _removeEventListener(event, handler) {
         super.removeListener(event, handler);
 
-        if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
-            && !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
+        if (
+            event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED &&
+            !this.listenerCount(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED)
         ) {
             this._disposeTrackStreamingStatus();
-            logger.debug(`Disposing track streaming status: ${this._sourceName}`);
+            logger.debug(
+                `Disposing track streaming status: ${this._sourceName}`,
+            );
         }
     }
 
@@ -171,7 +195,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // The sender stops sending frames if the content of the captured window doesn't change resulting in the
         // receiver showing avatar instead of the shared content.
         if (this.videoType === VideoType.DESKTOP) {
-            logger.debug('Ignoring mute event on desktop tracks.');
+            logger.debug("Ignoring mute event on desktop tracks.");
 
             return;
         }
@@ -267,7 +291,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         return this.ssrc;
     }
 
-
     /**
      * Returns the tracks source name
      *
@@ -316,7 +339,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             return;
         }
 
-        const type = this.isVideoTrack() ? 'video' : 'audio';
+        const type = this.isVideoTrack() ? "video" : "audio";
 
         const now = window.performance.now();
 
@@ -326,28 +349,29 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // The conference can be started without calling GUM
         // FIXME if there would be a module for connection times this kind
         // of logic (gumDuration or ttfm) should end up there
-        const gumStart = window.connectionTimes['obtainPermissions.start'];
-        const gumEnd = window.connectionTimes['obtainPermissions.end'];
-        const gumDuration
-            = !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
+        const gumStart = window.connectionTimes["obtainPermissions.start"];
+        const gumEnd = window.connectionTimes["obtainPermissions.end"];
+        const gumDuration =
+            !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
 
         // Subtract the muc.joined-to-session-initiate duration because jicofo
         // waits until there are 2 participants to start Jingle sessions.
-        const ttfm = now
-            - (this.conference.getConnectionTimes()['session.initiate']
-                - this.conference.getConnectionTimes()['muc.joined'])
-            - gumDuration;
+        const ttfm =
+            now -
+            (this.conference.getConnectionTimes()["session.initiate"] -
+                this.conference.getConnectionTimes()["muc.joined"]) -
+            gumDuration;
 
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
         logger.info(`(TIME) TTFM ${type}:\t`, ttfm);
 
-        Statistics.sendAnalytics(createTtfmEvent(
-            {
-                'media_type': type,
+        Statistics.sendAnalytics(
+            createTtfmEvent({
+                media_type: type,
                 muted: this.hasBeenMuted,
-                value: ttfm
-            }));
-
+                value: ttfm,
+            }),
+        );
     }
 
     /**
@@ -358,8 +382,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      */
     _attachTTFMTracker(container) {
-        if ((ttfmTrackerAudioAttached && this.isAudioTrack())
-            || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
+        if (
+            (ttfmTrackerAudioAttached && this.isAudioTrack()) ||
+            (ttfmTrackerVideoAttached && this.isVideoTrack())
+        ) {
             return;
         }
 
@@ -370,7 +396,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             ttfmTrackerVideoAttached = true;
         }
 
-        container.addEventListener('canplay', this._playCallback.bind(this));
+        container.addEventListener("canplay", this._playCallback.bind(this));
     }
 
     /**
@@ -380,7 +406,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      */
     _onTrackAttach(container) {
-        containerEvents.forEach(event => {
+        containerEvents.forEach((event) => {
             container.addEventListener(event, this._containerHandlers[event]);
         });
     }
@@ -392,8 +418,11 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      */
     _onTrackDetach(container) {
-        containerEvents.forEach(event => {
-            container.removeEventListener(event, this._containerHandlers[event]);
+        containerEvents.forEach((event) => {
+            container.removeEventListener(
+                event,
+                this._containerHandlers[event],
+            );
         });
     }
 
@@ -403,7 +432,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} type - The type of the event.
      */
     _containerEventHandler(type) {
-        logger.debug(`${type} handler was called for a container with attached ${this}`);
+        logger.debug(
+            `${type} handler was called for a container with attached ${this}`,
+        );
     }
 
     /**
@@ -434,8 +465,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
                 // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
                 p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
                 rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
-            });
+                outOfForwardedSourcesTimeout:
+                    config._peerConnStatusOutOfLastNTimeout,
+            },
+        );
 
         this._trackStreamingStatusImpl.init();
 
@@ -444,11 +477,12 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // no further track events are received for the SS track, a black tile will be displayed for screenshare on
         // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
         // track to prevent this from happening.
-        !this._trackStreamingStatusImpl.isVideoTrackFrozen()
-            && this.rtc.eventEmitter.emit(
+        !this._trackStreamingStatusImpl.isVideoTrackFrozen() &&
+            this.rtc.eventEmitter.emit(
                 JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
                 this,
-                this._trackStreamingStatus);
+                this._trackStreamingStatus,
+            );
     }
 
     /**
@@ -513,7 +547,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @return {string}
      */
     toString() {
-        return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
+        return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }
 }

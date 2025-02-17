@@ -11,19 +11,20 @@ export default {
      * @returns {Object} The current presence values related to recording.
      */
     getFocusRecordingUpdate(presence) {
-        const jibriStatus = presence
-            && presence.getElementsByTagName('jibri-recording-status')[0];
+        const jibriStatus =
+            presence &&
+            presence.getElementsByTagName("jibri-recording-status")[0];
 
         if (!jibriStatus) {
             return;
         }
 
         return {
-            error: jibriStatus.getAttribute('failure_reason'),
-            initiator: jibriStatus.getAttribute('initiator'),
-            recordingMode: jibriStatus.getAttribute('recording_mode'),
-            sessionID: jibriStatus.getAttribute('session_id'),
-            status: jibriStatus.getAttribute('status')
+            error: jibriStatus.getAttribute("failure_reason"),
+            initiator: jibriStatus.getAttribute("initiator"),
+            recordingMode: jibriStatus.getAttribute("recording_mode"),
+            sessionID: jibriStatus.getAttribute("session_id"),
+            status: jibriStatus.getAttribute("status"),
         };
     },
 
@@ -35,24 +36,25 @@ export default {
      * @returns {Object} The current presence values related to recording.
      */
     getHiddenDomainUpdate(presence) {
-        const liveStreamViewURLContainer
-            = presence.getElementsByTagName('live-stream-view-url')[0];
-        const liveStreamViewURL = liveStreamViewURLContainer
-            && liveStreamViewURLContainer.textContent;
-        const modeContainer
-            = presence.getElementsByTagName('mode')[0];
-        const mode = modeContainer
-            && modeContainer.textContent
-            && modeContainer.textContent.toLowerCase();
-        const sessionIDContainer
-            = presence.getElementsByTagName('session_id')[0];
-        const sessionID
-            = sessionIDContainer && sessionIDContainer.textContent;
+        const liveStreamViewURLContainer = presence.getElementsByTagName(
+            "live-stream-view-url",
+        )[0];
+        const liveStreamViewURL =
+            liveStreamViewURLContainer &&
+            liveStreamViewURLContainer.textContent;
+        const modeContainer = presence.getElementsByTagName("mode")[0];
+        const mode =
+            modeContainer &&
+            modeContainer.textContent &&
+            modeContainer.textContent.toLowerCase();
+        const sessionIDContainer =
+            presence.getElementsByTagName("session_id")[0];
+        const sessionID = sessionIDContainer && sessionIDContainer.textContent;
 
         return {
             liveStreamViewURL,
             mode,
-            sessionID
+            sessionID,
         };
     },
 
@@ -63,9 +65,9 @@ export default {
      * @returns {string} The session ID of the recording session.
      */
     getSessionIdFromIq(response) {
-        const jibri = response && response.getElementsByTagName('jibri')[0];
+        const jibri = response && response.getElementsByTagName("jibri")[0];
 
-        return jibri && jibri.getAttribute('session_id');
+        return jibri && jibri.getAttribute("session_id");
     },
 
     /**
@@ -75,8 +77,8 @@ export default {
      * @returns {string|undefined} The session ID of the recording session.
      */
     getSessionId(presence) {
-        const sessionIdContainer
-            = presence.getElementsByTagName('session_id')[0];
+        const sessionIdContainer =
+            presence.getElementsByTagName("session_id")[0];
         const sessionId = sessionIdContainer && sessionIdContainer.textContent;
 
         return sessionId;
@@ -89,6 +91,6 @@ export default {
      * @returns {boolean} True if the presence is from the focus.
      */
     isFromFocus(presence) {
-        return presence.getAttribute('from').includes('focus');
-    }
+        return presence.getAttribute("from").includes("focus");
+    },
 };

@@ -1,18 +1,18 @@
-import { getLogger } from '@jitsi/logger';
-import { $msg, Strophe } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import { $msg, Strophe } from "strophe.js";
 
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
 
-const FEATURE_KEY = 'features/breakout-rooms';
+const FEATURE_KEY = "features/breakout-rooms";
 const BREAKOUT_ROOM_ACTIONS = {
     ADD: `${FEATURE_KEY}/add`,
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
     REMOVE: `${FEATURE_KEY}/remove`,
-    RENAME: `${FEATURE_KEY}/rename`
+    RENAME: `${FEATURE_KEY}/rename`,
 };
 const BREAKOUT_ROOM_EVENTS = {
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
-    UPDATE: `${FEATURE_KEY}/update`
+    UPDATE: `${FEATURE_KEY}/update`,
 };
 
 const logger = getLogger(__filename);
@@ -21,7 +21,6 @@ const logger = getLogger(__filename);
  * Helper class for handling breakout rooms.
  */
 export default class BreakoutRooms {
-
     /**
      * Constructs breakout room.
      *
@@ -31,7 +30,10 @@ export default class BreakoutRooms {
         this.room = room;
 
         this._handleMessages = this._handleMessages.bind(this);
-        this.room.xmpp.addListener(XMPPEvents.BREAKOUT_ROOMS_EVENT, this._handleMessages);
+        this.room.xmpp.addListener(
+            XMPPEvents.BREAKOUT_ROOMS_EVENT,
+            this._handleMessages,
+        );
 
         this._rooms = {};
     }
@@ -40,7 +42,10 @@ export default class BreakoutRooms {
      * Stops listening for events.
      */
     dispose() {
-        this.room.xmpp.removeListener(XMPPEvents.BREAKOUT_ROOMS_EVENT, this._handleMessages);
+        this.room.xmpp.removeListener(
+            XMPPEvents.BREAKOUT_ROOMS_EVENT,
+            this._handleMessages,
+        );
     }
 
     /**
@@ -58,7 +63,7 @@ export default class BreakoutRooms {
 
         const message = {
             type: BREAKOUT_ROOM_ACTIONS.ADD,
-            subject
+            subject,
         };
 
         this._sendMessage(message);
@@ -79,7 +84,7 @@ export default class BreakoutRooms {
 
         const message = {
             type: BREAKOUT_ROOM_ACTIONS.REMOVE,
-            breakoutRoomJid
+            breakoutRoomJid,
         };
 
         this._sendMessage(message);
@@ -102,7 +107,7 @@ export default class BreakoutRooms {
         const message = {
             type: BREAKOUT_ROOM_ACTIONS.RENAME,
             breakoutRoomJid,
-            subject
+            subject,
         };
 
         this._sendMessage(message);
@@ -125,7 +130,7 @@ export default class BreakoutRooms {
         const message = {
             type: BREAKOUT_ROOM_ACTIONS.MOVE_TO_ROOM,
             participantJid,
-            roomJid
+            roomJid,
         };
 
         this._sendMessage(message);
@@ -172,12 +177,15 @@ export default class BreakoutRooms {
      * @returns True if the room is a breakout room, false otherwise.
      */
     isBreakoutRoom() {
-        if (typeof this._isBreakoutRoom !== 'undefined') {
+        if (typeof this._isBreakoutRoom !== "undefined") {
             return this._isBreakoutRoom;
         }
 
         // Use heuristic, helpful for checking in the MUC_JOINED event.
-        return Strophe.getDomainFromJid(this.room.myroomjid) === this.getComponentAddress();
+        return (
+            Strophe.getDomainFromJid(this.room.myroomjid) ===
+            this.getComponentAddress()
+        );
     }
 
     /**
@@ -206,16 +214,22 @@ export default class BreakoutRooms {
      */
     _handleMessages(payload) {
         switch (payload.event) {
-        case BREAKOUT_ROOM_EVENTS.MOVE_TO_ROOM:
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, payload.roomJid);
-            break;
-        case BREAKOUT_ROOM_EVENTS.UPDATE: {
-            const filteredPayload = this._filterUpdatePayload(payload);
+            case BREAKOUT_ROOM_EVENTS.MOVE_TO_ROOM:
+                this.room.eventEmitter.emit(
+                    XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM,
+                    payload.roomJid,
+                );
+                break;
+            case BREAKOUT_ROOM_EVENTS.UPDATE: {
+                const filteredPayload = this._filterUpdatePayload(payload);
 
-            this._rooms = filteredPayload.rooms;
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, filteredPayload);
-            break;
-        }
+                this._rooms = filteredPayload.rooms;
+                this.room.eventEmitter.emit(
+                    XMPPEvents.BREAKOUT_ROOMS_UPDATED,
+                    filteredPayload,
+                );
+                break;
+            }
         }
     }
 
@@ -230,25 +244,27 @@ export default class BreakoutRooms {
         const { rooms } = payload;
         const filteredRooms = {};
 
-        Object.entries(rooms).forEach(([ key, room ]) => {
+        Object.entries(rooms).forEach(([key, room]) => {
             const { participants = {} } = room;
             const filteredParticipants = {};
 
-            Object.entries(participants).forEach(([ k, participant ]) => {
-                if (Strophe.getDomainFromJid(participant.jid) !== hiddenDomain) {
+            Object.entries(participants).forEach(([k, participant]) => {
+                if (
+                    Strophe.getDomainFromJid(participant.jid) !== hiddenDomain
+                ) {
                     filteredParticipants[k] = participant;
                 }
             });
 
             filteredRooms[key] = {
                 ...room,
-                participants: filteredParticipants
+                participants: filteredParticipants,
             };
         });
 
         return {
             ...payload,
-            rooms: filteredRooms
+            rooms: filteredRooms,
         };
     }
 
@@ -260,7 +276,7 @@ export default class BreakoutRooms {
     _sendMessage(message) {
         const msg = $msg({ to: this.getComponentAddress() });
 
-        msg.c('breakout_rooms', message).up();
+        msg.c("breakout_rooms", message).up();
 
         this.room.xmpp.connection.send(msg);
     }

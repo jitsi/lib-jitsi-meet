@@ -1,6 +1,6 @@
-import { Strophe } from 'strophe.js';
+import { Strophe } from "strophe.js";
 
-import Listenable from '../util/Listenable';
+import Listenable from "../util/Listenable";
 
 /* eslint-disable no-empty-function */
 
@@ -11,8 +11,7 @@ export class MockChatRoom extends Listenable {
     /**
      * {@link ChatRoom.addPresenceListener}.
      */
-    addPresenceListener() {
-    }
+    addPresenceListener() {}
 }
 
 /**
@@ -26,7 +25,7 @@ export class MockStropheConnection extends Listenable {
         super();
         this.sentIQs = [];
         this._proto = {
-            socket: undefined
+            socket: undefined,
         };
     }
 
@@ -36,7 +35,7 @@ export class MockStropheConnection extends Listenable {
      * @returns {string}
      */
     get service() {
-        return 'wss://localhost/xmpp-websocket';
+        return "wss://localhost/xmpp-websocket";
     }
 
     /**
@@ -63,7 +62,7 @@ export class MockStropheConnection extends Listenable {
     simulateConnectionState(newState) {
         if (newState === Strophe.Status.CONNECTED) {
             this._proto.socket = {
-                readyState: WebSocket.OPEN
+                readyState: WebSocket.OPEN,
             };
         } else {
             this._proto.socket = undefined;

@@ -1,5 +1,5 @@
 export enum JingleSessionState {
-  PENDING = 'pending',
-  ACTIVE = 'active',
-  ENDED = 'ended'
+    PENDING = "pending",
+    ACTIVE = "active",
+    ENDED = "ended",
 }

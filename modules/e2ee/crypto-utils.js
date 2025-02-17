@@ -10,19 +10,25 @@ export async function deriveKeys(material) {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
     // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
-    const encryptionKey = await crypto.subtle.deriveKey({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameEncryptionKey'),
-        hash: 'SHA-256',
-        info
-    }, material, {
-        name: 'AES-GCM',
-        length: 128
-    }, false, [ 'encrypt', 'decrypt' ]);
+    const encryptionKey = await crypto.subtle.deriveKey(
+        {
+            name: "HKDF",
+            salt: textEncoder.encode("JFrameEncryptionKey"),
+            hash: "SHA-256",
+            info,
+        },
+        material,
+        {
+            name: "AES-GCM",
+            length: 128,
+        },
+        false,
+        ["encrypt", "decrypt"],
+    );
 
     return {
         material,
-        encryptionKey
+        encryptionKey,
     };
 }
 
@@ -36,12 +42,16 @@ export async function ratchet(material) {
     const textEncoder = new TextEncoder();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveBits
-    return crypto.subtle.deriveBits({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameRatchetKey'),
-        hash: 'SHA-256',
-        info: new ArrayBuffer()
-    }, material, 256);
+    return crypto.subtle.deriveBits(
+        {
+            name: "HKDF",
+            salt: textEncoder.encode("JFrameRatchetKey"),
+            hash: "SHA-256",
+            info: new ArrayBuffer(),
+        },
+        material,
+        256,
+    );
 }
 
 /**
@@ -53,5 +63,8 @@ export async function ratchet(material) {
  */
 export async function importKey(keyBytes) {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
-    return crypto.subtle.importKey('raw', keyBytes, 'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
+    return crypto.subtle.importKey("raw", keyBytes, "HKDF", false, [
+        "deriveBits",
+        "deriveKey",
+    ]);
 }

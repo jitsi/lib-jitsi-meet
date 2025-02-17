@@ -37,5 +37,8 @@ export class RFC2198Encoder {
      * @param {RTCEncodedAudioFrame} encodedFrame - Encoded audio frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    addRedundancy(encodedFrame: RTCEncodedAudioFrame, controller: TransformStreamDefaultController): void;
+    addRedundancy(
+        encodedFrame: RTCEncodedAudioFrame,
+        controller: TransformStreamDefaultController,
+    ): void;
 }

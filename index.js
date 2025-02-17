@@ -1,4 +1,4 @@
-const ljm = require('./JitsiMeetJS').default;
+const ljm = require("./JitsiMeetJS").default;
 
 /**
  * Tries to deal with the following problem: {@code JitsiMeetJS} is not only
@@ -21,10 +21,9 @@ const ljm = require('./JitsiMeetJS').default;
  * value of the namespace {@code JitsiMeetJS} (if any).
  */
 function _mergeNamespaceAndModule(module) {
-    return (
-        typeof window.JitsiMeetJS === 'object'
-            ? Object.assign({}, window.JitsiMeetJS, module)
-            : module);
+    return typeof window.JitsiMeetJS === "object"
+        ? Object.assign({}, window.JitsiMeetJS, module)
+        : module;
 }
 
 module.exports = _mergeNamespaceAndModule(ljm);

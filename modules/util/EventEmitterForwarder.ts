@@ -14,8 +14,15 @@ export default class EventEmitterForwarder {
      * @constructor
      */
     constructor(src: any, dest: any) {
-        if (!src || !dest || typeof src.addListener !== 'function' || typeof dest.emit !== 'function') {
-            throw new Error('Invalid arguments passed to EventEmitterForwarder');
+        if (
+            !src ||
+            !dest ||
+            typeof src.addListener !== "function" ||
+            typeof dest.emit !== "function"
+        ) {
+            throw new Error(
+                "Invalid arguments passed to EventEmitterForwarder",
+            );
         }
         this.src = src;
         this.dest = dest;
@@ -49,7 +56,7 @@ export default class EventEmitterForwarder {
      * @param args all the events which listeners to be cleaned.
      */
     removeListeners(...args) {
-        args.forEach(a => {
+        args.forEach((a) => {
             const l = this.listeners.get(a);
 
             if (l) {

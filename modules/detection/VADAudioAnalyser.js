@@ -1,10 +1,10 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import EventEmitter from '../util/EventEmitter';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import EventEmitter from "../util/EventEmitter";
 
-import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
-import TrackVADEmitter from './TrackVADEmitter';
+import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from "./DetectionEvents";
+import TrackVADEmitter from "./TrackVADEmitter";
 
 const logger = getLogger(__filename);
 
@@ -67,9 +67,18 @@ export default class VADAudioAnalyser extends EventEmitter {
          */
         this._processVADScore = this._processVADScore.bind(this);
 
-        conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
-        conference.on(JitsiConferenceEvents.TRACK_REMOVED, this._trackRemoved.bind(this));
-        conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED, this._trackMuteChanged.bind(this));
+        conference.on(
+            JitsiConferenceEvents.TRACK_ADDED,
+            this._trackAdded.bind(this),
+        );
+        conference.on(
+            JitsiConferenceEvents.TRACK_REMOVED,
+            this._trackRemoved.bind(this),
+        );
+        conference.on(
+            JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+            this._trackMuteChanged.bind(this),
+        );
     }
 
     /**
@@ -82,7 +91,9 @@ export default class VADAudioAnalyser extends EventEmitter {
         vadService.on(DETECTOR_STATE_CHANGE, () => {
             // When the state of a detector changes check if there are any active detectors attached so that
             // the _vadEmitter doesn't run needlessly.
-            const activeDetector = this._detectionServices.filter(detector => detector.isActive() === true);
+            const activeDetector = this._detectionServices.filter(
+                (detector) => detector.isActive() === true,
+            );
 
             // If there are no active detectors running and the vadEmitter is running then stop the emitter as it is
             // uses a considerable amount of CPU. Otherwise start the service if it's stopped and there is a detector
@@ -113,7 +124,10 @@ export default class VADAudioAnalyser extends EventEmitter {
      */
     _stopVADEmitter() {
         if (this._vadEmitter) {
-            this._vadEmitter.removeListener(VAD_SCORE_PUBLISHED, this._processVADScore);
+            this._vadEmitter.removeListener(
+                VAD_SCORE_PUBLISHED,
+                this._processVADScore,
+            );
             this._vadEmitter.stop();
         }
         this._isVADEmitterRunning = false;
@@ -157,12 +171,20 @@ export default class VADAudioAnalyser extends EventEmitter {
         if (track.isLocalAudioTrack()) {
             // Keep a track promise so we take into account successive TRACK_ADD events being generated so that we
             // destroy/create the processing context in the proper order.
-            this._vadInitTracker = this._vadInitTracker.then(() => this._createVADProcessor())
-                .then(vadProcessor =>
-                    TrackVADEmitter.create(track.getDeviceId(), VAD_EMITTER_SAMPLE_RATE, vadProcessor)
+            this._vadInitTracker = this._vadInitTracker
+                .then(() => this._createVADProcessor())
+                .then((vadProcessor) =>
+                    TrackVADEmitter.create(
+                        track.getDeviceId(),
+                        VAD_EMITTER_SAMPLE_RATE,
+                        vadProcessor,
+                    ),
                 )
-                .then(vadEmitter => {
-                    logger.debug('Created VAD emitter for track: ', track.getTrackLabel());
+                .then((vadEmitter) => {
+                    logger.debug(
+                        "Created VAD emitter for track: ",
+                        track.getTrackLabel(),
+                    );
 
                     this._vadEmitter = vadEmitter;
 
@@ -170,8 +192,8 @@ export default class VADAudioAnalyser extends EventEmitter {
                     // service this will trigger a DETECTOR_STATE_CHANGE which in turn might start the _vadEmitter.
                     this._changeDetectorsMuteState(track.isMuted());
                 })
-                .catch(error => {
-                    logger.warn('Failed to start VADAudioAnalyser', error);
+                .catch((error) => {
+                    logger.warn("Failed to start VADAudioAnalyser", error);
                 });
         }
     }
@@ -205,7 +227,10 @@ export default class VADAudioAnalyser extends EventEmitter {
         if (track.isLocalAudioTrack()) {
             // Use the promise to make sure operations are in sequence.
             this._vadInitTracker = this._vadInitTracker.then(() => {
-                logger.debug('Removing track from VAD detection - ', track.getTrackLabel());
+                logger.debug(
+                    "Removing track from VAD detection - ",
+                    track.getTrackLabel(),
+                );
 
                 // Track was removed, clean up and set appropriate states.
                 if (this._vadEmitter) {
@@ -221,6 +246,4 @@ export default class VADAudioAnalyser extends EventEmitter {
             });
         }
     }
-
-
 }

@@ -1,12 +1,12 @@
-import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
-import { Strophe } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import $ from "jquery";
+import { Strophe } from "strophe.js";
 
-import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { CONNECTION_REDIRECTED } from "../../JitsiConnectionEvents";
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
 
-import ChatRoom from './ChatRoom';
-import { ConnectionPluginListenable } from './ConnectionPlugin';
+import ChatRoom from "./ChatRoom";
+import { ConnectionPluginListenable } from "./ConnectionPlugin";
 
 const logger = getLogger(__filename);
 
@@ -32,20 +32,60 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         super.init(connection);
 
         // add handlers (just once)
-        this.connection.addHandler(this.onPresence.bind(this), null,
-            'presence', null, null, null, null);
-        this.connection.addHandler(this.onPresenceUnavailable.bind(this),
-            null, 'presence', 'unavailable', null);
-        this.connection.addHandler(this.onPresenceError.bind(this), null,
-            'presence', 'error', null);
-        this.connection.addHandler(this.onMessage.bind(this), null,
-            'message', null, null);
-        this.connection.addHandler(this.onMute.bind(this),
-            'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
-        this.connection.addHandler(this.onMuteVideo.bind(this),
-            'http://jitsi.org/jitmeet/video', 'iq', 'set', null, null);
-        this.connection.addHandler(this.onVisitors.bind(this),
-            'jitsi:visitors', 'iq', 'set', null, null);
+        this.connection.addHandler(
+            this.onPresence.bind(this),
+            null,
+            "presence",
+            null,
+            null,
+            null,
+            null,
+        );
+        this.connection.addHandler(
+            this.onPresenceUnavailable.bind(this),
+            null,
+            "presence",
+            "unavailable",
+            null,
+        );
+        this.connection.addHandler(
+            this.onPresenceError.bind(this),
+            null,
+            "presence",
+            "error",
+            null,
+        );
+        this.connection.addHandler(
+            this.onMessage.bind(this),
+            null,
+            "message",
+            null,
+            null,
+        );
+        this.connection.addHandler(
+            this.onMute.bind(this),
+            "http://jitsi.org/jitmeet/audio",
+            "iq",
+            "set",
+            null,
+            null,
+        );
+        this.connection.addHandler(
+            this.onMuteVideo.bind(this),
+            "http://jitsi.org/jitmeet/video",
+            "iq",
+            "set",
+            null,
+            null,
+        );
+        this.connection.addHandler(
+            this.onVisitors.bind(this),
+            "jitsi:visitors",
+            "iq",
+            "set",
+            null,
+            null,
+        );
     }
 
     /**
@@ -58,15 +98,19 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         const roomJid = Strophe.getBareJidFromJid(jid);
 
         if (this.isRoomCreated(roomJid)) {
-            const errmsg = 'You are already in the room!';
+            const errmsg = "You are already in the room!";
 
             logger.error(errmsg);
             throw new Error(errmsg);
         }
-        this.rooms[roomJid] = new ChatRoom(this.connection, jid,
-            password, this.xmpp, options);
-        this.eventEmitter.emit(
-            XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
+        this.rooms[roomJid] = new ChatRoom(
+            this.connection,
+            jid,
+            password,
+            this.xmpp,
+            options,
+        );
+        this.eventEmitter.emit(XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
 
         return this.rooms[roomJid];
     }
@@ -86,8 +130,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param jid
      */
     doLeave(jid) {
-        this.eventEmitter.emit(
-            XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
+        this.eventEmitter.emit(XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
 
@@ -96,10 +139,10 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param pres
      */
     onPresence(pres) {
-        const from = pres.getAttribute('from');
+        const from = pres.getAttribute("from");
 
         // What is this for? A workaround for something?
-        if (pres.getAttribute('type')) {
+        if (pres.getAttribute("type")) {
             return true;
         }
 
@@ -110,8 +153,12 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         // Parse status.
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
-            + '>status[code="201"]').length) {
+        if (
+            $(pres).find(
+                '>x[xmlns="http://jabber.org/protocol/muc#user"]' +
+                    '>status[code="201"]',
+            ).length
+        ) {
             room.createNonAnonymousRoom();
         }
 
@@ -125,7 +172,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param pres
      */
     onPresenceUnavailable(pres) {
-        const from = pres.getAttribute('from');
+        const from = pres.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
@@ -142,7 +189,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param pres
      */
     onPresenceError(pres) {
-        const from = pres.getAttribute('from');
+        const from = pres.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
@@ -160,7 +207,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      */
     onMessage(msg) {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
-        const from = msg.getAttribute('from');
+        const from = msg.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
@@ -177,7 +224,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param iq
      */
     onMute(iq) {
-        const from = iq.getAttribute('from');
+        const from = iq.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         // Returning false would result in the listener being deregistered by Strophe
@@ -195,7 +242,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param iq
      */
     onMuteVideo(iq) {
-        const from = iq.getAttribute('from');
+        const from = iq.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         // Returning false would result in the listener being deregistered by Strophe
@@ -214,7 +261,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @returns {boolean}
      */
     onVisitors(iq) {
-        const from = iq.getAttribute('from');
+        const from = iq.getAttribute("from");
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
@@ -222,15 +269,21 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
-        const response = $(iq).find('promotion-response');
+        const response = $(iq).find("promotion-response");
 
         if (visitors.length && response.length) {
-            if (String(response.attr('allow')).toLowerCase() === 'true') {
-                logger.info('Promotion request accepted. Redirected to main room.');
+            if (String(response.attr("allow")).toLowerCase() === "true") {
+                logger.info(
+                    "Promotion request accepted. Redirected to main room.",
+                );
                 this.xmpp.eventEmitter.emit(
-                    CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
+                    CONNECTION_REDIRECTED,
+                    undefined,
+                    visitors.attr("focusjid"),
+                    response.attr("username"),
+                );
             } else {
-                logger.info('Promotion request rejected.');
+                logger.info("Promotion request rejected.");
                 this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
             }
         }

@@ -1,18 +1,18 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
-import * as StatisticsEvents from '../../service/statistics/Events';
-import RTCStats from '../RTCStats/RTCStats';
-import browser from '../browser';
-import EventEmitter from '../util/EventEmitter';
-import WatchRTC from '../watchRTC/WatchRTC';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
+import { JitsiTrackEvents } from "../../JitsiTrackEvents";
+import { FEEDBACK } from "../../service/statistics/AnalyticsEvents";
+import * as StatisticsEvents from "../../service/statistics/Events";
+import RTCStats from "../RTCStats/RTCStats";
+import browser from "../browser";
+import EventEmitter from "../util/EventEmitter";
+import WatchRTC from "../watchRTC/WatchRTC";
 
-import analytics from './AnalyticsAdapter';
-import LocalStats from './LocalStatsCollector';
-import { PerformanceObserverStats } from './PerformanceObserverStats';
-import RTPStats from './RTPStatsCollector';
+import analytics from "./AnalyticsAdapter";
+import LocalStats from "./LocalStatsCollector";
+import { PerformanceObserverStats } from "./PerformanceObserverStats";
+import RTPStats from "./RTPStatsCollector";
 
-const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require("@jitsi/logger").getLogger(__filename);
 
 /**
  * Stores all active {@link Statistics} instances.
@@ -24,17 +24,17 @@ let _instances;
  * Init statistic options
  * @param options
  */
-Statistics.init = function(options) {
+Statistics.init = function (options) {
     Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-    if (typeof options.pcStatsInterval === 'number') {
+    if (typeof options.pcStatsInterval === "number") {
         Statistics.pcStatsInterval = options.pcStatsInterval;
     }
 
-    if (typeof options.audioLevelsInterval === 'number') {
+    if (typeof options.audioLevelsInterval === "number") {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
     }
 
-    if (typeof options.longTasksStatsInterval === 'number') {
+    if (typeof options.longTasksStatsInterval === "number") {
         Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
     }
 
@@ -75,7 +75,6 @@ export default function Statistics(conference, options) {
     if (!browser.isReactNative()) {
         WatchRTC.start(this.options.roomName, this.options.userName);
     }
-
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
@@ -83,7 +82,7 @@ Statistics.pcStatsInterval = 10000;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
-Object.defineProperty(Statistics, 'instances', {
+Object.defineProperty(Statistics, "instances", {
     /**
      * Returns the Set holding all active {@link Statistics} instances. Lazily
      * initializes the Set to allow any Set polyfills to be applied.
@@ -95,23 +94,23 @@ Object.defineProperty(Statistics, 'instances', {
         }
 
         return _instances;
-    }
+    },
 });
 
 /**
  * Starts collecting RTP stats for given peerconnection.
  * @param {TraceablePeerConnection} peerconnection
  */
-Statistics.prototype.startRemoteStats = function(peerconnection) {
+Statistics.prototype.startRemoteStats = function (peerconnection) {
     this.stopRemoteStats(peerconnection);
 
     try {
-        const rtpStats
-            = new RTPStats(
-                peerconnection,
-                Statistics.audioLevelsInterval,
-                Statistics.pcStatsInterval,
-                this.eventEmitter);
+        const rtpStats = new RTPStats(
+            peerconnection,
+            Statistics.audioLevelsInterval,
+            Statistics.pcStatsInterval,
+            this.eventEmitter,
+        );
 
         rtpStats.start(Statistics.audioLevelsEnabled);
         this.rtpStatsMap.set(peerconnection.id, rtpStats);
@@ -122,102 +121,112 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
 
 Statistics.localStats = [];
 
-Statistics.startLocalStats = function(track, callback) {
+Statistics.startLocalStats = function (track, callback) {
     if (browser.isIosBrowser()) {
         // On iOS browsers audio is lost if the audio input device is in use by another app
         // https://bugs.webkit.org/show_bug.cgi?id=233473
         // The culprit was using the AudioContext, so now we close the AudioContext during
         // the track being muted, and re-instantiate it afterwards.
         track.addEventListener(
-        JitsiTrackEvents.NO_DATA_FROM_SOURCE,
+            JitsiTrackEvents.NO_DATA_FROM_SOURCE,
 
-        /**
-         * Closes AudioContext on no audio data, and enables it on data received again.
-         *
-         * @param {boolean} value - Whether we receive audio data or not.
-         */
-        async value => {
-            if (value) {
-                for (const localStat of Statistics.localStats) {
-                    localStat.stop();
-                }
+            /**
+             * Closes AudioContext on no audio data, and enables it on data received again.
+             *
+             * @param {boolean} value - Whether we receive audio data or not.
+             */
+            async (value) => {
+                if (value) {
+                    for (const localStat of Statistics.localStats) {
+                        localStat.stop();
+                    }
 
-                await LocalStats.disconnectAudioContext();
-            } else {
-                LocalStats.connectAudioContext();
-                for (const localStat of Statistics.localStats) {
-                    localStat.start();
+                    await LocalStats.disconnectAudioContext();
+                } else {
+                    LocalStats.connectAudioContext();
+                    for (const localStat of Statistics.localStats) {
+                        localStat.start();
+                    }
                 }
-            }
-        });
+            },
+        );
     }
 
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
 
-    track.addEventListener(
-        JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-        () => {
-            Statistics.stopLocalStats(track);
-        });
+    track.addEventListener(JitsiTrackEvents.LOCAL_TRACK_STOPPED, () => {
+        Statistics.stopLocalStats(track);
+    });
 
     const stream = track.getOriginalStream();
-    const localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
-        callback);
+    const localStats = new LocalStats(
+        stream,
+        Statistics.audioLevelsInterval,
+        callback,
+    );
 
     this.localStats.push(localStats);
     localStats.start();
 };
 
-Statistics.prototype.addAudioLevelListener = function(listener) {
+Statistics.prototype.addAudioLevelListener = function (listener) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
     this.eventEmitter.on(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-Statistics.prototype.removeAudioLevelListener = function(listener) {
+Statistics.prototype.removeAudioLevelListener = function (listener) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-Statistics.prototype.addBeforeDisposedListener = function(listener) {
+Statistics.prototype.addBeforeDisposedListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.BEFORE_DISPOSED, listener);
 };
 
-Statistics.prototype.removeBeforeDisposedListener = function(listener) {
+Statistics.prototype.removeBeforeDisposedListener = function (listener) {
     this.eventEmitter.removeListener(
-        StatisticsEvents.BEFORE_DISPOSED, listener);
+        StatisticsEvents.BEFORE_DISPOSED,
+        listener,
+    );
 };
 
-Statistics.prototype.addConnectionStatsListener = function(listener) {
+Statistics.prototype.addConnectionStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
-Statistics.prototype.removeConnectionStatsListener = function(listener) {
+Statistics.prototype.removeConnectionStatsListener = function (listener) {
     this.eventEmitter.removeListener(
         StatisticsEvents.CONNECTION_STATS,
-        listener);
+        listener,
+    );
 };
 
-Statistics.prototype.addEncodeTimeStatsListener = function(listener) {
+Statistics.prototype.addEncodeTimeStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.ENCODE_TIME_STATS, listener);
 };
 
-Statistics.prototype.removeEncodeTimeStatsListener = function(listener) {
-    this.eventEmitter.removeListener(StatisticsEvents.ENCODE_TIME_STATS, listener);
+Statistics.prototype.removeEncodeTimeStatsListener = function (listener) {
+    this.eventEmitter.removeListener(
+        StatisticsEvents.ENCODE_TIME_STATS,
+        listener,
+    );
 };
 
-Statistics.prototype.addByteSentStatsListener = function(listener) {
+Statistics.prototype.addByteSentStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
 };
 
-Statistics.prototype.removeByteSentStatsListener = function(listener) {
-    this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
-        listener);
+Statistics.prototype.removeByteSentStatsListener = function (listener) {
+    this.eventEmitter.removeListener(
+        StatisticsEvents.BYTE_SENT_STATS,
+        listener,
+    );
 };
 
 /**
@@ -226,7 +235,7 @@ Statistics.prototype.removeByteSentStatsListener = function(listener) {
  * @param {Function} listener a function that would be called when notified.
  * @returns {void}
  */
-Statistics.prototype.addLongTasksStatsListener = function(listener) {
+Statistics.prototype.addLongTasksStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 
@@ -236,23 +245,26 @@ Statistics.prototype.addLongTasksStatsListener = function(listener) {
  *
  * @returns {void}
  */
-Statistics.prototype.attachLongTasksStats = function() {
+Statistics.prototype.attachLongTasksStats = function () {
     if (!browser.supportsPerformanceObserver()) {
-        logger.warn('Performance observer for long tasks not supported by browser!');
+        logger.warn(
+            "Performance observer for long tasks not supported by browser!",
+        );
 
         return;
     }
 
     this.performanceObserverStats = new PerformanceObserverStats(
         this.eventEmitter,
-        Statistics.longTasksStatsInterval);
+        Statistics.longTasksStatsInterval,
+    );
 
-    this.conference.on(
-        JitsiConferenceEvents.CONFERENCE_JOINED,
-        () => this.performanceObserverStats.startObserver());
-    this.conference.on(
-        JitsiConferenceEvents.CONFERENCE_LEFT,
-        () => this.performanceObserverStats.stopObserver());
+    this.conference.on(JitsiConferenceEvents.CONFERENCE_JOINED, () =>
+        this.performanceObserverStats.startObserver(),
+    );
+    this.conference.on(JitsiConferenceEvents.CONFERENCE_LEFT, () =>
+        this.performanceObserverStats.stopObserver(),
+    );
 };
 
 /**
@@ -261,7 +273,7 @@ Statistics.prototype.attachLongTasksStats = function() {
  * @returns {Object|null} stats object if the observer has been
  * created, null otherwise.
  */
-Statistics.prototype.getLongTasksStats = function() {
+Statistics.prototype.getLongTasksStats = function () {
     return this.performanceObserverStats
         ? this.performanceObserverStats.getLongTasksStats()
         : null;
@@ -273,8 +285,11 @@ Statistics.prototype.getLongTasksStats = function() {
  * @param {Function} listener the listener we want to remove.
  * @returns {void}
  */
-Statistics.prototype.removeLongTasksStatsListener = function(listener) {
-    this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
+Statistics.prototype.removeLongTasksStatsListener = function (listener) {
+    this.eventEmitter.removeListener(
+        StatisticsEvents.LONG_TASKS_STATS,
+        listener,
+    );
 };
 
 /**
@@ -283,7 +298,7 @@ Statistics.prototype.removeLongTasksStatsListener = function(listener) {
  * @param {Array<string>} speakerList The list of remote endpoint ids.
  * @returns {void}
  */
-Statistics.prototype.setSpeakerList = function(speakerList) {
+Statistics.prototype.setSpeakerList = function (speakerList) {
     for (const rtpStats of Array.from(this.rtpStatsMap.values())) {
         if (!rtpStats.peerconnection.isP2P) {
             rtpStats.setSpeakerList(speakerList);
@@ -291,7 +306,7 @@ Statistics.prototype.setSpeakerList = function(speakerList) {
     }
 };
 
-Statistics.prototype.dispose = function() {
+Statistics.prototype.dispose = function () {
     try {
         this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
 
@@ -306,7 +321,7 @@ Statistics.prototype.dispose = function() {
     }
 };
 
-Statistics.stopLocalStats = function(track) {
+Statistics.stopLocalStats = function (track) {
     if (!Statistics.audioLevelsEnabled) {
         return;
     }
@@ -328,7 +343,7 @@ Statistics.stopLocalStats = function(track) {
  * @param {string} tpcId {@link TraceablePeerConnection.id}
  * @private
  */
-Statistics.prototype._stopRemoteStats = function(tpcId) {
+Statistics.prototype._stopRemoteStats = function (tpcId) {
     const rtpStats = this.rtpStatsMap.get(tpcId);
 
     if (rtpStats) {
@@ -341,7 +356,7 @@ Statistics.prototype._stopRemoteStats = function(tpcId) {
  * Stops collecting RTP stats for given peerconnection
  * @param {TraceablePeerConnection} tpc
  */
-Statistics.prototype.stopRemoteStats = function(tpc) {
+Statistics.prototype.stopRemoteStats = function (tpc) {
     this._stopRemoteStats(tpc.id);
 };
 
@@ -352,20 +367,18 @@ Statistics.prototype.stopRemoteStats = function(tpc) {
  * @param comment the comment from the user.
  * @returns {Promise} Resolves immediately.
  */
-Statistics.prototype.sendFeedback = function(overall, comment) {
+Statistics.prototype.sendFeedback = function (overall, comment) {
     // Statistics.analytics.sendEvent is currently fire and forget, without
     // confirmation of successful send.
-    Statistics.analytics.sendEvent(
-        FEEDBACK,
-        {
-            rating: overall,
-            comment
-        });
+    Statistics.analytics.sendEvent(FEEDBACK, {
+        rating: overall,
+        comment,
+    });
 
     return Promise.resolve();
 };
 
-Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
+Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
 
 /**
  * Sends event to analytics and logs a message to the logger/console.
@@ -375,9 +388,9 @@ Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
  * @param {Object} properties properties to attach to the event (if an event
  * name as opposed to an event object is provided).
  */
-Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
+Statistics.sendAnalyticsAndLog = function (event, properties = {}) {
     if (!event) {
-        logger.warn('No event or event name given.');
+        logger.warn("No event or event name given.");
 
         return;
     }
@@ -385,12 +398,12 @@ Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
     let eventToLog;
 
     // Also support an API with a single object as an event.
-    if (typeof event === 'object') {
+    if (typeof event === "object") {
         eventToLog = event;
     } else {
         eventToLog = {
             name: event,
-            properties
+            properties,
         };
     }
 
@@ -407,6 +420,6 @@ Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
  * represents the entire event.
  * @param {Object} properties properties to attach to the event
  */
-Statistics.sendAnalytics = function(eventName, properties = {}) {
+Statistics.sendAnalytics = function (eventName, properties = {}) {
     this.analytics.sendEvent(eventName, properties);
 };

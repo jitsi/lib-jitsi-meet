@@ -1,5 +1,5 @@
-import { getLogger } from '@jitsi/logger';
-import { queue } from 'async-es';
+import { getLogger } from "@jitsi/logger";
+import { queue } from "async-es";
 
 const logger = getLogger(__filename);
 
@@ -12,7 +12,7 @@ export class ClearedQueueError extends Error {
      */
     constructor(message) {
         super(message);
-        this.name = 'ClearedQueueError';
+        this.name = "ClearedQueueError";
     }
 }
 
@@ -35,9 +35,14 @@ export default class AsyncQueue {
     clear() {
         for (const finishedCallback of this._taskCallbacks.values()) {
             try {
-                finishedCallback?.(new ClearedQueueError('The queue has been cleared'));
+                finishedCallback?.(
+                    new ClearedQueueError("The queue has been cleared"),
+                );
             } catch (error) {
-                logger.error('Error in callback while clearing the queue:', error);
+                logger.error(
+                    "Error in callback while clearing the queue:",
+                    error,
+                );
             }
         }
         this._queue.kill();
@@ -83,7 +88,7 @@ export default class AsyncQueue {
      */
     push(task, callback) {
         if (this._stopped) {
-            callback && callback(new Error('The queue has been stopped'));
+            callback && callback(new Error("The queue has been stopped"));
 
             return;
         }

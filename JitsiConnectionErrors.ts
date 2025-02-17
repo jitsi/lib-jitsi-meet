@@ -19,33 +19,35 @@ export enum JitsiConnectionErrors {
      * that is not know to the server. But this should not happen in lib-jitsi-meet
      * case as long as the service is configured correctly (there is no bug).
      */
-    CONNECTION_DROPPED_ERROR = 'connection.droppedError',
+    CONNECTION_DROPPED_ERROR = "connection.droppedError",
 
     /**
      * Not ready error. When the conference error is not ready according to jicofo.
      */
-    NOT_LIVE_ERROR = 'connection.notLiveError',
+    NOT_LIVE_ERROR = "connection.notLiveError",
 
     /**
      * Not specified errors.
      */
-    OTHER_ERROR = 'connection.otherError',
+    OTHER_ERROR = "connection.otherError",
 
     /**
      * Indicates that a password is required in order to join the conference.
      */
-    PASSWORD_REQUIRED = 'connection.passwordRequired',
+    PASSWORD_REQUIRED = "connection.passwordRequired",
 
     /**
      * Indicates that the connection was dropped, because of too many 5xx HTTP
      * errors on BOSH requests.
      */
-    SERVER_ERROR = 'connection.serverError'
-};
+    SERVER_ERROR = "connection.serverError",
+}
 
 // exported for backward compatibility
-export const CONFERENCE_REQUEST_FAILED = JitsiConnectionErrors.CONFERENCE_REQUEST_FAILED;
-export const CONNECTION_DROPPED_ERROR = JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
+export const CONFERENCE_REQUEST_FAILED =
+    JitsiConnectionErrors.CONFERENCE_REQUEST_FAILED;
+export const CONNECTION_DROPPED_ERROR =
+    JitsiConnectionErrors.CONNECTION_DROPPED_ERROR;
 export const NOT_LIVE_ERROR = JitsiConnectionErrors.NOT_LIVE_ERROR;
 export const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
 export const PASSWORD_REQUIRED = JitsiConnectionErrors.PASSWORD_REQUIRED;

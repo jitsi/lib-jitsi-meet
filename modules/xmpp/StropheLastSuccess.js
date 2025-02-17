@@ -22,7 +22,7 @@ export default class LastRequestTracker {
         stropheConnection.rawInput = (...args) => {
             const rawMessage = args[0];
 
-            if (rawMessage.includes('failure')) {
+            if (rawMessage.includes("failure")) {
                 this._lastFailedMessage = rawMessage;
             }
 
@@ -50,8 +50,6 @@ export default class LastRequestTracker {
      * @returns {number|null}
      */
     getTimeSinceLastSuccess() {
-        return this._lastSuccess
-            ? Date.now() - this._lastSuccess
-            : null;
+        return this._lastSuccess ? Date.now() - this._lastSuccess : null;
     }
 }

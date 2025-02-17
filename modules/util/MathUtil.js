@@ -1,4 +1,3 @@
-
 /**
  * The method will increase the given number by 1. If the given counter is equal
  * or greater to {@link Number.MAX_SAFE_INTEGER} then it will be rolled back to
@@ -24,7 +23,9 @@ export function safeCounterIncrement(number) {
  * @returns {number} - Number array average.
  */
 export function calculateAverage(valueArray) {
-    return valueArray.length > 0 ? valueArray.reduce((a, b) => a + b) / valueArray.length : 0;
+    return valueArray.length > 0
+        ? valueArray.reduce((a, b) => a + b) / valueArray.length
+        : 0;
 }
 
 /**
@@ -54,7 +55,7 @@ export function hashString(string) {
  * @returns {Array} - Array of positive numbers.
  */
 export function filterPositiveValues(valueArray) {
-    return valueArray.filter(value => value >= 0);
+    return valueArray.filter((value) => value >= 0);
 }
 
 /**
@@ -77,11 +78,11 @@ export class RunningAverage {
      * @returns {void}
      */
     addNext(value) {
-        if (typeof value !== 'number') {
+        if (typeof value !== "number") {
             return;
         }
         this.n += 1;
-        this.average = this.average + ((value - this.average) / this.n);
+        this.average = this.average + (value - this.average) / this.n;
     }
 
     /**
@@ -92,7 +93,6 @@ export class RunningAverage {
         return this.average;
     }
 }
-
 
 /**
  * Subtracts the two numbers passed or returns 0 if any of the arguments are not a number.

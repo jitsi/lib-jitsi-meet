@@ -1,5 +1,5 @@
-import browser from '../../modules/browser';
-import { CodecMimeType } from './CodecMimeType';
+import browser from "../../modules/browser";
+import { CodecMimeType } from "./CodecMimeType";
 
 // Default value for assumed downlink bandwidth for the local endpoint which tells the bridge to use its own calculated
 // BWE value while determining the number of video streams to route to the endpoint.
@@ -16,17 +16,17 @@ export const LAST_N_UNLIMITED = -1;
 // Default simulcast encodings config.
 export const SIM_LAYERS = [
     {
-        rid: '1',
-        scaleFactor: 4.0
+        rid: "1",
+        scaleFactor: 4.0,
     },
     {
-        rid: '2',
-        scaleFactor: 2.0
+        rid: "2",
+        scaleFactor: 2.0,
     },
     {
-        rid: '3',
-        scaleFactor: 1.0
-    }
+        rid: "3",
+        scaleFactor: 1.0,
+    },
 ];
 
 /**
@@ -34,10 +34,10 @@ export const SIM_LAYERS = [
  */
 export enum SSRC_GROUP_SEMANTICS {
     // The semantics for group of SSRCs belonging to the same stream, primary and RTX.
-    FID = 'FID',
+    FID = "FID",
 
     // The semantics for group with primary SSRCs for each of the simulcast streams.
-    SIM = 'SIM'
+    SIM = "SIM",
 }
 
 /**
@@ -52,11 +52,11 @@ export const STANDARD_CODEC_SETTINGS = {
             fullHd: 2000000,
             ultraHd: 4000000,
             ssHigh: 2500000,
-            none: 0
+            none: 0,
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
-        useKSVC: true // defaults to L3T3_KEY for SVC mode.
+        useKSVC: true, // defaults to L3T3_KEY for SVC mode.
     },
     h264: {
         maxBitratesVideo: {
@@ -66,9 +66,9 @@ export const STANDARD_CODEC_SETTINGS = {
             fullHd: 4000000,
             ultraHd: 8000000,
             ssHigh: 2500000,
-            none: 0
+            none: 0,
         },
-        scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
+        scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
     },
     vp8: {
         maxBitratesVideo: {
@@ -78,9 +78,9 @@ export const STANDARD_CODEC_SETTINGS = {
             fullHd: 3000000,
             ultraHd: 6000000,
             ssHigh: 2500000,
-            none: 0
+            none: 0,
         },
-        scalabilityModeEnabled: false
+        scalabilityModeEnabled: false,
     },
     vp9: {
         maxBitratesVideo: {
@@ -90,12 +90,12 @@ export const STANDARD_CODEC_SETTINGS = {
             fullHd: 2500000,
             ultraHd: 5000000,
             ssHigh: 2500000,
-            none: 0
+            none: 0,
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
         useSimulcast: false, // defaults to SVC.
-        useKSVC: true // defaults to L3T3_KEY for SVC mode.
-    }
+        useKSVC: true, // defaults to L3T3_KEY for SVC mode.
+    },
 };
 
 /**
@@ -104,16 +104,8 @@ export const STANDARD_CODEC_SETTINGS = {
  * next codec in the list.
  */
 export const VIDEO_CODECS_BY_COMPLEXITY = {
-    'camera' : [
-        CodecMimeType.AV1,
-        CodecMimeType.VP9,
-        CodecMimeType.VP8
-    ],
-    'desktop' : [
-        CodecMimeType.VP9,
-        CodecMimeType.VP8,
-        CodecMimeType.AV1
-    ]
+    camera: [CodecMimeType.AV1, CodecMimeType.VP9, CodecMimeType.VP8],
+    desktop: [CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.AV1],
 };
 
 /**
@@ -128,44 +120,44 @@ export const VIDEO_CODECS_BY_COMPLEXITY = {
 export const VIDEO_QUALITY_LEVELS = [
     {
         height: 2160,
-        level: 'ultraHd'
+        level: "ultraHd",
     },
     {
         height: 1080,
-        level: 'fullHd'
+        level: "fullHd",
     },
     {
         height: 720,
-        level: 'high'
+        level: "high",
     },
     {
         height: 540,
-        level: 'standard'
+        level: "standard",
     },
     {
         height: 480,
-        level: 'standard'
+        level: "standard",
     },
     {
         height: 360,
-        level: 'standard'
+        level: "standard",
     },
     {
         height: 270,
-        level: 'low'
+        level: "low",
     },
     {
         height: 180,
-        level: 'low'
+        level: "low",
     },
     {
         height: 90,
-        level: 'low'
+        level: "low",
     },
     {
         height: 0,
-        level: 'none'
-    }
+        level: "none",
+    },
 ];
 
 /**
@@ -173,20 +165,20 @@ export const VIDEO_QUALITY_LEVELS = [
  */
 export enum VIDEO_QUALITY_SETTINGS {
     // 3840x2160 or 4k.
-    ULTRA = 'ultraHd',
+    ULTRA = "ultraHd",
 
     // 1920x1080 or full High Definition.
-    FULL = 'fullHd',
+    FULL = "fullHd",
 
     // 1280x720 or High Definition.
-    HIGH = 'high',
+    HIGH = "high",
 
     // 640x360 or Standard Definition.
-    STANDARD = 'standard',
+    STANDARD = "standard",
 
     // 320x180 or Low Definition.
-    LOW = 'low',
+    LOW = "low",
 
     // When the camera is turned off.
-    NONE = 'none'
+    NONE = "none",
 }

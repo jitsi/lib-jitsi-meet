@@ -1,11 +1,11 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import { MediaDirection } from '../../service/RTC/MediaDirection';
-import { MediaType } from '../../service/RTC/MediaType';
-import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { MediaDirection } from "../../service/RTC/MediaDirection";
+import { MediaType } from "../../service/RTC/MediaType";
+import { SSRC_GROUP_SEMANTICS } from "../../service/RTC/StandardVideoQualitySettings";
 
-import SDPUtil from './SDPUtil';
-import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
+import SDPUtil from "./SDPUtil";
+import { SdpTransformWrap, parseSecondarySSRC } from "./SdpTransformUtil";
 
 const logger = getLogger(__filename);
 
@@ -40,17 +40,18 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     }
     mLine.addSSRCAttribute({
         id: rtxSsrc,
-        attribute: 'cname',
-        value: primarySsrcCname
+        attribute: "cname",
+        value: primarySsrcCname,
     });
-    primarySsrcMsid && mLine.addSSRCAttribute({
-        id: rtxSsrc,
-        attribute: 'msid',
-        value: primarySsrcMsid
-    });
+    primarySsrcMsid &&
+        mLine.addSSRCAttribute({
+            id: rtxSsrc,
+            attribute: "msid",
+            value: primarySsrcMsid,
+        });
     mLine.addSSRCGroup({
         semantics: SSRC_GROUP_SEMANTICS.FID,
-        ssrcs: `${primarySsrc} ${rtxSsrc}`
+        ssrcs: `${primarySsrc} ${rtxSsrc}`,
     });
 }
 
@@ -90,7 +91,7 @@ export default class RtxModifier {
      *  ssrcs to their corresponding rtx ssrcs
      */
     setSsrcCache(ssrcMapping) {
-        logger.debug('Setting ssrc cache to ', ssrcMapping);
+        logger.debug("Setting ssrc cache to ", ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
     }
 
@@ -138,8 +139,8 @@ export default class RtxModifier {
         const primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
 
         for (const ssrc of primaryVideoSsrcs) {
-            const msid = videoMLine.getSSRCAttrValue(ssrc, 'msid');
-            const cname = videoMLine.getSSRCAttrValue(ssrc, 'cname');
+            const msid = videoMLine.getSSRCAttrValue(ssrc, "msid");
+            const cname = videoMLine.getSSRCAttrValue(ssrc, "cname");
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
 
             if (!correspondingRtxSsrc) {
@@ -159,9 +160,10 @@ export default class RtxModifier {
                 {
                     id: ssrc,
                     cname,
-                    msid
+                    msid,
                 },
-                correspondingRtxSsrc);
+                correspondingRtxSsrc,
+            );
         }
 
         // FIXME we're not looking into much details whether the SDP has been
@@ -186,10 +188,14 @@ export default class RtxModifier {
         }
 
         for (const videoMLine of videoMLines) {
-            if (videoMLine.direction !== MediaDirection.RECVONLY
-                && videoMLine.getSSRCCount()
-                && videoMLine.containsAnySSRCGroups()) {
-                const fidGroups = videoMLine.findGroups(SSRC_GROUP_SEMANTICS.FID);
+            if (
+                videoMLine.direction !== MediaDirection.RECVONLY &&
+                videoMLine.getSSRCCount() &&
+                videoMLine.containsAnySSRCGroups()
+            ) {
+                const fidGroups = videoMLine.findGroups(
+                    SSRC_GROUP_SEMANTICS.FID,
+                );
 
                 // Remove the fid groups from the mline
                 videoMLine.removeGroupsBySemantics(SSRC_GROUP_SEMANTICS.FID);

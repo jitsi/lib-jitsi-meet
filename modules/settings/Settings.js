@@ -1,9 +1,9 @@
-import { jitsiLocalStorage } from '@jitsi/js-utils';
-import { getLogger } from '@jitsi/logger';
+import { jitsiLocalStorage } from "@jitsi/js-utils";
+import { getLogger } from "@jitsi/logger";
 
 const logger = getLogger(__filename);
 
-import UsernameGenerator from '../util/UsernameGenerator';
+import UsernameGenerator from "../util/UsernameGenerator";
 
 let _callStatsUserName;
 
@@ -13,7 +13,6 @@ let _machineId;
  *
  */
 export default {
-
     /**
      * The storage used to store the settings.
      */
@@ -35,10 +34,10 @@ export default {
      */
     get callStatsUserName() {
         if (!_callStatsUserName) {
-            _callStatsUserName = this._storage.getItem('callStatsUserName');
+            _callStatsUserName = this._storage.getItem("callStatsUserName");
             if (!_callStatsUserName) {
                 _callStatsUserName = _generateStatsId();
-                this._storage.setItem('callStatsUserName', _callStatsUserName);
+                this._storage.setItem("callStatsUserName", _callStatsUserName);
             }
         }
 
@@ -51,15 +50,15 @@ export default {
      */
     get machineId() {
         if (!_machineId) {
-            const amDid = this._storage.getItem('billingId');
+            const amDid = this._storage.getItem("billingId");
 
-            _machineId = amDid || this._storage.getItem('jitsiMeetId');
+            _machineId = amDid || this._storage.getItem("jitsiMeetId");
 
             if (amDid) {
-                this._storage.setItem('jitsiMeetId', amDid);
+                this._storage.setItem("jitsiMeetId", amDid);
             } else if (!_machineId) {
                 _machineId = generateJitsiMeetId();
-                this._storage.setItem('jitsiMeetId', _machineId);
+                this._storage.setItem("jitsiMeetId", _machineId);
             }
         }
 
@@ -73,7 +72,7 @@ export default {
     get sessionId() {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
-        return this._storage.getItem('sessionId');
+        return this._storage.getItem("sessionId");
     },
 
     /**
@@ -82,11 +81,11 @@ export default {
      */
     set sessionId(sessionId) {
         if (sessionId) {
-            this._storage.setItem('sessionId', sessionId);
+            this._storage.setItem("sessionId", sessionId);
         } else {
-            this._storage.removeItem('sessionId');
+            this._storage.removeItem("sessionId");
         }
-    }
+    },
 };
 
 /**
@@ -96,7 +95,7 @@ export default {
 function _generateStatsId() {
     const username = UsernameGenerator.generateUsername();
 
-    logger.log('generated stats id', username);
+    logger.log("generated stats id", username);
 
     return username;
 }
@@ -108,7 +107,7 @@ function _generateStatsId() {
 function generateJitsiMeetId() {
     const jitsiMeetId = generateUniqueId();
 
-    logger.log('generated id', jitsiMeetId);
+    logger.log("generated id", jitsiMeetId);
 
     return jitsiMeetId;
 }

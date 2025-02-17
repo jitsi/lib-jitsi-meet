@@ -1,4 +1,4 @@
-import { KeyHandler } from './KeyHandler';
+import { KeyHandler } from "./KeyHandler";
 
 /**
  * This module integrates {@link E2EEContext} with {external} in order to set the keys for encryption.
@@ -20,6 +20,10 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * @returns {void}
      */
     setKey(keyInfo) {
-        this.e2eeCtx.setKey(undefined, { encryptionKey: keyInfo.encryptionKey }, keyInfo.index);
+        this.e2eeCtx.setKey(
+            undefined,
+            { encryptionKey: keyInfo.encryptionKey },
+            keyInfo.index,
+        );
     }
 }

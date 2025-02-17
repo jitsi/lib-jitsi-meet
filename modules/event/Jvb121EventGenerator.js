@@ -1,6 +1,6 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
 const logger = getLogger(__filename);
 
@@ -27,11 +27,16 @@ export default class Jvb121EventGenerator {
         this._jvb121 = true;
 
         this._conference.addEventListener(
-            JitsiConferenceEvents.USER_JOINED, () => this.evaluateStatus());
+            JitsiConferenceEvents.USER_JOINED,
+            () => this.evaluateStatus(),
+        );
+        this._conference.addEventListener(JitsiConferenceEvents.USER_LEFT, () =>
+            this.evaluateStatus(),
+        );
         this._conference.addEventListener(
-            JitsiConferenceEvents.USER_LEFT, () => this.evaluateStatus());
-        this._conference.addEventListener(
-            JitsiConferenceEvents.P2P_STATUS, () => this.evaluateStatus());
+            JitsiConferenceEvents.P2P_STATUS,
+            () => this.evaluateStatus(),
+        );
     }
 
     /**
@@ -40,15 +45,18 @@ export default class Jvb121EventGenerator {
      */
     evaluateStatus() {
         const oldStatus = this._jvb121;
-        const newStatus
-            = !this._conference.isP2PActive()
-                && this._conference.getParticipantCount() <= 2;
+        const newStatus =
+            !this._conference.isP2PActive() &&
+            this._conference.getParticipantCount() <= 2;
 
         if (oldStatus !== newStatus) {
             this._jvb121 = newStatus;
             logger.debug(`JVB121 status ${oldStatus} => ${newStatus}`);
             this._conference.eventEmitter.emit(
-                JitsiConferenceEvents.JVB121_STATUS, oldStatus, newStatus);
+                JitsiConferenceEvents.JVB121_STATUS,
+                oldStatus,
+                newStatus,
+            );
         }
     }
 }

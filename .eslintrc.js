@@ -1,8 +1,6 @@
 module.exports = {
     parserOptions: {
-        requireConfigFile: false
+        requireConfigFile: false,
     },
-    'extends': [
-        '@jitsi/eslint-config'
-    ]
+    extends: ["@jitsi/eslint-config"],
 };

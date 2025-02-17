@@ -1,8 +1,8 @@
-import { isEqual } from 'lodash-es';
+import { isEqual } from "lodash-es";
 
-import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { XEP } from "../../service/xmpp/XMPPExtensioProtocols";
 
-import SDPUtil from './SDPUtil';
+import SDPUtil from "./SDPUtil";
 
 /**
  * A class that provides methods for comparing the source information present in two different SDPs so that the delta
@@ -32,7 +32,7 @@ export class SDPDiffer {
         const othersSources = this.othersSdp.getMediaSsrcMap();
         const diff = {};
 
-        for (const [ index, othersSource ] of othersSources.entries()) {
+        for (const [index, othersSource] of othersSources.entries()) {
             const mySource = mySources.get(index);
 
             if (!mySource) {
@@ -42,7 +42,13 @@ export class SDPDiffer {
 
             const othersSsrcs = Object.keys(othersSource.ssrcs);
 
-            if (othersSsrcs.length && !isEqual(Object.keys(mySource.ssrcs).sort(), [ ...othersSsrcs ].sort())) {
+            if (
+                othersSsrcs.length &&
+                !isEqual(
+                    Object.keys(mySource.ssrcs).sort(),
+                    [...othersSsrcs].sort(),
+                )
+            ) {
                 diff[index] = othersSource;
             }
         }
@@ -62,32 +68,34 @@ export class SDPDiffer {
 
         for (const media of Object.values(diffSourceInfo)) {
             modified = true;
-            modify.c('content', { name: this.isP2P ? media.mid : media.mediaType });
-
-            modify.c('description', {
-                xmlns: XEP.RTP_MEDIA,
-                media: media.mediaType
+            modify.c("content", {
+                name: this.isP2P ? media.mid : media.mediaType,
             });
 
-            Object.keys(media.ssrcs).forEach(ssrcNum => {
+            modify.c("description", {
+                xmlns: XEP.RTP_MEDIA,
+                media: media.mediaType,
+            });
+
+            Object.keys(media.ssrcs).forEach((ssrcNum) => {
                 const mediaSsrc = media.ssrcs[ssrcNum];
                 const ssrcLines = mediaSsrc.lines;
                 const sourceName = SDPUtil.parseSourceNameLine(ssrcLines);
                 const videoType = SDPUtil.parseVideoTypeLine(ssrcLines);
 
-                modify.c('source', { xmlns: XEP.SOURCE_ATTRIBUTES });
+                modify.c("source", { xmlns: XEP.SOURCE_ATTRIBUTES });
                 modify.attrs({
                     name: sourceName,
                     videoType,
-                    ssrc: mediaSsrc.ssrc
+                    ssrc: mediaSsrc.ssrc,
                 });
 
                 // Only MSID attribute is sent
                 const msid = SDPUtil.parseMSIDAttribute(ssrcLines);
 
                 if (msid) {
-                    modify.c('parameter');
-                    modify.attrs({ name: 'msid' });
+                    modify.c("parameter");
+                    modify.attrs({ name: "msid" });
                     modify.attrs({ value: msid });
                     modify.up();
                 }
@@ -96,17 +104,15 @@ export class SDPDiffer {
             });
 
             // generate source groups from lines
-            media.ssrcGroups.forEach(ssrcGroup => {
+            media.ssrcGroups.forEach((ssrcGroup) => {
                 if (ssrcGroup.ssrcs.length) {
-
-                    modify.c('ssrc-group', {
+                    modify.c("ssrc-group", {
                         semantics: ssrcGroup.semantics,
-                        xmlns: XEP.SOURCE_ATTRIBUTES
+                        xmlns: XEP.SOURCE_ATTRIBUTES,
                     });
 
-                    ssrcGroup.ssrcs.forEach(ssrc => {
-                        modify.c('source', { ssrc })
-                            .up(); // end of source
+                    ssrcGroup.ssrcs.forEach((ssrc) => {
+                        modify.c("source", { ssrc }).up(); // end of source
                     });
                     modify.up(); // end of ssrc-group
                 }

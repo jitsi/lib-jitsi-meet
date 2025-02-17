@@ -7,26 +7,26 @@ Once it connects with a valid token, it is considered authenticated by the jitsi
 
 During configuration, you can choose between two JWT validation methods:
 
-* Shared Secret Validation or
-* Public Key Validation 
+- Shared Secret Validation or
+- Public Key Validation
 
 In both cases you will need to provide the _application ID_ that identifies the client.
 
 For the **Shared Secret Validation** an _application secret_ is shared by both the server (Prosody) and the JWT
 generation. Take a look at an example structure in [Example Structure > Shared Secret Validation](#shared-secret-validation).
-Like described in the RFC, the _shared secret_ is used to compute a HMAC hash value which allows authentication of the 
-generated token. There are many existing libraries which can be used to implement token generation. More info can be 
+Like described in the RFC, the _shared secret_ is used to compute a HMAC hash value which allows authentication of the
+generated token. There are many existing libraries which can be used to implement token generation. More info can be
 found here: [http://jwt.io/#libraries-io]
 
-For the **Public Key Validation** a _key server_ must be provided via `asap_key_server` to verify the token against a 
+For the **Public Key Validation** a _key server_ must be provided via `asap_key_server` to verify the token against a
 provided public key on the given key server. An example structure can be view in [Example Structure > Publiy Key Validation](#public-key-validation)
 
 This is how you generate the keys:
+
 ```
 openssl genrsa -out jitsi-private.pem 2048
 openssl rsa -in jitsi-private.pem -pubout -out jitsi-public.pem
 ```
-
 
 JWT authentication works with BOSH and WebSocket connections.
 
@@ -35,45 +35,41 @@ JWT authentication works with BOSH and WebSocket connections.
 The following JWT claims are used in the authentication token:
 
 - 'iss'
-  - specifies the _application ID_ which identifies the client.
-    It should be negotiated with the service provider before generating the token.
+    - specifies the _application ID_ which identifies the client.
+      It should be negotiated with the service provider before generating the token.
 - 'room'
-  - contains either
-    - the name of the room - This is *NOT* the full MUC room address.  
-      For a full MUC like 'conference1@muc.server.net' it would be 'conference1'.
-    - alternatively '*' - allowing access to all rooms within the domain.
+    - contains either
+        - the name of the room - This is _NOT_ the full MUC room address.  
+          For a full MUC like 'conference1@muc.server.net' it would be 'conference1'.
+        - alternatively '\*' - allowing access to all rooms within the domain.
 - 'exp'
-  - token expiration timestamp as defined in the [RFC7519]
+    - token expiration timestamp as defined in the [RFC7519]
 - 'sub'
-  - contains either
-    - the lowercase _tenant_ - for a conference like 'TENANT1/ROOM' it would be 'tenant1', see example below.
-    - the lowercase _domain_ - for a full MUC like 'conference1@muc.server.net' it would be 'server.net'.
-    - alternatively '*' - allowing access to all rooms in all tenants within the domain or all domains within the server.
+    - contains either
+        - the lowercase _tenant_ - for a conference like 'TENANT1/ROOM' it would be 'tenant1', see example below.
+        - the lowercase _domain_ - for a full MUC like 'conference1@muc.server.net' it would be 'server.net'.
+        - alternatively '\*' - allowing access to all rooms in all tenants within the domain or all domains within the server.
 - 'aud'
-  - application identifier - indicates what service is consuming the token.
-    It should be negotiated with the service provider before generating the token.
+    - application identifier - indicates what service is consuming the token.
+      It should be negotiated with the service provider before generating the token.
 
-**Sub with tenant** If the 'sub' contains the tenant. You need to define the tenant in the `muc` when creating a new `JitsiConnection` in the options 
+**Sub with tenant** If the 'sub' contains the tenant. You need to define the tenant in the `muc` when creating a new `JitsiConnection` in the options
 within the `hosts` section, see
 
 ```javascript
-    const connection = new JitsiMeetJS.JitsiConnection(
-    '${applicationId}',
-    '${token}',
-    {
-        serviceUrl: 'wss://server.net/tenant/xmpp-websocket',
-        hosts: {
-            domain: 'muc.server.net',
-            muc: 'conference1.tenant.muc.server.net',
-        },
+const connection = new JitsiMeetJS.JitsiConnection("${applicationId}", "${token}", {
+    serviceUrl: "wss://server.net/tenant/xmpp-websocket",
+    hosts: {
+        domain: "muc.server.net",
+        muc: "conference1.tenant.muc.server.net",
     },
-);
+});
 ```
 
 **Different signature algorithm** It is possible to define the algorithm type used, simply update the `prosody.cfg.lua` file with your chosen type.
 e.g `signature_algorithm = "HS512"`
 
-For **Shared Secret Validation** the _shared secret_ is used to compute the HMAC hash value and verify the token for HSXXX (e.g. HS256) tokens. 
+For **Shared Secret Validation** the _shared secret_ is used to compute the HMAC hash value and verify the token for HSXXX (e.g. HS256) tokens.
 Alternatively for the **Public Key Validation** the token may be signed by a private key and authorized via a public
 keyserver using RSXXX (e.g. RS256) tokens. In this mode, the 'kid' header of the JWT must be set to the name of the public key.
 Prosody must be configured to fetch and confirm keys from a pre-configured public keyserver via `asap_key_server`
@@ -81,7 +77,7 @@ see [Manual plugin configuration > 2.](#manual-plugin-configuration)
 
 ### Token Identifiers Structure (Optional)
 
-In addition to the basic claims used in authentication, the token can also provide optional user display information in the 
+In addition to the basic claims used in authentication, the token can also provide optional user display information in the
 'context' field within the JWT payload. None of the information in the context field is used for token validation:
 
 - 'group' is a string which specifies the group the user belongs to. Intended for use in reporting/analytics, not used
@@ -194,7 +190,7 @@ display personal information and for statistic purposes.
 
 JWT is currently checked in 2 places:
 
-- when a user connects to Prosody through BOSH or WebSocket. The token value is passed as the 'token' query parameter of 
+- when a user connects to Prosody through BOSH or WebSocket. The token value is passed as the 'token' query parameter of
   the BOSH or WebSocket URL. User uses XMPP anonymous authentication method.
 - when a MUC room is being created/joined Prosody compares the 'room' claim with the actual name of the room. In
   addition, the 'sub' claim is compare to either the tenant (for TENANT/ROOM URLs) or the base domain (for /ROOM URLs).
@@ -206,7 +202,7 @@ JWT is currently checked in 2 places:
 When JWT authentication is used with _lib-jitsi-meet_ the token is passed to the _JitsiConference_ constructor:
 
 ```javascript
-var token = {token_is_provided_by_your_application_possibly_after_some_authentication}
+var token = { token_is_provided_by_your_application_possibly_after_some_authentication };
 
 JitsiMeetJS.init(initOptions).then(function () {
     connection = new JitsiMeetJS.JitsiConnection(APP_ID, token, options);
@@ -219,9 +215,7 @@ JitsiMeetJS.init(initOptions).then(function () {
 
 In order to start a jitsi-meet conference with a token you need to specify the token as an URL param:
 
-`
-https://example.com/angrywhalesgrowhigh?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
-`
+`https://example.com/angrywhalesgrowhigh?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ`
 
 At the current level of integration every user that joins the conference has to provide the token and not just the one
 who creates the room. It should be possible to change that by using a second anonymous domain, but that hasn't been
@@ -243,7 +237,7 @@ Check the "Prosody Version" that is used in the deployment.
 
 JWT authentication requires Prosody 0.11.6 or higher.
 
-Make sure that */etc/prosody/prosody.cfg.lua* contains the line below at the end to include meet host config. That's
+Make sure that _/etc/prosody/prosody.cfg.lua_ contains the line below at the end to include meet host config. That's
 because Prosody nightly may come with slightly different default config:
 
 ```lua
@@ -269,10 +263,10 @@ Modify your Prosody config with these three steps:
     ```lua
     plugin_paths = { "/usr/share/jitsi-meet/prosody-plugins/" }
     ```
-    
-    Also, you need to set the global settings for token authorization. Both these options used to default to the '*' parameter
+
+    Also, you need to set the global settings for token authorization. Both these options used to default to the '\*' parameter
     which means accept any issuer or audience string in incoming tokens, but that is no longer the case.
-    
+
     ```lua
     asap_accepted_issuers = { "*" }
     asap_accepted_audiences = { "*" }
@@ -281,7 +275,7 @@ Modify your Prosody config with these three steps:
 2. Under your domain config change `authentication` to `token` and provide the _application ID_ in `app_id`:
 
     If you want to validate the token via **Shared Secret Validation** add the `app_secret` parameter
-    
+
     ```lua
     VirtualHost "jitmeet.example.com"
         authentication    = "token";
@@ -291,9 +285,9 @@ Modify your Prosody config with these three steps:
         allow_empty_token = false;                    -- tokens are verified only if they are supplied by the client
     ```
 
-   alternatively for the **Public Key Validation** you need to set an `asap_key_server` to the base URL where valid/accepted 
+    alternatively for the **Public Key Validation** you need to set an `asap_key_server` to the base URL where valid/accepted
     _public keys_ can be found by taking a sha256() of the `kid` field from the JWT header, and appending .pem to the end
-    
+
     ```lua
     VirtualHost "jitmeet.example.com"
         authentication    = "token";

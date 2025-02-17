@@ -1,10 +1,10 @@
-import { isEqual } from 'lodash-es';
+import { isEqual } from "lodash-es";
 
-import { MediaDirection } from '../../service/RTC/MediaDirection';
-import { MediaType } from '../../service/RTC/MediaType';
-import browser from '../browser';
+import { MediaDirection } from "../../service/RTC/MediaDirection";
+import { MediaType } from "../../service/RTC/MediaType";
+import browser from "../browser";
 
-import { SdpTransformWrap } from './SdpTransformUtil';
+import { SdpTransformWrap } from "./SdpTransformUtil";
 
 /**
  * Fakes local SDP exposed to {@link JingleSessionPC} through the local description getter. Modifies the SDP, so that
@@ -12,7 +12,6 @@ import { SdpTransformWrap } from './SdpTransformUtil';
  * are injected so that Jicofo can use them to identify the sources.
  */
 export default class LocalSdpMunger {
-
     /**
      * Creates new <tt>LocalSdpMunger</tt> instance.
      *
@@ -37,29 +36,39 @@ export default class LocalSdpMunger {
     _transformMediaIdentifiers(mediaSection, ssrcMap) {
         const mediaType = mediaSection.mLine.type;
         const mediaDirection = mediaSection.mLine.direction;
-        const sources = [ ...new Set(mediaSection.mLine.ssrcs?.map(s => s.id)) ];
-        let trackId = mediaSection.mLine.msid?.split(' ')[1];
+        const sources = [
+            ...new Set(mediaSection.mLine.ssrcs?.map((s) => s.id)),
+        ];
+        let trackId = mediaSection.mLine.msid?.split(" ")[1];
         let sourceName;
 
         if (ssrcMap.size) {
             const sortedSources = sources.slice().sort();
 
-            for (const [ id, trackSsrcs ] of ssrcMap.entries()) {
-                if (isEqual(sortedSources, [ ...trackSsrcs.ssrcs ].sort())) {
+            for (const [id, trackSsrcs] of ssrcMap.entries()) {
+                if (isEqual(sortedSources, [...trackSsrcs.ssrcs].sort())) {
                     sourceName = id;
                 }
             }
             for (const source of sources) {
-                if ((mediaDirection === MediaDirection.SENDONLY || mediaDirection === MediaDirection.SENDRECV)
-                    && sourceName) {
-                    const msid = mediaSection.ssrcs.find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
+                if (
+                    (mediaDirection === MediaDirection.SENDONLY ||
+                        mediaDirection === MediaDirection.SENDRECV) &&
+                    sourceName
+                ) {
+                    const msid = mediaSection.ssrcs.find(
+                        (ssrc) =>
+                            ssrc.id === source && ssrc.attribute === "msid",
+                    );
 
                     if (msid) {
-                        trackId = msid.value.split(' ')[1];
+                        trackId = msid.value.split(" ")[1];
                     }
                     const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this.tpc.id} ${trackId}-${this.tpc.id}`;
-                    const existingMsid = mediaSection.ssrcs
-                        .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
+                    const existingMsid = mediaSection.ssrcs.find(
+                        (ssrc) =>
+                            ssrc.id === source && ssrc.attribute === "msid",
+                    );
 
                     // Always overwrite msid since we want the msid to be in this format even if the browser generates
                     // one. '<endpoint_id>-<mediaType>-<trackIndex>-<tpcId>' example - d8ff91-video-0-1
@@ -68,28 +77,29 @@ export default class LocalSdpMunger {
                     } else {
                         mediaSection.ssrcs.push({
                             id: source,
-                            attribute: 'msid',
-                            value: generatedMsid
+                            attribute: "msid",
+                            value: generatedMsid,
                         });
                     }
 
                     // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                     mediaSection.ssrcs.push({
                         id: source,
-                        attribute: 'name',
-                        value: sourceName
+                        attribute: "name",
+                        value: sourceName,
                     });
 
-                    const videoType = this.tpc.getLocalVideoTracks()
-                        .find(track => track.getSourceName() === sourceName)
+                    const videoType = this.tpc
+                        .getLocalVideoTracks()
+                        .find((track) => track.getSourceName() === sourceName)
                         ?.getVideoType();
 
                     if (mediaType === MediaType.VIDEO && videoType) {
                         // Inject videoType as a=ssrc:1234 videoType:desktop.
                         mediaSection.ssrcs.push({
                             id: source,
-                            attribute: 'videoType',
-                            value: videoType
+                            attribute: "videoType",
+                            value: videoType,
                         });
                     }
                 }
@@ -97,8 +107,12 @@ export default class LocalSdpMunger {
         }
 
         // Ignore the 'cname', 'label' and 'mslabel' attributes.
-        mediaSection.ssrcs = mediaSection.ssrcs
-            .filter(ssrc => ssrc.attribute === 'msid' || ssrc.attribute === 'name' || ssrc.attribute === 'videoType');
+        mediaSection.ssrcs = mediaSection.ssrcs.filter(
+            (ssrc) =>
+                ssrc.attribute === "msid" ||
+                ssrc.attribute === "name" ||
+                ssrc.attribute === "videoType",
+        );
 
         // On FF when the user has started muted create answer will generate a recv only SSRC. We don't want to signal
         // this SSRC in order to reduce the load of the xmpp server for large calls. Therefore the SSRC needs to be
@@ -109,12 +123,12 @@ export default class LocalSdpMunger {
         // track we will reuse the SSRCs and send source-add with the same SSRCs. This is problematic because of issues
         // on Chrome and FF (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729) when removing and then adding the
         // same SSRC in the remote sdp the remote track is not rendered.
-        if (browser.isFirefox()
-            && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
-            && (
-                (mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack)
-                || (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack)
-            )
+        if (
+            browser.isFirefox() &&
+            (mediaDirection === MediaDirection.RECVONLY ||
+                mediaDirection === MediaDirection.INACTIVE) &&
+            ((mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack) ||
+                (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack))
         ) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
@@ -151,7 +165,7 @@ export default class LocalSdpMunger {
 
         return {
             type: sessionDesc.type,
-            sdp: transformer.toRawSDP()
+            sdp: transformer.toRawSDP(),
         };
     }
 }

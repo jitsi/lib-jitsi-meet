@@ -1,10 +1,10 @@
-import { getLogger } from '@jitsi/logger';
-import { isEqual } from 'lodash-es';
-import { $msg } from 'strophe.js';
+import { getLogger } from "@jitsi/logger";
+import { isEqual } from "lodash-es";
+import { $msg } from "strophe.js";
 
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { XMPPEvents } from "../../service/xmpp/XMPPEvents";
 
-import { JITSI_MEET_MUC_TYPE } from './xmpp';
+import { JITSI_MEET_MUC_TYPE } from "./xmpp";
 
 const logger = getLogger(__filename);
 
@@ -24,7 +24,10 @@ export default class RoomMetadata {
         this.room = room;
 
         this._handleMessages = this._handleMessages.bind(this);
-        this.room.xmpp.addListener(XMPPEvents.ROOM_METADATA_EVENT, this._handleMessages);
+        this.room.xmpp.addListener(
+            XMPPEvents.ROOM_METADATA_EVENT,
+            this._handleMessages,
+        );
 
         this._metadata = {};
     }
@@ -33,7 +36,10 @@ export default class RoomMetadata {
      * Stops listening for events.
      */
     dispose() {
-        this.room.xmpp.removeListener(XMPPEvents.ROOM_METADATA_EVENT, this._handleMessages);
+        this.room.xmpp.removeListener(
+            XMPPEvents.ROOM_METADATA_EVENT,
+            this._handleMessages,
+        );
     }
 
     /**
@@ -44,14 +50,16 @@ export default class RoomMetadata {
      */
     setMetadata(key, data) {
         if (!this.isSupported()) {
-            logger.error(`Cannot set room metadata - supported:${this.isSupported()}`);
+            logger.error(
+                `Cannot set room metadata - supported:${this.isSupported()}`,
+            );
 
             return;
         }
 
         const message = {
             key,
-            data
+            data,
         };
 
         this._sendMessage(message);
@@ -104,14 +112,18 @@ export default class RoomMetadata {
      * @param {Object} message - Command that needs to be sent.
      */
     _sendMessage(message) {
-        message[JITSI_MEET_MUC_TYPE] = 'room_metadata';
+        message[JITSI_MEET_MUC_TYPE] = "room_metadata";
 
         const msg = $msg({ to: this.getComponentAddress() });
 
-        msg.c('room_metadata', {
-            room: this.room.roomjid,
-            xmlns: 'http://jitsi.org/jitmeet'
-        }, JSON.stringify(message)).up();
+        msg.c(
+            "room_metadata",
+            {
+                room: this.room.roomjid,
+                xmlns: "http://jitsi.org/jitmeet",
+            },
+            JSON.stringify(message),
+        ).up();
 
         this.room.xmpp.connection.send(msg);
     }

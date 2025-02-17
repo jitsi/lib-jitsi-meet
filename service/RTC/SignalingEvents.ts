@@ -6,7 +6,7 @@ export enum SignalingEvents {
      * @param {MediaType} mediaType "audio" or "video"
      * @param {boolean} isMuted the new muted state
      */
-    PEER_MUTED_CHANGED = 'signaling.peerMuted',
+    PEER_MUTED_CHANGED = "signaling.peerMuted",
 
     /**
      * Event triggered when participant's video type changes.
@@ -14,7 +14,7 @@ export enum SignalingEvents {
      * @param {string} endpointId the video owner's ID (MUC nickname)
      * @param {VideoType} videoType the new value
      */
-    PEER_VIDEO_TYPE_CHANGED = 'signaling.peerVideoType',
+    PEER_VIDEO_TYPE_CHANGED = "signaling.peerVideoType",
 
     /**
      * Event triggered when source's muted status changes.
@@ -22,7 +22,7 @@ export enum SignalingEvents {
      * @param {string} sourceName - The name of the source.
      * @param {boolean} isMuted - The new muted state.
      */
-    SOURCE_MUTED_CHANGED = 'signaling.sourceMuted',
+    SOURCE_MUTED_CHANGED = "signaling.sourceMuted",
 
     /**
      * Event triggered when presence for a source is received.
@@ -32,7 +32,7 @@ export enum SignalingEvents {
      * @param {boolean} muted - The new muted state.
      * @param {string} videoType - The video type of the source.
      */
-    SOURCE_UPDATED = 'signaling.sourceUpdated',
+    SOURCE_UPDATED = "signaling.sourceUpdated",
 
     /**
      * Event triggered when source's video type changes.
@@ -40,7 +40,7 @@ export enum SignalingEvents {
      * @param {string} source - The name of the source.
      * @param {VideoType} videoType - The new value.
      */
-    SOURCE_VIDEO_TYPE_CHANGED = 'signaling.sourceVideoType'
+    SOURCE_VIDEO_TYPE_CHANGED = "signaling.sourceVideoType",
 }
 
 // exported for backward compatibility
@@ -48,4 +48,5 @@ export const PEER_MUTED_CHANGED = SignalingEvents.PEER_MUTED_CHANGED;
 export const PEER_VIDEO_TYPE_CHANGED = SignalingEvents.PEER_VIDEO_TYPE_CHANGED;
 export const SOURCE_MUTED_CHANGED = SignalingEvents.SOURCE_MUTED_CHANGED;
 export const SOURCE_UPDATED = SignalingEvents.SOURCE_UPDATED;
-export const SOURCE_VIDEO_TYPE_CHANGED = SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED;
+export const SOURCE_VIDEO_TYPE_CHANGED =
+    SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED;

@@ -1,7 +1,7 @@
-import EventEmitter from '../util/EventEmitter';
-import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
+import EventEmitter from "../util/EventEmitter";
+import { calculateAverage, filterPositiveValues } from "../util/MathUtil";
 
-import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from './DetectionEvents';
+import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from "./DetectionEvents";
 
 /**
  * The average value VAD needs to be under over a period of time to be considered noise.
@@ -13,7 +13,7 @@ const VAD_NOISE_AVG_THRESHOLD = 0.2;
  * The average values that audio input need to be over to be considered loud.
  * @type {number}
  */
-const NOISY_AUDIO_LEVEL_THRESHOLD = 0.040;
+const NOISY_AUDIO_LEVEL_THRESHOLD = 0.04;
 
 /**
  * The value that a VAD score needs to be under in order for processing to begin.
@@ -25,7 +25,7 @@ const VAD_SCORE_TRIGGER = 0.2;
  * The value that a VAD score needs to be under in order for processing to begin.
  * @type {number}
  */
-const AUDIO_LEVEL_SCORE_TRIGGER = 0.020;
+const AUDIO_LEVEL_SCORE_TRIGGER = 0.02;
 
 /**
  * Time span over which we calculate an average score used to determine if we trigger the event.
@@ -79,7 +79,10 @@ export default class VADNoiseDetection extends EventEmitter {
         const scoreAvg = calculateAverage(this._scoreArray);
         const audioLevelAvg = calculateAverage(this._audioLvlArray);
 
-        if (scoreAvg < VAD_NOISE_AVG_THRESHOLD && audioLevelAvg > NOISY_AUDIO_LEVEL_THRESHOLD) {
+        if (
+            scoreAvg < VAD_NOISE_AVG_THRESHOLD &&
+            audioLevelAvg > NOISY_AUDIO_LEVEL_THRESHOLD
+        ) {
             this.emit(VAD_NOISY_DEVICE);
 
             this._setActiveState(false);
@@ -163,7 +166,10 @@ export default class VADNoiseDetection extends EventEmitter {
             // Filter and calculate sample average so we don't have to process one large array at a time.
             const posAudioLevels = filterPositiveValues(vadScore.pcmData);
 
-            this._recordValues(vadScore.score, calculateAverage(posAudioLevels));
+            this._recordValues(
+                vadScore.score,
+                calculateAverage(posAudioLevels),
+            );
 
             return;
         }
@@ -179,7 +185,10 @@ export default class VADNoiseDetection extends EventEmitter {
                 this._recordValues(vadScore.score, avgAudioLvl);
 
                 // Once the preset timeout executes the final score will be calculated.
-                this._processTimeout = setTimeout(this._calculateNoisyScore, PROCESS_TIME_FRAME_SPAN_MS);
+                this._processTimeout = setTimeout(
+                    this._calculateNoisyScore,
+                    PROCESS_TIME_FRAME_SPAN_MS,
+                );
             }
         }
     }

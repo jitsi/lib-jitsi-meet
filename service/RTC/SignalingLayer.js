@@ -1,6 +1,5 @@
-
-import Listenable from '../../modules/util/Listenable';
-import { MediaType } from '../../service/RTC/MediaType';
+import Listenable from "../../modules/util/Listenable";
+import { MediaType } from "../../service/RTC/MediaType";
 
 /**
  * @typedef {string} EndpointId
@@ -38,13 +37,16 @@ export function getSourceNameForJitsiTrack(endpointId, mediaType, trackIdx) {
  * @returns {MediaType}
  */
 export function getMediaTypeFromSourceName(sourceName) {
-    const firstLetterOfMediaTypeIdx = sourceName.lastIndexOf('-') + 1;
+    const firstLetterOfMediaTypeIdx = sourceName.lastIndexOf("-") + 1;
 
     if (firstLetterOfMediaTypeIdx <= 0) {
         throw new Error(`Invalid source name: ${sourceName}`);
     }
 
-    const firstLetterOfMediaType = sourceName.substr(firstLetterOfMediaTypeIdx, 1);
+    const firstLetterOfMediaType = sourceName.substr(
+        firstLetterOfMediaTypeIdx,
+        1,
+    );
 
     for (const type of Object.values(MediaType)) {
         if (type.substr(0, 1) === firstLetterOfMediaType) {
@@ -63,11 +65,13 @@ export function getMediaTypeFromSourceName(sourceName) {
  * @returns {number}
  */
 export function getSourceIndexFromSourceName(sourceName) {
-    const nameParts = sourceName.split('-');
+    const nameParts = sourceName.split("-");
     const trackIdx = Number(nameParts[nameParts.length - 1].substring(1));
 
     if (Number.isNaN(trackIdx)) {
-        throw new Error(`Failed to parse track idx for source name: ${sourceName}`);
+        throw new Error(
+            `Failed to parse track idx for source name: ${sourceName}`,
+        );
     }
 
     return trackIdx;
@@ -102,8 +106,9 @@ export default class SignalingLayer extends Listenable {
      *
      * @deprecated This method is to be replaced with getPeerSourceInfo.
      */
-    getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
+    getPeerMediaInfo(owner, mediaType, sourceName) {
+        // eslint-disable-line no-unused-vars
+        throw new Error("not implemented");
     }
 
     /**
@@ -112,8 +117,9 @@ export default class SignalingLayer extends Listenable {
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
      * @returns {SourceInfo | undefined}
      */
-    getPeerSourceInfo(owner, sourceName) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
+    getPeerSourceInfo(owner, sourceName) {
+        // eslint-disable-line no-unused-vars
+        throw new Error("not implemented");
     }
 
     /**
@@ -121,8 +127,9 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the SSRC number.
      * @return {string|null} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
+    getSSRCOwner(ssrc) {
+        // eslint-disable-line no-unused-vars
+        throw new Error("not implemented");
     }
 
     /**
@@ -130,8 +137,9 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
      */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
-        throw new Error('not implemented');
+    getTrackSourceName(ssrc) {
+        // eslint-disable-line no-unused-vars
+        throw new Error("not implemented");
     }
 
     /**
@@ -139,7 +147,8 @@ export default class SignalingLayer extends Listenable {
      * remapped to another source from a different endpoint.
      * @param {number} ssrc a list of SSRCs.
      */
-    removeSSRCOwners(ssrcList) { // eslint-disable-line no-unused-vars
+    removeSSRCOwners(ssrcList) {
+        // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -150,7 +159,8 @@ export default class SignalingLayer extends Listenable {
      * @param {string} sourceName - The related source name.
      * @throws TypeError if <tt>ssrc</tt> is not a number.
      */
-    setSSRCOwner(ssrc, endpointId, sourceName) { // eslint-disable-line no-unused-vars
+    setSSRCOwner(ssrc, endpointId, sourceName) {
+        // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -160,7 +170,8 @@ export default class SignalingLayer extends Listenable {
      * @param {boolean} muted - the new muted status.
      * @returns {boolean}
      */
-    setTrackMuteStatus(sourceName, muted) { // eslint-disable-line no-unused-vars
+    setTrackMuteStatus(sourceName, muted) {
+        // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -169,7 +180,8 @@ export default class SignalingLayer extends Listenable {
      * @param {VideoType} videoType - the new video type.
      * @returns {boolean}
      */
-    setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    setTrackVideoType(sourceName, videoType) {
+        // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -178,6 +190,7 @@ export default class SignalingLayer extends Listenable {
      * @param {string} id endpoint id of the participant leaving the call.
      * @returns {void}
      */
-    updateSsrcOwnersOnLeave(id) { // eslint-disable-line no-unused-vars
+    updateSsrcOwnersOnLeave(id) {
+        // eslint-disable-line no-unused-vars
     }
 }

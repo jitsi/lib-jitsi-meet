@@ -1,29 +1,29 @@
-import { getLogger } from '@jitsi/logger';
+import { getLogger } from "@jitsi/logger";
 
-import JitsiTrackError from '../../JitsiTrackError';
+import JitsiTrackError from "../../JitsiTrackError";
 import {
     TRACK_IS_DISPOSED,
-    TRACK_NO_STREAM_FOUND
-} from '../../JitsiTrackErrors';
+    TRACK_NO_STREAM_FOUND,
+} from "../../JitsiTrackErrors";
 import {
     LOCAL_TRACK_STOPPED,
     NO_DATA_FROM_SOURCE,
-    TRACK_MUTE_CHANGED
-} from '../../JitsiTrackEvents';
-import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
-import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import { VideoType } from '../../service/RTC/VideoType';
+    TRACK_MUTE_CHANGED,
+} from "../../JitsiTrackEvents";
+import { CameraFacingMode } from "../../service/RTC/CameraFacingMode";
+import { MediaType } from "../../service/RTC/MediaType";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import { VideoType } from "../../service/RTC/VideoType";
 import {
     NO_BYTES_SENT,
     TRACK_UNMUTED,
-    createNoDataFromSourceEvent
-} from '../../service/statistics/AnalyticsEvents';
-import browser from '../browser';
-import Statistics from '../statistics/statistics';
+    createNoDataFromSourceEvent,
+} from "../../service/statistics/AnalyticsEvents";
+import browser from "../browser";
+import Statistics from "../statistics/statistics";
 
-import JitsiTrack from './JitsiTrack';
-import RTCUtils from './RTCUtils';
+import JitsiTrack from "./JitsiTrack";
+import RTCUtils from "./RTCUtils";
 
 const logger = getLogger(__filename);
 
@@ -61,35 +61,37 @@ export default class JitsiLocalTrack extends JitsiTrack {
         stream,
         track,
         videoType,
-        effects = []
+        effects = [],
     }) {
         super(
             /* conference */ null,
             stream,
             track,
-            /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED, this),
+            /* streamInactiveHandler */ () =>
+                this.emit(LOCAL_TRACK_STOPPED, this),
             mediaType,
-            videoType);
+            videoType,
+        );
 
         this._setEffectInProgress = false;
-        const effect = effects.find(e => e.isEnabled(this));
+        const effect = effects.find((e) => e.isEnabled(this));
 
         if (effect) {
             this._startStreamEffect(effect);
         }
 
-        const displaySurface = videoType === VideoType.DESKTOP
-            ? track.getSettings().displaySurface
-            : null;
+        const displaySurface =
+            videoType === VideoType.DESKTOP
+                ? track.getSettings().displaySurface
+                : null;
 
         /**
          * Track metadata.
          */
         this.metadata = {
             timestamp: Date.now(),
-            ...displaySurface ? { displaySurface } : {}
+            ...(displaySurface ? { displaySurface } : {}),
         };
-
 
         /**
          * The ID assigned by the RTC module on instance creation.
@@ -111,14 +113,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 if (!this._constraints.height || !this._constraints.width) {
                     this._constraints = {
                         height: { ideal: this.getHeight() },
-                        width: { ideal: this.getWidth() }
+                        width: { ideal: this.getWidth() },
                     };
                 }
 
                 // If the constraints are still empty, fallback to the constraints used for initial gUM.
-                if (isNaN(this._constraints.height.ideal) && isNaN(this._constraints.width.ideal)) {
-                    this._constraints.height = { ideal: constraints.height.ideal };
-                    this._constraints.width = { ideal: constraints.width.ideal };
+                if (
+                    isNaN(this._constraints.height.ideal) &&
+                    isNaN(this._constraints.width.ideal)
+                ) {
+                    this._constraints.height = {
+                        ideal: constraints.height.ideal,
+                    };
+                    this._constraints.width = {
+                        ideal: constraints.width.ideal,
+                    };
                 }
             }
 
@@ -177,7 +186,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // soon as it's called.
         // NOTE: this.deviceId corresponds to the device id specified in GUM constraints and this._realDeviceId seems to
         // correspond to the id of a matching device from the available device list.
-        this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
+        this._realDeviceId = this.deviceId === "" ? undefined : this.deviceId;
 
         // The source name that will be signaled for this track.
         this._sourceName = null;
@@ -188,7 +197,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._trackMutedTS = 0;
 
-        this._onDeviceListWillChange = devices => {
+        this._onDeviceListWillChange = (devices) => {
             const oldRealDeviceId = this._realDeviceId;
 
             this._setRealDeviceIdFromDeviceList(devices);
@@ -197,16 +206,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 // Mark track as ended for those browsers that do not support
                 // "readyState" property. We do not touch tracks created with
                 // default device ID "".
-                (typeof this.getTrack().readyState === 'undefined'
-                    && typeof this._realDeviceId !== 'undefined'
-                    && !devices.find(d => d.deviceId === this._realDeviceId))
-
+                (typeof this.getTrack().readyState === "undefined" &&
+                    typeof this._realDeviceId !== "undefined" &&
+                    !devices.find((d) => d.deviceId === this._realDeviceId)) ||
                 // If there was an associated realDeviceID and after the device change the realDeviceId is undefined
                 // then the associated device has been disconnected and the _trackEnded flag needs to be set. In
                 // addition on some Chrome versions the readyState property is set after the device change event is
                 // triggered which causes issues in jitsi-meet with the selection of a new device because we don't
                 // detect that the old one was removed.
-                || (typeof oldRealDeviceId !== 'undefined' && typeof this._realDeviceId === 'undefined')
+                (typeof oldRealDeviceId !== "undefined" &&
+                    typeof this._realDeviceId === "undefined")
             ) {
                 this._trackEnded = true;
             }
@@ -216,14 +225,18 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED event. This is different from
         // handling this event for remote tracks (which are handled in RTC.js),
         // because there might be local tracks not attached to a conference.
-        if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable('output')) {
+        if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable("output")) {
             this._onAudioOutputDeviceChanged = this.setAudioOutput.bind(this);
             RTCUtils.addListener(
                 RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                this._onAudioOutputDeviceChanged);
+                this._onAudioOutputDeviceChanged,
+            );
         }
 
-        RTCUtils.addListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListWillChange);
+        RTCUtils.addListener(
+            RTCEvents.DEVICE_LIST_WILL_CHANGE,
+            this._onDeviceListWillChange,
+        );
 
         this._initNoDataFromSourceHandlers();
     }
@@ -246,8 +259,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // TPC and JingleSessionPC which would contain the queue and would notify the signaling layer when local SSRCs
         // are changed. This would help to separate XMPP from the RTC module.
         return new Promise((resolve, reject) => {
-            this.conference._addLocalTrackToPc(this)
-                .then(resolve, error => reject(new Error(error)));
+            this.conference
+                ._addLocalTrackToPc(this)
+                .then(resolve, (error) => reject(new Error(error)));
         });
     }
 
@@ -262,10 +276,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this.emit(NO_DATA_FROM_SOURCE, value);
 
-        logger.debug(`NO_DATA_FROM_SOURCE event with value ${value} detected for track: ${this}`);
+        logger.debug(
+            `NO_DATA_FROM_SOURCE event with value ${value} detected for track: ${this}`,
+        );
 
         // FIXME: Should we report all of those events
-        Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
+        Statistics.sendAnalytics(
+            createNoDataFromSourceEvent(this.getType(), value),
+        );
     }
 
     /**
@@ -279,24 +297,22 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return;
         }
 
-        this._setHandler('track_mute', () => {
+        this._setHandler("track_mute", () => {
             this._trackMutedTS = window.performance.now();
             this._fireNoDataFromSourceEvent();
         });
 
-        this._setHandler('track_unmute', () => {
+        this._setHandler("track_unmute", () => {
             this._fireNoDataFromSourceEvent();
-            Statistics.sendAnalyticsAndLog(
-                TRACK_UNMUTED,
-                {
-                    'media_type': this.getType(),
-                    'track_type': 'local',
-                    value: window.performance.now() - this._trackMutedTS
-                });
+            Statistics.sendAnalyticsAndLog(TRACK_UNMUTED, {
+                media_type: this.getType(),
+                track_type: "local",
+                value: window.performance.now() - this._trackMutedTS,
+            });
         });
 
         if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-            this._setHandler('track_ended', () => {
+            this._setHandler("track_ended", () => {
                 if (!this.isReceivingData()) {
                     this._fireNoDataFromSourceEvent();
                 }
@@ -346,9 +362,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
             return;
         }
-        this.conference._removeLocalTrackFromPc(this).then(
-            successCallback,
-            error => errorCallback(new Error(error)));
+        this.conference
+            ._removeLocalTrackFromPc(this)
+            .then(successCallback, (error) => errorCallback(new Error(error)));
     }
 
     /**
@@ -360,7 +376,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _sendMuteStatus(mute) {
         if (this.conference) {
-            this.conference._setTrackMuteStatus(this.getType(), this, mute) && this.conference.room.sendPresence();
+            this.conference._setTrackMuteStatus(this.getType(), this, mute) &&
+                this.conference.room.sendPresence();
         }
     }
 
@@ -387,8 +404,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         // In React Native we mute the camera by setting track.enabled but that doesn't
         // work for screen-share tracks, so do the remove-as-mute for those.
-        const doesVideoMuteByStreamRemove
-            = browser.isReactNative() ? this.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
+        const doesVideoMuteByStreamRemove = browser.isReactNative()
+            ? this.videoType === VideoType.DESKTOP
+            : browser.doesVideoMuteByStreamRemove();
 
         // In the multi-stream mode, desktop tracks are muted from jitsi-meet instead of being removed from the
         // conference. This is needed because we don't want the client to signal a source-remove to the remote peer for
@@ -408,22 +426,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
         } else if (muted) {
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
-                this._removeStreamFromConferenceAsMute(
-                    () => {
-                        if (this._streamEffect) {
-                            this._stopStreamEffect();
-                        }
+                this._removeStreamFromConferenceAsMute(() => {
+                    if (this._streamEffect) {
+                        this._stopStreamEffect();
+                    }
 
-                        // FIXME: Maybe here we should set the SRC for the
-                        // containers to something
-                        // We don't want any events to be fired on this stream
-                        this._unregisterHandlers();
-                        this.stopStream();
-                        this._setStream(null);
+                    // FIXME: Maybe here we should set the SRC for the
+                    // containers to something
+                    // We don't want any events to be fired on this stream
+                    this._unregisterHandlers();
+                    this.stopStream();
+                    this._setStream(null);
 
-                        resolve();
-                    },
-                    reject);
+                    resolve();
+                }, reject);
             });
         } else {
             logMuteInfo();
@@ -431,19 +447,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // This path is only for camera.
             const streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
-                devices: [ MediaType.VIDEO ],
-                effects: this._streamEffect ? [ this._streamEffect ] : [],
-                facingMode: this.getCameraFacingMode()
+                devices: [MediaType.VIDEO],
+                effects: this._streamEffect ? [this._streamEffect] : [],
+                facingMode: this.getCameraFacingMode(),
             };
 
-            promise
-                = RTCUtils.obtainAudioAndVideoPermissions(Object.assign(
-                    {},
-                    streamOptions,
-                    { constraints: { video: this._constraints } }));
+            promise = RTCUtils.obtainAudioAndVideoPermissions(
+                Object.assign({}, streamOptions, {
+                    constraints: { video: this._constraints },
+                }),
+            );
 
-            promise = promise.then(streamsInfo => {
-                const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
+            promise = promise.then((streamsInfo) => {
+                const streamInfo = streamsInfo.find(
+                    (info) => info.track.kind === this.getType(),
+                );
 
                 if (streamInfo) {
                     this._setStream(streamInfo.stream);
@@ -454,7 +472,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     if (this.videoType !== streamInfo.videoType) {
                         logger.warn(
                             `${this}: video type has changed after unmute!`,
-                            this.videoType, streamInfo.videoType);
+                            this.videoType,
+                            streamInfo.videoType,
+                        );
                         this.videoType = streamInfo.videoType;
                     }
                 } else {
@@ -465,22 +485,27 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._startStreamEffect(this._streamEffect);
                 }
 
-                this.containers.map(cont => RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
-                    logger.error(`Attach media failed for ${this} on video unmute!`);
-                }));
+                this.containers.map((cont) =>
+                    RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
+                        logger.error(
+                            `Attach media failed for ${this} on video unmute!`,
+                        );
+                    }),
+                );
 
                 return this._addStreamToConferenceAsUnmute();
             });
         }
 
-        return promise
-            .then(() => {
-                this._sendMuteStatus(muted);
+        return promise.then(() => {
+            this._sendMuteStatus(muted);
 
-                // Send the videoType message to the bridge.
-                this.isVideoTrack() && this.conference && this.conference._sendBridgeVideoTypeMessage(this);
-                this.emit(TRACK_MUTE_CHANGED, this);
-            });
+            // Send the videoType message to the bridge.
+            this.isVideoTrack() &&
+                this.conference &&
+                this.conference._sendBridgeVideoTypeMessage(this);
+            this.emit(TRACK_MUTE_CHANGED, this);
+        });
     }
 
     /**
@@ -496,15 +521,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
         const kind = `${track.kind}input`;
 
         // We need to match by deviceId as well, in case of multiple devices with the same label.
-        let device = devices.find(d => d.kind === kind && d.label === track.label && d.deviceId === this.deviceId);
+        let device = devices.find(
+            (d) =>
+                d.kind === kind &&
+                d.label === track.label &&
+                d.deviceId === this.deviceId,
+        );
 
-        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
+        if (!device && this._realDeviceId === "default") {
+            // the default device has been changed.
             // If the default device was 'A' and the default device is changed to 'B' the label for the track will
             // remain 'Default - A' but the label for the device in the device list will be updated to 'A'. That's
             // why in order to match it we need to remove the 'Default - ' part.
-            const label = (track.label || '').replace('Default - ', '');
+            const label = (track.label || "").replace("Default - ", "");
 
-            device = devices.find(d => d.kind === kind && d.label === label);
+            device = devices.find((d) => d.kind === kind && d.label === label);
         }
 
         if (device) {
@@ -566,13 +597,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     _switchCamera() {
-        if (this.isVideoTrack()
-                && this.videoType === VideoType.CAMERA
-                && typeof this.track._switchCamera === 'function') {
+        if (
+            this.isVideoTrack() &&
+            this.videoType === VideoType.CAMERA &&
+            typeof this.track._switchCamera === "function"
+        ) {
             this.track._switchCamera();
 
-            this._facingMode
-                = this._facingMode === CameraFacingMode.ENVIRONMENT
+            this._facingMode =
+                this._facingMode === CameraFacingMode.ENVIRONMENT
                     ? CameraFacingMode.USER
                     : CameraFacingMode.ENVIRONMENT;
         }
@@ -622,11 +655,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this.stopStream();
         }
 
-        RTCUtils.removeListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListWillChange);
+        RTCUtils.removeListener(
+            RTCEvents.DEVICE_LIST_WILL_CHANGE,
+            this._onDeviceListWillChange,
+        );
 
         if (this._onAudioOutputDeviceChanged) {
-            RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                this._onAudioOutputDeviceChanged);
+            RTCUtils.removeListener(
+                RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+                this._onAudioOutputDeviceChanged,
+            );
         }
 
         return super.dispose();
@@ -649,11 +687,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // it might still not return anything for 'facingMode'.
             const trackSettings = this.track.getSettings?.();
 
-            if (trackSettings && 'facingMode' in trackSettings) {
+            if (trackSettings && "facingMode" in trackSettings) {
                 return trackSettings.facingMode;
             }
 
-            if (typeof this._facingMode !== 'undefined') {
+            if (typeof this._facingMode !== "undefined") {
                 return this._facingMode;
             }
 
@@ -694,7 +732,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Number} the duration of the track in seconds
      */
     getDuration() {
-        return (Date.now() / 1000) - (this.metadata.timestamp / 1000);
+        return Date.now() / 1000 - this.metadata.timestamp / 1000;
     }
 
     /**
@@ -736,7 +774,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return this._trackEnded;
         }
 
-        return this.getTrack().readyState === 'ended' || this._trackEnded;
+        return this.getTrack().readyState === "ended" || this._trackEnded;
     }
 
     /**
@@ -779,8 +817,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {boolean} true if the stream is receiving data and false this otherwise.
      */
     isReceivingData() {
-        if (this.isVideoTrack()
-            && (this.isMuted() || this._stopStreamInProgress || this.videoType === VideoType.DESKTOP)) {
+        if (
+            this.isVideoTrack() &&
+            (this.isMuted() ||
+                this._stopStreamInProgress ||
+                this.videoType === VideoType.DESKTOP)
+        ) {
             return true;
         }
 
@@ -796,9 +838,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // For video blur enabled use the original video stream
         const stream = this._effectEnabled ? this._originalStream : this.stream;
 
-        return stream.getTracks().some(track =>
-            (!('readyState' in track) || track.readyState === 'live')
-                && (!('muted' in track) || track.muted !== true));
+        return stream
+            .getTracks()
+            .some(
+                (track) =>
+                    (!("readyState" in track) || track.readyState === "live") &&
+                    (!("muted" in track) || track.muted !== true),
+            );
     }
 
     /**
@@ -823,13 +869,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
         const iceConnectionState = tpc.getConnectionState();
 
-        if (this._testDataSent && iceConnectionState === 'connected') {
+        if (this._testDataSent && iceConnectionState === "connected") {
             setTimeout(() => {
                 if (!this._hasSentData) {
                     logger.warn(`${this} 'bytes sent' <= 0: \
                         ${bytesSent}`);
 
-                    Statistics.analytics.sendEvent(NO_BYTES_SENT, { 'media_type': this.getType() });
+                    Statistics.analytics.sendEvent(NO_BYTES_SENT, {
+                        media_type: this.getType(),
+                    });
                 }
             }, 3000);
             this._testDataSent = false;
@@ -853,16 +901,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     setEffect(effect) {
-        if (typeof this._streamEffect === 'undefined' && typeof effect === 'undefined') {
+        if (
+            typeof this._streamEffect === "undefined" &&
+            typeof effect === "undefined"
+        ) {
             return Promise.resolve();
         }
 
-        if (typeof effect !== 'undefined' && !effect.isEnabled(this)) {
-            return Promise.reject(new Error('Incompatible effect instance!'));
+        if (typeof effect !== "undefined" && !effect.isEnabled(this)) {
+            return Promise.reject(new Error("Incompatible effect instance!"));
         }
 
         if (this._setEffectInProgress === true) {
-            return Promise.reject(new Error('setEffect already in progress!'));
+            return Promise.reject(new Error("setEffect already in progress!"));
         }
 
         // In case we have an audio track that is being enhanced with an effect, we still want it to be applied,
@@ -878,9 +929,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         if (!conference) {
             this._switchStreamEffect(effect);
             if (this.isVideoTrack()) {
-                this.containers.forEach(cont => {
+                this.containers.forEach((cont) => {
                     RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
-                        logger.error(`Attach media failed for ${this} when trying to set effect.`);
+                        logger.error(
+                            `Attach media failed for ${this} when trying to set effect.`,
+                        );
                     });
                 });
             }
@@ -890,14 +943,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._setEffectInProgress = true;
 
-        return conference._removeLocalTrackFromPc(this)
+        return conference
+            ._removeLocalTrackFromPc(this)
             .then(() => {
                 this._switchStreamEffect(effect);
                 if (this.isVideoTrack()) {
-                    this.containers.forEach(cont => {
-                        RTCUtils.attachMediaStream(cont, this.stream).catch(() => {
-                            logger.error(`Attach media failed for ${this} when trying to set effect.`);
-                        });
+                    this.containers.forEach((cont) => {
+                        RTCUtils.attachMediaStream(cont, this.stream).catch(
+                            () => {
+                                logger.error(
+                                    `Attach media failed for ${this} when trying to set effect.`,
+                                );
+                            },
+                        );
                     });
                 }
 
@@ -906,12 +964,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
             .then(() => {
                 this._setEffectInProgress = false;
             })
-            .catch(error => {
+            .catch((error) => {
                 // Any error will be not recovarable and will trigger CONFERENCE_FAILED event. But let's try to cleanup
                 // everyhting related to the effect functionality.
                 this._setEffectInProgress = false;
                 this._switchStreamEffect();
-                logger.error('Failed to switch to the new stream!', error);
+                logger.error("Failed to switch to the new stream!", error);
                 throw error;
             });
     }
