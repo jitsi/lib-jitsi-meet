@@ -258,7 +258,7 @@ export default class JibriSession {
         })
             .c("jibri", {
                 xmlns: "http://jitsi.org/protocol/jibri",
-                action: action,
+                action,
                 app_data: appData,
                 recording_mode: this._mode,
                 streamid: streamId,

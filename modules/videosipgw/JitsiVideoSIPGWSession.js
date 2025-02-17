@@ -133,7 +133,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     _sendJibriIQ(action) {
         const attributes = {
             xmlns: "http://jitsi.org/protocol/jibri",
-            action: action,
+            action,
             sipaddress: this.sipAddress,
         };
 
