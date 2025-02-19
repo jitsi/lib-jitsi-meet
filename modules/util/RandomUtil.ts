@@ -74,4 +74,4 @@ const RandomUtil = {
     randomInt
 };
 
-module.exports = RandomUtil;
+export default RandomUtil;
