@@ -36,6 +36,8 @@ const ScreenObtainer = {
         if (!this.obtainStream) {
             logger.info('Desktop sharing disabled');
         }
+
+        this._electronSkipDisplayMedia = false;
     },
 
     /**
@@ -46,11 +48,13 @@ const ScreenObtainer = {
      * @private
      */
     _createObtainStreamMethod() {
+        const supportsGetDisplayMedia = browser.supportsGetDisplayMedia();
+
         if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
-        } else if (browser.isReactNative() && browser.supportsGetDisplayMedia()) {
+        } else if (browser.isReactNative() && supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMediaRN;
-        } else if (browser.supportsGetDisplayMedia()) {
+        } else if (supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMedia;
         }
         logger.log('Screen sharing not supported on ', browser.getName());
@@ -92,7 +96,24 @@ const ScreenObtainer = {
      * @param {Object} options - Optional parameters.
      */
     obtainScreenOnElectron(onSuccess, onFailure, options = {}) {
-        if (window.JitsiMeetScreenObtainer && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+        if (!this._electronSkipDisplayMedia) {
+            // Fall-back to the old API in case of not supported error. This can happen if
+            // an old Electron SDK is used with a new Jitsi Meet + lib-jitsi-meet version.
+            this.obtainScreenFromGetDisplayMedia(onSuccess, err => {
+                if (err.name === JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR) {
+                    // Make sure we don't recurse infinitely.
+                    this._electronSkipDisplayMedia = true;
+                    this.obtainScreenOnElectron(onSuccess, onFailure);
+                } else {
+                    onFailure(err);
+                }
+            });
+
+            return;
+        }
+
+        // TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
+        if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
             const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
@@ -286,22 +307,29 @@ const ScreenObtainer = {
             })
             .catch(error => {
                 const errorDetails = {
-                    errorName: error && error.name,
-                    errorMsg: error && error.message,
-                    errorStack: error && error.stack
+                    errorCode: error.code,
+                    errorName: error.name,
+                    errorMsg: error.message,
+                    errorStack: error.stack
                 };
 
-                logger.error('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
+                logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
 
-                if (errorDetails.errorMsg && errorDetails.errorMsg.indexOf('denied by system') !== -1) {
+                if (errorDetails.code === DOMException.NOT_SUPPORTED_ERR) {
+                    // This error is thrown when an Electron client has not set a permissions handler.
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR));
+                } else if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
-
-                    return;
+                } else if (errorDetails.errorMsg === 'NotReadableError') {
+                    // This can happen under some weird conditions:
+                    //  - https://issues.chromium.org/issues/369103607
+                    //  - https://issues.chromium.org/issues/353555347
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR));
+                } else {
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
                 }
-
-                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
             });
     },
 

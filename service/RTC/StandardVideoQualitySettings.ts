@@ -30,6 +30,17 @@ export const SIM_LAYERS = [
 ];
 
 /**
+ * The ssrc-group semantics for SSRCs related to the video streams.
+ */
+export enum SSRC_GROUP_SEMANTICS {
+    // The semantics for group of SSRCs belonging to the same stream, primary and RTX.
+    FID = 'FID',
+
+    // The semantics for group with primary SSRCs for each of the simulcast streams.
+    SIM = 'SIM'
+}
+
+/**
  * Standard scalability mode settings for different video codecs and the default bitrates.
  */
 export const STANDARD_CODEC_SETTINGS = {

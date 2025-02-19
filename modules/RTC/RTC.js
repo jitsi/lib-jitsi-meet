@@ -305,7 +305,7 @@ export default class RTC extends Listenable {
             return;
         }
 
-        this._receiverVideoConstraints = constraints;
+        this._receiverVideoConstraints = cloneDeep(constraints);
 
         if (this._channel && this._channel.isOpen()) {
             this._channel.sendReceiverVideoConstraintsMessage(constraints);
@@ -629,14 +629,6 @@ export default class RTC extends Listenable {
      */
     static getCurrentlyAvailableMediaDevices() {
         return RTCUtils.getCurrentlyAvailableMediaDevices();
-    }
-
-    /**
-     * Returns whether available devices have permissions granted
-     * @returns {Boolean}
-     */
-    static arePermissionsGrantedForAvailableDevices() {
-        return RTCUtils.arePermissionsGrantedForAvailableDevices();
     }
 
     /**

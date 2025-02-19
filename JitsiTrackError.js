@@ -8,6 +8,8 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_USER_CANCELED]
     = 'User canceled screen sharing prompt';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
     = 'Unknown error from screensharing';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]
+    = 'Not supported';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
     = 'Unkown error from desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
@@ -21,7 +23,7 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NOT_FOUND]
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CONSTRAINT_FAILED]
     = 'Constraint could not be satisfied: ';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TIMEOUT]
-    = 'Could not start media source. Timeout occured!';
+    = 'Could not start media source. Timeout occurred!';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
     = 'Track has been already disposed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]

@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
 import SDPUtil from './SDPUtil';
 import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
@@ -48,7 +49,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
         value: primarySsrcMsid
     });
     mLine.addSSRCGroup({
-        semantics: 'FID',
+        semantics: SSRC_GROUP_SEMANTICS.FID,
         ssrcs: `${primarySsrc} ${rtxSsrc}`
     });
 }
@@ -188,10 +189,10 @@ export default class RtxModifier {
             if (videoMLine.direction !== MediaDirection.RECVONLY
                 && videoMLine.getSSRCCount()
                 && videoMLine.containsAnySSRCGroups()) {
-                const fidGroups = videoMLine.findGroups('FID');
+                const fidGroups = videoMLine.findGroups(SSRC_GROUP_SEMANTICS.FID);
 
                 // Remove the fid groups from the mline
-                videoMLine.removeGroupsBySemantics('FID');
+                videoMLine.removeGroupsBySemantics(SSRC_GROUP_SEMANTICS.FID);
 
                 // Get the rtx ssrcs and remove them from the mline
                 for (const fidGroup of fidGroups) {

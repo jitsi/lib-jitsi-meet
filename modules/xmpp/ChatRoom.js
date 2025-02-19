@@ -605,6 +605,10 @@ export default class ChatRoom extends Listenable {
                 member.features = this._extractFeatures(node);
                 break;
             }
+            case 'jitsi_participant_region': {
+                member.region = node.value;
+                break;
+            }
             case 'stat': {
                 const { attributes } = node;
 
@@ -650,6 +654,10 @@ export default class ChatRoom extends Listenable {
                 // set correct initial state of locked
                 if (this.password) {
                     this.locked = true;
+                }
+
+                if (member.region && this.options?.deploymentInfo) {
+                    this.options.deploymentInfo.userRegion = member.region;
                 }
 
                 // Re-send presence in case any presence updates were added,
@@ -772,6 +780,8 @@ export default class ChatRoom extends Listenable {
             }
         }
 
+        const participantProperties = new Map();
+
         // after we had fired member or room joined events, lets fire events
         // for the rest info we got in presence
         for (let i = 0; i < nodes.length; i++) {
@@ -850,9 +860,22 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
-            default:
-                this.processNode(node, from);
+            default: {
+                if (node.tagName.startsWith('jitsi_participant_')) {
+                    participantProperties
+                        .set(node.tagName.substring('jitsi_participant_'.length), node.value);
+                } else {
+                    this.processNode(node, from);
+                }
             }
+            }
+        }
+
+        // All participant properties are in `participantProperties`, call the event handlers now.
+        const participantId = Strophe.getResourceFromJid(from);
+
+        for (const [ key, value ] of participantProperties) {
+            this.participantPropertyListener(participantId, key, value);
         }
 
         // Trigger status message update if necessary
@@ -915,17 +938,11 @@ export default class ChatRoom extends Listenable {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe
         try {
-            let tagHandlers = this.presHandlers[node.tagName];
+            const tagHandlers = this.presHandlers[node.tagName] ?? [];
 
-            if (node.tagName.startsWith('jitsi_participant_')) {
-                tagHandlers = [ this.participantPropertyListener ];
-            }
-
-            if (tagHandlers) {
-                tagHandlers.forEach(handler => {
-                    handler(node, Strophe.getResourceFromJid(from), from);
-                });
-            }
+            tagHandlers.forEach(handler => {
+                handler(node, Strophe.getResourceFromJid(from), from);
+            });
         } catch (e) {
             logger.error(`Error processing:${node.tagName} node.`, e);
         }
@@ -1005,10 +1022,17 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     setSubject(subject) {
+        const valueToProcess = subject ? subject.trim() : subject;
+
+        if (valueToProcess === this.subject) {
+            // subject already set to the new value
+            return;
+        }
+
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
-        msg.c('subject', subject);
+        msg.c('subject', valueToProcess);
         this.connection.send(msg);
     }
 
@@ -1192,6 +1216,7 @@ export default class ChatRoom extends Listenable {
             const subjectText = subject.text();
 
             if (subjectText || subjectText === '') {
+                this.subject = subjectText.trim();
                 this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
                 logger.log(`Subject is changed to ${subjectText}`);
             }

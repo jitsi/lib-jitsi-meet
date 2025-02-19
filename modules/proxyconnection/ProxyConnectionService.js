@@ -218,7 +218,7 @@ export default class ProxyConnectionService {
      * attempted or started, and to which an iq with error details should be
      * sent.
      * @param {string} errorType - The constant indicating the type of the error
-     * that occured.
+     * that occurred.
      * @param {string} details - Optional additional data about the error.
      * @private
      * @returns {void}

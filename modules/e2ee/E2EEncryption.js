@@ -37,9 +37,12 @@ export class E2EEncryption {
             return false;
         }
 
-        return !(config.testing && config.testing.disableE2EE)
-            && (browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform()));
+        if (e2ee.disabled || config.testing?.disableE2EE) {
+            return false;
+        }
+
+        return browser.supportsInsertableStreams()
+                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform());
     }
 
     /**

@@ -2,7 +2,6 @@
 import * as transform from 'sdp-transform';
 
 import { MockPeerConnection } from '../RTC/MockClasses';
-import FeatureFlags from '../flags/FeatureFlags';
 
 import LocalSdpMunger from './LocalSdpMunger';
 import { default as SampleSdpStrings } from './SampleSdpStrings.js';
@@ -26,7 +25,6 @@ describe('TransformSdpsForUnifiedPlan', () => {
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        FeatureFlags.init({ });
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('StripSsrcs', () => {
@@ -38,7 +36,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 type: 'offer',
                 sdp: sdpStr
             });
-            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, {});
             const newSdp = transform.parse(transformedDesc.sdp);
             const audioSsrcs = getSsrcLines(newSdp, 'audio');
             const videoSsrcs = getSsrcLines(newSdp, 'video');
@@ -56,7 +54,20 @@ describe('TransformSdpsForUnifiedPlan', () => {
                     type: 'offer',
                     sdp: sdpStr
                 });
-                const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+                const ssrcMap = new Map();
+
+                ssrcMap.set('sRdpsdg-v0', {
+                    ssrcs: [ 1757014965, 1479742055, 1089111804 ],
+                    msid: 'sRdpsdg-video-0',
+                    groups: [ {
+                        semantics: 'SIM',
+                        ssrcs: [ 1757014965, 1479742055, 1089111804 ] } ]
+                });
+                ssrcMap.set('sRdpsdg-a0', {
+                    ssrcs: [ 124723944 ],
+                    msid: 'sRdpsdg-audio-0'
+                });
+                const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, ssrcMap);
                 const newSdp = transform.parse(transformedDesc.sdp);
 
                 audioSsrcs = getSsrcLines(newSdp, 'audio');
@@ -79,16 +90,27 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 type: 'offer',
                 sdp: sdpStr
             });
-            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+            const ssrcMap = new Map();
+
+            ssrcMap.set('sRdpsdg-v0', {
+                ssrcs: [ 984899560 ],
+                msid: 'sRdpsdg-video-0'
+            });
+            ssrcMap.set('sRdpsdg-a0', {
+                ssrcs: [ 124723944 ],
+                msid: 'sRdpsdg-audio-0'
+            });
+            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, ssrcMap);
             const newSdp = transform.parse(transformedDesc.sdp);
 
             const videoSsrcs = getSsrcLines(newSdp, 'video');
 
             for (const ssrcLine of videoSsrcs) {
                 if (ssrcLine.attribute === 'msid') {
-                    const msid = ssrcLine.value.split(' ')[0];
+                    const msid = ssrcLine.value;
 
-                    expect(msid).toBe(`${localEndpointId}-video-0-${tpc.id}`);
+                    expect(msid)
+                        .toBe(`${localEndpointId}-video-0-${tpc.id} bdbd2c0a-7959-4578-8db5-9a6a1aec4ecf-${tpc.id}`);
                 }
             }
         });
@@ -102,7 +124,17 @@ describe('TransformSdpsForUnifiedPlan', () => {
                 type: 'offer',
                 sdp: sdpStr
             });
-            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+            const ssrcMap = new Map();
+
+            ssrcMap.set('sRdpsdg-v0', {
+                ssrcs: [ 984899560 ],
+                msid: 'sRdpsdg-video-0'
+            });
+            ssrcMap.set('sRdpsdg-a0', {
+                ssrcs: [ 124723944 ],
+                msid: 'sRdpsdg-audio-0'
+            });
+            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, ssrcMap);
             const newSdp = transform.parse(transformedDesc.sdp);
             const videoSsrcs = getSsrcLines(newSdp, 'video');
             const msidExists = videoSsrcs.find(s => s.attribute === 'msid');
@@ -124,7 +156,17 @@ describe('Transform msids for source-name signaling', () => {
             type: 'offer',
             sdp: sdpStr
         });
-        const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc);
+        const ssrcMap = new Map();
+
+        ssrcMap.set('sRdpsdg-v0', {
+            ssrcs: [ 1757014965, 984899560, 1479742055, 855213044, 1089111804, 2963867077 ],
+            msid: 'sRdpsdg-video-0'
+        });
+        ssrcMap.set('sRdpsdg-a0', {
+            ssrcs: [ 124723944 ],
+            msid: 'sRdpsdg-audio-0'
+        });
+        const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, ssrcMap);
         const newSdp = transform.parse(transformedDesc.sdp);
 
         audioMsidLine = getSsrcLines(newSdp, 'audio').find(ssrc => ssrc.attribute === 'msid')?.value;
@@ -134,7 +176,6 @@ describe('Transform msids for source-name signaling', () => {
     };
 
     it('should transform', () => {
-        FeatureFlags.init({ });
         transformStreamIdentifiers();
 
         expect(audioMsid).toBe('sRdpsdg-audio-0-1');

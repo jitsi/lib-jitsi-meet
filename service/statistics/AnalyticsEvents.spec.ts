@@ -13,6 +13,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         ACTION_JINGLE_SI_RECEIVED,
         ACTION_JINGLE_SI_TIMEOUT,
         ACTION_JINGLE_TERMINATE,
+        ACTION_JVB_ICE_FAILED,
         ACTION_P2P_DECLINED,
         ACTION_P2P_ESTABLISHED,
         ACTION_P2P_FAILED,
@@ -33,6 +34,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         createE2eRttEvent,
         createFocusLeftEvent,
         createGetUserMediaEvent,
+        createJvbIceFailedEvent,
         createParticipantConnectionStatusEvent,
         createTrackStreamingStatusEvent,
         createJingleEvent,
@@ -59,6 +61,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( ACTION_JINGLE_SI_RECEIVED ).toBe( 'session-initiate.received' );
         expect( ACTION_JINGLE_SI_TIMEOUT ).toBe( 'session-initiate.timeout' );
         expect( ACTION_JINGLE_TERMINATE ).toBe( 'terminate' );
+        expect( ACTION_JVB_ICE_FAILED ).toBe( 'jvb.ice.failed' );
         expect( ACTION_P2P_DECLINED ).toBe( 'decline' );
         expect( ACTION_P2P_ESTABLISHED ).toBe( 'established' );
         expect( ACTION_P2P_FAILED ).toBe( 'failed' );
@@ -84,6 +87,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED ).toBe( 'session-initiate.received' );
         expect( AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT ).toBe( 'session-initiate.timeout' );
         expect( AnalyticsEvents.ACTION_JINGLE_TERMINATE ).toBe( 'terminate' );
+        expect( AnalyticsEvents.ACTION_JVB_ICE_FAILED ).toBe( 'jvb.ice.failed' );
         expect( AnalyticsEvents.ACTION_P2P_DECLINED ).toBe( 'decline' );
         expect( AnalyticsEvents.ACTION_P2P_ESTABLISHED ).toBe( 'established' );
         expect( AnalyticsEvents.ACTION_P2P_FAILED ).toBe( 'failed' );
@@ -104,6 +108,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( typeof ( createE2eRttEvent ) ).toBe( 'function' );
         expect( typeof ( createFocusLeftEvent ) ).toBe( 'function' );
         expect( typeof ( createGetUserMediaEvent ) ).toBe( 'function' );
+        expect( typeof ( createJvbIceFailedEvent ) ).toBe( 'function' );
         expect( typeof ( createParticipantConnectionStatusEvent ) ).toBe( 'function' );
         expect( typeof ( createTrackStreamingStatusEvent ) ).toBe( 'function' );
         expect( typeof ( createJingleEvent ) ).toBe( 'function' );

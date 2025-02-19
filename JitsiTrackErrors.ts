@@ -43,6 +43,12 @@ export enum JitsiTrackErrors {
     SCREENSHARING_GENERIC_ERROR = 'gum.screensharing_generic_error',
 
     /**
+     * Error in getDisplayMedia when not supported. Can happen in Electron if no
+     * permission handler was set.
+     */
+    SCREENSHARING_NOT_SUPPORTED_ERROR = 'gdm.screen_sharing_not_supported',
+
+    /**
      * An error which indicates that user canceled screen sharing window
      * selection dialog.
      */
@@ -89,6 +95,7 @@ export const GENERAL = JitsiTrackErrors.GENERAL;
 export const NOT_FOUND = JitsiTrackErrors.NOT_FOUND;
 export const PERMISSION_DENIED = JitsiTrackErrors.PERMISSION_DENIED;
 export const SCREENSHARING_GENERIC_ERROR = JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR;
+export const SCREENSHARING_NOT_SUPPORTED_ERROR = JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR;
 export const SCREENSHARING_USER_CANCELED = JitsiTrackErrors.SCREENSHARING_USER_CANCELED;
 export const TIMEOUT = JitsiTrackErrors.TIMEOUT;
 export const TRACK_IS_DISPOSED = JitsiTrackErrors.TRACK_IS_DISPOSED;
