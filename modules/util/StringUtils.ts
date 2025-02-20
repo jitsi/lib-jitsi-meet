@@ -5,7 +5,7 @@
  * @param {string} The string to return a hash of.
  * @return {Number} the integer hash code of the string.
  */
-function integerHash(string) {
+function integerHash(string: string) {
     if (!string) {
         return 0;
     }
@@ -21,4 +21,4 @@ function integerHash(string) {
     return hash;
 }
 
-module.exports = { integerHash };
+export default integerHash;
