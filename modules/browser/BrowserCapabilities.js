@@ -187,7 +187,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsDDExtHeaders() {
-        return !this.isFirefox();
+        return !(this.isFirefox() && this.isVersionLessThan('136'));
     }
 
     /**
@@ -243,7 +243,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsScalabilityModeAPI() {
-        return this.isChromiumBased() && this.isEngineVersionGreaterThan(112);
+        return (this.isChromiumBased() && this.isEngineVersionGreaterThan(112))
+            || (this.isFirefox() && this.isVersionGreaterThan(135));
     }
 
     /**
@@ -256,12 +257,12 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Firefox and Safari
-     * because of issues with rendering. Please check https://bugzilla.mozilla.org/show_bug.cgi?id=1492500,
-     * https://bugs.webkit.org/show_bug.cgi?id=231071 and https://bugs.webkit.org/show_bug.cgi?id=231074 for details.
+     * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
+     * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
+     * details.
      */
     supportsVP9() {
-        return this.isChromiumBased() || this.isReactNative();
+        return !(this.isWebKitBased() || (this.isFirefox() && this.isVersionLessThan('136')));
     }
 
     /**
