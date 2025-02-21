@@ -27,6 +27,7 @@ import RTCUtils from './RTCUtils';
 import JitsiConference from '../../JitsiConference';
 import TraceablePeerConnection from './TraceablePeerConnection';
 import { effect } from 'zod';
+import BrowserCapabilities from '../browser/BrowserCapabilities';
 
 const logger = getLogger(__filename);
 
@@ -165,10 +166,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     };
                 }
 
-                
+                // Check if constraints.height and constraints.width are of type object before accessing ideal
                 if (typeof this._constraints.height !== 'object' || typeof this._constraints.width !== 'object') {
-                    this._constraints.height = { ideal: constraints.height.ideal };
-                    this._constraints.width = { ideal: constraints.width.ideal };
+                    // Ensure constraints.height and constraints.width are numbers before assigning ideal
+                    this._constraints.height = { ideal: typeof constraints.height === 'number' ? constraints.height : undefined };
+                    this._constraints.width = { ideal: typeof constraints.width === 'number' ? constraints.width : undefined };
                 }
             }
 
@@ -176,7 +178,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // picked for the given constraints, fallback to the constraints if MediaStreamTrack.getSettings() doesn't
             // return the height.
             this.resolution = this.getHeight();
-            if (isNaN(this.resolution) && this._constraints.height?.ideal) {
+            if (isNaN(this.resolution) && this._constraints.height && typeof this._constraints.height === 'object' && this._constraints.height.ideal) {
                 this.resolution = this._constraints.height.ideal;
             }
             this.maxEnabledResolution = this.resolution;
@@ -437,6 +439,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         // In React Native we mute the camera by setting track.enabled but that doesn't
         // work for screen-share tracks, so do the remove-as-mute for those.
+        
         const doesVideoMuteByStreamRemove
             = browser.isReactNative() ? this.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
 
@@ -481,18 +484,26 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // This path is only for camera.
             const streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
-                devices: [ MediaType.VIDEO ],
-                effects: this._streamEffect ? [ this._streamEffect ] : [],
-                facingMode: this.getCameraFacingMode()
+                devices: [MediaType.VIDEO],
+                effects: this._streamEffect ? [this._streamEffect] : [],
+                facingMode: this.getCameraFacingMode(),
+                constraints: { video: this._constraints },
+                desktopSharingFrameRate: { min: 5, max: 30 },
+                desktopSharingSourceDevice: 'your-source-device-id',
+                desktopSharingSources: ['screen', 'window']
             };
 
-            promise
-                = RTCUtils.obtainAudioAndVideoPermissions(Object.assign(
-                    {},
-                    streamOptions,
-                    { constraints: { video: this._constraints } }));
+            promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
 
-            promise = promise.then(streamsInfo => {
+            // Define the expected structure of the stream info
+            // type StreamInfo = {
+            //     track: MediaStreamTrack;
+            //     videoType?: VideoType; // Assuming videoType is optional
+            //     Add any other properties that are expected in the stream info
+            // };
+
+            //any type is assigned to streamsInfo because it is saying something like in promise<void> it is not assignable this
+            promise = promise.then((streamsInfo: any) => {
                 const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
 
                 if (streamInfo) {
