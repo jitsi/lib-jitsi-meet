@@ -315,7 +315,7 @@ const ScreenObtainer = {
 
                 logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
 
-                if (errorDetails.code === DOMException.NOT_SUPPORTED_ERR) {
+                if (errorDetails.errorCode === DOMException.NOT_SUPPORTED_ERR) {
                     // This error is thrown when an Electron client has not set a permissions handler.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR));
                 } else if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {

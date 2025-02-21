@@ -222,7 +222,9 @@ export class TPCUtils {
         // https://hg.mozilla.org/mozilla-central/rev/b0348f1f8d7197fb87158ba74542d28d46133997
         // This revert seems to be applied only to camera tracks, the desktop stream encodings still have the
         // resolution order of 4:2:1.
-        if (browser.isFirefox() && (videoType === VideoType.DESKTOP || browser.isVersionLessThan(117))) {
+        if (browser.isFirefox()
+            && !browser.supportsScalabilityModeAPI()
+            && (videoType === VideoType.DESKTOP || browser.isVersionLessThan(117))) {
             effectiveBitrates = effectiveBitrates.reverse();
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }

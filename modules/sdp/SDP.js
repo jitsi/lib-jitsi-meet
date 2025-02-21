@@ -95,8 +95,18 @@ export default class SDP {
             updatedMidIndices.push(idx);
 
             if (isAdd) {
+                let updatedMsid = msid;
+
+                // If the msid is not in the <stream ID> <track ID> format, create msid in that format.
+                // Chrome's older versions (upto 117) expect the msid to be in this format.
+                if (msid.split(' ').length !== 2
+                    && browser.isChromiumBased()
+                    && browser.isEngineVersionLessThan(117)) {
+                    updatedMsid = `${msid} ${msid}-${idx}`;
+                }
+
                 ssrcList.forEach(ssrc => {
-                    this.media[idx] += `a=ssrc:${ssrc} msid:${msid}\r\n`;
+                    this.media[idx] += `a=ssrc:${ssrc} msid:${updatedMsid}\r\n`;
                 });
                 groups?.forEach(group => {
                     this.media[idx] += `a=ssrc-group:${group.semantics} ${group.ssrcs.join(' ')}\r\n`;

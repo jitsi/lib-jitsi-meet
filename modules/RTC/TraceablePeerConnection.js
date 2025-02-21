@@ -1332,7 +1332,7 @@ TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator =
     }
 
     // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
-    if (browser.isFirefox() && webrtcStream) {
+    if (browser.isFirefox() && webrtcStream && this.doesTrueSimulcast(track)) {
         await this._setEncodings(track);
     }
 };
@@ -1644,17 +1644,17 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack, is
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
             // That's why we need keep the direction to SENDRECV for FF.
             //
-            // NOTE: If we return back to the approach of not removing the track for FF and instead using the
-            // enabled property for mute or stopping screensharing we may need to change the direction to
+            // NOTE: If we return to the approach of not removing the track for FF and instead using the
+            // enabled property for muting the track, we may need to change the direction to
             // RECVONLY if FF still sends the media even though the enabled flag is set to false.
             transceiver.direction
                 = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
 
-            // Avoid re-configuring the encodings on Chromium/Safari, this is needed only on Firefox.
+            // Configure simulcast encodings on Firefox when a track is added to the peerconnection for the first time.
             const configureEncodingsPromise
-                = !newTrack || browser.usesSdpMungingForSimulcast()
-                    ? Promise.resolve()
-                    : this._setEncodings(newTrack);
+                = browser.isFirefox() && !oldTrack && newTrack && this.doesTrueSimulcast(newTrack)
+                    ? this._setEncodings(newTrack)
+                    : Promise.resolve();
 
             return configureEncodingsPromise.then(() => this.isP2P);
         });
