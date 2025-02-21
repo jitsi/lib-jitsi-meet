@@ -164,7 +164,7 @@ export default class JitsiTrack extends EventEmitter {
 
         this.stream = stream;
 
-        // TODO Practically, that's like the opposite of _unregisterHandlers
+        // TODO Practically, that's like the opposite of unregisterHandlers
         // i.e. may be abstracted into a function/method called
         // _registerHandlers for clarity and easing the maintenance of the two
         // pieces of source code.
@@ -180,9 +180,9 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Unregisters all event handlers bound to the underlying media stream/track
-     * @private
+     * @public
      */
-    _unregisterHandlers() {
+    unregisterHandlers() {
         if (!this.stream) {
             logger.warn(
                 `${this}: unable to unregister handlers - no stream object`);

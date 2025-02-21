@@ -1,6 +1,7 @@
 export default class BrowserCapabilities {
   doesVideoMuteByStreamRemove: () => boolean;
   isWebKitBased: () => boolean;
+  isReactNative: () => boolean;
   isChromiumBased: () => boolean;
   isTwa: () => boolean;
   isSupported: () => boolean;
