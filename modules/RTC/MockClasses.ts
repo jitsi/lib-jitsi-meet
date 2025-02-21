@@ -1,6 +1,8 @@
 import transform from 'sdp-transform';
 
 import Listenable from '../util/Listenable';
+import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 
 /* eslint-disable no-empty-function */
 /* eslint-disable max-len */
@@ -12,8 +14,14 @@ class MockRTCPeerConnection {
     /**
      * local description SDP.
      */
-    get localDescription() {
-        return { sdp: [
+    private _localDescription: { sdp: string };
+
+    get localDescription(): { sdp: string } {
+        return this._localDescription;
+    }
+
+    constructor() {
+        this._localDescription = { sdp: [
             'v=0\r\n',
             'o=- 2074571967553371465 5 IN IP4 127.0.0.1\r\n',
             's=-\r\n',
@@ -103,6 +111,10 @@ class MockRTCPeerConnection {
  * Mock {@link TraceablePeerConnection} - add things as needed, but only things useful for all tests.
  */
 export class MockPeerConnection {
+    private id: string;
+    private _usesUnifiedPlan: boolean;
+    private peerconnection: MockRTCPeerConnection;
+    private _simulcast: boolean;
 
     /**
      * Constructor.
@@ -111,7 +123,7 @@ export class MockPeerConnection {
      * @param {boolean} usesUnifiedPlan
      * @param {boolean} simulcast
      */
-    constructor(id, usesUnifiedPlan, simulcast) {
+    constructor(id: string, usesUnifiedPlan: boolean, simulcast: boolean) {
         this.id = id;
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
@@ -123,7 +135,7 @@ export class MockPeerConnection {
      *
      * @returns {Object}
      */
-    get localDescription() {
+    get localDescription(): { sdp: string } {
         return {
             sdp: ''
         };
@@ -134,7 +146,7 @@ export class MockPeerConnection {
      *
      * @returns {Object}
      */
-    get remoteDescription() {
+    get remoteDescription(): { sdp: string } {
         return {
             sdp: ''
         };
@@ -145,7 +157,7 @@ export class MockPeerConnection {
      * @param {JitsiLocalTrack} localTrack
      * @returns {number}
      */
-    calculateExpectedSendResolution(localTrack) {
+    calculateExpectedSendResolution(localTrack: MockJitsiLocalTrack): number {
         return localTrack.getCaptureResolution();
     }
 
@@ -154,7 +166,7 @@ export class MockPeerConnection {
      *
      * @returns {Promise<Object>}
      */
-    createAnswer() {
+    createAnswer(): Promise<object> {
         return Promise.resolve(/* answer */{});
     }
 
@@ -162,7 +174,7 @@ export class MockPeerConnection {
      * {@link TraceablePeerConnection.doesTrueSimulcast}.
      * @returns {boolean}
      */
-    doesTrueSimulcast() {
+    doesTrueSimulcast(): boolean {
         return false;
     }
 
@@ -170,7 +182,7 @@ export class MockPeerConnection {
      * Returns the list of the codecs negotiated.
      * @returns {Array<string>}
      */
-    getConfiguredVideoCodecs() {
+    getConfiguredVideoCodecs(): string[] {
         const sdp = this.peerconnection.localDescription?.sdp;
 
         if (!sdp) {
@@ -186,7 +198,7 @@ export class MockPeerConnection {
     /**
      * {@link TraceablePeerConnection.getDesiredMediaDirection}.
      */
-    getDesiredMediaDirection() {
+    getDesiredMediaDirection(): string {
         return 'sendrecv';
     }
 
@@ -195,7 +207,7 @@ export class MockPeerConnection {
      *
      * @returns {boolean}
      */
-    isSpatialScalabilityOn() {
+    isSpatialScalabilityOn(): boolean {
         return this._simulcast;
     }
 
@@ -204,7 +216,7 @@ export class MockPeerConnection {
      *
      * @returns {void}
      */
-    processLocalSdpForTransceiverInfo() {
+    processLocalSdpForTransceiverInfo(): void {
     }
 
     /**
@@ -212,7 +224,7 @@ export class MockPeerConnection {
      *
      * @returns {Promise<void>}
      */
-    setLocalDescription() {
+    setLocalDescription(): Promise<void> {
         return Promise.resolve();
     }
 
@@ -221,40 +233,40 @@ export class MockPeerConnection {
      *
      * @returns {Promise<void>}
      */
-    setRemoteDescription() {
+    setRemoteDescription(): Promise<void> {
         return Promise.resolve();
     }
 
     /**
      * {@link TraceablePeerConnection.setSenderVideoConstraints}.
      */
-    setSenderVideoConstraints() {
+    setSenderVideoConstraints(): void {
     }
 
     /**
      * {@link TraceablePeerConnection.setVideoTransferActive}.
      */
-    setVideoTransferActive() {
+    setVideoTransferActive(): boolean {
         return false;
     }
 
     /**
      * {@link TraceablePeerConnection.updateRemoteSources}.
      */
-    updateRemoteSources() {
+    updateRemoteSources(): void {
     }
 
     /**
      * {@link TraceablePeerConnection.usesUnifiedPlan}.
      */
-    usesUnifiedPlan() {
+    usesUnifiedPlan(): boolean {
         return this._usesUnifiedPlan;
     }
 
     /**
      * {@link TraceablePeerConnection.getLocalVideoTracks}.
      */
-    getLocalVideoTracks() {
+    getLocalVideoTracks(): any[] {
         return [];
     }
 }
@@ -263,15 +275,17 @@ export class MockPeerConnection {
  * Mock {@link RTC} - add things as needed, but only things useful for all tests.
  */
 export class MockRTC extends Listenable {
+    private pc: MockPeerConnection;
+    private forwardedSources: string[];
+
     /**
      * {@link RTC.createPeerConnection}.
      *
      * @returns {MockPeerConnection}
      */
-    createPeerConnection() {
-        this.pc = new MockPeerConnection();
+    createPeerConnection(id: string, usesUnifiedPlan: boolean, simulcast: boolean): MockPeerConnection {
+        this.pc = new MockPeerConnection(id, usesUnifiedPlan, simulcast);
         this.forwardedSources = [];
-
         return this.pc;
     }
 
@@ -279,7 +293,7 @@ export class MockRTC extends Listenable {
      * Returns the list of sources that the bridge is forwarding to the client.
      * @returns {Array<string>}
      */
-    getForwardedSources() {
+    getForwardedSources(): string[] {
         return this.forwardedSources;
     }
 }
@@ -288,6 +302,8 @@ export class MockRTC extends Listenable {
  * MockSignalingLayerImpl
  */
 export class MockSignalingLayerImpl {
+    private _remoteSourceState: { [key: string]: any };
+
     /**
      * A constructor
      */
@@ -300,7 +316,7 @@ export class MockSignalingLayerImpl {
      * @param {string} endpointId
      * @returns Object
      */
-    getPeerMediaInfo(endpointId) {
+    getPeerMediaInfo(endpointId: string): object | undefined {
         return this._remoteSourceState[endpointId];
     }
 
@@ -311,7 +327,7 @@ export class MockSignalingLayerImpl {
      * @param {Array<string>} codecList - new codec list published in presence
      * @param {string} codecType - legacy codec setting published in presence
      */
-    setPeerMediaInfo(isJoin, endpointId, codecList, codecType) {
+    setPeerMediaInfo(isJoin: boolean, endpointId: string, codecList: string[], codecType: string): void {
         if (isJoin) {
             this._remoteSourceState[endpointId] = {
                 muted: true, // muted by default
@@ -330,10 +346,12 @@ export class MockSignalingLayerImpl {
  * MockTrack
  */
 export class MockTrack {
+    private height: number;
+
     /**
      * A constructor
      */
-    constructor(height) {
+    constructor(height: number) {
         this.height = height;
     }
 
@@ -341,10 +359,14 @@ export class MockTrack {
      * Returns height.
      * @returns {number}
      */
-    getSettings() {
+    getSettings(): { height: number } {
         return {
             height: this.height
         };
+    }
+
+    public getHeight(): number {
+        return this.height;
     }
 }
 
@@ -352,10 +374,15 @@ export class MockTrack {
  * MockJitsiLocalTrack
  */
 export class MockJitsiLocalTrack {
+    private resolution: number;
+    private track: MockTrack;
+    private type: MediaType;
+    private videoType: VideoType;
+
     /**
      * A constructor
      */
-    constructor(height, mediaType, videoType) {
+    constructor(height: number, mediaType: MediaType, videoType: VideoType) {
         this.resolution = height;
         this.track = new MockTrack(height);
         this.type = mediaType;
@@ -366,15 +393,15 @@ export class MockJitsiLocalTrack {
      * Returns the height.
      * @returns {number}
      */
-    getHeight() {
-        return this.track.height;
+    getHeight(): number {
+        return this.track.getHeight();
     }
 
     /**
      * Returns the capture resolution.
      * @returns {number}
      */
-    getCaptureResolution() {
+    getCaptureResolution(): number {
         return this.getHeight();
     }
 
@@ -382,7 +409,7 @@ export class MockJitsiLocalTrack {
      * Returns track.
      * @returns {MockTrack}
      */
-    getTrack() {
+    getTrack(): MockTrack {
         return this.track;
     }
 
@@ -390,7 +417,7 @@ export class MockJitsiLocalTrack {
      * Returns media type.
      * @returns {MediaType}
      */
-    getType() {
+    getType(): MediaType {
         return this.type;
     }
 
@@ -398,7 +425,7 @@ export class MockJitsiLocalTrack {
      * Returns video type.
      * @returns {VideoType}
      */
-    getVideoType() {
+    getVideoType(): VideoType {
         return this.videoType;
     }
 }
