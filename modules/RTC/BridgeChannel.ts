@@ -304,7 +304,7 @@ export default class BridgeChannel {
             }
         };
 
-        channel.onmessage = ({ data }):void=> {
+        channel.onmessage = ({ data : string }):void=> {
             // JSON object.
             let obj;
 
