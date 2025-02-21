@@ -27,6 +27,15 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @return {boolean} <tt>true</tt> if the current browser supports this strategy or <tt>false</tt> otherwise.
      */
+
+    isFirefox() {
+        return this.getBrowser() === 'firefox'; // Assuming getBrowser() returns 'firefox' for Firefox
+    }
+
+    isWebKitBased() {
+        return this.getBrowser() === 'WebKit';
+    }
+
     doesVideoMuteByStreamRemove() {
         return this.isChromiumBased() || this.isWebKitBased() || this.isFirefox();
     }
