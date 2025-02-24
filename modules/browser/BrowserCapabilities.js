@@ -28,13 +28,14 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @return {boolean} <tt>true</tt> if the current browser supports this strategy or <tt>false</tt> otherwise.
      */
 
-    // Implementing the missing methods from IBrowserCapabilities
-    isWebKitBased() {
-        return this.getBrowser() === 'WebKit';
+    // Define the isWebKitBased method
+    isWebKitBased(): boolean {
+        return /AppleWebKit/.test(navigator.userAgent) && !this.isChromiumBased();
     }
 
-    isReactNative() {
-        return typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('reactnative');
+    // Define the isReactNative method
+    isReactNative(): boolean {
+        return /ReactNative/.test(navigator.userAgent);
     }
 
     doesVideoMuteByStreamRemove() {
