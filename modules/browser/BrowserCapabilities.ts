@@ -134,14 +134,14 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     // Define the getVersion method
-    getVersion(): string {
+    getVersion(): number {
         const userAgent = navigator.userAgent;
-        let version = '0'; // Initialize as a string
+        let version = 0; // Initialize as a number
 
         if (this.isSafari()) {
             const match = userAgent.match(/Version\/([0-9]+)\./);
             if (match) {
-                version = match[1];
+                version = parseInt(match[1], 10); // Convert to number
             }
         }
         return version;
@@ -477,7 +477,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     _getSafariVersion(): number {
         if (this.isSafari()) {
-            return Number.parseInt(this.getVersion(), 10);
+            return Number.parseInt(this.getVersion().toString(), 10);
         }
 
         return -1;
