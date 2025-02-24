@@ -3,6 +3,9 @@ import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
 import FeatureFlags from '../flags/FeatureFlags';
+import JitsiConference from '../../JitsiConference';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 // Flag to set on receivers to avoid setting up the lite mode
 // more than once.
@@ -14,11 +17,12 @@ const logger = getLogger(__filename);
  * This module implements a discard-all insertable stream.  Use to reduce decoder CPU load for testing.
  */
 export class LiteModeContext {
+    enabled :boolean;
     /**
      * A constructor.
      * @param {JitsiConference} conference - The conference instance for which lite mode is to be enabled.
      */
-    constructor(conference) {
+    constructor(conference:JitsiConference) {
         this.enabled = FeatureFlags.isRunInLiteModeEnabled();
         if (!this.enabled) {
             return;
@@ -26,7 +30,7 @@ export class LiteModeContext {
 
         conference.rtc.on(
             RTCEvents.REMOTE_TRACK_ADDED,
-            (track, tpc) => this._setupLiteModeForTrack(tpc, track));
+            (track:JitsiRemoteTrack, tpc:TraceablePeerConnection) => this._setupLiteModeForTrack(tpc, track));
     }
 
     /**
@@ -34,16 +38,17 @@ export class LiteModeContext {
      *
      * @private
      */
-    _setupLiteModeForTrack(tpc, track) {
+    _setupLiteModeForTrack(tpc:TraceablePeerConnection, track:JitsiRemoteTrack) {
         if (!this.enabled) {
             return;
         }
 
-        const receiver = tpc.findReceiverForTrack(track.track);
+        const receiver = tpc.findReceiverForTrack(track.track) as RTCRtpReceiver & { createEncodedStreams: () => { 
+            readable: ReadableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; }
+         };
 
         if (!receiver) {
             logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
-
             return;
         }
 
@@ -51,7 +56,7 @@ export class LiteModeContext {
             return;
         }
         receiver[kJitsiLiteMode] = true;
-
+        
         const receiverStreams = receiver.createEncodedStreams();
 
         const transformStream = new TransformStream({
