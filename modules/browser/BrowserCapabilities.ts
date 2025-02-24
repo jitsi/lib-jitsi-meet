@@ -16,10 +16,6 @@ const FROZEN_MACOS_VERSION: string = '10.15.7';
 // RTCBrowserType interface but maybe it worth exporting BrowserCapabilities
 // and BrowserDetection as separate objects in future.
 
-// Extend the Navigator interface
-interface Navigator {
-    getDisplayMedia?: () => Promise<MediaStream>;
-}
 
 // Extend the RTCRtpSender interface
 interface RTCRtpSender {
@@ -401,7 +397,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia(): boolean {
-        return typeof navigator.getDisplayMedia !== 'undefined'
+        return typeof (navigator as any).getDisplayMedia === 'function'
             || (typeof navigator.mediaDevices !== 'undefined'
                 && typeof navigator.mediaDevices.getDisplayMedia !== 'undefined');
     }
@@ -425,7 +421,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsInsertableStreams(): boolean {
         if (!(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedStreams)) {
+            && (window.RTCRtpSender.prototype as any).createEncodedStreams)) {
             return false;
         }
 
