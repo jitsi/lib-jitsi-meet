@@ -301,8 +301,12 @@ export class QualityController {
         if (!this._enableAdaptiveMode) {
             return;
         }
-
         const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
+
+        // Older browser versions might not report the resolution in the stats.
+        if (Number.isNaN(encodeResolution)) {
+            return;
+        }
         const trackId = localTrack.rtcId;
 
         if (encodeResolution === tpc.calculateExpectedSendResolution(localTrack)) {
@@ -382,7 +386,7 @@ export class QualityController {
             const track = tpc.getTrackBySSRC(ssrc);
             const trackId = track.rtcId;
             let existingStats = statsPerTrack.get(trackId);
-            const encodeResolution = Math.min(resolution.height, resolution.width);
+            const encodeResolution = Math.min(resolution?.height, resolution?.width);
             const ssrcStats = {
                 encodeResolution,
                 encodeTime,
