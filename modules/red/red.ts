@@ -71,14 +71,22 @@ export class RFC2198Encoder {
          */
         const data = new Uint8Array(encodedFrame.data);
 
-        const newFrame = data.slice(0);
+        const newFrame: RTCEncodedAudioFrame = {
+            data: data.buffer, // Use the underlying ArrayBuffer
+            timestamp: encodedFrame.timestamp,
+            getMetadata: () => {
+                return {
+                    contributingSources: [], // Provide appropriate values as needed
+                    synchronizationSource: undefined, // Provide appropriate values as needed
+                };
+            },
+        };
 
-        newFrame.timestamp = encodedFrame.timestamp;
-
-        let allFrames = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
+        // Ensure that allFrames is of the correct type
+        let allFrames: RTCEncodedAudioFrame[] = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
 
         // TODO: determine how much we can fit into the available size (which we need to assume as 1190 bytes or so)
-        let needLength = 1 + newFrame.length;
+        let needLength = 1 + newFrame.data.byteLength;
 
         for (let i = allFrames.length - 2; i >= 0; i--) {
             const frame = allFrames[i];
@@ -89,7 +97,7 @@ export class RFC2198Encoder {
                 allFrames = allFrames.slice(i + 1);
                 break;
             }
-            needLength += 4 + frame.length;
+            needLength += 4 + frame.data.byteLength;
         }
 
         const newData = new Uint8Array(needLength);
@@ -107,8 +115,8 @@ export class RFC2198Encoder {
             // eslint-disable-next-line no-bitwise
             newView.setUint8(frameOffset, (this.payloadType & 0x7f) | 0x80);
             // eslint-disable-next-line no-bitwise
-            newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
-            newView.setUint8(frameOffset + 3, frame.byteLength & 0xff); // eslint-disable-line no-bitwise
+            newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.data.byteLength >> 8));
+            newView.setUint8(frameOffset + 3, frame.data.byteLength & 0xff); // eslint-disable-line no-bitwise
             frameOffset += 4;
         }
 
@@ -119,8 +127,8 @@ export class RFC2198Encoder {
         for (let i = 0; i < allFrames.length; i++) {
             const frame = allFrames[i];
 
-            newData.set(frame, frameOffset);
-            frameOffset += frame.byteLength;
+            newData.set(new Uint8Array(frame.data), frameOffset);
+            frameOffset += frame.data.byteLength;
         }
         encodedFrame.data = newData.buffer;
 
