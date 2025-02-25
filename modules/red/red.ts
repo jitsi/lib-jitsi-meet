@@ -4,6 +4,10 @@ const MAX_TIMESTAMP = 0x100000000;
  * An encoder for RFC 2198 redundancy using WebRTC Insertable Streams.
  */
 export class RFC2198Encoder {
+    targetRedundancy: number;
+    frameBuffer: RTCEncodedAudioFrame[]; // Array to hold encoded audio frames
+    payloadType?: number; // Optional payload type
+
     /**
      * @param {number} targetRedundancy the desired amount of redundancy.
      */
