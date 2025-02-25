@@ -5,9 +5,9 @@ const MAX_TIMESTAMP = 0x100000000;
  */
 export class RFC2198Encoder {
     /**
-     * @param {Number} targetRedundancy the desired amount of redundancy.
+     * @param {number} targetRedundancy the desired amount of redundancy.
      */
-    constructor(targetRedundancy = 1) {
+    constructor(targetRedundancy: number = 1) {
         this.targetRedundancy = targetRedundancy;
         this.frameBuffer = new Array(targetRedundancy);
         this.payloadType = undefined;
@@ -16,9 +16,9 @@ export class RFC2198Encoder {
     /**
      * Set the desired level of redudancy. 4 means "four redundant frames plus current frame.
      * It is possible to reduce this to 0 to minimize the overhead to one byte.
-     * @param {Number} targetRedundancy the desired amount of redundancy.
+     * @param {number} targetRedundancy the desired amount of redundancy.
      */
-    setRedundancy(targetRedundancy) {
+    setRedundancy(targetRedundancy: number): void {
         const currentBuffer = this.frameBuffer;
 
         if (targetRedundancy > this.targetRedundancy) {
@@ -39,9 +39,9 @@ export class RFC2198Encoder {
      * Set the "inner opus payload type". This is typically our RED payload type that we tell
      * the other side as our opus payload type. Can be queried from the sender using getParameters()
      * after setting the answer.
-     * @param {Number} payloadType the payload type to use for opus.
+     * @param {number} payloadType the payload type to use for opus.
      */
-    setPayloadType(payloadType) {
+    setPayloadType(payloadType: number): void {
         this.payloadType = payloadType;
     }
 
@@ -50,7 +50,7 @@ export class RFC2198Encoder {
      * @param {RTCEncodedAudioFrame} encodedFrame - Encoded audio frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    addRedundancy(encodedFrame, controller) {
+    addRedundancy(encodedFrame: RTCEncodedAudioFrame, controller: TransformStreamDefaultController): void {
         // TODO: should this ensure encodedFrame.type being not set and
         // encodedFrame.getMetadata().payloadType being the same as before?
         /*
