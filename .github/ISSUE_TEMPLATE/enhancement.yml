@@ -1,0 +1,70 @@
+name: 💡 Feature Request
+description: Suggest a new idea/feature
+title: "[FEATURE] <description>"
+labels: ["enhancement"]
+
+body:
+  - type: textarea
+    id: need_improvement
+    attributes:
+      label: Why do we need this improvement?
+    validations:
+      required: true
+
+  - type: textarea
+    id: change
+    attributes:
+      label: How will this change help?
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Please add screenshots if applicable
+    validations:
+      required: false
+
+
+  - type: textarea
+    id: implemented
+    attributes:
+      label: How could it be implemented/designed?
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: breakingchange
+    attributes:
+      label: "🚧 Breaking changes"
+      description: "Will this be a breaking change?"
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: no-duplicate-issues
+    attributes:
+      label: "👀 Have you checked for similar open issues?"
+      options:
+        - label: "I checked and didn't find a similar issue"
+          required: true
+
+  - type: checkboxes
+    id: read-code-of-conduct
+    attributes:
+      label: "🏢 Have you read the Contributing Guidelines?"
+      options:
+        - label: "please make sure you check https://community.jitsi.org"
+          required: true
+
+  - type: dropdown
+    attributes:
+      label: Are you willing to work on this issue?
+      description: This is absolutely not required, but we are happy to guide you in the contribution process.
+      options:
+        - "Yes I am willing to submit a PR!"
+        - "No, someone else can work on it."

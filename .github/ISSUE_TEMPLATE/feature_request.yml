@@ -1,0 +1,73 @@
+name: 🚀 Feature Request
+description: Suggest a new feature for the project
+title: "[FEATURE] <description>"
+labels: ["feature request"]
+
+body:
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: What problem does this feature solve?
+      description: Explain the problem this feature aims to solve.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you would like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Are there any alternative solutions you've considered?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context or screenshots about the feature request here.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: breaking_change
+    attributes:
+      label: "🚧 Will this introduce breaking changes?"
+      description: "Does this feature require major changes that could break existing functionality?"
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: duplicate_check
+    attributes:
+      label: "👀 Have you checked for similar open issues?"
+      options:
+        - label: "I checked and didn't find a similar issue"
+          required: true
+
+  - type: checkboxes
+    id: contributing_guidelines
+    attributes:
+      label: "📖 Have you read the Contributing Guidelines?"
+      options:
+        - label: "please make sure you check https://community.jitsi.org"
+          required: true
+
+  - type: dropdown
+    id: willing_to_contribute
+    attributes:
+      label: "Are you willing to work on this feature?"
+      description: "Your contribution is appreciated, but not required."
+      options:
+        - "Yes, I am willing to submit a PR!"
+        - "No, someone else can work on it."
