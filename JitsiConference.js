@@ -800,7 +800,7 @@ JitsiConference.prototype.getMediaSessions = function() {
 JitsiConference.prototype._registerRtcListeners = function(rtc) {
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
         for (const localTrack of this.rtc.localTracks) {
-            localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
+            localTrack.isVideoTrack() && this.sendBridgeVideoTypeMessage(localTrack);
         }
     });
 };
@@ -811,9 +811,9 @@ JitsiConference.prototype._registerRtcListeners = function(rtc) {
  *
  * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
  * @returns {void}
- * @private
+ * @public
  */
-JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
+JitsiConference.prototype.sendBridgeVideoTypeMessage = function(localtrack) {
     let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
 
     if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
@@ -1140,7 +1140,7 @@ JitsiConference.prototype.addTrack = function(track) {
             return Promise.all(addTrackPromises)
                 .then(() => {
                     this._setupNewTrack(track);
-                    mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
+                    mediaType === MediaType.VIDEO && this.sendBridgeVideoTypeMessage(track);
                     this._updateRoomPresence(this.getActiveMediaSession());
 
                     if (this.isMutedByFocus || this.isVideoMutedByFocus) {
@@ -1221,7 +1221,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         = browser.isReactNative() ? track.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
 
     if (track.isVideoTrack() && !doesVideoMuteByStreamRemove) {
-        this._sendBridgeVideoTypeMessage(track);
+        this.sendBridgeVideoTypeMessage(track);
     }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
@@ -1337,7 +1337,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 
             // Send 'VideoTypeMessage' on the bridge channel when a video track is added/removed.
             if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
-                this._sendBridgeVideoTypeMessage(newTrack);
+                this.sendBridgeVideoTypeMessage(newTrack);
             }
             this._updateRoomPresence(this.getActiveMediaSession());
             if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
@@ -1455,9 +1455,9 @@ JitsiConference.prototype._setNewVideoType = function(track) {
  * @param localTrack
  * @param isMuted
  * @param <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
- * @private
+ * @public
  */
-JitsiConference.prototype._setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
+JitsiConference.prototype.setTrackMuteStatus = function(mediaType, localTrack, isMuted) {
     let presenceChanged = false;
 
     if (localTrack) {
