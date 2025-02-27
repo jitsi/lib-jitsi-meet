@@ -67,17 +67,9 @@ body:
           required: true
 
   - type: checkboxes
-    id: read-code-of-conduct
+    id: check-Community-Forum
     attributes:
-      label: "🏢 Have you read the Contributing Guidelines?"
+      label: "🏢 Have you checked the Community Forum?"
       options:
         - label: "please make sure you check https://community.jitsi.org"
           required: true
-
-  - type: dropdown
-    attributes:
-      label: Are you willing to work on this issue ?
-      description: This is absolutely not required, but we are happy to guide you in the contribution process.
-      options:
-        - "Yes I am willing to submit a PR!"
-        - "No, someone else can work on it" 
