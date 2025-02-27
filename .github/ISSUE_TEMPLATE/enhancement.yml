@@ -1,57 +1,65 @@
-name: 💡 Feature Request
-description: Suggest a new idea/feature
-title: "[FEATURE] <description>"
-labels: ["enhancement"]
+name: 💡 Feature request
+description: Suggest an idea for improving lib-jitsi-meet
+labels: ["feature-request"]
 
 body:
-  - type: textarea
-    id: need_improvement
+  - type: markdown
     attributes:
-      label: Why do we need this improvement?
+      value: |
+        Thank you for suggesting an idea to improve lib-jitsi-meet!
+
+        **Note**: The decision to implement features lies with the Jitsi team, and not all requests will be accepted.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Explain the issue or limitation that this feature would address.
     validations:
       required: true
 
   - type: textarea
-    id: change
+    id: solution
     attributes:
-      label: How will this change help?
+      label: What solution would you like to see?
+      description: Describe the behavior or feature you'd like to have.
     validations:
       required: true
+
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Is there an alternative?
+      description: Describe any alternative solutions or features you have considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: How could this be implemented?
+      description: Suggest how this feature could be designed or integrated.
+    validations:
+      required: false
 
   - type: textarea
     id: screenshots
     attributes:
       label: Screenshots
-      description: Please add screenshots if applicable
+      description: Please add screenshots if applicable.
     validations:
       required: false
 
-
-  - type: textarea
-    id: implemented
-    attributes:
-      label: How could it be implemented/designed?
-    validations:
-      required: true
-  
   - type: dropdown
     id: breakingchange
     attributes:
       label: "🚧 Breaking changes"
-      description: "Will this be a breaking change?"
+      description: "Will this change break existing functionality?"
       options:
         - "Yes"
         - "No"
     validations:
       required: true
-
-  - type: checkboxes
-    id: no-duplicate-issues
-    attributes:
-      label: "👀 Have you checked for similar open issues?"
-      options:
-        - label: "I checked and didn't find a similar issue"
-          required: true
 
   - type: checkboxes
     id: check-Community-Forum
