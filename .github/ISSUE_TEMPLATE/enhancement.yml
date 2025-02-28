@@ -50,17 +50,6 @@ body:
     validations:
       required: false
 
-  - type: dropdown
-    id: breakingchange
-    attributes:
-      label: "🚧 Breaking changes"
-      description: "Will this change break existing functionality?"
-      options:
-        - "Yes"
-        - "No"
-    validations:
-      required: true
-
   - type: checkboxes
     id: check-Community-Forum
     attributes:
