@@ -4,10 +4,14 @@ const MAX_TIMESTAMP = 0x100000000;
  * An encoder for RFC 2198 redundancy using WebRTC Insertable Streams.
  */
 export class RFC2198Encoder {
+    targetRedundancy: number;
+    frameBuffer: RTCEncodedAudioFrame[]; // Array to hold encoded audio frames
+    payloadType?: number; // Optional payload type
+
     /**
-     * @param {Number} targetRedundancy the desired amount of redundancy.
+     * @param {number} targetRedundancy the desired amount of redundancy.
      */
-    constructor(targetRedundancy = 1) {
+    constructor(targetRedundancy: number = 1) {
         this.targetRedundancy = targetRedundancy;
         this.frameBuffer = new Array(targetRedundancy);
         this.payloadType = undefined;
@@ -16,9 +20,9 @@ export class RFC2198Encoder {
     /**
      * Set the desired level of redudancy. 4 means "four redundant frames plus current frame.
      * It is possible to reduce this to 0 to minimize the overhead to one byte.
-     * @param {Number} targetRedundancy the desired amount of redundancy.
+     * @param {number} targetRedundancy the desired amount of redundancy.
      */
-    setRedundancy(targetRedundancy) {
+    setRedundancy(targetRedundancy: number): void {
         const currentBuffer = this.frameBuffer;
 
         if (targetRedundancy > this.targetRedundancy) {
@@ -39,9 +43,9 @@ export class RFC2198Encoder {
      * Set the "inner opus payload type". This is typically our RED payload type that we tell
      * the other side as our opus payload type. Can be queried from the sender using getParameters()
      * after setting the answer.
-     * @param {Number} payloadType the payload type to use for opus.
+     * @param {number} payloadType the payload type to use for opus.
      */
-    setPayloadType(payloadType) {
+    setPayloadType(payloadType: number): void {
         this.payloadType = payloadType;
     }
 
@@ -50,7 +54,7 @@ export class RFC2198Encoder {
      * @param {RTCEncodedAudioFrame} encodedFrame - Encoded audio frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    addRedundancy(encodedFrame, controller) {
+    addRedundancy(encodedFrame: RTCEncodedAudioFrame, controller: TransformStreamDefaultController): void {
         // TODO: should this ensure encodedFrame.type being not set and
         // encodedFrame.getMetadata().payloadType being the same as before?
         /*
@@ -67,14 +71,22 @@ export class RFC2198Encoder {
          */
         const data = new Uint8Array(encodedFrame.data);
 
-        const newFrame = data.slice(0);
+        const newFrame: RTCEncodedAudioFrame = {
+            data: data.buffer, // Use the underlying ArrayBuffer
+            timestamp: encodedFrame.timestamp,
+            getMetadata: () => {
+                return {
+                    contributingSources: [], // Provide appropriate values as needed
+                    synchronizationSource: undefined, // Provide appropriate values as needed
+                };
+            },
+        };
 
-        newFrame.timestamp = encodedFrame.timestamp;
-
-        let allFrames = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
+        // Ensure that allFrames is of the correct type
+        let allFrames: RTCEncodedAudioFrame[] = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
 
         // TODO: determine how much we can fit into the available size (which we need to assume as 1190 bytes or so)
-        let needLength = 1 + newFrame.length;
+        let needLength = 1 + newFrame.data.byteLength;
 
         for (let i = allFrames.length - 2; i >= 0; i--) {
             const frame = allFrames[i];
@@ -85,7 +97,7 @@ export class RFC2198Encoder {
                 allFrames = allFrames.slice(i + 1);
                 break;
             }
-            needLength += 4 + frame.length;
+            needLength += 4 + frame.data.byteLength;
         }
 
         const newData = new Uint8Array(needLength);
@@ -103,8 +115,8 @@ export class RFC2198Encoder {
             // eslint-disable-next-line no-bitwise
             newView.setUint8(frameOffset, (this.payloadType & 0x7f) | 0x80);
             // eslint-disable-next-line no-bitwise
-            newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.byteLength >> 8));
-            newView.setUint8(frameOffset + 3, frame.byteLength & 0xff); // eslint-disable-line no-bitwise
+            newView.setUint16(frameOffset + 1, (tOffset << 2) ^ (frame.data.byteLength >> 8));
+            newView.setUint8(frameOffset + 3, frame.data.byteLength & 0xff); // eslint-disable-line no-bitwise
             frameOffset += 4;
         }
 
@@ -115,8 +127,8 @@ export class RFC2198Encoder {
         for (let i = 0; i < allFrames.length; i++) {
             const frame = allFrames[i];
 
-            newData.set(frame, frameOffset);
-            frameOffset += frame.byteLength;
+            newData.set(new Uint8Array(frame.data), frameOffset);
+            frameOffset += frame.data.byteLength;
         }
         encodedFrame.data = newData.buffer;
 
