@@ -2,6 +2,8 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiE2EPingEvents from '../../service/e2eping/E2ePingEvents';
+import JitsiConference from '../../JitsiConference';
+import JitsiParticipant from '../../JitsiParticipant';
 
 const logger = getLogger(__filename);
 
@@ -9,29 +11,29 @@ const logger = getLogger(__filename);
  * The 'type' of a message which designates an e2e ping request.
  * @type {string}
  */
-const E2E_PING_REQUEST = 'e2e-ping-request';
+const E2E_PING_REQUEST: string = 'e2e-ping-request';
 
 /**
  * The 'type' of a message which designates an e2e ping response.
  * @type {string}
  */
-const E2E_PING_RESPONSE = 'e2e-ping-response';
+const E2E_PING_RESPONSE: string = 'e2e-ping-response';
 
 /**
  * The number of requests to wait for before emitting an RTT value.
  */
-const DEFAULT_NUM_REQUESTS = 5;
+const DEFAULT_NUM_REQUESTS: number = 5;
 
 /**
  * The maximum number of messages per second to aim for. This is for the entire
  * conference, with the assumption that all endpoints join at once.
  */
-const DEFAULT_MAX_MESSAGES_PER_SECOND = 250;
+const DEFAULT_MAX_MESSAGES_PER_SECOND: number = 250;
 
 /**
  * The conference size beyond which e2e pings will be disabled.
  */
-const DEFAULT_MAX_CONFERENCE_SIZE = 200;
+const DEFAULT_MAX_CONFERENCE_SIZE: number = 200;
 
 /**
  * Saves e2e ping related state for a single JitsiParticipant.
@@ -43,7 +45,14 @@ class ParticipantWrapper {
      * object wraps.
      * @param {E2ePing} e2eping
      */
-    constructor(participant, e2eping) {
+    participant: JitsiParticipant;
+    e2eping: E2ePing;
+    id: string;
+    requests: { [key: number]: { id: number; timeSent: number; rtt?: number } };
+    lastRequestId: number;
+    timeout: number | null;
+
+    constructor(participant: JitsiParticipant, e2eping: E2ePing) {
         // The JitsiParticipant
         this.participant = participant;
 
@@ -72,14 +81,14 @@ class ParticipantWrapper {
     /**
      * Schedule the next ping to be sent.
      */
-    scheduleNext() {
+    scheduleNext(): number {
         return window.setTimeout(this.sendRequest, this.getDelay());
     }
 
     /**
      * Stop pinging this participant, canceling a scheduled ping, if any.
      */
-    stop() {
+    stop(): void {
         if (this.timeout) {
             window.clearTimeout(this.timeout);
         }
@@ -89,7 +98,7 @@ class ParticipantWrapper {
     /**
      * Get the delay until the next ping in milliseconds.
      */
-    getDelay() {
+    getDelay(): number {
         const conferenceSize = this.e2eping.conference.getParticipants().length;
         const endpointPairs = conferenceSize * (conferenceSize - 1) / 2;
         const totalMessages = endpointPairs * this.e2eping.numRequests;
@@ -106,7 +115,7 @@ class ParticipantWrapper {
      * Sends the next ping request.
      * @type {*}
      */
-    sendRequest() {
+    sendRequest(): void {
         const requestId = this.lastRequestId++;
         const requestMessage = {
             type: E2E_PING_REQUEST,
@@ -124,7 +133,7 @@ class ParticipantWrapper {
      * Handles a response from this participant.
      * @type {*}
      */
-    handleResponse(response) {
+    handleResponse(response: any): void {
         const request = this.requests[response.id];
 
         if (request) {
@@ -138,10 +147,10 @@ class ParticipantWrapper {
      * so log the measured RTT and stop sending requests.
      * @type {*}
      */
-    maybeLogRttAndStop() {
+    maybeLogRttAndStop(): void {
         // The RTT we'll report is the minimum RTT measured
         let rtt = Infinity;
-        let request, requestId;
+        let request: any, requestId: any;
         let numRequestsWithResponses = 0;
         let totalNumRequests = 0;
 
@@ -198,7 +207,15 @@ export default class E2ePing {
      * @param {Function} sendMessage - The function to use to send a message.
      * @param {Object} options
      */
-    constructor(conference, options, sendMessage) {
+    conference: JitsiConference;
+    eventEmitter: any;
+    sendMessage: (message: { type: string; id: number }, participantId: string) => void;
+    participants: { [key: string]: ParticipantWrapper };
+    numRequests: number;
+    maxConferenceSize: number;
+    maxMessagesPerSecond: number;
+
+    constructor(conference: JitsiConference, options: { e2eping?: { numRequests?: number; maxConferenceSize?: number; maxMessagesPerSecond?: number } }, sendMessage: (message: { type: string; id: number }, participantId: string) => void) {
         this.conference = conference;
         this.eventEmitter = conference.eventEmitter;
         this.sendMessage = sendMessage;
@@ -241,7 +258,7 @@ export default class E2ePing {
      * Delay processing USER_JOINED events until the MUC is fully joined,
      * otherwise the apparent conference size will be wrong.
      */
-    conferenceJoined() {
+    conferenceJoined(): void {
         this.conference.getParticipants().forEach(p => this.participantJoined(p.getId(), p));
         this.conference.on(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
     }
@@ -252,13 +269,17 @@ export default class E2ePing {
      * @param participant - The message sender.
      * @param payload - The payload of the message.
      */
-    messageReceived(participant, payload) {
+    messageReceived(participant: JitsiParticipant, payload: { type: string; id?: number }): void {
         // Listen to E2E PING requests and responses from other participants
         // in the conference.
         if (payload.type === E2E_PING_REQUEST) {
-            this.handleRequest(participant.getId(), payload);
+            if (payload.id !== undefined) {
+                this.handleRequest(participant.getId(), { id: payload.id });
+            }
         } else if (payload.type === E2E_PING_RESPONSE) {
-            this.handleResponse(participant.getId(), payload);
+            if (payload.id !== undefined) {
+                this.handleResponse(participant.getId(), { id: payload.id });
+            }
         }
     }
 
@@ -269,7 +290,7 @@ export default class E2ePing {
      * @param {String} id - The ID of the participant.
      * @param {JitsiParticipant} participant - The participant that joined.
      */
-    participantJoined(id, participant) {
+    participantJoined(id: string, participant: JitsiParticipant): void {
         if (this.participants[id]) {
             logger.info(`Participant wrapper already exists for ${id}. Clearing.`);
             this.participants[id].stop();
@@ -291,7 +312,7 @@ export default class E2ePing {
     /**
      * Remove a participant without calling "stop".
      */
-    removeParticipant(id) {
+    removeParticipant(id: string): void {
         if (this.participants[id]) {
             delete this.participants[id];
         }
@@ -302,7 +323,7 @@ export default class E2ePing {
      *
      * @param {String} id - The ID of the participant.
      */
-    participantLeft(id) {
+    participantLeft(id: string): void {
         if (this.participants[id]) {
             this.participants[id].stop();
             delete this.participants[id];
@@ -316,7 +337,7 @@ export default class E2ePing {
      * request.
      * @param {Object} request - The request.
      */
-    handleRequest(participantId, request) {
+    handleRequest(participantId: string, request: { id: number }): void {
         // If it's a valid request, just send a response.
         if (request && request.id) {
             const response = {
@@ -336,7 +357,7 @@ export default class E2ePing {
      * response.
      * @param {Object} response - The response.
      */
-    handleResponse(participantId, response) {
+    handleResponse(participantId: string, response: { id: number }): void {
         const participantWrapper = this.participants[participantId];
 
         if (participantWrapper) {
@@ -347,7 +368,7 @@ export default class E2ePing {
     /**
      * Stops this E2ePing (i.e. stop sending requests).
      */
-    stop() {
+    stop(): void {
         logger.info('Stopping e2eping');
 
         this.conference.off(JitsiConferenceEvents.USER_JOINED, this.participantJoined);
