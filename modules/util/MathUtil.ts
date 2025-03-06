@@ -7,7 +7,7 @@
  * @return {number} the next counter value increased by 1 (see the description
  * above for exception).
  */
-export function safeCounterIncrement(number) {
+export function safeCounterIncrement(number:number):number {
     let nextValue = number;
 
     if (number >= Number.MAX_SAFE_INTEGER) {
@@ -23,7 +23,7 @@ export function safeCounterIncrement(number) {
  * @param {Float32Array} valueArray - Array of numbers.
  * @returns {number} - Number array average.
  */
-export function calculateAverage(valueArray) {
+export function calculateAverage(valueArray:number[]):number {
     return valueArray.length > 0 ? valueArray.reduce((a, b) => a + b) / valueArray.length : 0;
 }
 
@@ -34,7 +34,7 @@ export function calculateAverage(valueArray) {
  * @param {String} string - String whose hash has to be calculated.
  * @returns {number} - Unique hash code calculated.
  */
-export function hashString(string) {
+export function hashString(string:string):number {
     let hash = 0;
 
     for (let i = 0; i < string.length; i++) {
@@ -53,7 +53,7 @@ export function hashString(string) {
  * @param {Float32Array} valueArray - Array of vad scores.
  * @returns {Array} - Array of positive numbers.
  */
-export function filterPositiveValues(valueArray) {
+export function filterPositiveValues(valueArray:number[]): number[] {
     return valueArray.filter(value => value >= 0);
 }
 
@@ -65,6 +65,9 @@ export class RunningAverage {
     /**
      * Creates an instance of the running average calculator.
      */
+    private average: number;
+    private n: number;
+
     constructor() {
         this.average = 0;
         this.n = 0;
@@ -76,7 +79,7 @@ export class RunningAverage {
      * @param {number} value
      * @returns {void}
      */
-    addNext(value) {
+    addNext(value:number): void {
         if (typeof value !== 'number') {
             return;
         }
@@ -88,7 +91,7 @@ export class RunningAverage {
      * Obtains the average value for the current subset of values.
      * @returns {number} - computed average.
      */
-    getAverage() {
+    getAverage():number {
         return this.average;
     }
 }
@@ -101,6 +104,8 @@ export class RunningAverage {
  * @param {*} y - The number we subtract.
  * @returns {number} - x - y or 0 if x or is not a number.
  */
-export function safeSubtract(x, y) {
-    return !isNaN(x) && !isNaN(y) ? x - y : 0;
+export function safeSubtract(x:unknown, y:unknown):number {
+    const numX = Number(x);
+    const numY = Number(y);
+    return !Number.isNaN(x) && !Number.isNaN(y) ? numX - numY : 0;
 }
