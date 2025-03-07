@@ -22,6 +22,11 @@ interface RTCRtpSender {
     createEncodedStreams?: () => unknown; // Adjust the return type as needed
 }
 
+// Add declaration for RTCRtpScriptTransform which is not in standard lib.dom
+interface Window {
+    RTCRtpScriptTransform?: any;
+}
+
 /**
  * Implements browser capabilities for lib-jitsi-meet.
  */
@@ -412,7 +417,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports it.
      */
     supportsEncodedTransform(): boolean {
-        return Boolean(window.RTCRtpScriptTransform);
+        return Boolean((window as any).RTCRtpScriptTransform);
     }
 
     /**
