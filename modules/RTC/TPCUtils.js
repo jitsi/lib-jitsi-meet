@@ -712,20 +712,25 @@ export class TPCUtils {
      * Returns a boolean indicating whether the video encoder is running in Simulcast mode, i.e., three encodings need
      * to be configured in 4:2:1 resolution order with temporal scalability.
      *
-     * @param {CodecMimeType} codec - The video codec in use.
+     * @param {CodecMimeType} videoCodec - The video codec in use.
      * @returns {boolean}
      */
-    isRunningInSimulcastMode(codec) {
-        return codec === CodecMimeType.VP8 // VP8 always
+    isRunningInSimulcastMode(videoCodec) {
+        if (!this.codecSettings || !this.codecSettings[videoCodec]) {
+            // If codec settings are not available, assume no simulcast
+            return false;
+        }
+
+        return videoCodec === CodecMimeType.VP8 // VP8 always
 
             // K-SVC mode for VP9 when no scalability mode is set. Though only one outbound-rtp stream is present,
             // three separate encodings have to be configured.
-            || (!this.codecSettings[codec].scalabilityModeEnabled && codec === CodecMimeType.VP9)
+            || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.VP9)
 
             // When scalability is enabled, always for H.264, and only when simulcast is explicitly enabled via
             // config.js for VP9 and AV1 since full SVC is the default mode for these 2 codecs.
-            || (this.codecSettings[codec].scalabilityModeEnabled
-                && (codec === CodecMimeType.H264 || this.codecSettings[codec].useSimulcast));
+            || (this.codecSettings[videoCodec].scalabilityModeEnabled
+                && (videoCodec === CodecMimeType.H264 || this.codecSettings[videoCodec].useSimulcast));
     }
 
     /**
