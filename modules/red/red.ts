@@ -4,6 +4,10 @@ const MAX_TIMESTAMP = 0x100000000;
  * An encoder for RFC 2198 redundancy using WebRTC Insertable Streams.
  */
 export class RFC2198Encoder {
+    targetRedundancy: number;
+    frameBuffer: any[];
+    payloadType: number | undefined;
+
     /**
      * @param {number} targetRedundancy the desired amount of redundancy.
      */
@@ -69,7 +73,7 @@ export class RFC2198Encoder {
 
         const newFrame = data.slice(0);
 
-        newFrame.timestamp = encodedFrame.timestamp;
+        (newFrame as any).timestamp = encodedFrame.timestamp;
 
         let allFrames = this.frameBuffer.filter(x => Boolean(x)).concat(newFrame);
 
@@ -78,7 +82,6 @@ export class RFC2198Encoder {
 
         for (let i = allFrames.length - 2; i >= 0; i--) {
             const frame = allFrames[i];
-
 
             // TODO: timestamp wraparound?
             if ((allFrames[i + 1].timestamp - frame.timestamp + MAX_TIMESTAMP) % MAX_TIMESTAMP >= 16384) {
