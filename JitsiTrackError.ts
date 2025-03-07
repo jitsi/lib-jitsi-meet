@@ -1,6 +1,6 @@
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 
-const TRACK_ERROR_TO_MESSAGE_MAP = {};
+const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string } = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
     = 'Video resolution is not supported: ';
@@ -47,7 +47,11 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
  * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
  * list of getUserMedia requested devices
  */
-function JitsiTrackError(error, options, devices) {
+function JitsiTrackError(
+    error: { name?: string; message?: string; stack?: string; constraintName?: string; constraint?: string } | string,
+    options?: { video?: { mandatory?: { [key: string]: string | number } } } | string,
+    devices?: ('audio' | 'video' | 'desktop' | 'screen' | 'audiooutput')[]
+) {
     if (typeof error === 'object' && typeof error.name !== 'undefined') {
         /**
          * Additional information about original getUserMedia error
@@ -89,8 +93,8 @@ function JitsiTrackError(error, options, devices) {
             // we treat deviceId as unsupported resolution, as we want to
             // retry and finally if everything fails to remove deviceId from
             // mandatory constraints
-            if (options
-                    && options.video
+            if (typeof options !== 'string'
+                    && options?.video
                     && (!devices || devices.indexOf('video') > -1)
                     && (constraintName === 'minWidth'
                         || constraintName === 'maxWidth'
@@ -134,7 +138,7 @@ function JitsiTrackError(error, options, devices) {
         throw new Error('Invalid arguments');
     }
 
-    this.stack = error.stack || new Error().stack;
+    this.stack = typeof error !== 'string' ? error.stack || new Error().stack : new Error().stack;
 }
 
 JitsiTrackError.prototype = Object.create(Error.prototype);
@@ -146,7 +150,7 @@ JitsiTrackError.prototype.constructor = JitsiTrackError;
  * @param {Object} constraints
  * @returns {string|number}
  */
-function getResolutionFromFailedConstraint(failedConstraintName, constraints) {
+function getResolutionFromFailedConstraint(failedConstraintName: string, constraints: { video?: { mandatory?: { [key: string]: string | number } } }): string | number {
     if (constraints && constraints.video && constraints.video.mandatory) {
         switch (failedConstraintName) {
         case 'width':
