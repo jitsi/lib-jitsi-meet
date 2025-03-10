@@ -86,6 +86,9 @@ interface IJitsiMeetJSOptions {
     flags?: {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
+    },
+    logging?: {
+        disableLogCollector?: boolean;
     }
 }
 
@@ -158,6 +161,10 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
+        }
+
+        if (!options.logging?.disableLogCollector) {
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector(true));
         }
 
         return RTC.init(options);
@@ -244,6 +251,13 @@ export default {
      * @see Logger.addGlobalTransport
      */
     addGlobalLogTransport(globalTransport) {
+        // Let's remove the default one as there is one provided
+        const defaultLogCollector = RTCStats.getDefaultLogCollector();
+        if (defaultLogCollector) {
+            this.removeGlobalLogTransport(defaultLogCollector);
+            RTCStats.clearDefaultLogCollector();
+        }
+
         Logger.addGlobalTransport(globalTransport);
     },
 
