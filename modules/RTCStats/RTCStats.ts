@@ -206,10 +206,9 @@ class RTCStats {
 
     /**
      * Creates a new log collector with the default log storage.
-     * @param createIfMissing - Creates the collector if missing.
      */
-    getDefaultLogCollector(createIfMissing: boolean = false) {
-        if (!this._defaultLogCollector && createIfMissing) {
+    getDefaultLogCollector() {
+        if (!this._defaultLogCollector) {
             this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this));
             this._defaultLogCollector.start();
         }

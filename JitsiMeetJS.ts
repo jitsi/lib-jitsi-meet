@@ -79,7 +79,7 @@ interface ICreateLocalTrackOptions {
 type desktopSharingSourceType = 'screen' | 'window';
 
 interface IJitsiMeetJSOptions {
-    analytics: {
+    analytics?: {
         rtcstatsStoreLogs: boolean;
     };
     desktopSharingSources?: Array<desktopSharingSourceType>;
@@ -164,7 +164,7 @@ export default {
         }
 
         if (options.analytics?.rtcstatsStoreLogs) {
-            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector(true));
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector());
         }
 
         return RTC.init(options);
@@ -251,13 +251,6 @@ export default {
      * @see Logger.addGlobalTransport
      */
     addGlobalLogTransport(globalTransport) {
-        // Let's remove the default one as there is one provided
-        const defaultLogCollector = RTCStats.getDefaultLogCollector();
-        if (defaultLogCollector) {
-            this.removeGlobalLogTransport(defaultLogCollector);
-            RTCStats.clearDefaultLogCollector();
-        }
-
         Logger.addGlobalTransport(globalTransport);
     },
 
