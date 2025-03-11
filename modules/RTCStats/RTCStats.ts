@@ -114,9 +114,7 @@ class RTCStats {
         }
 
         // Make an attempt to flush in case a lot of logs have been cached
-        if (this._defaultLogCollector) {
-            this._defaultLogCollector.flush();
-        }
+        this._defaultLogCollector?.flush();
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
