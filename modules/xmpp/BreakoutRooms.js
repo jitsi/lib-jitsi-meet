@@ -7,6 +7,7 @@ const FEATURE_KEY = 'features/breakout-rooms';
 const BREAKOUT_ROOM_ACTIONS = {
     ADD: `${FEATURE_KEY}/add`,
     MOVE_TO_ROOM: `${FEATURE_KEY}/move-to-room`,
+    PUBLISH: `${FEATURE_KEY}/publish`,
     REMOVE: `${FEATURE_KEY}/remove`,
     RENAME: `${FEATURE_KEY}/rename`
 };
@@ -103,6 +104,27 @@ export default class BreakoutRooms {
             type: BREAKOUT_ROOM_ACTIONS.RENAME,
             breakoutRoomJid,
             subject
+        };
+
+        this._sendMessage(message);
+    }
+
+    /**
+     * Set whether breakout rooms should be published to participants.
+     *
+     * @param {boolean} published - Whether the breakout rooms should be published.
+     */
+    publish(published = true) {
+        if (!this.isSupported() || !this.room.isModerator()) {
+            logger.error(`Cannot publish breakout rooms - supported:${this.isSupported()},
+                moderator:${this.room.isModerator()}`);
+
+            return;
+        }
+
+        const message = {
+            type: BREAKOUT_ROOM_ACTIONS.PUBLISH,
+            published
         };
 
         this._sendMessage(message);
