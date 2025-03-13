@@ -12,5 +12,5 @@ doc/example/libs/*
 # remaining JavaScript source code.
 !.eslintrc.js
 
+*.d.ts
 *.spec.ts
-

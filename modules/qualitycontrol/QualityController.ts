@@ -159,10 +159,12 @@ export class QualityController {
         this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
+            (videoConstraints: IVideoConstraints) =>
+                this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
-            (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) => this._processOutboundRtpStats(tpc, stats));
+            (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) =>
+                this._processOutboundRtpStats(tpc, stats));
     }
 
     /**
@@ -282,10 +284,11 @@ export class QualityController {
                 this._limitedByCpuTimeout = undefined;
                 const updatedStats = this._encodeTimeStats.get(trackId);
                 const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
+                const captureResolution = Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution());
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
                 if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
-                    || encodeResolution < Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())) {
+                        || encodeResolution < captureResolution) {
                     return this.codecController.changeCodecPreferenceOrder(localTrack, codec);
                 }
             }, LIMITED_BY_CPU_TIMEOUT);

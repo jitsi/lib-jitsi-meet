@@ -16,8 +16,8 @@ export enum DetectionEvents {
      */
     DETECTOR_STATE_CHANGE = 'detector_state_change',
 
-    /** Event triggered by NoAudioSignalDetector when the local audio device associated with a JitsiConference goes silent
-     * for a period of time, meaning that the device is either broken or hardware/software muted.
+    /** Event triggered by NoAudioSignalDetector when the local audio device associated with a JitsiConference goes
+     * silent for a period of time, meaning that the device is either broken or hardware/software muted.
      * @event
      * @type {void}
      */

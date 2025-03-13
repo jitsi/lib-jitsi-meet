@@ -392,6 +392,15 @@ export enum XMPPEvents {
     TRANSCRIPTION_STATUS_CHANGED = 'xmpp.transcription_status_changed',
 
     /**
+     * Event fired when 'transport-info' with new ICE candidates is received.
+     */
+    TRANSPORT_INFO = 'xmpp.transportinfo.jingle',
+
+    // Designates an event indicating that the focus has asked us to disable our
+    // camera.
+    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
+
+    /**
      * Indicates that video SIP GW state changed.
      *
      * @param {VideoSIPGWStatusConstants} status - Any of the following statuses:
@@ -419,12 +428,4 @@ export enum XMPPEvents {
      */
     VISITORS_REJECTION = 'xmpp.visitors_rejection',
 
-    /**
-     * Event fired when 'transport-info' with new ICE candidates is received.
-     */
-    TRANSPORT_INFO = 'xmpp.transportinfo.jingle',
-
-    // Designates an event indicating that the focus has asked us to disable our
-    // camera.
-    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 }

@@ -482,7 +482,8 @@ export default {
      * Run a pre-call test to check the network conditions.
      *
      * @param {IceServer} iceServers  - The ICE servers to use for the test,
-     * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error message.
+     * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error
+     * message.
      */
     runPreCallTest(iceServers) {
         return runPreCallTest(iceServers);

@@ -61,8 +61,8 @@ export enum AnalyticsEvents {
     ACTION_JVB_ICE_FAILED = 'jvb.ice.failed',
 
     /**
-     * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
-     * because the mandatory requirements were not met.
+     * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the
+     * client because the mandatory requirements were not met.
      */
     ACTION_P2P_DECLINED = 'decline',
 
@@ -541,7 +541,8 @@ export const createTransportStatsEvent = (attributes: object) => {
  * @param localAudioLevels - The local audio levels.
  * @param remoteAudioLevels - The audio levels received from the participant.
  */
-export const createAudioOutputProblemEvent = (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
+export const createAudioOutputProblemEvent = 
+        (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
     return {
         type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'audio.output.problem',

@@ -10,8 +10,8 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
-     * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the call
-     * and the audio sender limit configured in Jicofo.
+     * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
+     * call and the audio sender limit configured in Jicofo.
      */
     AUDIO_UNMUTE_PERMISSIONS_CHANGED = 'conference.audio_unmute_permissions_changed',
 
@@ -466,8 +466,8 @@ export enum JitsiConferenceEvents {
     VIDEO_SIP_GW_SESSION_STATE_CHANGED = 'conference.videoSIPGWSessionStateChanged',
 
     /**
-     * Event indicates that the permission for unmuting video has changed based on the number of video senders in the call
-     * and the video sender limit configured in Jicofo.
+     * Event indicates that the permission for unmuting video has changed based on the number of video senders in the
+     * call and the video sender limit configured in Jicofo.
      */
     VIDEO_UNMUTE_PERMISSIONS_CHANGED = 'conference.video_unmute_permissions_changed',
 

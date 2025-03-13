@@ -48,10 +48,11 @@ export enum JitsiTrackEvents {
 
     /**
      * Event fired whenever video track's streaming changes.
-     * First argument is the sourceName of the track and the second is a string indicating if the connection is currently
+     * First argument is the sourceName of the track and the second is a string indicating if the connection is
+     * currently
      * - active - the connection is active.
-     * - inactive - the connection is inactive, was intentionally interrupted by the bridge because of low BWE or because
-     *   of the endpoint falling out of last N.
+     * - inactive - the connection is inactive, was intentionally interrupted by the bridge because of low BWE or
+     *   because of the endpoint falling out of last N.
      * - interrupted - a network problem occurred.
      * - restoring - the connection was inactive and is restoring now.
      *

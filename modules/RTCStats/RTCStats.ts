@@ -20,8 +20,8 @@ import { IRTCStatsConfiguration } from './interfaces';
 const logger = getLogger(__filename);
 
 /**
- * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be ignored.
- * Config and conference changes are handled by the start method.
+ * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
+ * ignored. Config and conference changes are handled by the start method.
  */
 class RTCStats {
     private _initialized: boolean = false;
