@@ -541,18 +541,18 @@ export const createTransportStatsEvent = (attributes: object) => {
  * @param localAudioLevels - The local audio levels.
  * @param remoteAudioLevels - The audio levels received from the participant.
  */
-export const createAudioOutputProblemEvent = 
-        (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
-    return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
-        action: 'audio.output.problem',
-        attributes: {
-            userID,
-            localAudioLevels,
-            remoteAudioLevels
-        }
+export const createAudioOutputProblemEvent
+    = (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
+        return {
+            type: AnalyticsEvents.TYPE_OPERATIONAL,
+            action: 'audio.output.problem',
+            attributes: {
+                userID,
+                localAudioLevels,
+                remoteAudioLevels
+            }
+        };
     };
-};
 
 /**
  * Creates an event which contains an information related to the bridge channel close event.
