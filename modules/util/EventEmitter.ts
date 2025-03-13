@@ -10,9 +10,8 @@ export default class EventEmitter extends NodeEventEmitter {
      */
     constructor() {
         super();
-
-        // aliases for addListener/removeListener
-        this.addEventListener = this.addListener;
-        this.removeEventListener = this.removeListener;
     }
+       // aliases for addListener/removeListener
+    addEventListener: (event: string, listener: (...args: any[]) => void) => this = this.addListener;
+    removeEventListener: (event: string, listener: (...args: any[]) => void) => this = this.removeListener;
 }
