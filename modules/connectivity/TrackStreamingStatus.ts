@@ -3,12 +3,12 @@ import { getLogger } from '@jitsi/logger';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import { VideoType } from '../../service/RTC/VideoType';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
+import RTC from '../RTC/RTC';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
-import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
-import { VideoType } from '../../service/RTC/VideoType';
-import RTC from '../RTC/RTC';
 
 /** Track streaming statuses. */
 export enum TrackStreamingStatus {
@@ -34,14 +34,14 @@ export enum TrackStreamingStatus {
      * Status indicating that streaming is currently restoring.
      */
     RESTORING = 'restoring',
-  }
+}
 
 type StreamingStatusMap = {
-    videoType?: VideoType,
-    startedMs?: number,
-    p2p?: boolean,
-    streamingStatus?: string,
-    value?: number
+    p2p?: boolean;
+    startedMs?: number;
+    streamingStatus?: string;
+    value?: number;
+    videoType?: VideoType;
 };
 
 const logger = getLogger(__filename);
@@ -135,7 +135,7 @@ export class TrackStreamingStatusImpl {
     _onLastNValueChanged: () => void;
     _onForwardedSourcesChanged: () => void;
 
-    /* eslint-disable max-params*/
+    /* eslint-disable max-params */
     /**
      * Calculates the new {@link TrackStreamingStatus} based on the values given for some specific remote track. It is
      * assumed that the conference is currently in the JVB mode (in contrary to the P2P mode)
@@ -179,7 +179,7 @@ export class TrackStreamingStatusImpl {
         return isInForwardedSources ? TrackStreamingStatus.ACTIVE : TrackStreamingStatus.INACTIVE;
     }
 
-    /* eslint-enable max-params*/
+    /* eslint-enable max-params */
 
     /**
      * In P2P mode we don't care about any values coming from the JVB and the streaming status can be only active or
@@ -215,9 +215,9 @@ export class TrackStreamingStatusImpl {
      * {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.
      */
     constructor(rtc: RTC, conference: any, track: JitsiRemoteTrack, options: {
-        outOfForwardedSourcesTimeout: number,
-        p2pRtcMuteTimeout: number,
-        rtcMuteTimeout: number
+        outOfForwardedSourcesTimeout: number;
+        p2pRtcMuteTimeout: number;
+        rtcMuteTimeout: number;
     }) {
         this.rtc = rtc;
         this.conference = conference;

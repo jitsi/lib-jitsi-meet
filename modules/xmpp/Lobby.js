@@ -324,7 +324,7 @@ export default class Lobby {
 
                     this.lobbyRoom.clean();
 
-                    return;
+
                 }
             });
 

@@ -1,4 +1,5 @@
 export enum XMPPEvents {
+
     /**
      * Indicates error while adding ice candidate.
      */
@@ -8,40 +9,54 @@ export enum XMPPEvents {
     // audio.
     AUDIO_MUTED_BY_FOCUS = 'xmpp.audio_muted_by_focus',
 
-    // Designates an event indicating that the focus has asked us to disable our
-    // camera.
-    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
     AUTHENTICATION_REQUIRED = 'xmpp.authentication_required',
+
+    /**
+     * Event fired when we receive a message for AV moderation approved for the local participant.
+     */
+    AV_MODERATION_APPROVED = 'xmpp.av_moderation.approved',
+
+    /**
+     * Event fired when the moderation enable/disable changes.
+     */
+    AV_MODERATION_CHANGED = 'xmpp.av_moderation.changed',
+
+    /**
+     * Event fired when we receive message that a new jid was approved.
+     */
+    AV_MODERATION_PARTICIPANT_APPROVED = 'xmpp.av_moderation.participant.approved',
+
+    /**
+     * Event fired when we receive message that a new jid was approved.
+     */
+    AV_MODERATION_PARTICIPANT_REJECTED = 'xmpp.av_moderation.participant.rejected',
+
+    /**
+     * Event fired when we receive a message for AV moderation.
+     */
+    AV_MODERATION_RECEIVED = 'xmpp.av_moderation.received',
+
+    /**
+    * Event fired when we receive a message for AV moderation rejected for the local participant.
+    */
+    AV_MODERATION_REJECTED = 'xmpp.av_moderation.rejected',
+
+    /**
+     * Event fired when we receive a message for breakout rooms.
+     */
+    BREAKOUT_ROOMS_EVENT = 'xmpp.breakout-rooms.event',
+
+    /**
+     * Event fired when a participant is requested to join a given (breakout) room.
+     */
+    BREAKOUT_ROOMS_MOVE_TO_ROOM = 'xmpp.breakout-rooms.move-to-room',
+
+    /**
+     * Event fired when the breakout rooms data was updated.
+     */
+    BREAKOUT_ROOMS_UPDATED = 'xmpp.breakout-rooms.updated',
+
     BRIDGE_DOWN = 'xmpp.bridge_down',
-
-    /**
-     * Triggered when 'session-accept' is received from the responder.
-     */
-    CALL_ACCEPTED = 'xmpp.callaccepted.jingle',
-
-    // Designates an event indicating that an offer (e.g. Jingle
-    // session-initiate) was received.
-    CALL_INCOMING = 'xmpp.callincoming.jingle',
-
-    // Triggered when Jicofo kills our media session, this can happen while
-    // we're still in the MUC, when it decides to terminate the media session.
-    // For example when the session is idle for too long, because we're the only
-    // person in the conference room.
-    CALL_ENDED = 'xmpp.callended.jingle',
-    CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
-    SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
-
-    // The conference properties (as advertised by jicofo) have changed
-    CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
-
-    /**
-     * This event is triggered when the ICE connects for the first time.
-     */
-    CONNECTION_ESTABLISHED = 'xmpp.connection.connected',
-
-    // Designates an event indicating that the connection to the XMPP server
-    // failed.
-    CONNECTION_FAILED = 'xmpp.connection.failed',
 
     // Designates an event indicating that the media (ICE) connection was
     // interrupted. This should go to the RTC module.
@@ -293,50 +308,40 @@ export enum XMPPEvents {
      */
     CONFERENCE_TIMESTAMP_RECEIVED = 'xmpp.conference_timestamp_received',
 
-    /**
-     * Event fired when we receive a message for AV moderation approved for the local participant.
-     */
-    AV_MODERATION_APPROVED = 'xmpp.av_moderation.approved',
+    // Designates an event indicating that the focus has asked us to disable our
+// camera.
+    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
+
+    CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
+
+    // Triggered when Jicofo kills our media session, this can happen while
+    // we're still in the MUC, when it decides to terminate the media session.
+    // For example when the session is idle for too long, because we're the only
+    // person in the conference room.
+    CALL_ENDED = 'xmpp.callended.jingle',
+
+    // Designates an event indicating that the connection to the XMPP server
+// failed.
+    CONNECTION_FAILED = 'xmpp.connection.failed',
 
     /**
-    * Event fired when we receive a message for AV moderation rejected for the local participant.
-    */
-    AV_MODERATION_REJECTED = 'xmpp.av_moderation.rejected',
+     * Triggered when 'session-accept' is received from the responder.
+     */
+    CALL_ACCEPTED = 'xmpp.callaccepted.jingle',
+
+    // Designates an event indicating that an offer (e.g. Jingle
+    // session-initiate) was received.
+    CALL_INCOMING = 'xmpp.callincoming.jingle',
+
+    // The conference properties (as advertised by jicofo) have changed
+    CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
+
+    SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
     /**
-     * Event fired when we receive a message for AV moderation.
+     * This event is triggered when the ICE connects for the first time.
      */
-    AV_MODERATION_RECEIVED = 'xmpp.av_moderation.received',
-
-    /**
-     * Event fired when the moderation enable/disable changes.
-     */
-    AV_MODERATION_CHANGED = 'xmpp.av_moderation.changed',
-
-    /**
-     * Event fired when we receive message that a new jid was approved.
-     */
-    AV_MODERATION_PARTICIPANT_APPROVED = 'xmpp.av_moderation.participant.approved',
-
-    /**
-     * Event fired when we receive message that a new jid was approved.
-     */
-    AV_MODERATION_PARTICIPANT_REJECTED = 'xmpp.av_moderation.participant.rejected',
-
-    /**
-     * Event fired when a participant is requested to join a given (breakout) room.
-     */
-    BREAKOUT_ROOMS_MOVE_TO_ROOM = 'xmpp.breakout-rooms.move-to-room',
-
-    /**
-     * Event fired when we receive a message for breakout rooms.
-     */
-    BREAKOUT_ROOMS_EVENT = 'xmpp.breakout-rooms.event',
-
-    /**
-     * Event fired when the breakout rooms data was updated.
-     */
-    BREAKOUT_ROOMS_UPDATED = 'xmpp.breakout-rooms.updated',
+    CONNECTION_ESTABLISHED = 'xmpp.connection.connected',
 
     /**
      * Event fired when we receive a message related to room metadata.
@@ -411,4 +416,4 @@ export enum XMPPEvents {
      * TODO: this event contains a typo (xmmp vs xmpp) but it's unlikely this can be changed now
      */
     JSON_MESSAGE_RECEIVED = 'xmmp.json_message_received'
-};
+}

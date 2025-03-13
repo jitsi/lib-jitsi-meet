@@ -3,6 +3,7 @@
  */
 
 export enum JitsiConferenceErrors {
+
     /**
      * Indicates that client must be authenticated to create the conference.
      */
@@ -14,9 +15,10 @@ export enum JitsiConferenceErrors {
     CHAT_ERROR = 'conference.chatError',
 
     /**
-     * Indicates that a settings error occurred.
+     * Indicates that a connection error is due to denied access to the room,
+     * occurred after joining a lobby room and access is denied by the room moderators.
      */
-    SETTINGS_ERROR = 'conference.settingsError',
+    CONFERENCE_ACCESS_DENIED = 'conference.connectionError.accessDenied',
 
     /**
      * Indicates that conference has been destroyed.
@@ -29,33 +31,15 @@ export enum JitsiConferenceErrors {
     CONFERENCE_MAX_USERS = 'conference.max_users',
 
     /**
-     * Indicates that a connection error occurred when trying to join a conference.
-     */
-    CONNECTION_ERROR = 'conference.connectionError',
-
-    /**
      * Indicates that the client has been forced to restart by jicofo when the
      * conference was migrated from one bridge to another.
      */
     CONFERENCE_RESTARTED = 'conference.restarted',
 
     /**
-     * Indicates that a connection error is due to not allowed,
-     * occurred when trying to join a conference.
+     * Indicates that a connection error occurred when trying to join a conference.
      */
-    NOT_ALLOWED_ERROR = 'conference.connectionError.notAllowed',
-
-    /**
-     * Indicates that a connection error is due to not allowed,
-     * occurred when trying to join a conference, only approved members are allowed to join.
-     */
-    MEMBERS_ONLY_ERROR = 'conference.connectionError.membersOnly',
-
-    /**
-     * Indicates that a connection error is due to denied access to the room,
-     * occurred after joining a lobby room and access is denied by the room moderators.
-     */
-    CONFERENCE_ACCESS_DENIED = 'conference.connectionError.accessDenied',
+    CONNECTION_ERROR = 'conference.connectionError',
 
     /**
      * Indicates that the display name is required when joining the room.
@@ -91,6 +75,18 @@ export enum JitsiConferenceErrors {
     INCOMPATIBLE_SERVER_VERSIONS = 'conference.incompatible_server_versions',
 
     /**
+     * Indicates that a connection error is due to not allowed,
+     * occurred when trying to join a conference, only approved members are allowed to join.
+     */
+    MEMBERS_ONLY_ERROR = 'conference.connectionError.membersOnly',
+
+    /**
+     * Indicates that a connection error is due to not allowed,
+     * occurred when trying to join a conference.
+     */
+    NOT_ALLOWED_ERROR = 'conference.connectionError.notAllowed',
+
+    /**
      * Indicates that offer/answer had failed.
      */
     OFFER_ANSWER_FAILED = 'conference.offerAnswerFailed',
@@ -104,6 +100,11 @@ export enum JitsiConferenceErrors {
      * Indicates that a password is required in order to join the conference.
      */
     PASSWORD_REQUIRED = 'conference.passwordRequired',
+
+    /**
+     * Indicates that a settings error occurred.
+     */
+    SETTINGS_ERROR = 'conference.settingsError',
 
     /**
      * Indicates that reservation system returned error.

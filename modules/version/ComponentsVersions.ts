@@ -6,7 +6,7 @@ const logger = getLogger(__filename);
  * Discovers component versions in a conference.
  */
 export default class ComponentsVersions {
-    versions: {[key: string]: string};
+    versions: { [key: string]: string; };
     conference: any;
 
     /**

@@ -8,6 +8,7 @@
  * @enum {string}
  */
 export enum CameraFacingMode {
+
     /**
      * The mode which specifies the environment-facing camera.
      */

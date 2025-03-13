@@ -1,5 +1,6 @@
 
 export enum XEP {
+
     /**
      * XEP-0338 - Signals the usage of bundled media, i.e., allows the use of a single set of ICE candidates for
      * multiple media descriptions.
@@ -43,12 +44,6 @@ export enum XEP {
     RTP_FEEDBACK = 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
 
     /**
-     * XEP-0167 - Signals support for RTP video.
-     * https://xmpp.org/extensions/xep-0167.html#support
-     */
-    RTP_VIDEO = 'urn:xmpp:jingle:apps:rtp:video',
-
-    /**
      * XEP-0294 - Signals the use of RTP Header Extensions.
      * https://xmpp.org/extensions/xep-0294.html
      */
@@ -59,6 +54,12 @@ export enum XEP {
      * https://xmpp.org/extensions/xep-0167.html
      */
     RTP_MEDIA = 'urn:xmpp:jingle:apps:rtp:1',
+
+    /**
+     * XEP-0167 - Signals support for RTP video.
+     * https://xmpp.org/extensions/xep-0167.html#support
+     */
+    RTP_VIDEO = 'urn:xmpp:jingle:apps:rtp:video',
 
     /**
      * XEP-0343 - Signaling WebRTC datachannels (bridge channel) in Jingle that uses DTLS/SCTP on top of ICE.

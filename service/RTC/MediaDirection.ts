@@ -2,6 +2,7 @@
  * Enumeration of the media direction types.
  */
 export enum MediaDirection {
+
     /**
      * Media is send and receive is suspended.
      */

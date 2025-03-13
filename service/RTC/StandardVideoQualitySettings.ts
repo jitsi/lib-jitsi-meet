@@ -1,4 +1,5 @@
 import browser from '../../modules/browser';
+
 import { CodecMimeType } from './CodecMimeType';
 
 // Default value for assumed downlink bandwidth for the local endpoint which tells the bridge to use its own calculated
@@ -33,6 +34,7 @@ export const SIM_LAYERS = [
  * The ssrc-group semantics for SSRCs related to the video streams.
  */
 export enum SSRC_GROUP_SEMANTICS {
+
     // The semantics for group of SSRCs belonging to the same stream, primary and RTX.
     FID = 'FID',
 
@@ -104,12 +106,12 @@ export const STANDARD_CODEC_SETTINGS = {
  * next codec in the list.
  */
 export const VIDEO_CODECS_BY_COMPLEXITY = {
-    'camera' : [
+    'camera': [
         CodecMimeType.AV1,
         CodecMimeType.VP9,
         CodecMimeType.VP8
     ],
-    'desktop' : [
+    'desktop': [
         CodecMimeType.VP9,
         CodecMimeType.VP8,
         CodecMimeType.AV1
@@ -172,8 +174,6 @@ export const VIDEO_QUALITY_LEVELS = [
  * Enumerate the supported video resolutions.
  */
 export enum VIDEO_QUALITY_SETTINGS {
-    // 3840x2160 or 4k.
-    ULTRA = 'ultraHd',
 
     // 1920x1080 or full High Definition.
     FULL = 'fullHd',
@@ -181,12 +181,15 @@ export enum VIDEO_QUALITY_SETTINGS {
     // 1280x720 or High Definition.
     HIGH = 'high',
 
-    // 640x360 or Standard Definition.
-    STANDARD = 'standard',
-
     // 320x180 or Low Definition.
     LOW = 'low',
 
     // When the camera is turned off.
-    NONE = 'none'
+    NONE = 'none',
+
+    // 640x360 or Standard Definition.
+    STANDARD = 'standard',
+
+    // 3840x2160 or 4k.
+    ULTRA = 'ultraHd'
 }

@@ -1,4 +1,13 @@
 export enum RTCEvents {
+
+    AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
+
+    /**
+     * Designates an event indicating that some received audio SSRCs will now map to
+     * new remote sources.
+     */
+    AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped',
+
     /**
      * Indicates error while create answer call.
      */
@@ -8,27 +17,18 @@ export enum RTCEvents {
      * Indicates error while create offer call.
      */
     CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
-    DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
     DATA_CHANNEL_CLOSED = 'rtc.data_channel_closed',
-    ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
+    DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
+    DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
+
+    DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
+
+    /**
+     * Indicates that the list with available devices will change.
+     */
+    DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
+
     DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
-    FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
-
-    /**
-     * Event emitted when the user granted/blocked a permission for the camera / mic.
-     * Used to keep track of the granted permissions on browsers which don't
-     * support the Permissions API.
-     */
-    PERMISSIONS_CHANGED = 'rtc.permissions_changed',
-
-    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
-
-    /**
-     * Event emitted when {@link RTC.setLastN} method is called to update with
-     * the new value set.
-     * The first argument is the value passed to {@link RTC.setLastN}.
-     */
-    LASTN_VALUE_CHANGED = 'rtc.lastn_value_changed',
 
     /**
      * The max enabled resolution of a local video track was changed.
@@ -66,14 +66,22 @@ export enum RTCEvents {
      * Indicates error while set remote description.
      */
     SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
-    AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
-    DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
+    /**
+     * Event emitted when {@link RTC.setLastN} method is called to update with
+     * the new value set.
+     * The first argument is the value passed to {@link RTC.setLastN}.
+     */
+    LASTN_VALUE_CHANGED = 'rtc.lastn_value_changed',
 
     /**
-     * Indicates that the list with available devices will change.
+     * Event emitted when the user granted/blocked a permission for the camera / mic.
+     * Used to keep track of the granted permissions on browsers which don't
+     * support the Permissions API.
      */
-    DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
-    DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
+    PERMISSIONS_CHANGED = 'rtc.permissions_changed',
+
+    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
+    FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
      * Indicates that a message from another participant is received on
@@ -110,11 +118,7 @@ export enum RTCEvents {
      */
     VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped',
 
-    /**
-     * Designates an event indicating that some received audio SSRCs will now map to
-     * new remote sources.
-     */
-    AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped'
+    ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
 }
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;

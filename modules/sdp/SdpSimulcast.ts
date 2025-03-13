@@ -1,12 +1,13 @@
+import * as transform from 'sdp-transform';
+
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
-import * as transform from 'sdp-transform';
 
 interface Description {
-    type: RTCSdpType;
     sdp: string;
+    type: RTCSdpType;
 }
 
 /**
@@ -37,7 +38,7 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-     _fillSsrcsFromCache(mLine: transform.MediaDescription) : any {
+    _fillSsrcsFromCache(mLine: transform.MediaDescription): any {
         const mid = mLine.mid;
         const cachedSsrcs = this._ssrcCache.get(mid);
         const newSsrcs = this._parseSimLayers(mLine);
@@ -76,7 +77,7 @@ export default class SdpSimulcast {
      * @param primarySsrc
      * @returns
      */
-    _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number) : any {
+    _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number): any {
         const cname = this._getSsrcAttribute(mLine, primarySsrc, 'cname');
         let msid = this._getSsrcAttribute(mLine, primarySsrc, 'msid');
         const addAssociatedAttributes = (mLine: transform.MediaDescription, ssrc: number) => {
@@ -90,7 +91,7 @@ export default class SdpSimulcast {
                 attribute: 'msid',
                 value: msid
             });
-        }
+        };
 
         // In Unified-plan mode, the a=ssrc lines with the msid attribute are not present (only cname attributes are
         // present) in the answers that Chrome and Safari generate for an offer received from Jicofo. Generate these
@@ -105,7 +106,7 @@ export default class SdpSimulcast {
                     attribute: 'msid',
                     value: msid
                 });
-            })
+            });
         }
 
         // Generate SIM layers.
@@ -121,7 +122,7 @@ export default class SdpSimulcast {
         mLine.ssrcGroups = mLine.ssrcGroups || [];
         mLine.ssrcGroups.push({
             semantics: SSRC_GROUP_SEMANTICS.SIM,
-            ssrcs: primarySsrc + ' ' + simSsrcs.join(' ')
+            ssrcs: `${primarySsrc} ${simSsrcs.join(' ')}`
         });
 
         return mLine;
@@ -132,7 +133,7 @@ export default class SdpSimulcast {
      *
      * @returns
      */
-    _generateSsrc() : number {
+    _generateSsrc(): number {
         const max = 0xffffffff;
 
         return Math.floor(Math.random() * max);
@@ -146,7 +147,7 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string) : string | undefined {
+    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string | undefined {
         return mLine.ssrcs?.find(
             ssrcInfo => Number(ssrcInfo.id) === ssrc
             && ssrcInfo.attribute === attributeName)?.value;
@@ -158,7 +159,7 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription) : Array<number> | null {
+    _parseSimLayers(mLine: transform.MediaDescription): Array<number> | null {
         const simGroup = mLine.ssrcGroups?.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
         if (simGroup) {
@@ -181,8 +182,8 @@ export default class SdpSimulcast {
      * @param description
      * @returns
      */
-    mungeLocalDescription(description: Description) : Description {
-        if (!description || !description.sdp) {
+    mungeLocalDescription(description: Description): Description {
+        if (!description?.sdp) {
             return description;
         }
         const session = transform.parse(description.sdp);

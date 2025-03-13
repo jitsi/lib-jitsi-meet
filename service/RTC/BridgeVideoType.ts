@@ -3,6 +3,7 @@
  * @type {{CAMERA: string, DESKTOP: string, DESKTOP_HIGH_FPS: string, NONE: string}}
  */
 export enum BridgeVideoType {
+
     /**
      * The camera video type.
      */

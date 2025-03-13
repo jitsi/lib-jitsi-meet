@@ -13,6 +13,7 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import RTC from './modules/RTC/RTC';
 import RTCStats from './modules/RTCStats/RTCStats';
+import * as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
@@ -24,18 +25,17 @@ import ProxyConnectionService
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
+import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
 import Statistics from './modules/statistics/statistics';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
 import { MediaType } from './service/RTC/MediaType';
+import { VideoType } from './service/RTC/VideoType';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
-import *  as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
-import { VideoType } from './service/RTC/VideoType';
-import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
 
 const logger = Logger.getLogger(__filename);
 
@@ -57,9 +57,9 @@ let hasGUMExecuted = false;
 function getAnalyticsAttributesFromOptions(options) {
     const attributes: any = {};
 
-    attributes['audio_requested'] = options.devices.includes('audio');
-    attributes['video_requested'] = options.devices.includes('video');
-    attributes['screen_sharing_requested'] = options.devices.includes('desktop');
+    attributes.audio_requested = options.devices.includes('audio');
+    attributes.video_requested = options.devices.includes('video');
+    attributes.screen_sharing_requested = options.devices.includes('desktop');
 
     if (attributes.video_requested) {
         attributes.resolution = options.resolution;
@@ -89,14 +89,14 @@ interface IJitsiMeetJSOptions {
     flags?: {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
-    }
+    };
 }
 
 interface ICreateLocalTrackFromMediaStreamOptions {
-    stream: MediaStream,
-    sourceType: string,
-    mediaType: MediaType,
-    videoType?: VideoType
+    mediaType: MediaType;
+    sourceType: string;
+    stream: MediaStream;
+    videoType?: VideoType;
 }
 
 /**
@@ -293,7 +293,7 @@ export default {
      */
     createLocalTracks(options: ICreateLocalTrackOptions = {}) {
         let isFirstGUM = false;
-        let startTS = window.performance.now();
+        const startTS = window.performance.now();
 
         if (!window.connectionTimes) {
             window.connectionTimes = {};
@@ -308,7 +308,7 @@ export default {
 
         return RTC.obtainAudioAndVideoPermissions(options)
             .then(tracks => {
-                let endTS = window.performance.now();
+                const endTS = window.performance.now();
 
                 window.connectionTimes['obtainPermissions.end'] = endTS;
 
@@ -372,7 +372,7 @@ export default {
                         createGetUserMediaEvent('error', attributes));
                 }
 
-                let endTS = window.performance.now();
+                const endTS = window.performance.now();
 
                 window.connectionTimes['obtainPermissions.end'] = endTS;
 
@@ -391,7 +391,7 @@ export default {
      * @returns {Array<JitsiLocalTrack>} - created local tracks
      */
     createLocalTracksFromMediaStreams(tracksInfo) {
-        return RTC.createLocalTracks(tracksInfo.map((trackInfo) => {
+        return RTC.createLocalTracks(tracksInfo.map(trackInfo => {
             const tracks = trackInfo.stream.getTracks()
                 .filter(track => track.kind === trackInfo.mediaType);
 

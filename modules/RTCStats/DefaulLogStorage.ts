@@ -9,6 +9,8 @@ export default class DefaultLogStorage {
     constructor(rtcStats: any) {
         this.rtcStats = rtcStats;
     }
+
+
     /**
      * The DefaultLogStorage is ready when the RTCStats is ready.
      *

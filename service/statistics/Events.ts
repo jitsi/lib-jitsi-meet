@@ -1,4 +1,5 @@
 export enum Events {
+
     /**
      * Notifies about audio level in RTP statistics by SSRC.
      *
@@ -40,7 +41,7 @@ export enum Events {
      * An event carrying performance stats.
      */
     LONG_TASKS_STATS = 'statistics.long_tasks_stats'
-};
+}
 
 // exported for backward compatibility
 export const AUDIO_LEVEL = Events.AUDIO_LEVEL;
