@@ -34,7 +34,7 @@ export interface IIceServer {
  * @returns {Promise<IPreCallResult | any>} - A Promise that resolves with the test results or rejects with an error.
  */
 export default async function runPreCallTest(iceServers: Array<IIceServer>): Promise<IPreCallResult | string> {
-    await Promise.resolve();
+    const test = new PreCallTest();
 
-    return new PreCallTest().start(iceServers);
+    return await test.start(iceServers);
 }
