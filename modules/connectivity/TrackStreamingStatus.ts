@@ -609,8 +609,6 @@ export class TrackStreamingStatusImpl {
             return;
         }
 
-        const sourceName = this.track.getSourceName();
-
         this.figureOutStreamingStatus();
     }
 

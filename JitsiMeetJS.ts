@@ -57,6 +57,8 @@ let hasGUMExecuted = false;
 function getAnalyticsAttributesFromOptions(options) {
     const attributes: any = {};
 
+    /* eslint-disable */
+
     attributes.audio_requested = options.devices.includes('audio');
     attributes.video_requested = options.devices.includes('video');
     attributes.screen_sharing_requested = options.devices.includes('desktop');
@@ -64,6 +66,8 @@ function getAnalyticsAttributesFromOptions(options) {
     if (attributes.video_requested) {
         attributes.resolution = options.resolution;
     }
+
+    /* eslint-enable */
 
     return attributes;
 }
@@ -390,16 +394,18 @@ export default {
      * @param {Array<ICreateLocalTrackFromMediaStreamOptions>} tracksInfo - array of track information
      * @returns {Array<JitsiLocalTrack>} - created local tracks
      */
-    createLocalTracksFromMediaStreams(tracksInfo) {
+    createLocalTracksFromMediaStreams(tracksInfo: ICreateLocalTrackFromMediaStreamOptions[]) {
         return RTC.createLocalTracks(tracksInfo.map(trackInfo => {
             const tracks = trackInfo.stream.getTracks()
                 .filter(track => track.kind === trackInfo.mediaType);
 
             if (!tracks || tracks.length === 0) {
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
                 throw new JitsiTrackError(JitsiTrackErrors.TRACK_NO_STREAM_TRACKS_FOUND, null, null);
             }
 
             if (tracks.length > 1) {
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
                 throw new JitsiTrackError(JitsiTrackErrors.TRACK_TOO_MANY_TRACKS_IN_STREAM, null, null);
             }
 

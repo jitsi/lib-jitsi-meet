@@ -47,6 +47,10 @@ export class MockLocalTrack {
         this.videoType = videoType;
     }
 
+    /**
+     * Gets the capture resolution of the mock local track.
+     * @returns - The capture resolution.
+     */
     getCaptureResolution(): number {
         return this.captureResolution;
     }

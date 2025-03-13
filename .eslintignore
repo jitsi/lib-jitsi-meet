@@ -14,3 +14,4 @@ doc/example/libs/*
 
 *.d.ts
 *.spec.ts
+*.spec.js

@@ -67,6 +67,7 @@ interface IVideoConstraints {
     sourceName: string;
 }
 
+/* eslint-disable require-jsdoc */
 export class FixedSizeArray {
     private _data: ISourceStats[];
     private _maxSize: number;
@@ -95,6 +96,7 @@ export class FixedSizeArray {
         return this._data.length;
     }
 }
+/* eslint-enable require-jsdoc */
 
 /**
  * QualityController class that is responsible for maintaining optimal video quality experience on the local endpoint
@@ -176,14 +178,16 @@ export class QualityController {
      * @param {number} delay - The delay in milliseconds.
      * @returns {Function} - The debounced function.
      */
-    _debounce(func: Function, delay: number) {
-        return function(...args) {
+    _debounce(func: Function, delay: number) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+        return function(...args: any) {
+            /* eslint-disable @typescript-eslint/no-invalid-this */
             if (!this._timer) {
                 this._timer = setTimeout(() => {
                     this._timer = null;
                     func.apply(this, args);
                 }, delay);
             }
+            /* eslint-enable @typescript-eslint/no-invalid-this */
         };
     }
 
@@ -460,14 +464,23 @@ export class QualityController {
         }
     }
 
+    /**
+     * Gets the codec controller instance.
+     */
     get codecController() {
         return this._codecController;
     }
 
+    /**
+     * Gets the receive video controller instance.
+     */
     get receiveVideoController() {
         return this._receiveVideoController;
     }
 
+    /**
+     * Gets the send video controller instance.
+     */
     get sendVideoController() {
         return this._sendVideoController;
     }

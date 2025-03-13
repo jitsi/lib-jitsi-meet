@@ -1,4 +1,3 @@
-/* global TransformStream */
 /* eslint-disable no-bitwise */
 
 // Worker for E2EE/Insertable streams.
@@ -50,7 +49,7 @@ function handleTransform(context, operation, readableStream, writableStream) {
     }
 }
 
-onmessage = async event => {
+onmessage = event => {
     const { operation } = event.data;
 
     if (operation === 'initialize') {
