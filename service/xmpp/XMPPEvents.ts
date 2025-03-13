@@ -138,42 +138,57 @@ export enum XMPPEvents {
 
     FOCUS_LEFT = 'xmpp.focus_left',
 
-    // Designates an event indicating that a bot participant type had changed
-    MUC_MEMBER_BOT_TYPE_CHANGED = 'xmpp.muc_member_bot_type_changed',
+    GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
 
-    // Designates an event indicating that the XMPP MUC was destroyed.
-    MUC_DESTROYED = 'xmpp.muc_destroyed',
+    // Designates an event indicating that the local ICE connection state has
+    // changed.
+    ICE_CONNECTION_STATE_CHANGED = 'xmpp.ice_connection_state_changed',
 
-    // Designates an event indicating that we are currently in process of joining the XMPP MUC.
-    MUC_JOIN_IN_PROGRESS = 'xmpp.muc_join_in_progress',
+    // Designates an event indicating that an invite XMPP message in the MUC was
+    // received.
+    INVITE_MESSAGE_RECEIVED = 'xmpp.invite_message_received',
 
-    // Designates an event indicating that we have joined the XMPP MUC.
-    MUC_JOINED = 'xmpp.muc_joined',
+    /**
+     * Event which is emitted when the body in an XMPP message in the MUC
+     * contains JSON
+     * TODO: this event contains a typo (xmmp vs xmpp) but it's unlikely this can be changed now
+     */
+    JSON_MESSAGE_RECEIVED = 'xmmp.json_message_received',
 
-    // Designates an event indicating that a participant joined the XMPP MUC.
-    MUC_MEMBER_JOINED = 'xmpp.muc_member_joined',
+    /**
+     * Designates an event indicating that we were kicked from the XMPP MUC.
+     * @param {boolean} isSelfPresence - whether it is for local participant
+     * or another participant.
+     * @param {string} actorJid - the jid of the participant who was initiator
+     * of the kick.
+     * @param {?string} participantJid - when it is not a kick for local participant,
+     * this is the jid of the participant which was kicked.
+     */
+    KICKED = 'xmpp.kicked',
 
-    // Designates an event indicating that a participant left the XMPP MUC.
-    MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
+    // Designates an event indicating that our role in the XMPP MUC has changed.
+    LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
 
-    // Designates an event indicating that a participant joined the lobby XMPP MUC.
-    MUC_LOBBY_MEMBER_JOINED = 'xmpp.muc_lobby_member_joined',
+    /**
+     * Event fired when the unique meeting id is set.
+     */
+    MEETING_ID_SET = 'xmpp.meeting_id_set',
 
-    // Designates an event indicating that a participant in the lobby XMPP MUC has been updated
-    MUC_LOBBY_MEMBER_UPDATED = 'xmpp.muc_lobby_member_updated',
-
-    // Designates an event indicating that a participant left the XMPP MUC.
-    MUC_LOBBY_MEMBER_LEFT = 'xmpp.muc_lobby_member_left',
+    // Designates an event indicating that an XMPP message in the MUC was
+    // received.
+    MESSAGE_RECEIVED = 'xmpp.message_received',
 
     // Designates an event indicating that a participant was denied access to a conference from the lobby XMPP MUC.
     MUC_DENIED_ACCESS = 'xmpp.muc_denied access',
 
+    // Designates an event indicating that the XMPP MUC was destroyed.
+    MUC_DESTROYED = 'xmpp.muc_destroyed',
+
     // Designates an event indicating that local participant left the muc
     MUC_LEFT = 'xmpp.muc_left',
 
-    // Designates an event indicating that the MUC role of a participant has
-    // changed.
-    MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',
+    // Designates an event indicating that we are currently in process of joining the XMPP MUC.
+    MUC_JOIN_IN_PROGRESS = 'xmpp.muc_join_in_progress',
 
     // Designates an event indicating that the MUC has been locked or unlocked.
     MUC_LOCK_CHANGED = 'xmpp.muc_lock_changed',
@@ -304,48 +319,38 @@ export enum XMPPEvents {
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    /**
-     * Designates an event indicating that we were kicked from the XMPP MUC.
-     * @param {boolean} isSelfPresence - whether it is for local participant
-     * or another participant.
-     * @param {string} actorJid - the jid of the participant who was initiator
-     * of the kick.
-     * @param {?string} participantJid - when it is not a kick for local participant,
-     * this is the jid of the participant which was kicked.
-     */
-    KICKED = 'xmpp.kicked',
+    // Designates an event indicating that a participant joined the XMPP MUC.
+    MUC_MEMBER_JOINED = 'xmpp.muc_member_joined',
 
     // Designates an event indicating that the focus has asked us to disable our
     // camera.
     VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 
-    // Designates an event indicating that an invite XMPP message in the MUC was
-// received.
-    INVITE_MESSAGE_RECEIVED = 'xmpp.invite_message_received',
+    // Designates an event indicating that the MUC role of a participant has
+// changed.
+    MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',
 
     // Designates an event indicating that a private XMPP message in the MUC was
-// received.
+    // received.
     PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
 
-    /**
-     * Event fired when the unique meeting id is set.
-     */
-    MEETING_ID_SET = 'xmpp.meeting_id_set',
+    // Designates an event indicating that a participant joined the lobby XMPP MUC.
+    MUC_LOBBY_MEMBER_JOINED = 'xmpp.muc_lobby_member_joined',
 
     // Designates an event indicating that a reaction XMPP message in the MUC
     // was received.
     REACTION_RECEIVED = 'xmpp.reaction_received',
 
-    // Designates an event indicating that an XMPP message in the MUC was
-    // received.
-    MESSAGE_RECEIVED = 'xmpp.message_received',
+    // Designates an event indicating that a participant in the lobby XMPP MUC has been updated
+    MUC_LOBBY_MEMBER_UPDATED = 'xmpp.muc_lobby_member_updated',
 
-    GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
+    // Designates an event indicating that a bot participant type had changed
+    MUC_MEMBER_BOT_TYPE_CHANGED = 'xmpp.muc_member_bot_type_changed',
 
     SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
-    // Designates an event indicating that our role in the XMPP MUC has changed.
-    LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
+    // Designates an event indicating that a participant left the XMPP MUC.
+    MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
 
     /**
      * Event fired when we receive a message related to room metadata.
@@ -410,14 +415,9 @@ export enum XMPPEvents {
      */
     VISITORS_REJECTION = 'xmpp.visitors_rejection',
 
-    // Designates an event indicating that the local ICE connection state has
-    // changed.
-    ICE_CONNECTION_STATE_CHANGED = 'xmpp.ice_connection_state_changed',
+    // Designates an event indicating that a participant left the XMPP MUC.
+    MUC_LOBBY_MEMBER_LEFT = 'xmpp.muc_lobby_member_left',
 
-    /**
-     * Event which is emitted when the body in an XMPP message in the MUC
-     * contains JSON
-     * TODO: this event contains a typo (xmmp vs xmpp) but it's unlikely this can be changed now
-     */
-    JSON_MESSAGE_RECEIVED = 'xmmp.json_message_received'
+    // Designates an event indicating that we have joined the XMPP MUC.
+    MUC_JOINED = 'xmpp.muc_joined',
 }
