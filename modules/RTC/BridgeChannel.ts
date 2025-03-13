@@ -1,14 +1,14 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { EventEmitter } from 'events';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
-import Statistics from '../statistics/statistics';
-import { EventEmitter } from "events";
-import JitsiConference from '../../JitsiConference'
-import ReceiverVideoConstraints from "../qualitycontrol/ReceiveVideoController"; 
 import { SourceName } from '../../service/RTC/SignalingLayer';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import Statistics from '../statistics/statistics';
+import JitsiConference from '../../JitsiConference'
+import ReceiverVideoConstraints from "../qualitycontrol/ReceiveVideoController"; 
 
 
 const logger = getLogger(__filename);
@@ -40,7 +40,7 @@ export default class BridgeChannel {
      * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
      * @param {JitsiConference} conference the conference instance.
      */
-    constructor(peerconnection:RTCPeerConnection | null, wsUrl: string | null, emitter: EventEmitter, conference: JitsiConference) {
+    constructor(peerconnection: RTCPeerConnection | null, wsUrl: string | null, emitter: EventEmitter, conference: JitsiConference) {
         if (!peerconnection && !wsUrl) {
             throw new TypeError('At least peerconnection or wsUrl must be given');
         } else if (peerconnection && wsUrl) {
@@ -103,7 +103,7 @@ export default class BridgeChannel {
      *
      * @returns {void}
      */
-    _initWebSocket():void {
+    _initWebSocket(): void {
         // Create a WebSocket instance.
         const ws = new WebSocket(this._wsUrl);
 
@@ -117,10 +117,10 @@ export default class BridgeChannel {
      *
      * @returns {void}
      */
-    _startConnectionRetries():void {
+    _startConnectionRetries(): void {
         let timeoutS = 1;
 
-        const reload = ():void => {
+        const reload = (): void => {
             const isConnecting = this._channel && (this._channel.readyState === 'connecting'
                     || this._channel.readyState === WebSocket.CONNECTING);
 
@@ -149,7 +149,7 @@ export default class BridgeChannel {
      *
      * @returns {void}
      */
-    _stopConnectionRetries():void {
+    _stopConnectionRetries(): void {
         if (this._retryTimeout) {
             clearTimeout(this._retryTimeout);
             this._retryTimeout = undefined;
@@ -162,7 +162,7 @@ export default class BridgeChannel {
      * @param {CloseEvent} closeEvent - The close event that triggered the retries.
      * @returns {void}
      */
-    _retryWebSocketConnection(closeEvent:CloseEvent):void {
+    _retryWebSocketConnection(closeEvent: CloseEvent): void {
         if (!this._areRetriesEnabled) {
             return;
         }
@@ -181,14 +181,14 @@ export default class BridgeChannel {
      * The channel mode.
      * @return {string} "datachannel" or "websocket" (or null if not yet set).
      */
-    get mode():string {
+    get mode(): string {
         return this._mode;
     }
 
     /**
      * Closes the currently opened channel.
      */
-    close():void {
+    close(): void {
         this._closedFromClient = true;
         this._stopConnectionRetries();
         this._areRetriesEnabled = false;
@@ -206,7 +206,7 @@ export default class BridgeChannel {
      * open.
      * @return {boolean}
      */
-    isOpen():boolean {
+    isOpen(): boolean {
         return this._channel && (this._channel.readyState === 'open'
             || this._channel.readyState === WebSocket.OPEN);
     }
@@ -216,7 +216,7 @@ export default class BridgeChannel {
      * @param {Object} payload The payload of the message.
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
-    sendEndpointStatsMessage(payload: Record<string, unknown>) :void{
+    sendEndpointStatsMessage(payload: Record<string, unknown>): void {
         this._send({
             colibriClass: 'EndpointStats',
             ...payload
@@ -232,7 +232,7 @@ export default class BridgeChannel {
      * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
      * or from WebSocket#send or Error with "No opened channel" message.
      */
-    sendMessage(to:string, payload: Record<string, unknown>):void {
+    sendMessage(to: string, payload: Record<string, unknown>): void {
         this._send({
             colibriClass: 'EndpointMessage',
             msgPayload: payload,
@@ -244,7 +244,7 @@ export default class BridgeChannel {
      * Sends a "lastN value changed" message via the channel.
      * @param {number} value The new value for lastN. -1 means unlimited.
      */
-    sendSetLastNMessage(value:number) :void{
+    sendSetLastNMessage(value: number): void {
         logger.log(`Sending lastN=${value}.`);
 
         this._send({
@@ -258,7 +258,7 @@ export default class BridgeChannel {
      *
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
-    sendReceiverVideoConstraintsMessage(constraints:ReceiverVideoConstraints):void {
+    sendReceiverVideoConstraintsMessage(constraints: ReceiverVideoConstraints): void {
         logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',
@@ -273,7 +273,7 @@ export default class BridgeChannel {
      * @param {SourceName} sourceName - the source name of the video track.
      * @returns {void}
      */
-    sendSourceVideoTypeMessage(sourceName:SourceName, videoType:BridgeVideoType):void {
+    sendSourceVideoTypeMessage(sourceName: SourceName, videoType: BridgeVideoType): void {
         logger.info(`Sending SourceVideoTypeMessage with video type ${sourceName}: ${videoType}`);
         this._send({
             colibriClass: 'SourceVideoTypeMessage',
@@ -285,10 +285,10 @@ export default class BridgeChannel {
     /**
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
-    _handleChannel(channel:RTCDataChannel | WebSocket):void {
+    _handleChannel(channel: RTCDataChannel | WebSocket): void {
         const emitter = this._eventEmitter;
 
-        channel.onopen = ():void | null => {
+        channel.onopen = (): void | null => {
             logger.info(`${this._mode} channel opened`);
 
             this._connected = true;
@@ -296,7 +296,7 @@ export default class BridgeChannel {
             emitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
         };
 
-        channel.onerror = (event:ErrorEvent):void => {
+        channel.onerror = (event: ErrorEvent): void => {
             // WS error events contain no information about the failure (this is available in the onclose event) and
             // the event references the WS object itself, which causes hangs on mobile.
             if (this._mode !== 'websocket') {
@@ -304,7 +304,7 @@ export default class BridgeChannel {
             }
         };
 
-        channel.onmessage = ({ data : string }):void=> {
+        channel.onmessage = ({ data }: { data: string }): void => {
             // JSON object.
             let obj;
 
@@ -388,7 +388,7 @@ export default class BridgeChannel {
             }
         };
 
-        channel.onclose = (event:CloseEvent):void => {
+        channel.onclose = (event: CloseEvent): void => {
             logger.debug(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
 
             if (channel !== this._channel) {
@@ -439,7 +439,7 @@ export default class BridgeChannel {
      * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
      * or from WebSocket#send or Error with "No opened channel" message.
      */
-    _send(jsonObject: Record<string, unknown>) :void{
+    _send(jsonObject: Record<string, unknown>): void {
         const channel = this._channel;
 
         if (!this.isOpen()) {
