@@ -342,6 +342,11 @@ export enum XMPPEvents {
     SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
     /**
+     * Event fired when participant joins a meeting without audio.
+     */
+    SILENT_STATUS_CHANGED = 'xmpp.silent_status_changed',
+
+    /**
      * Event fired after successful sending of jingle source-add.
      */
     SOURCE_ADD = 'xmpp.source_add',
@@ -357,13 +362,14 @@ export enum XMPPEvents {
     SOURCE_REMOVE = 'xmpp.source_remove',
 
     /**
+     * Event fired after receiving an error sending of jingle source-remove.
+     */
+    SOURCE_REMOVE_ERROR = 'xmpp.source_remove_error',
+
+    /**
      * Event fired when speaker stats update message is received.
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
-
-    // Designates an event indicating that the focus has asked us to disable our
-// camera.
-    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
@@ -384,11 +390,6 @@ export enum XMPPEvents {
      * @param {String} status - The new status.
      */
     TRANSCRIPTION_STATUS_CHANGED = 'xmpp.transcription_status_changed',
-
-    /**
-     * Event fired when 'transport-info' with new ICE candidates is received.
-     */
-    TRANSPORT_INFO = 'xmpp.transportinfo.jingle',
 
     /**
      * Indicates that video SIP GW state changed.
@@ -419,12 +420,11 @@ export enum XMPPEvents {
     VISITORS_REJECTION = 'xmpp.visitors_rejection',
 
     /**
-     * Event fired when participant joins a meeting without audio.
+     * Event fired when 'transport-info' with new ICE candidates is received.
      */
-    SILENT_STATUS_CHANGED = 'xmpp.silent_status_changed',
+    TRANSPORT_INFO = 'xmpp.transportinfo.jingle',
 
-    /**
-     * Event fired after receiving an error sending of jingle source-remove.
-     */
-    SOURCE_REMOVE_ERROR = 'xmpp.source_remove_error',
+    // Designates an event indicating that the focus has asked us to disable our
+    // camera.
+    VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 }
