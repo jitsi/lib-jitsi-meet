@@ -95,47 +95,48 @@ export enum XMPPEvents {
     // Designates an event indicating that the media (ICE) connection failed.
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED = 'xmpp.connection.ice.failed',
+
     // Designates an event indicating that the media (ICE) connection was
-// interrupted. This should go to the RTC module.
+    // interrupted. This should go to the RTC module.
     CONNECTION_INTERRUPTED = 'xmpp.connection.interrupted',
+
+    // Designates an event indicating that the call has been migrated to a different
+    // bridge and that the client needs to be restarted for a successful transition.
+    CONNECTION_RESTARTED = 'xmpp.connection.restart',
+
+    // Designates an event indicating that the media (ICE) connection was
+    // restored. This should go to the RTC module.
+    CONNECTION_RESTORED = 'xmpp.connection.restored',
+
+    /**
+     * Designates an event indicating connection status changes.
+     */
+    CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
+
+    // Designates an event indicating that the display name of a participant
+    // has changed.
+    DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',
+
+    /**
+     * Event for incoming presence error which is for required display name.
+     */
+    DISPLAY_NAME_REQUIRED = 'xmpp.display_name_required',
+
+    /**
+     * Chat room instance have been added to Strophe.emuc plugin.
+     */
+    EMUC_ROOM_ADDED = 'xmpp.emuc_room_added',
+
+    /**
+     * Chat room instance have been removed from Strophe.emuc plugin.
+     */
+    EMUC_ROOM_REMOVED = 'xmpp.emuc_room_removed',
+
+    ETHERPAD = 'xmpp.etherpad',
+
     FOCUS_DISCONNECTED = 'xmpp.focus_disconnected',
+
     FOCUS_LEFT = 'xmpp.focus_left',
-    GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
-
-    /**
-     * Designates an event indicating that we were kicked from the XMPP MUC.
-     * @param {boolean} isSelfPresence - whether it is for local participant
-     * or another participant.
-     * @param {string} actorJid - the jid of the participant who was initiator
-     * of the kick.
-     * @param {?string} participantJid - when it is not a kick for local participant,
-     * this is the jid of the participant which was kicked.
-     */
-    KICKED = 'xmpp.kicked',
-
-    // Designates an event indicating that our role in the XMPP MUC has changed.
-    LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
-
-    /**
-     * Event fired when the unique meeting id is set.
-     */
-    MEETING_ID_SET = 'xmpp.meeting_id_set',
-
-    // Designates an event indicating that an XMPP message in the MUC was
-    // received.
-    MESSAGE_RECEIVED = 'xmpp.message_received',
-
-    // Designates an event indicating that a reaction XMPP message in the MUC
-    // was received.
-    REACTION_RECEIVED = "xmpp.reaction_received",
-
-    // Designates an event indicating that an invite XMPP message in the MUC was
-    // received.
-    INVITE_MESSAGE_RECEIVED = 'xmpp.invite_message_received',
-
-    // Designates an event indicating that a private XMPP message in the MUC was
-    // received.
-    PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
 
     // Designates an event indicating that a bot participant type had changed
     MUC_MEMBER_BOT_TYPE_CHANGED = 'xmpp.muc_member_bot_type_changed',
@@ -303,45 +304,48 @@ export enum XMPPEvents {
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    // Designates an event indicating that the display name of a participant
-// has changed.
-    DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',
+    /**
+     * Designates an event indicating that we were kicked from the XMPP MUC.
+     * @param {boolean} isSelfPresence - whether it is for local participant
+     * or another participant.
+     * @param {string} actorJid - the jid of the participant who was initiator
+     * of the kick.
+     * @param {?string} participantJid - when it is not a kick for local participant,
+     * this is the jid of the participant which was kicked.
+     */
+    KICKED = 'xmpp.kicked',
 
     // Designates an event indicating that the focus has asked us to disable our
     // camera.
     VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 
-    // Designates an event indicating that the call has been migrated to a different
-    // bridge and that the client needs to be restarted for a successful transition.
-    CONNECTION_RESTARTED = 'xmpp.connection.restart',
+    // Designates an event indicating that an invite XMPP message in the MUC was
+// received.
+    INVITE_MESSAGE_RECEIVED = 'xmpp.invite_message_received',
 
-    // Designates an event indicating that the media (ICE) connection was
-    // restored. This should go to the RTC module.
-    CONNECTION_RESTORED = 'xmpp.connection.restored',
-
-    /**
-     * Chat room instance have been added to Strophe.emuc plugin.
-     */
-    EMUC_ROOM_ADDED = 'xmpp.emuc_room_added',
-
-    ETHERPAD = 'xmpp.etherpad',
+    // Designates an event indicating that a private XMPP message in the MUC was
+// received.
+    PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
 
     /**
-     * Chat room instance have been removed from Strophe.emuc plugin.
+     * Event fired when the unique meeting id is set.
      */
-    EMUC_ROOM_REMOVED = 'xmpp.emuc_room_removed',
+    MEETING_ID_SET = 'xmpp.meeting_id_set',
 
-    /**
-     * Designates an event indicating connection status changes.
-     */
-    CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
+    // Designates an event indicating that a reaction XMPP message in the MUC
+    // was received.
+    REACTION_RECEIVED = 'xmpp.reaction_received',
+
+    // Designates an event indicating that an XMPP message in the MUC was
+    // received.
+    MESSAGE_RECEIVED = 'xmpp.message_received',
+
+    GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
 
     SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
-    /**
-     * Event for incoming presence error which is for required display name.
-     */
-    DISPLAY_NAME_REQUIRED = 'xmpp.display_name_required',
+    // Designates an event indicating that our role in the XMPP MUC has changed.
+    LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
 
     /**
      * Event fired when we receive a message related to room metadata.

@@ -193,9 +193,9 @@ export enum AnalyticsEvents {
     TYPE_OPERATIONAL = 'operational',
 
     /**
-     * The constant which identifies an event of type "ui".
+     * The constant which identifies an event of type "page".
      */
-    TYPE_UI = 'ui',
+    TYPE_PAGE = 'page',
 
     /**
      * The constant which identifies an event of type "track".
@@ -203,9 +203,9 @@ export enum AnalyticsEvents {
     TYPE_TRACK = 'track',
 
     /**
-     * The constant which identifies an event of type "page".
+     * The constant which identifies an event of type "ui".
      */
-    TYPE_PAGE = 'page',
+    TYPE_UI = 'ui',
 
     /**
      * Indicates that the video codec changed for a local track.

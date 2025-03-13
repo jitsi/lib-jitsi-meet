@@ -83,12 +83,15 @@ export enum RTCEvents {
     // (currently implemented for local tracks only)
     REMOTE_TRACK_MUTE = 'rtc.remote_track_mute',
 
-    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
-
     /**
-     * Indicates error while set remote description.
+     * Indicates that the remote track has been removed from the conference.
+     * 1st event argument is the removed {@link JitsiRemoteTrack} instance.
      */
-    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
+    REMOTE_TRACK_REMOVED = 'rtc.remote_track_removed',
+
+    // FIXME get rid of this event in favour of NO_DATA_FROM_SOURCE event
+    // (currently implemented for local tracks only)
+    REMOTE_TRACK_UNMUTE = 'rtc.remote_track_unmute',
 
     /**
      * Designates an event indicating that the local ICE username fragment of
@@ -99,16 +102,17 @@ export enum RTCEvents {
      */
     REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
 
-    /**
-     * Indicates that the remote track has been removed from the conference.
-     * 1st event argument is the removed {@link JitsiRemoteTrack} instance.
-     */
-    REMOTE_TRACK_REMOVED = 'rtc.remote_track_removed',
+    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
 
     /**
      * Indicates error while set local description.
      */
     SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
+
+    /**
+     * Indicates error while set remote description.
+     */
+    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
 
     TRACK_ATTACHED = 'rtc.track_attached',
 
@@ -116,11 +120,7 @@ export enum RTCEvents {
      * Designates an event indicating that some received video SSRCs will now map to
      * new remote sources.
      */
-    VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped',
-
-    // FIXME get rid of this event in favour of NO_DATA_FROM_SOURCE event
-    // (currently implemented for local tracks only)
-    REMOTE_TRACK_UNMUTE = 'rtc.remote_track_unmute',
+    VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped'
 }
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
