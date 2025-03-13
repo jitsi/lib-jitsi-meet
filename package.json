@@ -38,6 +38,7 @@
     "@babel/core": "7.25.9",
     "@babel/eslint-parser": "7.25.9",
     "@babel/preset-env": "7.25.9",
+    "@babel/preset-typescript": "7.25.9",
     "@jitsi/eslint-config": "5.0.10",
     "@stylistic/eslint-plugin": "2.12.1",
     "@types/async": "3.2.12",
