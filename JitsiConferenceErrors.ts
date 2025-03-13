@@ -102,14 +102,14 @@ export enum JitsiConferenceErrors {
     PASSWORD_REQUIRED = 'conference.passwordRequired',
 
     /**
-     * Indicates that a settings error occurred.
-     */
-    SETTINGS_ERROR = 'conference.settingsError',
-
-    /**
      * Indicates that reservation system returned error.
      */
     RESERVATION_ERROR = 'conference.reservationError',
+
+    /**
+     * Indicates that a settings error occurred.
+     */
+    SETTINGS_ERROR = 'conference.settingsError',
 
     /**
      * Indicates that there is no available videobridge.

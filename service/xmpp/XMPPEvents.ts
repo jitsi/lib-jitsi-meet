@@ -58,46 +58,46 @@ export enum XMPPEvents {
 
     BRIDGE_DOWN = 'xmpp.bridge_down',
 
-    // Designates an event indicating that the media (ICE) connection was
-    // interrupted. This should go to the RTC module.
-    CONNECTION_INTERRUPTED = 'xmpp.connection.interrupted',
+    /**
+     * Triggered when 'session-accept' is received from the responder.
+     */
+    CALL_ACCEPTED = 'xmpp.callaccepted.jingle',
 
-    // Designates an event indicating that the media (ICE) connection was
-    // restored. This should go to the RTC module.
-    CONNECTION_RESTORED = 'xmpp.connection.restored',
+    // Triggered when Jicofo kills our media session, this can happen while
+    // we're still in the MUC, when it decides to terminate the media session.
+    // For example when the session is idle for too long, because we're the only
+    // person in the conference room.
+    CALL_ENDED = 'xmpp.callended.jingle',
+
+    // Designates an event indicating that an offer (e.g. Jingle
+    // session-initiate) was received.
+    CALL_INCOMING = 'xmpp.callincoming.jingle',
+
+    CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
+
+    // The conference properties (as advertised by jicofo) have changed
+    CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
+
+    /**
+     * Event fired when conference creation timestamp is received.
+     */
+    CONFERENCE_TIMESTAMP_RECEIVED = 'xmpp.conference_timestamp_received',
+
+    /**
+     * This event is triggered when the ICE connects for the first time.
+     */
+    CONNECTION_ESTABLISHED = 'xmpp.connection.connected',
+
+    // Designates an event indicating that the connection to the XMPP server
+    // failed.
+    CONNECTION_FAILED = 'xmpp.connection.failed',
 
     // Designates an event indicating that the media (ICE) connection failed.
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED = 'xmpp.connection.ice.failed',
-
-    // Designates an event indicating that the call has been migrated to a different
-    // bridge and that the client needs to be restarted for a successful transition.
-    CONNECTION_RESTARTED = 'xmpp.connection.restart',
-
-    /**
-     * Designates an event indicating connection status changes.
-     */
-    CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
-
-    // Designates an event indicating that the display name of a participant
-    // has changed.
-    DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',
-
-    /**
-     * Event for incoming presence error which is for required display name.
-     */
-    DISPLAY_NAME_REQUIRED = 'xmpp.display_name_required',
-
-    /**
-     * Chat room instance have been added to Strophe.emuc plugin.
-     */
-    EMUC_ROOM_ADDED = 'xmpp.emuc_room_added',
-
-    /**
-     * Chat room instance have been removed from Strophe.emuc plugin.
-     */
-    EMUC_ROOM_REMOVED = 'xmpp.emuc_room_removed',
-    ETHERPAD = 'xmpp.etherpad',
+    // Designates an event indicating that the media (ICE) connection was
+// interrupted. This should go to the RTC module.
+    CONNECTION_INTERRUPTED = 'xmpp.connection.interrupted',
     FOCUS_DISCONNECTED = 'xmpp.focus_disconnected',
     FOCUS_LEFT = 'xmpp.focus_left',
     GRACEFUL_SHUTDOWN = 'xmpp.graceful_shutdown',
@@ -303,45 +303,45 @@ export enum XMPPEvents {
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    /**
-     * Event fired when conference creation timestamp is received.
-     */
-    CONFERENCE_TIMESTAMP_RECEIVED = 'xmpp.conference_timestamp_received',
+    // Designates an event indicating that the display name of a participant
+// has changed.
+    DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',
 
     // Designates an event indicating that the focus has asked us to disable our
-// camera.
+    // camera.
     VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 
-    CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
+    // Designates an event indicating that the call has been migrated to a different
+    // bridge and that the client needs to be restarted for a successful transition.
+    CONNECTION_RESTARTED = 'xmpp.connection.restart',
 
-    // Triggered when Jicofo kills our media session, this can happen while
-    // we're still in the MUC, when it decides to terminate the media session.
-    // For example when the session is idle for too long, because we're the only
-    // person in the conference room.
-    CALL_ENDED = 'xmpp.callended.jingle',
-
-    // Designates an event indicating that the connection to the XMPP server
-// failed.
-    CONNECTION_FAILED = 'xmpp.connection.failed',
+    // Designates an event indicating that the media (ICE) connection was
+    // restored. This should go to the RTC module.
+    CONNECTION_RESTORED = 'xmpp.connection.restored',
 
     /**
-     * Triggered when 'session-accept' is received from the responder.
+     * Chat room instance have been added to Strophe.emuc plugin.
      */
-    CALL_ACCEPTED = 'xmpp.callaccepted.jingle',
+    EMUC_ROOM_ADDED = 'xmpp.emuc_room_added',
 
-    // Designates an event indicating that an offer (e.g. Jingle
-    // session-initiate) was received.
-    CALL_INCOMING = 'xmpp.callincoming.jingle',
+    ETHERPAD = 'xmpp.etherpad',
 
-    // The conference properties (as advertised by jicofo) have changed
-    CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
+    /**
+     * Chat room instance have been removed from Strophe.emuc plugin.
+     */
+    EMUC_ROOM_REMOVED = 'xmpp.emuc_room_removed',
+
+    /**
+     * Designates an event indicating connection status changes.
+     */
+    CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
 
     SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
     /**
-     * This event is triggered when the ICE connects for the first time.
+     * Event for incoming presence error which is for required display name.
      */
-    CONNECTION_ESTABLISHED = 'xmpp.connection.connected',
+    DISPLAY_NAME_REQUIRED = 'xmpp.display_name_required',
 
     /**
      * Event fired when we receive a message related to room metadata.

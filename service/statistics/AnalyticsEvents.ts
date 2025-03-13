@@ -78,26 +78,6 @@ export enum AnalyticsEvents {
     ACTION_P2P_FAILED = 'failed',
 
     /**
-     * The constant which identifies an event of type "page".
-     */
-    TYPE_PAGE = 'page',
-
-    /**
-     * The constant which identifies an event of type "track".
-     */
-    TYPE_TRACK = 'track',
-
-    /**
-     * The constant which identifies an event of type "ui".
-     */
-    TYPE_UI = 'ui',
-
-    /**
-     * The constant which identifies an event of type "operational".
-     */
-    TYPE_OPERATIONAL = 'operational',
-
-    /**
      * The "action" value for P2P events which indicates that a switch to
      * jitsi-videobridge happened.
      */
@@ -206,6 +186,26 @@ export enum AnalyticsEvents {
      *      value: TODO: document
      */
     TRACK_UNMUTED = 'track.unmuted',
+
+    /**
+     * The constant which identifies an event of type "operational".
+     */
+    TYPE_OPERATIONAL = 'operational',
+
+    /**
+     * The constant which identifies an event of type "ui".
+     */
+    TYPE_UI = 'ui',
+
+    /**
+     * The constant which identifies an event of type "track".
+     */
+    TYPE_TRACK = 'track',
+
+    /**
+     * The constant which identifies an event of type "page".
+     */
+    TYPE_PAGE = 'page',
 
     /**
      * Indicates that the video codec changed for a local track.
