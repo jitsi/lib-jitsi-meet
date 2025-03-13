@@ -251,19 +251,64 @@ export enum XMPPEvents {
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
     PRESENCE_RECEIVED = 'xmpp.presence_received',
     PRESENCE_STATUS = 'xmpp.presence_status',
-    ROOM_JOIN_ERROR = 'xmpp.room_join_error',
+
+    // Designates an event indicating that a private XMPP message in the MUC was
+    // received.
+    PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
+    PROMPT_FOR_LOGIN = 'xmpp.prompt_for_login',
+
+    // Designates an event indicating that a reaction XMPP message in the MUC
+    // was received.
+    REACTION_RECEIVED = 'xmpp.reaction_received',
+
+    // xmpp is connected and obtained user media
+    READY_TO_JOIN = 'xmpp.ready_to_join',
+
+    /**
+     * Indicates that recording state changed.
+     */
+    RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
+
+    // Designates an event indicating that we received statistics from a
+    // participant in the MUC.
+    REMOTE_STATS = 'xmpp.remote_stats',
+
+    /**
+     * Indicates that the offer / answer renegotiation has failed.
+     */
+    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
+
+    RESERVATION_ERROR = 'xmpp.room_reservation_error',
+
+    ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
+
     ROOM_CONNECT_MEMBERS_ONLY_ERROR = 'xmpp.room_connect_error.members_only',
+
+    ROOM_CONNECT_NOT_ALLOWED_ERROR = 'xmpp.room_connect_error.not_allowed',
+
+    ROOM_DISCO_INFO_FAILED = 'xmpp.room_disco_info_failed',
 
     /**
      * Indicates that we have received a reply to our disco-info request for the room.
      */
     ROOM_DISCO_INFO_UPDATED = 'xmpp.room_disco_info_updated',
-    ROOM_DISCO_INFO_FAILED = 'xmpp.room_disco_info_failed',
+
+    ROOM_JOIN_ERROR = 'xmpp.room_join_error',
 
     /**
      * Indicates that max users limit has been reached.
      */
     ROOM_MAX_USERS_ERROR = 'xmpp.room_max_users_error',
+
+    /**
+     * Event fired when we receive a message related to room metadata.
+     */
+    ROOM_METADATA_EVENT = 'xmpp.room-metadata.event',
+
+    /**
+     * Event fired when we receive a message related to room metadata.
+     */
+    ROOM_METADATA_UPDATED = 'xmpp.room-metadata.updated',
 
     // Designates an event indicating that we sent an XMPP message to the MUC.
     SENDING_CHAT_MESSAGE = 'xmpp.sending_chat_message',
@@ -294,10 +339,7 @@ export enum XMPPEvents {
      */
     SESSION_ACCEPT_TIMEOUT = 'xmpp.session_accept_timeout',
 
-    /**
-     * Event fired when participant joins a meeting without audio.
-     */
-    SILENT_STATUS_CHANGED = 'xmpp.silent_status_changed',
+    SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
     /**
      * Event fired after successful sending of jingle source-add.
@@ -315,56 +357,13 @@ export enum XMPPEvents {
     SOURCE_REMOVE = 'xmpp.source_remove',
 
     /**
-     * Event fired after receiving an error sending of jingle source-remove.
-     */
-    SOURCE_REMOVE_ERROR = 'xmpp.source_remove_error',
-
-    /**
      * Event fired when speaker stats update message is received.
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    /**
-     * Indicates that the offer / answer renegotiation has failed.
-     */
-    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
-
     // Designates an event indicating that the focus has asked us to disable our
-    // camera.
+// camera.
     VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
-
-    ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
-
-    // Designates an event indicating that a private XMPP message in the MUC was
-    // received.
-    PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
-
-    // Designates an event indicating that we received statistics from a
-    // participant in the MUC.
-    REMOTE_STATS = 'xmpp.remote_stats',
-
-    // Designates an event indicating that a reaction XMPP message in the MUC
-    // was received.
-    REACTION_RECEIVED = 'xmpp.reaction_received',
-
-    PROMPT_FOR_LOGIN = 'xmpp.prompt_for_login',
-
-    // xmpp is connected and obtained user media
-    READY_TO_JOIN = 'xmpp.ready_to_join',
-
-    SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
-
-    RESERVATION_ERROR = 'xmpp.room_reservation_error',
-
-    /**
-     * Event fired when we receive a message related to room metadata.
-     */
-    ROOM_METADATA_EVENT = 'xmpp.room-metadata.event',
-
-    /**
-     * Event fired when we receive a message related to room metadata.
-     */
-    ROOM_METADATA_UPDATED = 'xmpp.room-metadata.updated',
 
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
@@ -419,10 +418,13 @@ export enum XMPPEvents {
      */
     VISITORS_REJECTION = 'xmpp.visitors_rejection',
 
-    ROOM_CONNECT_NOT_ALLOWED_ERROR = 'xmpp.room_connect_error.not_allowed',
+    /**
+     * Event fired when participant joins a meeting without audio.
+     */
+    SILENT_STATUS_CHANGED = 'xmpp.silent_status_changed',
 
     /**
-     * Indicates that recording state changed.
+     * Event fired after receiving an error sending of jingle source-remove.
      */
-    RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
+    SOURCE_REMOVE_ERROR = 'xmpp.source_remove_error',
 }
