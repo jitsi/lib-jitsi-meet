@@ -14,6 +14,7 @@ module.exports = {
                 project: [ 'tsconfig.json' ]
             },
             rules: {
+                'no-continue': 0
             }
         }
     ]

@@ -25,7 +25,7 @@ import ProxyConnectionService
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import runPreCallTest, { IceServer, PreCallResult } from './modules/statistics/PreCallTest';
+import runPreCallTest, { IIceServer, IPreCallResult } from './modules/statistics/PreCallTest';
 import Statistics from './modules/statistics/statistics';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -481,11 +481,11 @@ export default {
     /**
      * Run a pre-call test to check the network conditions.
      *
-     * @param {IceServer} iceServers  - The ICE servers to use for the test,
+     * @param {IIceServer} iceServers  - The ICE servers to use for the test,
      * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error
      * message.
      */
-    runPreCallTest(iceServers) {
+    runPreCallTest(iceServers: IIceServer): Promise<IPreCallResult | any> {
         return runPreCallTest(iceServers);
     },
 

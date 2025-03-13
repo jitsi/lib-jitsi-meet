@@ -5,7 +5,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
 
-interface Description {
+interface IDescription {
     sdp: string;
     type: RTCSdpType;
 }
@@ -80,18 +80,6 @@ export default class SdpSimulcast {
     _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number): any {
         const cname = this._getSsrcAttribute(mLine, primarySsrc, 'cname');
         let msid = this._getSsrcAttribute(mLine, primarySsrc, 'msid');
-        const addAssociatedAttributes = (mLine: transform.MediaDescription, ssrc: number) => {
-            mLine.ssrcs.push({
-                id: ssrc,
-                attribute: 'cname',
-                value: cname
-            });
-            mLine.ssrcs.push({
-                id: ssrc,
-                attribute: 'msid',
-                value: msid
-            });
-        };
 
         // In Unified-plan mode, the a=ssrc lines with the msid attribute are not present (only cname attributes are
         // present) in the answers that Chrome and Safari generate for an offer received from Jicofo. Generate these
@@ -115,7 +103,17 @@ export default class SdpSimulcast {
         for (let i = 0; i < this._numOfLayers - 1; ++i) {
             const simSsrc = this._generateSsrc();
 
-            addAssociatedAttributes(mLine, simSsrc);
+            mLine.ssrcs.push({
+                id: simSsrc,
+                attribute: 'cname',
+                value: cname
+            });
+            mLine.ssrcs.push({
+                id: simSsrc,
+                attribute: 'msid',
+                value: msid
+            });
+
             simSsrcs.push(simSsrc);
         }
 
@@ -182,7 +180,7 @@ export default class SdpSimulcast {
      * @param description
      * @returns
      */
-    mungeLocalDescription(description: Description): Description {
+    mungeLocalDescription(description: IDescription): IDescription {
         if (!description?.sdp) {
             return description;
         }
