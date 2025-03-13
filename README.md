@@ -1,6 +1,6 @@
 # Jitsi Meet API library
 
-You can use Jitsi Meet API to create Jitsi Meet video conferences with a custom GUI.
+ You can use Jitsi Meet API to create Jitsi Meet video conferences with a custom GUI.
 
 ## Installation
 
