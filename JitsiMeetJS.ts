@@ -100,6 +100,7 @@ interface ICreateLocalTrackFromMediaStreamOptions {
     mediaType: MediaType;
     sourceType: string;
     stream: MediaStream;
+    track: any;
     videoType?: VideoType;
 }
 
@@ -491,7 +492,7 @@ export default {
      * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error
      * message.
      */
-    runPreCallTest(iceServers: IIceServer): Promise<IPreCallResult | any> {
+    runPreCallTest(iceServers: IIceServer[]): Promise<IPreCallResult | any> {
         return runPreCallTest(iceServers);
     },
 
