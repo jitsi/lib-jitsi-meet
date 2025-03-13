@@ -79,6 +79,9 @@ interface ICreateLocalTrackOptions {
 type desktopSharingSourceType = 'screen' | 'window';
 
 interface IJitsiMeetJSOptions {
+    analytics?: {
+        rtcstatsStoreLogs: boolean;
+    };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     enableAnalyticsLogging?: boolean;
     enableWindowOnErrorHandler?: boolean;
@@ -158,6 +161,10 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
+        }
+
+        if (options.analytics?.rtcstatsStoreLogs) {
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector());
         }
 
         return RTC.init(options);

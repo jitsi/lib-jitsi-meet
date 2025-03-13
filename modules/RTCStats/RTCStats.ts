@@ -1,9 +1,10 @@
-import { getLogger } from '@jitsi/logger';
+import Logger, { getLogger } from '@jitsi/logger';
 
 import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import {
+    BEFORE_STATISTICS_DISPOSED,
     CONFERENCE_CREATED_TIMESTAMP,
     CONFERENCE_JOINED,
     CONFERENCE_LEFT,
@@ -14,6 +15,7 @@ import { IRTCStatsConfiguration } from './interfaces';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 import EventEmitter from '../util/EventEmitter';
 import Settings from '../settings/Settings';
+import DefaultLogStorage from './DefaulLogStorage';
 
 const logger = getLogger(__filename);
 
@@ -25,6 +27,7 @@ class RTCStats {
     private _initialized: boolean = false;
     private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
+    private _defaultLogCollector: any = null;
 
     /**
      * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
@@ -86,8 +89,8 @@ class RTCStats {
             } = {}
         } = confConfig;
 
-        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields 
-        // that are sent through options might be a bit confusing. Depending on the context, they could 
+        // The statisticsId, statisticsDisplayName and _statsCurrentId (renamed to displayName) fields
+        // that are sent through options might be a bit confusing. Depending on the context, they could
         // be intermixed inside ljm, for instance _statsCurrentId might refer to the email field which is stored
         // in statisticsId or it could have the same value as callStatsUserName.
         // The following is the mapping between the fields, and a short explanation of each:
@@ -109,6 +112,9 @@ class RTCStats {
 
             return;
         }
+
+        // Make an attempt to flush in case a lot of logs have been cached
+        this._defaultLogCollector?.flush();
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
@@ -156,6 +162,11 @@ class RTCStats {
         conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
             this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
         })
+
+        conference.once(
+            BEFORE_STATISTICS_DISPOSED,
+            () => this._defaultLogCollector?.flush()
+        );
     }
 
     /**
@@ -177,6 +188,7 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
+        this.clearDefaultLogCollector();
         this._trace?.close();
         this._trace = null;
     }
@@ -190,6 +202,26 @@ class RTCStats {
      */
     sendStatsEntry(statsType, pcId, data) {
         this._trace?.statsEntry(statsType, pcId, data);
+    }
+
+    /**
+     * Creates a new log collector with the default log storage.
+     */
+    getDefaultLogCollector() {
+        if (!this._defaultLogCollector) {
+            this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this));
+            this._defaultLogCollector.start();
+        }
+
+        return this._defaultLogCollector;
+    }
+
+    /**
+     * Clears the collector and stops it.
+     */
+    clearDefaultLogCollector() {
+        this._defaultLogCollector?.stop();
+        this._defaultLogCollector = null;
     }
 }
 
