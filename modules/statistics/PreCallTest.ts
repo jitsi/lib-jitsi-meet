@@ -1,7 +1,7 @@
 import PreCallTest from '@jitsi/precall-test';
 
 
-export interface PreCallResult {
+export interface IPreCallResult {
 
     // Maximum bandwidth reached in kbps  (kilo bits per second).
     fractionalLoss: number;
@@ -18,7 +18,7 @@ export interface PreCallResult {
 }
 
 // Same interface as a PeerConnection configuration object.
-export interface IceServer {
+export interface IIceServer {
     credential?: string;
     urls: Array<string> | string;
     username?: string;
@@ -30,9 +30,11 @@ export interface IceServer {
  * some test traffic through a data channel to measure the network conditions, these are
  * recorded and returned through a Promise.
  *
- * @param {Array<IceServer>} - The ICE servers to use for the test, these are passes to the PeerConnection constructor.
- * @returns {Promise<PreCallResult | any>} - A Promise that resolves with the test results or rejects with an error.
+ * @param {Array<IIceServer>} - The ICE servers to use for the test, these are passes to the PeerConnection constructor.
+ * @returns {Promise<IPreCallResult | any>} - A Promise that resolves with the test results or rejects with an error.
  */
-export default async function runPreCallTest(iceServers: Array<IceServer>): Promise<PreCallResult | string> {
+export default async function runPreCallTest(iceServers: Array<IIceServer>): Promise<IPreCallResult | string> {
+    await Promise.resolve();
+
     return new PreCallTest().start(iceServers);
 }
