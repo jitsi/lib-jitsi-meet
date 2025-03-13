@@ -184,11 +184,23 @@ export enum XMPPEvents {
     // Designates an event indicating that the XMPP MUC was destroyed.
     MUC_DESTROYED = 'xmpp.muc_destroyed',
 
-    // Designates an event indicating that local participant left the muc
-    MUC_LEFT = 'xmpp.muc_left',
+    // Designates an event indicating that we have joined the XMPP MUC.
+    MUC_JOINED = 'xmpp.muc_joined',
 
     // Designates an event indicating that we are currently in process of joining the XMPP MUC.
     MUC_JOIN_IN_PROGRESS = 'xmpp.muc_join_in_progress',
+
+    // Designates an event indicating that local participant left the muc
+    MUC_LEFT = 'xmpp.muc_left',
+
+    // Designates an event indicating that a participant joined the lobby XMPP MUC.
+    MUC_LOBBY_MEMBER_JOINED = 'xmpp.muc_lobby_member_joined',
+
+    // Designates an event indicating that a participant left the XMPP MUC.
+    MUC_LOBBY_MEMBER_LEFT = 'xmpp.muc_lobby_member_left',
+
+    // Designates an event indicating that a participant in the lobby XMPP MUC has been updated
+    MUC_LOBBY_MEMBER_UPDATED = 'xmpp.muc_lobby_member_updated',
 
     // Designates an event indicating that the MUC has been locked or unlocked.
     MUC_LOCK_CHANGED = 'xmpp.muc_lock_changed',
@@ -196,12 +208,30 @@ export enum XMPPEvents {
     // Designates an event indicating that the MUC members only config has changed.
     MUC_MEMBERS_ONLY_CHANGED = 'xmpp.muc_members_only_changed',
 
+    // Designates an event indicating that a bot participant type had changed
+    MUC_MEMBER_BOT_TYPE_CHANGED = 'xmpp.muc_member_bot_type_changed',
+
+    // Designates an event indicating that a participant joined the XMPP MUC.
+    MUC_MEMBER_JOINED = 'xmpp.muc_member_joined',
+
+    // Designates an event indicating that a participant left the XMPP MUC.
+    MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
+
+    // Designates an event indicating that the MUC role of a participant has
+    // changed.
+    MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',
+
     // Designates an event indicating that the MUC visitors support has changed.
     MUC_VISITORS_SUPPORTED_CHANGED = 'xmpp.muc_visitors_supported_changed',
 
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
     PARTICIPANT_AUDIO_MUTED = 'xmpp.audio_muted',
+
+    /**
+     * Indicates that the features of the participant has been changed.
+     */
+    PARTICIPANT_FEATURES_CHANGED = 'xmpp.participant_features_changed',
 
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have video muted (or unmuted).
@@ -213,10 +243,6 @@ export enum XMPPEvents {
     // someone (regardless of whether or not the "video type" changed).
     PARTICIPANT_VIDEO_TYPE_CHANGED = 'xmpp.video_type',
 
-    /**
-     * Indicates that the features of the participant has been changed.
-     */
-    PARTICIPANT_FEATURES_CHANGED = 'xmpp.participant_features_changed',
     PASSWORD_REQUIRED = 'xmpp.password_required',
 
     /**
@@ -225,27 +251,6 @@ export enum XMPPEvents {
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
     PRESENCE_RECEIVED = 'xmpp.presence_received',
     PRESENCE_STATUS = 'xmpp.presence_status',
-    PROMPT_FOR_LOGIN = 'xmpp.prompt_for_login',
-
-    // xmpp is connected and obtained user media
-    READY_TO_JOIN = 'xmpp.ready_to_join',
-
-    /**
-     * Indicates that recording state changed.
-     */
-    RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
-
-    // Designates an event indicating that we received statistics from a
-    // participant in the MUC.
-    REMOTE_STATS = 'xmpp.remote_stats',
-
-    /**
-     * Indicates that the offer / answer renegotiation has failed.
-     */
-    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
-    RESERVATION_ERROR = 'xmpp.room_reservation_error',
-    ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
-    ROOM_CONNECT_NOT_ALLOWED_ERROR = 'xmpp.room_connect_error.not_allowed',
     ROOM_JOIN_ERROR = 'xmpp.room_join_error',
     ROOM_CONNECT_MEMBERS_ONLY_ERROR = 'xmpp.room_connect_error.members_only',
 
@@ -319,38 +324,37 @@ export enum XMPPEvents {
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    // Designates an event indicating that a participant joined the XMPP MUC.
-    MUC_MEMBER_JOINED = 'xmpp.muc_member_joined',
+    /**
+     * Indicates that the offer / answer renegotiation has failed.
+     */
+    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
 
     // Designates an event indicating that the focus has asked us to disable our
     // camera.
     VIDEO_MUTED_BY_FOCUS = 'xmpp.video_muted_by_focus',
 
-    // Designates an event indicating that the MUC role of a participant has
-// changed.
-    MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',
+    ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
 
     // Designates an event indicating that a private XMPP message in the MUC was
     // received.
     PRIVATE_MESSAGE_RECEIVED = 'xmpp.private_message_received',
 
-    // Designates an event indicating that a participant joined the lobby XMPP MUC.
-    MUC_LOBBY_MEMBER_JOINED = 'xmpp.muc_lobby_member_joined',
+    // Designates an event indicating that we received statistics from a
+    // participant in the MUC.
+    REMOTE_STATS = 'xmpp.remote_stats',
 
     // Designates an event indicating that a reaction XMPP message in the MUC
     // was received.
     REACTION_RECEIVED = 'xmpp.reaction_received',
 
-    // Designates an event indicating that a participant in the lobby XMPP MUC has been updated
-    MUC_LOBBY_MEMBER_UPDATED = 'xmpp.muc_lobby_member_updated',
+    PROMPT_FOR_LOGIN = 'xmpp.prompt_for_login',
 
-    // Designates an event indicating that a bot participant type had changed
-    MUC_MEMBER_BOT_TYPE_CHANGED = 'xmpp.muc_member_bot_type_changed',
+    // xmpp is connected and obtained user media
+    READY_TO_JOIN = 'xmpp.ready_to_join',
 
     SETTINGS_ERROR_RECEIVED = 'xmpp.settings_error_received',
 
-    // Designates an event indicating that a participant left the XMPP MUC.
-    MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
+    RESERVATION_ERROR = 'xmpp.room_reservation_error',
 
     /**
      * Event fired when we receive a message related to room metadata.
@@ -415,9 +419,10 @@ export enum XMPPEvents {
      */
     VISITORS_REJECTION = 'xmpp.visitors_rejection',
 
-    // Designates an event indicating that a participant left the XMPP MUC.
-    MUC_LOBBY_MEMBER_LEFT = 'xmpp.muc_lobby_member_left',
+    ROOM_CONNECT_NOT_ALLOWED_ERROR = 'xmpp.room_connect_error.not_allowed',
 
-    // Designates an event indicating that we have joined the XMPP MUC.
-    MUC_JOINED = 'xmpp.muc_joined',
+    /**
+     * Indicates that recording state changed.
+     */
+    RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
 }
