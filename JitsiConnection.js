@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import RTCStats from './modules/RTCStats/RTCStats';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
@@ -31,6 +32,9 @@ export default function JitsiConnection(appID, token, options) {
     FeatureFlags.init(options.flags || {});
 
     this.xmpp = new XMPP(options, token);
+
+
+    RTCStats.attachToConnection(options);
 
     /* eslint-disable max-params */
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
