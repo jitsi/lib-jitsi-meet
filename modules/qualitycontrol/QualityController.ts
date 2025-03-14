@@ -288,7 +288,7 @@ export class QualityController {
                 this._limitedByCpuTimeout = undefined;
                 const updatedStats = this._encodeTimeStats.get(trackId);
                 const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
-                const captureResolution = Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution());
+                const expectedSendResolution = Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution());
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
                 if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
