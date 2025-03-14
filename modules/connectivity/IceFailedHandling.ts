@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import JitsiConference from '../../JitsiConference';
 
 const logger = getLogger(__filename);
 
@@ -23,7 +23,7 @@ export default class IceFailedHandling {
      * Creates new {@code DelayedIceFailed} task.
      * @param {JitsiConference} conference
      */
-    constructor(conference:JitsiConference) {
+    constructor(conference: JitsiConference) {
         this._conference = conference;
     }
 
@@ -52,7 +52,7 @@ export default class IceFailedHandling {
         }
 
         const jvbConnection = this._conference.jvbJingleSession;
-        const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
+        const jvbConnIceState = jvbConnection?.getIceConnectionState();
 
         if (!jvbConnection) {
             logger.warn('Not sending ICE failed - no JVB connection');

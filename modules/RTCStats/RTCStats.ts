@@ -1,8 +1,8 @@
 import Logger, { getLogger } from '@jitsi/logger';
-
 import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
+import JitsiConference from '../../JitsiConference';
 import {
     BEFORE_STATISTICS_DISPOSED,
     CONFERENCE_CREATED_TIMESTAMP,
@@ -10,18 +10,18 @@ import {
     CONFERENCE_LEFT,
     CONFERENCE_UNIQUE_ID_SET
 } from '../../JitsiConferenceEvents';
-import JitsiConference from '../../JitsiConference';
-import { IRTCStatsConfiguration } from './interfaces';
-import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
-import EventEmitter from '../util/EventEmitter';
 import Settings from '../settings/Settings';
+import EventEmitter from '../util/EventEmitter';
+
 import DefaultLogStorage from './DefaulLogStorage';
+import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
+import { IRTCStatsConfiguration } from './interfaces';
 
 const logger = getLogger(__filename);
 
 /**
- * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be ignored.
- * Config and conference changes are handled by the start method.
+ * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
+ * ignored. Config and conference changes are handled by the start method.
  */
 class RTCStats {
     private _initialized: boolean = false;
@@ -41,7 +41,7 @@ class RTCStats {
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
-                rtcstatsPollInterval: pollInterval= 10000,
+                rtcstatsPollInterval: pollInterval = 10000,
                 rtcstatsSendSdp: sendSdp = false,
                 rtcstatsEnabled = false
             } = {}
@@ -50,14 +50,16 @@ class RTCStats {
         // If rtcstats is not enabled or already initialized, do nothing.
         // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
         // with unforeseen consequences.
-        if (!rtcstatsEnabled || this._initialized) return;
+        if (!rtcstatsEnabled || this._initialized) {
+            return;
+        }
 
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
             { pollInterval,
-              useLegacy,
-              sendSdp,
-              eventCallback: (event) => this.events.emit(RTC_STATS_PC_EVENT, event)}
+                useLegacy,
+                sendSdp,
+                eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
         );
 
         this._initialized = true;
@@ -75,10 +77,10 @@ class RTCStats {
     start(conference: JitsiConference) {
         const {
             options: {
-                config : confConfig = {},
+                config: confConfig = {},
                 name: confName = ''
             } = {},
-            _statsCurrentId : displayName = ''
+            _statsCurrentId: displayName = ''
         } = conference;
 
         const {
@@ -104,7 +106,9 @@ class RTCStats {
         this.reset();
 
         // The new conference config might have rtcstats disabled, so we need to check again.
-        if (!rtcstatsEnabled) return;
+        if (!rtcstatsEnabled) {
+            return;
+        }
 
         // If rtcstats proxy module is not initialized, do nothing.
         if (!this._initialized) {
@@ -122,7 +126,7 @@ class RTCStats {
             const traceOptions = {
                 endpoint,
                 meetingFqn: confName,
-                onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
+                onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
                 useLegacy
             };
 
@@ -145,14 +149,14 @@ class RTCStats {
                 meetingUniqueId,
                 isBreakoutRoom,
                 localId
-            }
+            };
 
             this.sendIdentity(identityData);
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
-        conference.once(CONFERENCE_UNIQUE_ID_SET, (meetingUniqueId) => {
-            this.sendIdentity({meetingUniqueId});
+        conference.once(CONFERENCE_UNIQUE_ID_SET, meetingUniqueId => {
+            this.sendIdentity({ meetingUniqueId });
         });
 
         conference.once(CONFERENCE_LEFT, () => {
@@ -161,7 +165,7 @@ class RTCStats {
 
         conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
             this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
-        })
+        });
 
         conference.once(
             BEFORE_STATISTICS_DISPOSED,

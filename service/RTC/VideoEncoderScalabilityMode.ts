@@ -11,6 +11,7 @@
  * }
  */
 export enum VideoEncoderScalabilityMode {
+
     /**
      * L1T3 mode: 1-layer spatial and 3-layer temporal scalabilty encoding.
      */

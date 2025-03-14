@@ -23,7 +23,8 @@ const ljm = require('./JitsiMeetJS').default;
 function _mergeNamespaceAndModule(module) {
     return (
         typeof window.JitsiMeetJS === 'object'
-            ? Object.assign({}, window.JitsiMeetJS, module)
+            ? { ...window.JitsiMeetJS,
+                ...module }
             : module);
 }
 

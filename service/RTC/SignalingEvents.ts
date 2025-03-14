@@ -1,4 +1,5 @@
 export enum SignalingEvents {
+
     /**
      * Event triggered when participant's muted status changes.
      *

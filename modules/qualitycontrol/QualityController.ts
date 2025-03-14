@@ -1,21 +1,22 @@
 import { getLogger } from '@jitsi/logger';
 
-import JitsiConference from "../../JitsiConference";
-import { JitsiConferenceEvents } from "../../JitsiConferenceEvents";
-import { CodecMimeType } from "../../service/RTC/CodecMimeType";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import JitsiLocalTrack from "../RTC/JitsiLocalTrack";
-import TraceablePeerConnection from "../RTC/TraceablePeerConnection";
-import JingleSessionPC from "../xmpp/JingleSessionPC";
-import { CodecSelection } from "./CodecSelection";
-import ReceiveVideoController from "./ReceiveVideoController";
-import SendVideoController from "./SendVideoController";
+import JitsiConference from '../../JitsiConference';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import {
     DEFAULT_LAST_N,
     LAST_N_UNLIMITED,
     VIDEO_CODECS_BY_COMPLEXITY,
     VIDEO_QUALITY_LEVELS
 } from '../../service/RTC/StandardVideoQualitySettings';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
+
+import { CodecSelection } from './CodecSelection';
+import ReceiveVideoController from './ReceiveVideoController';
+import SendVideoController from './SendVideoController';
 
 const logger = getLogger(__filename);
 
@@ -30,7 +31,7 @@ enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
     CPU = 'cpu',
     NONE = 'none'
-};
+}
 
 interface IResolution {
     height: number;
@@ -53,10 +54,10 @@ interface ISourceStats {
     qualityLimitationReason: QualityLimitationReason;
     timestamp: number;
     tpc: TraceablePeerConnection;
-};
+}
 
 interface ITrackStats {
-    encodeResolution: number
+    encodeResolution: number;
     encodeTime: number;
     qualityLimitationReason: QualityLimitationReason;
 }
@@ -66,33 +67,36 @@ interface IVideoConstraints {
     sourceName: string;
 }
 
+/* eslint-disable require-jsdoc */
 export class FixedSizeArray {
     private _data: ISourceStats[];
     private _maxSize: number;
-  
+
     constructor(size: number) {
-      this._maxSize = size;
-      this._data = [];
+        this._maxSize = size;
+        this._data = [];
     }
-  
+
     add(item: ISourceStats): void {
-      if (this._data.length >= this._maxSize) {
-        this._data.shift();
-      }
-      this._data.push(item);
+        if (this._data.length >= this._maxSize) {
+            this._data.shift();
+        }
+        this._data.push(item);
     }
-  
+
     get(index: number): ISourceStats | undefined {
-      if (index < 0 || index >= this._data.length) {
-        throw new Error("Index out of bounds");
-      }
-      return this._data[index];
+        if (index < 0 || index >= this._data.length) {
+            throw new Error('Index out of bounds');
+        }
+
+        return this._data[index];
     }
 
     size(): number {
         return this._data.length;
     }
 }
+/* eslint-enable require-jsdoc */
 
 /**
  * QualityController class that is responsible for maintaining optimal video quality experience on the local endpoint
@@ -112,19 +116,21 @@ export class QualityController {
     private _sendVideoController: SendVideoController;
 
     /**
-     * 
+     *
      * @param {JitsiConference} conference - The JitsiConference instance.
      * @param {Object} options - video quality settings passed through config.js.
      */
     constructor(conference: JitsiConference, options: {
         enableAdaptiveMode: boolean;
-        jvb: Object;
+        jvb: object;
         lastNRampupTime: number;
-        p2p: Object;
+        p2p: object;
     }) {
         this._conference = conference;
         const { jvb, p2p } = options;
-        this._codecController = new CodecSelection(conference, { jvb, p2p });
+
+        this._codecController = new CodecSelection(conference, { jvb,
+            p2p });
         this._enableAdaptiveMode = options.enableAdaptiveMode;
         this._encodeTimeStats = new Map();
         this._isLastNRampupBlocked = false;
@@ -150,14 +156,17 @@ export class QualityController {
         const debouncedSelectCodec = this._debounce(
             () => this._codecController.selectPreferredCodec(this._conference.jvbJingleSession),
             1000);
+
         this._conference.on(JitsiConferenceEvents.USER_JOINED, debouncedSelectCodec.bind(this));
         this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            (videoConstraints: IVideoConstraints) => this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
+            (videoConstraints: IVideoConstraints) =>
+                this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
-            (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) => this._processOutboundRtpStats(tpc, stats));
+            (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) =>
+                this._processOutboundRtpStats(tpc, stats));
     }
 
     /**
@@ -169,14 +178,16 @@ export class QualityController {
      * @param {number} delay - The delay in milliseconds.
      * @returns {Function} - The debounced function.
      */
-    _debounce(func: Function, delay: number) {
-        return function (...args) {
+    _debounce(func: Function, delay: number) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+        return function(...args: any) {
+            /* eslint-disable @typescript-eslint/no-invalid-this */
             if (!this._timer) {
                 this._timer = setTimeout(() => {
                     this._timer = null;
                     func.apply(this, args);
                 }, delay);
             }
+            /* eslint-enable @typescript-eslint/no-invalid-this */
         };
     }
 
@@ -239,6 +250,7 @@ export class QualityController {
         if (individualConstraints && Object.keys(individualConstraints).length) {
             for (const value of Object.values(individualConstraints)) {
                 const v: any = value;
+
                 maxHeight = Math.max(maxHeight, v.maxHeight);
             }
         }
@@ -276,11 +288,13 @@ export class QualityController {
                 this._limitedByCpuTimeout = undefined;
                 const updatedStats = this._encodeTimeStats.get(trackId);
                 const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
+                const expectedSendResolution
+                    = Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution());
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
                 if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
-                    || encodeResolution <  Math.min(localTrack.maxEnabledResolution, localTrack.getCaptureResolution())) {
-                        return this.codecController.changeCodecPreferenceOrder(localTrack, codec)
+                        || encodeResolution < expectedSendResolution) {
+                    return this.codecController.changeCodecPreferenceOrder(localTrack, codec);
                 }
             }, LIMITED_BY_CPU_TIMEOUT);
         }
@@ -451,14 +465,23 @@ export class QualityController {
         }
     }
 
+    /**
+     * Gets the codec controller instance.
+     */
     get codecController() {
         return this._codecController;
     }
 
+    /**
+     * Gets the receive video controller instance.
+     */
     get receiveVideoController() {
         return this._receiveVideoController;
     }
 
+    /**
+     * Gets the send video controller instance.
+     */
     get sendVideoController() {
         return this._sendVideoController;
     }

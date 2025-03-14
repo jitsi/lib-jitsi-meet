@@ -3,6 +3,7 @@
  * @type {{AV1: string, H264: string, OPUS: string, RED: string, ULPFEC: string, VP8: string, VP9: string}}
  */
 export enum CodecMimeType {
+
     /**
      * AV1 codec mime type.
      */

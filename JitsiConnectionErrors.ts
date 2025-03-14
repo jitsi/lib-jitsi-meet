@@ -3,10 +3,11 @@
  */
 
 export enum JitsiConnectionErrors {
+
     /**
      * When the conference-request to jicofo fails.
      */
-    CONFERENCE_REQUEST_FAILED = "connection.conferenceRequestFailed",
+    CONFERENCE_REQUEST_FAILED = 'connection.conferenceRequestFailed',
 
     /**
      * Indicates that the connection was dropped with an error which was most likely
@@ -41,7 +42,7 @@ export enum JitsiConnectionErrors {
      * errors on BOSH requests.
      */
     SERVER_ERROR = 'connection.serverError'
-};
+}
 
 // exported for backward compatibility
 export const CONFERENCE_REQUEST_FAILED = JitsiConnectionErrors.CONFERENCE_REQUEST_FAILED;

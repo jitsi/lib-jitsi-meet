@@ -6,9 +6,15 @@ import RTCStats from './RTCStats';
 export default class DefaultLogStorage {
     private rtcStats: any;
 
+    /**
+     * Creates new instance of <tt>DefaultLogStorage</tt>.
+     * @param rtcStats - The RTCStats instance.
+     */
     constructor(rtcStats: any) {
         this.rtcStats = rtcStats;
     }
+
+
     /**
      * The DefaultLogStorage is ready when the RTCStats is ready.
      *

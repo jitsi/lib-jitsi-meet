@@ -1,4 +1,13 @@
 export enum RTCEvents {
+
+    AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
+
+    /**
+     * Designates an event indicating that some received audio SSRCs will now map to
+     * new remote sources.
+     */
+    AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped',
+
     /**
      * Indicates error while create answer call.
      */
@@ -8,20 +17,33 @@ export enum RTCEvents {
      * Indicates error while create offer call.
      */
     CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
-    DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
     DATA_CHANNEL_CLOSED = 'rtc.data_channel_closed',
-    ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
-    DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
-    FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
+    DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
+    DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
+
+    DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
 
     /**
-     * Event emitted when the user granted/blocked a permission for the camera / mic.
-     * Used to keep track of the granted permissions on browsers which don't
-     * support the Permissions API.
+     * Indicates that the list with available devices will change.
      */
-    PERMISSIONS_CHANGED = 'rtc.permissions_changed',
+    DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
 
-    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
+    DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
+
+    ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
+
+    /**
+     * Indicates that a message from another participant is received on
+     * data channel.
+     */
+    ENDPOINT_MESSAGE_RECEIVED = 'rtc.endpoint_message_received',
+
+    /**
+     * Indicates that the remote endpoint stats have been received on data channel.
+     */
+    ENDPOINT_STATS_RECEIVED = 'rtc.endpoint_stats_received',
+
+    FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
      * Event emitted when {@link RTC.setLastN} method is called to update with
@@ -35,7 +57,21 @@ export enum RTCEvents {
      */
     LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = 'rtc.local_track_max_enabled_resolution_changed',
 
-    TRACK_ATTACHED = 'rtc.track_attached',
+    /**
+     * Designates an event indicating that the local ICE username fragment of
+     * the jingle session has changed.
+     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
+     * is the source of the event.
+     * The second argument is the actual "ufrag" string.
+     */
+    LOCAL_UFRAG_CHANGED = 'rtc.local_ufrag_changed',
+
+    /**
+     * Event emitted when the user granted/blocked a permission for the camera / mic.
+     * Used to keep track of the granted permissions on browsers which don't
+     * support the Permissions API.
+     */
+    PERMISSIONS_CHANGED = 'rtc.permissions_changed',
 
     /**
      * Event fired when we remote track is added to the conference.
@@ -58,44 +94,6 @@ export enum RTCEvents {
     REMOTE_TRACK_UNMUTE = 'rtc.remote_track_unmute',
 
     /**
-     * Indicates error while set local description.
-     */
-    SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
-
-    /**
-     * Indicates error while set remote description.
-     */
-    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
-    AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
-    DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
-
-    /**
-     * Indicates that the list with available devices will change.
-     */
-    DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
-    DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
-
-    /**
-     * Indicates that a message from another participant is received on
-     * data channel.
-     */
-    ENDPOINT_MESSAGE_RECEIVED = 'rtc.endpoint_message_received',
-
-    /**
-     * Indicates that the remote endpoint stats have been received on data channel.
-     */
-    ENDPOINT_STATS_RECEIVED = 'rtc.endpoint_stats_received',
-
-    /**
-     * Designates an event indicating that the local ICE username fragment of
-     * the jingle session has changed.
-     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
-     * is the source of the event.
-     * The second argument is the actual "ufrag" string.
-     */
-    LOCAL_UFRAG_CHANGED = 'rtc.local_ufrag_changed',
-
-    /**
      * Designates an event indicating that the local ICE username fragment of
      * the jingle session has changed.
      * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
@@ -104,17 +102,25 @@ export enum RTCEvents {
      */
     REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
 
+    SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
+
+    /**
+     * Indicates error while set local description.
+     */
+    SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
+
+    /**
+     * Indicates error while set remote description.
+     */
+    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
+
+    TRACK_ATTACHED = 'rtc.track_attached',
+
     /**
      * Designates an event indicating that some received video SSRCs will now map to
      * new remote sources.
      */
-    VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped',
-
-    /**
-     * Designates an event indicating that some received audio SSRCs will now map to
-     * new remote sources.
-     */
-    AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped'
+    VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped'
 }
 
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;

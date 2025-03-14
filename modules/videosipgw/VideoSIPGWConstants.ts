@@ -1,31 +1,38 @@
 export enum VideoSIPGWStatusConstants {
+
     /**
      * Status that video SIP GW service is available.
      */
     STATUS_AVAILABLE = 'available',
 
     /**
-     * Status that video SIP GW service is not available.
-     */
-    STATUS_UNDEFINED = 'undefined',
-
-    /**
      * Status that video SIP GW service is available but there are no free nodes
      * at the moment to serve new requests.
      */
-    STATUS_BUSY = 'busy'
-};
+    STATUS_BUSY = 'busy',
+
+    /**
+     * Status that video SIP GW service is not available.
+     */
+    STATUS_UNDEFINED = 'undefined'
+}
 
 export enum VideoSIPGWStateConstants {
+
     /**
-     * Video SIP GW session state, currently running.
+     * Video SIP GW session state, tried to start but it failed.
      */
-    STATE_ON = 'on',
+    STATE_FAILED = 'failed',
 
     /**
      * Video SIP GW session state, currently stopped and not running.
      */
     STATE_OFF = 'off',
+
+    /**
+     * Video SIP GW session state, currently running.
+     */
+    STATE_ON = 'on',
 
     /**
      * Video SIP GW session state, currently is starting.
@@ -36,15 +43,11 @@ export enum VideoSIPGWStateConstants {
      * Video SIP GW session state, has observed some issues and is retrying at the
      * moment.
      */
-    STATE_RETRYING = 'retrying',
-
-    /**
-     * Video SIP GW session state, tried to start but it failed.
-     */
-    STATE_FAILED = 'failed'
-};
+    STATE_RETRYING = 'retrying'
+}
 
 export enum VideoSIPGWErrorConstants {
+
     /**
      * Error on trying to create video SIP GW session in conference where
      * there is no room connection (hasn't joined or has left the room).
@@ -56,7 +59,7 @@ export enum VideoSIPGWErrorConstants {
      * there is an already created session.
      */
     ERROR_SESSION_EXISTS = 'error_session_already_exists'
-};
+}
 
 // exported for backward compatibility
 export const STATUS_AVAILABLE = VideoSIPGWStatusConstants.STATUS_AVAILABLE;

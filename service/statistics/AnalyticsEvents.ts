@@ -23,25 +23,6 @@
  */
 
 export enum AnalyticsEvents {
-    /**
-     * The constant which identifies an event of type "operational".
-     */
-    TYPE_OPERATIONAL = 'operational',
-
-    /**
-     * The constant which identifies an event of type "page".
-     */
-    TYPE_PAGE = 'page',
-
-    /**
-     * The constant which identifies an event of type "track".
-     */
-    TYPE_TRACK = 'track',
-
-    /**
-     * The constant which identifies an event of type "ui".
-     */
-    TYPE_UI = 'ui',
 
     /**
      * The "action" value for Jingle events which indicates that the Jingle session
@@ -80,8 +61,8 @@ export enum AnalyticsEvents {
     ACTION_JVB_ICE_FAILED = 'jvb.ice.failed',
 
     /**
-     * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
-     * because the mandatory requirements were not met.
+     * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the
+     * client because the mandatory requirements were not met.
      */
     ACTION_P2P_DECLINED = 'decline',
 
@@ -207,6 +188,26 @@ export enum AnalyticsEvents {
     TRACK_UNMUTED = 'track.unmuted',
 
     /**
+     * The constant which identifies an event of type "operational".
+     */
+    TYPE_OPERATIONAL = 'operational',
+
+    /**
+     * The constant which identifies an event of type "page".
+     */
+    TYPE_PAGE = 'page',
+
+    /**
+     * The constant which identifies an event of type "track".
+     */
+    TYPE_TRACK = 'track',
+
+    /**
+     * The constant which identifies an event of type "ui".
+     */
+    TYPE_UI = 'ui',
+
+    /**
      * Indicates that the video codec changed for a local track.
      *
      * Properties:
@@ -245,11 +246,13 @@ export const VIDEO_CODEC_CHANGED = AnalyticsEvents.VIDEO_CODEC_CHANGED;
  * Creates an operational event which indicates that we have received a
  * "bridge down" event from jicofo.
  */
-export const createBridgeDownEvent = () => ( {
-    action: 'bridge.down',
-    actionSubject: 'bridge.down',
-    type: TYPE_OPERATIONAL
-} );
+export const createBridgeDownEvent = () => {
+    return {
+        action: 'bridge.down',
+        actionSubject: 'bridge.down',
+        type: TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an event which indicates that the XMPP connection failed
@@ -257,15 +260,17 @@ export const createBridgeDownEvent = () => ( {
  * @param errorMessage TODO
  * @param detail connection failed details.
  */
-export const createConnectionFailedEvent = ( errorType: unknown, errorMessage: unknown, details: object ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'connection.failed',
-    attributes: {
-        'error_type': errorType,
-        'error_message': errorMessage,
-        ...details
-    }
-} );
+export const createConnectionFailedEvent = (errorType: unknown, errorMessage: unknown, details: object) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'connection.failed',
+        attributes: {
+            'error_type': errorType,
+            'error_message': errorMessage,
+            ...details
+        }
+    };
+};
 
 /**
  * Creates a conference event.
@@ -273,12 +278,14 @@ export const createConnectionFailedEvent = ( errorType: unknown, errorMessage: u
  * @param action - The action of the event.
  * @param attributes - The attributes to be added to the event.
  */
-export const createConferenceEvent = ( action: string, attributes: object ) => ( {
-    action,
-    attributes,
-    source: 'conference',
-    type: AnalyticsEvents.TYPE_OPERATIONAL
-} );
+export const createConferenceEvent = (action: string, attributes: object) => {
+    return {
+        action,
+        attributes,
+        source: 'conference',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an operational event which indicates that a particular connection
@@ -291,13 +298,15 @@ export const createConferenceEvent = ( action: string, attributes: object ) => (
  * relative to the beginning of the document's lifetime.
  *
  */
-export const createConnectionStageReachedEvent = ( stage: unknown, attributes: object ) => ( {
-    action: 'connection.stage.reached',
-    actionSubject: stage,
-    attributes,
-    source: 'connection.stage.reached',
-    type: AnalyticsEvents.TYPE_OPERATIONAL
-} );
+export const createConnectionStageReachedEvent = (stage: unknown, attributes: object) => {
+    return {
+        action: 'connection.stage.reached',
+        actionSubject: stage,
+        attributes,
+        source: 'connection.stage.reached',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an operational event for the end-to-end round trip time to a
@@ -306,24 +315,28 @@ export const createConnectionStageReachedEvent = ( stage: unknown, attributes: o
  * @param region the region of the remote participant
  * @param rtt the rtt
  */
-export const createE2eRttEvent = ( participantId: unknown, region: unknown, rtt: unknown ) => ( {
-    attributes: {
-        'participant_id': participantId,
-        region,
-        rtt
-    },
-    name: 'e2e_rtt',
-    type: AnalyticsEvents.TYPE_OPERATIONAL
-} );
+export const createE2eRttEvent = (participantId: unknown, region: unknown, rtt: unknown) => {
+    return {
+        attributes: {
+            'participant_id': participantId,
+            region,
+            rtt
+        },
+        name: 'e2e_rtt',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an event which indicates that the focus has left the MUC.
  */
-export const createFocusLeftEvent = () => ( {
-    action: 'focus.left',
-    actionSubject: 'focus.left',
-    type: AnalyticsEvents.TYPE_OPERATIONAL
-} );
+export const createFocusLeftEvent = () => {
+    return {
+        action: 'focus.left',
+        actionSubject: 'focus.left',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an event related to a getUserMedia call.
@@ -332,12 +345,14 @@ export const createFocusLeftEvent = () => ( {
  * 'success', 'warning', etc.
  * @param attributes the attributes to attach to the event.
  */
-export const createGetUserMediaEvent = ( action: 'error' | 'success' | 'warning' | string, attributes: object = {} ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    source: 'get.user.media',
-    action,
-    attributes
-} );
+export const createGetUserMediaEvent = (action: 'error' | 'success' | 'warning' | string, attributes: object = {}) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        source: 'get.user.media',
+        action,
+        attributes
+    };
+};
 
 /**
  * Creates an event which indicates that the JVB ICE connection has failed event after 3 retries.
@@ -346,47 +361,55 @@ export const createGetUserMediaEvent = ( action: 'error' | 'success' | 'warning'
  * @param attributes - The attributes to be added to the event.
  * @returns - The event object.
  */
-export const createJvbIceFailedEvent = ( action: unknown, attributes: object = {} ) => ( {
-    action,
-    attributes,
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-} );
+export const createJvbIceFailedEvent = (action: unknown, attributes: object = {}) => {
+    return {
+        action,
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+    };
+};
 
 /**
  * Creates an event related to remote participant connection status changes.
  *
  * @param attributes the attributes to attach to the event.
  */
-export const createParticipantConnectionStatusEvent = ( attributes: object = {} ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    source: 'peer.conn.status',
-    action: 'duration',
-    attributes
-} );
+export const createParticipantConnectionStatusEvent = (attributes: object = {}) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        source: 'peer.conn.status',
+        action: 'duration',
+        attributes
+    };
+};
 
 /**
  * Creates an event related to remote track streaming status changes.
  *
  * @param attributes the attributes to attach to the event.
  */
-export const createTrackStreamingStatusEvent = ( attributes: object = {} ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    source: 'track.streaming.status',
-    action: 'duration',
-    attributes
-} );
+export const createTrackStreamingStatusEvent = (attributes: object = {}) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        source: 'track.streaming.status',
+        action: 'duration',
+        attributes
+    };
+};
 
 /**
  * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.
  */
-export const createJingleEvent = ( action: unknown, attributes: object = {} ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action,
-    source: 'jingle',
-    attributes
-} );
+export const createJingleEvent = (action: unknown, attributes: object = {}) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action,
+        source: 'jingle',
+        attributes
+    };
+};
 
 /**
  * Creates an event which indicates that a local track was not able to read
@@ -395,35 +418,41 @@ export const createJingleEvent = ( action: unknown, attributes: object = {} ) =>
  * @param mediaType the media type of the local track ('audio' or
  * 'video').
  */
-export const createNoDataFromSourceEvent = ( mediaType: 'audio' | 'video' | string, value: unknown ) => ( {
-    attributes: {
-        'media_type': mediaType,
-        value
-    },
-    action: 'track.no.data.from.source',
-    type: AnalyticsEvents.TYPE_OPERATIONAL
-} );
+export const createNoDataFromSourceEvent = (mediaType: 'audio' | 'video' | string, value: unknown) => {
+    return {
+        attributes: {
+            'media_type': mediaType,
+            value
+        },
+        action: 'track.no.data.from.source',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an event for a p2p-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.
  */
-export const createP2PEvent = ( action: unknown, attributes: object = {} ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action,
-    source: 'p2p',
-    attributes
-} )
+export const createP2PEvent = (action: unknown, attributes: object = {}) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action,
+        source: 'p2p',
+        attributes
+    };
+};
 
 /**
  * Indicates that we received a remote command to mute.
  */
-export const createRemotelyMutedEvent = ( mediaType: unknown ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'remotely.muted',
-    mediaType
-} );
+export const createRemotelyMutedEvent = (mediaType: unknown) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'remotely.muted',
+        mediaType
+    };
+};
 
 /**
  * Creates an event which contains RTP statistics such as RTT and packet loss.
@@ -468,11 +497,13 @@ export const createRemotelyMutedEvent = ( mediaType: unknown ) => ( {
  * {@link TraceablePeerConnection} and work independently from the main stats
  * pipe.
  */
-export const createRtpStatsEvent = ( attributes: object ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'rtp.stats',
-    attributes
-} );
+export const createRtpStatsEvent = (attributes: object) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'rtp.stats',
+        attributes
+    };
+};
 
 /**
  * Creates an event which contains the round trip time (RTT) to a set of
@@ -480,11 +511,13 @@ export const createRtpStatsEvent = ( attributes: object ) => ( {
  *
  * @param attributes
  */
-export const createRttByRegionEvent = ( attributes: object ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'rtt.by.region',
-    attributes
-} );
+export const createRttByRegionEvent = (attributes: object) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'rtt.by.region',
+        attributes
+    };
+};
 
 /**
  * Creates an event which contains the local and remote ICE candidate types
@@ -492,11 +525,13 @@ export const createRttByRegionEvent = ( attributes: object ) => ( {
  *
  * @param attributes
  */
-export const createTransportStatsEvent = ( attributes: object ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'transport.stats',
-    attributes
-} );
+export const createTransportStatsEvent = (attributes: object) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'transport.stats',
+        attributes
+    };
+};
 
 /**
  * Creates an event which contains information about the audio output problem (the user id of the affected participant,
@@ -506,15 +541,18 @@ export const createTransportStatsEvent = ( attributes: object ) => ( {
  * @param localAudioLevels - The local audio levels.
  * @param remoteAudioLevels - The audio levels received from the participant.
  */
-export const createAudioOutputProblemEvent = ( userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'audio.output.problem',
-    attributes: {
-        userID,
-        localAudioLevels,
-        remoteAudioLevels
-    }
-} );
+export const createAudioOutputProblemEvent
+    = (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
+        return {
+            type: AnalyticsEvents.TYPE_OPERATIONAL,
+            action: 'audio.output.problem',
+            attributes: {
+                userID,
+                localAudioLevels,
+                remoteAudioLevels
+            }
+        };
+    };
 
 /**
  * Creates an event which contains an information related to the bridge channel close event.
@@ -522,14 +560,16 @@ export const createAudioOutputProblemEvent = ( userID: string, localAudioLevels:
  * @param code - A code from {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
  * @param reason - A string which describes the reason for closing the bridge channel.
  */
-export const createBridgeChannelClosedEvent = ( code: string, reason: string ) => ( {
-    type: AnalyticsEvents.TYPE_OPERATIONAL,
-    action: 'bridge-channel.error',
-    attributes: {
-        code,
-        reason
-    }
-} );
+export const createBridgeChannelClosedEvent = (code: string, reason: string) => {
+    return {
+        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        action: 'bridge-channel.error',
+        attributes: {
+            code,
+            reason
+        }
+    };
+};
 
 /**
  * Creates an event which indicates the Time To First Media (TTFM).
@@ -546,4 +586,4 @@ export const createBridgeChannelClosedEvent = ( code: string, reason: string ) =
  *      muted: whether the track has ever been muted (?)
  *      value: the TTMF in milliseconds.
  */
-export const createTtfmEvent = ( attributes: object ) => createConnectionStageReachedEvent( 'ttfm', attributes );
+export const createTtfmEvent = (attributes: object) => createConnectionStageReachedEvent('ttfm', attributes);

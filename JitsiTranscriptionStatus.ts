@@ -1,13 +1,14 @@
 export enum JitsiTranscriptionStatus {
-    /**
-     * The transcription is on.
-     */
-    ON = 'ON',
 
     /**
      * The transcription is off.
      */
-    OFF = 'OFF'
+    OFF = 'OFF',
+
+    /**
+     * The transcription is on.
+     */
+    ON = 'ON'
 }
 
 // exported for backward compatibility

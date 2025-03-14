@@ -1,4 +1,5 @@
 export enum ConnectionQualityEvents {
+
     /**
      * Indicates that the local connection statistics were updated.
      */
@@ -9,7 +10,7 @@ export enum ConnectionQualityEvents {
      * were updated.
      */
     REMOTE_STATS_UPDATED = 'cq.remote_stats_updated'
-};
+}
 
 // exported for backward compatibility
 export const LOCAL_STATS_UPDATED = ConnectionQualityEvents.LOCAL_STATS_UPDATED;
