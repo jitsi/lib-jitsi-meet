@@ -59,9 +59,9 @@ function getAnalyticsAttributesFromOptions(options) {
 
     /* eslint-disable */
 
-    attributes.audio_requested = options.devices.includes('audio');
-    attributes.video_requested = options.devices.includes('video');
-    attributes.screen_sharing_requested = options.devices.includes('desktop');
+    attributes.audio_requested = options.devices.includes(MediaType.AUDIO);
+    attributes.video_requested = options.devices.includes(MediaType.VIDEO);
+    attributes.screen_sharing_requested = options.devices.includes(VideoType.DESKTOP);
 
     if (attributes.video_requested) {
         attributes.resolution = options.resolution;
