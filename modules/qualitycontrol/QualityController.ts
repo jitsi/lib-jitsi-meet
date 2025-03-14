@@ -292,7 +292,7 @@ export class QualityController {
 
                 // If the encoder is still limited by CPU, switch to a lower complexity codec.
                 if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
-                        || encodeResolution < captureResolution) {
+                        || encodeResolution < expectedSendResolution) {
                     return this.codecController.changeCodecPreferenceOrder(localTrack, codec);
                 }
             }, LIMITED_BY_CPU_TIMEOUT);
