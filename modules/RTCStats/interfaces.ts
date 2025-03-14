@@ -7,5 +7,13 @@ export interface IRTCStatsConfiguration {
         rtcstatsSendSdp?: boolean;
         rtcstatsStoreLogs?: boolean;
         rtcstatsUseLegacy?: boolean;
-    };
+    },
+    confName: string;
+}
+
+export interface ITraceOptions {
+    endpoint: string;
+    isBreakoutRoom: boolean;
+    meetingFqn: string;
+    useLegacy: boolean;
 }

@@ -15,7 +15,7 @@ import EventEmitter from '../util/EventEmitter';
 
 import DefaultLogStorage from './DefaulLogStorage';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
-import { IRTCStatsConfiguration } from './interfaces';
+import { IRTCStatsConfiguration, ITraceOptions } from './interfaces';
 
 const logger = getLogger('modules/RTCStats/RTCStats');
 
@@ -24,10 +24,11 @@ const logger = getLogger('modules/RTCStats/RTCStats');
  * ignored. Config and conference changes are handled by the start method.
  */
 class RTCStats {
+    public events: EventEmitter = new EventEmitter();
+    public _attachedAtConnection: boolean = true;
+    private _defaultLogCollector: any = null;
     private _initialized: boolean = false;
     private _trace: any = null;
-    public events: EventEmitter = new EventEmitter();
-    private _defaultLogCollector: any = null;
 
     /**
      * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
@@ -66,6 +67,56 @@ class RTCStats {
     }
 
     /**
+     * A JitsiConnection instance is created before the conference is joined, so even though
+     * we don't have any conference specific data yet, we can initialize the trace module and
+     * send any logs that might of otherwise be missed if case an error occurs between the connection
+     * and conference initialization.
+     */
+    attachToConnection(initConfig: IRTCStatsConfiguration) {
+        const {
+            analytics: {
+                rtcstatsUseLegacy: useLegacy = false,
+                rtcstatsEndpoint: endpoint = '',
+                rtcstatsEnabled = false
+            } = {},
+            confName: meetingFqn = ''
+        } = initConfig;
+
+        // Even though we have options being passed to init we need to recheck it as some client (react-native)
+        // don't always re-initialize the module and could create multiple connections with different options.
+        if (!rtcstatsEnabled) return;
+
+        // If rtcstats proxy module is not initialized, do nothing (should never happen).
+        if (!this._initialized) {
+            logger.error('Calling attachToConnection before RTCStats proxy module is initialized.');
+
+            return;
+        }
+
+        const traceOptions: ITraceOptions = {
+            endpoint,
+            meetingFqn,
+            useLegacy,
+            isBreakoutRoom: false
+        };
+
+        // Can't be a breakout room.
+        this._connectTrace(traceOptions);
+
+        // This module is tightly tied with the ljm JitsiConnection and JitsiConference flows, technically 
+        // the connection isn't associated with a conference, but we still need to have some association for 
+        // data that is logged before the conference is joined.
+        // In short the flow is as follows:
+        // 1. Connection is created.
+        // 2. The trace module is initialized and connected to the rtcstats server, so data starts being sent.
+        // 3. Conference is created.
+        // 4. If the trace wasn't already initialized from the connection creation, it will be initialized again.
+        // this will take care of the cases where the connection is created and then multiple conferences are 
+        // sequentially joined and left, such as breakout rooms.
+        this._attachedAtConnection = true;
+    }
+
+    /**
      * When a conference is about to start, we need to reset the trace module, and initialize it with the
      * new conference's config. On a normal conference flow this wouldn't be necessary, as the whole page is
      * reloaded, but in the case of breakout rooms or react native the js context doesn't reload, hence the
@@ -74,7 +125,7 @@ class RTCStats {
      * @param conference - JitsiConference instance that's about to start.
      * @returns {void}
      */
-    start(conference: JitsiConference) {
+    attachToConference(conference: JitsiConference) {
         const {
             options: {
                 config: confConfig = {},
@@ -101,10 +152,6 @@ class RTCStats {
         // localId, this is the unique id that is used to track users throughout stats.
         const localId = Settings?.callStatsUserName ?? '';
 
-        // Reset the trace module in case it wasn't during the previous conference.
-        // Closing the underlying websocket connection and deleting the trace obj.
-        this.reset();
-
         // The new conference config might have rtcstats disabled, so we need to check again.
         if (!rtcstatsEnabled) {
             return;
@@ -112,7 +159,7 @@ class RTCStats {
 
         // If rtcstats proxy module is not initialized, do nothing.
         if (!this._initialized) {
-            logger.error('Calling start before RTCStats proxy module is initialized.');
+            logger.error('Calling attachToConference before RTCStats proxy module is initialized.');
 
             return;
         }
@@ -123,23 +170,24 @@ class RTCStats {
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
         conference.once(CONFERENCE_JOINED, () => {
-            const traceOptions = {
-                endpoint,
-                meetingFqn: confName,
-                onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
-                useLegacy
-            };
 
             const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
-            this._trace = traceInit(traceOptions);
-
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            this._trace.connect(isBreakoutRoom);
+            if (!this._attachedAtConnection) {
+                const traceOptions = {
+                    endpoint,
+                    meetingFqn: confName,
+                    useLegacy,
+                    isBreakoutRoom
+                };
+
+                this._connectTrace(traceOptions);
+            }
 
             const identityData = {
                 ...confConfig,
@@ -152,6 +200,8 @@ class RTCStats {
             };
 
             this.sendIdentity(identityData);
+            // Reset the flag, so that the next conference that is joined will have the trace module initialized, such as a breakout room.
+            this._attachedAtConnection = false;
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
@@ -171,6 +221,26 @@ class RTCStats {
             BEFORE_STATISTICS_DISPOSED,
             () => this._defaultLogCollector?.flush()
         );
+    }
+
+    /**
+     * Reset and connects the trace module to the s server.
+     *
+     * @param traceOptions - Options for the trace module.
+     * @returns {void}
+     */
+    _connectTrace(traceOptions: ITraceOptions) {
+
+        const traceOptionsComplete = { 
+            ...traceOptions,
+            onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
+        };
+
+        const { isBreakoutRoom } = traceOptionsComplete;
+
+        this.reset();
+        this._trace = traceInit(traceOptionsComplete);
+        this._trace.connect(isBreakoutRoom);
     }
 
     /**
