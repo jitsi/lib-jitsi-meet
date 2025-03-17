@@ -2,19 +2,6 @@
  * The events for the conference.
  */
 export enum JitsiConferenceEvents {
-    /**
-     * An event(library-private) fired when the conference switches the currently active media session.
-     * @type {string}
-     * @private
-     */
-    _MEDIA_SESSION_ACTIVE_CHANGED = 'conference.media_session.active_changed',
-
-    /**
-     * An event(library-private) fired when a new media session is added to the conference.
-     * @type {string}
-     * @private
-     */
-    _MEDIA_SESSION_STARTED = 'conference.media_session.started',
 
     /**
      * Event indicates that the current conference audio input switched between audio
@@ -23,8 +10,8 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
-     * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the call
-     * and the audio sender limit configured in Jicofo.
+     * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
+     * call and the audio sender limit configured in Jicofo.
      */
     AUDIO_UNMUTE_PERMISSIONS_CHANGED = 'conference.audio_unmute_permissions_changed',
 
@@ -116,15 +103,15 @@ export enum JitsiConferenceEvents {
     CONFERENCE_FAILED = 'conference.failed',
 
     /**
-     * Indicates that conference is in progress of joining.
-     */
-    CONFERENCE_JOIN_IN_PROGRESS = 'conference.join_in_progress',
-
-    /**
      * Indicates that conference has been joined. The event does NOT provide any
      * parameters to its listeners.
      */
     CONFERENCE_JOINED = 'conference.joined',
+
+    /**
+     * Indicates that conference is in progress of joining.
+     */
+    CONFERENCE_JOIN_IN_PROGRESS = 'conference.join_in_progress',
 
     /**
      * Indicates that conference has been left.
@@ -163,7 +150,7 @@ export enum JitsiConferenceEvents {
 
     /**
      * A connection to the video bridge's data channel has been closed.
-     * This event is only emitted in 
+     * This event is only emitted in
      */
     DATA_CHANNEL_CLOSED = 'conference.dataChannelClosed',
 
@@ -285,19 +272,9 @@ export enum JitsiConferenceEvents {
     MESSAGE_RECEIVED = 'conference.messageReceived',
 
     /**
-     * New reaction was received.
-     */
-    REACTION_RECEIVED = 'conference.reactionReceived',
-
-    /**
      * Event fired when the conference metadata is updated.
      */
     METADATA_UPDATED = 'conference.metadata.updated',
-
-    /**
-     * Event indicates that the current selected input device has no signal
-     */
-    NO_AUDIO_INPUT = 'conference.no_audio_input',
 
     /**
      * Event indicates that the current microphone used by the conference is noisy.
@@ -309,6 +286,11 @@ export enum JitsiConferenceEvents {
      * was received on the data channel.
      */
     NON_PARTICIPANT_MESSAGE_RECEIVED = 'conference.non_participant_message_received',
+
+    /**
+     * Event indicates that the current selected input device has no signal
+     */
+    NO_AUDIO_INPUT = 'conference.no_audio_input',
 
     /**
      * Indicates that the conference has switched between JVB and P2P connections.
@@ -350,11 +332,17 @@ export enum JitsiConferenceEvents {
      * New private text message was received.
      */
     PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived',
+
     /**
      * The conference properties changed.
      * @type {string}
      */
     PROPERTIES_CHANGED = 'conference.propertiesChanged',
+
+    /**
+     * New reaction was received.
+     */
+    REACTION_RECEIVED = 'conference.reactionReceived',
 
     /**
      * Indicates that recording state changed.
@@ -374,14 +362,14 @@ export enum JitsiConferenceEvents {
     SILENT_STATUS_CHANGED = 'conference.silentStatusChanged',
 
     /**
-     * Indicates that start muted settings changed.
-     */
-    START_MUTED_POLICY_CHANGED = 'conference.start_muted_policy_changed',
-
-    /**
      * Indicates that the local user has started muted.
      */
     STARTED_MUTED = 'conference.started_muted',
+
+    /**
+     * Indicates that start muted settings changed.
+     */
+    START_MUTED_POLICY_CHANGED = 'conference.start_muted_policy_changed',
 
     /**
      * Indicates that subject of the conference has changed.
@@ -478,15 +466,10 @@ export enum JitsiConferenceEvents {
     VIDEO_SIP_GW_SESSION_STATE_CHANGED = 'conference.videoSIPGWSessionStateChanged',
 
     /**
-     * Event indicates that the permission for unmuting video has changed based on the number of video senders in the call
-     * and the video sender limit configured in Jicofo.
+     * Event indicates that the permission for unmuting video has changed based on the number of video senders in the
+     * call and the video sender limit configured in Jicofo.
      */
     VIDEO_UNMUTE_PERMISSIONS_CHANGED = 'conference.video_unmute_permissions_changed',
-
-    /**
-     * Indicates that the conference has support for visitors.
-     */
-    VISITORS_SUPPORTED_CHANGED = 'conference.visitorsSupported',
 
     /**
      * Event indicating we have received a message from the visitors component.
@@ -496,7 +479,26 @@ export enum JitsiConferenceEvents {
     /**
      * Event indicating that our request for promotion was rejected.
      */
-    VISITORS_REJECTION = 'conference.visitors_rejection'
+    VISITORS_REJECTION = 'conference.visitors_rejection',
+
+    /**
+     * Indicates that the conference has support for visitors.
+     */
+    VISITORS_SUPPORTED_CHANGED = 'conference.visitorsSupported',
+
+    /**
+     * An event(library-private) fired when the conference switches the currently active media session.
+     * @type {string}
+     * @private
+     */
+    _MEDIA_SESSION_ACTIVE_CHANGED = 'conference.media_session.active_changed',
+
+    /**
+     * An event(library-private) fired when a new media session is added to the conference.
+     * @type {string}
+     * @private
+     */
+    _MEDIA_SESSION_STARTED = 'conference.media_session.started'
 }
 
 // exported for backward compatibility

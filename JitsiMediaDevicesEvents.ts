@@ -3,6 +3,7 @@
  */
 
 export enum JitsiMediaDevicesEvents {
+
     /**
      * Indicates that the list of available media devices has been changed. The
      * event provides the following parameters to its listeners:
@@ -30,7 +31,7 @@ export enum JitsiMediaDevicesEvents {
      *  other execution environment.
      */
     PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown'
-};
+}
 
 // exported for backward compatibility
 export const DEVICE_LIST_CHANGED = JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED;

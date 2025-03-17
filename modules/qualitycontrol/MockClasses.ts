@@ -47,9 +47,15 @@ export class MockLocalTrack {
         this.videoType = videoType;
     }
 
+    /**
+     * Gets the capture resolution of the mock local track.
+     * @returns - The capture resolution.
+     */
     getCaptureResolution(): number {
         return this.captureResolution;
     }
+
+
     /**
      * Returns the video type of the mock local track.
      * @returns {VideoType}
@@ -120,7 +126,7 @@ export class MockConference extends Listenable {
      * Returns the list of participants.
      * @returns Array<MockParticipant>
      */
-    getParticipants(): Array<MockParticipant>  {
+    getParticipants(): Array<MockParticipant> {
         return this.participants;
     }
 

@@ -2,6 +2,7 @@
  * Enumeration of the video types
  */
 export enum VideoType {
+
     /**
      * The camera video type.
      */

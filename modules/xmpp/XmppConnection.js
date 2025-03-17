@@ -1,6 +1,5 @@
 import { getLogger } from '@jitsi/logger';
 import { $pres, Strophe } from 'strophe.js';
-import 'strophejs-plugin-stream-management';
 
 import { MAX_CONNECTION_RETRIES } from '../../service/connectivity/Constants';
 import Listenable from '../util/Listenable';
@@ -8,6 +7,7 @@ import Listenable from '../util/Listenable';
 import ResumeTask from './ResumeTask';
 import LastSuccessTracker from './StropheLastSuccess';
 import PingConnectionPlugin from './strophe.ping';
+import './strophe.stream-management';
 
 const logger = getLogger(__filename);
 

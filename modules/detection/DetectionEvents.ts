@@ -1,11 +1,4 @@
 export enum DetectionEvents {
-    /**
-     * Event triggered by a audio detector indicating that its active state has changed from active to inactive or vice
-     * versa.
-     * @event
-     * @type {boolean} - true when service has changed to active false otherwise.
-     */
-    DETECTOR_STATE_CHANGE = 'detector_state_change',
 
     /** Event triggered by {@link NoAudioSignalDetector} when the local audio device associated with a JitsiConference
      * starts receiving audio levels with the value of 0 meaning no audio is being captured on that device, or when
@@ -15,8 +8,16 @@ export enum DetectionEvents {
      */
     AUDIO_INPUT_STATE_CHANGE = 'audio_input_state_changed',
 
-    /** Event triggered by NoAudioSignalDetector when the local audio device associated with a JitsiConference goes silent
-     * for a period of time, meaning that the device is either broken or hardware/software muted.
+    /**
+     * Event triggered by a audio detector indicating that its active state has changed from active to inactive or vice
+     * versa.
+     * @event
+     * @type {boolean} - true when service has changed to active false otherwise.
+     */
+    DETECTOR_STATE_CHANGE = 'detector_state_change',
+
+    /** Event triggered by NoAudioSignalDetector when the local audio device associated with a JitsiConference goes
+     * silent for a period of time, meaning that the device is either broken or hardware/software muted.
      * @event
      * @type {void}
      */
@@ -59,7 +60,7 @@ export enum DetectionEvents {
      *  @type {Object}
      */
     VAD_TALK_WHILE_MUTED = 'detection.vad_talk_while_muted'
-};
+}
 
 // exported for backward compatibility
 export const DETECTOR_STATE_CHANGE = DetectionEvents.DETECTOR_STATE_CHANGE;

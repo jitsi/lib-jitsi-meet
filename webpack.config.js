@@ -10,16 +10,14 @@ module.exports = (_env, argv) => {
         = sharedConfig(mode === 'production' /* minimize */, Boolean(process.env.ANALYZE_BUNDLE) /* analyzeBundle */);
 
     return [
-        Object.assign({}, config, {
+        { ...config,
             entry: {
                 'lib-jitsi-meet': './index.js'
             },
-            output: Object.assign({}, config.output, {
+            output: { ...config.output,
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
-                path: path.join(process.cwd(), 'dist', 'umd')
-            })
-        }),
+                path: path.join(process.cwd(), 'dist', 'umd') } },
         {
             entry: {
                 worker: './modules/e2ee/Worker.js'

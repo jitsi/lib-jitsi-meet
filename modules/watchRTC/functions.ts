@@ -6,6 +6,7 @@
  */
 export function isAnalyticsEnabled(options): boolean {
     const { analytics, disableThirdPartyRequests } = options;
+
     return !(analytics?.disabled || disableThirdPartyRequests);
 }
 
@@ -17,6 +18,7 @@ export function isAnalyticsEnabled(options): boolean {
  */
 export function isRtcstatsEnabled(options): boolean {
     const { analytics } = options;
+
     return analytics?.rtcstatsEnabled ?? false;
 }
 
@@ -28,5 +30,6 @@ export function isRtcstatsEnabled(options): boolean {
  */
 export function isWatchRTCEnabled(options): boolean {
     const { analytics } = options;
+
     return analytics?.watchRTCEnabled ?? false;
 }

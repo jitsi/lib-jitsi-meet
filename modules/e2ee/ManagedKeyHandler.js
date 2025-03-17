@@ -106,7 +106,7 @@ export class ManagedKeyHandler extends KeyHandler {
      * @param {*} newValue - The property's new value.
      * @private
      */
-    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+    _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
         switch (name) {
         case 'e2ee.idKey':
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);

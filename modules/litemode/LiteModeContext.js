@@ -1,4 +1,3 @@
-/* global TransformStream */
 import { getLogger } from '@jitsi/logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';

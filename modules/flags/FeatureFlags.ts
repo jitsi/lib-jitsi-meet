@@ -6,7 +6,7 @@ import browser from '../browser';
 class FeatureFlags {
     private _runInLiteMode: boolean;
     private _ssrcRewriting: boolean;
-    
+
     /**
      * Configures the module.
      *

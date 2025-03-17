@@ -29,11 +29,13 @@ class WatchRTCHandler {
             // @ts-ignore
             if (browser.isReactNative()) {
                 logger.warn('Cannot initialize WatchRTC in a react native environment!');
+
                 return;
             }
 
             if (!isAnalyticsEnabled(options)) {
                 logger.error('Cannot initialize WatchRTC when analytics or third party requests are disabled.');
+
                 return;
             }
 

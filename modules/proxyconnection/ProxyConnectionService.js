@@ -121,7 +121,7 @@ export default class ProxyConnectionService {
             this._selfCloseConnection();
         }
 
-        return;
+
     }
 
     /**

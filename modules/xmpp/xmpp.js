@@ -3,7 +3,6 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { unescape } from 'lodash-es';
 import { $msg, Strophe } from 'strophe.js';
-import 'strophejs-plugin-disco';
 
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
@@ -19,6 +18,7 @@ import RandomUtil from '../util/RandomUtil';
 import Caps, { parseDiscoInfo } from './Caps';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
+import './strophe.disco';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
