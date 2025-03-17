@@ -131,7 +131,7 @@ export class QualityController {
 
         this._codecController = new CodecSelection(conference, { jvb,
             p2p });
-        this._enableAdaptiveMode = options.enableAdaptiveMode;
+        this._enableAdaptiveMode = options.enableAdaptiveMode ?? true;
         this._encodeTimeStats = new Map();
         this._isLastNRampupBlocked = false;
         this._lastNRampupTime = options.lastNRampupTime;
