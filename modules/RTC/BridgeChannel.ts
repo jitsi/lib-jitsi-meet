@@ -1,14 +1,14 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
-
 import { EventEmitter } from 'events';
-import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
-import { SourceName } from '../../service/RTC/SignalingLayer';
+
+import JitsiConference from '../../JitsiConference';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import { SourceName } from '../../service/RTC/SignalingLayer';
+import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
+import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
-import JitsiConference from '../../JitsiConference'
-import ReceiverVideoConstraints from "../qualitycontrol/ReceiveVideoController";
 
 
 const logger = getLogger(__filename);
@@ -23,7 +23,7 @@ export default class BridgeChannel {
     private _conference: JitsiConference;
     private _connected: boolean | undefined = undefined;
     private _eventEmitter: EventEmitter;
-    private _mode: "datachannel" | "websocket" | null = null;
+    private _mode: 'datachannel' | 'websocket' | null = null;
     private _areRetriesEnabled: boolean = false;
     private _closedFromClient: boolean = false;
     private _wsUrl?: string;
@@ -40,7 +40,12 @@ export default class BridgeChannel {
      * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
      * @param {JitsiConference} conference the conference instance.
      */
-    constructor(peerconnection: RTCPeerConnection | null, wsUrl: string | null, emitter: EventEmitter, conference: JitsiConference) {
+    constructor(
+            peerconnection: RTCPeerConnection | null,
+            wsUrl: string | null,
+            emitter: EventEmitter,
+            conference: JitsiConference
+    ) {
         if (!peerconnection && !wsUrl) {
             throw new TypeError('At least peerconnection or wsUrl must be given');
         } else if (peerconnection && wsUrl) {
@@ -304,7 +309,7 @@ export default class BridgeChannel {
             }
         };
 
-        channel.onmessage = ({ data }: { data: string }): void => {
+        channel.onmessage = ({ data }: { data: string; }): void => {
             // JSON object.
             let obj;
 
