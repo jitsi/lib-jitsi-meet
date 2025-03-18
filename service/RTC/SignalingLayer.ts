@@ -16,6 +16,7 @@ export interface IPeerMediaInfo {
     muted: boolean;
     videoType?: string;
 }
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
  * Generates a source name.
@@ -104,7 +105,7 @@ export default class SignalingLayer extends Listenable {
      * @deprecated This method is to be replaced with getPeerSourceInfo.
      */
     getPeerMediaInfo(
-            _owner: string, _mediaType: MediaType, _sourceName: SourceName
+            owner: string, mediaType: MediaType, sourceName: SourceName
     ): IPeerMediaInfo | null { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
@@ -116,7 +117,7 @@ export default class SignalingLayer extends Listenable {
      * @returns {ISourceInfo | undefined}
      */
     getPeerSourceInfo(
-            _owner: EndpointId, _sourceName: SourceName
+            owner: EndpointId, sourceName: SourceName
     ): ISourceInfo | undefined { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
@@ -126,7 +127,7 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the SSRC number.
      * @return {string|null} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner(_ssrc: number): string | null { // eslint-disable-line no-unused-vars
+    getSSRCOwner(ssrc: number): string | null { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -135,7 +136,7 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
      */
-    getTrackSourceName(_ssrc: number): SourceName | undefined { // eslint-disable-line no-unused-vars
+    getTrackSourceName(ssrc: number): SourceName | undefined { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -144,7 +145,7 @@ export default class SignalingLayer extends Listenable {
      * remapped to another source from a different endpoint.
      * @param {number} ssrc a list of SSRCs.
      */
-    removeSSRCOwners(_ssrcList: number[]): void { // eslint-disable-line no-unused-vars
+    removeSSRCOwners(ssrcList: number[]): void { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -155,7 +156,7 @@ export default class SignalingLayer extends Listenable {
      * @param {string} sourceName - The related source name.
      * @throws TypeError if <tt>ssrc</tt> is not a number.
      */
-    setSSRCOwner(_ssrc: number, _endpointId: string, _sourceName: string): void { // eslint-disable-line no-unused-vars
+    setSSRCOwner(ssrc: number, endpointId: string, sourceName: string): void { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -165,7 +166,7 @@ export default class SignalingLayer extends Listenable {
      * @param {boolean} muted - the new muted status.
      * @returns {boolean}
      */
-    setTrackMuteStatus(_sourceName: SourceName, _muted: boolean) { // eslint-disable-line no-unused-vars
+    setTrackMuteStatus(sourceName: SourceName, muted: boolean) { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -174,7 +175,7 @@ export default class SignalingLayer extends Listenable {
      * @param {VideoType} videoType - the new video type.
      * @returns {boolean}
      */
-    setTrackVideoType(_sourceName: SourceName, _videoType: VideoType) { // eslint-disable-line no-unused-vars
+    setTrackVideoType(sourceName: SourceName, videoType: VideoType) { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -183,6 +184,6 @@ export default class SignalingLayer extends Listenable {
      * @param {string} id endpoint id of the participant leaving the call.
      * @returns {void}
      */
-    updateSsrcOwnersOnLeave(_id: string): void { // eslint-disable-line no-unused-vars
+    updateSsrcOwnersOnLeave(id: string): void { // eslint-disable-line no-unused-vars
     }
 }
