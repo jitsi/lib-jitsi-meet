@@ -12,27 +12,27 @@ import {
 
 const logger = getLogger(__filename);
 
-export interface ConnectionOptions {
-    flags?: Record<string, any>;
+export interface IConnectionOptions {
     disableFocus?: boolean;
-    serviceUrl: string;
     enableWebsocketResume: boolean;
+    flags?: Record<string, any>;
+    p2pStunServers: any[];
+    serviceUrl: string;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: number;
     xmppPing?: any;
-    p2pStunServers: any[];
 }
 
-export interface ConnectOptions {
+export interface IConnectOptions {
     id?: string;
-    password?: string;
     name?: string;
+    password?: string;
 }
 
-export interface AttachOptions {
+export interface IAttachOptions {
+    jid: string;
     rid: string;
     sid: string;
-    jid: string;
 }
 
 /**
@@ -45,7 +45,7 @@ export interface AttachOptions {
  * the server.
  * @constructor
  */
-export default function JitsiConnection(appID: string, token: string | null, options: ConnectionOptions) {
+export default function JitsiConnection(appID: string, token: string | null, options: IConnectionOptions) {
     this.appID = appID;
     this.token = token;
     this.options = options;
@@ -88,7 +88,7 @@ export default function JitsiConnection(appID: string, token: string | null, opt
  * the established xmpp connection will be used, even in the case where we have configured conference http request url
  * to be used.
  */
-JitsiConnection.prototype.connect = function(options: ConnectOptions = {}) {
+JitsiConnection.prototype.connect = function(options: IConnectOptions = {}) {
     // if we get redirected, we set disableFocus to skip sending the conference request twice
     if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
         this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name))
@@ -108,7 +108,7 @@ JitsiConnection.prototype.connect = function(options: ConnectOptions = {}) {
  *
  * @param options {object} connecting options - rid, sid and jid.
  */
-JitsiConnection.prototype.attach = function(options: AttachOptions) {
+JitsiConnection.prototype.attach = function(options: IAttachOptions) {
     this.xmpp.attach(options);
 };
 
@@ -149,7 +149,8 @@ JitsiConnection.prototype.setToken = function(token: string) {
  * that will be created.
  * @returns {JitsiConference} returns the new conference object.
  */
-JitsiConnection.prototype.initJitsiConference = function(name: string | null, options: Record<string, any>): JitsiConference {
+JitsiConnection.prototype.initJitsiConference = function(
+        name: string | null, options: Record<string, any>): JitsiConference {
     return new JitsiConference({
         name,
         config: options,
@@ -162,7 +163,7 @@ JitsiConnection.prototype.initJitsiConference = function(name: string | null, op
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.addEventListener = function(event: string, listener: Function) {
+JitsiConnection.prototype.addEventListener = function(event: string, listener: (...args: any[]) => void) {
     this.xmpp.addListener(event, listener);
 };
 
@@ -171,7 +172,7 @@ JitsiConnection.prototype.addEventListener = function(event: string, listener: F
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.removeEventListener = function(event: string, listener: Function) {
+JitsiConnection.prototype.removeEventListener = function(event: string, listener: (...args: any[]) => void) {
     this.xmpp.removeListener(event, listener);
 };
 
