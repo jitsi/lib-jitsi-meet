@@ -1,20 +1,21 @@
-
 import Listenable from '../../modules/util/Listenable';
-import { MediaType } from '../../service/RTC/MediaType';
 
-/**
- * @typedef {string} EndpointId
- */
-/**
- * @typedef {string} SourceName
- */
-/**
- * @typedef {Object} SourceInfo
- *
- * @property {SourceName} sourceName - Name of the media source.
- * @property {boolean} [muted=false] - Tells if the source is muted (paused?).
- * @property {string} [videoType] - Type of the video for video type.
- */
+import { MediaType } from './MediaType';
+import { VideoType } from './VideoType';
+
+export type EndpointId = string;
+export type SourceName = string;
+
+export interface ISourceInfo {
+    muted?: boolean;
+    sourceName: SourceName;
+    videoType?: string;
+}
+
+export interface IPeerMediaInfo {
+    muted: boolean;
+    videoType?: string;
+}
 
 /**
  * Generates a source name.
@@ -24,7 +25,7 @@ import { MediaType } from '../../service/RTC/MediaType';
  * @param {number} trackIdx - Track index (or sender idx? - to be figured out) starting from 0.
  * @returns {SourceName} eg. endpointA-v0
  */
-export function getSourceNameForJitsiTrack(endpointId, mediaType, trackIdx) {
+export function getSourceNameForJitsiTrack(endpointId: EndpointId, mediaType: MediaType, trackIdx: number): SourceName {
     const firstLetterOfMediaType = mediaType.substring(0, 1);
 
     return `${endpointId}-${firstLetterOfMediaType}${trackIdx}`;
@@ -37,7 +38,7 @@ export function getSourceNameForJitsiTrack(endpointId, mediaType, trackIdx) {
  * @param {SourceName} sourceName - the source name.
  * @returns {MediaType}
  */
-export function getMediaTypeFromSourceName(sourceName) {
+export function getMediaTypeFromSourceName(sourceName: SourceName): MediaType {
     const firstLetterOfMediaTypeIdx = sourceName.lastIndexOf('-') + 1;
 
     if (firstLetterOfMediaTypeIdx <= 0) {
@@ -62,7 +63,7 @@ export function getMediaTypeFromSourceName(sourceName) {
  * @param {SourceName} sourceName - the source name, eg. endpointA-v0.
  * @returns {number}
  */
-export function getSourceIndexFromSourceName(sourceName) {
+export function getSourceIndexFromSourceName(sourceName: SourceName): number {
     const nameParts = sourceName.split('-');
     const trackIdx = Number(nameParts[nameParts.length - 1].substring(1));
 
@@ -76,7 +77,7 @@ export function getSourceIndexFromSourceName(sourceName) {
 /**
  * An object that carries the info about specific media type advertised by
  * participant in the signaling channel.
- * @typedef {Object} PeerMediaInfo
+ * @typedef {Object} IPeerMediaInfo
  * @property {boolean} muted indicates if the media is currently muted
  * @property {VideoType|undefined} videoType the type of the video if applicable
  */
@@ -96,13 +97,15 @@ export default class SignalingLayer extends Listenable {
      * @param {MediaType} mediaType the type of the media for which presence
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
      * info will be obtained.
-     * @return {PeerMediaInfo|null} presenceInfo an object with media presence
+     * @return {IPeerMediaInfo|null} presenceInfo an object with media presence
      * info or <tt>null</tt> either if there is no presence available for given
      * JID or if the media type given is invalid.
      *
      * @deprecated This method is to be replaced with getPeerSourceInfo.
      */
-    getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
+    getPeerMediaInfo(
+            _owner: string, _mediaType: MediaType, _sourceName: SourceName
+    ): IPeerMediaInfo | null { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -110,9 +113,11 @@ export default class SignalingLayer extends Listenable {
      * Obtains the info about a source for given name and endpoint ID.
      * @param {EndpointId} owner - The owner's endpoint ID.
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
-     * @returns {SourceInfo | undefined}
+     * @returns {ISourceInfo | undefined}
      */
-    getPeerSourceInfo(owner, sourceName) { // eslint-disable-line no-unused-vars
+    getPeerSourceInfo(
+            _owner: EndpointId, _sourceName: SourceName
+    ): ISourceInfo | undefined { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -121,7 +126,7 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the SSRC number.
      * @return {string|null} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
+    getSSRCOwner(_ssrc: number): string | null { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -130,7 +135,7 @@ export default class SignalingLayer extends Listenable {
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {SourceName | undefined} the track's source name.
      */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+    getTrackSourceName(_ssrc: number): SourceName | undefined { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 
@@ -139,7 +144,7 @@ export default class SignalingLayer extends Listenable {
      * remapped to another source from a different endpoint.
      * @param {number} ssrc a list of SSRCs.
      */
-    removeSSRCOwners(ssrcList) { // eslint-disable-line no-unused-vars
+    removeSSRCOwners(_ssrcList: number[]): void { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -150,7 +155,7 @@ export default class SignalingLayer extends Listenable {
      * @param {string} sourceName - The related source name.
      * @throws TypeError if <tt>ssrc</tt> is not a number.
      */
-    setSSRCOwner(ssrc, endpointId, sourceName) { // eslint-disable-line no-unused-vars
+    setSSRCOwner(_ssrc: number, _endpointId: string, _sourceName: string): void { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -160,7 +165,7 @@ export default class SignalingLayer extends Listenable {
      * @param {boolean} muted - the new muted status.
      * @returns {boolean}
      */
-    setTrackMuteStatus(sourceName, muted) { // eslint-disable-line no-unused-vars
+    setTrackMuteStatus(_sourceName: SourceName, _muted: boolean) { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -169,7 +174,7 @@ export default class SignalingLayer extends Listenable {
      * @param {VideoType} videoType - the new video type.
      * @returns {boolean}
      */
-    setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    setTrackVideoType(_sourceName: SourceName, _videoType: VideoType) { // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -178,6 +183,6 @@ export default class SignalingLayer extends Listenable {
      * @param {string} id endpoint id of the participant leaving the call.
      * @returns {void}
      */
-    updateSsrcOwnersOnLeave(id) { // eslint-disable-line no-unused-vars
+    updateSsrcOwnersOnLeave(_id: string): void { // eslint-disable-line no-unused-vars
     }
 }
