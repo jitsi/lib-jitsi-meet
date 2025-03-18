@@ -1,6 +1,28 @@
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 
-const TRACK_ERROR_TO_MESSAGE_MAP = {};
+export interface IGumError {
+    constraint?: string;
+    constraintName?: string;
+    message?: string;
+    name?: string;
+    stack?: string;
+}
+
+export interface IVideoConstraints {
+    mandatory?: { [key: string]: string | number; };
+}
+
+export interface IGumOptions {
+    video?: IVideoConstraints;
+}
+
+export interface IGum {
+    constraints?: IGumOptions | string;
+    devices?: ('audio' | 'video' | 'desktop' | 'screen' | 'audiooutput')[];
+    error: IGumError;
+}
+
+const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
     = 'Video resolution is not supported: ';
@@ -11,7 +33,7 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]
     = 'Not supported';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
-    = 'Unkown error from desktop picker';
+    = 'Unknown error from desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
     = 'Failed to detect desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL]
@@ -41,24 +63,24 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
  *
  *
  * @constructor
- * @param {Object|string} error - error object or error name
- * @param {Object|string} (options) - getUserMedia constraints object or
+ * @param {IGumError|string} error - error object or error name
+ * @param {GumObject|string} (options) - getUserMedia constraints object or
  * error message
  * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
  * list of getUserMedia requested devices
  */
-function JitsiTrackError(error, options, devices) {
+function JitsiTrackError(
+        error: IGumError | string,
+        options?: IGumOptions | string,
+        devices?: ('audio' | 'video' | 'desktop' | 'screen' | 'audiooutput')[]
+) {
     if (typeof error === 'object' && typeof error.name !== 'undefined') {
         /**
          * Additional information about original getUserMedia error
          * and constraints.
-         * @type {{
-         *     error: Object,
-         *     constraints: Object,
-         *     devices: Array.<'audio'|'video'|'desktop'|'screen'>
-         * }}
+         * @type {IGum}
          */
-        this.gum = {
+        this.IGum = {
             error,
             constraints: options,
             devices: devices && Array.isArray(devices)
@@ -89,8 +111,8 @@ function JitsiTrackError(error, options, devices) {
             // we treat deviceId as unsupported resolution, as we want to
             // retry and finally if everything fails to remove deviceId from
             // mandatory constraints
-            if (options
-                    && options.video
+            if (typeof options !== 'string'
+                    && options?.video
                     && (!devices || devices.indexOf('video') > -1)
                     && (constraintName === 'minWidth'
                         || constraintName === 'maxWidth'
@@ -134,7 +156,7 @@ function JitsiTrackError(error, options, devices) {
         throw new Error('Invalid arguments');
     }
 
-    this.stack = error.stack || new Error().stack;
+    this.stack = typeof error === 'string' ? new Error().stack : error.stack || new Error().stack;
 }
 
 JitsiTrackError.prototype = Object.create(Error.prototype);
@@ -143,10 +165,10 @@ JitsiTrackError.prototype.constructor = JitsiTrackError;
 /**
  * Gets failed resolution constraint from corresponding object.
  * @param {string} failedConstraintName
- * @param {Object} constraints
+ * @param {IGumOptions} constraints
  * @returns {string|number}
  */
-function getResolutionFromFailedConstraint(failedConstraintName, constraints) {
+function getResolutionFromFailedConstraint(failedConstraintName: string, constraints: IGumOptions): string | number {
     if (constraints && constraints.video && constraints.video.mandatory) {
         switch (failedConstraintName) {
         case 'width':
