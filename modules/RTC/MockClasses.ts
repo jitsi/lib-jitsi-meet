@@ -122,6 +122,7 @@ class MockRTCPeerConnection {
  */
 export class MockPeerConnection {
     private id: string;
+    private _usesUnifiedPlan: boolean;
     private peerconnection: MockRTCPeerConnection;
     private _simulcast: boolean;
 
@@ -129,10 +130,12 @@ export class MockPeerConnection {
      * Constructor.
      *
      * @param {string} id RTC id
+     * @param {boolean} usesUnifiedPlan
      * @param {boolean} simulcast
      */
-    constructor(id: string, simulcast: boolean) {
+    constructor(id: string ,usesUnifiedPlan: boolean, simulcast: boolean) {
         this.id = id;
+        this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
         this._simulcast = simulcast;
     }
@@ -269,6 +272,13 @@ export class MockPeerConnection {
     updateRemoteSources(): void {
     }
 
+    /**
+     * {@link TraceablePeerConnection.usesUnifiedPlan}.
+     */
+    usesUnifiedPlan() {
+        return this._usesUnifiedPlan;
+    }
+
 
     /**
      * {@link TraceablePeerConnection.getLocalVideoTracks}.
@@ -290,8 +300,8 @@ export class MockRTC extends Listenable {
      *
      * @returns {MockPeerConnection}
      */
-    createPeerConnection(id: string, simulcast: boolean): MockPeerConnection {
-        this.pc = new MockPeerConnection(id, simulcast);
+    createPeerConnection(id: string,usesUnifiedPlan: boolean,simulcast: boolean): MockPeerConnection {
+        this.pc = new MockPeerConnection(id,usesUnifiedPlan,simulcast);
         this.forwardedSources = [];
 
         return this.pc;
