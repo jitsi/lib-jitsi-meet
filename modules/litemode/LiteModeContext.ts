@@ -1,10 +1,10 @@
 import { getLogger } from '@jitsi/logger';
 
-import RTCEvents from '../../service/RTC/RTCEvents';
-import FeatureFlags from '../flags/FeatureFlags';
 import JitsiConference from '../../JitsiConference';
-import JitsiRemoteTrack  from '../RTC/JitsiRemoteTrack';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import FeatureFlags from '../flags/FeatureFlags';
 
 // Flag to set on receivers to avoid setting up the lite mode
 // more than once.
@@ -43,9 +43,11 @@ export class LiteModeContext {
             return;
         }
 
-        const receiver = tpc.findReceiverForTrack(track.track) as RTCRtpReceiver & { createEncodedStreams: () => {
-            readable: ReadableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; }
-         };
+        const receiver = tpc.findReceiverForTrack(track.track) as RTCRtpReceiver
+        & { createEncodedStreams: () => {
+            readable: ReadableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
+            writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; };
+        };
 
         if (!receiver) {
             logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
