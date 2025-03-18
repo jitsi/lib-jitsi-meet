@@ -22,34 +22,24 @@ export interface IGum {
     error: IGumError;
 }
 
-const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {};
+export type DeviceType = 'audio' | 'video' | 'desktop' | 'screen' | 'audiooutput';
 
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
-    = 'Video resolution is not supported: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_USER_CANCELED]
-    = 'User canceled screen sharing prompt';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
-    = 'Unknown error from screensharing';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]
-    = 'Not supported';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
-    = 'Unknown error from desktop picker';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
-    = 'Failed to detect desktop picker';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL]
-    = 'Generic getUserMedia error';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.PERMISSION_DENIED]
-    = 'User denied permission to use device(s): ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NOT_FOUND]
-    = 'Requested device(s) was/were not found: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CONSTRAINT_FAILED]
-    = 'Constraint could not be satisfied: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TIMEOUT]
-    = 'Could not start media source. Timeout occurred!';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
-    = 'Track has been already disposed';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
-    = 'Track does not have an associated Media Stream';
+const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {
+    [JitsiTrackErrors.UNSUPPORTED_RESOLUTION]: 'Video resolution is not supported: ',
+    [JitsiTrackErrors.SCREENSHARING_USER_CANCELED]: 'User canceled screen sharing prompt',
+    [JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]: 'Unknown error from screensharing',
+    [JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]: 'Not supported',
+    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]: 'Unkown error from desktop picker',
+    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]: 'Failed to detect desktop picker',
+    [JitsiTrackErrors.GENERAL]: 'Generic getUserMedia error',
+    [JitsiTrackErrors.PERMISSION_DENIED]: 'User denied permission to use device(s): ',
+    [JitsiTrackErrors.NOT_FOUND]: 'Requested device(s) was/were not found: ',
+    [JitsiTrackErrors.CONSTRAINT_FAILED]: 'Constraint could not be satisfied: ',
+    [JitsiTrackErrors.TIMEOUT]: 'Could not start media source. Timeout occurred!',
+    [JitsiTrackErrors.TRACK_IS_DISPOSED]: 'Track has been already disposed',
+    [JitsiTrackErrors.TRACK_NO_STREAM_FOUND]: 'Track does not have an associated Media Stream'
+};
+
 
 // FIXME: Using prototype inheritance because otherwise instanceof is not
 // working properly (see https://github.com/babel/babel/issues/3083)
@@ -69,118 +59,112 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
  * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
  * list of getUserMedia requested devices
  */
-function JitsiTrackError(
-        error: IGumError | string,
-        options?: IGumOptions | string,
-        devices?: ('audio' | 'video' | 'desktop' | 'screen' | 'audiooutput')[]
-) {
-    if (typeof error === 'object' && typeof error.name !== 'undefined') {
-        /**
-         * Additional information about original getUserMedia error
-         * and constraints.
-         * @type {IGum}
-         */
-        this.IGum = {
-            error,
-            constraints: options,
-            devices: devices && Array.isArray(devices)
-                ? devices.slice(0)
-                : undefined
-        };
+export default class JitsiTrackError extends Error {
+    public gum?: IGum;
 
-        switch (error.name) {
-        case 'NotAllowedError':
-        case 'PermissionDeniedError':
-        case 'SecurityError':
-            this.name = JitsiTrackErrors.PERMISSION_DENIED;
-            this.message
-                = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                    + (this.gum.devices || []).join(', ');
-            break;
-        case 'DevicesNotFoundError':
-        case 'NotFoundError':
-            this.name = JitsiTrackErrors.NOT_FOUND;
-            this.message
-                = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                    + (this.gum.devices || []).join(', ');
-            break;
-        case 'ConstraintNotSatisfiedError':
-        case 'OverconstrainedError': {
-            const constraintName = error.constraintName || error.constraint;
+    /**
+     * @constructor
+     * @param {IGumError|string} error - error object or error name
+     * @param {IGumOptions|string} [options] - getUserMedia constraints object or error message
+     * @param {DeviceType[]} [devices] - list of getUserMedia requested devices
+     */
+    constructor(
+            error: IGumError | string,
+            options?: IGumOptions | string,
+            devices?: DeviceType[]
+    ) {
+        super();
 
-            // we treat deviceId as unsupported resolution, as we want to
-            // retry and finally if everything fails to remove deviceId from
-            // mandatory constraints
-            if (typeof options !== 'string'
-                    && options?.video
-                    && (!devices || devices.indexOf('video') > -1)
-                    && (constraintName === 'minWidth'
-                        || constraintName === 'maxWidth'
-                        || constraintName === 'minHeight'
-                        || constraintName === 'maxHeight'
-                        || constraintName === 'width'
-                        || constraintName === 'height'
-                        || constraintName === 'deviceId')) {
-                this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
-                this.message
-                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                        + getResolutionFromFailedConstraint(
-                            constraintName,
-                            options);
-            } else {
-                this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
-                this.message
-                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                        + error.constraintName;
+        if (typeof error === 'object' && typeof error.name !== 'undefined') {
+            /**
+             * Additional information about original getUserMedia error
+             * and constraints.
+             * @type {IGum}
+             */
+            this.gum = {
+                error,
+                constraints: options,
+                devices: devices && Array.isArray(devices) ? devices.slice(0) : undefined
+            };
+
+            switch (error.name) {
+            case 'NotAllowedError':
+            case 'PermissionDeniedError':
+            case 'SecurityError':
+                this.name = JitsiTrackErrors.PERMISSION_DENIED;
+                this.message = TRACK_ERROR_TO_MESSAGE_MAP[this.name] + (this.gum.devices || []).join(', ');
+                break;
+            case 'DevicesNotFoundError':
+            case 'NotFoundError':
+                this.name = JitsiTrackErrors.NOT_FOUND;
+                this.message = TRACK_ERROR_TO_MESSAGE_MAP[this.name] + (this.gum.devices || []).join(', ');
+                break;
+            case 'ConstraintNotSatisfiedError':
+            case 'OverconstrainedError': {
+                const constraintName = error.constraintName || error.constraint;
+
+                // we treat deviceId as unsupported resolution, as we want to
+                // retry and finally if everything fails to remove deviceId from
+                // mandatory constraints
+                if (typeof options !== 'string'
+                        && options?.video
+                        && (!devices || devices.indexOf('video') > -1)
+                        && (constraintName === 'minWidth'
+                            || constraintName === 'maxWidth'
+                            || constraintName === 'minHeight'
+                            || constraintName === 'maxHeight'
+                            || constraintName === 'width'
+                            || constraintName === 'height'
+                            || constraintName === 'deviceId')) {
+                    this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
+                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                            + this.getResolutionFromFailedConstraint(constraintName, options);
+                } else {
+                    this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
+                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[this.name] + error.constraintName;
+                }
+                break;
             }
-            break;
-        }
-
-        default:
-            this.name = JitsiTrackErrors.GENERAL;
-            this.message
-                = error.message || TRACK_ERROR_TO_MESSAGE_MAP[this.name];
-            break;
-        }
-    } else if (typeof error === 'string') {
-        if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
-            this.name = error;
-            this.message = options || TRACK_ERROR_TO_MESSAGE_MAP[error];
-        } else {
+            default:
+                this.name = JitsiTrackErrors.GENERAL;
+                this.message = error.message || TRACK_ERROR_TO_MESSAGE_MAP[this.name];
+                break;
+            }
+        } else if (typeof error === 'string') {
+            if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
+                this.name = error;
+                this.message = typeof options === 'string' ? options : TRACK_ERROR_TO_MESSAGE_MAP[error];
+            } else {
             // this is some generic error that do not fit any of our
             // pre-defined errors, so don't give it any specific name, just
             // store message
-            this.message = error;
+                this.message = error;
+            }
+        } else {
+            throw new Error('Invalid arguments');
         }
-    } else {
-        throw new Error('Invalid arguments');
+
+        this.stack = typeof error === 'string' ? new Error().stack : error.stack || new Error().stack;
     }
 
-    this.stack = typeof error === 'string' ? new Error().stack : error.stack || new Error().stack;
-}
-
-JitsiTrackError.prototype = Object.create(Error.prototype);
-JitsiTrackError.prototype.constructor = JitsiTrackError;
-
-/**
- * Gets failed resolution constraint from corresponding object.
- * @param {string} failedConstraintName
- * @param {IGumOptions} constraints
- * @returns {string|number}
- */
-function getResolutionFromFailedConstraint(failedConstraintName: string, constraints: IGumOptions): string | number {
-    if (constraints && constraints.video && constraints.video.mandatory) {
-        switch (failedConstraintName) {
-        case 'width':
-            return constraints.video.mandatory.minWidth;
-        case 'height':
-            return constraints.video.mandatory.minHeight;
-        default:
-            return constraints.video.mandatory[failedConstraintName] || '';
+    /**
+     * Gets failed resolution constraint from corresponding object.
+     * @param failedConstraintName - The name of the failed constraint
+     * @param constraints - The constraints object
+     * @returns The resolution value or empty string
+     */
+    private getResolutionFromFailedConstraint(failedConstraintName: string, constraints: IGumOptions): string | number {
+        if (constraints?.video?.mandatory) {
+            switch (failedConstraintName) {
+            case 'width':
+                return constraints.video.mandatory.minWidth;
+            case 'height':
+                return constraints.video.mandatory.minHeight;
+            default:
+                return constraints.video.mandatory[failedConstraintName] || '';
+            }
         }
+
+        return '';
     }
-
-    return '';
 }
-
-export default JitsiTrackError;
