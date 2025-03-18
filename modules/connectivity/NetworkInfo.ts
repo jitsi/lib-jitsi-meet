@@ -6,7 +6,7 @@ export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
 
 const logger = getLogger(__filename);
 
-export interface CurrentNetworkInfo {
+export interface ICurrentNetworkInfo {
     isOnline: boolean;
 }
 
@@ -18,7 +18,7 @@ export interface CurrentNetworkInfo {
  * it was connected. See {@link JitsiMeetJS.setNetworkInfo}.
  */
 export class NetworkInfo extends Listenable {
-    private _current: CurrentNetworkInfo;
+    private _current: ICurrentNetworkInfo;
 
     /**
      * Creates new {@link NetworkInfo} instance.
@@ -37,7 +37,7 @@ export class NetworkInfo extends Listenable {
      * @param {boolean} state.isOnline - {@code true} if the internet connectivity is online or {@code false}
      * otherwise.
      */
-    updateNetworkInfo({ isOnline }: { isOnline: boolean }) {
+    updateNetworkInfo({ isOnline }: { isOnline: boolean; }): void {
         logger.debug('updateNetworkInfo', { isOnline });
         this._current = {
             isOnline: isOnline === true
