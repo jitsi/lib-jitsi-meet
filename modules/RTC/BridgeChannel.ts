@@ -27,7 +27,7 @@ export default class BridgeChannel {
     private _areRetriesEnabled: boolean = false;
     private _closedFromClient: boolean = false;
     private _wsUrl?: string;
-    private _retryTimeout?: ReturnType<typeof setTimeout>;
+    private _retryTimeout?: number;
 
     /**
      * Binds "ondatachannel" event listener on the given RTCPeerConnection
