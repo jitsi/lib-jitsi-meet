@@ -133,7 +133,7 @@ export class MockPeerConnection {
      * @param {boolean} usesUnifiedPlan
      * @param {boolean} simulcast
      */
-    constructor(id: string ,usesUnifiedPlan: boolean, simulcast: boolean) {
+    constructor(id: string, usesUnifiedPlan: boolean, simulcast: boolean) {
         this.id = id;
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
@@ -300,8 +300,8 @@ export class MockRTC extends Listenable {
      *
      * @returns {MockPeerConnection}
      */
-    createPeerConnection(id: string,usesUnifiedPlan: boolean,simulcast: boolean): MockPeerConnection {
-        this.pc = new MockPeerConnection(id,usesUnifiedPlan,simulcast);
+    createPeerConnection(id: string, usesUnifiedPlan: boolean, simulcast: boolean): MockPeerConnection {
+        this.pc = new MockPeerConnection(id, usesUnifiedPlan, simulcast);
         this.forwardedSources = [];
 
         return this.pc;
