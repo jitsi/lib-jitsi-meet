@@ -1,10 +1,11 @@
 import transform from 'sdp-transform';
 
-import Listenable from '../util/Listenable';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
+import Listenable from '../util/Listenable';
 
-/* eslint-disable no-empty-function */
+/* eslint-disable @typescript-eslint/no-empty-function */
+
 /* eslint-disable max-len */
 
 /**
@@ -13,13 +14,22 @@ import { VideoType } from '../../service/RTC/VideoType';
 class MockRTCPeerConnection {
     /**
      * local description SDP.
+     * * @private
      */
-    private _localDescription: { sdp: string };
+    private _localDescription: { sdp: string; };
 
-    get localDescription(): { sdp: string } {
+    /**
+     * Gets the local description containing the SDP.
+     * @returns {{ sdp: string }} The local SDP description.
+     */
+    get localDescription(): { sdp: string; } {
         return this._localDescription;
     }
 
+
+    /**
+     * Creates an instance of MockRTCPeerConnection and initializes the local SDP description.
+     */
     constructor() {
         this._localDescription = { sdp: [
             'v=0\r\n',
@@ -132,7 +142,7 @@ export class MockPeerConnection {
      *
      * @returns {Object}
      */
-    get localDescription(): { sdp: string } {
+    get localDescription(): { sdp: string; } {
         return {
             sdp: ''
         };
@@ -143,7 +153,7 @@ export class MockPeerConnection {
      *
      * @returns {Object}
      */
-    get remoteDescription(): { sdp: string } {
+    get remoteDescription(): { sdp: string; } {
         return {
             sdp: ''
         };
@@ -211,7 +221,7 @@ export class MockPeerConnection {
     /**
      * {@link TraceablePeerConnection.processLocalSdpForTransceiverInfo}.
      *
-     * @returns {void}
+          * @returns {void}
      */
     processLocalSdpForTransceiverInfo(): void {
     }
@@ -236,6 +246,9 @@ export class MockPeerConnection {
 
     /**
      * {@link TraceablePeerConnection.setSenderVideoConstraints}.
+     *
+     * Sets the sender video constraints.
+     * @returns {void}
      */
     setSenderVideoConstraints(): void {
     }
@@ -249,10 +262,12 @@ export class MockPeerConnection {
 
     /**
      * {@link TraceablePeerConnection.updateRemoteSources}.
+     *
+     * Updates the remote sources.
+     * @returns {void}
      */
     updateRemoteSources(): void {
     }
-
 
 
     /**
@@ -276,8 +291,9 @@ export class MockRTC extends Listenable {
      * @returns {MockPeerConnection}
      */
     createPeerConnection(id: string, simulcast: boolean): MockPeerConnection {
-        this.pc = new MockPeerConnection(id,simulcast);
+        this.pc = new MockPeerConnection(id, simulcast);
         this.forwardedSources = [];
+
         return this.pc;
     }
 
@@ -294,7 +310,7 @@ export class MockRTC extends Listenable {
  * MockSignalingLayerImpl
  */
 export class MockSignalingLayerImpl {
-    private _remoteSourceState: { [key: string]: any };
+    private _remoteSourceState: { [key: string]: any; };
 
     /**
      * A constructor
@@ -349,14 +365,19 @@ export class MockTrack {
 
     /**
      * Returns height.
-     * @returns {number}
+     * @returns {object}
      */
-    getSettings(): { height: number } {
+    getSettings(): { height: number; } {
         return {
             height: this.height
         };
     }
 
+
+    /**
+     * Gets the height value.
+     * @returns {number} The height.
+     */
     public getHeight(): number {
         return this.height;
     }
