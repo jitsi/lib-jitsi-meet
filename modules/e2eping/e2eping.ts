@@ -48,7 +48,7 @@ export interface IE2ePingOptions {
     };
 }
 
-interface IRequest {
+export interface IRequest {
     id: number;
     rtt?: number;
     timeSent: number;
@@ -292,7 +292,7 @@ export default class E2ePing {
      * @param participant - The message sender.
      * @param payload - The payload of the message.
      */
-    messageReceived(participant: JitsiParticipant, payload:IPingMessage): void {
+    messageReceived(participant: JitsiParticipant, payload: IPingMessage): void {
         // Listen to E2E PING requests and responses from other participants
         // in the conference.
         if (payload.type === E2E_PING_REQUEST) {
