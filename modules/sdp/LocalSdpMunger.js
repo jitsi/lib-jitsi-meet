@@ -96,9 +96,9 @@ export default class LocalSdpMunger {
             }
         }
 
-        // Ignore the 'cname', 'label' and 'mslabel' attributes.
-        mediaSection.ssrcs = mediaSection.ssrcs
-            .filter(ssrc => ssrc.attribute === 'msid' || ssrc.attribute === 'name' || ssrc.attribute === 'videoType');
+        // Ignore the 'label' and 'mslabel' attributes.
+        mediaSection.ssrcs
+            = mediaSection.ssrcs.filter(ssrc => ssrc.attribute !== 'label' && ssrc.attribute !== 'mslabel');
 
         // On FF when the user has started muted create answer will generate a recv only SSRC. We don't want to signal
         // this SSRC in order to reduce the load of the xmpp server for large calls. Therefore the SSRC needs to be
