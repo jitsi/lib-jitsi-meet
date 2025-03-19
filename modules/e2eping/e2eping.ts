@@ -35,6 +35,25 @@ const DEFAULT_MAX_MESSAGES_PER_SECOND: number = 250;
  */
 const DEFAULT_MAX_CONFERENCE_SIZE: number = 200;
 
+export interface IPingMessage {
+    id: number;
+    type: string;
+}
+
+export interface IE2ePingOptions {
+    e2eping?: {
+        maxConferenceSize?: number;
+        maxMessagesPerSecond?: number;
+        numRequests?: number;
+    };
+}
+
+interface IRequest {
+    id: number;
+    rtt?: number;
+    timeSent: number;
+}
+
 /**
  * Saves e2e ping related state for a single JitsiParticipant.
  */
@@ -42,7 +61,7 @@ class ParticipantWrapper {
     participant: JitsiParticipant;
     e2eping: E2ePing;
     id: string;
-    requests: { [key: number]: { id: number; rtt?: number; timeSent: number; }; };
+    requests: { [key: number]: IRequest; };
     lastRequestId: number;
     timeout: number | null;
 
@@ -205,7 +224,7 @@ export default class E2ePing {
 
     conference: JitsiConference;
     eventEmitter: any;
-    sendMessage: (message: { id: number; type: string; }, participantId: string) => void;
+    sendMessage: (message: IPingMessage, participantId: string) => void;
     participants: { [key: string]: ParticipantWrapper; };
     numRequests: number;
     maxConferenceSize: number;
@@ -218,10 +237,8 @@ export default class E2ePing {
      */
     constructor(
             conference: JitsiConference,
-            options: {
-                e2eping?: { maxConferenceSize?: number; maxMessagesPerSecond?: number; numRequests?: number; };
-            },
-            sendMessage: (message: { id: number; type: string; }, participantId: string) => void) {
+            options: IE2ePingOptions,
+            sendMessage: (message: IPingMessage, participantId: string) => void) {
         this.conference = conference;
         this.eventEmitter = conference.eventEmitter;
         this.sendMessage = sendMessage;
