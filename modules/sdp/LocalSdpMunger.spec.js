@@ -28,24 +28,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
         localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
     });
     describe('StripSsrcs', () => {
-        it('should strip ssrcs from an sdp with no msid (i.e., recvonly transceivers)', () => {
-            localSdpMunger.tpc.isP2P = false;
-
-            const sdpStr = transform.write(SampleSdpStrings.recvOnlySdp);
-            const desc = new RTCSessionDescription({
-                type: 'offer',
-                sdp: sdpStr
-            });
-            const transformedDesc = localSdpMunger.transformStreamIdentifiers(desc, {});
-            const newSdp = transform.parse(transformedDesc.sdp);
-            const audioSsrcs = getSsrcLines(newSdp, 'audio');
-            const videoSsrcs = getSsrcLines(newSdp, 'video');
-
-            expect(audioSsrcs.length).toEqual(0);
-            expect(videoSsrcs.length).toEqual(0);
-        });
-
-        describe('should strip cname, label and mslabel from an sdp with msid', () => {
+        describe('should strip label and mslabel from an sdp with msid', () => {
             let audioSsrcs, videoSsrcs;
 
             const transformStreamIdentifiers = () => {
@@ -77,8 +60,8 @@ describe('TransformSdpsForUnifiedPlan', () => {
             it('with source name signaling enabled (injected source name)', () => {
                 transformStreamIdentifiers();
 
-                expect(audioSsrcs.length).toEqual(1 + 1 /* injected source name */);
-                expect(videoSsrcs.length).toEqual(3 + 3 /* injected source name into each ssrc */);
+                expect(audioSsrcs.length).toEqual(2 + 1 /* injected source name */);
+                expect(videoSsrcs.length).toEqual(6 + 3 /* injected source name into each ssrc */);
             });
         });
     });
