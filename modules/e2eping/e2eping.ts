@@ -279,13 +279,9 @@ export default class E2ePing {
         // Listen to E2E PING requests and responses from other participants
         // in the conference.
         if (payload.type === E2E_PING_REQUEST) {
-            if (payload.id !== undefined) {
-                this.handleRequest(participant.getId(), { id: payload.id });
-            }
+            this.handleRequest(participant.getId(), payload);
         } else if (payload.type === E2E_PING_RESPONSE) {
-            if (payload.id !== undefined) {
-                this.handleResponse(participant.getId(), { id: payload.id });
-            }
+            this.handleResponse(participant.getId(), payload);
         }
     }
 
