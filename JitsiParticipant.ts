@@ -9,6 +9,11 @@ export interface ISourceInfo {
     muted: boolean;
     videoType: string;
 }
+export interface Identity {
+    user?: {
+        ['hidden-from-recorder']?: string;
+    };
+}
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -26,7 +31,7 @@ export default class JitsiParticipant {
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
-    private _identity?: object;
+    private _identity?: Identity;
     private _isReplacing?: boolean;
     private _isReplaced?: boolean;
     private _isSilent?: boolean;
@@ -288,8 +293,7 @@ export default class JitsiParticipant {
      * recorder).
      */
     isHiddenFromRecorder(): boolean {
-        return 'user' in this._identity
-        && this._identity?.user?.['hidden-from-recorder'] === 'true';
+        return this._identity?.user?.['hidden-from-recorder'] === 'true';
     }
 
     /**
@@ -303,7 +307,7 @@ export default class JitsiParticipant {
      * @returns {Boolean} Wheter this participants will be replaced by another
      * participant in the meeting.
      */
-    isReplaced(): boolean | undefined {
+    isReplaced(): boolean {
         return this._isReplaced;
     }
 
@@ -311,14 +315,14 @@ export default class JitsiParticipant {
      * @returns {Boolean} Whether this participant replaces another participant
      * from the meeting.
      */
-    isReplacing(): boolean | undefined {
+    isReplacing(): boolean {
         return this._isReplacing;
     }
 
     /**
      * @returns {Boolean} Whether this participant has joined without audio.
      */
-    isSilent(): boolean | undefined {
+    isSilent(): boolean {
         return this._isSilent;
     }
 
