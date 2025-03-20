@@ -9,11 +9,6 @@ export interface ISourceInfo {
     muted: boolean;
     videoType: string;
 }
-export interface IIdentity {
-    user?: {
-        ['hidden-from-recorder']?: string;
-    };
-}
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -31,7 +26,7 @@ export default class JitsiParticipant {
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
-    private _identity?: IIdentity;
+    private _identity?: Object;
     private _isReplacing?: boolean;
     private _isReplaced?: boolean;
     private _isSilent?: boolean;
@@ -293,7 +288,7 @@ export default class JitsiParticipant {
      * recorder).
      */
     isHiddenFromRecorder(): boolean {
-        return this._identity?.user?.['hidden-from-recorder'] === 'true';
+        return (this._identity as any)?.user?.['hidden-from-recorder'] === 'true';
     }
 
     /**
