@@ -26,7 +26,7 @@ export default class JitsiParticipant {
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
-    private _identity?: Object;
+    private _identity?: object;
     private _isReplacing?: boolean;
     private _isReplaced?: boolean;
     private _isSilent?: boolean;
