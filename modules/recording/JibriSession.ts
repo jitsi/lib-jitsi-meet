@@ -4,25 +4,25 @@ import recordingXMLUtils from './recordingXMLUtils';
 
 type JitsiParticipant = any;
 
-interface IJibriSessionOptions {
+export interface IJibriSessionOptions {
     connection?: any;
     mode?: string;
     sessionID?: string;
     status?: string;
 }
 
-interface IStartOptions {
+export interface IStartOptions {
     appData?: string;
     broadcastId?: string;
     focusMucJid: string;
     streamId?: string;
 }
 
-interface IStopOptions {
+export interface IStopOptions {
     focusMucJid: string;
 }
 
-interface IQOptions {
+export interface IQOptions {
     action?: 'start' | 'stop';
     appData?: string;
     broadcastId?: string;
