@@ -43,11 +43,7 @@ export class LiteModeContext {
             return;
         }
 
-        const receiver = tpc.findReceiverForTrack(track.track) as RTCRtpReceiver
-        & { createEncodedStreams: () => {
-            readable: ReadableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
-            writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>; };
-        };
+        const receiver = tpc.findReceiverForTrack(track.track);
 
         if (!receiver) {
             logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
