@@ -1,17 +1,28 @@
 import { getLogger } from '@jitsi/logger';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import ChatRoom from '../xmpp/ChatRoom';
 
 import JibriSession from './JibriSession';
 import recordingXMLUtils from './recordingXMLUtils';
 
 const logger = getLogger(__filename);
 
+interface IRecordingOptions {
+    appData?: string;
+    broadcastId?: string;
+    mode: string;
+    streamId?: string;
+}
+
 /**
  * A class responsible for starting and stopping recording sessions and emitting
  * state updates for them.
  */
 class RecordingManager {
+    private _sessions: { [key: string]: JibriSession; } = {};
+    private _chatRoom: any;
+
     /**
      * Initialize {@code RecordingManager} with other objects that are necessary
      * for starting a recording.
@@ -19,12 +30,10 @@ class RecordingManager {
      * @param {ChatRoom} chatRoom - The chat room to handle.
      * @returns {void}
      */
-    constructor(chatRoom) {
+    constructor(chatRoom: ChatRoom) {
         /**
          * All known recording sessions from the current conference.
          */
-        this._sessions = {};
-
         this._chatRoom = chatRoom;
 
         this.onPresence = this.onPresence.bind(this);
@@ -43,7 +52,7 @@ class RecordingManager {
      * @param {string} sessionID - The session ID associated with the recording.
      * @returns {JibriSession|undefined}
      */
-    getSession(sessionID) {
+    getSession(sessionID: string): JibriSession | undefined {
         return this._sessions[sessionID];
     }
 
@@ -53,8 +62,8 @@ class RecordingManager {
      * @param {string} jibriJid the JID to search for.
      * @returns
      */
-    getSessionByJibriJid(jibriJid) {
-        let s;
+    getSessionByJibriJid(jibriJid: string): JibriSession | undefined {
+        let s: JibriSession | undefined;
 
         Object.values(this._sessions).forEach(session => {
             if (session.getJibriJid() === jibriJid) {
@@ -77,7 +86,7 @@ class RecordingManager {
      * with the Jibri recorder participant.
      * @returns {void}
      */
-    onPresence({ fromHiddenDomain, presence }) {
+    onPresence({ fromHiddenDomain, presence }: { fromHiddenDomain: boolean; presence: Node; }): void {
         if (recordingXMLUtils.isFromFocus(presence)) {
             this._handleFocusPresence(presence);
         } else if (fromHiddenDomain) {
@@ -89,7 +98,7 @@ class RecordingManager {
      * Handle a participant leaving the room.
      * @param {string} jid the JID of the participant that left.
      */
-    onMemberLeft(jid) {
+    onMemberLeft(jid: string): void {
         const session = this.getSessionByJibriJid(jid);
 
         if (session) {
@@ -122,7 +131,7 @@ class RecordingManager {
      * back the session on success. The promise resolves after receiving an
      * acknowledgment of the start request success or fail.
      */
-    startRecording(options) {
+    startRecording(options: IRecordingOptions): Promise<JibriSession> {
         const session = new JibriSession({
             ...options,
             connection: this._chatRoom.connection
@@ -161,7 +170,7 @@ class RecordingManager {
      * @returns {Promise} The promise resolves after receiving an
      * acknowledgment of the stop request success or fail.
      */
-    stopRecording(sessionID) {
+    stopRecording(sessionID: string): Promise<any> {
         const session = this.getSession(sessionID);
 
         if (session) {
@@ -177,7 +186,7 @@ class RecordingManager {
      * @param {string} session - The JibriSession instance to store.
      * @returns {void}
      */
-    _addSession(session) {
+    _addSession(session: JibriSession): void {
         this._sessions[session.getID()] = session;
     }
 
@@ -190,7 +199,7 @@ class RecordingManager {
      * @param {string} mode - The recording mode of the session.
      * @returns {JibriSession}
      */
-    _createSession(sessionID, status, mode) {
+    _createSession(sessionID: string, status: string, mode: string): JibriSession {
         const session = new JibriSession({
             connection: this._chatRoom.connection,
             focusMucJid: this._chatRoom.focusMucJid,
@@ -210,7 +219,7 @@ class RecordingManager {
      * @param {JibriSession} session - The session that has been updated.
      * @param {string|undefined} initiator - The jid of the initiator of the update.
      */
-    _emitSessionUpdate(session, initiator) {
+    _emitSessionUpdate(session: JibriSession, initiator?: string): void {
         this._chatRoom.eventEmitter.emit(
             XMPPEvents.RECORDER_STATE_CHANGED, session, initiator);
     }
@@ -222,7 +231,7 @@ class RecordingManager {
      * @param {Node} presence - An XMPP presence update.
      * @returns {void}
      */
-    _handleFocusPresence(presence) {
+    _handleFocusPresence(presence: Node): void {
         const jibriStatus = recordingXMLUtils.getFocusRecordingUpdate(presence);
 
         if (!jibriStatus) {
@@ -280,7 +289,7 @@ class RecordingManager {
      * @param {Node} presence - An XMPP presence update.
      * @returns {void}
      */
-    _handleJibriPresence(presence) {
+    _handleJibriPresence(presence: any): void {
         const { liveStreamViewURL, mode, sessionID }
             = recordingXMLUtils.getHiddenDomainUpdate(presence);
 
