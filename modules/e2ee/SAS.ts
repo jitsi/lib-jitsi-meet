@@ -131,11 +131,9 @@ export interface ISas {
 export function generateSas(sasBytes: Uint8Array): ISas {
     const sas: ISas = {};
 
-    for (const method in sasGenerators) {
-        if (Object.prototype.hasOwnProperty.call(sasGenerators, method)) {
-            sas[method] = sasGenerators[method](sasBytes);
-        }
-    }
+    Object.keys(sasGenerators).forEach(method => {
+        sas[method] = sasGenerators[method](sasBytes);
+    });
 
     return sas;
 }
