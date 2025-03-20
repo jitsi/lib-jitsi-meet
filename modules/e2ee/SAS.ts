@@ -1,10 +1,6 @@
 /* eslint-disable no-bitwise */
 /* eslint-disable no-mixed-operators */
 
-export interface ISas {
-    [key: string]: number[] | [string, string][];
-}
-
 /**
  * Generates a SAS composed of decimal numbers.
  * Borrowed from the Matrix JS SDK.
@@ -121,6 +117,10 @@ const sasGenerators: { [key: string]: (sasBytes: Uint8Array) => number[] | [stri
     decimal: generateDecimalSas,
     emoji: generateEmojiSas
 };
+
+export interface ISas {
+    [key: string]: number[] | [string, string][];
+}
 
 /**
  * Generates multiple SAS for the given bytes.
