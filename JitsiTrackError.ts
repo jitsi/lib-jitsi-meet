@@ -40,24 +40,12 @@ const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {
     [JitsiTrackErrors.TRACK_NO_STREAM_FOUND]: 'Track does not have an associated Media Stream'
 };
 
-
-// FIXME: Using prototype inheritance because otherwise instanceof is not
-// working properly (see https://github.com/babel/babel/issues/3083)
-
 /**
  *
  * Represents an error that occurred to a JitsiTrack. Can represent various
  * types of errors. For error descriptions (@see JitsiTrackErrors).
  *
  * @extends Error
- *
- *
- * @constructor
- * @param {IGumError|string} error - error object or error name
- * @param {GumObject|string} (options) - getUserMedia constraints object or
- * error message
- * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
- * list of getUserMedia requested devices
  */
 export default class JitsiTrackError extends Error {
     public gum?: IGum;
@@ -144,7 +132,7 @@ export default class JitsiTrackError extends Error {
             throw new Error('Invalid arguments');
         }
 
-        this.stack = typeof error === 'string' ? new Error().stack : error.stack || new Error().stack;
+        this.stack = typeof error === 'string' ? new Error().stack : error.stack;
     }
 
     /**
