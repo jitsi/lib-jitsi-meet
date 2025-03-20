@@ -8,7 +8,7 @@ import recordingXMLUtils from './recordingXMLUtils';
 
 const logger = getLogger(__filename);
 
-interface IRecordingOptions {
+export interface IRecordingOptions {
     appData?: string;
     broadcastId?: string;
     mode: string;
