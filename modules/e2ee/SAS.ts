@@ -132,7 +132,7 @@ export function generateSas(sasBytes: Uint8Array): ISas {
     const sas: ISas = {};
 
     for (const method in sasGenerators) {
-        if (sasGenerators.hasOwnProperty(method)) {
+        if (Object.prototype.hasOwnProperty.call(sasGenerators, method)) {
             sas[method] = sasGenerators[method](sasBytes);
         }
     }
