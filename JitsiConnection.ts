@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from './JitsiConference';
-import {JitsiConnectionEvents} from './JitsiConnectionEvents';
+import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
@@ -97,7 +97,8 @@ export default class JitsiConnection {
     connect(options: IConnectOptions = {}): void {
         // if we get redirected, we set disableFocus to skip sending the conference request twice
         if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
-            this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name,undefined))
+            // The domain (optional) will uses this.options.hosts.muc.toLowerCase() if not provided
+            this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name, undefined))
                 .then(() => {
                     this.xmpp.connect(options.id, options.password);
                 })
