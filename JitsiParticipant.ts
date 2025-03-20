@@ -233,14 +233,14 @@ export default class JitsiParticipant {
     /**
      * @returns {String} The stats ID of this participant.
      */
-    getStatsID(): string | undefined {
+    getStatsID(): string {
         return this._statsID;
     }
 
     /**
      * @returns {String} The status of the participant.
      */
-    getStatus(): string | undefined {
+    getStatus(): string {
         return this._status;
     }
 
