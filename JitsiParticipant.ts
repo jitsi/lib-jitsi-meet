@@ -9,7 +9,7 @@ export interface ISourceInfo {
     muted: boolean;
     videoType: string;
 }
-export interface Identity {
+export interface IIdentity {
     user?: {
         ['hidden-from-recorder']?: string;
     };
@@ -31,7 +31,7 @@ export default class JitsiParticipant {
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
-    private _identity?: Identity;
+    private _identity?: IIdentity;
     private _isReplacing?: boolean;
     private _isReplaced?: boolean;
     private _isSilent?: boolean;
