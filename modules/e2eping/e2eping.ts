@@ -250,7 +250,7 @@ export default class E2ePing {
         this.maxConferenceSize = DEFAULT_MAX_CONFERENCE_SIZE;
         this.maxMessagesPerSecond = DEFAULT_MAX_MESSAGES_PER_SECOND;
 
-        if (options && options.e2eping) {
+        if (options?.e2eping) {
             if (typeof options.e2eping.numRequests === 'number') {
                 this.numRequests = options.e2eping.numRequests;
             }
@@ -358,7 +358,7 @@ export default class E2ePing {
      */
     handleRequest(participantId: string, request: { id: number; }): void {
         // If it's a valid request, just send a response.
-        if (request && request.id) {
+        if (request?.id) {
             const response = {
                 type: E2E_PING_RESPONSE,
                 id: request.id
