@@ -6,6 +6,10 @@ export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
 
 const logger = getLogger(__filename);
 
+export interface ICurrentNetworkInfo {
+    isOnline: boolean;
+}
+
 /**
  * Module provides information about the current status of the internet
  * connection. Lib-jitsi-meet doesn't have any logic for detecting internet
@@ -14,6 +18,8 @@ const logger = getLogger(__filename);
  * it was connected. See {@link JitsiMeetJS.setNetworkInfo}.
  */
 export class NetworkInfo extends Listenable {
+    private _current: ICurrentNetworkInfo;
+
     /**
      * Creates new {@link NetworkInfo} instance.
      */
@@ -31,7 +37,7 @@ export class NetworkInfo extends Listenable {
      * @param {boolean} state.isOnline - {@code true} if the internet connectivity is online or {@code false}
      * otherwise.
      */
-    updateNetworkInfo({ isOnline }) {
+    updateNetworkInfo({ isOnline }: { isOnline: boolean; }): void {
         logger.debug('updateNetworkInfo', { isOnline });
         this._current = {
             isOnline: isOnline === true
@@ -46,7 +52,7 @@ export class NetworkInfo extends Listenable {
      * It's only a good hint in the other way around: to pause internet operations until it comes back online.
      * @returns {boolean}
      */
-    isOnline() {
+    isOnline(): boolean {
         return this._current.isOnline === true;
     }
 }
