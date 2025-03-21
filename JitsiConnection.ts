@@ -40,7 +40,7 @@ export interface IAttachOptions {
  * conferencing service. Provides access to the JitsiConference interface.
  */
 export default class JitsiConnection {
-    private appID: string;
+    private appID?: string;
     private token: string | null;
     private options: IConnectionOptions;
     private xmpp: XMPP;
