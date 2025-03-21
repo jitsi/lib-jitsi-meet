@@ -8,7 +8,7 @@
  * @param {Uint8Array} sasBytes - The bytes from sas.generate_bytes.
  * @returns Array<number>
  */
-function generateDecimalSas(sasBytes) {
+function generateDecimalSas(sasBytes: Uint8Array): number[] {
     /**
      *      +--------+--------+--------+--------+--------+
      *      | Byte 0 | Byte 1 | Byte 2 | Byte 3 | Byte 4 |
@@ -24,7 +24,7 @@ function generateDecimalSas(sasBytes) {
     ];
 }
 
-const emojiMapping = [
+const emojiMapping: [string, string][] = [
     [ '🐶', 'dog' ],
     [ '🐱', 'cat' ],
     [ '🦁', 'lion' ],
@@ -98,7 +98,7 @@ const emojiMapping = [
  * @param {Uint8Array} sasBytes - The bytes from sas.generate_bytes.
  * @returns Array<number>
  */
-function generateEmojiSas(sasBytes) {
+function generateEmojiSas(sasBytes: Uint8Array): [string, string][] {
     // Just like base64.
     const emojis = [
         sasBytes[0] >> 2,
@@ -113,25 +113,27 @@ function generateEmojiSas(sasBytes) {
     return emojis.map(num => emojiMapping[num]);
 }
 
-const sasGenerators = {
+const sasGenerators: { [key: string]: (sasBytes: Uint8Array) => number[] | [string, string][]; } = {
     decimal: generateDecimalSas,
     emoji: generateEmojiSas
 };
+
+export interface ISas {
+    [key: string]: number[] | [string, string][];
+}
 
 /**
  * Generates multiple SAS for the given bytes.
  *
  * @param {Uint8Array} sasBytes - The bytes from sas.generate_bytes.
- * @returns {object}
+ * @returns {ISas}
  */
-export function generateSas(sasBytes) {
-    const sas = {};
+export function generateSas(sasBytes: Uint8Array): ISas {
+    const sas: ISas = {};
 
-    for (const method in sasGenerators) {
-        if (sasGenerators.hasOwnProperty(method)) {
-            sas[method] = sasGenerators[method](sasBytes);
-        }
-    }
+    Object.keys(sasGenerators).forEach(method => {
+        sas[method] = sasGenerators[method](sasBytes);
+    });
 
     return sas;
 }
