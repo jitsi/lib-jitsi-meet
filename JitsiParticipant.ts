@@ -1,14 +1,39 @@
-
 import { Strophe } from 'strophe.js';
 
-
+import JitsiConference from './JitsiConference';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import JitsiTrack from './modules/RTC/JitsiTrack';
 import { MediaType } from './service/RTC/MediaType';
+
+export interface ISourceInfo {
+    muted: boolean;
+    videoType: string;
+}
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
  */
 export default class JitsiParticipant {
+
+    private _jid: string;
+    private _id: string;
+    private _conference: JitsiConference;
+    private _displayName: string;
+    private _supportsDTMF: boolean;
+    private _tracks: JitsiTrack[];
+    private _role: string;
+    private _status?: string;
+    private _hidden: boolean;
+    private _statsID?: string;
+    private _properties: Map<string, any>;
+    private _identity?: object;
+    private _isReplacing?: boolean;
+    private _isReplaced?: boolean;
+    private _isSilent?: boolean;
+    private _features: Set<string>;
+    private _sources: Map<MediaType, Map<string, ISourceInfo>>;
+    private _botType?: string;
+    private _connectionJid?: string;
 
     /* eslint-disable max-params */
 
@@ -28,7 +53,18 @@ export default class JitsiParticipant {
      * @param {boolean?} isReplaced - whether this is a participant to be kicked and replaced into the meeting.
      * @param {boolean?} isSilent - whether participant has joined without audio
      */
-    constructor(jid, conference, displayName, hidden, statsID, status, identity, isReplacing, isReplaced, isSilent) {
+    constructor(
+            jid: string,
+            conference: JitsiConference,
+            displayName: string,
+            hidden: boolean,
+            statsID?: string,
+            status?: string,
+            identity?: object,
+            isReplacing?: boolean,
+            isReplaced?: boolean,
+            isSilent?: boolean
+    ) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -48,11 +84,11 @@ export default class JitsiParticipant {
 
         /**
          * Remote sources associated with the participant in the following format.
-         * Map<mediaType, Map<sourceName, sourceInfo>>
+         * Map<mediaType, Map<sourceName, ISourceInfo>>
          *
          * mediaType - 'audio' or 'video'.
          * sourceName - name of the remote source.
-         * sourceInfo: {
+         * ISourceInfo: {
          *   muted: boolean;
          *   videoType: string;
          * }
@@ -69,10 +105,10 @@ export default class JitsiParticipant {
      * @returns {Boolean} True if all JitsiTracks which are of the specified mediaType and which belong to this
      * JitsiParticipant are muted; otherwise, false.
      */
-    _isMediaTypeMuted(mediaType) {
+    _isMediaTypeMuted(mediaType: MediaType): boolean {
         return this.getTracks().reduce(
             (muted, track) =>
-                muted && (track.getType() !== mediaType || track.isMuted()),
+                muted && (track.getType() !== mediaType || (track as any).isMuted()),
             true);
     }
 
@@ -84,9 +120,9 @@ export default class JitsiParticipant {
      * @param {string} videoType The video type of the source.
      * @returns {void}
      */
-    _setSources(mediaType, muted, sourceName, videoType) {
+    _setSources(mediaType: MediaType, muted: boolean, sourceName: string, videoType: string): void {
         let sourceByMediaType = this._sources.get(mediaType);
-        const sourceInfo = {
+        const sourceInfo: ISourceInfo = {
             muted,
             videoType
         };
@@ -107,7 +143,7 @@ export default class JitsiParticipant {
      *
      * @returns {string|undefined} - The bot type of the participant.
      */
-    getBotType() {
+    getBotType(): string | undefined {
         return this._botType;
     }
 
@@ -115,7 +151,7 @@ export default class JitsiParticipant {
      * @returns {JitsiConference} The conference that this participant belongs
      * to.
      */
-    getConference() {
+    getConference(): JitsiConference {
         return this._conference;
     }
 
@@ -124,14 +160,14 @@ export default class JitsiParticipant {
      *
      * @returns {string|undefined} - The connection jid of the participant.
      */
-    getConnectionJid() {
+    getConnectionJid(): string | undefined {
         return this._connectionJid;
     }
 
     /**
      * @returns {String} The human-readable display name of this participant.
      */
-    getDisplayName() {
+    getDisplayName(): string {
         return this._displayName;
     }
 
@@ -139,14 +175,14 @@ export default class JitsiParticipant {
      * Returns a set with the features for the participant.
      * @returns {Promise<Set<String>>}
      */
-    getFeatures() {
+    getFeatures(): Promise<Set<string>> {
         return Promise.resolve(this._features);
     }
 
     /**
      * @returns {String} The ID of this participant.
      */
-    getId() {
+    getId(): string {
         return this._id;
     }
 
@@ -156,28 +192,28 @@ export default class JitsiParticipant {
      *
      * @returns {object|undefined} - XMPP user identity.
      */
-    getIdentity() {
+    getIdentity(): object | undefined {
         return this._identity;
     }
 
     /**
      * @returns {String} The JID of this participant.
      */
-    getJid() {
+    getJid(): string {
         return this._jid;
     }
 
     /**
      * Gets the value of a property of this participant.
      */
-    getProperty(name) {
+    getProperty(name: string): any {
         return this._properties.get(name);
     }
 
     /**
      * @returns {String} The role of this participant.
      */
-    getRole() {
+    getRole(): string {
         return this._role;
     }
 
@@ -185,21 +221,21 @@ export default class JitsiParticipant {
      * Returns the sources associated with this participant.
      * @returns Map<string, Map<string, Object>>
      */
-    getSources() {
+    getSources(): Map<MediaType, Map<string, ISourceInfo>> {
         return this._sources;
     }
 
     /**
      * @returns {String} The stats ID of this participant.
      */
-    getStatsID() {
+    getStatsID(): string {
         return this._statsID;
     }
 
     /**
      * @returns {String} The status of the participant.
      */
-    getStatus() {
+    getStatus(): string {
         return this._status;
     }
 
@@ -207,7 +243,7 @@ export default class JitsiParticipant {
      * @returns {Array.<JitsiTrack>} The list of media tracks for this
      * participant.
      */
-    getTracks() {
+    getTracks(): JitsiTrack[] {
         return this._tracks.slice();
     }
 
@@ -216,7 +252,7 @@ export default class JitsiParticipant {
      * @returns {Array.<JitsiTrack>} an array of media tracks for this
      * participant, for given media type.
      */
-    getTracksByMediaType(mediaType) {
+    getTracksByMediaType(mediaType: MediaType): JitsiTrack[] {
         return this.getTracks().filter(track => track.getType() === mediaType);
     }
 
@@ -226,14 +262,14 @@ export default class JitsiParticipant {
      * @return {boolean} <tt>true</tt> if this <tt>participant</tt> contains the
      * <tt>feature</tt>.
      */
-    hasFeature(feature) {
+    hasFeature(feature: string): boolean {
         return this._features.has(feature);
     }
 
     /**
      * @returns {Boolean} Whether this participant has muted their audio.
      */
-    isAudioMuted() {
+    isAudioMuted(): boolean {
         return this._isMediaTypeMuted(MediaType.AUDIO);
     }
 
@@ -242,7 +278,7 @@ export default class JitsiParticipant {
      * special system participants may want to join hidden (like for example the
      * recorder).
      */
-    isHidden() {
+    isHidden(): boolean {
         return this._hidden;
     }
 
@@ -251,14 +287,14 @@ export default class JitsiParticipant {
      * special system participants may want to join hidden (like for example the
      * recorder).
      */
-    isHiddenFromRecorder() {
-        return this._identity?.user?.['hidden-from-recorder'] === 'true';
+    isHiddenFromRecorder(): boolean {
+        return (this._identity as any)?.user?.['hidden-from-recorder'] === 'true';
     }
 
     /**
      * @returns {Boolean} Whether this participant is a moderator or not.
      */
-    isModerator() {
+    isModerator(): boolean {
         return this._role === 'moderator';
     }
 
@@ -266,7 +302,7 @@ export default class JitsiParticipant {
      * @returns {Boolean} Wheter this participants will be replaced by another
      * participant in the meeting.
      */
-    isReplaced() {
+    isReplaced(): boolean {
         return this._isReplaced;
     }
 
@@ -274,21 +310,21 @@ export default class JitsiParticipant {
      * @returns {Boolean} Whether this participant replaces another participant
      * from the meeting.
      */
-    isReplacing() {
+    isReplacing(): boolean {
         return this._isReplacing;
     }
 
     /**
      * @returns {Boolean} Whether this participant has joined without audio.
      */
-    isSilent() {
+    isSilent(): boolean {
         return this._isSilent;
     }
 
     /**
      * @returns {Boolean} Whether this participant has muted their video.
      */
-    isVideoMuted() {
+    isVideoMuted(): boolean {
         return this._isMediaTypeMuted(MediaType.VIDEO);
     }
 
@@ -296,7 +332,7 @@ export default class JitsiParticipant {
      * Sets the bot type for the participant.
      * @param {String} newBotType - The new bot type to set.
      */
-    setBotType(newBotType) {
+    setBotType(newBotType: string): void {
         this._botType = newBotType;
     }
 
@@ -304,7 +340,7 @@ export default class JitsiParticipant {
      * Sets the connection jid for the participant.
      * @param {String} newJid - The connection jid to set.
      */
-    setConnectionJid(newJid) {
+    setConnectionJid(newJid: string): void {
         this._connectionJid = newJid;
     }
 
@@ -312,7 +348,7 @@ export default class JitsiParticipant {
      * Set new features.
      * @param {Set<String>|undefined} newFeatures - Sets new features.
      */
-    setFeatures(newFeatures) {
+    setFeatures(newFeatures?: Set<string>): void {
         this._features = newFeatures || new Set();
     }
 
@@ -320,15 +356,15 @@ export default class JitsiParticipant {
      * Sets whether participant is being replaced by another based on jwt.
      * @param {boolean} newIsReplaced - whether is being replaced.
      */
-    setIsReplaced(newIsReplaced) {
+    setIsReplaced(newIsReplaced: boolean): void {
         this._isReplaced = newIsReplaced;
     }
 
     /**
      * Sets whether participant is replacing another based on jwt.
-     * @param {String} newIsReplacing - whether is replacing.
+     * @param {boolean} newIsReplacing - whether is replacing.
      */
-    setIsReplacing(newIsReplacing) {
+    setIsReplacing(newIsReplacing: boolean): void {
         this._isReplacing = newIsReplacing;
     }
 
@@ -336,7 +372,7 @@ export default class JitsiParticipant {
      * Sets whether participant has joined without audio.
      * @param {boolean} newIsSilent - whether is silent.
      */
-    setIsSilent(newIsSilent) {
+    setIsSilent(newIsSilent: boolean): void {
         this._isSilent = newIsSilent;
     }
 
@@ -346,7 +382,7 @@ export default class JitsiParticipant {
      * @name the name of the property.
      * @value the value to set.
      */
-    setProperty(name, value) {
+    setProperty(name: string, value: any): void {
         const oldValue = this._properties.get(name);
 
         if (value !== oldValue) {
@@ -364,14 +400,14 @@ export default class JitsiParticipant {
      * Sets a new participant role.
      * @param {String} newRole - the new role.
      */
-    setRole(newRole) {
+    setRole(newRole: string): void {
         this._role = newRole;
     }
 
     /**
      *
      */
-    supportsDTMF() {
+    supportsDTMF(): boolean {
         return this._supportsDTMF;
     }
 }

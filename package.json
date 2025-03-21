@@ -40,6 +40,7 @@
     "@types/jasmine": "4.0.3",
     "@types/lodash-es": "4.17.12",
     "@types/sdp-transform": "2.4.5",
+    "@types/strophe": "1.2.37",
     "babel-loader": "8.2.3",
     "core-js": "3.19.1",
     "eslint": "8.57.0",
