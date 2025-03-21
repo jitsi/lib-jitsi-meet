@@ -10,13 +10,20 @@ export default class Listenable {
      * Creates new instance.
      * @constructor
      */
+    public eventEmitter: EventEmitter
+
     constructor() {
         this.eventEmitter = new EventEmitter();
 
-        // aliases for addListener/removeListener
+        //  addListener/removeListener
         this.addEventListener = this.on = this.addListener;
         this.removeEventListener = this.off = this.removeListener;
     }
+    
+    on: (eventName: string, listener: (...args: any[]) => void) => EventEmitter;
+    off: (eventName: string, listener: (...args: any[]) => void) => EventEmitter;
+    addEventListener: (eventName: string, listener: (...args: any[]) => void) => EventEmitter;
+    removeEventListener: (eventName: string, listener: (...args: any[]) => void) => EventEmitter;
 
     /**
      * Adds new cancellable listener.
@@ -24,7 +31,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {Function} - The unsubscribe function.
      */
-    addCancellableListener(eventName, listener) {
+    addCancellableListener(eventName: string, listener: (...args: any[]) => void): () => void {
         this.addListener(eventName, listener);
 
         return () => this.removeListener(eventName, listener);
@@ -36,7 +43,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
-    addListener(eventName, listener) {
+    addListener(eventName: string, listener: (...args: any[]) => void): EventEmitter {
         return this.eventEmitter.addListener(eventName, listener);
     }
 
@@ -47,7 +54,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
-    removeListener(eventName, listener) {
+    removeListener(eventName: string, listener: (...args: any[]) => void): EventEmitter {
         return this.eventEmitter.removeListener(eventName, listener);
     }
 
@@ -55,7 +62,7 @@ export default class Listenable {
      * Emits an event.
      * @param {string} event - event name
      */
-    emit(event, ...args) {
+    emit(event: string, ...args: any[]): void {
         this.eventEmitter.emit(event, ...args);
     }
 }
