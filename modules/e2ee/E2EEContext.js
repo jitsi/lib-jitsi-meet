@@ -2,7 +2,7 @@
 
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/e2ee/E2EEContext');
 
 // Flag to set on senders / receivers to avoid setting up the encryption transform
 // more than once.

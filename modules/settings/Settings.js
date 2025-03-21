@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import UsernameGenerator from '../util/UsernameGenerator';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/settings/Settings');
 
 let _callStatsUserName;
 

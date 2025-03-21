@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/qualitycontrol/SendVideoController');
 const MAX_LOCAL_RESOLUTION = 2160;
 
 /**

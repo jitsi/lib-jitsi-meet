@@ -10,7 +10,7 @@ import {
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('JitsiConnection');
 
 /**
  * Creates a new connection object for the Jitsi Meet server side video

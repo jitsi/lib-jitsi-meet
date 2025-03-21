@@ -7,7 +7,7 @@ import browser from '../browser';
 import { isAnalyticsEnabled, isWatchRTCEnabled } from './functions';
 import { IWatchRTCConfiguration } from './interfaces';
 
-const logger = Logger.getLogger(__filename);
+const logger = Logger.getLogger('modules/watchRTC/WatchRTC');
 
 /**
  * Class that controls the watchRTC flow, because it overwrites and proxies global function it should only be

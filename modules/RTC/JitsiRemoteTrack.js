@@ -6,7 +6,7 @@ import Statistics from '../statistics/statistics';
 
 import JitsiTrack from './JitsiTrack';
 
-const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require('@jitsi/logger').getLogger('modules/RTC/JitsiRemoteTrack');
 
 const RTCEvents = require('../../service/RTC/RTCEvents');
 

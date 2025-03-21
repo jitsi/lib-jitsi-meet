@@ -5,7 +5,7 @@ import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/statistics/RTPStatsCollector');
 
 /**
  * Calculates packet lost percent using the number of lost packets and the

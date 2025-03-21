@@ -7,7 +7,7 @@ import {
 } from './JitsiConnectionEvents';
 import XMPP from './modules/xmpp/xmpp';
 
-const logger = getLogger(__filename);
+const logger = getLogger('authenticateAndUpgradeRole');
 
 /**
  * @typedef {Object} UpgradeRoleError

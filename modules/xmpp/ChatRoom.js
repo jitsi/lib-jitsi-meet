@@ -23,7 +23,7 @@ import RoomMetadata from './RoomMetadata';
 import XmppConnection from './XmppConnection';
 import { FEATURE_TRANSCRIBER } from './xmpp';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/ChatRoom');
 
 /**
  * How long we're going to wait for IQ response, before timeout error is triggered.

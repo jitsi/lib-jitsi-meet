@@ -4,7 +4,7 @@ import Listenable from '../util/Listenable';
 
 export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/connectivity/NetworkInfo');
 
 export interface ICurrentNetworkInfo {
     isOnline: boolean;

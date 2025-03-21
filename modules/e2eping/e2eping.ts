@@ -5,7 +5,7 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
 import * as JitsiE2EPingEvents from '../../service/e2eping/E2ePingEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/e2eping/e2eping');
 
 /**
  * The 'type' of a message which designates an e2e ping request.

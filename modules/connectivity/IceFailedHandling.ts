@@ -4,7 +4,7 @@ import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/connectivity/IceFailedHandling');
 
 /**
  * This class deals with shenanigans around JVB media session's ICE failed status handling.

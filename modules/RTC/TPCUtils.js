@@ -17,7 +17,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/RTC/TPCUtils');
 const DD_HEADER_EXT_URI
     = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
 const DD_HEADER_EXT_ID = 11;
