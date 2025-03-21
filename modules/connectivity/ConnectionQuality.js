@@ -9,7 +9,7 @@ const Resolutions = require('../../service/RTC/Resolutions');
 const { VideoType } = require('../../service/RTC/VideoType');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/connectivity/ConnectionQuality');
 
 /**
  * The value to use for the "type" field for messages sent by ConnectionQuality

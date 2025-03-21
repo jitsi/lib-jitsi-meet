@@ -5,7 +5,7 @@ import RTC from '../RTC/RTC';
 import Statistics from '../statistics/statistics';
 
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/detection/ActiveDeviceDetector');
 
 // If after 3000 ms the detector did not find any active devices consider that there aren't any usable ones available
 // i.e. audioLevel > 0.008

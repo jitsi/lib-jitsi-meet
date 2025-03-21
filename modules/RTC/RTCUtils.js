@@ -15,7 +15,7 @@ import Listenable from '../util/Listenable';
 
 import screenObtainer from './ScreenObtainer';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/RTC/RTCUtils');
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 

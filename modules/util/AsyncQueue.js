@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { queue } from 'async-es';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/util/AsyncQueue');
 
 /**
  * Error to be passed to a callback of a queued task when the queue is cleared.

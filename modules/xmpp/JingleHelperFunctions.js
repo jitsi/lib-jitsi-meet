@@ -8,7 +8,7 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/JingleHelperFunctions');
 
 /**
  * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].

@@ -9,7 +9,7 @@ import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 import CustomSignalingLayer from './CustomSignalingLayer';
 import { ACTIONS } from './constants';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/proxyconnection/ProxyConnectionPC');
 
 /**
  * An adapter around {@code JingleSessionPC} so its logic can be re-used without

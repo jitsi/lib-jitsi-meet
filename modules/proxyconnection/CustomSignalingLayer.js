@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/proxyconnection/CustomSignalingLayer');
 
 /**
  * Custom semi-mock implementation for the Proxy connection service.

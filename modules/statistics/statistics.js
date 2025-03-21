@@ -12,7 +12,7 @@ import LocalStats from './LocalStatsCollector';
 import { PerformanceObserverStats } from './PerformanceObserverStats';
 import RTPStats from './RTPStatsCollector';
 
-const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require('@jitsi/logger').getLogger('modules/statistics/statistics');
 
 /**
  * Stores all active {@link Statistics} instances.

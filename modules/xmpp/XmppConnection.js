@@ -9,7 +9,7 @@ import LastSuccessTracker from './StropheLastSuccess';
 import PingConnectionPlugin from './strophe.ping';
 import './strophe.stream-management';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/XmppConnection');
 
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.

@@ -4,7 +4,7 @@ import Listenable from '../util/Listenable';
 
 import * as JingleSessionState from './JingleSessionState';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/JingleSession');
 
 /**
  * JingleSession provides an API to manage a single Jingle session. We will

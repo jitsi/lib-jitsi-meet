@@ -4,7 +4,7 @@ import { isEqual } from 'lodash-es';
 import { MediaType } from '../../service/RTC/MediaType';
 import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/StandardVideoQualitySettings';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/qualitycontrol/ReceiveVideoController');
 const MAX_HEIGHT = 2160;
 
 /**

@@ -5,7 +5,7 @@ import EventEmitter from '../util/EventEmitter';
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/detection/VADReportingService');
 
 /**
  * Sample rate used by TrackVADEmitter, this value determines how often the ScriptProcessorNode is going to call the

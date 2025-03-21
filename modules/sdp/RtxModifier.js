@@ -7,7 +7,7 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import SDPUtil from './SDPUtil';
 import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/sdp/RtxModifier');
 
 /**
  * Begin helper functions
