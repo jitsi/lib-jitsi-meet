@@ -1,4 +1,3 @@
-
 /**
  * The method will increase the given number by 1. If the given counter is equal
  * or greater to {@link Number.MAX_SAFE_INTEGER} then it will be rolled back to
@@ -7,7 +6,7 @@
  * @return {number} the next counter value increased by 1 (see the description
  * above for exception).
  */
-export function safeCounterIncrement(number) {
+export function safeCounterIncrement(number: number): number {
     let nextValue = number;
 
     if (number >= Number.MAX_SAFE_INTEGER) {
@@ -18,12 +17,12 @@ export function safeCounterIncrement(number) {
 }
 
 /**
- * Calculates the average value of am Array of numbers.
+ * Calculates the average value of an Array of numbers.
  *
  * @param {Float32Array} valueArray - Array of numbers.
  * @returns {number} - Number array average.
  */
-export function calculateAverage(valueArray) {
+export function calculateAverage(valueArray: Float32Array): number {
     return valueArray.length > 0 ? valueArray.reduce((a, b) => a + b) / valueArray.length : 0;
 }
 
@@ -31,10 +30,10 @@ export function calculateAverage(valueArray) {
  * Calculates a unique hash for a given string similar to Java's
  * implementation of String.hashCode()
  *
- * @param {String} string - String whose hash has to be calculated.
+ * @param {string} string - String whose hash has to be calculated.
  * @returns {number} - Unique hash code calculated.
  */
-export function hashString(string) {
+export function hashString(string: string): number {
     let hash = 0;
 
     for (let i = 0; i < string.length; i++) {
@@ -51,10 +50,10 @@ export function hashString(string) {
  * Returns only the positive values from an array of numbers.
  *
  * @param {Float32Array} valueArray - Array of vad scores.
- * @returns {Array} - Array of positive numbers.
+ * @returns {number[]} - Array of positive numbers.
  */
-export function filterPositiveValues(valueArray) {
-    return valueArray.filter(value => value >= 0);
+export function filterPositiveValues(valueArray: Float32Array): number[] {
+    return Array.from(valueArray).filter(value => value >= 0);
 }
 
 /**
@@ -62,6 +61,9 @@ export function filterPositiveValues(valueArray) {
  * as more data points are collected and added.
  */
 export class RunningAverage {
+    private average: number;
+    private n: number;
+
     /**
      * Creates an instance of the running average calculator.
      */
@@ -76,7 +78,7 @@ export class RunningAverage {
      * @param {number} value
      * @returns {void}
      */
-    addNext(value) {
+    addNext(value: number): void {
         if (typeof value !== 'number') {
             return;
         }
@@ -88,19 +90,18 @@ export class RunningAverage {
      * Obtains the average value for the current subset of values.
      * @returns {number} - computed average.
      */
-    getAverage() {
+    getAverage(): number {
         return this.average;
     }
 }
-
 
 /**
  * Subtracts the two numbers passed or returns 0 if any of the arguments are not a number.
  *
  * @param {*} x - The number we subtract from.
  * @param {*} y - The number we subtract.
- * @returns {number} - x - y or 0 if x or is not a number.
+ * @returns {number} - x - y or 0 if x or y is not a number.
  */
-export function safeSubtract(x, y) {
+export function safeSubtract(x: any, y: any): number {
     return !isNaN(x) && !isNaN(y) ? x - y : 0;
 }
