@@ -26,7 +26,7 @@ const VAD_VOICE_LEVEL = 0.9;
  */
 const PROCESS_TIME_FRAME_SPAN_MS = 700;
 
-interface IVADScore {
+export interface IVADScore {
     deviceId: string;
     score: number;
     timestamp: Date;
