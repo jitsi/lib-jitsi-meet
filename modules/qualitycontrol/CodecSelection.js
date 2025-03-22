@@ -7,10 +7,10 @@ import { VIDEO_CODECS_BY_COMPLEXITY } from '../../service/RTC/StandardVideoQuali
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/qualitycontrol/CodecSelection');
 
 // Default video codec preferences on mobile and desktop endpoints.
-const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264, CodecMimeType.AV1 ];
+const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.AV1, CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
 const MOBILE_P2P_VIDEO_CODEC_ORDER = [ CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.AV1 ];
 const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.H264, CodecMimeType.AV1 ];
 

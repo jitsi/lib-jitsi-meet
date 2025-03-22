@@ -11,7 +11,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 
 import { filterNodeFromPresenceJSON } from './ChatRoom';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/SignalingLayerImpl');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
 

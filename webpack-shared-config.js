@@ -65,12 +65,6 @@ module.exports = (minimize, analyzeBundle) => {
                 test: /\.(js|ts)$/
             } ]
         },
-        node: {
-            // Allow the use of the real filename of the module being executed. By
-            // default Webpack does not leak path-related information and provides a
-            // value that is a mock (/index.js).
-            __filename: true
-        },
         optimization: {
             concatenateModules: minimize
         },

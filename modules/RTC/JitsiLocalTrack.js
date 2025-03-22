@@ -25,7 +25,7 @@ import Statistics from '../statistics/statistics';
 import JitsiTrack from './JitsiTrack';
 import RTCUtils from './RTCUtils';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/RTC/JitsiLocalTrack');
 
 /**
  * Represents a single media track(either audio or video).

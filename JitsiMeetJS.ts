@@ -37,7 +37,7 @@ import * as ConnectionQualityEvents
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 
-const logger = Logger.getLogger(__filename);
+const logger = Logger.getLogger('JitsiMeetJS');
 
 // Settin the default log levels to info early so that we avoid overriding a log level set externally.
 Logger.setLogLevel(Logger.levels.INFO);

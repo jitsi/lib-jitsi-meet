@@ -8,7 +8,7 @@ import RTCUtils from './RTCUtils';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import browser from '../browser';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/RTC/JitsiTrack');
 
 /**
  * Maps our handler types to MediaStreamTrack properties.

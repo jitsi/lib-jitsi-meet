@@ -1,8 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/event/Jvb121EventGenerator');
 
 /**
  * Emits {@link JitsiConferenceEvents.JVB121_STATUS} events based on the current
@@ -10,11 +11,14 @@ const logger = getLogger(__filename);
  * for more info.
  */
 export default class Jvb121EventGenerator {
+    private _conference: JitsiConference;
+    private _jvb121: boolean;
+
     /**
      * Creates new <tt>Jvb121EventGenerator</tt> for the given conference.
      * @param {JitsiConference} conference
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         this._conference = conference;
 
         /**

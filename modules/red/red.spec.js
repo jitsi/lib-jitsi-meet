@@ -1,4 +1,4 @@
-import { RFC2198Encoder } from './red.js';
+import { RFC2198Encoder } from './red.ts';
 
 describe('RED', () => {
     let encoder;

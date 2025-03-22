@@ -73,7 +73,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('JitsiConference');
 
 /**
  * How long since Jicofo is supposed to send a session-initiate, before

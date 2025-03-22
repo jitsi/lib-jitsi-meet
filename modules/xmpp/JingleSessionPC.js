@@ -30,7 +30,7 @@ import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/JingleSessionPC');
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
@@ -1250,7 +1250,9 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.codecSettings = options.codecSettings;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.usesCodecSelectionAPI = this.usesCodecSelectionAPI
-            = browser.supportsCodecSelectionAPI() && options.testing?.enableCodecSelectionAPI && !this.isP2P;
+            = browser.supportsCodecSelectionAPI()
+            && (options.testing?.enableCodecSelectionAPI ?? true)
+            && !this.isP2P;
 
         if (options.videoQuality) {
             const settings = Object.entries(options.videoQuality)

@@ -5,7 +5,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from './ChatRoom';
 import XMPP from './xmpp';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/xmpp/AVModeration');
 
 /**
  * The AVModeration logic.

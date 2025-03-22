@@ -21,7 +21,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('JitsiConferenceEventManager');
 
 /**
  * Setups all event listeners related to conference

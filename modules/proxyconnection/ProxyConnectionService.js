@@ -10,7 +10,7 @@ import RTC from '../RTC/RTC';
 import ProxyConnectionPC from './ProxyConnectionPC';
 import { ACTIONS } from './constants';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/proxyconnection/ProxyConnectionService');
 
 /**
  * Instantiates a new ProxyConnectionPC and ensures only one exists at a given

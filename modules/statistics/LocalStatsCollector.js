@@ -2,7 +2,7 @@
  * Provides statistics for the local stream.
  */
 
-const logger = require('@jitsi/logger').getLogger(__filename);
+const logger = require('@jitsi/logger').getLogger('modules/statistics/LocalStatsCollector');
 
 /**
  * Size of the webaudio analyzer buffer.

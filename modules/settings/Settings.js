@@ -1,9 +1,10 @@
 import { jitsiLocalStorage } from '@jitsi/js-utils';
 import { getLogger } from '@jitsi/logger';
-
-const logger = getLogger(__filename);
+import { v4 as uuidv4 } from 'uuid';
 
 import UsernameGenerator from '../util/UsernameGenerator';
+
+const logger = getLogger('modules/settings/Settings');
 
 let _callStatsUserName;
 
@@ -106,23 +107,9 @@ function _generateStatsId() {
  * @returns {string} random unique id
  */
 function generateJitsiMeetId() {
-    const jitsiMeetId = generateUniqueId();
+    const jitsiMeetId = uuidv4().replaceAll('-', '');
 
     logger.log('generated id', jitsiMeetId);
 
     return jitsiMeetId;
-}
-
-/**
- *
- */
-function generateUniqueId() {
-    return _p8() + _p8() + _p8() + _p8();
-}
-
-/**
- *
- */
-function _p8() {
-    return `${Math.random().toString(16)}000000000`.substr(2, 8);
 }

@@ -17,7 +17,7 @@ import DefaultLogStorage from './DefaulLogStorage';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
 import { IRTCStatsConfiguration } from './interfaces';
 
-const logger = getLogger(__filename);
+const logger = getLogger('modules/RTCStats/RTCStats');
 
 /**
  * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
