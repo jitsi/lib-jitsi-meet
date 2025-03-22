@@ -1,5 +1,6 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import JitsiConference from '../../JitsiConference';
 
 /**
  * The value which we use to say, every sound over this threshold
@@ -17,12 +18,15 @@ const SPEECH_DETECT_THRESHOLD = 0.6;
  * the video bridge.
  */
 export default class P2PDominantSpeakerDetection {
+    private conference: JitsiConference;
+    private myUserID: string;
+
     /**
      * Creates P2PDominantSpeakerDetection
      * @param conference the JitsiConference instance that created us.
      * @constructor
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         this.conference = conference;
 
         conference.addEventListener(
@@ -38,8 +42,7 @@ export default class P2PDominantSpeakerDetection {
      * @param {String} id - The participant id
      * @param {number} audioLevel - The audio level.
      */
-    _audioLevel(id, audioLevel) {
-
+    private _audioLevel(id: string, audioLevel: number): void {
         // we do not process if p2p is not active
         // or audio level is under certain threshold
         // or if the audio level is for local audio track which is muted
