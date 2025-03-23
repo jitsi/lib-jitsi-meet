@@ -2,7 +2,7 @@ import currentExecutingScript from 'current-executing-script';
 
 /* eslint-disable max-params */
 
-interface LoadScriptOptions {
+export interface ILoadScriptOptions {
     src: string;
     async: boolean;
     prepend: boolean;
@@ -38,7 +38,7 @@ const ScriptUtil = {
         relativeURL,
         loadCallback,
         errorCallback
-    }: LoadScriptOptions): void {
+    }: ILoadScriptOptions): void {
         const d = document;
         const tagName = 'script';
         const script = d.createElement(tagName);
