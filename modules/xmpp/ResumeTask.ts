@@ -8,7 +8,7 @@ import { getJitterDelay } from '../util/Retry';
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 
-interface IStropheConnection {
+export interface IStropheConnection {
     service: string;
     streamManagement: {
         getResumeToken: () => string | null;
@@ -16,7 +16,7 @@ interface IStropheConnection {
     };
 }
 
-interface INetworkInfoEvent {
+export interface INetworkInfoEvent {
     isOnline: boolean;
 }
 
