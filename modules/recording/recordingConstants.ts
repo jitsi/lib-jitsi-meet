@@ -4,8 +4,8 @@ export interface IRecordingConstants {
         ERROR: string;
         POLICY_VIOLATION: string;
         RESOURCE_CONSTRAINT: string;
-        UNEXPECTED_REQUEST: string;
         SERVICE_UNAVAILABLE: string;
+        UNEXPECTED_REQUEST: string;
     };
     mode: {
         FILE: string;
