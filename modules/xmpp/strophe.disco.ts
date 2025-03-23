@@ -2,21 +2,20 @@
 
 import { $iq, Strophe } from 'strophe.js';
 
-interface IIdentity {
+export interface IIdentity {
     category: string;
     type: string;
     name: string;
     lang: string;
 }
-
-interface IItem {
+export interface IItem {
     jid: string;
     name: string;
     node: string;
     call_back: Function;
 }
 
-interface DiscoPlugin {
+export interface DiscoPlugin {
     _connection: Strophe.Connection | null;
     _identities: IIdentity[];
     _features: string[];
