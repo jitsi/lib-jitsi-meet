@@ -1,6 +1,15 @@
-const currentExecutingScript = require('current-executing-script');
+import currentExecutingScript from 'current-executing-script';
 
 /* eslint-disable max-params */
+
+export interface ILoadScriptOptions {
+    async: boolean;
+    errorCallback?: () => void;
+    loadCallback?: () => void;
+    prepend: boolean;
+    relativeURL: boolean;
+    src: string;
+}
 
 /**
  * Implements utility functions which facilitate the dealing with scripts such
@@ -22,13 +31,14 @@ const ScriptUtil = {
      * @param loadCallback on load callback function
      * @param errorCallback callback to be called on error loading the script
      */
-    loadScript(
-            src,
-            async,
-            prepend,
-            relativeURL,
-            loadCallback,
-            errorCallback) {
+    loadScript({
+        src,
+        async,
+        prepend,
+        relativeURL,
+        loadCallback,
+        errorCallback
+    }: ILoadScriptOptions): void {
         const d = document;
         const tagName = 'script';
         const script = d.createElement(tagName);
@@ -71,4 +81,4 @@ const ScriptUtil = {
 
 /* eslint-enable max-params */
 
-module.exports = ScriptUtil;
+export default ScriptUtil;
