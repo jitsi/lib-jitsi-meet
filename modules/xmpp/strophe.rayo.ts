@@ -8,26 +8,50 @@ const logger = getLogger('modules/xmpp/strophe.rayo');
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 
+export interface IConnection {
+    addHandler: (
+        handler: (iq: any) => any,
+        xmlns: string,
+        name: string,
+        type: string,
+        id?: string | null,
+        from?: string | null
+    ) => void;
+    sendIQ: (
+        iq: any,
+        success: (result: any) => void,
+        error: (error: any) => void
+    ) => void;
+}
+
 /**
  *
  */
 export default class RayoConnectionPlugin extends ConnectionPlugin {
+    private callResource: string | null = null;
+
     /**
      *
      * @param connection
      */
-    init(connection) {
+    init(connection: IConnection): void {
         super.init(connection);
 
-        this.connection.addHandler(
-            this.onRayo.bind(this), RAYO_XMLNS, 'iq', 'set', null, null);
+        connection.addHandler(
+            this.onRayo.bind(this),
+            RAYO_XMLNS,
+            'iq',
+            'set',
+            null,
+            null
+        );
     }
 
     /**
      *
      * @param iq
      */
-    onRayo(iq) {
+    onRayo(iq: any): any {
         logger.info('Rayo IQ', iq);
     }
 
@@ -41,7 +65,13 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
      * @param roomPass
      * @param focusMucJid
      */
-    dial(to, from, roomName, roomPass, focusMucJid) {
+    dial(
+            to: string,
+            from: string,
+            roomName: string,
+            roomPass: string,
+            focusMucJid: string
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             if (!focusMucJid) {
                 reject(new Error('Internal error!'));
@@ -50,27 +80,27 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
             }
             const req = $iq({
                 type: 'set',
-                to: focusMucJid
+                to: focusMucJid,
             });
 
             req.c('dial', {
                 xmlns: RAYO_XMLNS,
                 to,
-                from
+                from,
             });
             req.c('header', {
                 name: 'JvbRoomName',
-                value: roomName
+                value: roomName,
             }).up();
 
-            if (roomPass && roomPass.length) {
+            if (roomPass?.length) {
                 req.c('header', {
                     name: 'JvbRoomPassword',
-                    value: roomPass
+                    value: roomPass,
                 }).up();
             }
 
-            this.connection.sendIQ(
+            (this.connection as IConnection).sendIQ(
                 req,
                 result => {
                     logger.info('Dial result ', result);
@@ -85,7 +115,8 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                 error => {
                     logger.info('Dial error ', error);
                     reject(error);
-                });
+                }
+            );
         });
     }
 
@@ -94,7 +125,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
     /**
      *
      */
-    hangup() {
+    hangup(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (!this.callResource) {
                 reject(new Error('No call in progress'));
@@ -105,22 +136,26 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
 
             const req = $iq({
                 type: 'set',
-                to: this.callResource
+                to: this.callResource,
             });
 
             req.c('hangup', {
-                xmlns: RAYO_XMLNS
+                xmlns: RAYO_XMLNS,
             });
 
-            this.connection.sendIQ(req, result => {
-                logger.info('Hangup result ', result);
-                this.callResource = null;
-                resolve();
-            }, error => {
-                logger.info('Hangup error ', error);
-                this.callResource = null;
-                reject(new Error('Hangup error '));
-            });
+            (this.connection as IConnection).sendIQ(
+                req,
+                result => {
+                    logger.info('Hangup result ', result);
+                    this.callResource = null;
+                    resolve();
+                },
+                error => {
+                    logger.info('Hangup error ', error);
+                    this.callResource = null;
+                    reject(new Error('Hangup error '));
+                }
+            );
         });
     }
 }
