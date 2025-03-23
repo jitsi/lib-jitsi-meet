@@ -8,6 +8,18 @@ import { getJitterDelay } from '../util/Retry';
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 
+interface StropheConnection {
+    service: string;
+    streamManagement: {
+        getResumeToken: () => string | null;
+        resume: () => void;
+    };
+}
+
+interface NetworkInfoEvent {
+    isOnline: boolean;
+}
+
 /**
  * The class contains the logic for triggering connection resume via XEP-0198 stream management.
  * It does two things, the first one is it tracks the internet online/offline status and it makes sure that
@@ -15,27 +27,28 @@ const logger = getLogger('modules/xmpp/ResumeTask');
  * the retry interval using the full jitter pattern.
  */
 export default class ResumeTask {
+    private _stropheConn: StropheConnection;
+    private _resumeRetryN: number;
+    private _retryDelay: number | undefined;
+    private _resumeTimeout: NodeJS.Timeout | undefined;
+    private _networkOnlineListener: (() => void) | null;
+
     /**
      * Initializes new {@code RetryTask}.
      * @param {Strophe.Connection} stropheConnection - The Strophe connection instance.
      */
-    constructor(stropheConnection) {
+    constructor(stropheConnection: StropheConnection) {
         this._stropheConn = stropheConnection;
-
-        /**
-         * The counter increased before each resume retry attempt, used to calculate exponential backoff.
-         * @type {number}
-         * @private
-         */
         this._resumeRetryN = 0;
-
         this._retryDelay = undefined;
+        this._resumeTimeout = undefined;
+        this._networkOnlineListener = null;
     }
 
     /**
      * @returns {number} - The amount of retries.
      */
-    get retryCount() {
+    get retryCount(): number {
         return this._resumeRetryN;
     }
 
@@ -43,7 +56,7 @@ export default class ResumeTask {
      * @returns {number|undefined} - How much the app will wait before trying to resume the XMPP connection. When
      * 'undefined' it means that no resume task was not scheduled.
      */
-    get retryDelay() {
+    get retryDelay(): number | undefined {
         return this._retryDelay;
     }
 
@@ -52,22 +65,22 @@ export default class ResumeTask {
      *
      * @returns {void}
      */
-    schedule() {
+    schedule(): void {
         this._cancelResume();
         this._removeNetworkOnlineListener();
 
         this._resumeRetryN += 1;
 
-        this._networkOnlineListener
-            = NetworkInfo.addCancellableListener(
-                NETWORK_INFO_EVENT,
-                ({ isOnline }) => {
-                    if (isOnline) {
-                        this._scheduleResume();
-                    } else {
-                        this._cancelResume();
-                    }
-                });
+        this._networkOnlineListener = NetworkInfo.addCancellableListener(
+            NETWORK_INFO_EVENT,
+            ({ isOnline }: NetworkInfoEvent) => {
+                if (isOnline) {
+                    this._scheduleResume();
+                } else {
+                    this._cancelResume();
+                }
+            }
+        ) as () => void;
 
         NetworkInfo.isOnline() && this._scheduleResume();
     }
@@ -77,9 +90,8 @@ export default class ResumeTask {
      * @private
      * @returns {void}
      */
-    _scheduleResume() {
+    private _scheduleResume(): void {
         if (this._resumeTimeout) {
-
             // NO-OP
             return;
         }
@@ -91,7 +103,8 @@ export default class ResumeTask {
         this._retryDelay = getJitterDelay(
             /* retry */ this._resumeRetryN,
             /* minDelay */ this._resumeRetryN * 1500,
-            3);
+            3
+        );
 
         logger.info(`Will try to resume the XMPP connection in ${this.retryDelay}ms`);
 
@@ -104,7 +117,7 @@ export default class ResumeTask {
      * @private
      * @returns {void}
      */
-    _cancelResume() {
+    private _cancelResume(): void {
         if (this._resumeTimeout) {
             logger.info('Canceling connection resume task');
             clearTimeout(this._resumeTimeout);
@@ -119,7 +132,7 @@ export default class ResumeTask {
      * @private
      * @returns {void}
      */
-    _removeNetworkOnlineListener() {
+    private _removeNetworkOnlineListener(): void {
         if (this._networkOnlineListener) {
             this._networkOnlineListener();
             this._networkOnlineListener = null;
@@ -132,7 +145,7 @@ export default class ResumeTask {
      * @private
      * @returns {void}
      */
-    _resumeConnection() {
+    private _resumeConnection(): void {
         this._resumeTimeout = undefined;
 
         const { streamManagement } = this._stropheConn;
@@ -166,7 +179,7 @@ export default class ResumeTask {
         try {
             streamManagement.resume();
         } catch (e) {
-            logger.error('Failed to resume XMPP connnection', e);
+            logger.error('Failed to resume XMPP connection', e);
         }
     }
 
@@ -176,7 +189,7 @@ export default class ResumeTask {
      *
      * @returns {void}
      */
-    cancel() {
+    cancel(): void {
         this._cancelResume();
         this._removeNetworkOnlineListener();
         this._resumeRetryN = 0;
