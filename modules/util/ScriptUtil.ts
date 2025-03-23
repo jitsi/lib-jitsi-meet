@@ -3,12 +3,12 @@ import currentExecutingScript from 'current-executing-script';
 /* eslint-disable max-params */
 
 export interface ILoadScriptOptions {
-    src: string;
     async: boolean;
+    errorCallback?: () => void;
+    loadCallback?: () => void;
     prepend: boolean;
     relativeURL: boolean;
-    loadCallback?: () => void;
-    errorCallback?: () => void;
+    src: string;
 }
 
 /**
