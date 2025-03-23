@@ -16,8 +16,8 @@ export class ClearedQueueError extends Error {
     }
 }
 
-type Task = (callback: (err?: Error) => void) => void;
-type TaskCallback = (err?: Error) => void;
+export type Task = (callback: (err?: Error) => void) => void;
+export type TaskCallback = (err?: Error) => void;
 
 /**
  * A queue for async task execution.
