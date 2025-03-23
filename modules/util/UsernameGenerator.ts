@@ -1,4 +1,4 @@
-import RandomUtil from './RandomUtil';
+const RandomUtil = require('./RandomUtil');
 
 /**
  * from faker.js - Copyright (c) 2014-2015 Matthew Bergman & Marak Squires
@@ -436,4 +436,6 @@ function generateUsername() {
     return `${name}-${suffix}`;
 }
 
-export default generateUsername;
+module.exports = {
+    generateUsername
+};
