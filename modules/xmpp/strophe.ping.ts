@@ -3,7 +3,6 @@ import { $iq, Strophe } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
-
 const logger = getLogger('modules/xmpp/strophe.ping');
 
 /**
@@ -23,12 +22,35 @@ const PING_DEFAULT_TIMEOUT = 5000;
  */
 const PING_DEFAULT_THRESHOLD = 2;
 
+export interface IPingOptions {
+    interval?: number;
+    threshold?: number;
+    timeout?: number;
+}
+
+export interface IPingConnectionPluginOptions {
+    getTimeSinceLastServerResponse: () => number;
+    onPingThresholdExceeded: () => void;
+    pingOptions?: IPingOptions;
+}
+
 /**
  * XEP-0199 ping plugin.
  *
  * Registers "urn:xmpp:ping" namespace under Strophe.NS.PING.
  */
 export default class PingConnectionPlugin extends ConnectionPlugin {
+    failedPings: number;
+    _onPingThresholdExceeded: () => void;
+    _getTimeSinceLastServerResponse: () => number;
+    pingInterval: number;
+    pingTimeout: number;
+    pingThreshold: number;
+    pingTimestampsToKeep: number;
+    pingExecIntervals: number[];
+    intervalId: number | null;
+    _lastServerCheck: number;
+
     /**
      * Constructs new object
      * @param {Object} options
@@ -39,7 +61,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param {Object} options.pingOptions - The ping options if any.
      * @constructor
      */
-    constructor({ getTimeSinceLastServerResponse, onPingThresholdExceeded, pingOptions = {} }) {
+    constructor({ getTimeSinceLastServerResponse, onPingThresholdExceeded, pingOptions = {} }: IPingConnectionPluginOptions) {
         super();
         this.failedPings = 0;
         this._onPingThresholdExceeded = onPingThresholdExceeded;
@@ -54,13 +76,15 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         // The current value is 2 minutes.
         this.pingTimestampsToKeep = Math.round(120000 / this.pingInterval);
         this.pingExecIntervals = new Array(this.pingTimestampsToKeep);
+        this.intervalId = null;
+        this._lastServerCheck = Date.now();
     }
 
     /**
      * Initializes the plugin. Method called by Strophe.
      * @param connection Strophe connection instance.
      */
-    init(connection) {
+    init(connection: any): void {
         super.init(connection);
         Strophe.addNamespace('PING', 'urn:xmpp:ping');
     }
@@ -75,7 +99,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param timeout ms how long are we going to wait for the response. On
      * timeout <tt>error<//t> callback is called with undefined error argument.
      */
-    ping(jid, success, error, timeout) {
+    ping(jid: string, success: (result: any) => void, error: (err: any) => void, timeout: number): void {
         this._addPingExecutionTimestamp();
 
         const iq = $iq({
@@ -96,8 +120,10 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * must be called before starting a new one.
      * @param remoteJid remote JID to which ping requests will be sent to.
      */
-    startInterval(remoteJid) {
-        clearInterval(this.intervalId);
+    startInterval(remoteJid: string): void {
+        if (this.intervalId !== null) {
+            clearInterval(this.intervalId);
+        }
         this.intervalId = window.setInterval(() => {
 
             // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
@@ -140,7 +166,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
     /**
      * Stops current "ping"  interval task.
      */
-    stopInterval() {
+    stopInterval(): void {
         if (this.intervalId) {
             window.clearInterval(this.intervalId);
             this.intervalId = null;
@@ -153,7 +179,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * Adds the current time to the array of send ping timestamps.
      * @private
      */
-    _addPingExecutionTimestamp() {
+    _addPingExecutionTimestamp(): void {
         this.pingExecIntervals.push(new Date().getTime());
 
         // keep array length to PING_TIMESTAMPS_TO_KEEP
@@ -170,7 +196,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      *
      * @returns {int} the time ping was suspended, if it was not 0 is returned.
      */
-    getPingSuspendTime() {
+    getPingSuspendTime(): number {
         const pingIntervals = this.pingExecIntervals.slice();
 
         // we need current time, as if ping was sent now
