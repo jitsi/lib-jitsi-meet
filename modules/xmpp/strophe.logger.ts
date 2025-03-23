@@ -3,9 +3,9 @@ import { Strophe } from 'strophe.js';
 import ConnectionPlugin from './ConnectionPlugin';
 
 export interface ILogEntry {
-    timestamp: number;
     direction: 'incoming' | 'outgoing';
     stanza: any;
+    timestamp: number;
 }
 
 /**
