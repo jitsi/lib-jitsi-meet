@@ -17,8 +17,8 @@ export default class AVModeration {
      *
      * @param {ChatRoom} room the main room.
      */
-    private _xmpp: XMPP
-    private _mainRoom: ChatRoom
+    private _xmpp: XMPP;
+    private _mainRoom: ChatRoom;
     private _moderationEnabledByType: { audio: boolean; video: boolean; };
     private _whitelistAudio: any[];
     private _whitelistVideo: any[];
@@ -132,7 +132,7 @@ export default class AVModeration {
      * @param obj the parsed json content of the message to process.
      * @private
      */
-    _onMessage(obj: { removed: any; mediaType: any; enabled: any; approved: any; actor: any; whitelists: any; }) {
+    _onMessage(obj: { actor: any; approved: any; enabled: any; mediaType: any;  removed: any; whitelists: any; }) {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {
