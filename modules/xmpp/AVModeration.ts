@@ -132,7 +132,7 @@ export default class AVModeration {
      * @param obj the parsed json content of the message to process.
      * @private
      */
-    _onMessage(obj: { actor: any; approved: any; enabled: any; mediaType: any;  removed: any; whitelists: any; }) {
+    _onMessage(obj: { actor: any; approved: any; enabled: any; mediaType: any; removed: any; whitelists: any; }) {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {
