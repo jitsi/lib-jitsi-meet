@@ -8,7 +8,7 @@ export type EventListener = (...args: any[]) => void;
  * this functionality to other classes.
  */
 export default class Listenable {
-    private eventEmitter: EventEmitter;
+    public eventEmitter: EventEmitter;
     public addEventListener: typeof EventEmitter.prototype.addListener;
     public removeEventListener: typeof EventEmitter.prototype.removeListener;
     public on: typeof EventEmitter.prototype.addListener;
