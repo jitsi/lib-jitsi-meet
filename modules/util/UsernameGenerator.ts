@@ -1,4 +1,4 @@
-import RandomUtil from "./RandomUtil";
+import RandomUtil from './RandomUtil';
 
 /**
  * from faker.js - Copyright (c) 2014-2015 Matthew Bergman & Marak Squires

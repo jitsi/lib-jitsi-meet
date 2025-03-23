@@ -34,7 +34,7 @@ function randomElement(arr: Array<string> | string) {
  * @param {number} length expected string length
  * @returns {string} random string of specified length
  */
-function randomAlphanumStr(length:number) {
+function randomAlphanumStr(length: number) {
     let result = '';
 
     for (let i = 0; i < length; i += 1) {
@@ -60,7 +60,7 @@ const RandomUtil = {
      * Returns a random string of hex digits with length 'len'.
      * @param len the length.
      */
-    randomHexString(len:number) {
+    randomHexString(len: number) {
         let ret = '';
 
         while (len--) { // eslint-disable-line no-param-reassign

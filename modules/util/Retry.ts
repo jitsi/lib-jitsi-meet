@@ -9,6 +9,6 @@
 * @returns {number} - The amount of waiting before trying another time given in milliseconds.
 * @private
 */
-export function getJitterDelay(retry:number, minDelay = 500, base = 2) {
+export function getJitterDelay(retry: number, minDelay = 500, base = 2) {
     return Math.floor((Math.random() * ((Math.pow(base, retry) * 1000) - minDelay)) + minDelay);
 }
