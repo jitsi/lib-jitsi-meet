@@ -8,7 +8,7 @@ import { getJitterDelay } from '../util/Retry';
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 
-interface StropheConnection {
+interface IStropheConnection {
     service: string;
     streamManagement: {
         getResumeToken: () => string | null;
@@ -16,7 +16,7 @@ interface StropheConnection {
     };
 }
 
-interface NetworkInfoEvent {
+interface INetworkInfoEvent {
     isOnline: boolean;
 }
 
@@ -27,7 +27,7 @@ interface NetworkInfoEvent {
  * the retry interval using the full jitter pattern.
  */
 export default class ResumeTask {
-    private _stropheConn: StropheConnection;
+    private _stropheConn: IStropheConnection;
     private _resumeRetryN: number;
     private _retryDelay: number | undefined;
     private _resumeTimeout: NodeJS.Timeout | undefined;
@@ -37,7 +37,7 @@ export default class ResumeTask {
      * Initializes new {@code RetryTask}.
      * @param {Strophe.Connection} stropheConnection - The Strophe connection instance.
      */
-    constructor(stropheConnection: StropheConnection) {
+    constructor(stropheConnection: IStropheConnection) {
         this._stropheConn = stropheConnection;
         this._resumeRetryN = 0;
         this._retryDelay = undefined;
@@ -73,7 +73,7 @@ export default class ResumeTask {
 
         this._networkOnlineListener = NetworkInfo.addCancellableListener(
             NETWORK_INFO_EVENT,
-            ({ isOnline }: NetworkInfoEvent) => {
+            ({ isOnline }: INetworkInfoEvent) => {
                 if (isOnline) {
                     this._scheduleResume();
                 } else {
