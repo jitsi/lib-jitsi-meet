@@ -1,5 +1,7 @@
 import { EventEmitter as NodeEventEmitter } from 'events';
 
+export type EventListener = (...args: any[]) => void;
+
 /**
  * The class creates our own EventEmitter instance
  */

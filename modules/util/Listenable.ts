@@ -1,6 +1,4 @@
-import EventEmitter from './EventEmitter';
-
-export type EventListener = (...args: any[]) => void;
+import EventEmitter, { EventListener } from './EventEmitter';
 
 /**
  * The class implements basic event operations - add/remove listener.
