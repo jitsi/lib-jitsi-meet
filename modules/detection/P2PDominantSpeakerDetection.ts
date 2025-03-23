@@ -7,7 +7,7 @@ import JitsiConference from '../../JitsiConference';
  * is talking on the mic.
  * @type {number}
  */
-const SPEECH_DETECT_THRESHOLD = 0.6;
+const SPEECH_DETECT_THRESHOLD: number = 0.6;
 
 /**
  * The <tt>P2PDominantSpeakerDetection</tt> is activated only when p2p is
