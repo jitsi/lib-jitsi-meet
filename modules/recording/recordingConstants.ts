@@ -1,4 +1,4 @@
-interface IRecordingConstants {
+export interface IRecordingConstants {
     error: {
         BUSY: string;
         ERROR: string;
