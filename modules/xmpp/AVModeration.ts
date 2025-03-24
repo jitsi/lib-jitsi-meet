@@ -7,44 +7,44 @@ import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/AVModeration');
 
-export interface IChatRoom {
-    xmpp: any;
-    isModerator(): boolean;
+export interface IModerationEnabledByType {
+    audio: boolean;
+    video: boolean;
 }
 
-export interface IAVModerationMessage {
-    removed?: boolean;
+export interface IMessageObject {
+    actor: string;
+    approved: boolean;
+    enabled: boolean;
     mediaType: MediaType;
-    enabled?: boolean;
-    approved?: boolean;
-    actor?: string;
-    whitelists?: { [key in MediaType]?: string[] };
+    removed: boolean;
+    whitelists: { audio: string[]; video: string[]; };
 }
 
 /**
  * The AVModeration logic.
  */
 export default class AVModeration {
-    private _xmpp: XMPP;
-    private _mainRoom: IChatRoom;
-    private _moderationEnabledByType: { [key in MediaType]: boolean };
-    private _whitelistAudio: string[];
-    private _whitelistVideo: string[];
 
     /**
      * Constructs AV moderation room.
      *
      * @param {ChatRoom} room the main room.
      */
-    constructor(room: IChatRoom) {
+    private _xmpp: XMPP;
+    private _mainRoom: ChatRoom;
+    private _moderationEnabledByType: IModerationEnabledByType;
+    private _whitelistAudio: string[];
+    private _whitelistVideo: string[];
+
+    constructor(room: ChatRoom) {
         this._xmpp = room.xmpp;
 
         this._mainRoom = room;
 
         this._moderationEnabledByType = {
             [MediaType.AUDIO]: false,
-            [MediaType.VIDEO]: false,
-            [MediaType.APPLICATION]: false
+            [MediaType.VIDEO]: false
         };
 
         this._whitelistAudio = [];
@@ -66,14 +66,14 @@ export default class AVModeration {
      *
      * @returns {boolean} whether AV moderation is supported on backend.
      */
-    isSupported(): boolean {
+    isSupported() {
         return Boolean(this._xmpp.avModerationComponentAddress);
     }
 
     /**
      * Enables or disables AV Moderation by sending a msg with command to the component.
      */
-    enable(state: boolean, mediaType: MediaType) {
+    enable(state: string, mediaType: MediaType) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
             logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
@@ -146,7 +146,7 @@ export default class AVModeration {
      * @param obj the parsed json content of the message to process.
      * @private
      */
-    private _onMessage(obj: IAVModerationMessage) {
+    _onMessage(obj: IMessageObject) {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {
