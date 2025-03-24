@@ -676,6 +676,22 @@ export default class ChatRoom extends Listenable {
                 // meeting Id if any
                 !this.options.disableDiscoInfo && this.discoRoomInfo();
             }
+
+            if (xElement && $(xElement).find('>status[code="110"]').length) {
+                // let's check for some backend forced permissions
+
+                const permissions = $(pres).find('>permissions[xmlns="http://jitsi.org/jitmeet"]>p');
+
+                if (permissions.length) {
+                    const permissionsMap = {};
+
+                    permissions.each((idx, p) => {
+                        permissionsMap[p.getAttribute('name')] = p.getAttribute('val');
+                    });
+
+                    this.eventEmitter.emit(XMPPEvents.PERMISSIONS_RECEIVED, permissionsMap);
+                }
+            }
         } else if (jid === undefined) {
             logger.info('Ignoring member with undefined JID');
         } else if (this.members[from] === undefined) {

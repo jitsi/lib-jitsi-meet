@@ -51,6 +51,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
+    this.chatRoomForwarder.forward(XMPPEvents.PERMISSIONS_RECEIVED, JitsiConferenceEvents.PERMISSIONS_RECEIVED);
+
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         actor => {
             // TODO: Add a way to differentiate between commands which caused

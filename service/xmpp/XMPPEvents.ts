@@ -246,6 +246,11 @@ export enum XMPPEvents {
     PASSWORD_REQUIRED = 'xmpp.password_required',
 
     /**
+     * Event fired when we receive a self-presence with permissions.
+     */
+    PERMISSIONS_RECEIVED = 'xmpp.permissions_received',
+
+    /**
      * Indicates that phone number changed.
      */
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
