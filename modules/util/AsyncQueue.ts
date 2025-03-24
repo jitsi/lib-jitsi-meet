@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { queue } from 'async-es';
+import { queue, AsyncQueue as AsyncQueueType } from 'async-es';
 
 const logger = getLogger('modules/util/AsyncQueue');
 
@@ -10,16 +10,23 @@ export class ClearedQueueError extends Error {
     /**
      * Creates new instance.
      */
-    constructor(message) {
+    constructor(message: string) {
         super(message);
         this.name = 'ClearedQueueError';
     }
 }
 
+export type Task = (callback: (err?: Error) => void) => void;
+export type TaskCallback = (err?: Error) => void;
+
 /**
  * A queue for async task execution.
  */
 export default class AsyncQueue {
+    private _queue: AsyncQueueType<Task>;
+    private _stopped: boolean;
+    private _taskCallbacks: Map<Task, TaskCallback | undefined>;
+
     /**
      * Creates new instance.
      */
@@ -32,7 +39,7 @@ export default class AsyncQueue {
     /**
      * Removes any pending tasks from the queue.
      */
-    clear() {
+    clear(): void {
         for (const finishedCallback of this._taskCallbacks.values()) {
             try {
                 finishedCallback?.(new ClearedQueueError('The queue has been cleared'));
@@ -46,7 +53,7 @@ export default class AsyncQueue {
     /**
      * Internal task processing implementation which makes things work.
      */
-    _processQueueTasks(task, finishedCallback) {
+    private _processQueueTasks(task: Task, finishedCallback: TaskCallback): void {
         try {
             task(finishedCallback);
         } catch (error) {
@@ -60,7 +67,7 @@ export default class AsyncQueue {
     /**
      * Pauses the execution of the tasks on the queue.
      */
-    pause() {
+    pause(): void {
         this._queue.pause();
     }
 
@@ -78,10 +85,10 @@ export default class AsyncQueue {
      *     }
      * });
      *
-     * @param {function} task - The task to be executed. See the description above.
-     * @param {function} [callback] - Optional callback to be called after the task has been executed.
+     * @param {Task} task - The task to be executed. See the description above.
+     * @param {TaskCallback} [callback] - Optional callback to be called after the task has been executed.
      */
-    push(task, callback) {
+    push(task: Task, callback?: TaskCallback): void {
         if (this._stopped) {
             callback && callback(new Error('The queue has been stopped'));
 
@@ -94,7 +101,7 @@ export default class AsyncQueue {
     /**
      * Resumes the execution of the tasks on the queue.
      */
-    resume() {
+    resume(): void {
         this._queue.resume();
     }
 
@@ -102,7 +109,7 @@ export default class AsyncQueue {
      * Shutdowns the queue. All already queued tasks will execute, but no future tasks can be added. If a task is added
      * after the queue has been shutdown then the callback will be called with an error.
      */
-    shutdown() {
+    shutdown(): void {
         this._stopped = true;
     }
 }

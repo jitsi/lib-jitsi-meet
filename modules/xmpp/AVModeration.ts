@@ -1,8 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg } from 'strophe.js';
-
 import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import ChatRoom from './ChatRoom';
+import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/AVModeration');
 
@@ -24,7 +25,7 @@ export interface IAVModerationMessage {
  * The AVModeration logic.
  */
 export default class AVModeration {
-    private _xmpp: any;
+    private _xmpp: XMPP;
     private _mainRoom: IChatRoom;
     private _moderationEnabledByType: { [key in MediaType]: boolean };
     private _whitelistAudio: string[];
