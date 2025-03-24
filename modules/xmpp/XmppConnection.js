@@ -63,6 +63,18 @@ export default class XmppConnection extends Listenable {
         };
 
         this._stropheConn = new Strophe.Connection(serviceUrl);
+
+        // The mechanisms priorities as defined by Strophe
+        // *      Mechanism       Priority
+        // *      ------------------------
+        // *      SCRAM-SHA-1     60
+        // *      PLAIN           50
+        // *      ANONYMOUS       20
+        this._stropheConn.registerSASLMechanisms([
+            Strophe.SASLAnonymous,
+            Strophe.SASLPlain,
+            Strophe.SASLSHA1
+        ]);
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
         // The default maxRetries is 5, which is too long.

@@ -78,5 +78,10 @@ export class MockStropheConnection extends Listenable {
         this.sentIQs.push(iq);
         resultCb && resultCb();
     }
+
+    /**
+     * {@see Strophe.Connection.registerSASLMechanisms}.
+     */
+    registerSASLMechanisms() {}
 }
 /* eslint-enable no-empty-function */
