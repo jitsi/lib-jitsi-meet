@@ -663,7 +663,7 @@ export default class ChatRoom extends Listenable {
                 // Re-send presence in case any presence updates were added,
                 // but blocked from sending, during the join process.
                 // send the presence only if there was a modification after we had synced it
-                if (this.presenceUpdateTime >= this.presenceSyncTime) {
+                if (this.presenceUpdateTime > this.presenceSyncTime) {
                     this.sendPresence();
                 }
 
