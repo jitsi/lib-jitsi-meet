@@ -1,8 +1,9 @@
-import * as exported from "./Resolutions";
+import Resolutions from "./Resolutions";
 
 // this test is brittle on purpose because it's designed to ensure that the TypeScript conversion maintains backward compatibility
 
 describe( "/service/RTC/Resolutions members", () => {
+    const exported = Resolutions;
     const {
         '2160': R2160,
         '4k': R4k,
