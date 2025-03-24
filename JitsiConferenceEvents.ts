@@ -324,6 +324,11 @@ export enum JitsiConferenceEvents {
     PARTICIPANT_SOURCE_UPDATED = 'conference.participant_source_updated',
 
     /**
+     * Indicates that the permissions for the local participant were updated.
+     */
+    PERMISSIONS_RECEIVED = 'conference.permissions_received',
+
+    /**
      * Indicates that phone number changed.
      */
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
@@ -560,6 +565,7 @@ export const NON_PARTICIPANT_MESSAGE_RECEIVED = JitsiConferenceEvents.NON_PARTIC
 export const P2P_STATUS = JitsiConferenceEvents.P2P_STATUS;
 export const PARTICIPANT_KICKED = JitsiConferenceEvents.PARTICIPANT_KICKED;
 export const PARTICIPANT_SOURCE_UPDATED = JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED;
+export const PERMISSIONS_RECEIVED = JitsiConferenceEvents.PERMISSIONS_RECEIVED;
 export const PRIVATE_MESSAGE_RECEIVED = JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED;
 export const PARTCIPANT_FEATURES_CHANGED = JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED;
 export const PARTICIPANT_PROPERTY_CHANGED = JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED;
