@@ -10,6 +10,22 @@ export interface ISourceInfo {
     videoType: string;
 }
 
+export interface IJwtIdentity {
+    callee?: {
+        avatar: string;
+        id: string;
+        name: string;
+    };
+    group: string;
+    user: {
+        avatar: string;
+        email: string;
+        id: string;
+        name: string;
+    };
+}
+
+
 /**
  * Represents a participant in (i.e. a member of) a conference.
  */
@@ -190,10 +206,10 @@ export default class JitsiParticipant {
      * Returns the XMPP identity. This is defined by your application in the
      * JWT `context` claims section.
      *
-     * @returns {object|undefined} - XMPP user identity.
+     * @returns {IJwtIdentity|undefined} - XMPP user identity.
      */
-    getIdentity(): object | undefined {
-        return this._identity;
+    getIdentity(): IJwtIdentity | undefined {
+        return this._identity as IJwtIdentity;
     }
 
     /**
