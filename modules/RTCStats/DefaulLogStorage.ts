@@ -22,7 +22,7 @@ export default class DefaultLogStorage {
      * <tt>false</tt> otherwise.
      */
     isReady() {
-        return this.rtcStats._initialized;
+        return this.rtcStats.isTraceAvailable();
     }
 
     /**
