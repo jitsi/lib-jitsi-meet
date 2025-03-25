@@ -25,7 +25,7 @@ const logger = getLogger('modules/RTCStats/RTCStats');
  */
 class RTCStats {
     public events: EventEmitter = new EventEmitter();
-    public _attachedAtConnection: boolean = true;
+    public _startedWithNewConnection: boolean = true;
     private _defaultLogCollector: any = null;
     private _initialized: boolean = false;
     private _trace: any = null;
@@ -66,21 +66,28 @@ class RTCStats {
         this._initialized = true;
     }
 
+    isTraceAvailable() {
+        return this._trace !== null;
+    }
+
     /**
      * A JitsiConnection instance is created before the conference is joined, so even though
      * we don't have any conference specific data yet, we can initialize the trace module and
-     * send any logs that might of otherwise be missed if case an error occurs between the connection
+     * send any logs that might of otherwise be missed in case an error occurs between the connection
      * and conference initialization.
+     * 
+     * @param name - The name of the conference.
+     * @param options - The config options available at JitsiConnection level.
+     * @returns {void}
      */
-    attachToConnection(initConfig: IRTCStatsConfiguration) {
+    startWithConnection(name: string, options: any) {
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
                 rtcstatsEndpoint: endpoint = '',
                 rtcstatsEnabled = false
             } = {},
-            confName: meetingFqn = ''
-        } = initConfig;
+        } = options;
 
         // Even though we have options being passed to init we need to recheck it as some client (react-native)
         // don't always re-initialize the module and could create multiple connections with different options.
@@ -95,13 +102,20 @@ class RTCStats {
 
         const traceOptions: ITraceOptions = {
             endpoint,
-            meetingFqn,
+            meetingFqn: name,
             useLegacy,
             isBreakoutRoom: false
         };
 
         // Can't be a breakout room.
         this._connectTrace(traceOptions);
+
+        this._defaultLogCollector?.flush();
+
+        this.sendIdentity({
+            confName: name,
+            ...options
+        });
 
         // This module is tightly tied with the ljm JitsiConnection and JitsiConference flows, technically 
         // the connection isn't associated with a conference, but we still need to have some association for 
@@ -113,7 +127,7 @@ class RTCStats {
         // 4. If the trace wasn't already initialized from the connection creation, it will be initialized again.
         // this will take care of the cases where the connection is created and then multiple conferences are 
         // sequentially joined and left, such as breakout rooms.
-        this._attachedAtConnection = true;
+        this._startedWithNewConnection = true;
     }
 
     /**
@@ -164,13 +178,9 @@ class RTCStats {
             return;
         }
 
-        // Make an attempt to flush in case a lot of logs have been cached
-        this._defaultLogCollector?.flush();
-
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
         conference.once(CONFERENCE_JOINED, () => {
-
             const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
@@ -178,7 +188,7 @@ class RTCStats {
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            if (!this._attachedAtConnection) {
+            if (!this._startedWithNewConnection) {
                 const traceOptions = {
                     endpoint,
                     meetingFqn: confName,
@@ -187,6 +197,11 @@ class RTCStats {
                 };
 
                 this._connectTrace(traceOptions);
+
+                // In cases where the conference was left but the connection was not closed,
+                // logs could get cached, so we flush them as soon as we get a chance after the
+                // conference is joined.
+                this._defaultLogCollector?.flush();
             }
 
             const identityData = {
@@ -201,7 +216,7 @@ class RTCStats {
 
             this.sendIdentity(identityData);
             // Reset the flag, so that the next conference that is joined will have the trace module initialized, such as a breakout room.
-            this._attachedAtConnection = false;
+            this._startedWithNewConnection = false;
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
@@ -231,7 +246,7 @@ class RTCStats {
      */
     _connectTrace(traceOptions: ITraceOptions) {
 
-        const traceOptionsComplete = { 
+         const traceOptionsComplete = { 
             ...traceOptions,
             onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
         };
@@ -262,7 +277,9 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
-        this.clearDefaultLogCollector();
+        // If a trace is connected, flush the remaining logs before closing the connection,
+        // if the trace is not present and we flush the logs will be lost,
+        this._trace && this._defaultLogCollector?.flush();
         this._trace?.close();
         this._trace = null;
     }
@@ -281,21 +298,14 @@ class RTCStats {
     /**
      * Creates a new log collector with the default log storage.
      */
-    getDefaultLogCollector() {
+    getDefaultLogCollector(maxEntryLength) {
         if (!this._defaultLogCollector) {
-            this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this));
+            // If undefined is passed  as maxEntryLength LogCollector will default to 10000 bytes
+            this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this), { maxEntryLength });
             this._defaultLogCollector.start();
         }
 
         return this._defaultLogCollector;
-    }
-
-    /**
-     * Clears the collector and stops it.
-     */
-    clearDefaultLogCollector() {
-        this._defaultLogCollector?.stop();
-        this._defaultLogCollector = null;
     }
 }
 

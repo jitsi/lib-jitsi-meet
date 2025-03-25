@@ -8,7 +8,6 @@ export interface IRTCStatsConfiguration {
         rtcstatsStoreLogs?: boolean;
         rtcstatsUseLegacy?: boolean;
     },
-    confName: string;
 }
 
 export interface ITraceOptions {

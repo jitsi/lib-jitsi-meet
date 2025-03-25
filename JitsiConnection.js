@@ -33,9 +33,6 @@ export default function JitsiConnection(appID, token, options) {
 
     this.xmpp = new XMPP(options, token);
 
-
-    RTCStats.attachToConnection(options);
-
     /* eslint-disable max-params */
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg, credentials, details) => {
@@ -70,6 +67,9 @@ export default function JitsiConnection(appID, token, options) {
  * to be used.
  */
 JitsiConnection.prototype.connect = function(options = {}) {
+
+    RTCStats.startWithConnection(options.name, this.options);
+
     // if we get redirected, we set disableFocus to skip sending the conference request twice
     if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
         this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name))
