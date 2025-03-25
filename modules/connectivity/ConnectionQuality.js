@@ -209,6 +209,11 @@ export default class ConnectionQuality {
                     this._maybeUpdateUnmuteTime();
                 }
             });
+
+        conference.on(ConferenceEvents.VIDEO_CODEC_CHANGED, this._resetVideoUnmuteTime.bind(this));
+
+        conference.on(ConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, this._resetVideoUnmuteTime.bind(this));
+
         conference.rtc.on(
             RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
             track => {
@@ -228,6 +233,17 @@ export default class ConnectionQuality {
                     = Number((properties || {})['bridge-count']);
             }
         );
+    }
+
+    /**
+     * Resets the time video was unmuted and triggers a new ramp-up.
+     *
+     * @private
+     * @returns {void}
+     */
+    _resetVideoUnmuteTime() {
+        this._timeVideoUnmuted = -1;
+        this._maybeUpdateUnmuteTime();
     }
 
     /**

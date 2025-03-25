@@ -449,6 +449,11 @@ export enum JitsiConferenceEvents {
     USER_STATUS_CHANGED = 'conference.statusChanged',
 
     /**
+     * Indicates that the video codec of the local video track has changed.
+     */
+    VIDEO_CODEC_CHANGED = 'conference.videoCodecChanged',
+
+    /**
      * Indicates that video SIP GW state changed.
      * @param {VideoSIPGWConstants} status.
      */
@@ -579,6 +584,7 @@ export const USER_JOINED = JitsiConferenceEvents.USER_JOINED;
 export const USER_LEFT = JitsiConferenceEvents.USER_LEFT;
 export const USER_ROLE_CHANGED = JitsiConferenceEvents.USER_ROLE_CHANGED;
 export const USER_STATUS_CHANGED = JitsiConferenceEvents.USER_STATUS_CHANGED;
+export const VIDEO_CODEC_CHANGED = JitsiConferenceEvents.VIDEO_CODEC_CHANGED;
 export const VIDEO_SIP_GW_AVAILABILITY_CHANGED = JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED;
 export const VIDEO_SIP_GW_SESSION_STATE_CHANGED = JitsiConferenceEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED;
 export const VIDEO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.VIDEO_UNMUTE_PERMISSIONS_CHANGED;

@@ -1424,11 +1424,13 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  *
  * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
  * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
- * @returns {void}
+ * @returns {boolean} - Returns true if the codec settings were updated, false otherwise.
  */
 TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
+    let updated = false;
+
     if (!this.codecSettings || !codecList?.length) {
-        return;
+        return updated;
     }
 
     this.codecSettings.codecList = codecList;
@@ -1437,7 +1439,7 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
     }
 
     if (!this.usesCodecSelectionAPI()) {
-        return;
+        return updated;
     }
 
     for (const track of this.getLocalVideoTracks()) {
@@ -1445,10 +1447,14 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
 
         if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
             this.configureVideoSenderEncodings(track, screenshareCodec);
+            updated = true;
         } else if (currentCodec !== codecList[0]) {
             this.configureVideoSenderEncodings(track);
+            updated = true;
         }
     }
+
+    return updated;
 };
 
 /**
