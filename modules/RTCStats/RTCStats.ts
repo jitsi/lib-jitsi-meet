@@ -95,7 +95,7 @@ class RTCStats {
 
         // If rtcstats proxy module is not initialized, do nothing (should never happen).
         if (!this._initialized) {
-            logger.error('Calling attachToConnection before RTCStats proxy module is initialized.');
+            logger.error('Calling startWithConnection before RTCStats proxy module is initialized.');
 
             return;
         }
