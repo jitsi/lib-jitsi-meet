@@ -84,8 +84,8 @@ type desktopSharingSourceType = 'screen' | 'window';
 
 interface IJitsiMeetJSOptions {
     analytics?: {
-        rtcstatsStoreLogs?: boolean;
         rtcstatsLogFlushSizeBytes?: number;
+        rtcstatsStoreLogs?: boolean;
     };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     enableAnalyticsLogging?: boolean;

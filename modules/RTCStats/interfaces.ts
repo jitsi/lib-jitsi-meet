@@ -7,7 +7,7 @@ export interface IRTCStatsConfiguration {
         rtcstatsSendSdp?: boolean;
         rtcstatsStoreLogs?: boolean;
         rtcstatsUseLegacy?: boolean;
-    },
+    };
 }
 
 export interface ITraceOptions {

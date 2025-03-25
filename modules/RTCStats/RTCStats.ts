@@ -75,7 +75,7 @@ class RTCStats {
      * we don't have any conference specific data yet, we can initialize the trace module and
      * send any logs that might of otherwise be missed in case an error occurs between the connection
      * and conference initialization.
-     * 
+     *
      * @param name - The name of the conference.
      * @param options - The config options available at JitsiConnection level.
      * @returns {void}
@@ -117,15 +117,15 @@ class RTCStats {
             ...options
         });
 
-        // This module is tightly tied with the ljm JitsiConnection and JitsiConference flows, technically 
-        // the connection isn't associated with a conference, but we still need to have some association for 
+        // This module is tightly tied with the ljm JitsiConnection and JitsiConference flows, technically
+        // the connection isn't associated with a conference, but we still need to have some association for
         // data that is logged before the conference is joined.
         // In short the flow is as follows:
         // 1. Connection is created.
         // 2. The trace module is initialized and connected to the rtcstats server, so data starts being sent.
         // 3. Conference is created.
         // 4. If the trace wasn't already initialized from the connection creation, it will be initialized again.
-        // this will take care of the cases where the connection is created and then multiple conferences are 
+        // this will take care of the cases where the connection is created and then multiple conferences are
         // sequentially joined and left, such as breakout rooms.
         this._startedWithNewConnection = true;
     }
@@ -246,9 +246,9 @@ class RTCStats {
      */
     _connectTrace(traceOptions: ITraceOptions) {
 
-         const traceOptionsComplete = { 
+        const traceOptionsComplete = {
             ...traceOptions,
-            onCloseCallback: (event) => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
+            onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
         };
 
         const { isBreakoutRoom } = traceOptionsComplete;
