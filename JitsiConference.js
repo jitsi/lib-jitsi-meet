@@ -41,6 +41,7 @@ import { getJitterDelay } from './modules/util/Retry';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import MediaSessionEvents from './modules/xmpp/MediaSessionEvents';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import {
     FEATURE_E2EE,
@@ -2279,6 +2280,10 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 if (!this.isP2PActive()) {
                     this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, jingleSession);
                 }
+
+                jingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                    this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
+                });
             },
             error => {
                 logger.error('Failed to accept incoming Jingle session', error);
@@ -2998,6 +3003,10 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             this.eventEmitter.emit(
                 JitsiConferenceEvents._MEDIA_SESSION_STARTED,
                 jingleSession);
+
+            jingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
+            });
         },
         error => {
             logger.error(
@@ -3347,6 +3356,10 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
     const localTracks = this.getLocalTracks();
 
     this.p2pJingleSession.invite(localTracks);
+
+    this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+        this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
+    });
 };
 
 /**

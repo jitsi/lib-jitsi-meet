@@ -52,6 +52,7 @@ describe( "/JitsiConferenceEvents members", () => {
         PHONE_NUMBER_CHANGED,
         PROPERTIES_CHANGED,
         RECORDER_STATE_CHANGED,
+        VIDEO_CODEC_CHANGED,
         VIDEO_SIP_GW_AVAILABILITY_CHANGED,
         VIDEO_SIP_GW_SESSION_STATE_CHANGED,
         START_MUTED_POLICY_CHANGED,
@@ -136,6 +137,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
         expect( PROPERTIES_CHANGED ).toBe( 'conference.propertiesChanged' );
         expect( RECORDER_STATE_CHANGED ).toBe( 'conference.recorderStateChanged' );
+        expect( VIDEO_CODEC_CHANGED ).toBe( 'conference.videoCodecChanged' );
         expect( VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );
         expect( VIDEO_SIP_GW_SESSION_STATE_CHANGED ).toBe( 'conference.videoSIPGWSessionStateChanged' );
         expect( VISITORS_SUPPORTED_CHANGED ).toBe( 'conference.visitorsSupported' );
