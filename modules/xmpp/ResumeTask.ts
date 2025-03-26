@@ -5,16 +5,21 @@ import {
     default as NetworkInfo
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
+import Strophe from 'strophe';
+
+declare module 'strophe' {
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+    interface Connection {
+        service: string;
+        streamManagement: {
+            getResumeToken: () => string | null;
+            resume: () => void;
+        };
+    }
+}
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 
-export interface IStropheConnection {
-    service: string;
-    streamManagement: {
-        getResumeToken: () => string | null;
-        resume: () => void;
-    };
-}
 
 export interface INetworkInfoEvent {
     isOnline: boolean;
@@ -27,7 +32,7 @@ export interface INetworkInfoEvent {
  * the retry interval using the full jitter pattern.
  */
 export default class ResumeTask {
-    private _stropheConn: IStropheConnection;
+    private _stropheConn: Strophe.Connection;
     private _resumeRetryN: number;
     private _retryDelay: number | undefined;
     private _resumeTimeout: NodeJS.Timeout | undefined;
@@ -37,7 +42,7 @@ export default class ResumeTask {
      * Initializes new {@code RetryTask}.
      * @param {Strophe.Connection} stropheConnection - The Strophe connection instance.
      */
-    constructor(stropheConnection: IStropheConnection) {
+    constructor(stropheConnection: Strophe.Connection) {
         this._stropheConn = stropheConnection;
         this._resumeRetryN = 0;
         this._retryDelay = undefined;
