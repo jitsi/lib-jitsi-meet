@@ -1,7 +1,7 @@
 /**
  * Compares two byteArrays for equality.
  */
-export function isArrayEqual(a1, a2) {
+export function isArrayEqual(a1: Uint8Array, a2: Uint8Array): boolean {
     if (a1.byteLength !== a2.byteLength) {
         return false;
     }

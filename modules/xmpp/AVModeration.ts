@@ -1,10 +1,25 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg } from 'strophe.js';
-
 import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import ChatRoom from './ChatRoom';
+import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/AVModeration');
+
+export interface IModerationEnabledByType {
+    audio: boolean;
+    video: boolean;
+}
+
+export interface IMessageObject {
+    actor: string;
+    approved: boolean;
+    enabled: boolean;
+    mediaType: MediaType;
+    removed: boolean;
+    whitelists: { audio: string[]; video: string[]; };
+}
 
 /**
  * The AVModeration logic.
@@ -16,7 +31,13 @@ export default class AVModeration {
      *
      * @param {ChatRoom} room the main room.
      */
-    constructor(room) {
+    private _xmpp: XMPP;
+    private _mainRoom: ChatRoom;
+    private _moderationEnabledByType: IModerationEnabledByType;
+    private _whitelistAudio: string[];
+    private _whitelistVideo: string[];
+
+    constructor(room: ChatRoom) {
         this._xmpp = room.xmpp;
 
         this._mainRoom = room;
@@ -52,7 +73,7 @@ export default class AVModeration {
     /**
      * Enables or disables AV Moderation by sending a msg with command to the component.
      */
-    enable(state, mediaType) {
+    enable(state: string, mediaType: MediaType) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
             logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
@@ -80,7 +101,7 @@ export default class AVModeration {
     /**
      * Approves that a participant can unmute by sending a msg with its jid to the component.
      */
-    approve(mediaType, jid) {
+    approve(mediaType: MediaType, jid: string) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
             logger.error(`Cannot approve in AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
@@ -101,7 +122,7 @@ export default class AVModeration {
     /**
      * Rejects that a participant can unmute by sending a msg with its jid to the component.
      */
-    reject(mediaType, jid) {
+    reject(mediaType: MediaType, jid: string) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
             logger.error(`Cannot reject in AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
@@ -125,7 +146,7 @@ export default class AVModeration {
      * @param obj the parsed json content of the message to process.
      * @private
      */
-    _onMessage(obj) {
+    _onMessage(obj: IMessageObject) {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {

@@ -5,15 +5,16 @@ import Listenable from '../util/Listenable';
  * @param {Class} base the definition of the class that will be extended by
  * ConnectionPlugin
  */
-function getConnectionPluginDefinition(base = class {}) {
+function getConnectionPluginDefinition<T extends new (...args: any[]) => {}>(base: T = class {} as T) {
     /**
      * Base class for strophe connection plugins.
      */
     return class extends base {
+        connection: any | null;
         /**
          *
          */
-        constructor(...args) {
+        constructor(...args: any[]) {
             super(...args);
             this.connection = null;
         }
@@ -22,7 +23,7 @@ function getConnectionPluginDefinition(base = class {}) {
          *
          * @param connection
          */
-        init(connection) {
+        init(connection: any): void {
             this.connection = connection;
         }
     };
@@ -36,5 +37,4 @@ export default getConnectionPluginDefinition();
 /**
  * ConnectionPlugin class that extends Listenable.
  */
-export const ConnectionPluginListenable
-    = getConnectionPluginDefinition(Listenable);
+export const ConnectionPluginListenable = getConnectionPluginDefinition(Listenable);

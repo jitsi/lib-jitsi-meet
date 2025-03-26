@@ -1,4 +1,4 @@
-import EventEmitter from './EventEmitter';
+import EventEmitter, { EventListener } from './EventEmitter';
 
 /**
  * The class implements basic event operations - add/remove listener.
@@ -6,6 +6,12 @@ import EventEmitter from './EventEmitter';
  * this functionality to other classes.
  */
 export default class Listenable {
+    public eventEmitter: EventEmitter;
+    public addEventListener: typeof EventEmitter.prototype.addListener;
+    public removeEventListener: typeof EventEmitter.prototype.removeListener;
+    public on: typeof EventEmitter.prototype.addListener;
+    public off: typeof EventEmitter.prototype.removeListener;
+
     /**
      * Creates new instance.
      * @constructor
@@ -24,7 +30,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {Function} - The unsubscribe function.
      */
-    addCancellableListener(eventName, listener) {
+    addCancellableListener(eventName: string, listener: EventListener): () => void {
         this.addListener(eventName, listener);
 
         return () => this.removeListener(eventName, listener);
@@ -36,7 +42,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
-    addListener(eventName, listener) {
+    addListener(eventName: string, listener: EventListener): EventEmitter {
         return this.eventEmitter.addListener(eventName, listener);
     }
 
@@ -47,7 +53,7 @@ export default class Listenable {
      * @param {Function} listener the listener.
      * @returns {EventEmitter} - The emitter, so that calls can be chained.
      */
-    removeListener(eventName, listener) {
+    removeListener(eventName: string, listener: EventListener): EventEmitter {
         return this.eventEmitter.removeListener(eventName, listener);
     }
 
@@ -55,7 +61,7 @@ export default class Listenable {
      * Emits an event.
      * @param {string} event - event name
      */
-    emit(event, ...args) {
+    emit(event: string, ...args: any[]): void {
         this.eventEmitter.emit(event, ...args);
     }
 }

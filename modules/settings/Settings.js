@@ -2,7 +2,7 @@ import { jitsiLocalStorage } from '@jitsi/js-utils';
 import { getLogger } from '@jitsi/logger';
 import { v4 as uuidv4 } from 'uuid';
 
-import UsernameGenerator from '../util/UsernameGenerator';
+import { generateUsername } from '../util/UsernameGenerator';
 
 const logger = getLogger('modules/settings/Settings');
 
@@ -95,7 +95,7 @@ export default {
  * @returns {string} the random ID
  */
 function _generateStatsId() {
-    const username = UsernameGenerator.generateUsername();
+    const username = generateUsername();
 
     logger.log('generated stats id', username);
 

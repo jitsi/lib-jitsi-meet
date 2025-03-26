@@ -1,4 +1,12 @@
 /**
+ * Interface for face landmarks.
+ */
+interface IFaceLandmarks {
+    duration: number;
+    faceExpression: string;
+}
+
+/**
  * A model for keeping track of each user's total
  * time as a dominant speaker. The model also
  * keeps track of the user's last known name
@@ -6,6 +14,16 @@
  * which is also tracked.
  */
 class SpeakerStats {
+    private _userId: string;
+    private displayName: string;
+    private _isLocalStats: boolean;
+    private totalDominantSpeakerTime: number;
+    private _dominantSpeakerStart: number;
+    private _isDominantSpeaker: boolean;
+    private _isSilent: boolean;
+    private _hasLeft: boolean;
+    private _faceLandmarks: IFaceLandmarks[];
+
     /**
      * Initializes a new SpeakerStats instance.
      *
@@ -16,11 +34,11 @@ class SpeakerStats {
      * the local user.
      * @returns {void}
      */
-    constructor(userId, displayName, isLocalStats) {
+    constructor(userId: string, displayName: string, isLocalStats: boolean) {
         this._userId = userId;
         this.setDisplayName(displayName);
         this._isLocalStats = isLocalStats || false;
-        this.setDominantSpeaker(false);
+        this.setDominantSpeaker(false, false);
         this.totalDominantSpeakerTime = 0;
         this._dominantSpeakerStart = 0;
         this._isDominantSpeaker = false;
@@ -34,7 +52,7 @@ class SpeakerStats {
      *
      * @returns {string} The user id.
      */
-    getUserId() {
+    getUserId(): string {
         return this._userId;
     }
 
@@ -43,17 +61,17 @@ class SpeakerStats {
      *
      * @returns {string} The user name.
      */
-    getDisplayName() {
+    getDisplayName(): string {
         return this.displayName;
     }
 
     /**
      * Updates the last known name of the user being tracked.
      *
-     * @param {string} - The user name.
+     * @param {string} newName - The user name.
      * @returns {void}
      */
-    setDisplayName(newName) {
+    setDisplayName(newName: string): void {
         this.displayName = newName;
     }
 
@@ -62,7 +80,7 @@ class SpeakerStats {
      *
      * @returns {boolean}
      */
-    isLocalStats() {
+    isLocalStats(): boolean {
         return this._isLocalStats;
     }
 
@@ -71,7 +89,7 @@ class SpeakerStats {
      *
      * @returns {boolean}
      */
-    isDominantSpeaker() {
+    isDominantSpeaker(): boolean {
         return this._isDominantSpeaker;
     }
 
@@ -81,10 +99,10 @@ class SpeakerStats {
      * @param {boolean} isNowDominantSpeaker - If true, the user will be accumulating time
      * as dominant speaker. If false, the user will not accumulate time
      * and will record any time accumulated since starting as dominant speaker.
-     * @param {boolean} silence - Indecates whether the dominant speaker is silent or not.
+     * @param {boolean} silence - Indicates whether the dominant speaker is silent or not.
      * @returns {void}
      */
-    setDominantSpeaker(isNowDominantSpeaker, silence) {
+    setDominantSpeaker(isNowDominantSpeaker: boolean, silence: boolean): void {
         if (!this.isDominantSpeaker() && isNowDominantSpeaker && !silence) {
             this._dominantSpeakerStart = Date.now();
         } else if (this.isDominantSpeaker()) {
@@ -116,7 +134,7 @@ class SpeakerStats {
      *
      * @returns {number} - The speaker time in milliseconds.
      */
-    getTotalDominantSpeakerTime() {
+    getTotalDominantSpeakerTime(): number {
         let total = this.totalDominantSpeakerTime;
 
         if (this.isDominantSpeaker() && !this._isSilent) {
@@ -131,7 +149,7 @@ class SpeakerStats {
      *
      * @returns {boolean} True if the user is no longer in the meeting.
      */
-    hasLeft() {
+    hasLeft(): boolean {
         return this._hasLeft;
     }
 
@@ -140,39 +158,38 @@ class SpeakerStats {
      *
      * @returns {void}
      */
-    markAsHasLeft() {
+    markAsHasLeft(): void {
         this._hasLeft = true;
-        this.setDominantSpeaker(false);
+        this.setDominantSpeaker(false, false);
     }
 
     /**
      * Gets the face landmarks of the user.
      *
-     * @returns {Object}
+     * @returns {IFaceLandmarks[]}
      */
-    getFaceLandmarks() {
+    getFaceLandmarks(): IFaceLandmarks[] {
         return this._faceLandmarks;
     }
 
     /**
      * Sets the face landmarks of the user.
      *
-     * @param {Object} faceLandmarks - object with face expressions.
+     * @param {IFaceLandmarks[]} faceLandmarks - object with face expressions.
      * @returns {void}
      */
-    setFaceLandmarks(faceLandmarks) {
+    setFaceLandmarks(faceLandmarks: IFaceLandmarks[]): void {
         this._faceLandmarks = faceLandmarks;
     }
 
     /**
      * Adds new face landmarks to speaker stats.
      *
-     * @param  {string} faceExpression
-     * @param {number} duration
+     * @param  {IFaceLandmarks} faceLandmarks
      */
-    addFaceLandmarks(faceLandmarks) {
+    addFaceLandmarks(faceLandmarks: IFaceLandmarks): void {
         this._faceLandmarks.push(faceLandmarks);
     }
 }
 
-module.exports = SpeakerStats;
+export default SpeakerStats;
