@@ -16,8 +16,8 @@ export interface IJwtIdentity {
         id: string;
         name: string;
     };
-    group: string;
-    user: {
+    group?: string;
+    user?: {
         avatar: string;
         email: string;
         id: string;
