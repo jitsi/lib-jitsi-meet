@@ -76,8 +76,6 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         // The current value is 2 minutes.
         this.pingTimestampsToKeep = Math.round(120000 / this.pingInterval);
         this.pingExecIntervals = new Array(this.pingTimestampsToKeep);
-        this.intervalId = null;
-        this._lastServerCheck = Date.now();
     }
 
     /**
@@ -121,9 +119,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param remoteJid remote JID to which ping requests will be sent to.
      */
     startInterval(remoteJid: string): void {
-        if (this.intervalId !== null) {
-            clearInterval(this.intervalId);
-        }
+        clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
 
             // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
