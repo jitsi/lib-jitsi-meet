@@ -68,7 +68,7 @@ export default function JitsiConnection(appID, token, options) {
  */
 JitsiConnection.prototype.connect = function(options = {}) {
 
-    RTCStats.startWithConnection(options.name, this.options);
+    RTCStats.startWithConnection(this);
 
     // if we get redirected, we set disableFocus to skip sending the conference request twice
     if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {

@@ -3,6 +3,7 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import JitsiConference from '../../JitsiConference';
+import JitsiConnection from '../../JitsiConnection';
 import {
     BEFORE_STATISTICS_DISPOSED,
     CONFERENCE_CREATED_TIMESTAMP,
@@ -71,16 +72,17 @@ class RTCStats {
     }
 
     /**
-     * A JitsiConnection instance is created before the conference is joined, so even though
+      * A JitsiConnection instance is created before the conference is joined, so even though
      * we don't have any conference specific data yet, we can initialize the trace module and
      * send any logs that might of otherwise be missed in case an error occurs between the connection
      * and conference initialization.
      *
-     * @param name - The name of the conference.
-     * @param options - The config options available at JitsiConnection level.
+     * @param connection - The JitsiConnection instance.
      * @returns {void}
      */
-    startWithConnection(name: string, options: any) {
+    startWithConnection(connection: JitsiConnection) {
+        const { options } = connection;
+        const name = options?.name ?? '';
         const {
             analytics: {
                 rtcstatsUseLegacy: useLegacy = false,
