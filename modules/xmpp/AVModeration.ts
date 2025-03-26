@@ -7,6 +7,20 @@ import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/AVModeration');
 
+export interface IModerationEnabledByType {
+    audio: boolean;
+    video: boolean;
+}
+
+export interface IMessageObject {
+    actor: string;
+    approved: boolean;
+    enabled: boolean;
+    mediaType: MediaType;
+    removed: boolean;
+    whitelists: { audio: string[]; video: string[]; };
+}
+
 /**
  * The AVModeration logic.
  */
@@ -19,9 +33,9 @@ export default class AVModeration {
      */
     private _xmpp: XMPP;
     private _mainRoom: ChatRoom;
-    private _moderationEnabledByType: { audio: boolean; video: boolean; };
-    private _whitelistAudio: any[];
-    private _whitelistVideo: any[];
+    private _moderationEnabledByType: IModerationEnabledByType;
+    private _whitelistAudio: string[];
+    private _whitelistVideo: string[];
 
     constructor(room: ChatRoom) {
         this._xmpp = room.xmpp;
@@ -132,7 +146,7 @@ export default class AVModeration {
      * @param obj the parsed json content of the message to process.
      * @private
      */
-    _onMessage(obj: { actor: any; approved: any; enabled: any; mediaType: any; removed: any; whitelists: any; }) {
+    _onMessage(obj: IMessageObject) {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {
