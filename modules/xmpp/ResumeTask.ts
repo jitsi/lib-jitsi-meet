@@ -5,18 +5,7 @@ import {
     default as NetworkInfo
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
-import Strophe from 'strophe';
-
-declare module 'strophe' {
-    /* eslint-disable-next-line @typescript-eslint/naming-convention */
-    interface Connection {
-        service: string;
-        streamManagement: {
-            getResumeToken: () => string | null;
-            resume: () => void;
-        };
-    }
-}
+import Strophe from 'strophe.js';
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 
