@@ -1,28 +1,13 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { $iq } from 'strophe.js';
+import type { Connection } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
 const logger = getLogger('modules/xmpp/strophe.rayo');
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
-
-export interface IConnection {
-    addHandler: (
-        handler: (iq: any) => any,
-        xmlns: string,
-        name: string,
-        type: string,
-        id?: string | null,
-        from?: string | null
-    ) => void;
-    sendIQ: (
-        iq: any,
-        success: (result: any) => void,
-        error: (error: any) => void
-    ) => void;
-}
 
 /**
  *
@@ -34,7 +19,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
      *
      * @param connection
      */
-    init(connection: IConnection): void {
+    init(connection: Connection): void {
         super.init(connection);
 
         connection.addHandler(
@@ -100,7 +85,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                 }).up();
             }
 
-            (this.connection as IConnection).sendIQ(
+            (this.connection as Connection).sendIQ(
                 req,
                 result => {
                     logger.info('Dial result ', result);
@@ -143,7 +128,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                 xmlns: RAYO_XMLNS,
             });
 
-            (this.connection as IConnection).sendIQ(
+            (this.connection as Connection).sendIQ(
                 req,
                 result => {
                     logger.info('Hangup result ', result);
