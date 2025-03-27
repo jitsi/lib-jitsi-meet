@@ -3,26 +3,7 @@
  */
 import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
-
-export interface IStrophe {
-    LogLevel: Record<'DEBUG' | 'ERROR' | 'FATAL' | 'WARN', number>;
-    Status: Record<
-        'ATTACHED'
-        | 'AUTHENTICATING'
-        | 'AUTHFAIL'
-        | 'BINDREQUIRED'
-        | 'CONNECTED'
-        | 'CONNECTING'
-        | 'CONNFAIL'
-        | 'DISCONNECTED'
-        | 'DISCONNECTING'
-        | 'ERROR',
-        number
-    >;
-    getLastErrorStatus: () => number;
-    getStatusString: (status: number) => string;
-    log: (level: number, msg: any) => void;
-}
+import type { Strophe as IStrophe } from 'strophe.js';
 
 const logger = getLogger('modules/xmpp/strophe.util');
 
@@ -66,11 +47,6 @@ const lastErrorStatusRegExpr: RegExp
 export default function(): void {
 
     (Strophe as IStrophe).log = function(level: number, msg: any): void {
-        // Our global handler reports uncaught errors to the stats which may
-        // interpret those as partial call failure.
-        // Strophe log entry about secondary request timeout does not mean that
-        // it's a final failure(the request will be restarted), so we lower it's
-        // level here to a warning.
         logger.trace('Strophe', level, msg);
         if (typeof msg === 'string'
                 && msg.indexOf('Request ') !== -1
@@ -79,11 +55,8 @@ export default function(): void {
             level = (Strophe as IStrophe).LogLevel.WARN;
         }
 
-        /* eslint-disable no-case-declarations */
         switch (level) {
         case (Strophe as IStrophe).LogLevel.DEBUG:
-            // The log message which reports successful status is logged on
-            // Strophe's DEBUG level.
             if (lastErrorStatus !== -1
                     && resetLastErrorStatusRegExpr.test(msg)) {
                 logger.debug('Reset lastErrorStatus');
@@ -104,16 +77,8 @@ export default function(): void {
             logger.error(`Strophe: ${msg}`, msg);
             break;
         }
-
-        /* eslint-enable no-case-declarations */
     };
 
-    /**
-     * Returns error status (HTTP error code) of the last BOSH request.
-     *
-     * @return {number} HTTP error code, '0' for unknown or "god knows what"
-     * (this is a hack).
-     */
     (Strophe as IStrophe).getLastErrorStatus = function(): number {
         return lastErrorStatus;
     };
