@@ -82,7 +82,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * Initializes the plugin. Method called by Strophe.
      * @param connection Strophe connection instance.
      */
-    init(connection: any): void {
+    init(connection: Strophe.Connection): void {
         super.init(connection);
         Strophe.addNamespace('PING', 'urn:xmpp:ping');
     }
