@@ -2,11 +2,6 @@ import { Strophe } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
-export interface ILogEntry {
-    direction: 'incoming' | 'outgoing';
-    stanza: any;
-    timestamp: number;
-}
 
 /**
  *  Logs raw stanzas and makes them available for download as JSON
@@ -15,7 +10,7 @@ class StropheLogger extends ConnectionPlugin {
     /**
      *
      */
-    private log: ILogEntry[];
+    private log: any;
 
     /**
      *
