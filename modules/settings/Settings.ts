@@ -6,15 +6,22 @@ import { generateUsername } from '../util/UsernameGenerator';
 
 const logger = getLogger('modules/settings/Settings');
 
-let _callStatsUserName;
+let _callStatsUserName: string | null = null;
 
-let _machineId;
+let _machineId: string | null = null;
 
 /**
  *
  */
-export default {
+export interface ISettings {
+    _storage: Storage;
+    readonly callStatsUserName: string;
+    init: (externalStorage?: Storage) => void;
+    readonly machineId: string;
+    sessionId: string;
+}
 
+const Settings: ISettings = {
     /**
      * The storage used to store the settings.
      */
@@ -26,7 +33,7 @@ export default {
      * @param {Storage|undefined} externalStorage - Object that implements the Storage interface. This object will be
      * used for storing data instead of jitsiLocalStorage if specified.
      */
-    init(externalStorage) {
+    init(externalStorage?: Storage): void {
         this._storage = externalStorage || jitsiLocalStorage;
     },
 
@@ -34,7 +41,7 @@ export default {
      * Returns the ID to use for the purposes of stats, saved in localstorage as "callStatsUserName".
      * @returns {string} fake username for callstats
      */
-    get callStatsUserName() {
+    get callStatsUserName(): string {
         if (!_callStatsUserName) {
             _callStatsUserName = this._storage.getItem('callStatsUserName');
             if (!_callStatsUserName) {
@@ -50,7 +57,7 @@ export default {
      * Returns current machine id.
      * @returns {string} machine id
      */
-    get machineId() {
+    get machineId(): string {
         if (!_machineId) {
             const amDid = this._storage.getItem('billingId');
 
@@ -64,24 +71,24 @@ export default {
             }
         }
 
-        return _machineId;
+        return _machineId!;
     },
 
     /**
      * Returns current session id.
      * @returns {string} current session id
      */
-    get sessionId() {
+    get sessionId(): string {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
-        return this._storage.getItem('sessionId');
+        return this._storage.getItem('sessionId') || '';
     },
 
     /**
      * Save current session id.
      * @param {string} sessionId session id
      */
-    set sessionId(sessionId) {
+    set sessionId(sessionId: string) {
         if (sessionId) {
             this._storage.setItem('sessionId', sessionId);
         } else {
@@ -106,10 +113,12 @@ function _generateStatsId() {
  * Generate unique id.
  * @returns {string} random unique id
  */
-function generateJitsiMeetId() {
+function generateJitsiMeetId(): string {
     const jitsiMeetId = uuidv4().replaceAll('-', '');
 
     logger.log('generated id', jitsiMeetId);
 
     return jitsiMeetId;
 }
+
+export default Settings;
