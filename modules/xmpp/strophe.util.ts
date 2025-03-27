@@ -3,6 +3,7 @@
  */
 import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
+import type { Strophe as IStrophe } from 'strophe.js';
 
 const logger = getLogger('modules/xmpp/strophe.util');
 
@@ -22,7 +23,7 @@ const logger = getLogger('modules/xmpp/strophe.util');
  *
  * @type {number}
  */
-let lastErrorStatus = -1;
+let lastErrorStatus: number = -1;
 
 /**
  * A regular expression used to catch Strophe's log message indicating that the
@@ -30,47 +31,39 @@ let lastErrorStatus = -1;
  * {@link lastErrorStatus} will be set back to '-1'.
  * @type {RegExp}
  */
-const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
+const resetLastErrorStatusRegExpr: RegExp = /request id \d+.\d+ got 200/;
 
 /**
  * A regular expression used to capture the current value of the BOSH request
  * error status (HTTP error code or '0' or something else).
  * @type {RegExp}
  */
-const lastErrorStatusRegExpr
+const lastErrorStatusRegExpr: RegExp
     = /request errored, status: (\d+), number of errors: \d+/;
 
 /**
  *
  */
-export default function() {
+export default function(): void {
 
-    Strophe.log = function(level, msg) {
-        // Our global handler reports uncaught errors to the stats which may
-        // interpret those as partial call failure.
-        // Strophe log entry about secondary request timeout does not mean that
-        // it's a final failure(the request will be restarted), so we lower it's
-        // level here to a warning.
+    (Strophe as IStrophe).log = function(level: number, msg: any): void {
         logger.trace('Strophe', level, msg);
         if (typeof msg === 'string'
                 && msg.indexOf('Request ') !== -1
                 && msg.indexOf('timed out (secondary), restarting') !== -1) {
             // eslint-disable-next-line no-param-reassign
-            level = Strophe.LogLevel.WARN;
+            level = (Strophe as IStrophe).LogLevel.WARN;
         }
 
-        /* eslint-disable no-case-declarations */
         switch (level) {
-        case Strophe.LogLevel.DEBUG:
-            // The log message which reports successful status is logged on
-            // Strophe's DEBUG level.
+        case (Strophe as IStrophe).LogLevel.DEBUG:
             if (lastErrorStatus !== -1
                     && resetLastErrorStatusRegExpr.test(msg)) {
                 logger.debug('Reset lastErrorStatus');
                 lastErrorStatus = -1;
             }
             break;
-        case Strophe.LogLevel.WARN:
+        case (Strophe as IStrophe).LogLevel.WARN:
             logger.warn(`Strophe: ${msg}`);
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
 
@@ -79,46 +72,38 @@ export default function() {
                 logger.debug(`lastErrorStatus set to: ${lastErrorStatus}`);
             }
             break;
-        case Strophe.LogLevel.ERROR:
-        case Strophe.LogLevel.FATAL:
+        case (Strophe as IStrophe).LogLevel.ERROR:
+        case (Strophe as IStrophe).LogLevel.FATAL:
             logger.error(`Strophe: ${msg}`, msg);
             break;
         }
-
-        /* eslint-enable no-case-declarations */
     };
 
-    /**
-     * Returns error status (HTTP error code) of the last BOSH request.
-     *
-     * @return {number} HTTP error code, '0' for unknown or "god knows what"
-     * (this is a hack).
-     */
-    Strophe.getLastErrorStatus = function() {
+    (Strophe as IStrophe).getLastErrorStatus = function(): number {
         return lastErrorStatus;
     };
 
-    Strophe.getStatusString = function(status) {
+    (Strophe as IStrophe).getStatusString = function(status: number): string {
         switch (status) {
-        case Strophe.Status.BINDREQUIRED:
+        case (Strophe as IStrophe).Status.BINDREQUIRED:
             return 'BINDREQUIRED';
-        case Strophe.Status.ERROR:
+        case (Strophe as IStrophe).Status.ERROR:
             return 'ERROR';
-        case Strophe.Status.CONNECTING:
+        case (Strophe as IStrophe).Status.CONNECTING:
             return 'CONNECTING';
-        case Strophe.Status.CONNFAIL:
+        case (Strophe as IStrophe).Status.CONNFAIL:
             return 'CONNFAIL';
-        case Strophe.Status.AUTHENTICATING:
+        case (Strophe as IStrophe).Status.AUTHENTICATING:
             return 'AUTHENTICATING';
-        case Strophe.Status.AUTHFAIL:
+        case (Strophe as IStrophe).Status.AUTHFAIL:
             return 'AUTHFAIL';
-        case Strophe.Status.CONNECTED:
+        case (Strophe as IStrophe).Status.CONNECTED:
             return 'CONNECTED';
-        case Strophe.Status.DISCONNECTED:
+        case (Strophe as IStrophe).Status.DISCONNECTED:
             return 'DISCONNECTED';
-        case Strophe.Status.DISCONNECTING:
+        case (Strophe as IStrophe).Status.DISCONNECTING:
             return 'DISCONNECTING';
-        case Strophe.Status.ATTACHED:
+        case (Strophe as IStrophe).Status.ATTACHED:
             return 'ATTACHED';
         default:
             return 'unknown';
