@@ -42,7 +42,6 @@ class RTCStats {
     init(initConfig: IRTCStatsConfiguration) {
         const {
             analytics: {
-                rtcstatsUseLegacy: useLegacy = false,
                 rtcstatsPollInterval: pollInterval = 10000,
                 rtcstatsSendSdp: sendSdp = false,
                 rtcstatsEnabled = false
@@ -59,7 +58,7 @@ class RTCStats {
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
             { pollInterval,
-                useLegacy,
+                useLegacy: false,
                 sendSdp,
                 eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
         );
@@ -85,7 +84,6 @@ class RTCStats {
         const name = options?.name ?? '';
         const {
             analytics: {
-                rtcstatsUseLegacy: useLegacy = false,
                 rtcstatsEndpoint: endpoint = '',
                 rtcstatsEnabled = false
             } = {},
@@ -105,7 +103,6 @@ class RTCStats {
         const traceOptions: ITraceOptions = {
             endpoint,
             meetingFqn: name,
-            useLegacy,
             isBreakoutRoom: false
         };
 
@@ -153,8 +150,7 @@ class RTCStats {
         const {
             analytics: {
                 rtcstatsEnabled = false,
-                rtcstatsEndpoint: endpoint = '',
-                rtcstatsUseLegacy: useLegacy = false
+                rtcstatsEndpoint: endpoint = ''
             } = {}
         } = confConfig;
 
@@ -194,7 +190,6 @@ class RTCStats {
                 const traceOptions = {
                     endpoint,
                     meetingFqn: confName,
-                    useLegacy,
                     isBreakoutRoom
                 };
 
@@ -250,6 +245,7 @@ class RTCStats {
 
         const traceOptionsComplete = {
             ...traceOptions,
+            useLegacy: false,
             onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
         };
 
