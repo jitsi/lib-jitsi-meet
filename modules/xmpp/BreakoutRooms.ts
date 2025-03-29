@@ -17,39 +17,14 @@ const BREAKOUT_ROOM_EVENTS = {
 
 const logger = getLogger('modules/xmpp/BreakoutRooms');
 
-export interface IChatRoom {
-    eventEmitter: {
-        emit: (event: string, ...args: any[]) => void;
-    };
-    isModerator: () => boolean;
-    myroomjid: string;
-    options: {
-        hiddenDomain?: string;
-    };
-    xmpp: {
-        addListener: (event: string, listener: (payload: IBreakoutRoomsMoveToRoomPayload | IBreakoutRoomsUpdatePayload) => void) => void;
-        breakoutRoomsComponentAddress?: string;
-        breakoutRoomsFeatures?: Record<string, boolean>;
-        connection: {
-            send: (msg: any) => void;
-        };
-        removeListener: (event: string, listener: (payload: IBreakoutRoomsMoveToRoomPayload | IBreakoutRoomsUpdatePayload) => void) => void;
-    };
-}
-
 export interface IBreakoutRoomMessage {
     [key: string]: any;
     type: string;
 }
 
-export interface IParticipant {
-    [key: string]: any;
-    jid: string;
-}
-
 export interface IBreakoutRoom {
     [key: string]: any;
-    participants?: Record<string, IParticipant>;
+    participants?: Record<string, any>;
 }
 
 export interface IBreakoutRoomsUpdatePayload {
@@ -67,7 +42,7 @@ export interface IBreakoutRoomsMoveToRoomPayload {
  * Helper class for handling breakout rooms.
  */
 export default class BreakoutRooms {
-    private room: IChatRoom;
+    private room: any;
     private _rooms: Record<string, IBreakoutRoom>;
     private _isBreakoutRoom?: boolean;
     private _mainRoomJid?: string;
@@ -77,7 +52,7 @@ export default class BreakoutRooms {
      *
      * @param {ChatRoom} room the room we are in.
      */
-    constructor(room: IChatRoom) {
+    constructor(room: any) {
         this.room = room;
 
         this._handleMessages = this._handleMessages.bind(this);
@@ -285,7 +260,7 @@ export default class BreakoutRooms {
 
         Object.entries(rooms).forEach(([ key, room ]) => {
             const { participants = {} } = room;
-            const filteredParticipants: Record<string, IParticipant> = {};
+            const filteredParticipants: Record<string, any> = {};
 
             Object.entries(participants).forEach(([ k, participant ]) => {
                 if (Strophe.getDomainFromJid(participant.jid) !== hiddenDomain) {
