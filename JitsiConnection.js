@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import RTCStats from './modules/RTCStats/RTCStats';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
@@ -66,6 +67,9 @@ export default function JitsiConnection(appID, token, options) {
  * to be used.
  */
 JitsiConnection.prototype.connect = function(options = {}) {
+
+    RTCStats.startWithConnection(this);
+
     // if we get redirected, we set disableFocus to skip sending the conference request twice
     if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
         this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name))

@@ -3,6 +3,7 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import JitsiConference from '../../JitsiConference';
+import JitsiConnection from '../../JitsiConnection';
 import {
     BEFORE_STATISTICS_DISPOSED,
     CONFERENCE_CREATED_TIMESTAMP,
@@ -15,7 +16,7 @@ import EventEmitter from '../util/EventEmitter';
 
 import DefaultLogStorage from './DefaulLogStorage';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
-import { IRTCStatsConfiguration } from './interfaces';
+import { IRTCStatsConfiguration, ITraceOptions } from './interfaces';
 
 const logger = getLogger('modules/RTCStats/RTCStats');
 
@@ -24,10 +25,11 @@ const logger = getLogger('modules/RTCStats/RTCStats');
  * ignored. Config and conference changes are handled by the start method.
  */
 class RTCStats {
+    public events: EventEmitter = new EventEmitter();
+    public _startedWithNewConnection: boolean = true;
+    private _defaultLogCollector: any = null;
     private _initialized: boolean = false;
     private _trace: any = null;
-    public events: EventEmitter = new EventEmitter();
-    private _defaultLogCollector: any = null;
 
     /**
      * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
@@ -40,7 +42,6 @@ class RTCStats {
     init(initConfig: IRTCStatsConfiguration) {
         const {
             analytics: {
-                rtcstatsUseLegacy: useLegacy = false,
                 rtcstatsPollInterval: pollInterval = 10000,
                 rtcstatsSendSdp: sendSdp = false,
                 rtcstatsEnabled = false
@@ -57,12 +58,75 @@ class RTCStats {
         rtcstatsInit(
             { statsEntry: this.sendStatsEntry.bind(this) },
             { pollInterval,
-                useLegacy,
+                useLegacy: false,
                 sendSdp,
                 eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
         );
 
         this._initialized = true;
+    }
+
+    isTraceAvailable() {
+        return this._trace !== null;
+    }
+
+    /**
+      * A JitsiConnection instance is created before the conference is joined, so even though
+     * we don't have any conference specific data yet, we can initialize the trace module and
+     * send any logs that might of otherwise be missed in case an error occurs between the connection
+     * and conference initialization.
+     *
+     * @param connection - The JitsiConnection instance.
+     * @returns {void}
+     */
+    startWithConnection(connection: JitsiConnection) {
+        const { options } = connection;
+        const name = options?.name ?? '';
+        const {
+            analytics: {
+                rtcstatsEndpoint: endpoint = '',
+                rtcstatsEnabled = false
+            } = {},
+        } = options;
+
+        // Even though we have options being passed to init we need to recheck it as some client (react-native)
+        // don't always re-initialize the module and could create multiple connections with different options.
+        if (!rtcstatsEnabled) return;
+
+        // If rtcstats proxy module is not initialized, do nothing (should never happen).
+        if (!this._initialized) {
+            logger.error('Calling startWithConnection before RTCStats proxy module is initialized.');
+
+            return;
+        }
+
+        const traceOptions: ITraceOptions = {
+            endpoint,
+            meetingFqn: name,
+            isBreakoutRoom: false
+        };
+
+        // Can't be a breakout room.
+        this._connectTrace(traceOptions);
+
+        this._defaultLogCollector?.flush();
+
+        this.sendIdentity({
+            confName: name,
+            ...options
+        });
+
+        // This module is tightly tied with the ljm JitsiConnection and JitsiConference flows, technically
+        // the connection isn't associated with a conference, but we still need to have some association for
+        // data that is logged before the conference is joined.
+        // In short the flow is as follows:
+        // 1. Connection is created.
+        // 2. The trace module is initialized and connected to the rtcstats server, so data starts being sent.
+        // 3. Conference is created.
+        // 4. If the trace wasn't already initialized from the connection creation, it will be initialized again.
+        // this will take care of the cases where the connection is created and then multiple conferences are
+        // sequentially joined and left, such as breakout rooms.
+        this._startedWithNewConnection = true;
     }
 
     /**
@@ -74,7 +138,7 @@ class RTCStats {
      * @param conference - JitsiConference instance that's about to start.
      * @returns {void}
      */
-    start(conference: JitsiConference) {
+    attachToConference(conference: JitsiConference) {
         const {
             options: {
                 config: confConfig = {},
@@ -86,8 +150,7 @@ class RTCStats {
         const {
             analytics: {
                 rtcstatsEnabled = false,
-                rtcstatsEndpoint: endpoint = '',
-                rtcstatsUseLegacy: useLegacy = false
+                rtcstatsEndpoint: endpoint = ''
             } = {}
         } = confConfig;
 
@@ -101,10 +164,6 @@ class RTCStats {
         // localId, this is the unique id that is used to track users throughout stats.
         const localId = Settings?.callStatsUserName ?? '';
 
-        // Reset the trace module in case it wasn't during the previous conference.
-        // Closing the underlying websocket connection and deleting the trace obj.
-        this.reset();
-
         // The new conference config might have rtcstats disabled, so we need to check again.
         if (!rtcstatsEnabled) {
             return;
@@ -112,34 +171,35 @@ class RTCStats {
 
         // If rtcstats proxy module is not initialized, do nothing.
         if (!this._initialized) {
-            logger.error('Calling start before RTCStats proxy module is initialized.');
+            logger.error('Calling attachToConference before RTCStats proxy module is initialized.');
 
             return;
         }
 
-        // Make an attempt to flush in case a lot of logs have been cached
-        this._defaultLogCollector?.flush();
-
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
         conference.once(CONFERENCE_JOINED, () => {
-            const traceOptions = {
-                endpoint,
-                meetingFqn: confName,
-                onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
-                useLegacy
-            };
-
             const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
 
-            this._trace = traceInit(traceOptions);
-
             // Connect to the rtcstats server instance. Stats (data obtained from getstats) won't be send until the
             // connect successfully initializes, however calls to GUM are recorded in an internal buffer even if not
             // connected and sent once it is established.
-            this._trace.connect(isBreakoutRoom);
+            if (!this._startedWithNewConnection) {
+                const traceOptions = {
+                    endpoint,
+                    meetingFqn: confName,
+                    isBreakoutRoom
+                };
+
+                this._connectTrace(traceOptions);
+
+                // In cases where the conference was left but the connection was not closed,
+                // logs could get cached, so we flush them as soon as we get a chance after the
+                // conference is joined.
+                this._defaultLogCollector?.flush();
+            }
 
             const identityData = {
                 ...confConfig,
@@ -152,6 +212,8 @@ class RTCStats {
             };
 
             this.sendIdentity(identityData);
+            // Reset the flag, so that the next conference that is joined will have the trace module initialized, such as a breakout room.
+            this._startedWithNewConnection = false;
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
@@ -174,6 +236,27 @@ class RTCStats {
     }
 
     /**
+     * Reset and connects the trace module to the s server.
+     *
+     * @param traceOptions - Options for the trace module.
+     * @returns {void}
+     */
+    _connectTrace(traceOptions: ITraceOptions) {
+
+        const traceOptionsComplete = {
+            ...traceOptions,
+            useLegacy: false,
+            onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
+        };
+
+        const { isBreakoutRoom } = traceOptionsComplete;
+
+        this.reset();
+        this._trace = traceInit(traceOptionsComplete);
+        this._trace.connect(isBreakoutRoom);
+    }
+
+    /**
      * Sends the identity data to the rtcstats server.
      *
      * @param identityData - Identity data to send.
@@ -192,7 +275,9 @@ class RTCStats {
      * @returns {void}
      */
     reset() {
-        this.clearDefaultLogCollector();
+        // If a trace is connected, flush the remaining logs before closing the connection,
+        // if the trace is not present and we flush the logs will be lost,
+        this._trace && this._defaultLogCollector?.flush();
         this._trace?.close();
         this._trace = null;
     }
@@ -211,21 +296,14 @@ class RTCStats {
     /**
      * Creates a new log collector with the default log storage.
      */
-    getDefaultLogCollector() {
+    getDefaultLogCollector(maxEntryLength) {
         if (!this._defaultLogCollector) {
-            this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this));
+            // If undefined is passed  as maxEntryLength LogCollector will default to 10000 bytes
+            this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this), { maxEntryLength });
             this._defaultLogCollector.start();
         }
 
         return this._defaultLogCollector;
-    }
-
-    /**
-     * Clears the collector and stops it.
-     */
-    clearDefaultLogCollector() {
-        this._defaultLogCollector?.stop();
-        this._defaultLogCollector = null;
     }
 }
 
