@@ -35,7 +35,7 @@ class StropheLogger extends ConnectionPlugin {
      * @param stanza
      */
     logIncoming(stanza: any): void {
-        this.log.push([ { timestamp: new Date().getTime(), direction: 'incoming', stanza } ]);
+        this.log.push([ new Date().getTime(), 'incoming', stanza ]);
     }
 
     /**
@@ -43,7 +43,7 @@ class StropheLogger extends ConnectionPlugin {
      * @param stanza
      */
     logOutgoing(stanza: any): void {
-        this.log.push([ { timestamp: new Date().getTime(), direction: 'outgoing', stanza } ]);
+        this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
     }
 }
 
