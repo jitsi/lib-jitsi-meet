@@ -25,6 +25,7 @@ const logger = getLogger('modules/xmpp/strophe.util');
  */
 let lastErrorStatus: number = -1;
 
+
 /**
  * A regular expression used to catch Strophe's log message indicating that the
  * last BOSH request was successful. When there is such message seen the
