@@ -1,11 +1,11 @@
 import { $iq } from 'strophe.js';
 
 import recordingXMLUtils from './recordingXMLUtils';
-
-type JitsiParticipant = any;
+import JitsiParticipant from '../../JitsiParticipant';
 
 export interface IJibriSessionOptions {
     connection?: any;
+    focusMucJid?: string;
     mode?: string;
     sessionID?: string;
     status?: string;
@@ -44,6 +44,7 @@ export default class JibriSession {
     private _liveStreamViewURL?: string;
     private _initiator?: JitsiParticipant | string;
     private _terminator?: JitsiParticipant | string;
+    private _focusMucJid?: string;
 
     /**
      * Initializes a new JibriSession instance.
@@ -55,9 +56,9 @@ export default class JibriSession {
         this._mode = options.mode;
         this._jibriJid = null;
         this._statusFromJicofo = '';
-
         this._setSessionID(options.sessionID);
         this.setStatus(options.status);
+        this._focusMucJid = options.focusMucJid;
     }
 
     /**
