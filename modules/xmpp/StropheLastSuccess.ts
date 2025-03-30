@@ -1,13 +1,9 @@
 /**
  * Attaches to the {@link Strophe.Connection.rawInput} which is called whenever any data is received from the server.
  */
-export interface IXmppConnection {
-    connected: boolean;
-}
 
-export interface IStropheConnection {
-    rawInput: (...args: any[]) => void;
-}
+import XmppConnection from './XmppConnection';
+
 
 export default class LastRequestTracker {
     private _lastSuccess: number | null;
@@ -27,7 +23,7 @@ export default class LastRequestTracker {
      * @param {XmppConnection} xmppConnection - The XMPP connection which manages the given {@code stropheConnection}.
      * @param {Object} stropheConnection - Strophe connection instance.
      */
-    startTracking(xmppConnection: IXmppConnection, stropheConnection: IStropheConnection): void {
+    startTracking(xmppConnection: XmppConnection, stropheConnection: any): void {
         const originalRawInput = stropheConnection.rawInput;
 
         stropheConnection.rawInput = (...args: any[]): void => {
