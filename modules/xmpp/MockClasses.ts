@@ -1,16 +1,7 @@
 import { Strophe } from 'strophe.js';
-
 import Listenable from '../util/Listenable';
 
 /* eslint-disable no-empty-function */
-
-export interface ISocket {
-    readyState: number;
-}
-
-export interface IStropheProto {
-    socket: ISocket | undefined;
-}
 
 /**
  * Mock {@link ChatRoom}.
@@ -27,10 +18,14 @@ export class MockChatRoom extends Listenable {
 /**
  * Mock Strophe connection.
  */
+export interface IProto {
+    socket?: WebSocket;
+}
+
 export class MockStropheConnection extends Listenable {
-    sentIQs: any[];
-    _proto: IStropheProto;
-    _connectCb: ((status: number) => void) | undefined;
+    private _connectCb?: (status: Strophe.Status) => void;
+    public sentIQs: any[];
+    private _proto: IProto;
 
     /**
      * A constructor...
@@ -55,7 +50,7 @@ export class MockStropheConnection extends Listenable {
     /**
      * {@see Strophe.Connection.connect}
      */
-    connect(jid: string, pass: string, callback: (status: number) => void): void {
+    connect(jid: string, pass: string, callback: (status: Strophe.Status) => void): void {
         this._connectCb = callback;
     }
 
@@ -73,17 +68,13 @@ export class MockStropheConnection extends Listenable {
      * @param {Strophe.Status} newState - The new connection status to set.
      * @returns {void}
      */
-    simulateConnectionState(newState: number): void {
+    simulateConnectionState(newState: Strophe.Status): void {
         if (newState === Strophe.Status.CONNECTED) {
-            this._proto.socket = {
-                readyState: WebSocket.OPEN
-            };
+            this._proto.socket = { readyState: WebSocket.OPEN } as WebSocket;
         } else {
             this._proto.socket = undefined;
         }
-        if (this._connectCb) {
-            this._connectCb(newState);
-        }
+        this._connectCb?.(newState);
     }
 
     /**
