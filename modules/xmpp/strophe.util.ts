@@ -3,7 +3,6 @@
  */
 import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
-import type { Strophe as IStrophe } from 'strophe.js';
 
 const logger = getLogger('modules/xmpp/strophe.util');
 
@@ -47,24 +46,24 @@ const lastErrorStatusRegExpr: RegExp
  */
 export default function(): void {
 
-    (Strophe as IStrophe).log = function(level: number, msg: any): void {
+    Strophe.log = function(level: number, msg: any): void {
         logger.trace('Strophe', level, msg);
         if (typeof msg === 'string'
                 && msg.indexOf('Request ') !== -1
                 && msg.indexOf('timed out (secondary), restarting') !== -1) {
             // eslint-disable-next-line no-param-reassign
-            level = (Strophe as IStrophe).LogLevel.WARN;
+            level = Strophe.LogLevel.WARN;
         }
 
         switch (level) {
-        case (Strophe as IStrophe).LogLevel.DEBUG:
+        case Strophe.LogLevel.DEBUG:
             if (lastErrorStatus !== -1
                     && resetLastErrorStatusRegExpr.test(msg)) {
                 logger.debug('Reset lastErrorStatus');
                 lastErrorStatus = -1;
             }
             break;
-        case (Strophe as IStrophe).LogLevel.WARN:
+        case Strophe.LogLevel.WARN:
             logger.warn(`Strophe: ${msg}`);
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
 
@@ -73,38 +72,38 @@ export default function(): void {
                 logger.debug(`lastErrorStatus set to: ${lastErrorStatus}`);
             }
             break;
-        case (Strophe as IStrophe).LogLevel.ERROR:
-        case (Strophe as IStrophe).LogLevel.FATAL:
+        case Strophe.LogLevel.ERROR:
+        case Strophe.LogLevel.FATAL:
             logger.error(`Strophe: ${msg}`, msg);
             break;
         }
     };
 
-    (Strophe as IStrophe).getLastErrorStatus = function(): number {
+    Strophe.getLastErrorStatus = function(): number {
         return lastErrorStatus;
     };
 
-    (Strophe as IStrophe).getStatusString = function(status: number): string {
+    Strophe.getStatusString = function(status: number): string {
         switch (status) {
-        case (Strophe as IStrophe).Status.BINDREQUIRED:
+        case Strophe.Status.BINDREQUIRED:
             return 'BINDREQUIRED';
-        case (Strophe as IStrophe).Status.ERROR:
+        case Strophe.Status.ERROR:
             return 'ERROR';
-        case (Strophe as IStrophe).Status.CONNECTING:
+        case Strophe.Status.CONNECTING:
             return 'CONNECTING';
-        case (Strophe as IStrophe).Status.CONNFAIL:
+        case Strophe.Status.CONNFAIL:
             return 'CONNFAIL';
-        case (Strophe as IStrophe).Status.AUTHENTICATING:
+        case Strophe.Status.AUTHENTICATING:
             return 'AUTHENTICATING';
-        case (Strophe as IStrophe).Status.AUTHFAIL:
+        case Strophe.Status.AUTHFAIL:
             return 'AUTHFAIL';
-        case (Strophe as IStrophe).Status.CONNECTED:
+        case Strophe.Status.CONNECTED:
             return 'CONNECTED';
-        case (Strophe as IStrophe).Status.DISCONNECTED:
+        case Strophe.Status.DISCONNECTED:
             return 'DISCONNECTED';
-        case (Strophe as IStrophe).Status.DISCONNECTING:
+        case Strophe.Status.DISCONNECTING:
             return 'DISCONNECTING';
-        case (Strophe as IStrophe).Status.ATTACHED:
+        case Strophe.Status.ATTACHED:
             return 'ATTACHED';
         default:
             return 'unknown';
