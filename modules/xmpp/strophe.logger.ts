@@ -24,7 +24,7 @@ class StropheLogger extends ConnectionPlugin {
      *
      * @param connection
      */
-    init(connection: any): void {
+    init(connection: Strophe.Connection): void {
         super.init(connection);
         connection.rawInput = this.logIncoming.bind(this);
         connection.rawOutput = this.logOutgoing.bind(this);
@@ -34,7 +34,7 @@ class StropheLogger extends ConnectionPlugin {
      *
      * @param stanza
      */
-    logIncoming(stanza: any): void {
+    logIncoming(stanza: Element | Strophe.Builder): void {
         this.log.push([ new Date().getTime(), 'incoming', stanza ]);
     }
 
@@ -42,7 +42,7 @@ class StropheLogger extends ConnectionPlugin {
      *
      * @param stanza
      */
-    logOutgoing(stanza: any): void {
+    logOutgoing(stanza: Element | Strophe.Builder): void {
         this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
     }
 }
