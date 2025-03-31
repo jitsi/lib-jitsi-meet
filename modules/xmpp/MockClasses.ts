@@ -88,6 +88,8 @@ export class MockStropheConnection extends Listenable {
     /**
      * {@see Strophe.Connection.registerSASLMechanisms}.
      */
-    registerSASLMechanisms() {}
+    registerSASLMechanisms(): void {
+        // Intentionally left blank for mock functionality
+    }
 }
 /* eslint-enable no-empty-function */
