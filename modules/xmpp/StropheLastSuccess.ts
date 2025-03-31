@@ -3,6 +3,7 @@
  */
 
 import XmppConnection from './XmppConnection';
+import { Strophe } from 'strophe.js';
 
 
 export default class LastRequestTracker {
@@ -21,9 +22,9 @@ export default class LastRequestTracker {
      * Starts tracking requests on the given connection.
      *
      * @param {XmppConnection} xmppConnection - The XMPP connection which manages the given {@code stropheConnection}.
-     * @param {Object} stropheConnection - Strophe connection instance.
+     * @param {Strophe.Connection} stropheConnection - Strophe connection instance.
      */
-    startTracking(xmppConnection: XmppConnection, stropheConnection: any): void {
+    startTracking(xmppConnection: XmppConnection, stropheConnection: Strophe.Connection): void {
         const originalRawInput = stropheConnection.rawInput;
 
         stropheConnection.rawInput = (...args: any[]): void => {
