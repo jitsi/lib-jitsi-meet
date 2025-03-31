@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { Strophe } from 'strophe.js';
-import { isValidNumber } from 'utils';
+import { isValidNumber } from './utils';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';

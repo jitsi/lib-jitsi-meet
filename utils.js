@@ -3,8 +3,6 @@
  * @param {*} value - The value to check.
  * @returns {boolean} - True if the value is a valid number or coercible to one, false otherwise.
  */
-function isValidNumber(value) {
+export function isValidNumber(value) {
     return !Number.isNaN(Number(value)) && value !== null && value !== '';
 }
-
-export default { isValidNumber };
