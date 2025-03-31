@@ -69,7 +69,7 @@ export function getSourceIndexFromSourceName(sourceName: SourceName): number {
     const nameParts = sourceName.split('-');
     const trackIdx = Number(nameParts[nameParts.length - 1].substring(1));
 
-    if (Number.isNaN(trackIdx)) {
+    if (isNaN(trackIdx)) {
         throw new Error(`Failed to parse track idx for source name: ${sourceName}`);
     }
 

@@ -318,7 +318,7 @@ export class QualityController {
         const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
 
         // Older browser versions might not report the resolution in the stats.
-        if (Number.isNaN(encodeResolution)) {
+        if (isNaN(encodeResolution)) {
             return;
         }
         const trackId = localTrack.rtcId;
