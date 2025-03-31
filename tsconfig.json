@@ -17,6 +17,7 @@
   "exclude": [
     "dist",
     "doc",
+    "docs",
     "types",
     "**/*.spec.js",
     "**/*.spec.ts",
@@ -24,5 +25,26 @@
     "index.js",
     "lib-jitsi-meet.*.js",
     "webpack*.js",
-  ]
+  ],
+  "typedocOptions": {
+    "entryPoints": [
+      "JitsiConference.js",
+      "JitsiConferenceErrors.ts",
+      "JitsiConferenceEvents.ts",
+      "JitsiConnection.js",
+      "JitsiConnectionErrors.ts",
+      "JitsiConnectionEvents.ts",
+      "JitsiMediaDevices.js",
+      "JitsiMediaDevicesEvents.ts",
+      "JitsiMeetJS.ts",
+      "JitsiParticipant.ts",
+      "JitsiParticipantEvents.js",
+      "JitsiTrackError.ts",
+      "JitsiTrackErrors.ts",
+      "JitsiTrackEvents.ts",
+    ],
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "readme": "none",
+  }
 }
