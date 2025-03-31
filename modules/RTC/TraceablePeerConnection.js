@@ -922,7 +922,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
-    if isValidNumber(trackSsrc) || trackSsrc < 0) {
+    if (isValidNumber(trackSsrc) || trackSsrc < 0) {
         logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
                 + 'track creation failed!');
 
