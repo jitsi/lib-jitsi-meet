@@ -52,6 +52,7 @@
     "karma-webpack": "5.0.0",
     "process": "0.11.10",
     "string-replace-loader": "3.0.3",
+    "typedoc": "0.28.1",
     "typescript": "5.0.4",
     "webpack": "5.98.0",
     "webpack-bundle-analyzer": "4.4.2",
@@ -68,6 +69,7 @@
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
+    "typedoc": "typedoc",
     "validate": "npm ls",
     "watch": "webpack --config webpack.config.js --watch --mode development"
   },
