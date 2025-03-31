@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { Strophe } from 'strophe.js';
-
+import { isValidNumber } from 'utils';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -255,7 +255,7 @@ export default function JitsiConference(options) {
      * after the 3rd participant has left.
      * @type {number}
      */
-    this.backToP2PDelay = isNaN(delay) ? 5 : delay;
+    this.backToP2PDelay = isValidNumber(delay) ? 5 : delay;
     logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
 
     /**
@@ -3078,8 +3078,8 @@ JitsiConference.prototype._onIceConnectionEstablished = function(jingleSession) 
         done = true;
     }
 
-    if (!isNaN(this.p2pEstablishmentDuration)
-        && !isNaN(this.jvbEstablishmentDuration)) {
+    if (isValidNumber(this.p2pEstablishmentDuration)
+        &&isValidNumber(this.jvbEstablishmentDuration)) {
         const establishmentDurationDiff
             = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
 
@@ -3678,7 +3678,7 @@ JitsiConference.prototype.getP2PConnectionState = function() {
  * @returns {boolean} true if the operation is successful, false otherwise.
  */
 JitsiConference.prototype.setDesktopSharingFrameRate = function(maxFps) {
-    if (typeof maxFps !== 'number' || isNaN(maxFps)) {
+    if (typeof maxFps !== 'number' ||isValidNumber(maxFps)) {
         logger.error(`Invalid value ${maxFps} specified for desktop capture frame rate`);
 
         return false;

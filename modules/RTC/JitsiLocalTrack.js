@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-
+import { isValidNumber } from '../../utils';
 import JitsiTrackError from '../../JitsiTrackError';
 import {
     TRACK_IS_DISPOSED,
@@ -116,7 +116,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 }
 
                 // If the constraints are still empty, fallback to the constraints used for initial gUM.
-                if (isNaN(this._constraints.height.ideal) && isNaN(this._constraints.width.ideal)) {
+                if (isValidNumber(this._constraints.height.ideal) &&isValidNumber(this._constraints.width.ideal)) {
                     this._constraints.height = { ideal: constraints.height.ideal };
                     this._constraints.width = { ideal: constraints.width.ideal };
                 }
@@ -126,7 +126,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // picked for the given constraints, fallback to the constraints if MediaStreamTrack.getSettings() doesn't
             // return the height.
             this.resolution = this.getHeight();
-            if (isNaN(this.resolution) && this._constraints.height?.ideal) {
+            if (isValidNumber(this.resolution) && this._constraints.height?.ideal) {
                 this.resolution = this._constraints.height.ideal;
             }
             this.maxEnabledResolution = this.resolution;
@@ -931,7 +931,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @param {number} ssrc The SSRC.
      */
     setSsrc(ssrc) {
-        if (!isNaN(ssrc)) {
+        if (isValidNumber(ssrc)) {
             this._ssrc = ssrc;
         }
     }

@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
-
+import {isValidNumber} from '../../utils';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -922,7 +922,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
-    if (isNaN(trackSsrc) || trackSsrc < 0) {
+    if isValidNumber(trackSsrc) || trackSsrc < 0) {
         logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
                 + 'track creation failed!');
 
@@ -2065,7 +2065,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack, preferredCodec) {
-    if (frameHeight < 0 || isNaN(frameHeight)) {
+    if (frameHeight < 0 ||isValidNumber(frameHeight)) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
     if (!localVideoTrack) {

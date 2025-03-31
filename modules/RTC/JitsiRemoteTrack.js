@@ -3,7 +3,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
 import Statistics from '../statistics/statistics';
-
+import { isValidNumber } from '../../utils';
 import JitsiTrack from './JitsiTrack';
 
 const logger = require('@jitsi/logger').getLogger('modules/RTC/JitsiRemoteTrack');
@@ -329,7 +329,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         const gumStart = window.connectionTimes['obtainPermissions.start'];
         const gumEnd = window.connectionTimes['obtainPermissions.end'];
         const gumDuration
-            = !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
+            =isValidNumber(gumEnd) &&isValidNumber(gumStart) ? gumEnd - gumStart : 0;
 
         // Subtract the muc.joined-to-session-initiate duration because jicofo
         // waits until there are 2 participants to start Jingle sessions.

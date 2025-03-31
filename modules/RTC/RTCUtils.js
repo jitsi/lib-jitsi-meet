@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep } from 'lodash-es';
 import 'webrtc-adapter';
-
+import { isValidNumber } from '../../utils';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
@@ -336,7 +336,7 @@ class RTCUtils extends Listenable {
         return new Promise((resolve, reject) => {
             let gumTimeout, timeoutExpired = false;
 
-            if (typeof timeout === 'number' && !isNaN(timeout) && timeout > 0) {
+            if (typeof timeout === 'number' &&isValidNumber(timeout) && timeout > 0) {
                 gumTimeout = setTimeout(() => {
                     timeoutExpired = true;
                     gumTimeout = undefined;

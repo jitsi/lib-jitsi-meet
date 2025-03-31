@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-
+import { isValidNumber } from '../../utils';
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
@@ -319,8 +319,8 @@ StatsCollector.prototype._processAndEmitReport = function() {
         const { resolution } = ssrcStats;
 
         if (!track.isVideoTrack()
-            || isNaN(resolution?.height)
-            || isNaN(resolution?.width)
+            ||isValidNumber(resolution?.height)
+            ||isValidNumber(resolution?.width)
             || resolution.height === -1
             || resolution.width === -1) {
             continue; // eslint-disable-line no-continue
@@ -413,7 +413,7 @@ StatsCollector.prototype.getNonNegativeValue = function(v) {
         value = Number(value);
     }
 
-    if (isNaN(value)) {
+    if (isValidNumber(value)) {
         return 0;
     }
 

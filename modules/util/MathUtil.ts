@@ -1,3 +1,4 @@
+import num from '../../utils';
 /**
  * The method will increase the given number by 1. If the given counter is equal
  * or greater to {@link Number.MAX_SAFE_INTEGER} then it will be rolled back to
@@ -103,5 +104,5 @@ export class RunningAverage {
  * @returns {number} - x - y or 0 if x or y is not a number.
  */
 export function safeSubtract(x: any, y: any): number {
-    return !isNaN(x) && !isNaN(y) ? x - y : 0;
+    return (num.isValidNumber(x) && num.isValidNumber(y)) ? x - y : 0;
 }

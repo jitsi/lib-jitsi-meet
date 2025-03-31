@@ -1,4 +1,4 @@
-const ljm = require('./JitsiMeetJS').default;
+import ljm from './JitsiMeetJS';
 
 /**
  * Tries to deal with the following problem: {@code JitsiMeetJS} is not only
@@ -28,4 +28,4 @@ function _mergeNamespaceAndModule(module) {
             : module);
 }
 
-module.exports = _mergeNamespaceAndModule(ljm);
+export default _mergeNamespaceAndModule(ljm);
