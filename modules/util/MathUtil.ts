@@ -103,5 +103,17 @@ export class RunningAverage {
  * @returns {number} - x - y or 0 if x or y is not a number.
  */
 export function safeSubtract(x: any, y: any): number {
-    return !isNaN(x) && !isNaN(y) ? x - y : 0;
+    return isValidNumber(x) && isValidNumber(y) ? x - y : 0;
+}
+
+/**
+ * Checks if the given value is a valid number.
+ *
+ * @param n - The value to check.
+ * @returns - `true` if the value is a valid number, `false` otherwise.
+ */
+export function isValidNumber(n: any): boolean {
+    const v = Number.parseInt(n, 10);
+
+    return Number.isFinite(v); // Filter out NaN and Infinity.
 }

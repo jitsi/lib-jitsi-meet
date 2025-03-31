@@ -35,7 +35,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import EventEmitter from './modules/util/EventEmitter';
-import { safeSubtract } from './modules/util/MathUtil';
+import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -247,15 +247,14 @@ export default function JitsiConference(options) {
      */
     this.deferredStartP2PTask = null;
 
-    const delay
-        = parseInt(options.config.p2p && options.config.p2p.backToP2PDelay, 10);
+    const delay = Number.parseInt(options.config.p2p?.backToP2PDelay, 10);
 
     /**
      * A delay given in seconds, before the conference switches back to P2P
      * after the 3rd participant has left.
      * @type {number}
      */
-    this.backToP2PDelay = isNaN(delay) ? 5 : delay;
+    this.backToP2PDelay = isValidNumber(delay) ? delay : 5;
     logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
 
     /**
@@ -3078,8 +3077,8 @@ JitsiConference.prototype._onIceConnectionEstablished = function(jingleSession) 
         done = true;
     }
 
-    if (!isNaN(this.p2pEstablishmentDuration)
-        && !isNaN(this.jvbEstablishmentDuration)) {
+    if (isValidNumber(this.p2pEstablishmentDuration)
+            && isValidNumber(this.jvbEstablishmentDuration)) {
         const establishmentDurationDiff
             = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
 
@@ -3678,19 +3677,21 @@ JitsiConference.prototype.getP2PConnectionState = function() {
  * @returns {boolean} true if the operation is successful, false otherwise.
  */
 JitsiConference.prototype.setDesktopSharingFrameRate = function(maxFps) {
-    if (typeof maxFps !== 'number' || isNaN(maxFps)) {
+    if (!isValidNumber(maxFps)) {
         logger.error(`Invalid value ${maxFps} specified for desktop capture frame rate`);
 
         return false;
     }
 
-    this._desktopSharingFrameRate = maxFps;
+    const fps = Number(maxFps);
+
+    this._desktopSharingFrameRate = fps;
 
     // Set capture fps for screenshare.
-    this.jvbJingleSession && this.jvbJingleSession.peerconnection.setDesktopSharingFrameRate(maxFps);
+    this.jvbJingleSession && this.jvbJingleSession.peerconnection.setDesktopSharingFrameRate(fps);
 
     // Set the capture rate for desktop sharing.
-    this.rtc.setDesktopSharingFrameRate(maxFps);
+    this.rtc.setDesktopSharingFrameRate(fps);
 
     return true;
 };
