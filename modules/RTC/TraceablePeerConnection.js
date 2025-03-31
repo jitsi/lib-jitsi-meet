@@ -21,6 +21,7 @@ import SDPUtil from '../sdp/SDPUtil';
 import SdpSimulcast from '../sdp/SdpSimulcast';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import Statistics from '../statistics/statistics';
+import { isValidNumber } from '../util/MathUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
@@ -922,7 +923,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
-    if (isNaN(trackSsrc) || trackSsrc < 0) {
+    if (!isValidNumber(trackSsrc) || trackSsrc < 0) {
         logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
                 + 'track creation failed!');
 
@@ -2065,7 +2066,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack, preferredCodec) {
-    if (frameHeight < 0 || isNaN(frameHeight)) {
+    if (frameHeight < 0 || !isValidNumber(frameHeight)) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
     if (!localVideoTrack) {

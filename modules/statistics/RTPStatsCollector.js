@@ -4,6 +4,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
+import { isValidNumber } from '../util/MathUtil';
 
 const logger = getLogger('modules/statistics/RTPStatsCollector');
 
@@ -305,7 +306,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
             if (!FeatureFlags.isSsrcRewritingSupported()) {
                 logger.error(`No participant ID returned by ${track}`);
             }
-            continue; // eslint-disable-line no-continue
+            continue;
         }
 
         const userCodecs = codecs[participantId] ?? { };
@@ -319,11 +320,11 @@ StatsCollector.prototype._processAndEmitReport = function() {
         const { resolution } = ssrcStats;
 
         if (!track.isVideoTrack()
-            || isNaN(resolution?.height)
-            || isNaN(resolution?.width)
+            || !isValidNumber(resolution?.height)
+            || !isValidNumber(resolution?.width)
             || resolution.height === -1
             || resolution.width === -1) {
-            continue; // eslint-disable-line no-continue
+            continue;
         }
         const userResolutions = resolutions[participantId] || {};
 
@@ -413,7 +414,7 @@ StatsCollector.prototype.getNonNegativeValue = function(v) {
         value = Number(value);
     }
 
-    if (isNaN(value)) {
+    if (!isValidNumber(value)) {
         return 0;
     }
 

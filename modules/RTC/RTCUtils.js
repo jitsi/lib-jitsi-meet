@@ -12,6 +12,7 @@ import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
+import { isValidNumber } from '../util/MathUtil';
 
 import screenObtainer from './ScreenObtainer';
 
@@ -336,7 +337,7 @@ class RTCUtils extends Listenable {
         return new Promise((resolve, reject) => {
             let gumTimeout, timeoutExpired = false;
 
-            if (typeof timeout === 'number' && !isNaN(timeout) && timeout > 0) {
+            if (isValidNumber(timeout) && timeout > 0) {
                 gumTimeout = setTimeout(() => {
                     timeoutExpired = true;
                     gumTimeout = undefined;
@@ -369,10 +370,6 @@ class RTCUtils extends Listenable {
                     if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
                         this._updateGrantedPermissions(umDevices, undefined);
                     }
-
-                    // else {
-                    // Probably the error is not caused by the lack of permissions and we don't need to update them.
-                    // }
                 });
         });
     }
