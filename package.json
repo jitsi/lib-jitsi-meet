@@ -75,6 +75,7 @@
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
+  "react-native": "./dist/esm/JitsiMeetJS.js",
   "files": [
     "dist",
     "types",
