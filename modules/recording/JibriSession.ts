@@ -1,24 +1,64 @@
 import { $iq } from 'strophe.js';
 
 import recordingXMLUtils from './recordingXMLUtils';
+import JitsiParticipant from '../../JitsiParticipant';
+
+export interface IJibriSessionOptions {
+    connection?: any;
+    focusMucJid?: string;
+    mode?: string;
+    sessionID?: string;
+    status?: string;
+}
+
+export interface IStartOptions {
+    appData?: string;
+    broadcastId?: string;
+    focusMucJid: string;
+    streamId?: string;
+}
+
+export interface IStopOptions {
+    focusMucJid: string;
+}
+
+export interface IQOptions {
+    action?: 'start' | 'stop';
+    appData?: string;
+    broadcastId?: string;
+    focusMucJid: string;
+    streamId?: string;
+}
 
 /**
  * Represents a recording session.
  */
 export default class JibriSession {
+    private _connection?: any;
+    private _mode?: string;
+    private _jibriJid: string | null = null;
+    private _statusFromJicofo: string = '';
+    private _sessionID?: string;
+    private _status?: string;
+    private _error?: string;
+    private _liveStreamViewURL?: string;
+    private _initiator?: JitsiParticipant | string;
+    private _terminator?: JitsiParticipant | string;
+    private _focusMucJid?: string;
+
     /**
      * Initializes a new JibriSession instance.
      *
      * @constructor
      */
-    constructor(options = {}) {
+    constructor(options: IJibriSessionOptions = {}) {
         this._connection = options.connection;
         this._mode = options.mode;
         this._jibriJid = null;
         this._statusFromJicofo = '';
-
         this._setSessionID(options.sessionID);
         this.setStatus(options.status);
+        this._focusMucJid = options.focusMucJid;
     }
 
     /**
@@ -26,7 +66,7 @@ export default class JibriSession {
      *
      * @returns {string|undefined}
      */
-    getError() {
+    getError(): string | undefined {
         return this._error;
     }
 
@@ -35,7 +75,7 @@ export default class JibriSession {
      *
      * @returns {string|undefined}
      */
-    getID() {
+    getID(): string | undefined {
         return this._sessionID;
     }
 
@@ -44,7 +84,7 @@ export default class JibriSession {
      *
      * @returns {JitsiParticipant|string} The participant that started the session.
      */
-    getInitiator() {
+    getInitiator(): JitsiParticipant | string {
         return this._initiator;
     }
 
@@ -53,7 +93,7 @@ export default class JibriSession {
      *
      * @returns {string|undefined}
      */
-    getLiveStreamViewURL() {
+    getLiveStreamViewURL(): string | undefined {
         return this._liveStreamViewURL;
     }
 
@@ -62,7 +102,7 @@ export default class JibriSession {
      *
      * @returns {string|undefined}
      */
-    getStatus() {
+    getStatus(): string | undefined {
         // If _status is not set fallback to the status reported by jicofo.
         if (this._status) {
             return this._status;
@@ -74,7 +114,7 @@ export default class JibriSession {
     /**
      * @returns {string|undefined} the JID of jibri associated with this session.
      */
-    getJibriJid() {
+    getJibriJid(): string | undefined {
         return this._jibriJid;
     }
 
@@ -83,7 +123,7 @@ export default class JibriSession {
      *
      * @returns {JitsiParticipant|string} The participant that stopped the session.
      */
-    getTerminator() {
+    getTerminator(): JitsiParticipant | string {
         return this._terminator;
     }
 
@@ -92,7 +132,7 @@ export default class JibriSession {
      *
      * @returns {string}
      */
-    getMode() {
+    getMode(): string {
         return this._mode;
     }
 
@@ -103,7 +143,7 @@ export default class JibriSession {
      * entered an error state.
      * @returns {void}
      */
-    setError(error) {
+    setError(error: string): void {
         this._error = error;
     }
 
@@ -114,7 +154,7 @@ export default class JibriSession {
      * @param {string} url - The live stream URL associated with the session.
      * @returns {void}
      */
-    setLiveStreamViewURL(url) {
+    setLiveStreamViewURL(url: string): void {
         this._liveStreamViewURL = url;
     }
 
@@ -124,7 +164,7 @@ export default class JibriSession {
      * @param {string} status - The new status to set.
      * @returns {void}
      */
-    setStatus(status) {
+    setStatus(status?: string): void {
         this._status = status;
     }
 
@@ -134,7 +174,7 @@ export default class JibriSession {
      *
      * @param {string} status
      */
-    setStatusFromJicofo(status) {
+    setStatusFromJicofo(status: string): void {
         this._statusFromJicofo = status;
     }
 
@@ -143,7 +183,7 @@ export default class JibriSession {
      *
      * @param {*} jibriJid
      */
-    setJibriJid(jibriJid) {
+    setJibriJid(jibriJid: string | null): void {
         this._jibriJid = jibriJid;
     }
 
@@ -152,7 +192,7 @@ export default class JibriSession {
      * @param {JitsiParticipant | string} participant - The participant or resource id
      * if local participant.
      */
-    setInitiator(participant) {
+    setInitiator(participant: JitsiParticipant | string): void {
         this._initiator = participant;
     }
 
@@ -161,7 +201,7 @@ export default class JibriSession {
      * @param {JitsiParticipant | string} participant - The participant or the resource id
      * if local participant.
      */
-    setTerminator(participant) {
+    setTerminator(participant: JitsiParticipant | string): void {
         this._terminator = participant;
     }
 
@@ -182,9 +222,9 @@ export default class JibriSession {
      * streaming service provider.
      * @returns Promise
      */
-    start({ appData, broadcastId, focusMucJid, streamId }) {
+    start({ appData, broadcastId, focusMucJid, streamId }: IStartOptions): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._connection.sendIQ(
+            this._connection?.sendIQ(
                 this._createIQ({
                     action: 'start',
                     appData,
@@ -192,22 +232,20 @@ export default class JibriSession {
                     broadcastId,
                     streamId
                 }),
-                result => {
-                    // All users will eventually receive the 'pending' status
-                    // from the backend, but for the user initiating the session
-                    // it's better to give some instant feedback that recording
-                    // is starting so fire 'pending' here manually.
+                (result: any) => {
                     this.setStatus('pending');
                     this._setSessionID(
-                        recordingXMLUtils.getSessionIdFromIq(result));
+                        recordingXMLUtils.getSessionIdFromIq(result)
+                    );
 
                     resolve();
                 },
-                error => {
+                (error: any) => {
                     this._setErrorFromIq(error);
 
                     reject(error);
-                });
+                }
+            );
         });
     }
 
@@ -220,15 +258,16 @@ export default class JibriSession {
      * that controls recording.
      * @returns Promise
      */
-    stop({ focusMucJid }) {
+    stop({ focusMucJid }: IStopOptions): Promise<any> {
         return new Promise((resolve, reject) => {
-            this._connection.sendIQ(
+            this._connection?.sendIQ(
                 this._createIQ({
                     action: 'stop',
                     focusMucJid
                 }),
                 resolve,
-                reject);
+                reject
+            );
         });
     }
 
@@ -248,7 +287,7 @@ export default class JibriSession {
      * streaming service provider.
      * @returns Object - The XMPP IQ message.
      */
-    _createIQ({ action, appData, broadcastId, focusMucJid, streamId }) {
+    _createIQ({ action, appData, broadcastId, focusMucJid, streamId }: IQOptions) {
         return $iq({
             to: focusMucJid,
             type: 'set'
@@ -271,7 +310,7 @@ export default class JibriSession {
      * @private
      * @returns {void}
      */
-    _setErrorFromIq(errorIq) {
+    _setErrorFromIq(errorIq: any): void {
         const error = errorIq.getElementsByTagName('error')[0];
 
         this.setError(error.children[0].tagName);
@@ -284,7 +323,7 @@ export default class JibriSession {
      * @private
      * @returns {void}
      */
-    _setSessionID(sessionID) {
+    _setSessionID(sessionID?: string): void {
         this._sessionID = sessionID;
     }
 }
