@@ -1,7 +1,15 @@
 /**
  * Attaches to the {@link Strophe.Connection.rawInput} which is called whenever any data is received from the server.
  */
+
+import XmppConnection from './XmppConnection';
+import { Strophe } from 'strophe.js';
+
+
 export default class LastRequestTracker {
+    private _lastSuccess: number | null;
+    private _lastFailedMessage: string | null;
+
     /**
      * Initializes new instance.
      */
@@ -14,12 +22,12 @@ export default class LastRequestTracker {
      * Starts tracking requests on the given connection.
      *
      * @param {XmppConnection} xmppConnection - The XMPP connection which manages the given {@code stropheConnection}.
-     * @param {Object} stropheConnection - Strophe connection instance.
+     * @param {Strophe.Connection} stropheConnection - Strophe connection instance.
      */
-    startTracking(xmppConnection, stropheConnection) {
+    startTracking(xmppConnection: XmppConnection, stropheConnection: Strophe.Connection): void {
         const originalRawInput = stropheConnection.rawInput;
 
-        stropheConnection.rawInput = (...args) => {
+        stropheConnection.rawInput = (...args: any[]): void => {
             const rawMessage = args[0];
 
             if (rawMessage.includes('failure')) {
@@ -40,7 +48,7 @@ export default class LastRequestTracker {
      *
      * @returns {string|null}
      */
-    getLastFailedMessage() {
+    getLastFailedMessage(): string | null {
         return this._lastFailedMessage;
     }
 
@@ -49,7 +57,7 @@ export default class LastRequestTracker {
      *
      * @returns {number|null}
      */
-    getTimeSinceLastSuccess() {
+    getTimeSinceLastSuccess(): number | null {
         return this._lastSuccess
             ? Date.now() - this._lastSuccess
             : null;
