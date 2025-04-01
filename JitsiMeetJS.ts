@@ -85,7 +85,8 @@ type desktopSharingSourceType = 'screen' | 'window';
 
 interface IJitsiMeetJSOptions {
     analytics?: {
-        rtcstatsStoreLogs: boolean;
+        rtcstatsLogFlushSizeBytes?: number;
+        rtcstatsStoreLogs?: boolean;
     };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     enableAnalyticsLogging?: boolean;
@@ -151,6 +152,18 @@ export default {
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
+        // Start capturing and sending logs to the rtcstats server as soon as possible.
+        const {
+            analytics: {
+                rtcstatsStoreLogs,
+                rtcstatsLogFlushSizeBytes
+            } = {}
+        } = options;
+
+        if (rtcstatsStoreLogs) {
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector(rtcstatsLogFlushSizeBytes));
+        }
+
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
@@ -167,10 +180,6 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
-        }
-
-        if (options.analytics?.rtcstatsStoreLogs) {
-            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector());
         }
 
         return RTC.init(options);
@@ -205,6 +214,17 @@ export default {
      * Expose rtcstats to the public API.
      */
     rtcstats: {
+        /**
+         * Checks if the rtcstats trace is available.
+         * The trace is the abstraction for the underlying rtcstats websocket connection.
+         *
+         * @returns {boolean} <tt>true</tt> if the rtcstats trace is available or
+         * <tt>false</tt> otherwise.
+         */
+        isTraceAvailable() {
+            return RTCStats.isTraceAvailable();
+        },
+
         /**
          * Sends identity data to the rtcstats server. This data is used
          * to identify the specifics of a particular client, it can be any object

@@ -69,7 +69,7 @@ export default function Statistics(conference, options) {
 
     Statistics.instances.add(this);
 
-    RTCStats.start(this.conference);
+    RTCStats.attachToConference(this.conference);
 
     // WatchRTC is not required to work for react native
     if (!browser.isReactNative()) {
