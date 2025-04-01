@@ -69,7 +69,7 @@
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
-    "typedoc": "typedoc",
+    "typedoc": "npm run gen-version && typedoc",
     "validate": "npm ls",
     "watch": "npm run gen-version && webpack --config webpack.config.js --watch --mode development"
   },
