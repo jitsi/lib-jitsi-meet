@@ -51,7 +51,6 @@
     "karma-sourcemap-loader": "0.3.8",
     "karma-webpack": "5.0.0",
     "process": "0.11.10",
-    "string-replace-loader": "3.0.3",
     "typedoc": "0.28.1",
     "typescript": "5.0.4",
     "webpack": "5.98.0",
@@ -59,11 +58,12 @@
     "webpack-cli": "4.9.0"
   },
   "scripts": {
-    "build": "npm run build:webpack && npm run build:tsc",
+    "build": "npm run gen-version && npm run build:webpack && npm run build:tsc",
     "build:webpack": "webpack",
-    "build:webpack-dev": "webpack --mode development",
+    "build:webpack-dev": "npm run gen-version && webpack --mode development",
     "build:tsc": "tsc --build --clean && tsc",
     "gen-types": "tsc --declaration --emitDeclarationOnly --outFile types/index.d.ts",
+    "gen-version": "node tools/gen-version.js",
     "lint": "eslint . --max-warnings 0",
     "lint-fix": "eslint . --max-warnings 0 --fix",
     "prepack": "npm run build && npm run gen-types",
@@ -71,7 +71,7 @@
     "test-watch": "karma start karma.conf.js --no-single-run",
     "typedoc": "typedoc",
     "validate": "npm ls",
-    "watch": "webpack --config webpack.config.js --watch --mode development"
+    "watch": "npm run gen-version && webpack --config webpack.config.js --watch --mode development"
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
