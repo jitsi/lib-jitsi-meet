@@ -22,7 +22,8 @@ const logger = getLogger('modules/xmpp/strophe.util');
  *
  * @type {number}
  */
-let lastErrorStatus = -1;
+let lastErrorStatus: number = -1;
+
 
 /**
  * A regular expression used to catch Strophe's log message indicating that the
@@ -30,22 +31,22 @@ let lastErrorStatus = -1;
  * {@link lastErrorStatus} will be set back to '-1'.
  * @type {RegExp}
  */
-const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
+const resetLastErrorStatusRegExpr: RegExp = /request id \d+.\d+ got 200/;
 
 /**
  * A regular expression used to capture the current value of the BOSH request
  * error status (HTTP error code or '0' or something else).
  * @type {RegExp}
  */
-const lastErrorStatusRegExpr
+const lastErrorStatusRegExpr: RegExp
     = /request errored, status: (\d+), number of errors: \d+/;
 
 /**
  *
  */
-export default function() {
+export default function(): void {
 
-    Strophe.log = function(level, msg) {
+    Strophe.log = function(level: number, msg: any): void {
         // Our global handler reports uncaught errors to the stats which may
         // interpret those as partial call failure.
         // Strophe log entry about secondary request timeout does not mean that
@@ -94,11 +95,11 @@ export default function() {
      * @return {number} HTTP error code, '0' for unknown or "god knows what"
      * (this is a hack).
      */
-    Strophe.getLastErrorStatus = function() {
+    Strophe.getLastErrorStatus = function(): number {
         return lastErrorStatus;
     };
 
-    Strophe.getStatusString = function(status) {
+    Strophe.getStatusString = function(status: number): string {
         switch (status) {
         case Strophe.Status.BINDREQUIRED:
             return 'BINDREQUIRED';
