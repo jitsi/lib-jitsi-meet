@@ -1,5 +1,4 @@
 import { Strophe } from 'strophe.js';
-
 import Listenable from '../util/Listenable';
 
 /* eslint-disable no-empty-function */
@@ -11,14 +10,23 @@ export class MockChatRoom extends Listenable {
     /**
      * {@link ChatRoom.addPresenceListener}.
      */
-    addPresenceListener() {
+    addPresenceListener(): void {
+        // no operation; intentionally left blank
     }
 }
 
 /**
  * Mock Strophe connection.
  */
+export interface IProto {
+    socket?: WebSocket;
+}
+
 export class MockStropheConnection extends Listenable {
+    private _connectCb?: (status: Strophe.Status) => void;
+    public sentIQs: any[];
+    private _proto: IProto;
+
     /**
      * A constructor...
      */
@@ -35,21 +43,21 @@ export class MockStropheConnection extends Listenable {
      *
      * @returns {string}
      */
-    get service() {
+    get service(): string {
         return 'wss://localhost/xmpp-websocket';
     }
 
     /**
      * {@see Strophe.Connection.connect}
      */
-    connect(jid, pass, callback) {
+    connect(jid: string, pass: string, callback: (status: Strophe.Status) => void): void {
         this._connectCb = callback;
     }
 
     /**
      * {@see Strophe.Connection.disconnect}
      */
-    disconnect() {
+    disconnect(): void {
         this.simulateConnectionState(Strophe.Status.DISCONNECTING);
         this.simulateConnectionState(Strophe.Status.DISCONNECTED);
     }
@@ -60,21 +68,19 @@ export class MockStropheConnection extends Listenable {
      * @param {Strophe.Status} newState - The new connection status to set.
      * @returns {void}
      */
-    simulateConnectionState(newState) {
+    simulateConnectionState(newState: Strophe.Status): void {
         if (newState === Strophe.Status.CONNECTED) {
-            this._proto.socket = {
-                readyState: WebSocket.OPEN
-            };
+            this._proto.socket = { readyState: WebSocket.OPEN } as WebSocket;
         } else {
             this._proto.socket = undefined;
         }
-        this._connectCb(newState);
+        this._connectCb?.(newState);
     }
 
     /**
      * {@see Strophe.Connection.sendIQ}.
      */
-    sendIQ(iq, resultCb) {
+    sendIQ(iq: any, resultCb?: () => void): void {
         this.sentIQs.push(iq);
         resultCb && resultCb();
     }
@@ -82,6 +88,8 @@ export class MockStropheConnection extends Listenable {
     /**
      * {@see Strophe.Connection.registerSASLMechanisms}.
      */
-    registerSASLMechanisms() {}
+    registerSASLMechanisms(): void {
+        // Intentionally left blank for mock functionality
+    }
 }
 /* eslint-enable no-empty-function */
