@@ -36,6 +36,7 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
+import { COMMIT_HASH } from './version';
 
 const logger = Logger.getLogger('JitsiMeetJS');
 
@@ -109,7 +110,7 @@ interface ICreateLocalTrackFromMediaStreamOptions {
  */
 export default {
 
-    version: '{#COMMIT_HASH#}',
+    version: COMMIT_HASH,
 
     JitsiConnection,
 
