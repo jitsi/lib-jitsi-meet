@@ -104,7 +104,7 @@ const Settings: ISettings = {
 function _generateStatsId() {
     const username = generateUsername();
 
-    logger.log('generated stats id', username);
+    logger.info('generated stats id', username);
 
     return username;
 }
@@ -116,7 +116,7 @@ function _generateStatsId() {
 function generateJitsiMeetId(): string {
     const jitsiMeetId = uuidv4().replaceAll('-', '');
 
-    logger.log('generated id', jitsiMeetId);
+    logger.info('generated id', jitsiMeetId);
 
     return jitsiMeetId;
 }

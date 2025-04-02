@@ -347,7 +347,7 @@ class RTCUtils extends Listenable {
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
-                    logger.log('onUserMediaSuccess');
+                    logger.info('onUserMediaSuccess');
                     this._updateGrantedPermissions(umDevices, stream);
                     if (!timeoutExpired) {
                         if (typeof gumTimeout !== 'undefined') {
@@ -789,7 +789,7 @@ class RTCUtils extends Listenable {
                 audioOutputDeviceId = deviceId;
                 audioOutputChanged = true;
 
-                logger.log(`Audio output device set to ${deviceId}`);
+                logger.debug(`Audio output device set to ${deviceId}`);
 
                 this.eventEmitter.emit(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                     deviceId);

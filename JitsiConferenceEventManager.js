@@ -500,7 +500,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         const key = 'data.channel.opened';
 
         // TODO: Move all of the 'connectionTimes' logic to its own module.
-        logger.log(`(TIME) ${key}:\t`, now);
+        logger.info(`(TIME) ${key}:\t`, now);
         conference.room.connectionTimes[key] = now;
         Statistics.sendAnalytics(
             createConnectionStageReachedEvent(key, { value: now }));

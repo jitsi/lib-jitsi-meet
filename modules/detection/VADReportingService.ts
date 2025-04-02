@@ -70,7 +70,7 @@ export default class VADReportingService extends EventEmitter {
          */
         this._intervalId = null;
 
-        logger.log(`Constructed VADReportingService with publish interval of: ${intervalDelay}`);
+        logger.debug(`Constructed VADReportingService with publish interval of: ${intervalDelay}`);
     }
 
     /**
@@ -103,7 +103,7 @@ export default class VADReportingService extends EventEmitter {
 
         // Create a TrackVADEmitter for each provided audio input device.
         for (const micDevice of audioDeviceList) {
-            logger.log(`Initializing VAD context for mic: ${micDevice.label} -> ${micDevice.deviceId}`);
+            logger.debug(`Initializing VAD context for mic: ${micDevice.label} -> ${micDevice.deviceId}`);
 
             const emitterPromise = createVADProcessor()
             .then(rnnoiseProcessor =>
@@ -175,7 +175,7 @@ export default class VADReportingService extends EventEmitter {
      * @returns {void}.
      */
     _startPublish(): void {
-        logger.log('VADReportingService started publishing.');
+        logger.debug('VADReportingService started publishing.');
         this._intervalId = setInterval(() => {
             this._reportVadScore();
         }, this._intervalDelay);
@@ -213,7 +213,7 @@ export default class VADReportingService extends EventEmitter {
             });
         }
 
-        logger.log('VADReportingService reported.', vadComputeScoreArray);
+        logger.debug('VADReportingService reported.', vadComputeScoreArray);
 
         /**
          * Once the computation for all the tracked devices is done, fire an event containing all the necessary
@@ -257,7 +257,7 @@ export default class VADReportingService extends EventEmitter {
             return;
         }
 
-        logger.log('Destroying VADReportingService.');
+        logger.debug('Destroying VADReportingService.');
 
         if (this._intervalId) {
             clearInterval(this._intervalId);

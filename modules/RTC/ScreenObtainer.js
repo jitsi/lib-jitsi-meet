@@ -57,7 +57,7 @@ const ScreenObtainer = {
         } else if (supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMedia;
         }
-        logger.log('Screen sharing not supported on ', browser.getName());
+        logger.info('Screen sharing not supported on ', browser.getName());
 
         return null;
     },
