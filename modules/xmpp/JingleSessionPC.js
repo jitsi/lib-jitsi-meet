@@ -383,7 +383,7 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
-            logger.log(`${this} Processing ${logPrefix}`);
+            logger.debug(`${this} Processing ${logPrefix}`);
 
             const currentRemoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
             const sourceDescription = this._processSourceMapFromJingle(elem, isAdd);
@@ -414,7 +414,7 @@ export default class JingleSessionPC extends JingleSession {
             }
 
             this._renegotiate(currentRemoteSdp.raw).then(() => {
-                logger.log(`${this} ${logPrefix} - OK`);
+                logger.debug(`${this} ${logPrefix} - OK`);
                 finishedCallback();
             }, error => {
                 logger.error(`${this} ${logPrefix} failed:`, error);
@@ -779,7 +779,7 @@ export default class JingleSessionPC extends JingleSession {
                 this._sendIceCandidates([ candidate ]);
             }
         } else {
-            logger.log(`${this} _sendIceCandidate: last candidate`);
+            logger.debug(`${this} _sendIceCandidate: last candidate`);
 
             // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
@@ -799,7 +799,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.log(`${this} _sendIceCandidates ${JSON.stringify(candidates)}`);
+        logger.debug(`${this} _sendIceCandidates count: ${candidates?.length}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
@@ -861,7 +861,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // might merge last-candidate notification into this, but it is called
         // a lot later. See webrtc issue #2340
-        // logger.log('was this the last candidate', this.lasticecandidate);
+        // logger.debug('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
     }
@@ -1366,7 +1366,7 @@ export default class JingleSessionPC extends JingleSession {
                     `ice.state.${this.peerconnection.iceConnectionState}`]
                     = now;
             }
-            logger.log(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
+            logger.info(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
 
             Statistics.sendAnalytics(
                 ICE_STATE_CHANGED,
@@ -1466,7 +1466,7 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onconnectionstatechange = () => {
             const icestate = this.peerconnection.iceConnectionState;
 
-            logger.log(`(TIME) ${this.isP2P ? 'P2P' : 'JVB'} PC state is now ${this.peerconnection.connectionState} `
+            logger.info(`(TIME) ${this.isP2P ? 'P2P' : 'JVB'} PC state is now ${this.peerconnection.connectionState} `
                 + `(ICE state ${this.peerconnection.iceConnectionState}):\t`, window.performance.now());
 
             switch (this.peerconnection.connectionState) {

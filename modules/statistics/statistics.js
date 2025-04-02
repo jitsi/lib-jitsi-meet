@@ -394,7 +394,7 @@ Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
         };
     }
 
-    logger.log(JSON.stringify(eventToLog));
+    logger.debug(JSON.stringify(eventToLog));
 
     // We do this last, because it may modify the object which is passed.
     this.analytics.sendEvent(event, properties);

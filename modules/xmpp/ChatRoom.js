@@ -316,7 +316,7 @@ export default class ChatRoom extends Listenable {
      * we want to leave the room.
      */
     doLeave(reason) {
-        logger.log('do leave', this.myroomjid);
+        logger.info('do leave', this.myroomjid);
         const pres = $pres({
             to: this.myroomjid,
             type: 'unavailable'
@@ -628,7 +628,7 @@ export default class ChatRoom extends Listenable {
         if (!this.joined && !this.inProgressEmitted) {
             const now = this.connectionTimes['muc.join.started'] = window.performance.now();
 
-            logger.log('(TIME) MUC join started:\t', now);
+            logger.info('(TIME) MUC join started:\t', now);
 
             this.eventEmitter.emit(XMPPEvents.MUC_JOIN_IN_PROGRESS);
             this.inProgressEmitted = true;
@@ -649,7 +649,7 @@ export default class ChatRoom extends Listenable {
                 const now = this.connectionTimes['muc.joined']
                     = window.performance.now();
 
-                logger.log('(TIME) MUC joined:\t', now);
+                logger.info('(TIME) MUC joined:\t', now);
 
                 // set correct initial state of locked
                 if (this.password) {
@@ -697,7 +697,7 @@ export default class ChatRoom extends Listenable {
         } else if (this.members[from] === undefined) {
             // new participant
             this.members[from] = member;
-            logger.log('entered', from, member);
+            logger.info('entered', from, member);
             hasStatusUpdate = member.status !== undefined;
             hasVersionUpdate = member.version !== undefined;
             if (member.isFocus) {
@@ -1234,7 +1234,7 @@ export default class ChatRoom extends Listenable {
             if (subjectText || subjectText === '') {
                 this.subject = subjectText.trim();
                 this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
-                logger.log(`Subject is changed to ${subjectText}`);
+                logger.info(`Subject is changed to ${subjectText}`);
             }
         }
 
@@ -1334,7 +1334,7 @@ export default class ChatRoom extends Listenable {
                         + '>not-authorized['
                         + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
                 .length) {
-            logger.log('on password required', from);
+            logger.debug('on password required', from);
             this.eventEmitter.emit(XMPPEvents.PASSWORD_REQUIRED);
         } else if ($(pres)
                 .find(
@@ -1444,8 +1444,8 @@ export default class ChatRoom extends Listenable {
 
         this.connection.sendIQ(
             grantIQ,
-            result => logger.log('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
-            error => logger.log('Set affiliation of participant error: ', error));
+            result => logger.info('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
+            error => logger.error('Set affiliation of participant error: ', error));
     }
 
     /**
@@ -1463,8 +1463,8 @@ export default class ChatRoom extends Listenable {
 
         this.connection.sendIQ(
             kickIQ,
-            result => logger.log('Kick participant with jid: ', jid, result),
-            error => logger.log('Kick participant error: ', error));
+            result => logger.info('Kick participant with jid: ', jid, result),
+            error => logger.error('Kick participant error: ', error));
     }
 
     /* eslint-disable max-params */
@@ -1925,8 +1925,8 @@ export default class ChatRoom extends Listenable {
 
         this.connection.sendIQ(
             iqToFocus,
-            result => logger.log('set mute', result),
-            error => logger.log('set mute error', error));
+            result => logger.info('set mute', result),
+            error => logger.error('set mute error', error));
     }
 
     /**

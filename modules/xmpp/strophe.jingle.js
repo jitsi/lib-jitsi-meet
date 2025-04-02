@@ -178,7 +178,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         switch (action) {
         case 'session-initiate': {
-            logger.log('(TIME) received session-initiate:\t', now);
+            logger.info('(TIME) received session-initiate:\t', now);
             const startMuted = $(iq).find('jingle>startmuted');
 
             isP2P && logger.debug(`Received ${action} from ${fromJid}`);
@@ -235,7 +235,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'session-terminate': {
-            logger.log('terminating...', sess.sid);
+            logger.info('terminating...', sess.sid);
             let reasonCondition = null;
             let reasonText = null;
 

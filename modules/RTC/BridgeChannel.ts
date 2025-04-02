@@ -250,7 +250,7 @@ export default class BridgeChannel {
      * @param {number} value The new value for lastN. -1 means unlimited.
      */
     sendSetLastNMessage(value: number): void {
-        logger.log(`Sending lastN=${value}.`);
+        logger.debug(`Sending lastN=${value}.`);
 
         this._send({
             colibriClass: 'LastNChangedEvent',
@@ -264,7 +264,7 @@ export default class BridgeChannel {
      * @param {ReceiverVideoConstraints} constraints video constraints.
      */
     sendReceiverVideoConstraintsMessage(constraints: ReceiverVideoConstraints): void {
-        logger.log(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
+        logger.info(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',
             ...constraints
