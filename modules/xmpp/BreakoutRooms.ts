@@ -17,17 +17,42 @@ const BREAKOUT_ROOM_EVENTS = {
 
 const logger = getLogger('modules/xmpp/BreakoutRooms');
 
+export interface IBreakoutRoomMessage {
+    [key: string]: any;
+    type: string;
+}
+
+export interface IBreakoutRoom {
+    [key: string]: any;
+    participants?: Record<string, any>;
+}
+
+export interface IBreakoutRoomsUpdatePayload {
+    [key: string]: any;
+    event: string;
+    rooms: Record<string, IBreakoutRoom>;
+}
+
+export interface IBreakoutRoomsMoveToRoomPayload {
+    event: string;
+    roomJid: string;
+}
+
 /**
  * Helper class for handling breakout rooms.
  */
 export default class BreakoutRooms {
+    private room: any;
+    private _rooms: Record<string, IBreakoutRoom>;
+    private _isBreakoutRoom?: boolean;
+    private _mainRoomJid?: string;
 
     /**
      * Constructs breakout room.
      *
      * @param {ChatRoom} room the room we are in.
      */
-    constructor(room) {
+    constructor(room: any) {
         this.room = room;
 
         this._handleMessages = this._handleMessages.bind(this);
@@ -39,7 +64,7 @@ export default class BreakoutRooms {
     /**
      * Stops listening for events.
      */
-    dispose() {
+    dispose(): void {
         this.room.xmpp.removeListener(XMPPEvents.BREAKOUT_ROOMS_EVENT, this._handleMessages);
     }
 
@@ -48,7 +73,7 @@ export default class BreakoutRooms {
      *
      * @param {string} subject - A subject for the breakout room.
      */
-    createBreakoutRoom(subject) {
+    createBreakoutRoom(subject: string): void {
         if (!this.isSupported() || !this.room.isModerator()) {
             logger.error(`Cannot create breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
@@ -56,7 +81,7 @@ export default class BreakoutRooms {
             return;
         }
 
-        const message = {
+        const message: IBreakoutRoomMessage = {
             type: BREAKOUT_ROOM_ACTIONS.ADD,
             subject
         };
@@ -69,7 +94,7 @@ export default class BreakoutRooms {
      *
      * @param {string} breakoutRoomJid - JID of the room to be removed.
      */
-    removeBreakoutRoom(breakoutRoomJid) {
+    removeBreakoutRoom(breakoutRoomJid: string): void {
         if (!this.isSupported() || !this.room.isModerator()) {
             logger.error(`Cannot remove breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
@@ -77,7 +102,7 @@ export default class BreakoutRooms {
             return;
         }
 
-        const message = {
+        const message: IBreakoutRoomMessage = {
             type: BREAKOUT_ROOM_ACTIONS.REMOVE,
             breakoutRoomJid
         };
@@ -91,7 +116,7 @@ export default class BreakoutRooms {
      * @param {string} breakoutRoomJid - JID of the room to be removed.
      * @param {string} subject - A new subject for the breakout room.
      */
-    renameBreakoutRoom(breakoutRoomJid, subject) {
+    renameBreakoutRoom(breakoutRoomJid: string, subject: string): void {
         if (!this.isSupported() || !this.room.isModerator()) {
             logger.error(`Cannot rename breakout room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
@@ -99,7 +124,7 @@ export default class BreakoutRooms {
             return;
         }
 
-        const message = {
+        const message: IBreakoutRoomMessage = {
             type: BREAKOUT_ROOM_ACTIONS.RENAME,
             breakoutRoomJid,
             subject
@@ -114,7 +139,7 @@ export default class BreakoutRooms {
      * @param {string} participantJid - JID of the participant to be sent to a room.
      * @param {string} roomJid - JID of the target room.
      */
-    sendParticipantToRoom(participantJid, roomJid) {
+    sendParticipantToRoom(participantJid: string, roomJid: string): void {
         if (!this.isSupported() || !this.room.isModerator()) {
             logger.error(`Cannot send participant to room - supported:${this.isSupported()},
                 moderator:${this.room.isModerator()}`);
@@ -122,7 +147,7 @@ export default class BreakoutRooms {
             return;
         }
 
-        const message = {
+        const message: IBreakoutRoomMessage = {
             type: BREAKOUT_ROOM_ACTIONS.MOVE_TO_ROOM,
             participantJid,
             roomJid
@@ -137,14 +162,14 @@ export default class BreakoutRooms {
      * @param {string} feature - Feature to check.
      * @returns Wether the feature is supported.
      */
-    isFeatureSupported(feature) {
-        return Boolean((this.room.xmpp.breakoutRoomsFeatures || {})[feature]);
+    isFeatureSupported(feature: string): boolean {
+        return Boolean(this.room.xmpp.breakoutRoomsFeatures?.[feature]);
     }
 
     /**
      * Whether Breakout Rooms support is enabled in the backend or not.
      */
-    isSupported() {
+    isSupported(): boolean {
         return Boolean(this.getComponentAddress());
     }
 
@@ -153,7 +178,7 @@ export default class BreakoutRooms {
      *
      * @returns The address of the component.
      */
-    getComponentAddress() {
+    getComponentAddress(): string | undefined {
         return this.room.xmpp.breakoutRoomsComponentAddress;
     }
 
@@ -162,7 +187,7 @@ export default class BreakoutRooms {
      *
      * @param {boolean} isBreakoutRoom - Whether this room is a breakout room.
      */
-    _setIsBreakoutRoom(isBreakoutRoom) {
+    _setIsBreakoutRoom(isBreakoutRoom: boolean): void {
         this._isBreakoutRoom = isBreakoutRoom;
     }
 
@@ -171,7 +196,7 @@ export default class BreakoutRooms {
      *
      * @returns True if the room is a breakout room, false otherwise.
      */
-    isBreakoutRoom() {
+    isBreakoutRoom(): boolean {
         if (typeof this._isBreakoutRoom !== 'undefined') {
             return this._isBreakoutRoom;
         }
@@ -186,7 +211,7 @@ export default class BreakoutRooms {
      *
      * @param {string} jid - The main room JID.
      */
-    _setMainRoomJid(jid) {
+    _setMainRoomJid(jid: string): void {
         this._mainRoomJid = jid;
     }
 
@@ -195,7 +220,7 @@ export default class BreakoutRooms {
      *
      * @returns The main room JID.
      */
-    getMainRoomJid() {
+    getMainRoomJid(): string | undefined {
         return this._mainRoomJid;
     }
 
@@ -204,13 +229,16 @@ export default class BreakoutRooms {
      *
      * @param {object} payload - Arbitrary data.
      */
-    _handleMessages(payload) {
+    _handleMessages(payload: IBreakoutRoomsMoveToRoomPayload | IBreakoutRoomsUpdatePayload): void {
         switch (payload.event) {
         case BREAKOUT_ROOM_EVENTS.MOVE_TO_ROOM:
-            this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, payload.roomJid);
+            this.room.eventEmitter.emit(
+                XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM,
+                (payload as IBreakoutRoomsMoveToRoomPayload).roomJid
+            );
             break;
         case BREAKOUT_ROOM_EVENTS.UPDATE: {
-            const filteredPayload = this._filterUpdatePayload(payload);
+            const filteredPayload = this._filterUpdatePayload(payload as IBreakoutRoomsUpdatePayload);
 
             this._rooms = filteredPayload.rooms;
             this.room.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_UPDATED, filteredPayload);
@@ -225,14 +253,14 @@ export default class BreakoutRooms {
      * @param {Object} payload - The payload of the update message.
      * @return {Object} - The filtered payload.
      */
-    _filterUpdatePayload(payload) {
+    _filterUpdatePayload(payload: IBreakoutRoomsUpdatePayload): IBreakoutRoomsUpdatePayload {
         const hiddenDomain = this.room.options.hiddenDomain;
         const { rooms } = payload;
-        const filteredRooms = {};
+        const filteredRooms: Record<string, IBreakoutRoom> = {};
 
         Object.entries(rooms).forEach(([ key, room ]) => {
             const { participants = {} } = room;
-            const filteredParticipants = {};
+            const filteredParticipants: Record<string, any> = {};
 
             Object.entries(participants).forEach(([ k, participant ]) => {
                 if (Strophe.getDomainFromJid(participant.jid) !== hiddenDomain) {
@@ -257,8 +285,14 @@ export default class BreakoutRooms {
      *
      * @param {Object} message - Command that needs to be sent.
      */
-    _sendMessage(message) {
-        const msg = $msg({ to: this.getComponentAddress() });
+    _sendMessage(message: IBreakoutRoomMessage): void {
+        const componentAddress = this.getComponentAddress();
+
+        if (!componentAddress) {
+            return;
+        }
+
+        const msg = $msg({ to: componentAddress });
 
         msg.c('breakout_rooms', message).up();
 
