@@ -638,12 +638,6 @@ export default class ChatRoom extends Listenable {
             const newRole
                 = member.affiliation === 'owner' ? member.role : 'none';
 
-            if (this.role !== newRole) {
-                this.role = newRole;
-                this.eventEmitter.emit(
-                    XMPPEvents.LOCAL_ROLE_CHANGED,
-                    this.role);
-            }
             if (!this.joined) {
                 this.joined = true;
                 const now = this.connectionTimes['muc.joined']
@@ -675,6 +669,13 @@ export default class ChatRoom extends Listenable {
                 // Now let's check the disco-info to retrieve the
                 // meeting Id if any
                 !this.options.disableDiscoInfo && this.discoRoomInfo();
+            }
+
+            if (this.role !== newRole) {
+                this.role = newRole;
+                this.eventEmitter.emit(
+                    XMPPEvents.LOCAL_ROLE_CHANGED,
+                    this.role);
             }
 
             if (xElement && $(xElement).find('>status[code="110"]').length) {
