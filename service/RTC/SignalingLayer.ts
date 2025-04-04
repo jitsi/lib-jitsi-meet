@@ -50,10 +50,10 @@ export function getMediaTypeFromSourceName(sourceName: SourceName): MediaType {
 
     const firstLetterOfMediaType = sourceName.substr(firstLetterOfMediaTypeIdx, 1);
 
-    for (const type of Object.values(MediaType)) {
-        if (type.substr(0, 1) === firstLetterOfMediaType) {
-            return type;
-        }
+    if (firstLetterOfMediaType === 'v') {
+        return MediaType.VIDEO;
+    } else if (firstLetterOfMediaType === 'a') {
+        return MediaType.AUDIO;
     }
 
     throw new Error(`Invalid source name: ${sourceName}`);
