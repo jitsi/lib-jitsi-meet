@@ -4,6 +4,7 @@ import * as exported from "./RTCEvents";
 
 describe( "/service/RTC/RTCEvents members", () => {
     const {
+        BRIDGE_BWE_STATS_RECEIVED,
         CREATE_ANSWER_FAILED,
         CREATE_OFFER_FAILED,
         DATA_CHANNEL_OPEN,
@@ -37,6 +38,7 @@ describe( "/service/RTC/RTCEvents members", () => {
     } = exported;
 
     it( "known members", () => {
+        expect( BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
         expect( CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
         expect( CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
         expect( DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
@@ -66,6 +68,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( AUDIO_SSRCS_REMAPPED ).toBe( 'rtc.audio_ssrcs_remapped' );
 
         if ( RTCEvents ) {
+            expect( RTCEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
             expect( RTCEvents.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
             expect( RTCEvents.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEvents.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
@@ -95,6 +98,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         }
 
         if ( RTCEventsDefault ) {
+            expect( RTCEventsDefault.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
             expect( RTCEventsDefault.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
             expect( RTCEventsDefault.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEventsDefault.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );

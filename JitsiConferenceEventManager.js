@@ -520,6 +520,10 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
     });
 
+    rtc.addListener(RTCEvents.BRIDGE_BWE_STATS_RECEIVED, bwe => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
+    });
+
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         (from, payload) => {
             const participant = conference.getParticipantById(from);

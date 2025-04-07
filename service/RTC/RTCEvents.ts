@@ -11,6 +11,11 @@ export enum RTCEvents {
     AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped',
 
     /**
+     * Designates an event indicating that the bridge bandwidth estimation stats have been received.
+     */
+    BRIDGE_BWE_STATS_RECEIVED = 'rtc.bridge_bwe_stats_received',
+
+    /**
      * Indicates error while create answer call.
      */
     CREATE_ANSWER_FAILED = 'rtc.create_answer_failed',
@@ -146,6 +151,7 @@ export enum RTCEvents {
     VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped'
 }
 
+export const BRIDGE_BWE_STATS_RECEIVED = RTCEvents.BRIDGE_BWE_STATS_RECEIVED;
 export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
 export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
