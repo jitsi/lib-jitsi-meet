@@ -88,6 +88,11 @@ export enum JitsiConferenceEvents {
     BREAKOUT_ROOMS_UPDATED = 'conference.breakout-rooms.updated',
 
     /**
+     * Event fired when the bandwidth estimation stats are received from the bridge.
+     */
+    BRIDGE_BWE_STATS_RECEIVED = 'conference.bridgeBweStatsReceived',
+
+    /**
      * UTC conference timestamp when first participant joined.
      */
     CONFERENCE_CREATED_TIMESTAMP = 'conference.createdTimestamp',
@@ -526,6 +531,7 @@ export const BEFORE_STATISTICS_DISPOSED = JitsiConferenceEvents.BEFORE_STATISTIC
 export const BOT_TYPE_CHANGED = JitsiConferenceEvents.BOT_TYPE_CHANGED;
 export const BREAKOUT_ROOMS_MOVE_TO_ROOM = JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM;
 export const BREAKOUT_ROOMS_UPDATED = JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED;
+export const BRIDGE_BWE_STATS_RECEIVED = JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED;
 export const CONFERENCE_CREATED_TIMESTAMP = JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP;
 export const CONFERENCE_ERROR = JitsiConferenceEvents.CONFERENCE_ERROR;
 export const CONFERENCE_FAILED = JitsiConferenceEvents.CONFERENCE_FAILED;

@@ -8,6 +8,7 @@ describe( "/JitsiConferenceEvents members", () => {
         AUDIO_UNMUTE_PERMISSIONS_CHANGED,
         AUTH_STATUS_CHANGED,
         BEFORE_STATISTICS_DISPOSED,
+        BRIDGE_BWE_STATS_RECEIVED,
         CONFERENCE_ERROR,
         CONFERENCE_FAILED,
         CONFERENCE_JOIN_IN_PROGRESS,
@@ -98,6 +99,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
+        expect( BRIDGE_BWE_STATS_RECEIVED ).toBe( 'conference.bridgeBweStatsReceived' );
         expect( CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );
@@ -182,6 +184,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
+        expect( JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'conference.bridgeBweStatsReceived' );
         expect( JitsiConferenceEvents.CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( JitsiConferenceEvents.CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( JitsiConferenceEvents.CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );

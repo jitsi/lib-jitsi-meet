@@ -146,15 +146,21 @@ export default class ConnectionQuality {
             startBitrate = this._options.config.startBitrate;
         }
 
+        conference.on(
+            ConferenceEvents.BRIDGE_BWE_STATS_RECEIVED,
+            bwe => {
+                if (bwe) {
+                    this._localStats.bandwidth.download = Math.floor(bwe / 1000);
+                }
+            });
+
         // TODO: consider ignoring these events and letting the user of
         // lib-jitsi-meet handle these separately.
         conference.on(
             ConferenceEvents.CONNECTION_INTERRUPTED,
             () => {
                 this._updateLocalConnectionQuality(0);
-                this.eventEmitter.emit(
-                    ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-                    this._localStats);
+                this.eventEmitter.emit(ConnectionQualityEvents.LOCAL_STATS_UPDATED, this._localStats);
                 this._broadcastLocalStats();
             });
 
@@ -174,8 +180,7 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
                 if (payload.type === STATS_MESSAGE_TYPE) {
-                    this._updateRemoteStats(
-                        participant.getId(), payload.values);
+                    this._updateRemoteStats(participant.getId(), payload.values);
                 }
             });
 
@@ -397,12 +402,9 @@ export default class ConnectionQuality {
         }
 
         let key;
-        const updateLocalConnectionQuality
-            = !this._conference.isConnectionInterrupted();
-        const localVideoTrack
-            = this._conference.getLocalVideoTrack();
-        const videoType
-            = localVideoTrack ? localVideoTrack.videoType : undefined;
+        const updateLocalConnectionQuality = !this._conference.isConnectionInterrupted();
+        const localVideoTrack = this._conference.getLocalVideoTrack();
+        const videoType = localVideoTrack?.videoType;
         const isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
         const resolution = localVideoTrack
             ? Math.min(localVideoTrack.resolution, localVideoTrack.maxEnabledResolution) : null;
@@ -414,7 +416,16 @@ export default class ConnectionQuality {
         // Copy the fields already in 'data'.
         for (key in data) {
             if (data.hasOwnProperty(key)) {
-                this._localStats[key] = data[key];
+                // Prevent overwriting available download bandwidth as this statistic is provided by the bridge.
+                if (key === 'bandwidth' && data[key].hasOwnProperty('download') && !tpc.isP2P) {
+                    if (!this._localStats[key]) {
+                        this._localStats[key] = {};
+                    }
+                    this._localStats[key].download = this._localStats[key].download || data[key].download;
+                    this._localStats[key].upload = data[key].upload;
+                } else {
+                    this._localStats[key] = data[key];
+                }
             }
         }
 
@@ -427,9 +438,7 @@ export default class ConnectionQuality {
                     resolution));
         }
 
-        this.eventEmitter.emit(
-            ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-            this._localStats);
+        this.eventEmitter.emit(ConnectionQualityEvents.LOCAL_STATS_UPDATED, this._localStats);
         this._broadcastLocalStats();
     }
 

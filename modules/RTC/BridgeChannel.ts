@@ -324,6 +324,14 @@ export default class BridgeChannel {
             const colibriClass = obj.colibriClass;
 
             switch (colibriClass) {
+            case 'ConnectionStats': {
+                const { estimatedDownlinkBandwidth } = obj;
+
+                logger.debug(`Connection stats: bwe=${estimatedDownlinkBandwidth} bps`);
+                emitter.emit(RTCEvents.BRIDGE_BWE_STATS_RECEIVED, estimatedDownlinkBandwidth);
+                break;
+            }
+
             case 'DominantSpeakerEndpointChangeEvent': {
                 const { dominantSpeakerEndpoint, previousSpeakers = [], silence } = obj;
 
