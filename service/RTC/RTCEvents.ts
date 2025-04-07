@@ -114,8 +114,6 @@ export enum RTCEvents {
      */
     SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
 
-    TRACK_ATTACHED = 'rtc.track_attached',
-
     /**
      * Designates an event indicating that some received video SSRCs will now map to
      * new remote sources.
@@ -134,7 +132,6 @@ export const PERMISSIONS_CHANGED = RTCEvents.PERMISSIONS_CHANGED;
 export const SENDER_VIDEO_CONSTRAINTS_CHANGED = RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED;
 export const LASTN_VALUE_CHANGED = RTCEvents.LASTN_VALUE_CHANGED;
 export const LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED;
-export const TRACK_ATTACHED = RTCEvents.TRACK_ATTACHED;
 export const REMOTE_TRACK_ADDED = RTCEvents.REMOTE_TRACK_ADDED;
 export const REMOTE_TRACK_MUTE = RTCEvents.REMOTE_TRACK_MUTE;
 export const REMOTE_TRACK_REMOVED = RTCEvents.REMOTE_TRACK_REMOVED;
