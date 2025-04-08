@@ -52,12 +52,6 @@ export enum JitsiConnectionEvents {
      * @param properties {object} - All available connection properties (e.g. shard, region).
      */
     PROPERTIES_UPDATED = 'connection.propertiesUpdated',
-
-    /**
-     * Indicates that the performed action cannot be executed because the
-     * connection is not in the correct state(connected, disconnected, etc.)
-     */
-    WRONG_STATE = 'connection.wrongState'
 }
 
 // exported for backward compatibility
@@ -65,6 +59,5 @@ export const CONNECTION_DISCONNECTED = JitsiConnectionEvents.CONNECTION_DISCONNE
 export const CONNECTION_ESTABLISHED = JitsiConnectionEvents.CONNECTION_ESTABLISHED;
 export const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
 export const CONNECTION_REDIRECTED = JitsiConnectionEvents.CONNECTION_REDIRECTED;
-export const WRONG_STATE = JitsiConnectionEvents.WRONG_STATE;
 export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
 export const PROPERTIES_UPDATED = JitsiConnectionEvents.PROPERTIES_UPDATED;
