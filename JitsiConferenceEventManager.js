@@ -404,40 +404,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             }
         });
 
-    chatRoom.addPresenceListener('startmuted', (data, from) => {
-        // Ignore the strartmuted policy if the presence is received from self. The moderator should join with
-        // available local sources and the policy needs to be applied only on users that join the call after.
-        if (conference.myUserId() === from) {
-            return;
-        }
-        const participant = conference.getParticipantById(from);
-
-        if (!participant || !participant.isModerator()) {
-            return;
-        }
-        const startAudioMuted = data.attributes.audio === 'true';
-        const startVideoMuted = data.attributes.video === 'true';
-
-        let updated = false;
-
-        if (startAudioMuted !== conference.startMutedPolicy.audio) {
-            conference.startMutedPolicy.audio = startAudioMuted;
-            updated = true;
-        }
-
-        if (startVideoMuted !== conference.startMutedPolicy.video) {
-            conference.startMutedPolicy.video = startVideoMuted;
-            updated = true;
-        }
-
-        if (updated) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
-                conference.startMutedPolicy
-            );
-        }
-    });
-
     // Breakout rooms.
     this.chatRoomForwarder.forward(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM,
         JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM);
@@ -445,9 +411,45 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED);
 
     // Room metadata.
-    this.chatRoomForwarder.forward(XMPPEvents.ROOM_METADATA_UPDATED,
-        JitsiConferenceEvents.METADATA_UPDATED);
+    chatRoom.addListener(XMPPEvents.ROOM_METADATA_UPDATED, metadata => {
+        if (metadata.startMuted) {
+            updateStartMutedPolicy(
+                conference,
+                metadata.startMuted.audio,
+                metadata.startMuted.video
+            );
+        }
+        conference.eventEmitter.emit(JitsiConferenceEvents.METADATA_UPDATED, metadata);
+    });
 };
+
+/**
+ * Updates conference startMuted policy if needed and fires an event.
+ *
+ * @param conference
+ * @param startAudioMuted
+ * @param startVideoMuted
+ */
+function updateStartMutedPolicy(conference, startAudioMuted, startVideoMuted) {
+    let updated = false;
+
+    if (startAudioMuted !== conference.startMutedPolicy.audio) {
+        conference.startMutedPolicy.audio = startAudioMuted;
+        updated = true;
+    }
+
+    if (startVideoMuted !== conference.startMutedPolicy.video) {
+        conference.startMutedPolicy.video = startVideoMuted;
+        updated = true;
+    }
+
+    if (updated) {
+        conference.eventEmitter.emit(
+            JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
+            conference.startMutedPolicy
+        );
+    }
+}
 
 /**
  * Setups event listeners related to conference.rtc
