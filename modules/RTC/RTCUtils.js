@@ -543,7 +543,8 @@ class RTCUtils extends Listenable {
 
             const {
                 desktopSharingSourceDevice,
-                desktopSharingSources
+                desktopSharingSources,
+                resolution
             } = otherOptions;
 
             // Attempt to use a video input device as a screenshare source if
@@ -581,7 +582,9 @@ class RTCUtils extends Listenable {
                     });
             }
 
-            return this._getDesktopMedia({ desktopSharingSources });
+            return this._getDesktopMedia({
+                desktopSharingSources,
+                resolution });
         }.bind(this);
 
         /**
