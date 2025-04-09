@@ -2646,8 +2646,8 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
 
     this.getMetadataHandler().setMetadata('startMuted', {
         audio: policy.audio,
-        video: policy.video}
-    );
+        video: policy.video
+    });
 };
 
 /**
