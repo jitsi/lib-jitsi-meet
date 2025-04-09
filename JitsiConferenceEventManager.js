@@ -415,8 +415,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         if (metadata.startMuted) {
             updateStartMutedPolicy(
                 conference,
-                metadata.startMuted.audio,
-                metadata.startMuted.video
+                metadata.startMuted.audio || false,
+                metadata.startMuted.video || false
             );
         }
         conference.eventEmitter.emit(JitsiConferenceEvents.METADATA_UPDATED, metadata);
