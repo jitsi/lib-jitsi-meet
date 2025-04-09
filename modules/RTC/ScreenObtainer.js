@@ -197,8 +197,9 @@ const ScreenObtainer = {
      *
      * @param callback - The success callback.
      * @param errorCallback - The error callback.
+     * @param {Object} options - Optional parameters.
      */
-    obtainScreenFromGetDisplayMedia(callback, errorCallback) {
+    obtainScreenFromGetDisplayMedia(callback, errorCallback, options = {}) {
         let getDisplayMedia;
 
         if (navigator.getDisplayMedia) {
@@ -211,10 +212,13 @@ const ScreenObtainer = {
         const audio = this._getAudioConstraints();
         let video = {};
         const constraintOpts = {};
+
+        // The options passed to this method should take precedence over the global settings.
         const {
-            desktopSharingFrameRate,
-            screenShareSettings
-        } = this.options;
+            desktopSharingFrameRate = this.options?.desktopSharingFrameRate,
+            resolution = this.options?.resolution,
+            screenShareSettings = this.options?.screenShareSettings
+        } = options;
 
         if (typeof desktopSharingFrameRate === 'object') {
             video.frameRate = desktopSharingFrameRate;
@@ -286,14 +290,22 @@ const ScreenObtainer = {
                         minFps = desktopSharingFrameRate.min;
                     }
 
-                    const contraints = {
+                    const trackConstraints = {
                         frameRate: {
                             min: minFps
                         }
                     };
 
+                    // Set the resolution if it is specified in the options. This is currently only enabled for testing.
+                    // Note that this may result in browser crashes if the shared window is resized due to browser bugs
+                    // like https://issues.chromium.org/issues/40672396
+                    if (resolution && this.options.testing?.testMode) {
+                        trackConstraints.height = resolution;
+                        trackConstraints.width = Math.floor(resolution * 16 / 9);
+                    }
+
                     try {
-                        track.applyConstraints(contraints);
+                        track.applyConstraints(trackConstraints);
                     } catch (err) {
                         logger.warn(`Min fps=${minFps} constraint could not be applied on the desktop track,`
                             + `${err.message}`);
