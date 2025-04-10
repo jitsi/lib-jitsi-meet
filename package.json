@@ -64,7 +64,7 @@
     "build:tsc": "tsc --build --clean && tsc",
     "gen-types": "tsc --declaration --emitDeclarationOnly --outFile types/index.d.ts",
     "gen-version": "node tools/gen-version.js",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "lint-fix": "eslint . --max-warnings 0 --fix",
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
