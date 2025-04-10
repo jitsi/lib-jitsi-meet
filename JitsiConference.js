@@ -2644,11 +2644,45 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         }
     }) && this.room.sendPresence();
 
+    this._ignoreFirstStartMutedPolicyUpdate = true;
+
     this.getMetadataHandler().setMetadata('startMuted', {
         audio: policy.audio,
         video: policy.video
     });
 };
+
+/**
+ * Updates conference startMuted policy if needed and fires an event.
+ *
+ * @param {boolean} audio if audio should be muted.
+ * @param {boolean} video if video should be muted.
+ */
+JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
+    if (this._ignoreFirstStartMutedPolicyUpdate) {
+        this._ignoreFirstStartMutedPolicyUpdate = false;
+        return;
+    }
+
+    let updated = false;
+
+    if (audio !== this.startMutedPolicy.audio) {
+        this.startMutedPolicy.audio = audio;
+        updated = true;
+    }
+
+    if (video !== this.startMutedPolicy.video) {
+        this.startMutedPolicy.video = video;
+        updated = true;
+    }
+
+    if (updated) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
+            this.startMutedPolicy
+        );
+    }
+}
 
 /**
  * Returns current start muted policy

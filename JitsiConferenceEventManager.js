@@ -413,8 +413,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // Room metadata.
     chatRoom.addListener(XMPPEvents.ROOM_METADATA_UPDATED, metadata => {
         if (metadata.startMuted) {
-            updateStartMutedPolicy(
-                conference,
+            conference._updateStartMutedPolicy(
                 metadata.startMuted.audio || false,
                 metadata.startMuted.video || false
             );
@@ -422,34 +421,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         conference.eventEmitter.emit(JitsiConferenceEvents.METADATA_UPDATED, metadata);
     });
 };
-
-/**
- * Updates conference startMuted policy if needed and fires an event.
- *
- * @param conference
- * @param startAudioMuted
- * @param startVideoMuted
- */
-function updateStartMutedPolicy(conference, startAudioMuted, startVideoMuted) {
-    let updated = false;
-
-    if (startAudioMuted !== conference.startMutedPolicy.audio) {
-        conference.startMutedPolicy.audio = startAudioMuted;
-        updated = true;
-    }
-
-    if (startVideoMuted !== conference.startMutedPolicy.video) {
-        conference.startMutedPolicy.video = startVideoMuted;
-        updated = true;
-    }
-
-    if (updated) {
-        conference.eventEmitter.emit(
-            JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
-            conference.startMutedPolicy
-        );
-    }
-}
 
 /**
  * Setups event listeners related to conference.rtc
