@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from './JitsiConference';
-import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import RTCStats from './modules/RTCStats/RTCStats';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
@@ -59,9 +59,9 @@ export default function JitsiConnection(appID, token, options) {
 /**
  * Connect the client with the server.
  * @param options {object} connecting options (for example authentications parameters).
- * @param options.id {string} The username to use when connecting, if any.
- * @param options.password {string} The password to use when connecting with username, if any.
- * @param options.name {string} The name of the room/conference we will be connecting to. This is needed on connection
+ * @param [options.id] {string} Optional username to use when connecting, if any.
+ * @param [options.password] {string} Optional password to use when connecting with username, if any.
+ * @param [options.name] {string} Optional name of the conference we will be connecting to. It's needed at connection
  * time to be able to send conference-request over http. If missing the flow where we send conference-iq to jicofo over
  * the established xmpp connection will be used, even in the case where we have configured conference http request url
  * to be used.
