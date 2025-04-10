@@ -2662,6 +2662,7 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
 JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
     if (this._ignoreFirstStartMutedPolicyUpdate) {
         this._ignoreFirstStartMutedPolicyUpdate = false;
+
         return;
     }
 
@@ -2683,7 +2684,7 @@ JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
             this.startMutedPolicy
         );
     }
-}
+};
 
 /**
  * Returns current start muted policy
