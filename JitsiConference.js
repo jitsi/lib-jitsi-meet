@@ -2634,6 +2634,8 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
     // Do not apply the startMutedPolicy locally on the moderator, the moderator should join with available local
     // sources and the policy needs to be applied only on users that join the call after.
     // this.startMutedPolicy = policy;
+    // TODO: to remove using presence for startmuted policy after old clients update
+    // we keep presence to update UI of old clients
     this.room.addOrReplaceInPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -2641,6 +2643,47 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
             xmlns: 'http://jitsi.org/jitmeet/start-muted'
         }
     }) && this.room.sendPresence();
+
+    // we want to ignore applying startMutedPolicy locally when we set it
+    this._ignoreFirstStartMutedPolicyUpdate = true;
+
+    this.getMetadataHandler().setMetadata('startMuted', {
+        audio: policy.audio,
+        video: policy.video
+    });
+};
+
+/**
+ * Updates conference startMuted policy if needed and fires an event.
+ *
+ * @param {boolean} audio if audio should be muted.
+ * @param {boolean} video if video should be muted.
+ */
+JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
+    if (this._ignoreFirstStartMutedPolicyUpdate) {
+        this._ignoreFirstStartMutedPolicyUpdate = false;
+
+        return;
+    }
+
+    let updated = false;
+
+    if (audio !== this.startMutedPolicy.audio) {
+        this.startMutedPolicy.audio = audio;
+        updated = true;
+    }
+
+    if (video !== this.startMutedPolicy.video) {
+        this.startMutedPolicy.video = video;
+        updated = true;
+    }
+
+    if (updated) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
+            this.startMutedPolicy
+        );
+    }
 };
 
 /**
