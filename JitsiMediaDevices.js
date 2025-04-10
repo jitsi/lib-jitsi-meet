@@ -19,6 +19,7 @@ class JitsiMediaDevices extends Listenable {
      */
     constructor() {
         super();
+        this._initialized = false;
         this._permissions = {};
     }
 
@@ -26,6 +27,11 @@ class JitsiMediaDevices extends Listenable {
      * Initialize. Start listening for device changes and initialize permissions checks.
      */
     init() {
+        if (this._initialized) {
+            return;
+        }
+        this._initialized = true;
+
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
