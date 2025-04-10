@@ -592,7 +592,7 @@ JitsiConference.prototype._init = function(options = {}) {
  * @param replaceParticipant {boolean} whether the current join replaces
  * an existing participant with same jwt from the meeting.
  */
-JitsiConference.prototype.join = function(password, replaceParticipant = false) {
+JitsiConference.prototype.join = function(password = '', replaceParticipant = false) {
     if (this.room) {
         this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
     }
