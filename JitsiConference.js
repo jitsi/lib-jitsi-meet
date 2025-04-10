@@ -2644,6 +2644,7 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         }
     }) && this.room.sendPresence();
 
+    // we want to ignore applying startMutedPolicy locally when we set it
     this._ignoreFirstStartMutedPolicyUpdate = true;
 
     this.getMetadataHandler().setMetadata('startMuted', {
