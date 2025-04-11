@@ -8,6 +8,8 @@ const contexts = new Map(); // Map participant id => context
 
 let sharedContext;
 
+let enabled = false;
+
 /**
  * Retrieves the participant {@code Context}, creating it if necessary.
  *
@@ -20,7 +22,10 @@ function getParticipantContext(participantId) {
     }
 
     if (!contexts.has(participantId)) {
-        contexts.set(participantId, new Context());
+        const context = new Context();
+
+        context.setEnabled(enabled);
+        contexts.set(participantId, context);
     }
 
     return contexts.get(participantId);
@@ -63,6 +68,9 @@ onmessage = event => {
         const context = getParticipantContext(participantId);
 
         handleTransform(context, operation, readableStream, writableStream);
+    } else if (operation === 'setEnabled') {
+        enabled = event.data.enabled;
+        contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
         const context = getParticipantContext(participantId);

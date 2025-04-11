@@ -27,6 +27,7 @@ export class KeyHandler extends Listenable {
 
         this.enabled = false;
         this._enabling = undefined;
+        this._firstEnable = false;
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -73,26 +74,20 @@ export class KeyHandler extends Listenable {
 
         this.enabled = enabled;
 
-        if (!enabled) {
-            this.e2eeCtx.cleanupAll();
-        }
-
         this._setEnabled && await this._setEnabled(enabled);
 
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
-        this.conference._restartMediaSessions();
+        // Only restart media sessions if E2EE is enabled. If it's later disabled
+        // we'll continue to use the existing media sessions with an empty transform.
+        if (!this._firstEnable && enabled) {
+            this._firstEnable = true;
+            this.conference._restartMediaSessions();
+        }
+
+        this.e2eeCtx.setEnabled(enabled);
 
         this._enabling.resolve();
-    }
-
-    /**
-     * Sets the key for End-to-End encryption.
-     *
-     * @returns {void}
-     */
-    setEncryptionKey() {
-        throw new Error('Not implemented by subclass');
     }
 
     /**
@@ -125,7 +120,7 @@ export class KeyHandler extends Listenable {
      * @private
      */
     _setupReceiverE2EEForTrack(tpc, track) {
-        if (!this.enabled) {
+        if (!this.enabled && !this._firstEnable) {
             return;
         }
 
@@ -146,7 +141,7 @@ export class KeyHandler extends Listenable {
      * @private
      */
     _setupSenderE2EEForTrack(session, track) {
-        if (!this.enabled) {
+        if (!this.enabled && !this._firstEnable) {
             return;
         }
 

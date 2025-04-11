@@ -67,7 +67,9 @@ describe('E2EE Context', () => {
 
     beforeEach(() => {
         sender = new Context('sender');
+        sender.setEnabled(true);
         receiver = new Context('receiver');
+        receiver.setEnabled(true);
     });
 
     describe('encode function', () => {
