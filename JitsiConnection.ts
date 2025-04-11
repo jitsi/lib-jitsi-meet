@@ -10,7 +10,7 @@ import {
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
 
-const logger = getLogger(__filename);
+const logger = getLogger('JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
@@ -44,7 +44,7 @@ export interface IAttachOptions {
 export default class JitsiConnection {
     private appID?: string;
     private token: string | null;
-    private options: IConnectionOptions;
+    readonly options: IConnectionOptions;
     private xmpp: XMPP;
 
     /**
@@ -63,13 +63,11 @@ export default class JitsiConnection {
 
         this.xmpp = new XMPP(options, token);
 
-        /* eslint-disable max-params */
         this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
             (errType: string, msg: string, credentials: any, details: any) => {
                 Statistics.sendAnalyticsAndLog(
                     createConnectionFailedEvent(errType, msg, details));
             });
-        /* eslint-enable max-params */
 
         this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
             (msg: string) => {
@@ -237,13 +235,5 @@ export default class JitsiConnection {
         data.metadata = metadata;
 
         return data;
-    }
-
-    /**
-     * Returns the connection options.
-     * @returns The connection options.
-     */
-    getOptions(): IConnectionOptions {
-        return this.options;
     }
 }
