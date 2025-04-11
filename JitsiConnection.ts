@@ -13,16 +13,16 @@ import {
 const logger = getLogger(__filename);
 
 export interface IConnectionOptions {
+    analytics?: any;
     disableFocus?: boolean;
     enableWebsocketResume: boolean;
     flags?: Record<string, any>;
+    name?: string;
     p2pStunServers: any[];
     serviceUrl: string;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: number;
     xmppPing?: any;
-    analytics?: any;
-    name?: string;
 }
 
 export interface IConnectOptions {
