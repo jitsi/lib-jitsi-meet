@@ -32,7 +32,7 @@
       "JitsiConference.js",
       "JitsiConferenceErrors.ts",
       "JitsiConferenceEvents.ts",
-      "JitsiConnection.js",
+      "JitsiConnection.ts",
       "JitsiConnectionErrors.ts",
       "JitsiConnectionEvents.ts",
       "JitsiMediaDevices.js",
