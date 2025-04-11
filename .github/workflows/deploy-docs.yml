@@ -28,7 +28,7 @@ jobs:
           cache: 'npm'
       - name: Build docs
         run: |
-          npm install
+          npm ci
           npm run typedoc
       - name: Setup Pages
         uses: actions/configure-pages@v5

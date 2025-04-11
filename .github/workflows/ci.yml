@@ -16,7 +16,7 @@ jobs:
       run: |
         node -v
         npm -v
-    - run: npm install
+    - run: npm ci
     - run: npm pack
     - name: Check git status
       run: git status
