@@ -80,7 +80,7 @@ class RTCStats {
      * @returns {void}
      */
     startWithConnection(connection: JitsiConnection) {
-        const { options } = connection;
+        const options = connection.getOptions();
         const name = options?.name ?? '';
         const {
             analytics: {

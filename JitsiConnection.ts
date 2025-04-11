@@ -21,6 +21,8 @@ export interface IConnectionOptions {
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: number;
     xmppPing?: any;
+    analytics?: any;
+    name?: string;
 }
 
 export interface IConnectOptions {
@@ -235,5 +237,13 @@ export default class JitsiConnection {
         data.metadata = metadata;
 
         return data;
+    }
+
+    /**
+     * Returns the connection options.
+     * @returns The connection options.
+     */
+    getOptions(): IConnectionOptions {
+        return this.options;
     }
 }
