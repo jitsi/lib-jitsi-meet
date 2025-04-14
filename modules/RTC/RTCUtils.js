@@ -235,6 +235,15 @@ function sendDeviceListToAnalytics(deviceList) {
  */
 class RTCUtils extends Listenable {
     /**
+     *
+     */
+    constructor() {
+        super();
+
+        this._initOnce = false;
+    }
+
+    /**
      * Depending on the browser, sets difference instance methods for
      * interacting with user media and adds methods to native WebRTC-related
      * objects. Also creates an instance variable for peer connection
@@ -265,17 +274,15 @@ class RTCUtils extends Listenable {
             logger.info(`Stereo: ${stereo}`);
         }
 
+        if (this._initOnce) {
+            return;
+        }
+
+        // Anything beyond this point needs to be initialized only once.
+        this._initOnce = true;
+
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
-
-        if (!browser.isReactNative()) {
-            this.attachMediaStream
-                = wrapAttachMediaStream((element, stream) => {
-                    if (element) {
-                        element.srcObject = stream;
-                    }
-                });
-        }
 
         screenObtainer.init(options);
 
@@ -301,6 +308,42 @@ class RTCUtils extends Listenable {
                     AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
             }
         });
+    }
+
+    /**
+     * Attaches the given media stream to the given element.
+     *
+     * @param {*} element DOM element.
+     * @param {*} stream MediaStream.
+     * @returns Promise<void>
+     */
+    attachMediaStream(element, stream) {
+        if (element) {
+            element.srcObject = stream;
+        }
+
+        if (element && stream
+                && this.isDeviceChangeAvailable('output')
+                && stream.getAudioTracks().length
+
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
+            return element.setSinkId(this.getAudioOutputDevice()).catch(ex => {
+                const err
+                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
+
+                logger.warn(
+                    'Failed to set audio output device for the element.'
+                        + ' Default audio output device will be used'
+                        + ' instead',
+                    element?.id,
+                    err);
+
+                throw err;
+            });
+        }
+
+        return Promise.resolve();
     }
 
     /**
@@ -846,43 +889,5 @@ class RTCUtils extends Listenable {
     }
 }
 
-const rtcUtils = new RTCUtils();
 
-/**
- * Wraps original attachMediaStream function to set current audio output device
- * if this is supported.
- * @param {Function} origAttachMediaStream
- * @returns {Function}
- */
-function wrapAttachMediaStream(origAttachMediaStream) {
-    return function(element, stream) {
-        // eslint-disable-next-line prefer-rest-params
-        origAttachMediaStream.apply(rtcUtils, arguments);
-
-        if (stream
-                && rtcUtils.isDeviceChangeAvailable('output')
-                && stream.getAudioTracks
-                && stream.getAudioTracks().length
-
-                // we skip setting audio output if there was no explicit change
-                && audioOutputChanged) {
-            return element.setSinkId(rtcUtils.getAudioOutputDevice()).catch(ex => {
-                const err
-                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
-                logger.warn(
-                    'Failed to set audio output device for the element.'
-                        + ' Default audio output device will be used'
-                        + ' instead',
-                    element?.id,
-                    err);
-
-                throw err;
-            });
-        }
-
-        return Promise.resolve();
-    };
-}
-
-export default rtcUtils;
+export default new RTCUtils();
