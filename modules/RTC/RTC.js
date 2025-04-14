@@ -373,7 +373,7 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, pcConfig, isP2P, options) {
-        const pcConstraints = cloneDeep(RTCUtils.pcConstraints);
+        const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');

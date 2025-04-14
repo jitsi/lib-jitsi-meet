@@ -277,8 +277,6 @@ class RTCUtils extends Listenable {
                 });
         }
 
-        this.pcConstraints = {};
-
         screenObtainer.init(options);
 
         this.enumerateDevices(ds => {
