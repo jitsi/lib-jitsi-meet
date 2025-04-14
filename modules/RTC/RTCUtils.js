@@ -65,10 +65,6 @@ let disableAGC = false;
 // Enables stereo.
 let stereo = null;
 
-const featureDetectionAudioEl = document.createElement('audio');
-const isAudioOutputDeviceChangeAvailable
-    = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
-
 let availableDevices = [];
 let availableDevicesPollTimer;
 
@@ -241,6 +237,13 @@ class RTCUtils extends Listenable {
         super();
 
         this._initOnce = false;
+
+        // TODO: Firefox requires a special `speaker-selection` permission.
+        this._isAudioOutputDeviceChangeAvailable
+            = Boolean(!browser.isFirefox()
+                && typeof window.HTMLAudioElement?.prototype?.setSinkId !== 'undefined');
+        this._dummyAudioEl
+            = this._isAudioOutputDeviceChangeAvailable ? document.createElement('audio') : null;
     }
 
     /**
@@ -757,7 +760,7 @@ class RTCUtils extends Listenable {
      */
     isDeviceChangeAvailable(deviceType) {
         if (deviceType === 'output' || deviceType === 'audiooutput') {
-            return isAudioOutputDeviceChangeAvailable;
+            return this._isAudioOutputDeviceChangeAvailable;
         }
 
         return true;
@@ -809,12 +812,11 @@ class RTCUtils extends Listenable {
      *      otherwise
      */
     setAudioOutputDevice(deviceId) {
-        if (!this.isDeviceChangeAvailable('output')) {
-            return Promise.reject(
-                new Error('Audio output device change is not supported'));
+        if (!this._isAudioOutputDeviceChangeAvailable) {
+            return Promise.reject(new Error('Audio output device change is not supported'));
         }
 
-        return featureDetectionAudioEl.setSinkId(deviceId)
+        return this._dummyAudioEl.setSinkId(deviceId)
             .then(() => {
                 audioOutputDeviceId = deviceId;
                 audioOutputChanged = true;
