@@ -201,13 +201,6 @@ export default class ReceiveVideoController {
             return;
         }
 
-        const isEndpointsFormat = Object.keys(constraints).includes('onStageEndpoints', 'selectedEndpoints');
-
-        if (isEndpointsFormat) {
-            throw new Error(
-                '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
-            );
-        }
         const constraintsChanged = !isEqual(this._receiverVideoConstraints, constraints);
 
         if (constraintsChanged || this._lastNLimitedByCpu || this._receiveResolutionLimitedByCpu) {
@@ -219,7 +212,7 @@ export default class ReceiveVideoController {
             this._receiverVideoConstraints.lastN = this._lastN;
             this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
 
-            // Send the contraints on the bridge channel.
+            // Send the constraints on the bridge channel.
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
 
             const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
