@@ -583,14 +583,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns true if retrieving the list of input devices is supported
-     * and false if not.
-     */
-    static isDeviceListAvailable() {
-        return RTCUtils.isDeviceListAvailable();
-    }
-
-    /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
      * @param {string} [deviceType] Type of device to change. Default is
