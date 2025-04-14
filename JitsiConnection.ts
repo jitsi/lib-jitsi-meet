@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from './JitsiConference';
 import { JitsiConnectionEvents } from './JitsiConnectionEvents';
+import RTCStats from './modules/RTCStats/RTCStats';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
@@ -95,6 +96,9 @@ export default class JitsiConnection {
      * to be used.
      */
     connect(options: IConnectOptions = {}): void {
+
+        RTCStats.startWithConnection(this);
+
         // if we get redirected, we set disableFocus to skip sending the conference request twice
         if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
             // The domain (optional) will uses this.options.hosts.muc.toLowerCase() if not provided

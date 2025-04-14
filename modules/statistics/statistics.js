@@ -2,7 +2,6 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
-import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
 import WatchRTC from '../watchRTC/WatchRTC';
@@ -42,7 +41,6 @@ Statistics.init = function(options) {
 
     LocalStats.init();
     WatchRTC.init(options);
-    RTCStats.init(options);
 };
 
 /**

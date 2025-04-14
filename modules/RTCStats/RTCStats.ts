@@ -23,6 +23,9 @@ const logger = getLogger('modules/RTCStats/RTCStats');
 /**
  * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
  * ignored. Config and conference changes are handled by the start method.
+ * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
+ * The proxies will then send data to the rtcstats server via the trace object.
+ * The initialization procedure must be called once after lib-jitsi-meet is loaded.
  */
 class RTCStats {
     public events: EventEmitter = new EventEmitter();
@@ -31,47 +34,12 @@ class RTCStats {
     private _initialized: boolean = false;
     private _trace: any = null;
 
-    /**
-     * RTCStats "proxies" WebRTC functions such as GUM and RTCPeerConnection by rewriting the global objects.
-     * The proxies will then send data to the rtcstats server via the trace object.
-     * The initialization procedure must be called once when lib-jitsi-meet is loaded.
-     *
-     * @param {IRTCStatsConfiguration} initConfig initial config for rtcstats.
-     * @returns {void}
-     */
-    init(initConfig: IRTCStatsConfiguration) {
-        const {
-            analytics: {
-                rtcstatsPollInterval: pollInterval = 10000,
-                rtcstatsSendSdp: sendSdp = false,
-                rtcstatsEnabled = false
-            } = {}
-        } = initConfig;
-
-        // If rtcstats is not enabled or already initialized, do nothing.
-        // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
-        // with unforeseen consequences.
-        if (!rtcstatsEnabled || this._initialized) {
-            return;
-        }
-
-        rtcstatsInit(
-            { statsEntry: this.sendStatsEntry.bind(this) },
-            { pollInterval,
-                useLegacy: false,
-                sendSdp,
-                eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
-        );
-
-        this._initialized = true;
-    }
-
     isTraceAvailable() {
         return this._trace !== null;
     }
 
     /**
-      * A JitsiConnection instance is created before the conference is joined, so even though
+     * A JitsiConnection instance is created before the conference is joined, so even though
      * we don't have any conference specific data yet, we can initialize the trace module and
      * send any logs that might of otherwise be missed in case an error occurs between the connection
      * and conference initialization.
@@ -85,7 +53,9 @@ class RTCStats {
         const {
             analytics: {
                 rtcstatsEndpoint: endpoint = '',
-                rtcstatsEnabled = false
+                rtcstatsEnabled = false,
+                rtcstatsPollInterval: pollInterval = 10000,
+                rtcstatsSendSdp: sendSdp = false
             } = {},
         } = options;
 
@@ -93,11 +63,18 @@ class RTCStats {
         // don't always re-initialize the module and could create multiple connections with different options.
         if (!rtcstatsEnabled) return;
 
-        // If rtcstats proxy module is not initialized, do nothing (should never happen).
+        // If rtcstats already initialized, do nothing.
+        // Calling rtcsatsInit multiple times will cause the global objects to be rewritten multiple times,
+        // with unforeseen consequences.
         if (!this._initialized) {
-            logger.error('Calling startWithConnection before RTCStats proxy module is initialized.');
-
-            return;
+            rtcstatsInit(
+                { statsEntry: this.sendStatsEntry.bind(this) },
+                { pollInterval,
+                    useLegacy: false,
+                    sendSdp,
+                    eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
+            );
+            this._initialized = true;
         }
 
         const traceOptions: ITraceOptions = {
