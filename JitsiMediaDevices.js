@@ -157,16 +157,6 @@ class JitsiMediaDevices extends Listenable {
     }
 
     /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {Promise<boolean>} a Promise which will be resolved only once
-     * the WebRTC stack is ready, either with true if the device listing is
-     * available available or with false otherwise.
-     */
-    isDeviceListAvailable() {
-        return RTC.isDeviceListAvailable();
-    }
-
-    /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
      * @param {string} [deviceType] - type of device to change. Default is

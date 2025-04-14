@@ -281,30 +281,28 @@ class RTCUtils extends Listenable {
 
         screenObtainer.init(options);
 
-        if (this.isDeviceListAvailable()) {
-            this.enumerateDevices(ds => {
-                availableDevices = ds.slice(0);
+        this.enumerateDevices(ds => {
+            availableDevices = ds.slice(0);
 
-                logger.debug('Available devices: ', availableDevices);
-                sendDeviceListToAnalytics(availableDevices);
+            logger.debug('Available devices: ', availableDevices);
+            sendDeviceListToAnalytics(availableDevices);
 
-                this.eventEmitter.emit(
-                    RTCEvents.DEVICE_LIST_AVAILABLE,
-                    availableDevices);
+            this.eventEmitter.emit(
+                RTCEvents.DEVICE_LIST_AVAILABLE,
+                availableDevices);
 
-                if (browser.supportsDeviceChangeEvent()) {
-                    navigator.mediaDevices.addEventListener(
-                        'devicechange',
-                        () => this.enumerateDevices(emptyFuncton));
-                } else {
-                    // Periodically poll enumerateDevices() method to check if
-                    // list of media devices has changed.
-                    availableDevicesPollTimer = window.setInterval(
-                        () => this.enumerateDevices(emptyFuncton),
-                        AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
-                }
-            });
-        }
+            if (browser.supportsDeviceChangeEvent()) {
+                navigator.mediaDevices.addEventListener(
+                    'devicechange',
+                    () => this.enumerateDevices(emptyFuncton));
+            } else {
+                // Periodically poll enumerateDevices() method to check if
+                // list of media devices has changed.
+                availableDevicesPollTimer = window.setInterval(
+                    () => this.enumerateDevices(emptyFuncton),
+                    AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
+            }
+        });
     }
 
     /**
@@ -707,18 +705,6 @@ class RTCUtils extends Listenable {
 
                 return Promise.reject(error);
             });
-    }
-
-    /**
-     * Checks whether it is possible to enumerate available cameras/microphones.
-     *
-     * @returns {boolean} {@code true} if the device listing is available;
-     * {@code false}, otherwise.
-     */
-    isDeviceListAvailable() {
-        return Boolean(
-            navigator.mediaDevices
-                && navigator.mediaDevices.enumerateDevices);
     }
 
     /**
