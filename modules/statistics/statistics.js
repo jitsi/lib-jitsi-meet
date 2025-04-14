@@ -42,7 +42,6 @@ Statistics.init = function(options) {
 
     LocalStats.init();
     WatchRTC.init(options);
-    RTCStats.init(options);
 };
 
 /**
