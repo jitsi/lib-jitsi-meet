@@ -25,7 +25,6 @@ export default class RTC extends Listenable {
   setAudioMute: ( value: unknown ) => Promise<unknown>; // TODO:
   removeLocalTrack: ( track: unknown ) => void; // TODO:
   static attachMediaStream: ( elSelector: unknown, stream: unknown ) => unknown; // TODO:
-  static isDeviceListAvailable: () => unknown; // TODO:
   static isDeviceChangeAvailable: ( deviceType: string ) => boolean; // TODO: check if deviceType should be an enum
   static isWebRtcSupported: () => boolean;
   static getAudioOutputDevice: () => string;
