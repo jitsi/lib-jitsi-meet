@@ -16,7 +16,7 @@ import EventEmitter from '../util/EventEmitter';
 
 import DefaultLogStorage from './DefaulLogStorage';
 import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
-import { IRTCStatsConfiguration, ITraceOptions } from './interfaces';
+import { ITraceOptions } from './interfaces';
 
 const logger = getLogger('modules/RTCStats/RTCStats');
 
