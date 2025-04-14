@@ -13,6 +13,7 @@ import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
 import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
+import E2EESessionManager from './E2EESessionManager';
 
 const logger = getLogger(__filename);
 
@@ -43,7 +44,78 @@ const OlmAdapterEvents = {
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_VERIFICATION_COMPLETED: 'olm.participant_verification_completed'
 };
+---
+export default class OlmAdapter extends KeyHandler {
+    constructor(conference, options = {}) {
+        super(conference, options);
+        this._sessionManager = new E2EESessionManager();
+        this._participants = new Map();
+        this._init = false;
+    }
 
+    isEnabled() {
+        return this._init && super.isEnabled();
+    }
+
+    async _setEnabled(enabled) {
+        if (enabled === this._init) {
+            return;
+        }
+
+        this._init = enabled;
+
+        if (!enabled) {
+            this._sessionManager.cleanupAll();
+            this._participants.clear();
+            logger.debug('E2EE disabled, all sessions cleared');
+        }
+
+    }
+
+    async initSessions() {
+        if (!this._init) {
+            logger.debug('E2EE not enabled, skipping session initialization');
+            return;
+        }
+
+        const participants = this.conference.getParticipants();
+        for (const participant of participants) {
+            const participantId = participant.getId();
+            await this._sendSessionInit(participantId);
+        }
+    }
+
+    async _sendSessionInit(participantId) {
+        return this._sessionManager.initializeSession(participantId, async () => {
+            let olmData = this._participants.get(participantId);
+            if (!olmData) {
+                olmData = { session: null };
+                this._participants.set(participantId, olmData);
+            }
+
+            if (olmData.session) {
+                logger.debug(`Reusing existing Olm session for ${participantId}`);
+                return olmData.session;
+            }
+
+            try {
+                const session = { id: participantId, key: 'mock-olm-session' };
+                olmData.session = session;
+                logger.debug(`Created new Olm session for ${participantId}`);
+                return session;
+            } catch (error) {
+                logger.error(`Failed to create Olm session for ${participantId}:`, error);
+                throw error;
+            }
+        });
+    }
+    async onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+        if (name === 'e2ee.enabled' && newValue === 'true' && this._init) {
+            const participantId = participant.getId();
+            await this._sendSessionInit(participantId);
+        }
+    }
+}
 /**
  * This class implements an End-to-End Encrypted communication channel between every two peers
  * in the conference. This channel uses libolm to achieve E2EE.
