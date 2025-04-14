@@ -273,7 +273,7 @@ class RTCStats {
     /**
      * Creates a new log collector with the default log storage.
      */
-    getDefaultLogCollector(maxEntryLength) {
+    getDefaultLogCollector(maxEntryLength: number = 10000) {
         if (!this._defaultLogCollector) {
             // If undefined is passed  as maxEntryLength LogCollector will default to 10000 bytes
             this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this), { maxEntryLength });

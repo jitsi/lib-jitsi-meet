@@ -590,7 +590,7 @@ JitsiConference.prototype._init = function(options = {}) {
  * @param replaceParticipant {boolean} whether the current join replaces
  * an existing participant with same jwt from the meeting.
  */
-JitsiConference.prototype.join = function(password, replaceParticipant = false) {
+JitsiConference.prototype.join = function(password = '', replaceParticipant = false) {
     if (this.room) {
         this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
     }
@@ -741,6 +741,15 @@ JitsiConference.prototype.leave = async function(reason) {
     if (leaveError) {
         throw leaveError;
     }
+};
+
+/**
+ * Disposes of conference resources. This operation is a short-hand for leaving
+ * the conference and disconnecting the connection.
+ */
+JitsiConference.prototype.dispose = async function() {
+    await this.leave();
+    await this.connection?.disconnect();
 };
 
 /**
