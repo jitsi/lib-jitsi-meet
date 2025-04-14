@@ -746,6 +746,15 @@ JitsiConference.prototype.leave = async function(reason) {
 };
 
 /**
+ * Disposes of conference resources. This operation is a short-hand for leaving
+ * the conference and disconnecting the connection.
+ */
+JitsiConference.prototype.dispose = async function() {
+    await this.leave();
+    await this.connection?.disconnect();
+};
+
+/**
  * Returns <tt>true</tt> if end conference support is enabled in the backend.
  *
  * @returns {boolean} whether end conference is supported in the backend.
