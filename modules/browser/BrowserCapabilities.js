@@ -233,8 +233,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsScalabilityModeAPI() {
-        return (this.isChromiumBased() && this.isEngineVersionGreaterThan(112))
-            || (this.isFirefox() && this.isVersionGreaterThan(135));
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(112);
     }
 
     /**
@@ -247,12 +246,33 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if K-SVC is supported for AV1.
+     *
+     * @returns {boolean}
+     */
+    supportsKSVCForAV1() {
+        return !this.isFirefox();
+    }
+
+    /**
      * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
      * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
      * details.
      */
     supportsVP9() {
-        return !(this.isWebKitBased() || (this.isFirefox() && this.isVersionLessThan('136')));
+        // Keep this disabled for FF because simulcast is disabled by default.
+        // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
+        // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
+        return !(this.isWebKitBased() || this.isFirefox());
+    }
+
+    /**
+     * Returns true if K-SVC is supported for VP9.
+     *
+     * @returns {boolean}
+     */
+    supportsKSVCForVP9() {
+        return !this.isFirefox();
     }
 
     /**

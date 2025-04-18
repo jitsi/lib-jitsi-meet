@@ -723,9 +723,13 @@ export class TPCUtils {
 
         return videoCodec === CodecMimeType.VP8 // VP8 always
 
-            // K-SVC mode for VP9 when no scalability mode is set. Though only one outbound-rtp stream is present,
-            // three separate encodings have to be configured.
+            // For FF: scalabilityModeEnabled is not supported and we have to use simulcast.
+            // For other browsers we use K-SVC mode for VP9 when no scalability mode is set. Although
+            // only one outbound-rtp stream is present, three separate encodings have to be configured.
             || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.VP9)
+
+            // FF uses simulcast with AV1.
+            || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.AV1)
 
             // When scalability is enabled, always for H.264, and only when simulcast is explicitly enabled via
             // config.js for VP9 and AV1 since full SVC is the default mode for these 2 codecs.
@@ -942,7 +946,10 @@ export class TPCUtils {
 
             if (isSender && mLine.ext?.length) {
                 const headerIndex = mLine.ext.findIndex(ext => ext.uri === DD_HEADER_EXT_URI);
-                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
+                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264
+
+                    // Removing DD ext header lines from the sdp breaks the scalability for FF with version 136+.
+                    || (codec === CodecMimeType.VP8 && browser.isFirefox());
 
                 if (!this.supportsDDHeaderExt && headerIndex >= 0) {
                     this.supportsDDHeaderExt = true;
