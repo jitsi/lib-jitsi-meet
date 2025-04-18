@@ -723,8 +723,9 @@ export class TPCUtils {
 
         return videoCodec === CodecMimeType.VP8 // VP8 always
 
-            // K-SVC mode for VP9 when no scalability mode is set. Though only one outbound-rtp stream is present,
-            // three separate encodings have to be configured.
+            // For FF: scalabilityModeEnabled is not supported and we have to use simulcast.
+            // For other browsers we use K-SVC mode for VP9 when no scalability mode is set. Although
+            // only one outbound-rtp stream is present, three separate encodings have to be configured.
             || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.VP9)
 
             // When scalability is enabled, always for H.264, and only when simulcast is explicitly enabled via
