@@ -728,6 +728,11 @@ export class TPCUtils {
             // only one outbound-rtp stream is present, three separate encodings have to be configured.
             || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.VP9)
 
+            // FF uses simulcast with AV1.
+            || (!this.codecSettings[videoCodec].scalabilityModeEnabled
+                && this.codecSettings[videoCodec].useSimulcast
+                && videoCodec === CodecMimeType.AV1)
+
             // When scalability is enabled, always for H.264, and only when simulcast is explicitly enabled via
             // config.js for VP9 and AV1 since full SVC is the default mode for these 2 codecs.
             || (this.codecSettings[videoCodec].scalabilityModeEnabled
