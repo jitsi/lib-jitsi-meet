@@ -942,7 +942,10 @@ export class TPCUtils {
 
             if (isSender && mLine.ext?.length) {
                 const headerIndex = mLine.ext.findIndex(ext => ext.uri === DD_HEADER_EXT_URI);
-                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264;
+                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264
+
+                    // Removing DD ext header lines from the sdp breaks the scalability for FF with version 136+.
+                    || (codec === CodecMimeType.VP8 && browser.isFirefox());
 
                 if (!this.supportsDDHeaderExt && headerIndex >= 0) {
                     this.supportsDDHeaderExt = true;
