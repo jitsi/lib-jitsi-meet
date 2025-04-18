@@ -57,8 +57,8 @@ export const STANDARD_CODEC_SETTINGS = {
             none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
-        useSimulcast: false, // defaults to SVC.
-        useKSVC: true // defaults to L3T3_KEY for SVC mode.
+        useSimulcast: !browser.supportsKSVCForAV1(),
+        useKSVC: browser.supportsKSVCForAV1()
     },
     h264: {
         maxBitratesVideo: {

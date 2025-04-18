@@ -246,6 +246,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if K-SVC is supported for AV1.
+     *
+     * @returns {boolean}
+     */
+    supportsKSVCForAV1() {
+        return !this.isFirefox();
+    }
+
+    /**
      * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
      * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
      * details.
