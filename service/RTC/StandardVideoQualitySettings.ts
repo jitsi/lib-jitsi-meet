@@ -95,8 +95,8 @@ export const STANDARD_CODEC_SETTINGS = {
             none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
-        useSimulcast: false, // defaults to SVC.
-        useKSVC: true // defaults to L3T3_KEY for SVC mode.
+        useSimulcast: !browser.supportsKSVCForVP9(),
+        useKSVC: browser.supportsKSVCForVP9()
     }
 };
 

@@ -251,7 +251,19 @@ export default class BrowserCapabilities extends BrowserDetection {
      * details.
      */
     supportsVP9() {
-        return !(this.isWebKitBased() || (this.isFirefox() && this.isVersionLessThan('136')));
+        // Keep this disabled for FF because simulcast is disabled by default.
+        // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
+        // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
+        return !(this.isWebKitBased() || this.isFirefox());
+    }
+
+    /**
+     * Returns true if K-SVC is supported for VP9.
+     *
+     * @returns {boolean}
+     */
+    supportsKSVCForVP9() {
+        return !this.isFirefox();
     }
 
     /**
