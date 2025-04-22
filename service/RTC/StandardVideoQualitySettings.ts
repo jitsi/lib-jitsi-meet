@@ -57,8 +57,8 @@ export const STANDARD_CODEC_SETTINGS = {
             none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
-        useSimulcast: !browser.supportsKSVCForAV1(),
-        useKSVC: browser.supportsKSVCForAV1()
+        useSimulcast: !browser.supportsSVC(),
+        useKSVC: browser.supportsSVC()
     },
     h264: {
         maxBitratesVideo: {
@@ -95,8 +95,8 @@ export const STANDARD_CODEC_SETTINGS = {
             none: 0
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
-        useSimulcast: !browser.supportsKSVCForVP9(),
-        useKSVC: browser.supportsKSVCForVP9()
+        useSimulcast: !browser.supportsSVC(),
+        useKSVC: browser.supportsSVC()
     }
 };
 
