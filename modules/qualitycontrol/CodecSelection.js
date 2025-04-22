@@ -39,8 +39,8 @@ export class CodecSelection {
         this.visitorCodecs = [];
 
         for (const connectionType of Object.keys(options)) {
-            // eslint-disable-next-line prefer-const
-            let { disabledCodec, preferredCodec, preferenceOrder, screenshareCodec } = options[connectionType];
+            let { disabledCodec, preferredCodec, preferenceOrder } = options[connectionType];
+            const { enableAV1ForFF = false, screenshareCodec } = options[connectionType];
             const supportedCodecs = new Set(this._getSupportedVideoCodecs(connectionType));
 
             // Default preference codec order when no codec preferences are set in config.js
@@ -86,6 +86,20 @@ export class CodecSelection {
                     if (!this.conference.isE2EEEnabled()) {
                         selectedOrder.push(CodecMimeType.VP9);
                     }
+                }
+            }
+
+            // Adding this flag for testing purposes since AV1 is not properly supported by FF (it doesn't support SVC
+            // and it doesn't send temporal layers with simulcast).
+            if (browser.isFirefox() && !enableAV1ForFF) {
+                // By default moving AV1 to the end of the list. This way AV1 won't be used for encoding but can be
+                // used for decoding.
+                const index = selectedOrder.findIndex(codec => codec === CodecMimeType.AV1);
+
+                if (index !== -1) {
+                    selectedOrder.splice(index, 1);
+
+                    selectedOrder.push(CodecMimeType.AV1);
                 }
             }
 
