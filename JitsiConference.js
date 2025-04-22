@@ -457,7 +457,8 @@ JitsiConference.prototype._init = function(options = {}) {
             preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
             screenshareCodec: browser.isMobileDevice()
                 ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.videoQuality?.screenshareCodec)
+                : _getCodecMimeType(config.videoQuality?.screenshareCodec),
+            enableAV1ForFF: config.testing?.enableAV1ForFF
         },
         p2p: {
             preferenceOrder: browser.isMobileDevice()
@@ -467,7 +468,8 @@ JitsiConference.prototype._init = function(options = {}) {
             preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
             screenshareCodec: browser.isMobileDevice()
                 ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.p2p?.screenshareCodec)
+                : _getCodecMimeType(config.p2p?.screenshareCodec),
+            enableAV1ForFF: true // For P2P no simulcast is needed, therefore AV1 can be used.
         }
     };
 
