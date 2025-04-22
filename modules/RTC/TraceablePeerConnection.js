@@ -2149,7 +2149,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
     // K-SVC codec.
     if (codec === CodecMimeType.VP9
-        && browser.supportsKSVCForVP9()
+        && browser.supportsSVC()
         && this.isSpatialScalabilityOn()
         && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
         scaleFactors = scaleFactors.map(() => undefined);
