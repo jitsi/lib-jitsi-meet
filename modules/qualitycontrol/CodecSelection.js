@@ -71,37 +71,24 @@ export class CodecSelection {
                 }
             }
 
-            // Push VP9 to the end of the list so that the client continues to decode VP9 even if its not
-            // preferable to encode VP9 (because of browser bugs on the encoding side or other reasons).
+            // Push AV1 and VP9 to the end of the list if they are supported by the browser but has implementation bugs
+            // For example, 136 and newer versions of Firefox supports AV1 but only simulcast and not SVC. Even with
+            // simulcast, temporal scalability is not supported. This way Firefox will continue to decode AV1 from
+            // other endpoints but will use VP8 for encoding. Similar issues exist with VP9 on Safari and Firefox.
             const isVp9EncodeSupported = browser.supportsVP9() || (browser.isWebKitBased() && connectionType === 'p2p');
 
-            if (!isVp9EncodeSupported) {
-                const index = selectedOrder.findIndex(codec => codec === CodecMimeType.VP9);
+            [ CodecMimeType.AV1, CodecMimeType.VP9 ].forEach(codec => {
+                if ((codec === CodecMimeType.AV1 && browser.isFirefox() && !enableAV1ForFF)
+                    || (codec === CodecMimeType.VP9 && !isVp9EncodeSupported)) {
+                    const index = selectedOrder.findIndex(selectedCodec => selectedCodec === codec);
 
-                if (index !== -1) {
-                    selectedOrder.splice(index, 1);
+                    if (index !== -1) {
+                        selectedOrder.splice(index, 1);
 
-                    // Remove VP9 from the list when E2EE is enabled since it is not supported.
-                    // TODO - remove this check when support for VP9-E2EE is introduced.
-                    if (!this.conference.isE2EEEnabled()) {
-                        selectedOrder.push(CodecMimeType.VP9);
+                        selectedOrder.push(codec);
                     }
                 }
-            }
-
-            // Adding this flag for testing purposes since AV1 is not properly supported by FF (it doesn't support SVC
-            // and it doesn't send temporal layers with simulcast).
-            if (browser.isFirefox() && !enableAV1ForFF) {
-                // By default moving AV1 to the end of the list. This way AV1 won't be used for encoding but can be
-                // used for decoding.
-                const index = selectedOrder.findIndex(codec => codec === CodecMimeType.AV1);
-
-                if (index !== -1) {
-                    selectedOrder.splice(index, 1);
-
-                    selectedOrder.push(CodecMimeType.AV1);
-                }
-            }
+            });
 
             logger.info(`Codec preference order for ${connectionType} connection is ${selectedOrder}`);
             this.codecPreferenceOrder[connectionType] = selectedOrder;

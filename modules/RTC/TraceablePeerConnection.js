@@ -1971,7 +1971,6 @@ TraceablePeerConnection.prototype._mungeDescription = function(description) {
     mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
     mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
     mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
-    mungedSdp = this.tpcUtils.updateAv1DdHeaders(mungedSdp);
     const mungedDescription = {
         type: description.type,
         sdp: transform.write(mungedSdp)
