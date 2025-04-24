@@ -18,9 +18,6 @@ import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
 const logger = getLogger('modules/RTC/TPCUtils');
-const DD_HEADER_EXT_URI
-    = 'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension';
-const DD_HEADER_EXT_ID = 11;
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
 
 /**
@@ -918,55 +915,6 @@ export class TPCUtils {
                 mLine.bandwidth = undefined;
             }
         }
-
-        return mungedSdp;
-    }
-
-    /**
-     * Checks if the AV1 Dependency descriptors are negotiated on the bridge peerconnection and removes them from the
-     * SDP when codec selected is VP8 or VP9.
-     *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
-     * @returns {string} the munged SDP.
-     */
-    updateAv1DdHeaders(parsedSdp) {
-        if (!browser.supportsDDExtHeaders()) {
-            return parsedSdp;
-        }
-        const mungedSdp = parsedSdp;
-        const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO);
-
-        mLines.forEach((mLine, idx) => {
-            const senderMids = Array.from(this.pc.localTrackTransceiverMids.values());
-            const isSender = senderMids.length
-                ? senderMids.find(mid => mLine.mid.toString() === mid.toString())
-                : idx === 0;
-            const payload = mLine.payloads.split(' ')[0];
-            let { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
-
-            codec = codec.toLowerCase();
-
-            if (isSender && mLine.ext?.length) {
-                const headerIndex = mLine.ext.findIndex(ext => ext.uri === DD_HEADER_EXT_URI);
-                const shouldNegotiateHeaderExts = codec === CodecMimeType.AV1 || codec === CodecMimeType.H264
-
-                    // Removing DD ext header lines from the sdp breaks the scalability for FF with version 136+.
-                    || (codec === CodecMimeType.VP8 && browser.isFirefox());
-
-                if (!this.supportsDDHeaderExt && headerIndex >= 0) {
-                    this.supportsDDHeaderExt = true;
-                }
-
-                if (this.supportsDDHeaderExt && shouldNegotiateHeaderExts && headerIndex < 0) {
-                    mLine.ext.push({
-                        value: DD_HEADER_EXT_ID,
-                        uri: DD_HEADER_EXT_URI
-                    });
-                } else if (!shouldNegotiateHeaderExts && headerIndex >= 0) {
-                    mLine.ext.splice(headerIndex, 1);
-                }
-            }
-        });
 
         return mungedSdp;
     }
