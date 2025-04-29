@@ -312,9 +312,15 @@ const ScreenObtainer = {
                     }
                 }
 
+                const videoTracks = stream?.getVideoTracks();
+                const track = videoTracks?.length > 0 ? videoTracks[0] : undefined;
+                const { deviceId } = track?.getSettings() ?? {};
+
                 callback({
                     stream,
-                    sourceId: stream.id
+
+                    // Used by remote-control to identify the display that is currently shared.
+                    sourceId: deviceId ?? stream.id
                 });
             })
             .catch(error => {
