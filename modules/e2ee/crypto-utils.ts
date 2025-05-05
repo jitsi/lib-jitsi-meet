@@ -4,8 +4,8 @@
  *
  * See https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.1
  */
-export async function deriveKeys(material) {
-    const info = new ArrayBuffer();
+export async function deriveKeys(material: CryptoKey): Promise<{ material: CryptoKey; encryptionKey: CryptoKey }> {
+    const info = new ArrayBuffer(0);
     const textEncoder = new TextEncoder();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
@@ -32,7 +32,7 @@ export async function deriveKeys(material) {
  * @param {CryptoKey} material - base key material
  * @returns {Promise<ArrayBuffer>} - ratcheted key material
  */
-export async function ratchet(material) {
+export async function ratchet(material: CryptoKey): Promise<ArrayBuffer> {
     const textEncoder = new TextEncoder();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveBits
@@ -40,7 +40,7 @@ export async function ratchet(material) {
         name: 'HKDF',
         salt: textEncoder.encode('JFrameRatchetKey'),
         hash: 'SHA-256',
-        info: new ArrayBuffer()
+        info: new ArrayBuffer(0)
     }, material, 256);
 }
 
@@ -51,7 +51,7 @@ export async function ratchet(material) {
  * @param {Array} keyUsages - key usages, see importKey documentation
  * @returns {Promise<CryptoKey>} - the WebCrypto key.
  */
-export async function importKey(keyBytes) {
+export async function importKey(keyBytes: ArrayBuffer): Promise<CryptoKey> {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
     return await crypto.subtle.importKey('raw', keyBytes, 'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
 }
