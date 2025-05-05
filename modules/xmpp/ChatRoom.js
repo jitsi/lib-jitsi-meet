@@ -1098,7 +1098,7 @@ export default class ChatRoom extends Listenable {
                         + '>status[code="307"]')
                 .length;
         const membersKeys = Object.keys(this.members);
-        const isReplaceParticipant = $(pres).find('flip_device').length;
+        const isReplaceParticipant = $(pres).find('flip_device').length > 0;
 
         if (isKick) {
             const actorSelect
