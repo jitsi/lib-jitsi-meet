@@ -2108,8 +2108,17 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
-        this.p2pJingleSession.setAnswer(answer);
-        this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
+        this.p2pJingleSession.setAnswer(answer)
+            .then(() => {
+                this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
+            })
+            .catch(error => {
+                logger.error('Error setting P2P answer', error);
+                if (this.p2pJingleSession) {
+                    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                        JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+                }
+            });
     }
 };
 
@@ -2296,7 +2305,9 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 });
             },
             error => {
-                logger.error('Failed to accept incoming Jingle session', error);
+                logger.error('Failed to accept incoming JVB Jingle session', error);
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
             },
             localTracks
         );
@@ -3062,8 +3073,11 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             });
         },
         error => {
-            logger.error(
-                'Failed to accept incoming P2P Jingle session', error);
+            logger.error('Failed to accept incoming P2P Jingle session', error);
+            if (this.p2pJingleSession) {
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+            }
         },
         localTracks);
 };
@@ -3408,11 +3422,20 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
 
     const localTracks = this.getLocalTracks();
 
-    this.p2pJingleSession.invite(localTracks);
+    this.p2pJingleSession.invite(localTracks)
+        .then(() => {
+            this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
+            });
+        })
+        .catch(error => {
+            logger.error('Failed to start P2P Jingle session', error);
 
-    this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
-        this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
-    });
+            if (this.p2pJingleSession) {
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+            }
+        });
 };
 
 /**

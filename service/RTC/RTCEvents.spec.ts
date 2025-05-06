@@ -5,8 +5,6 @@ import * as exported from "./RTCEvents";
 describe( "/service/RTC/RTCEvents members", () => {
     const {
         BRIDGE_BWE_STATS_RECEIVED,
-        CREATE_ANSWER_FAILED,
-        CREATE_OFFER_FAILED,
         DATA_CHANNEL_OPEN,
         DATA_CHANNEL_CLOSED,
         ENDPOINT_CONN_STATUS_CHANGED,
@@ -20,8 +18,6 @@ describe( "/service/RTC/RTCEvents members", () => {
         REMOTE_TRACK_MUTE,
         REMOTE_TRACK_REMOVED,
         REMOTE_TRACK_UNMUTE,
-        SET_LOCAL_DESCRIPTION_FAILED,
-        SET_REMOTE_DESCRIPTION_FAILED,
         AUDIO_OUTPUT_DEVICE_CHANGED,
         DEVICE_LIST_CHANGED,
         DEVICE_LIST_WILL_CHANGE,
@@ -39,8 +35,6 @@ describe( "/service/RTC/RTCEvents members", () => {
 
     it( "known members", () => {
         expect( BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
-        expect( CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
-        expect( CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
         expect( DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
         expect( DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
         expect( ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
@@ -54,8 +48,6 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( REMOTE_TRACK_MUTE ).toBe( 'rtc.remote_track_mute' );
         expect( REMOTE_TRACK_REMOVED ).toBe( 'rtc.remote_track_removed' );
         expect( REMOTE_TRACK_UNMUTE ).toBe( 'rtc.remote_track_unmute' );
-        expect( SET_LOCAL_DESCRIPTION_FAILED ).toBe( 'rtc.set_local_description_failed' );
-        expect( SET_REMOTE_DESCRIPTION_FAILED ).toBe( 'rtc.set_remote_description_failed' );
         expect( AUDIO_OUTPUT_DEVICE_CHANGED ).toBe( 'rtc.audio_output_device_changed' );
         expect( DEVICE_LIST_CHANGED ).toBe( 'rtc.device_list_changed' );
         expect( DEVICE_LIST_WILL_CHANGE ).toBe( 'rtc.device_list_will_change' );
@@ -69,8 +61,6 @@ describe( "/service/RTC/RTCEvents members", () => {
 
         if ( RTCEvents ) {
             expect( RTCEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
-            expect( RTCEvents.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
-            expect( RTCEvents.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEvents.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
             expect( RTCEvents.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
             expect( RTCEvents.ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
@@ -83,8 +73,6 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEvents.REMOTE_TRACK_MUTE ).toBe( 'rtc.remote_track_mute' );
             expect( RTCEvents.REMOTE_TRACK_REMOVED ).toBe( 'rtc.remote_track_removed' );
             expect( RTCEvents.REMOTE_TRACK_UNMUTE ).toBe( 'rtc.remote_track_unmute' );
-            expect( RTCEvents.SET_LOCAL_DESCRIPTION_FAILED ).toBe( 'rtc.set_local_description_failed' );
-            expect( RTCEvents.SET_REMOTE_DESCRIPTION_FAILED ).toBe( 'rtc.set_remote_description_failed' );
             expect( RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED ).toBe( 'rtc.audio_output_device_changed' );
             expect( RTCEvents.DEVICE_LIST_CHANGED ).toBe( 'rtc.device_list_changed' );
             expect( RTCEvents.DEVICE_LIST_WILL_CHANGE ).toBe( 'rtc.device_list_will_change' );
@@ -99,8 +87,6 @@ describe( "/service/RTC/RTCEvents members", () => {
 
         if ( RTCEventsDefault ) {
             expect( RTCEventsDefault.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
-            expect( RTCEventsDefault.CREATE_ANSWER_FAILED ).toBe( 'rtc.create_answer_failed' );
-            expect( RTCEventsDefault.CREATE_OFFER_FAILED ).toBe( 'rtc.create_offer_failed' );
             expect( RTCEventsDefault.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
             expect( RTCEventsDefault.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
             expect( RTCEventsDefault.ENDPOINT_CONN_STATUS_CHANGED ).toBe( 'rtc.endpoint_conn_status_changed' );
@@ -113,8 +99,6 @@ describe( "/service/RTC/RTCEvents members", () => {
             expect( RTCEventsDefault.REMOTE_TRACK_MUTE ).toBe( 'rtc.remote_track_mute' );
             expect( RTCEventsDefault.REMOTE_TRACK_REMOVED ).toBe( 'rtc.remote_track_removed' );
             expect( RTCEventsDefault.REMOTE_TRACK_UNMUTE ).toBe( 'rtc.remote_track_unmute' );
-            expect( RTCEventsDefault.SET_LOCAL_DESCRIPTION_FAILED ).toBe( 'rtc.set_local_description_failed' );
-            expect( RTCEventsDefault.SET_REMOTE_DESCRIPTION_FAILED ).toBe( 'rtc.set_remote_description_failed' );
             expect( RTCEventsDefault.AUDIO_OUTPUT_DEVICE_CHANGED ).toBe( 'rtc.audio_output_device_changed' );
             expect( RTCEventsDefault.DEVICE_LIST_CHANGED ).toBe( 'rtc.device_list_changed' );
             expect( RTCEventsDefault.DEVICE_LIST_WILL_CHANGE ).toBe( 'rtc.device_list_will_change' );
