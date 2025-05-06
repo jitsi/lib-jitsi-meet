@@ -278,11 +278,6 @@ export enum XMPPEvents {
     // participant in the MUC.
     REMOTE_STATS = 'xmpp.remote_stats',
 
-    /**
-     * Indicates that the offer / answer renegotiation has failed.
-     */
-    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
-
     RESERVATION_ERROR = 'xmpp.room_reservation_error',
 
     ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',

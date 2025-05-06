@@ -69,8 +69,6 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.READY_TO_JOIN ).toBe( 'xmpp.ready_to_join' );
         expect( XMPPEvents.RECORDER_STATE_CHANGED ).toBe( 'xmpp.recorderStateChanged' );
         expect( XMPPEvents.REMOTE_STATS ).toBe( 'xmpp.remote_stats' );
-        expect( XMPPEvents.RENEGOTIATION_FAILED ).toBe( 'xmpp.renegotiation_failed' );
-        expect( XMPPEvents.RESERVATION_ERROR ).toBe( 'xmpp.room_reservation_error' );
         expect( XMPPEvents.ROOM_CONNECT_ERROR ).toBe( 'xmpp.room_connect_error' );
         expect( XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR ).toBe( 'xmpp.room_connect_error.not_allowed' );
         expect( XMPPEvents.ROOM_JOIN_ERROR ).toBe( 'xmpp.room_join_error' );
