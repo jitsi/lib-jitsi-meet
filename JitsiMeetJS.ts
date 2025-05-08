@@ -20,7 +20,6 @@ import * as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
-import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import ProxyConnectionService
@@ -41,6 +40,7 @@ import * as ConnectionQualityEvents
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
+import ActiveDeviceDetector from './modules/detection/ActiveDeviceDetector';
 
 const logger = Logger.getLogger('JitsiMeetJS');
 
@@ -487,7 +487,7 @@ export default {
      * @returns Promise<Object> - Object containing information about the found device.
      */
     getActiveAudioDevice() {
-        return getActiveAudioDevice();
+        return ActiveDeviceDetector.getActiveAudioDevice();
     },
 
     /**
