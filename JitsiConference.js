@@ -2644,9 +2644,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         }
     }) && this.room.sendPresence();
 
-    // we want to ignore applying startMutedPolicy locally when we set it
-    this._ignoreFirstStartMutedPolicyUpdate = true;
-
     this.getMetadataHandler().setMetadata('startMuted', {
         audio: policy.audio,
         video: policy.video
@@ -2660,12 +2657,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
  * @param {boolean} video if video should be muted.
  */
 JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
-    if (this._ignoreFirstStartMutedPolicyUpdate) {
-        this._ignoreFirstStartMutedPolicyUpdate = false;
-
-        return;
-    }
-
     let updated = false;
 
     if (audio !== this.startMutedPolicy.audio) {
