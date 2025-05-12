@@ -149,7 +149,7 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.BRIDGE_BWE_STATS_RECEIVED,
             bwe => {
-                if (bwe) {
+                if (bwe && this._localStats?.bandwidth) {
                     this._localStats.bandwidth.download = Math.floor(bwe / 1000);
                 }
             });
