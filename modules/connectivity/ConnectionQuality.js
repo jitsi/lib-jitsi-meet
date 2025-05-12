@@ -361,6 +361,11 @@ export default class ConnectionQuality {
      * conference.
      */
     _broadcastLocalStats() {
+        // broadcasting local stats is disabled
+        if (this._options.config.disableLocalStatsBroadcast) {
+            return;
+        }
+
         // Send only the data that remote participants care about.
         const data = {
             bitrate: this._localStats.bitrate,
