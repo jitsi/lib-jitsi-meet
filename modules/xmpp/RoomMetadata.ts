@@ -95,6 +95,7 @@ export default class RoomMetadata {
         }
 
         this._metadata = metadata;
+        logger.debug('Received metadata update', metadata);
         this.room.eventEmitter.emit(XMPPEvents.ROOM_METADATA_UPDATED, metadata);
     }
 

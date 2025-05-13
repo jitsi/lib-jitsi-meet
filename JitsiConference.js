@@ -1246,6 +1246,9 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
  */
 JitsiConference.prototype._getInitialLocalTracks = function() {
+    logger.debug('Adding tracks to the conference based on the startMutedPolicy='
+        + `${JSON.stringify(this.startMutedPolicy)}`);
+
     // Always add the audio track on certain platforms:
     //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
     //    if the user joins audio and video muted.
@@ -1504,6 +1507,13 @@ JitsiConference.prototype._addLocalTrackToPc = function(track) {
         // If the track hasn't been added to the conference yet because of start muted by focus, add it to the
         // conference instead of adding it only to the media sessions.
         addPromises.push(this.addTrack(track));
+    }
+
+    // Update the start muted policy to reflect the fact that the track is now added to the conference by the user.
+    if (track.getType() === MediaType.VIDEO) {
+        this.startMutedPolicy.video = false;
+    } else {
+        this.startMutedPolicy.audio = false;
     }
 
     return Promise.allSettled(addPromises);
