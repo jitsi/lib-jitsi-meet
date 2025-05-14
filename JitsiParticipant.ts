@@ -12,16 +12,16 @@ export interface ISourceInfo {
 
 export interface IJwtIdentity {
     callee?: {
-        avatar: string;
-        id: string;
-        name: string;
+        avatar?: string;
+        id?: string;
+        name?: string;
     };
     group?: string;
     user?: {
-        avatar: string;
-        email: string;
-        id: string;
-        name: string;
+        avatar?: string;
+        email?: string;
+        id?: string;
+        name?: string;
     };
 }
 
