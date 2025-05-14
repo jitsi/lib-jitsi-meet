@@ -124,10 +124,6 @@ export type JitsiMeetJSType = {
 
   createLocalTracksFromMediaStreams: ( tracksInfo: unknown[] ) => JitsiLocalTrack[]; // TODO:
 
-  // isDeviceListAvailable: () => boolean; // obsosete
-
-  // isDeviceChangeAvailable: ( deviceType: string ) => boolean; // obsosete
-
   isMultipleAudioInputSupported: () => boolean;
 
   isCollectingLocalStats: () => boolean;

@@ -16,16 +16,6 @@ export enum RTCEvents {
     BRIDGE_BWE_STATS_RECEIVED = 'rtc.bridge_bwe_stats_received',
 
     /**
-     * Indicates error while create answer call.
-     */
-    CREATE_ANSWER_FAILED = 'rtc.create_answer_failed',
-
-    /**
-     * Indicates error while create offer call.
-     */
-    CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
-
-    /**
      * Indicates that the data channel has been closed.
      */
     DATA_CHANNEL_CLOSED = 'rtc.data_channel_closed',
@@ -135,16 +125,6 @@ export enum RTCEvents {
     SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
 
     /**
-     * Indicates error while set local description.
-     */
-    SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
-
-    /**
-     * Indicates error while set remote description.
-     */
-    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
-
-    /**
      * Designates an event indicating that some video SSRCs that have already been signaled will now map to new remote
      * sources.
      */
@@ -152,8 +132,6 @@ export enum RTCEvents {
 }
 
 export const BRIDGE_BWE_STATS_RECEIVED = RTCEvents.BRIDGE_BWE_STATS_RECEIVED;
-export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
-export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
 export const DATA_CHANNEL_CLOSED = RTCEvents.DATA_CHANNEL_CLOSED;
 export const ENDPOINT_CONN_STATUS_CHANGED = RTCEvents.ENDPOINT_CONN_STATUS_CHANGED;
@@ -167,8 +145,6 @@ export const REMOTE_TRACK_ADDED = RTCEvents.REMOTE_TRACK_ADDED;
 export const REMOTE_TRACK_MUTE = RTCEvents.REMOTE_TRACK_MUTE;
 export const REMOTE_TRACK_REMOVED = RTCEvents.REMOTE_TRACK_REMOVED;
 export const REMOTE_TRACK_UNMUTE = RTCEvents.REMOTE_TRACK_UNMUTE;
-export const SET_LOCAL_DESCRIPTION_FAILED = RTCEvents.SET_LOCAL_DESCRIPTION_FAILED;
-export const SET_REMOTE_DESCRIPTION_FAILED = RTCEvents.SET_REMOTE_DESCRIPTION_FAILED;
 export const AUDIO_OUTPUT_DEVICE_CHANGED = RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED;
 export const DEVICE_LIST_CHANGED = RTCEvents.DEVICE_LIST_CHANGED;
 export const DEVICE_LIST_WILL_CHANGE = RTCEvents.DEVICE_LIST_WILL_CHANGE;

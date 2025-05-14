@@ -13,15 +13,16 @@ export const SS_DEFAULT_FRAME_RATE = 5;
 /**
  * Handles obtaining a stream from a screen capture on different browsers.
  */
-const ScreenObtainer = {
-    /**
-     * If not <tt>null</tt> it means that the initialization process is still in
-     * progress. It is used to make desktop stream request wait and continue
-     * after it's done.
-     * {@type Promise|null}
-     */
+class ScreenObtainer {
 
-    obtainStream: null,
+    /**
+     *
+     */
+    constructor() {
+        this.obtainStream = this._createObtainStreamMethod();
+        this.options = {};
+        this._electronSkipDisplayMedia = false;
+    }
 
     /**
      * Initializes the function used to obtain a screen capture
@@ -31,14 +32,11 @@ const ScreenObtainer = {
      */
     init(options = {}) {
         this.options = options;
-        this.obtainStream = this._createObtainStreamMethod();
 
         if (!this.obtainStream) {
-            logger.info('Desktop sharing disabled');
+            logger.warn('Desktop sharing not supported');
         }
-
-        this._electronSkipDisplayMedia = false;
-    },
+    }
 
     /**
      * Returns a method which will be used to obtain the screen sharing stream
@@ -57,10 +55,10 @@ const ScreenObtainer = {
         } else if (supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMedia;
         }
-        logger.info('Screen sharing not supported on ', browser.getName());
+        logger.warn('Screen sharing not supported on ', browser.getName());
 
         return null;
-    },
+    }
 
     /**
      * Gets the appropriate constraints for audio sharing.
@@ -77,7 +75,7 @@ const ScreenObtainer = {
         } : true;
 
         return audio;
-    },
+    }
 
     /**
      * Checks whether obtaining a screen capture is supported in the current
@@ -86,7 +84,7 @@ const ScreenObtainer = {
      */
     isSupported() {
         return this.obtainStream !== null;
-    },
+    }
 
     /**
      * Obtains a screen capture stream on Electron.
@@ -190,7 +188,7 @@ const ScreenObtainer = {
         } else {
             onFailure(new JitsiTrackError(JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));
         }
-    },
+    }
 
     /**
      * Obtains a screen capture stream using getDisplayMedia.
@@ -312,9 +310,15 @@ const ScreenObtainer = {
                     }
                 }
 
+                const videoTracks = stream?.getVideoTracks();
+                const track = videoTracks?.length > 0 ? videoTracks[0] : undefined;
+                const { deviceId } = track?.getSettings() ?? {};
+
                 callback({
                     stream,
-                    sourceId: stream.id
+
+                    // Used by remote-control to identify the display that is currently shared.
+                    sourceId: deviceId ?? stream.id
                 });
             })
             .catch(error => {
@@ -343,7 +347,7 @@ const ScreenObtainer = {
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
                 }
             });
-    },
+    }
 
     /**
      * Obtains a screen capture stream using getDisplayMedia.
@@ -365,7 +369,7 @@ const ScreenObtainer = {
                 errorCallback(new JitsiTrackError(JitsiTrackErrors
                     .SCREENSHARING_USER_CANCELED));
             });
-    },
+    }
 
     /** Sets the contentHint on the transmitted MediaStreamTrack to indicate charaterstics in the video stream, which
      * informs RTCPeerConnection on how to encode the track (to prefer motion or individual frame detail).
@@ -383,7 +387,7 @@ const ScreenObtainer = {
         } else {
             logger.warn('MediaStreamTrack contentHint attribute not supported');
         }
-    },
+    }
 
     /**
      * Sets the max frame rate to be used for a desktop track capture.
@@ -399,6 +403,6 @@ const ScreenObtainer = {
             max: maxFps
         };
     }
-};
+}
 
-export default ScreenObtainer;
+export default new ScreenObtainer();

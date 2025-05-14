@@ -144,13 +144,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             });
         });
 
-    chatRoom.addListener(XMPPEvents.RENEGOTIATION_FAILED, (e, session) => {
-        if (!session.isP2P) {
-            conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-        }
-    });
-
     chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track, owner, sourceName, videoType) => {
         if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
             conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
@@ -521,38 +514,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                 conference.eventEmitter.emit(JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED, participant, payload);
             } else {
                 logger.warn(`Ignoring ENDPOINT_STATS_RECEIVED for a non-existant participant: ${from}`);
-            }
-        });
-
-    rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
             }
         });
 };
