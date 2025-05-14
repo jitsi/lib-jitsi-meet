@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "es6",
+    "target": "ES2020",
+    "module": "ES2020",
     "sourceMap": true,
     "allowJs": true,
     "skipLibCheck": true,
@@ -9,14 +9,16 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "lib": [
-      "esnext",
-      "dom"
+      "DOM",
+      "ES2021",
+      "ES2024.Promise"
     ],
     "outDir": "dist/esm/",
   },
   "exclude": [
     "dist",
     "doc",
+    "docs",
     "types",
     "**/*.spec.js",
     "**/*.spec.ts",
@@ -24,5 +26,26 @@
     "index.js",
     "lib-jitsi-meet.*.js",
     "webpack*.js",
-  ]
+  ],
+  "typedocOptions": {
+    "entryPoints": [
+      "JitsiConference.js",
+      "JitsiConferenceErrors.ts",
+      "JitsiConferenceEvents.ts",
+      "JitsiConnection.ts",
+      "JitsiConnectionErrors.ts",
+      "JitsiConnectionEvents.ts",
+      "JitsiMediaDevices.js",
+      "JitsiMediaDevicesEvents.ts",
+      "JitsiMeetJS.ts",
+      "JitsiParticipant.ts",
+      "JitsiParticipantEvents.js",
+      "JitsiTrackError.ts",
+      "JitsiTrackErrors.ts",
+      "JitsiTrackEvents.ts",
+    ],
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "readme": "none",
+  }
 }

@@ -22,13 +22,13 @@
     "@jitsi/rtcstats": "9.7.0",
     "@testrtc/watchrtc-sdk": "1.38.2",
     "async-es": "3.2.4",
-    "base64-js": "1.3.1",
+    "base64-js": "1.5.1",
     "current-executing-script": "0.1.3",
     "jquery": "3.6.1",
     "lodash-es": "4.17.21",
     "sdp-transform": "2.3.0",
     "strophe.js": "https://github.com/jitsi/strophejs/releases/download/v1.5-jitsi-3/strophe.js-1.5.0.tgz",
-    "uuid": "8.1.0",
+    "uuid": "8.3.2",
     "webrtc-adapter": "8.1.1"
   },
   "devDependencies": {
@@ -51,32 +51,34 @@
     "karma-sourcemap-loader": "0.3.8",
     "karma-webpack": "5.0.0",
     "process": "0.11.10",
-    "string-replace-loader": "3.0.3",
-    "typescript": "5.0.4",
+    "typedoc": "0.28.1",
+    "typescript": "5.7.2",
     "webpack": "5.98.0",
     "webpack-bundle-analyzer": "4.4.2",
     "webpack-cli": "4.9.0"
   },
   "scripts": {
-    "build": "npm run build:webpack && npm run build:tsc",
+    "build": "npm run gen-version && npm run build:webpack && npm run build:tsc",
     "build:webpack": "webpack",
-    "build:webpack-dev": "webpack --mode development",
+    "build:webpack-dev": "npm run gen-version && webpack --mode development",
     "build:tsc": "tsc --build --clean && tsc",
     "gen-types": "tsc --declaration --emitDeclarationOnly --outFile types/index.d.ts",
-    "lint": "eslint . --max-warnings 0",
+    "gen-version": "node tools/gen-version.js",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "lint-fix": "eslint . --max-warnings 0 --fix",
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
+    "typedoc": "npm run gen-version && typedoc",
     "validate": "npm ls",
-    "watch": "webpack --config webpack.config.js --watch --mode development"
+    "watch": "npm run gen-version && webpack --config webpack.config.js --watch --mode development"
   },
   "browser": "dist/umd/lib-jitsi-meet.min.js",
   "module": "dist/esm/JitsiMeetJS.js",
+  "react-native": "./dist/esm/JitsiMeetJS.js",
   "files": [
     "dist",
-    "types",
-    "index.d.ts"
+    "types/index.d.ts"
   ],
   "license": "Apache-2.0"
 }

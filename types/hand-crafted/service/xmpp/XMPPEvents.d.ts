@@ -54,7 +54,6 @@
   READY_TO_JOIN = 'xmpp.ready_to_join',
   RECORDER_STATE_CHANGED = 'xmpp.recorderStateChanged',
   REMOTE_STATS = 'xmpp.remote_stats',
-  RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
   RESERVATION_ERROR = 'xmpp.room_reservation_error',
   ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
   ROOM_CONNECT_NOT_ALLOWED_ERROR = 'xmpp.room_connect_error.not_allowed',

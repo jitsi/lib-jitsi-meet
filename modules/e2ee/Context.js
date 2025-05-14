@@ -1,5 +1,4 @@
 /* eslint-disable no-bitwise */
-/* global BigInt */
 
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
 
@@ -49,6 +48,16 @@ export class Context {
         this._sendCounts = new Map();
 
         this._sharedKey = sharedKey;
+
+        this._enabled = false;
+    }
+
+    /**
+     * Enables or disables the E2EE context. When disabled packets are passed through.
+     * @param {boolean} enabled True if E2EE is enabled, false otherwise.
+     */
+    setEnabled(enabled) {
+        this._enabled = enabled;
     }
 
     /**
@@ -86,8 +95,6 @@ export class Context {
         }
 
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
-
-        this._sendCount = BigInt(0); // eslint-disable-line new-cap
     }
 
     /**
@@ -113,12 +120,17 @@ export class Context {
      * 9) Enqueue the encrypted frame for sending.
      */
     encodeFunction(encodedFrame, controller) {
-        const keyIndex = this._currentKeyIndex;
+        if (!this._enabled) {
+            return controller.enqueue(encodedFrame);
+        }
 
-        if (this._cryptoKeyRing[keyIndex]) {
+        const keyIndex = this._currentKeyIndex;
+        const currentKey = this._cryptoKeyRing[keyIndex];
+
+        if (currentKey) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
-            // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
+            // This is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Frame trailer contains the R|IV_LENGTH and key index
@@ -139,7 +151,7 @@ export class Context {
                 name: ENCRYPTION_ALGORITHM,
                 iv,
                 additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
-            }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
+            }, currentKey.encryptionKey, new Uint8Array(encodedFrame.data,
                 UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
                 const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
@@ -165,12 +177,6 @@ export class Context {
                 // We are not enqueuing the frame here on purpose.
             });
         }
-
-        /* NOTE WELL:
-         * This will send unencrypted data (only protected by DTLS transport encryption) when no key is configured.
-         * This is ok for demo purposes but should not be done once this becomes more relied upon.
-         */
-        controller.enqueue(encodedFrame);
     }
 
     /**
@@ -180,11 +186,14 @@ export class Context {
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
     async decodeFunction(encodedFrame, controller) {
+        if (!this._enabled) {
+            return controller.enqueue(encodedFrame);
+        }
+
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
-
             const decodedFrame = await this._decryptFrame(
                 encodedFrame,
                 keyIndex);

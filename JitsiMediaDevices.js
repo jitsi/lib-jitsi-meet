@@ -19,6 +19,7 @@ class JitsiMediaDevices extends Listenable {
      */
     constructor() {
         super();
+        this._initialized = false;
         this._permissions = {};
     }
 
@@ -26,6 +27,11 @@ class JitsiMediaDevices extends Listenable {
      * Initialize. Start listening for device changes and initialize permissions checks.
      */
     init() {
+        if (this._initialized) {
+            return;
+        }
+        this._initialized = true;
+
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
@@ -148,16 +154,6 @@ class JitsiMediaDevices extends Listenable {
      */
     enumerateDevices(callback) {
         RTC.enumerateDevices(callback);
-    }
-
-    /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {Promise<boolean>} a Promise which will be resolved only once
-     * the WebRTC stack is ready, either with true if the device listing is
-     * available available or with false otherwise.
-     */
-    isDeviceListAvailable() {
-        return RTC.isDeviceListAvailable();
     }
 
     /**

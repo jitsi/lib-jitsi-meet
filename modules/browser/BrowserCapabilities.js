@@ -233,8 +233,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsScalabilityModeAPI() {
-        return (this.isChromiumBased() && this.isEngineVersionGreaterThan(112))
-            || (this.isFirefox() && this.isVersionGreaterThan(135));
+        return this.isChromiumBased() && this.isEngineVersionGreaterThan(112);
     }
 
     /**
@@ -252,7 +251,19 @@ export default class BrowserCapabilities extends BrowserDetection {
      * details.
      */
     supportsVP9() {
-        return !(this.isWebKitBased() || (this.isFirefox() && this.isVersionLessThan('136')));
+        // Keep this disabled for FF because simulcast is disabled by default.
+        // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
+        // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
+        return !(this.isWebKitBased() || this.isFirefox());
+    }
+
+    /**
+     * Returns true if SVC is supported.
+     *
+     * @returns {boolean}
+     */
+    supportsSVC() {
+        return !this.isFirefox();
     }
 
     /**

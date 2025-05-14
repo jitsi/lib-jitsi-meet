@@ -42,7 +42,6 @@ Statistics.init = function(options) {
 
     LocalStats.init();
     WatchRTC.init(options);
-    RTCStats.init(options);
 };
 
 /**
@@ -69,7 +68,7 @@ export default function Statistics(conference, options) {
 
     Statistics.instances.add(this);
 
-    RTCStats.start(this.conference);
+    RTCStats.attachToConference(this.conference);
 
     // WatchRTC is not required to work for react native
     if (!browser.isReactNative()) {
@@ -394,7 +393,7 @@ Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
         };
     }
 
-    logger.log(JSON.stringify(eventToLog));
+    logger.debug(JSON.stringify(eventToLog));
 
     // We do this last, because it may modify the object which is passed.
     this.analytics.sendEvent(event, properties);

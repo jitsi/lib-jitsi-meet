@@ -383,7 +383,7 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
-            logger.log(`${this} Processing ${logPrefix}`);
+            logger.debug(`${this} Processing ${logPrefix}`);
 
             const currentRemoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
             const sourceDescription = this._processSourceMapFromJingle(elem, isAdd);
@@ -414,7 +414,7 @@ export default class JingleSessionPC extends JingleSession {
             }
 
             this._renegotiate(currentRemoteSdp.raw).then(() => {
-                logger.log(`${this} ${logPrefix} - OK`);
+                logger.debug(`${this} ${logPrefix} - OK`);
                 finishedCallback();
             }, error => {
                 logger.error(`${this} ${logPrefix} failed:`, error);
@@ -648,23 +648,15 @@ export default class JingleSessionPC extends JingleSession {
      * error {string}
      * @private
      */
-    _renegotiate(optionalRemoteSdp) {
+    async _renegotiate(optionalRemoteSdp) {
         if (this.peerconnection.signalingState === 'closed') {
-            const error = new Error('Attempted to renegotiate in state closed');
-
-            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
-
-            return Promise.reject(error);
+            throw new Error('Attempted to renegotiate in state closed');
         }
 
         const remoteSdp = optionalRemoteSdp || this.peerconnection.remoteDescription.sdp;
 
         if (!remoteSdp) {
-            const error = new Error(`Can not renegotiate without remote description, current state: ${this.state}`);
-
-            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
-
-            return Promise.reject(error);
+            throw new Error(`Cannot renegotiate without remote description, state=${this.state}`);
         }
 
         const remoteDescription = {
@@ -676,23 +668,21 @@ export default class JingleSessionPC extends JingleSession {
 
         logger.debug(`${this} Renegotiate: setting remote description`);
 
-        return this.peerconnection.setRemoteDescription(remoteDescription)
-            .then(() => {
-                logger.debug(`${this} Renegotiate: creating answer`);
+        try {
+            await this.peerconnection.setRemoteDescription(remoteDescription);
+            logger.debug(`${this} Renegotiate: creating answer`);
+            const answer = await this.peerconnection.createAnswer(this.mediaConstraints);
 
-                return this.peerconnection.createAnswer(this.mediaConstraints);
-            })
-            .then(answer => {
-                logger.debug(`${this} Renegotiate: setting local description`);
-
-                return this.peerconnection.setLocalDescription(answer);
-            })
-            .then(() => {
-                if (oldLocalSDP) {
-                    // Send the source updates after every renegotiation cycle.
-                    this.notifyMySSRCUpdate(new SDP(oldLocalSDP), new SDP(this.peerconnection.localDescription.sdp));
-                }
-            });
+            logger.debug(`${this} Renegotiate: setting local description`);
+            await this.peerconnection.setLocalDescription(answer);
+            if (oldLocalSDP) {
+                // Send the source updates after every renegotiation cycle.
+                this.notifyMySSRCUpdate(new SDP(oldLocalSDP), new SDP(this.peerconnection.localDescription.sdp));
+            }
+        } catch (error) {
+            logger.error(`${this} Renegotiate failed:`, error);
+            throw error;
+        }
     }
 
     /**
@@ -779,7 +769,7 @@ export default class JingleSessionPC extends JingleSession {
                 this._sendIceCandidates([ candidate ]);
             }
         } else {
-            logger.log(`${this} _sendIceCandidate: last candidate`);
+            logger.debug(`${this} _sendIceCandidate: last candidate`);
 
             // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
@@ -799,7 +789,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.log(`${this} _sendIceCandidates ${JSON.stringify(candidates)}`);
+        logger.debug(`${this} _sendIceCandidates count: ${candidates?.length}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
@@ -861,7 +851,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // might merge last-candidate notification into this, but it is called
         // a lot later. See webrtc issue #2340
-        // logger.log('was this the last candidate', this.lasticecandidate);
+        // logger.debug('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
     }
@@ -1366,7 +1356,7 @@ export default class JingleSessionPC extends JingleSession {
                     `ice.state.${this.peerconnection.iceConnectionState}`]
                     = now;
             }
-            logger.log(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
+            logger.info(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
 
             Statistics.sendAnalytics(
                 ICE_STATE_CHANGED,
@@ -1466,7 +1456,7 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onconnectionstatechange = () => {
             const icestate = this.peerconnection.iceConnectionState;
 
-            logger.log(`(TIME) ${this.isP2P ? 'P2P' : 'JVB'} PC state is now ${this.peerconnection.connectionState} `
+            logger.info(`(TIME) ${this.isP2P ? 'P2P' : 'JVB'} PC state is now ${this.peerconnection.connectionState} `
                 + `(ICE state ${this.peerconnection.iceConnectionState}):\t`, window.performance.now());
 
             switch (this.peerconnection.connectionState) {
@@ -1543,9 +1533,9 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be added, before the offer/answer cycle
      * executes (for the local track addition to be an atomic operation together with the offer/answer).
-     * @returns {void}
+     * @returns {Promise<void>} that resolves when the offer is sent to the remote peer, rejected otherwise.
      */
-    invite(localTracks = []) {
+    async invite(localTracks = []) {
         if (!this.isInitiator) {
             throw new Error('Trying to invite from the responder session');
         }
@@ -1557,19 +1547,19 @@ export default class JingleSessionPC extends JingleSession {
             addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
         }
 
-        Promise.all(addTracks)
-            .then(() => this.peerconnection.createOffer(this.mediaConstraints))
-            .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
-            .then(() => {
-                this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
-                this._sendSessionInitiate(this.peerconnection.localDescription.sdp);
-            })
-            .then(() => {
-                logger.debug(`${this} invite executed - OK`);
-            })
-            .catch(error => {
-                logger.error(`${this} invite error`, error);
-            });
+        try {
+            await Promise.all(addTracks);
+            const offerSdp = await this.peerconnection.createOffer(this.mediaConstraints);
+
+            await this.peerconnection.setLocalDescription(offerSdp);
+            this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
+            this._sendSessionInitiate(this.peerconnection.localDescription.sdp);
+
+            logger.debug(`${this} invite executed - OK`);
+        } catch (error) {
+            logger.error(`${this} invite error`, error);
+            throw error;
+        }
     }
 
     /**
@@ -2070,10 +2060,9 @@ export default class JingleSessionPC extends JingleSession {
      * Sets the answer received from the remote peer as the remote description.
      *
      * @param {Element} jingleAnswer - The jingle answer element.
-     * @returns {void}
-     * @throws {Error} if the method is called on a responder session.
+     * @returns {Promise<void>} that resolves when the answer is set as the remote description, rejected otherwise.
      */
-    setAnswer(jingleAnswer) {
+    async setAnswer(jingleAnswer) {
         if (!this.isInitiator) {
             throw new Error('Trying to set an answer on the responder session');
         }
@@ -2086,26 +2075,24 @@ export default class JingleSessionPC extends JingleSession {
             sdp: newRemoteSdp.raw
         };
 
-        this.peerconnection.setRemoteDescription(remoteDescription)
-            .then(() => {
-                if (this.state === JingleSessionState.PENDING) {
-                    this.state = JingleSessionState.ACTIVE;
+        try {
+            await this.peerconnection.setRemoteDescription(remoteDescription);
+            if (this.state === JingleSessionState.PENDING) {
+                this.state = JingleSessionState.ACTIVE;
 
-                    // Start processing tasks on the modification queue.
-                    logger.debug(`${this} Resuming the modification queue after session is established!`);
-                    this.modificationQueue.resume();
-                    const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
+                // Start processing tasks on the modification queue.
+                logger.debug(`${this} Resuming the modification queue after session is established!`);
+                this.modificationQueue.resume();
+                const newLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-                    this._sendContentModify();
-                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
-                }
-            })
-            .then(() => {
-                logger.debug(`${this} setAnswer task done`);
-            })
-            .catch(error => {
-                logger.error(`${this} setAnswer task failed: ${error}`);
-            });
+                this._sendContentModify();
+                this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
+            }
+            logger.debug(`${this} setAnswer task done`);
+        } catch (error) {
+            logger.error(`${this} setAnswer task failed: ${error}`);
+            throw error;
+        }
     }
 
     /**
@@ -2284,7 +2271,11 @@ export default class JingleSessionPC extends JingleSession {
      */
     setVideoCodecs(codecList, screenshareCodec) {
         if (this._assertNotEnded()) {
-            this.peerconnection.setVideoCodecs(codecList, screenshareCodec);
+            const updated = this.peerconnection.setVideoCodecs(codecList, screenshareCodec);
+
+            if (updated) {
+                this.eventEmitter.emit(MediaSessionEvents.VIDEO_CODEC_CHANGED);
+            }
 
             // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to
             // be selected.
@@ -2300,6 +2291,7 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
+            this.eventEmitter.emit(MediaSessionEvents.VIDEO_CODEC_CHANGED);
             Statistics.sendAnalytics(
                 VIDEO_CODEC_CHANGED,
                 {

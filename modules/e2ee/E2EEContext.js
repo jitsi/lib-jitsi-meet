@@ -151,6 +151,18 @@ export default class E2EEcontext {
     }
 
     /**
+     * Set the E2EE enabled state.
+     *
+     * @param {boolean} enabled - whether E2EE is enabled or not.
+     */
+    setEnabled(enabled) {
+        this._worker.postMessage({
+            operation: 'setEnabled',
+            enabled
+        });
+    }
+
+    /**
      * Set the E2EE key for the specified participant.
      *
      * @param {string} participantId - the ID of the participant who's key we are setting.

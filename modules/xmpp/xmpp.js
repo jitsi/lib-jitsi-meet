@@ -309,7 +309,7 @@ export default class XMPP extends Listenable {
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
         this.connectionTimes[statusStr] = now;
-        logger.log(
+        logger.info(
             `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
             now);
 
@@ -649,7 +649,7 @@ export default class XMPP extends Listenable {
 
         const now = this.connectionTimes.attaching = window.performance.now();
 
-        logger.log('(TIME) Strophe Attaching:\t', now);
+        logger.info('(TIME) Strophe Attaching:\t', now);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid, 10) + 1,
             this.connectionHandler.bind(this, {

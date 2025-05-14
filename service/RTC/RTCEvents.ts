@@ -1,26 +1,38 @@
 export enum RTCEvents {
-
+    /**
+     * Designates an event indicating that the audio output device has changed.
+     */
     AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
 
     /**
-     * Designates an event indicating that some received audio SSRCs will now map to
-     * new remote sources.
+     * Designates an event indicating that some audio SSRCs that have already been signaled will now map to new remote
+     * sources.
      */
     AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped',
 
     /**
-     * Indicates error while create answer call.
+     * Designates an event indicating that the bridge bandwidth estimation stats have been received.
      */
-    CREATE_ANSWER_FAILED = 'rtc.create_answer_failed',
+    BRIDGE_BWE_STATS_RECEIVED = 'rtc.bridge_bwe_stats_received',
 
     /**
-     * Indicates error while create offer call.
+     * Indicates that the data channel has been closed.
      */
-    CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
     DATA_CHANNEL_CLOSED = 'rtc.data_channel_closed',
+
+    /**
+     * Indicates that the data channel has been opened.
+     */
     DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
+
+    /**
+     * Indicates that the list with available devices is now available.
+     */
     DEVICE_LIST_AVAILABLE = 'rtc.device_list_available',
 
+    /**
+     * Indicates that the list with available devices has changed.
+     */
     DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
 
     /**
@@ -28,13 +40,18 @@ export enum RTCEvents {
      */
     DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',
 
+    /**
+     * Indicates that the dominant speaker has changed.
+     */
     DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
 
+    /**
+     * Indicates that the connection status of the endpoint has changed.
+     */
     ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
 
     /**
-     * Indicates that a message from another participant is received on
-     * data channel.
+     * Indicates that a message from another participant is received on data channel.
      */
     ENDPOINT_MESSAGE_RECEIVED = 'rtc.endpoint_message_received',
 
@@ -43,11 +60,13 @@ export enum RTCEvents {
      */
     ENDPOINT_STATS_RECEIVED = 'rtc.endpoint_stats_received',
 
+    /**
+     * Indicates that the list of sources currently being forwarded by the bridge has changed.
+     */
     FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
-     * Event emitted when {@link RTC.setLastN} method is called to update with
-     * the new value set.
+     * Event emitted when {@link RTC.setLastN} method is called to update with the new value set.
      * The first argument is the value passed to {@link RTC.setLastN}.
      */
     LASTN_VALUE_CHANGED = 'rtc.lastn_value_changed',
@@ -94,37 +113,25 @@ export enum RTCEvents {
     REMOTE_TRACK_UNMUTE = 'rtc.remote_track_unmute',
 
     /**
-     * Designates an event indicating that the local ICE username fragment of
-     * the jingle session has changed.
-     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
-     * is the source of the event.
+     * Designates an event indicating that the local ICE username fragment of the jingle session has changed.
+     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which is the source of the event.
      * The second argument is the actual "ufrag" string.
      */
     REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
 
+    /**
+     * Indicates that sender constraints requested by the bridge for this endpoint have changed.
+     */
     SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
 
     /**
-     * Indicates error while set local description.
-     */
-    SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
-
-    /**
-     * Indicates error while set remote description.
-     */
-    SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
-
-    TRACK_ATTACHED = 'rtc.track_attached',
-
-    /**
-     * Designates an event indicating that some received video SSRCs will now map to
-     * new remote sources.
+     * Designates an event indicating that some video SSRCs that have already been signaled will now map to new remote
+     * sources.
      */
     VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped'
 }
 
-export const CREATE_ANSWER_FAILED = RTCEvents.CREATE_ANSWER_FAILED;
-export const CREATE_OFFER_FAILED = RTCEvents.CREATE_OFFER_FAILED;
+export const BRIDGE_BWE_STATS_RECEIVED = RTCEvents.BRIDGE_BWE_STATS_RECEIVED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
 export const DATA_CHANNEL_CLOSED = RTCEvents.DATA_CHANNEL_CLOSED;
 export const ENDPOINT_CONN_STATUS_CHANGED = RTCEvents.ENDPOINT_CONN_STATUS_CHANGED;
@@ -134,13 +141,10 @@ export const PERMISSIONS_CHANGED = RTCEvents.PERMISSIONS_CHANGED;
 export const SENDER_VIDEO_CONSTRAINTS_CHANGED = RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED;
 export const LASTN_VALUE_CHANGED = RTCEvents.LASTN_VALUE_CHANGED;
 export const LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED = RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED;
-export const TRACK_ATTACHED = RTCEvents.TRACK_ATTACHED;
 export const REMOTE_TRACK_ADDED = RTCEvents.REMOTE_TRACK_ADDED;
 export const REMOTE_TRACK_MUTE = RTCEvents.REMOTE_TRACK_MUTE;
 export const REMOTE_TRACK_REMOVED = RTCEvents.REMOTE_TRACK_REMOVED;
 export const REMOTE_TRACK_UNMUTE = RTCEvents.REMOTE_TRACK_UNMUTE;
-export const SET_LOCAL_DESCRIPTION_FAILED = RTCEvents.SET_LOCAL_DESCRIPTION_FAILED;
-export const SET_REMOTE_DESCRIPTION_FAILED = RTCEvents.SET_REMOTE_DESCRIPTION_FAILED;
 export const AUDIO_OUTPUT_DEVICE_CHANGED = RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED;
 export const DEVICE_LIST_CHANGED = RTCEvents.DEVICE_LIST_CHANGED;
 export const DEVICE_LIST_WILL_CHANGE = RTCEvents.DEVICE_LIST_WILL_CHANGE;

@@ -1,16 +1,19 @@
 import Logger from '@jitsi/logger';
+import { merge } from 'lodash-es';
 
+import JitsiConference from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import JitsiConnection from './JitsiConnection';
 import * as JitsiConnectionErrors from './JitsiConnectionErrors';
-import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiMediaDevices from './JitsiMediaDevices';
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
+import JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import RTC from './modules/RTC/RTC';
 import RTCStats from './modules/RTCStats/RTCStats';
 import * as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
@@ -27,6 +30,7 @@ import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import runPreCallTest, { IIceServer, IPreCallResult } from './modules/statistics/PreCallTest';
 import Statistics from './modules/statistics/statistics';
+import Deferred from './modules/util/Deferred';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
@@ -36,6 +40,7 @@ import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
 import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
+import { COMMIT_HASH } from './version';
 
 const logger = Logger.getLogger('JitsiMeetJS');
 
@@ -84,7 +89,8 @@ type desktopSharingSourceType = 'screen' | 'window';
 
 interface IJitsiMeetJSOptions {
     analytics?: {
-        rtcstatsStoreLogs: boolean;
+        rtcstatsLogFlushSizeBytes?: number;
+        rtcstatsStoreLogs?: boolean;
     };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     enableAnalyticsLogging?: boolean;
@@ -104,12 +110,22 @@ interface ICreateLocalTrackFromMediaStreamOptions {
     videoType?: VideoType;
 }
 
+export interface IJoinConferenceOptions {
+    conferenceOptions?: any;
+    connectionOptions?: any;
+    jaas?: {
+        release?: boolean;
+        useStaging?: boolean;
+    };
+    tracks?: JitsiLocalTrack[];
+}
+
 /**
  * The public API of the Jitsi Meet library (a.k.a. {@code JitsiMeetJS}).
  */
 export default {
 
-    version: '{#COMMIT_HASH#}',
+    version: COMMIT_HASH,
 
     JitsiConnection,
 
@@ -150,6 +166,18 @@ export default {
     mediaDevices: JitsiMediaDevices as unknown,
     analytics: Statistics.analytics as unknown,
     init(options: IJitsiMeetJSOptions = {}) {
+        // Start capturing and sending logs to the rtcstats server as soon as possible.
+        const {
+            analytics: {
+                rtcstatsStoreLogs,
+                rtcstatsLogFlushSizeBytes
+            } = {}
+        } = options;
+
+        if (rtcstatsStoreLogs) {
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector(rtcstatsLogFlushSizeBytes));
+        }
+
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
@@ -166,10 +194,6 @@ export default {
         if (options.enableAnalyticsLogging !== true) {
             logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
-        }
-
-        if (options.analytics?.rtcstatsStoreLogs) {
-            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector());
         }
 
         return RTC.init(options);
@@ -204,6 +228,17 @@ export default {
      * Expose rtcstats to the public API.
      */
     rtcstats: {
+        /**
+         * Checks if the rtcstats trace is available.
+         * The trace is the abstraction for the underlying rtcstats websocket connection.
+         *
+         * @returns {boolean} <tt>true</tt> if the rtcstats trace is available or
+         * <tt>false</tt> otherwise.
+         */
+        isTraceAvailable() {
+            return RTCStats.isTraceAvailable();
+        },
+
         /**
          * Sends identity data to the rtcstats server. This data is used
          * to identify the specifics of a particular client, it can be any object
@@ -472,6 +507,95 @@ export default {
      */
     isCollectingLocalStats() {
         return Statistics.audioLevelsEnabled && LocalStatsCollector.isLocalStatsSupported();
+    },
+
+    /**
+     * Simple way to create a {JitsiConference}. All options are optional and sane defaults
+     * will be chosen for JaaS users.
+     *
+     * @param roomName - The name of the conference.
+     * @param appId - The application id (also known as tenant).
+     * @param token - The token (JWT) to use for authentication.
+     * @param options - The options to use for joining the conference.
+     */
+    async joinConference(
+            roomName: string,
+            appId: string = '',
+            token: string | null = null,
+            options: IJoinConferenceOptions = {}): Promise<JitsiConference> {
+        const d = new Deferred();
+        let connectionOptions = options.connectionOptions ?? {};
+
+        // Provide a solid default config in case of JaaS.
+        if (appId.startsWith('vpaas-magic-cookie')) {
+            // Initialize RTCStats logging.
+            Logger.addGlobalTransport(RTCStats.getDefaultLogCollector());
+
+            const useStage = options.jaas?.useStaging ?? false;
+            const jaasDomain = useStage ? 'staging.8x8.vc' : '8x8.vc';
+            const opts = {
+                hosts: {
+                    domain: jaasDomain,
+                    muc: `conference.${appId}.${jaasDomain}`
+                },
+                conferenceRequestUrl: `https://${jaasDomain}/${appId}/conference-request/v1?room=${roomName}`,
+                serviceUrl: `wss://${jaasDomain}/${appId}/xmpp-websocket?room=${roomName}`,
+                websocketKeepAliveUrl: `https://${jaasDomain}/${appId}/_unlock?room=${roomName}`,
+                analytics: {
+                    rtcstatsEnabled: true,
+                    rtcstatsEndpoint: `wss://rtcstats-server-${useStage ? 'pilot' : '8x8'}.jitsi.net/`,
+                    rtcstatsSendSdp: true,
+                },
+            };
+
+            connectionOptions = merge(connectionOptions, opts);
+        }
+
+        const conn = new JitsiConnection(appId, token, connectionOptions);
+
+        function cleanupListeners() {
+            conn.removeEventListener(
+                JitsiConnectionEvents.CONNECTION_ESTABLISHED, onConnectionEstablished);
+            conn.removeEventListener(
+                JitsiConnectionEvents.CONNECTION_FAILED, onConnectionFailed);
+        }
+
+        function onConnectionEstablished() {
+            cleanupListeners();
+
+            const conf = conn.initJitsiConference(roomName, options.conferenceOptions ?? {});
+
+            d.resolve(conf);
+
+            // Make sure this runs after the promise was resolved so that local track events can be
+            // listened to.
+            queueMicrotask(() => {
+                for (const track of options.tracks || []) {
+                    conf.addTrack(track);
+                }
+
+                conf.join();
+
+                // Default to receiving 720p for everyone.
+                conf.setReceiverConstraints({
+                    lastN: -1,
+                    defaultConstraints: { maxHeight: 720 },
+                });
+            });
+        }
+
+        function onConnectionFailed(error: string) {
+            cleanupListeners();
+            d.reject(error);
+        }
+
+        conn.addEventListener(
+            JitsiConnectionEvents.CONNECTION_ESTABLISHED, onConnectionEstablished);
+        conn.addEventListener(
+            JitsiConnectionEvents.CONNECTION_FAILED, onConnectionFailed);
+        conn.connect({ name: roomName });
+
+        return d as unknown as Promise<JitsiConference>;
     },
 
     /**

@@ -1,4 +1,5 @@
 import Listenable from '../../modules/util/Listenable';
+import { isValidNumber } from '../../modules/util/MathUtil';
 
 import { MediaType } from './MediaType';
 import { VideoType } from './VideoType';
@@ -49,10 +50,10 @@ export function getMediaTypeFromSourceName(sourceName: SourceName): MediaType {
 
     const firstLetterOfMediaType = sourceName.substr(firstLetterOfMediaTypeIdx, 1);
 
-    for (const type of Object.values(MediaType)) {
-        if (type.substr(0, 1) === firstLetterOfMediaType) {
-            return type;
-        }
+    if (firstLetterOfMediaType === 'v') {
+        return MediaType.VIDEO;
+    } else if (firstLetterOfMediaType === 'a') {
+        return MediaType.AUDIO;
     }
 
     throw new Error(`Invalid source name: ${sourceName}`);
@@ -69,7 +70,7 @@ export function getSourceIndexFromSourceName(sourceName: SourceName): number {
     const nameParts = sourceName.split('-');
     const trackIdx = Number(nameParts[nameParts.length - 1].substring(1));
 
-    if (Number.isNaN(trackIdx)) {
+    if (!isValidNumber(trackIdx)) {
         throw new Error(`Failed to parse track idx for source name: ${sourceName}`);
     }
 

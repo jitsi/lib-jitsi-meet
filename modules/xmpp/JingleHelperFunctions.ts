@@ -10,6 +10,21 @@ import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
 const logger = getLogger('modules/xmpp/JingleHelperFunctions');
 
+export interface ISourceCompactJson {
+    m?: string;
+    n: string;
+    s: string;
+    v?: any;
+}
+
+export interface ICompactSsrcGroup extends Array<string> { }
+
+export interface IJsonMessage {
+    sources: {
+        [owner: string]: [ISourceCompactJson[], ICompactSsrcGroup[], ISourceCompactJson[], ICompactSsrcGroup[]];
+    };
+}
+
 /**
  * Creates a "source" XML element for the source described in compact JSON format in [sourceCompactJson].
  * @param {*} owner the endpoint ID of the owner of the source.
@@ -17,7 +32,7 @@ const logger = getLogger('modules/xmpp/JingleHelperFunctions');
  * @param {boolean} isVideo whether the source is a video source
  * @returns the created "source" XML element.
  */
-function _createSourceExtension(owner, sourceCompactJson, isVideo = false) {
+function _createSourceExtension(owner: string, sourceCompactJson: ISourceCompactJson, isVideo: boolean = false): Node {
     let videoType = sourceCompactJson.v ? VideoType.DESKTOP : undefined;
 
     // If the video type is not specified, it is assumed to be a camera for video sources.
@@ -52,7 +67,7 @@ function _createSourceExtension(owner, sourceCompactJson, isVideo = false) {
  * @param {*} ssrcGroupCompactJson the compact JSON representation of the SSRC group.
  * @returns the created "ssrc-group" element.
  */
-function _createSsrcGroupExtension(ssrcGroupCompactJson) {
+function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Node {
     const node = $build('ssrc-group', {
         xmlns: XEP.SOURCE_ATTRIBUTES,
         semantics: _getSemantics(ssrcGroupCompactJson[0])
@@ -75,10 +90,10 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson) {
  * @param {*} mediaType The media type, "audio" or "video".
  * @returns the RTP description element with the given media type.
  */
-function _getOrCreateRtpDescription(iq, mediaType) {
+function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
     const jingle = $(iq).find('jingle')[0];
     let content = $(jingle).find(`content[name="${mediaType}"]`);
-    let description;
+    let description: Element;
 
     if (content.length) {
         content = content[0];
@@ -90,10 +105,10 @@ function _getOrCreateRtpDescription(iq, mediaType) {
         jingle.appendChild(content);
     }
 
-    description = $(content).find('description');
+    const descriptionElements = $(content).find('description');
 
-    if (description.length) {
-        description = description[0];
+    if (descriptionElements.length) {
+        description = descriptionElements[0];
     } else {
         description = $build('description', {
             xmlns: XEP.RTP_MEDIA,
@@ -111,7 +126,7 @@ function _getOrCreateRtpDescription(iq, mediaType) {
  * @param {*} str the compact JSON format representation of an SSRC group's semantics.
  * @returns the SSRC group semantics corresponding to [str].
  */
-function _getSemantics(str) {
+function _getSemantics(str: string): string | null {
     if (str === 'f') {
         return SSRC_GROUP_SEMANTICS.FID;
     } else if (str === 's') {
@@ -133,11 +148,11 @@ function _getSemantics(str) {
  * @returns {Map<string, Array<string>} The audio and video ssrcs extracted from the JSON-encoded message with remote
  * endpoint id as the key.
  */
-export function expandSourcesFromJson(iq, jsonMessageXml) {
-    let json;
+export function expandSourcesFromJson(iq: Element, jsonMessageXml: Element): Map<string, string[]> | null {
+    let json: any;
 
     try {
-        json = safeJsonParse(jsonMessageXml.textContent);
+        json = safeJsonParse(jsonMessageXml.textContent || '');
     } catch (error) {
         logger.error(`json-message XML contained invalid JSON, ignoring: ${jsonMessageXml.textContent}`);
 
@@ -152,19 +167,19 @@ export function expandSourcesFromJson(iq, jsonMessageXml) {
     // This is where we'll add "source" and "ssrc-group" elements. Create them elements if they don't exist.
     const audioRtpDescription = _getOrCreateRtpDescription(iq, MediaType.AUDIO);
     const videoRtpDescription = _getOrCreateRtpDescription(iq, MediaType.VIDEO);
-    const ssrcMap = new Map();
+    const ssrcMap = new Map<string, string[]>();
 
     for (const owner in json.sources) {
         if (json.sources.hasOwnProperty(owner)) {
-            const ssrcs = [];
-            const ownerSources = json.sources[owner];
+            const ssrcs: string[] = [];
+            const ownerSources = json.sources[owner] as [ISourceCompactJson[], ICompactSsrcGroup[], ISourceCompactJson[], ICompactSsrcGroup[]];
 
             // The video sources, video ssrc-groups, audio sources and audio ssrc-groups are encoded in that order in
             // the elements of the array.
-            const videoSources = ownerSources?.length && ownerSources[0];
-            const videoSsrcGroups = ownerSources?.length > 1 && ownerSources[1];
-            const audioSources = ownerSources?.length > 2 && ownerSources[2];
-            const audioSsrcGroups = ownerSources?.length > 3 && ownerSources[3];
+            const videoSources = ownerSources?.length ? ownerSources[0] : [];
+            const videoSsrcGroups = ownerSources?.length > 1 ? ownerSources[1] : [];
+            const audioSources = ownerSources?.length > 2 ? ownerSources[2] : [];
+            const audioSsrcGroups = ownerSources?.length > 3 ? ownerSources[3] : [];
 
             if (videoSources?.length) {
                 for (let i = 0; i < videoSources.length; i++) {

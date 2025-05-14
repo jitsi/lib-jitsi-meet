@@ -12,6 +12,7 @@ import {
 } from '../../service/RTC/StandardVideoQualitySettings';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 import { CodecSelection } from './CodecSelection';
@@ -318,7 +319,7 @@ export class QualityController {
         const { encodeResolution, localTrack, qualityLimitationReason, tpc } = sourceStats;
 
         // Older browser versions might not report the resolution in the stats.
-        if (Number.isNaN(encodeResolution)) {
+        if (!isValidNumber(encodeResolution)) {
             return;
         }
         const trackId = localTrack.rtcId;

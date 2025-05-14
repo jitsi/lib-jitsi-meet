@@ -72,21 +72,5 @@ describe('ReceiveVideoController', () => {
             receiveVideoController.setReceiverConstraints(constraints);
             expect(rtcSpy).toHaveBeenCalledWith(constraints);
         });
-
-        it('should not allow the endpoints format.', () => {
-            const constraints = {
-                onStageEndpoints: [ 'A', 'B', 'C' ],
-                selectedEndpoints: [ 'A' ]
-            };
-
-            try {
-                receiveVideoController.setReceiverConstraints(constraints);
-                fail();
-            } catch (error) {
-                expect(error).toEqual(new Error(
-                    '"onStageEndpoints" and "selectedEndpoints" are not supported when sourceNameSignaling is enabled.'
-                ));
-            }
-        });
     });
 });

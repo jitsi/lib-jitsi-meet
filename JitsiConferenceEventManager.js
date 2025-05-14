@@ -51,6 +51,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
+    this.chatRoomForwarder.forward(XMPPEvents.PERMISSIONS_RECEIVED, JitsiConferenceEvents.PERMISSIONS_RECEIVED);
+
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         actor => {
             // TODO: Add a way to differentiate between commands which caused
@@ -141,13 +143,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 Statistics.sendAnalytics(event);
             });
         });
-
-    chatRoom.addListener(XMPPEvents.RENEGOTIATION_FAILED, (e, session) => {
-        if (!session.isP2P) {
-            conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-        }
-    });
 
     chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track, owner, sourceName, videoType) => {
         if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
@@ -402,40 +397,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             }
         });
 
-    chatRoom.addPresenceListener('startmuted', (data, from) => {
-        // Ignore the strartmuted policy if the presence is received from self. The moderator should join with
-        // available local sources and the policy needs to be applied only on users that join the call after.
-        if (conference.myUserId() === from) {
-            return;
-        }
-        const participant = conference.getParticipantById(from);
-
-        if (!participant || !participant.isModerator()) {
-            return;
-        }
-        const startAudioMuted = data.attributes.audio === 'true';
-        const startVideoMuted = data.attributes.video === 'true';
-
-        let updated = false;
-
-        if (startAudioMuted !== conference.startMutedPolicy.audio) {
-            conference.startMutedPolicy.audio = startAudioMuted;
-            updated = true;
-        }
-
-        if (startVideoMuted !== conference.startMutedPolicy.video) {
-            conference.startMutedPolicy.video = startVideoMuted;
-            updated = true;
-        }
-
-        if (updated) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
-                conference.startMutedPolicy
-            );
-        }
-    });
-
     // Breakout rooms.
     this.chatRoomForwarder.forward(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM,
         JitsiConferenceEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM);
@@ -443,8 +404,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED);
 
     // Room metadata.
-    this.chatRoomForwarder.forward(XMPPEvents.ROOM_METADATA_UPDATED,
-        JitsiConferenceEvents.METADATA_UPDATED);
+    chatRoom.addListener(XMPPEvents.ROOM_METADATA_UPDATED, metadata => {
+        if (metadata.startMuted) {
+            conference._updateStartMutedPolicy(
+                metadata.startMuted.audio || false,
+                metadata.startMuted.video || false
+            );
+        }
+        conference.eventEmitter.emit(JitsiConferenceEvents.METADATA_UPDATED, metadata);
+    });
 };
 
 /**
@@ -498,7 +466,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         const key = 'data.channel.opened';
 
         // TODO: Move all of the 'connectionTimes' logic to its own module.
-        logger.log(`(TIME) ${key}:\t`, now);
+        logger.info(`(TIME) ${key}:\t`, now);
         conference.room.connectionTimes[key] = now;
         Statistics.sendAnalytics(
             createConnectionStageReachedEvent(key, { value: now }));
@@ -516,6 +484,10 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, msg => {
         this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
+    });
+
+    rtc.addListener(RTCEvents.BRIDGE_BWE_STATS_RECEIVED, bwe => {
+        conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
     });
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
@@ -542,38 +514,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                 conference.eventEmitter.emit(JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED, participant, payload);
             } else {
                 logger.warn(`Ignoring ENDPOINT_STATS_RECEIVED for a non-existant participant: ${from}`);
-            }
-        });
-
-    rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
-            }
-        });
-
-    rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
-        (e, tpc) => {
-            if (!tpc.isP2P) {
-                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
             }
         });
 };

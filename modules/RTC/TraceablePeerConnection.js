@@ -21,6 +21,7 @@ import SDPUtil from '../sdp/SDPUtil';
 import SdpSimulcast from '../sdp/SdpSimulcast';
 import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import Statistics from '../statistics/statistics';
+import { isValidNumber } from '../util/MathUtil';
 
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
@@ -922,7 +923,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
-    if (isNaN(trackSsrc) || trackSsrc < 0) {
+    if (!isValidNumber(trackSsrc) || trackSsrc < 0) {
         logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
                 + 'track creation failed!');
 
@@ -1424,11 +1425,13 @@ TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) 
  *
  * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
  * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
- * @returns {void}
+ * @returns {boolean} - Returns true if the codec settings were updated, false otherwise.
  */
 TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
+    let updated = false;
+
     if (!this.codecSettings || !codecList?.length) {
-        return;
+        return updated;
     }
 
     this.codecSettings.codecList = codecList;
@@ -1437,7 +1440,7 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
     }
 
     if (!this.usesCodecSelectionAPI()) {
-        return;
+        return updated;
     }
 
     for (const track of this.getLocalVideoTracks()) {
@@ -1445,10 +1448,14 @@ TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screensha
 
         if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
             this.configureVideoSenderEncodings(track, screenshareCodec);
+            updated = true;
         } else if (currentCodec !== codecList[0]) {
             this.configureVideoSenderEncodings(track);
+            updated = true;
         }
     }
+
+    return updated;
 };
 
 /**
@@ -1964,7 +1971,6 @@ TraceablePeerConnection.prototype._mungeDescription = function(description) {
     mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
     mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
     mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
-    mungedSdp = this.tpcUtils.updateAv1DdHeaders(mungedSdp);
     const mungedDescription = {
         type: description.type,
         sdp: transform.write(mungedSdp)
@@ -2002,7 +2008,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
                 resolve();
             }, err => {
                 this.trace('setLocalDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2040,9 +2045,9 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 this._initializeDtlsTransport();
 
                 resolve();
-            }, err => {
+            })
+            .catch(err => {
                 this.trace('setRemoteDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2059,7 +2064,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraints = function(frameHeight, localVideoTrack, preferredCodec) {
-    if (frameHeight < 0 || isNaN(frameHeight)) {
+    if (frameHeight < 0 || !isValidNumber(frameHeight)) {
         throw new Error(`Invalid frameHeight: ${frameHeight}`);
     }
     if (!localVideoTrack) {
@@ -2142,6 +2147,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
     // K-SVC codec.
     if (codec === CodecMimeType.VP9
+        && browser.supportsSVC()
         && this.isSpatialScalabilityOn()
         && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
         scaleFactors = scaleFactors.map(() => undefined);
@@ -2441,13 +2447,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
 
     const handleFailure = (err, rejectFn) => {
         this.trace(`create${logName}OnFailure`, err);
-        const eventType
-            = isOffer
-                ? RTCEvents.CREATE_OFFER_FAILED
-                : RTCEvents.CREATE_ANSWER_FAILED;
-
-        this.eventEmitter.emit(eventType, err, this);
-
         rejectFn(err);
     };
 

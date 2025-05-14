@@ -14,8 +14,12 @@ npm-*.log
 stats.json
 .vscode
 dist
+docs
 index.d.ts
 types/auto
 types/types-comparer/auto.json
 types/types-comparer/hand-crafted.json
 *.tgz
+
+# Make sure we never commit a commit hash.
+version.ts

@@ -8,6 +8,7 @@ describe( "/JitsiConferenceEvents members", () => {
         AUDIO_UNMUTE_PERMISSIONS_CHANGED,
         AUTH_STATUS_CHANGED,
         BEFORE_STATISTICS_DISPOSED,
+        BRIDGE_BWE_STATS_RECEIVED,
         CONFERENCE_ERROR,
         CONFERENCE_FAILED,
         CONFERENCE_JOIN_IN_PROGRESS,
@@ -34,6 +35,7 @@ describe( "/JitsiConferenceEvents members", () => {
         KICKED,
         PARTICIPANT_KICKED,
         PARTICIPANT_SOURCE_UPDATED,
+        PERMISSIONS_RECEIVED,
         LAST_N_ENDPOINTS_CHANGED,
         FORWARDED_SOURCES_CHANGED,
         LOCK_STATE_CHANGED,
@@ -52,6 +54,7 @@ describe( "/JitsiConferenceEvents members", () => {
         PHONE_NUMBER_CHANGED,
         PROPERTIES_CHANGED,
         RECORDER_STATE_CHANGED,
+        VIDEO_CODEC_CHANGED,
         VIDEO_SIP_GW_AVAILABILITY_CHANGED,
         VIDEO_SIP_GW_SESSION_STATE_CHANGED,
         START_MUTED_POLICY_CHANGED,
@@ -96,6 +99,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
+        expect( BRIDGE_BWE_STATS_RECEIVED ).toBe( 'conference.bridgeBweStatsReceived' );
         expect( CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );
@@ -118,6 +122,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( KICKED ).toBe( 'conference.kicked' );
         expect( PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
         expect( PARTICIPANT_SOURCE_UPDATED ).toBe( 'conference.participant_source_updated' );
+        expect( PERMISSIONS_RECEIVED ).toBe( 'conference.permissions_received' );
         expect( LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );
         expect( FORWARDED_SOURCES_CHANGED ).toBe( 'conference.forwardedSourcesChanged' );
         expect( LOCK_STATE_CHANGED ).toBe( 'conference.lock_state_changed' );
@@ -136,6 +141,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
         expect( PROPERTIES_CHANGED ).toBe( 'conference.propertiesChanged' );
         expect( RECORDER_STATE_CHANGED ).toBe( 'conference.recorderStateChanged' );
+        expect( VIDEO_CODEC_CHANGED ).toBe( 'conference.videoCodecChanged' );
         expect( VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );
         expect( VIDEO_SIP_GW_SESSION_STATE_CHANGED ).toBe( 'conference.videoSIPGWSessionStateChanged' );
         expect( VISITORS_SUPPORTED_CHANGED ).toBe( 'conference.visitorsSupported' );
@@ -178,6 +184,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
+        expect( JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'conference.bridgeBweStatsReceived' );
         expect( JitsiConferenceEvents.CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( JitsiConferenceEvents.CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( JitsiConferenceEvents.CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );

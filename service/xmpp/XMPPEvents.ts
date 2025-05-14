@@ -246,6 +246,11 @@ export enum XMPPEvents {
     PASSWORD_REQUIRED = 'xmpp.password_required',
 
     /**
+     * Event fired when we receive a self-presence with permissions.
+     */
+    PERMISSIONS_RECEIVED = 'xmpp.permissions_received',
+
+    /**
      * Indicates that phone number changed.
      */
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
@@ -272,11 +277,6 @@ export enum XMPPEvents {
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS = 'xmpp.remote_stats',
-
-    /**
-     * Indicates that the offer / answer renegotiation has failed.
-     */
-    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
 
     RESERVATION_ERROR = 'xmpp.room_reservation_error',
 

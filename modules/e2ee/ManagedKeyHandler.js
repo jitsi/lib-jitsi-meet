@@ -209,7 +209,6 @@ export class ManagedKeyHandler extends KeyHandler {
         this.conference.eventEmitter.emit(JitsiConferenceEvents.E2EE_VERIFICATION_AVAILABLE, pId);
     }
 
-
     /**
      * Handles the SAS completed event.
      *
