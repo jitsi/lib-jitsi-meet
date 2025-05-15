@@ -372,11 +372,6 @@ export enum JitsiConferenceEvents {
     SILENT_STATUS_CHANGED = 'conference.silentStatusChanged',
 
     /**
-     * Indicates that the local user has started muted.
-     */
-    STARTED_MUTED = 'conference.started_muted',
-
-    /**
      * Indicates that start muted settings changed.
      */
     START_MUTED_POLICY_CHANGED = 'conference.start_muted_policy_changed',
@@ -582,7 +577,6 @@ export const RECORDER_STATE_CHANGED = JitsiConferenceEvents.RECORDER_STATE_CHANG
 export const SERVER_REGION_CHANGED = JitsiConferenceEvents.SERVER_REGION_CHANGED;
 export const SILENT_STATUS_CHANGED = JitsiConferenceEvents.SILENT_STATUS_CHANGED;
 export const START_MUTED_POLICY_CHANGED = JitsiConferenceEvents.START_MUTED_POLICY_CHANGED;
-export const STARTED_MUTED = JitsiConferenceEvents.STARTED_MUTED;
 export const SUBJECT_CHANGED = JitsiConferenceEvents.SUBJECT_CHANGED;
 export const SUSPEND_DETECTED = JitsiConferenceEvents.SUSPEND_DETECTED;
 export const TALK_WHILE_MUTED = JitsiConferenceEvents.TALK_WHILE_MUTED;

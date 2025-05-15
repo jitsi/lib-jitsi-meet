@@ -3,7 +3,6 @@ import $ from 'jquery';
 import { cloneDeep } from 'lodash-es';
 import { $iq, Strophe } from 'strophe.js';
 
-import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RandomUtil from '../util/RandomUtil';
 
@@ -179,18 +178,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         switch (action) {
         case 'session-initiate': {
             logger.info('(TIME) received session-initiate:\t', now);
-            const startMuted = $(iq).find('jingle>startmuted');
 
             isP2P && logger.debug(`Received ${action} from ${fromJid}`);
-            if (startMuted?.length) {
-                const audioMuted = startMuted.attr(MediaType.AUDIO);
-                const videoMuted = startMuted.attr(MediaType.VIDEO);
-
-                this.eventEmitter.emit(
-                    XMPPEvents.START_MUTED_FROM_FOCUS,
-                    audioMuted === 'true',
-                    videoMuted === 'true');
-            }
             const pcConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
 
             sess

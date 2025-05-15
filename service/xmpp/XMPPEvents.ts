@@ -376,10 +376,6 @@ export enum XMPPEvents {
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
 
-    // Designates an event indicating that we should join the conference with
-    // audio and/or video muted.
-    START_MUTED_FROM_FOCUS = 'xmpp.start_muted_from_focus',
-
     // Designates an event indicating that the subject of the XMPP MUC has
     // changed.
     SUBJECT_CHANGED = 'xmpp.subject_changed',

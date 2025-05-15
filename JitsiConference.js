@@ -187,8 +187,6 @@ export default function JitsiConference(options) {
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
     this.authEnabled = false;
-    this.startAudioMuted = false;
-    this.startVideoMuted = false;
     this.startMutedPolicy = {
         audio: false,
         video: false
@@ -1230,38 +1228,6 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
 };
 
 /**
- * Returns the list of local tracks that need to be added to the peerconnection on join.
- * This takes the startAudioMuted/startVideoMuted flags into consideration since we do not
- * want to add the tracks if the user joins the call audio/video muted. The tracks will be
- * added when the user unmutes for the first time.
- * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
- */
-JitsiConference.prototype._getInitialLocalTracks = function() {
-    // Always add the audio track on certain platforms:
-    //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
-    //    if the user joins audio and video muted.
-    //  * React Native: after iOS 15, if a user joins muted they won't be able to unmute.
-    return this.getLocalTracks()
-        .filter(track => {
-            const trackType = track.getType();
-
-            if (trackType === MediaType.AUDIO
-                    && (!(this.isStartAudioMuted() || this.startMutedPolicy.audio)
-                    || browser.isWebKitBased()
-                    || browser.isReactNative())) {
-                return true;
-            } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted() && !this.startMutedPolicy.video) {
-                return true;
-            }
-
-            // Remove the track from the conference.
-            this.onLocalTrackRemoved(track);
-
-            return false;
-        });
-};
-
-/**
  * Clear JitsiLocalTrack properties and listeners.
  * @param track the JitsiLocalTrack object.
  */
@@ -1825,6 +1791,31 @@ JitsiConference.prototype.onMemberJoined = function(
     }
 
     this._maybeSetSITimeout();
+    const { startAudioMuted, startVideoMuted } = this.options.config;
+
+    // Ignore startAudio/startVideoMuted settings if the media session has already been established.
+    // Apply the policy if the number of participants exceeds the startMuted thresholds.
+    if ((this.jvbJingleSession && this.getActiveMediaSession() === this.jvbJingleSession)
+        || ((typeof startAudioMuted === 'undefined' || startAudioMuted === -1)
+            && (typeof startVideoMuted === 'undefined' || startVideoMuted === -1))) {
+        return;
+    }
+
+    let audioMuted = false;
+    let videoMuted = false;
+    const numberOfParticipants = this.getParticipantCount();
+
+    if (numberOfParticipants > this.options.config.startAudioMuted) {
+        audioMuted = true;
+    }
+
+    if (numberOfParticipants > this.options.config.startVideoMuted) {
+        videoMuted = true;
+    }
+
+    if ((audioMuted && !this.startMutedPolicy.audio) || (videoMuted && !this.startMutedPolicy.video)) {
+        this._updateStartMutedPolicy(audioMuted, videoMuted);
+    }
 };
 
 /* eslint-enable max-params */
@@ -2264,7 +2255,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    const localTracks = this._getInitialLocalTracks();
+    const localTracks = this.getLocalTracks();
 
     try {
         jingleSession.acceptOffer(
@@ -2633,11 +2624,9 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
 
-    // Do not apply the startMutedPolicy locally on the moderator, the moderator should join with available local
-    // sources and the policy needs to be applied only on users that join the call after.
-    // this.startMutedPolicy = policy;
-    // TODO: to remove using presence for startmuted policy after old clients update
-    // we keep presence to update UI of old clients
+    logger.info(`Setting start muted policy: ${JSON.stringify(policy)} in presence and in conference metadata`);
+
+    // TODO: to remove using presence for startmuted policy after old clients update to using metadata always.
     this.room.addOrReplaceInPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -2645,9 +2634,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
             xmlns: 'http://jitsi.org/jitmeet/start-muted'
         }
     }) && this.room.sendPresence();
-
-    // we want to ignore applying startMutedPolicy locally when we set it
-    this._ignoreFirstStartMutedPolicyUpdate = true;
 
     this.getMetadataHandler().setMetadata('startMuted', {
         audio: policy.audio,
@@ -2662,9 +2648,8 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
  * @param {boolean} video if video should be muted.
  */
 JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
-    if (this._ignoreFirstStartMutedPolicyUpdate) {
-        this._ignoreFirstStartMutedPolicyUpdate = false;
-
+    // Update the start muted policy for the conference only if the meta data is received before conference join.
+    if (this.isJoined()) {
         return;
     }
 
@@ -2694,20 +2679,6 @@ JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
  */
 JitsiConference.prototype.getStartMutedPolicy = function() {
     return this.startMutedPolicy;
-};
-
-/**
- * Check if audio is muted on join.
- */
-JitsiConference.prototype.isStartAudioMuted = function() {
-    return this.startAudioMuted;
-};
-
-/**
- * Check if video is muted on join.
- */
-JitsiConference.prototype.isStartVideoMuted = function() {
-    return this.startVideoMuted;
 };
 
 /**

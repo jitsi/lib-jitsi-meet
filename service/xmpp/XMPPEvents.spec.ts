@@ -98,7 +98,6 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.BREAKOUT_ROOMS_UPDATED ).toBe( 'xmpp.breakout-rooms.updated' );
         expect( XMPPEvents.ROOM_METADATA_EVENT ).toBe( 'xmpp.room-metadata.event' );
         expect( XMPPEvents.ROOM_METADATA_UPDATED ).toBe( 'xmpp.room-metadata.updated' );
-        expect( XMPPEvents.START_MUTED_FROM_FOCUS ).toBe( 'xmpp.start_muted_from_focus' );
         expect( XMPPEvents.SUBJECT_CHANGED ).toBe( 'xmpp.subject_changed' );
         expect( XMPPEvents.SUSPEND_DETECTED ).toBe( 'xmpp.suspend_detected' );
         expect( XMPPEvents.TRANSCRIPTION_STATUS_CHANGED ).toBe( 'xmpp.transcription_status_changed' );

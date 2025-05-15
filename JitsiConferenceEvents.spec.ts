@@ -58,7 +58,6 @@ describe( "/JitsiConferenceEvents members", () => {
         VIDEO_SIP_GW_AVAILABILITY_CHANGED,
         VIDEO_SIP_GW_SESSION_STATE_CHANGED,
         START_MUTED_POLICY_CHANGED,
-        STARTED_MUTED,
         SUBJECT_CHANGED,
         SUSPEND_DETECTED,
         TALK_WHILE_MUTED,
@@ -146,7 +145,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( VIDEO_SIP_GW_SESSION_STATE_CHANGED ).toBe( 'conference.videoSIPGWSessionStateChanged' );
         expect( VISITORS_SUPPORTED_CHANGED ).toBe( 'conference.visitorsSupported' );
         expect( START_MUTED_POLICY_CHANGED ).toBe( 'conference.start_muted_policy_changed' );
-        expect( STARTED_MUTED ).toBe( 'conference.started_muted' );
         expect( SUBJECT_CHANGED ).toBe( 'conference.subjectChanged' );
         expect( SUSPEND_DETECTED ).toBe( 'conference.suspendDetected' );
         expect( TALK_WHILE_MUTED ).toBe( 'conference.talk_while_muted' );
@@ -227,7 +225,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );
         expect( JitsiConferenceEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED ).toBe( 'conference.videoSIPGWSessionStateChanged' );
         expect( JitsiConferenceEvents.START_MUTED_POLICY_CHANGED ).toBe( 'conference.start_muted_policy_changed' );
-        expect( JitsiConferenceEvents.STARTED_MUTED ).toBe( 'conference.started_muted' );
         expect( JitsiConferenceEvents.SUBJECT_CHANGED ).toBe( 'conference.subjectChanged' );
         expect( JitsiConferenceEvents.SUSPEND_DETECTED ).toBe( 'conference.suspendDetected' );
         expect( JitsiConferenceEvents.TALK_WHILE_MUTED ).toBe( 'conference.talk_while_muted' );
