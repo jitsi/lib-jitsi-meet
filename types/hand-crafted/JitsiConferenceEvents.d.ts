@@ -41,7 +41,6 @@ export enum JitsiConferenceEvents {
   VIDEO_SIP_GW_AVAILABILITY_CHANGED = 'conference.videoSIPGWAvailabilityChanged',
   VIDEO_SIP_GW_SESSION_STATE_CHANGED = 'conference.videoSIPGWSessionStateChanged',
   START_MUTED_POLICY_CHANGED = 'conference.start_muted_policy_changed',
-  STARTED_MUTED = 'conference.started_muted',
   SUBJECT_CHANGED = 'conference.subjectChanged',
   SUSPEND_DETECTED = 'conference.suspendDetected',
   TALK_WHILE_MUTED = 'conference.talk_while_muted',

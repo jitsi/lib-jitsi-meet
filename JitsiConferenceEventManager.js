@@ -406,10 +406,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // Room metadata.
     chatRoom.addListener(XMPPEvents.ROOM_METADATA_UPDATED, metadata => {
         if (metadata.startMuted) {
-            conference._updateStartMutedPolicy(
-                metadata.startMuted.audio || false,
-                metadata.startMuted.video || false
-            );
+            const audio = metadata.startMuted.audio || false;
+            const video = metadata.startMuted.video || false;
+
+            audio && (conference.isMutedByFocus = true);
+            video && (conference.isVideoMutedByFocus = true);
+            conference._updateStartMutedPolicy(audio, video);
         }
         conference.eventEmitter.emit(JitsiConferenceEvents.METADATA_UPDATED, metadata);
     });
@@ -551,39 +553,6 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     this._addConferenceXMPPListener(
         XMPPEvents.CALL_ENDED,
         conference.onCallEnded.bind(conference));
-
-    this._addConferenceXMPPListener(XMPPEvents.START_MUTED_FROM_FOCUS,
-        (audioMuted, videoMuted) => {
-            if (conference.options.config.ignoreStartMuted) {
-                return;
-            }
-
-            conference.startAudioMuted = audioMuted;
-            conference.startVideoMuted = videoMuted;
-
-            if (audioMuted) {
-                conference.isMutedByFocus = true;
-            }
-
-            if (videoMuted) {
-                conference.isVideoMutedByFocus = true;
-            }
-
-            // mute existing local tracks because this is initial mute from
-            // Jicofo
-            conference.getLocalTracks().forEach(track => {
-                switch (track.getType()) {
-                case MediaType.AUDIO:
-                    conference.startAudioMuted && track.mute();
-                    break;
-                case MediaType.VIDEO:
-                    conference.startVideoMuted && track.mute();
-                    break;
-                }
-            });
-
-            conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
-        });
 
     this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_CHANGED,
         (value, mediaType, actorJid) => {
