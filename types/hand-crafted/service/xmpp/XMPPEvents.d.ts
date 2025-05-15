@@ -69,7 +69,6 @@
   AV_MODERATION_RECEIVED = 'xmpp.av_moderation.received',
   AV_MODERATION_CHANGED = 'xmpp.av_moderation.changed',
   AV_MODERATION_PARTICIPANT_APPROVED = 'xmpp.av_moderation.participant.approved',
-  START_MUTED_FROM_FOCUS = 'xmpp.start_muted_from_focus',
   SUBJECT_CHANGED = 'xmpp.subject_changed',
   SUSPEND_DETECTED = 'xmpp.suspend_detected',
   TRANSCRIPTION_STATUS_CHANGED = 'xmpp.transcription_status_changed',

@@ -406,11 +406,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
             } else if (this.track) {
                 this.track.enabled = !muted;
             }
-
-            // Override the start muted policy for the conference if the track has been unmuted.
-            if (!muted) {
-                this.conference.startMutedPolicy.audio = false;
-            }
         } else if (muted) {
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();

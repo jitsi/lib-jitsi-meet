@@ -284,6 +284,9 @@ export default class XMPP extends Listenable {
         // for keeping stats, since it is not made available to jocofo at
         // the time of the initial conference-request.
         this.caps.addFeature('http://jitsi.org/visitors-1');
+
+        // Advertise support for startMuted policy through room metadata.
+        this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
     }
 
     /**
