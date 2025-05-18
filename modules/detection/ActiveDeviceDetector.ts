@@ -1,9 +1,14 @@
 import { getLogger } from '@jitsi/logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import RTC from '../RTC/RTC';
 import Statistics from '../statistics/statistics';
 
+export interface IActiveDeviceInfo {
+    deviceId: string;
+    deviceLabel: string;
+}
 
 const logger = getLogger('modules/detection/ActiveDeviceDetector');
 
@@ -15,19 +20,21 @@ const DETECTION_TIMEOUT = 3000;
 /**
  * Go through all audio devices on the system and return one that is active, i.e. has audio signal.
  *
- * @returns Promise<Object> - Object containing information about the found device.
+ * @returns Promise<IActiveDeviceInfo> - Object containing information about the found device.
  */
-export default function getActiveAudioDevice() {
+export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
 
     return new Promise(resolve => {
-        RTC.enumerateDevices(devices => {
+        RTC.enumerateDevices((devices: MediaDeviceInfo[]) => {
             const audioDevices = devices.filter(device => device.kind === 'audioinput');
-            const devicePromiseArray = [];
+            const devicePromiseArray: Promise<JitsiLocalTrack>[] = [];
 
 
             for (const micDevice of audioDevices) {
-                const devicePromise = RTC.obtainAudioAndVideoPermissions({ devices: [ 'audio' ],
-                    micDeviceId: micDevice.deviceId }).then(tracks => {
+                const devicePromise = RTC.obtainAudioAndVideoPermissions({ 
+                    devices: [ 'audio' ],
+                    micDeviceId: micDevice.deviceId 
+                }).then((tracks: JitsiLocalTrack[]) => {
 
                     // We expect a single device to be available when obtained from obtainAudioAndVideoPermissions
                     // that's  why only take p.value[0].
@@ -46,8 +53,8 @@ export default function getActiveAudioDevice() {
                 const rejectedPromises = outcomeArray.filter(p => p.status === 'rejected');
 
 
-                const availableDevices = successfulPromises.map(p => p.value);
-                const rejectReasons = rejectedPromises.map(p => p.value);
+                const availableDevices = successfulPromises.map(p => (p as PromiseFulfilledResult<JitsiLocalTrack>).value);
+                const rejectReasons = rejectedPromises.map(p => (p as PromiseRejectedResult).reason);
 
                 for (const reason of rejectReasons) {
                     logger.error('Failed to acquire audio device with error: ', reason);
@@ -62,8 +69,10 @@ export default function getActiveAudioDevice() {
                         // no input.
                         if (audioLevel > 0.008) {
                             stopActiveDevices(availableDevices);
-                            resolve({ deviceId: device.deviceId,
-                                deviceLabel: device.track.label });
+                            resolve({ 
+                                deviceId: device.deviceId,
+                                deviceLabel: device.track.label 
+                            });
                         }
                     });
                 }
@@ -73,8 +82,8 @@ export default function getActiveAudioDevice() {
                     stopActiveDevices(availableDevices);
                     resolve({
                         deviceId: '',
-                        deviceLabel: '' }
-                    );
+                        deviceLabel: '' 
+                    });
                 }, DETECTION_TIMEOUT);
 
             });
@@ -89,7 +98,7 @@ export default function getActiveAudioDevice() {
  * @param {Array<JitsiLocalTrack>} deviceList - Array of JitsiLocalTracks to stop.
  * @returns {void}
  */
-function stopActiveDevices(deviceList) {
+function stopActiveDevices(deviceList: JitsiLocalTrack[]): void {
     for (const device of deviceList) {
         device.stopStream();
     }
