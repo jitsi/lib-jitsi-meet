@@ -31,9 +31,9 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
 
 
             for (const micDevice of audioDevices) {
-                const devicePromise = RTC.obtainAudioAndVideoPermissions({ 
+                const devicePromise = RTC.obtainAudioAndVideoPermissions({
                     devices: [ 'audio' ],
-                    micDeviceId: micDevice.deviceId 
+                    micDeviceId: micDevice.deviceId
                 }).then((tracks: JitsiLocalTrack[]) => {
 
                     // We expect a single device to be available when obtained from obtainAudioAndVideoPermissions
@@ -69,9 +69,9 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
                         // no input.
                         if (audioLevel > 0.008) {
                             stopActiveDevices(availableDevices);
-                            resolve({ 
+                            resolve({
                                 deviceId: device.deviceId,
-                                deviceLabel: device.track.label 
+                                deviceLabel: device.track.label
                             });
                         }
                     });
@@ -82,7 +82,7 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
                     stopActiveDevices(availableDevices);
                     resolve({
                         deviceId: '',
-                        deviceLabel: '' 
+                        deviceLabel: ''
                     });
                 }, DETECTION_TIMEOUT);
 
