@@ -103,6 +103,12 @@ export class CodecSelection {
                 }
             }
 
+            // Safari retports AV1 as supported on M3+ macs. Because of some decoder/encoder issues reported AV1 should
+            // be disabled until all issues are resolved.
+            if (browser.isWebKitBased()) {
+                selectedOrder = selectedOrder.filter(codec => codec !== CodecMimeType.AV1);
+            }
+
             logger.info(`Codec preference order for ${connectionType} connection is ${selectedOrder}`);
             this.codecPreferenceOrder[connectionType] = selectedOrder;
 
