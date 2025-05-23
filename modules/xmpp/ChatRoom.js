@@ -680,10 +680,10 @@ export default class ChatRoom extends Listenable {
 
             if (xElement && $(xElement).find('>status[code="110"]').length) {
                 // let's check for some backend forced permissions
+                const permissionEl = $(pres).find('>permissions[xmlns="http://jitsi.org/jitmeet"]');
 
-                const permissions = $(pres).find('>permissions[xmlns="http://jitsi.org/jitmeet"]>p');
-
-                if (permissions.length) {
+                if (permissionEl.length) {
+                    const permissions = $(permissionEl).find('p');
                     const permissionsMap = {};
 
                     permissions.each((idx, p) => {
