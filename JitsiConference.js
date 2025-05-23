@@ -4278,3 +4278,12 @@ JitsiConference.prototype.getBreakoutRooms = function() {
 JitsiConference.prototype.getMetadataHandler = function() {
     return this.room?.getMetadataHandler();
 };
+
+/**
+ * Requests short-term credentials from the backend if available.
+ * @param {string} service - The service for which to request the credentials.
+ * @returns {Promise}
+ */
+JitsiConference.prototype.getShortTermCredentials = function(service) {
+    return this.xmpp?.connection?.jingle?.getShortTermCredentials(service);
+};
