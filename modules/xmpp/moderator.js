@@ -326,7 +326,7 @@ export default class Moderator extends Listenable {
                     body: JSON.stringify(this._createConferenceRequest(roomJid)),
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.xmpp.token}`
+                        ...this.xmpp.token ? { 'Authorization': `Bearer ${this.xmpp.token}` } : {}
                     }
                 })
                     .then(response => {
