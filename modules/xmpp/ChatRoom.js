@@ -2067,6 +2067,51 @@ export default class ChatRoom extends Listenable {
 
         this.xmpp.connection.send(msg);
     }
+
+    /**
+     * Requests short-lived credentials for a service.
+     * The function does not use anything from the room, but the backend requires the sender
+     * to be in the room as the credentials contain the meeting ID and are valid only for the room.
+     * @param service
+     */
+    getShortTermCredentials(service) {
+        // Gets credentials via xep-0215 and cache it
+        return new Promise((resolve, reject) => {
+            const cachedCredentials = this.cachedShortTermCredentials || [];
+
+            if (cachedCredentials[service]) {
+                resolve(cachedCredentials[service]);
+
+                return;
+            }
+
+            this.connection.sendIQ(
+                $iq({
+                    type: 'get',
+                    to: this.xmpp.options.hosts.domain
+                })
+                    .c('credentials', { xmlns: 'urn:xmpp:extdisco:2' })
+                    .c('service', {
+                        type: 'short-lived-token',
+                        host: service
+                    }),
+                res => {
+                    const resultServiceEl = $(res).find('>credentials[xmlns="urn:xmpp:extdisco:2"]>service');
+                    const currentDate = new Date();
+                    const expirationDate = new Date(resultServiceEl.attr('expires'));
+
+                    cachedCredentials[service] = resultServiceEl.attr('password');
+                    this.cachedShortTermCredentials = cachedCredentials;
+
+                    setTimeout(() => {
+                        this.cachedShortTermCredentials[service] = undefined;
+                    }, expirationDate - currentDate - 10_000); // 10 seconds before expiration
+
+                    resolve(this.cachedShortTermCredentials[service]);
+                },
+                reject);
+        });
+    }
 }
 
 /* eslint-enable newline-per-chained-call */

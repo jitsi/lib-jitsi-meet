@@ -4285,5 +4285,9 @@ JitsiConference.prototype.getMetadataHandler = function() {
  * @returns {Promise}
  */
 JitsiConference.prototype.getShortTermCredentials = function(service) {
-    return this.xmpp?.connection?.jingle?.getShortTermCredentials(service);
+    if (this.room) {
+        return this.room.getShortTermCredentials(service);
+    }
+
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
