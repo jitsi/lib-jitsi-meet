@@ -4278,3 +4278,16 @@ JitsiConference.prototype.getBreakoutRooms = function() {
 JitsiConference.prototype.getMetadataHandler = function() {
     return this.room?.getMetadataHandler();
 };
+
+/**
+ * Requests short-term credentials from the backend if available.
+ * @param {string} service - The service for which to request the credentials.
+ * @returns {Promise}
+ */
+JitsiConference.prototype.getShortTermCredentials = function(service) {
+    if (this.room) {
+        return this.room.getShortTermCredentials(service);
+    }
+
+    return Promise.reject(new Error('The conference is not created yet!'));
+};
