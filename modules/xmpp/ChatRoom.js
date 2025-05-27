@@ -1,4 +1,3 @@
-import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
 import { isEqual } from 'lodash-es';
@@ -421,18 +420,6 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
-            }
-
-            const roomMetadataEl
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_jitsimetadata"]>value');
-            const roomMetadataText = roomMetadataEl?.text();
-
-            if (roomMetadataText) {
-                try {
-                    this.roomMetadata._handleMessages(safeJsonParse(roomMetadataText));
-                } catch (e) {
-                    logger.warn('Failed to set room metadata', e);
-                }
             }
 
             this.initialDiscoRoomInfoReceived = true;
