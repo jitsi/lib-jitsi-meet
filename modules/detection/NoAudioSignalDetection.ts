@@ -21,7 +21,7 @@ const SILENCE_PERIOD_MS = 4000;
  */
 export default class NoAudioSignalDetection extends EventEmitter {
     private _conference: JitsiConference;
-    private _timeoutTrigger: NodeJS.Timeout | null;
+    private _timeoutTrigger: Timeout | null;
     private _hasAudioInput: boolean | null;
     private _audioTrack: JitsiLocalTrack | null;
     private _eventFired: boolean;
