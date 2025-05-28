@@ -1,4 +1,5 @@
 import { isEqual } from 'lodash-es';
+import { Strophe } from 'strophe.js';
 
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
@@ -31,12 +32,6 @@ export interface IDiffSourceInfo {
 
 export interface ISDP {
     getMediaSsrcMap: () => Map<string, IMediaSource>;
-}
-
-export interface IJingleModify {
-    attrs: (attributes: { [key: string]: any; }) => IJingleModify;
-    c: (name: string, attrs?: { [key: string]: any; }) => IJingleModify;
-    up: () => IJingleModify;
 }
 
 /**
@@ -92,10 +87,10 @@ export class SDPDiffer {
     /**
      * Adds the diff source info to the provided IQ stanza.
      *
-     * @param {*} modify - Stanza IQ.
+     * @param {Strophe.Builder} modify - Stanza IQ.
      * @returns {boolean}
      */
-    toJingle(modify: IJingleModify): boolean {
+    toJingle(modify: Strophe.Builder): boolean {
         let modified = false;
         const diffSourceInfo = this.getNewMedia();
 
@@ -125,10 +120,7 @@ export class SDPDiffer {
                 const msid = SDPUtil.parseMSIDAttribute(ssrcLines);
 
                 if (msid) {
-                    modify.c('parameter');
-                    modify.attrs({ name: 'msid' });
-                    modify.attrs({ value: msid });
-                    modify.up();
+                    modify.c('parameter', { name: 'msid', value: msid }).up();
                 }
 
                 modify.up(); // end of source
@@ -144,8 +136,7 @@ export class SDPDiffer {
                     });
 
                     ssrcGroup.ssrcs.forEach(ssrc => {
-                        modify.c('source', { ssrc })
-                            .up(); // end of source
+                        modify.c('source', { ssrc }).up(); // end of source
                     });
                     modify.up(); // end of ssrc-group
                 }
