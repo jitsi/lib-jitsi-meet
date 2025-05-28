@@ -54,7 +54,7 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
 
 
                 const availableDevices = successfulPromises.map(p => (p as PromiseFulfilledResult<JitsiLocalTrack>).value);
-                const rejectReasons = rejectedPromises.map(p => (p as PromiseRejectedResult).value);
+                const rejectReasons = rejectedPromises.map(p => (p as any).value);
 
                 for (const reason of rejectReasons) {
                     logger.error('Failed to acquire audio device with error: ', reason);
