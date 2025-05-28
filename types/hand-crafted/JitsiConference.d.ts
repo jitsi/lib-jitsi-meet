@@ -105,8 +105,6 @@ export default class JitsiConference {
   getConnectionState: () => string | null;
   setStartMutedPolicy: ( policy: { audio: boolean, video: boolean } ) => void;
   getStartMutedPolicy: () => { audio: boolean, video: boolean };
-  isStartAudioMuted: () => boolean;
-  isStartVideoMuted: () => boolean;
   getConnectionTimes: () => unknown;
   setLocalParticipantProperty: ( name: string, value: unknown ) => void;
   removeLocalParticipantProperty: ( name: string ) => void;

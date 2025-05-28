@@ -235,6 +235,15 @@ function sendDeviceListToAnalytics(deviceList) {
  */
 class RTCUtils extends Listenable {
     /**
+     *
+     */
+    constructor() {
+        super();
+
+        this._initOnce = false;
+    }
+
+    /**
      * Depending on the browser, sets difference instance methods for
      * interacting with user media and adds methods to native WebRTC-related
      * objects. Also creates an instance variable for peer connection
@@ -265,46 +274,76 @@ class RTCUtils extends Listenable {
             logger.info(`Stereo: ${stereo}`);
         }
 
+        if (this._initOnce) {
+            return;
+        }
+
+        // Anything beyond this point needs to be initialized only once.
+        this._initOnce = true;
+
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
-        if (!browser.isReactNative()) {
-            this.attachMediaStream
-                = wrapAttachMediaStream((element, stream) => {
-                    if (element) {
-                        element.srcObject = stream;
-                    }
-                });
-        }
-
-        this.pcConstraints = {};
-
         screenObtainer.init(options);
 
-        if (this.isDeviceListAvailable()) {
-            this.enumerateDevices(ds => {
-                availableDevices = ds.slice(0);
+        this.enumerateDevices(ds => {
+            availableDevices = ds.slice(0);
 
-                logger.debug('Available devices: ', availableDevices);
-                sendDeviceListToAnalytics(availableDevices);
+            logger.debug('Available devices: ', availableDevices);
+            sendDeviceListToAnalytics(availableDevices);
 
-                this.eventEmitter.emit(
-                    RTCEvents.DEVICE_LIST_AVAILABLE,
-                    availableDevices);
+            this.eventEmitter.emit(
+                RTCEvents.DEVICE_LIST_AVAILABLE,
+                availableDevices);
 
-                if (browser.supportsDeviceChangeEvent()) {
-                    navigator.mediaDevices.addEventListener(
-                        'devicechange',
-                        () => this.enumerateDevices(emptyFuncton));
-                } else {
-                    // Periodically poll enumerateDevices() method to check if
-                    // list of media devices has changed.
-                    availableDevicesPollTimer = window.setInterval(
-                        () => this.enumerateDevices(emptyFuncton),
-                        AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
-                }
+            if (browser.supportsDeviceChangeEvent()) {
+                navigator.mediaDevices.addEventListener(
+                    'devicechange',
+                    () => this.enumerateDevices(emptyFuncton));
+            } else {
+                // Periodically poll enumerateDevices() method to check if
+                // list of media devices has changed.
+                availableDevicesPollTimer = window.setInterval(
+                    () => this.enumerateDevices(emptyFuncton),
+                    AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
+            }
+        });
+    }
+
+    /**
+     * Attaches the given media stream to the given element.
+     *
+     * @param {*} element DOM element.
+     * @param {*} stream MediaStream.
+     * @returns Promise<void>
+     */
+    attachMediaStream(element, stream) {
+        if (element) {
+            element.srcObject = stream;
+        }
+
+        if (element && stream
+                && this.isDeviceChangeAvailable('output')
+                && stream.getAudioTracks().length
+
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
+            return element.setSinkId(this.getAudioOutputDevice()).catch(ex => {
+                const err
+                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
+
+                logger.warn(
+                    'Failed to set audio output device for the element.'
+                        + ' Default audio output device will be used'
+                        + ' instead',
+                    element?.id,
+                    err);
+
+                throw err;
             });
         }
+
+        return Promise.resolve();
     }
 
     /**
@@ -710,18 +749,6 @@ class RTCUtils extends Listenable {
     }
 
     /**
-     * Checks whether it is possible to enumerate available cameras/microphones.
-     *
-     * @returns {boolean} {@code true} if the device listing is available;
-     * {@code false}, otherwise.
-     */
-    isDeviceListAvailable() {
-        return Boolean(
-            navigator.mediaDevices
-                && navigator.mediaDevices.enumerateDevices);
-    }
-
-    /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
      * @params {string} [deviceType] - type of device to change. Default is
@@ -862,43 +889,5 @@ class RTCUtils extends Listenable {
     }
 }
 
-const rtcUtils = new RTCUtils();
 
-/**
- * Wraps original attachMediaStream function to set current audio output device
- * if this is supported.
- * @param {Function} origAttachMediaStream
- * @returns {Function}
- */
-function wrapAttachMediaStream(origAttachMediaStream) {
-    return function(element, stream) {
-        // eslint-disable-next-line prefer-rest-params
-        origAttachMediaStream.apply(rtcUtils, arguments);
-
-        if (stream
-                && rtcUtils.isDeviceChangeAvailable('output')
-                && stream.getAudioTracks
-                && stream.getAudioTracks().length
-
-                // we skip setting audio output if there was no explicit change
-                && audioOutputChanged) {
-            return element.setSinkId(rtcUtils.getAudioOutputDevice()).catch(ex => {
-                const err
-                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
-                logger.warn(
-                    'Failed to set audio output device for the element.'
-                        + ' Default audio output device will be used'
-                        + ' instead',
-                    element?.id,
-                    err);
-
-                throw err;
-            });
-        }
-
-        return Promise.resolve();
-    };
-}
-
-export default rtcUtils;
+export default new RTCUtils();

@@ -218,7 +218,8 @@ export default class Moderator extends Listenable {
         elem.c('conference', {
             xmlns: 'http://jitsi.org/protocol/focus',
             room: roomJid,
-            'machine-uid': conferenceRequest.machineUid
+            'machine-uid': conferenceRequest.machineUid,
+            token: this.xmpp.token
         });
 
         if (conferenceRequest.sessionId) {
@@ -323,7 +324,10 @@ export default class Moderator extends Listenable {
                 fetch(this.targetUrl, {
                     method: 'POST',
                     body: JSON.stringify(this._createConferenceRequest(roomJid)),
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...this.xmpp.token ? { 'Authorization': `Bearer ${this.xmpp.token}` } : {}
+                    }
                 })
                     .then(response => {
                         if (!response.ok) {

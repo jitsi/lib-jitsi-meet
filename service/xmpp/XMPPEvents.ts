@@ -278,11 +278,6 @@ export enum XMPPEvents {
     // participant in the MUC.
     REMOTE_STATS = 'xmpp.remote_stats',
 
-    /**
-     * Indicates that the offer / answer renegotiation has failed.
-     */
-    RENEGOTIATION_FAILED = 'xmpp.renegotiation_failed',
-
     RESERVATION_ERROR = 'xmpp.room_reservation_error',
 
     ROOM_CONNECT_ERROR = 'xmpp.room_connect_error',
@@ -375,10 +370,6 @@ export enum XMPPEvents {
      * Event fired when speaker stats update message is received.
      */
     SPEAKER_STATS_RECEIVED = 'xmpp.speaker_stats_received',
-
-    // Designates an event indicating that we should join the conference with
-    // audio and/or video muted.
-    START_MUTED_FROM_FOCUS = 'xmpp.start_muted_from_focus',
 
     // Designates an event indicating that the subject of the XMPP MUC has
     // changed.

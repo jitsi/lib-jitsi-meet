@@ -1,6 +1,4 @@
 export enum RTCEvents {
-  CREATE_ANSWER_FAILED = 'rtc.create_answer_failed',
-  CREATE_OFFER_FAILED = 'rtc.create_offer_failed',
   DATA_CHANNEL_OPEN = 'rtc.data_channel_open',
   ENDPOINT_CONN_STATUS_CHANGED = 'rtc.endpoint_conn_status_changed',
   DOMINANT_SPEAKER_CHANGED = 'rtc.dominant_speaker_changed',
@@ -13,8 +11,6 @@ export enum RTCEvents {
   REMOTE_TRACK_MUTE = 'rtc.remote_track_mute',
   REMOTE_TRACK_REMOVED = 'rtc.remote_track_removed',
   REMOTE_TRACK_UNMUTE = 'rtc.remote_track_unmute',
-  SET_LOCAL_DESCRIPTION_FAILED = 'rtc.set_local_description_failed',
-  SET_REMOTE_DESCRIPTION_FAILED = 'rtc.set_remote_description_failed',
   AUDIO_OUTPUT_DEVICE_CHANGED = 'rtc.audio_output_device_changed',
   DEVICE_LIST_CHANGED = 'rtc.device_list_changed',
   DEVICE_LIST_WILL_CHANGE = 'rtc.device_list_will_change',

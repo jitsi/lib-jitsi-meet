@@ -373,7 +373,7 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, pcConfig, isP2P, options) {
-        const pcConstraints = cloneDeep(RTCUtils.pcConstraints);
+        const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
@@ -580,14 +580,6 @@ export default class RTC extends Listenable {
      */
     static attachMediaStream(elSelector, stream) {
         return RTCUtils.attachMediaStream(elSelector, stream);
-    }
-
-    /**
-     * Returns true if retrieving the list of input devices is supported
-     * and false if not.
-     */
-    static isDeviceListAvailable() {
-        return RTCUtils.isDeviceListAvailable();
     }
 
     /**

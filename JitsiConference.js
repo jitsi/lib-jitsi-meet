@@ -187,8 +187,6 @@ export default function JitsiConference(options) {
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
     this.authEnabled = false;
-    this.startAudioMuted = false;
-    this.startVideoMuted = false;
     this.startMutedPolicy = {
         audio: false,
         video: false
@@ -457,7 +455,8 @@ JitsiConference.prototype._init = function(options = {}) {
             preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
             screenshareCodec: browser.isMobileDevice()
                 ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.videoQuality?.screenshareCodec)
+                : _getCodecMimeType(config.videoQuality?.screenshareCodec),
+            enableAV1ForFF: config.testing?.enableAV1ForFF
         },
         p2p: {
             preferenceOrder: browser.isMobileDevice()
@@ -467,7 +466,8 @@ JitsiConference.prototype._init = function(options = {}) {
             preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
             screenshareCodec: browser.isMobileDevice()
                 ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.p2p?.screenshareCodec)
+                : _getCodecMimeType(config.p2p?.screenshareCodec),
+            enableAV1ForFF: true // For P2P no simulcast is needed, therefore AV1 can be used.
         }
     };
 
@@ -590,7 +590,7 @@ JitsiConference.prototype._init = function(options = {}) {
  * @param replaceParticipant {boolean} whether the current join replaces
  * an existing participant with same jwt from the meeting.
  */
-JitsiConference.prototype.join = function(password, replaceParticipant = false) {
+JitsiConference.prototype.join = function(password = '', replaceParticipant = false) {
     if (this.room) {
         this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
     }
@@ -741,6 +741,15 @@ JitsiConference.prototype.leave = async function(reason) {
     if (leaveError) {
         throw leaveError;
     }
+};
+
+/**
+ * Disposes of conference resources. This operation is a short-hand for leaving
+ * the conference and disconnecting the connection.
+ */
+JitsiConference.prototype.dispose = async function() {
+    await this.leave();
+    await this.connection?.disconnect();
 };
 
 /**
@@ -1225,38 +1234,6 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
-};
-
-/**
- * Returns the list of local tracks that need to be added to the peerconnection on join.
- * This takes the startAudioMuted/startVideoMuted flags into consideration since we do not
- * want to add the tracks if the user joins the call audio/video muted. The tracks will be
- * added when the user unmutes for the first time.
- * @returns {Array<JitsiLocalTrack>} - list of local tracks that are unmuted.
- */
-JitsiConference.prototype._getInitialLocalTracks = function() {
-    // Always add the audio track on certain platforms:
-    //  * Safari / WebKit: because of a known issue where audio playout doesn't happen
-    //    if the user joins audio and video muted.
-    //  * React Native: after iOS 15, if a user joins muted they won't be able to unmute.
-    return this.getLocalTracks()
-        .filter(track => {
-            const trackType = track.getType();
-
-            if (trackType === MediaType.AUDIO
-                    && (!(this.isStartAudioMuted() || this.startMutedPolicy.audio)
-                    || browser.isWebKitBased()
-                    || browser.isReactNative())) {
-                return true;
-            } else if (trackType === MediaType.VIDEO && !this.isStartVideoMuted() && !this.startMutedPolicy.video) {
-                return true;
-            }
-
-            // Remove the track from the conference.
-            this.onLocalTrackRemoved(track);
-
-            return false;
-        });
 };
 
 /**
@@ -1823,6 +1800,31 @@ JitsiConference.prototype.onMemberJoined = function(
     }
 
     this._maybeSetSITimeout();
+    const { startAudioMuted, startVideoMuted } = this.options.config;
+
+    // Ignore startAudio/startVideoMuted settings if the media session has already been established.
+    // Apply the policy if the number of participants exceeds the startMuted thresholds.
+    if ((this.jvbJingleSession && this.getActiveMediaSession() === this.jvbJingleSession)
+        || ((typeof startAudioMuted === 'undefined' || startAudioMuted === -1)
+            && (typeof startVideoMuted === 'undefined' || startVideoMuted === -1))) {
+        return;
+    }
+
+    let audioMuted = false;
+    let videoMuted = false;
+    const numberOfParticipants = this.getParticipantCount();
+
+    if (numberOfParticipants > this.options.config.startAudioMuted) {
+        audioMuted = true;
+    }
+
+    if (numberOfParticipants > this.options.config.startVideoMuted) {
+        videoMuted = true;
+    }
+
+    if ((audioMuted && !this.startMutedPolicy.audio) || (videoMuted && !this.startMutedPolicy.video)) {
+        this._updateStartMutedPolicy(audioMuted, videoMuted);
+    }
 };
 
 /* eslint-enable max-params */
@@ -2097,8 +2099,17 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
-        this.p2pJingleSession.setAnswer(answer);
-        this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
+        this.p2pJingleSession.setAnswer(answer)
+            .then(() => {
+                this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
+            })
+            .catch(error => {
+                logger.error('Error setting P2P answer', error);
+                if (this.p2pJingleSession) {
+                    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                        JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+                }
+            });
     }
 };
 
@@ -2262,7 +2273,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
     // Open a channel with the videobridge.
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
-    const localTracks = this._getInitialLocalTracks();
+    const localTracks = this.getLocalTracks();
 
     try {
         jingleSession.acceptOffer(
@@ -2285,7 +2296,9 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(jingleSession, jingl
                 });
             },
             error => {
-                logger.error('Failed to accept incoming Jingle session', error);
+                logger.error('Failed to accept incoming JVB Jingle session', error);
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
             },
             localTracks
         );
@@ -2631,11 +2644,9 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
 
-    // Do not apply the startMutedPolicy locally on the moderator, the moderator should join with available local
-    // sources and the policy needs to be applied only on users that join the call after.
-    // this.startMutedPolicy = policy;
-    // TODO: to remove using presence for startmuted policy after old clients update
-    // we keep presence to update UI of old clients
+    logger.info(`Setting start muted policy: ${JSON.stringify(policy)} in presence and in conference metadata`);
+
+    // TODO: to remove using presence for startmuted policy after old clients update to using metadata always.
     this.room.addOrReplaceInPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -2643,9 +2654,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
             xmlns: 'http://jitsi.org/jitmeet/start-muted'
         }
     }) && this.room.sendPresence();
-
-    // we want to ignore applying startMutedPolicy locally when we set it
-    this._ignoreFirstStartMutedPolicyUpdate = true;
 
     this.getMetadataHandler().setMetadata('startMuted', {
         audio: policy.audio,
@@ -2660,9 +2668,8 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
  * @param {boolean} video if video should be muted.
  */
 JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
-    if (this._ignoreFirstStartMutedPolicyUpdate) {
-        this._ignoreFirstStartMutedPolicyUpdate = false;
-
+    // Update the start muted policy for the conference only if the meta data is received before conference join.
+    if (this.isJoined()) {
         return;
     }
 
@@ -2692,20 +2699,6 @@ JitsiConference.prototype._updateStartMutedPolicy = function(audio, video) {
  */
 JitsiConference.prototype.getStartMutedPolicy = function() {
     return this.startMutedPolicy;
-};
-
-/**
- * Check if audio is muted on join.
- */
-JitsiConference.prototype.isStartAudioMuted = function() {
-    return this.startAudioMuted;
-};
-
-/**
- * Check if video is muted on join.
- */
-JitsiConference.prototype.isStartVideoMuted = function() {
-    return this.startVideoMuted;
 };
 
 /**
@@ -3051,8 +3044,11 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(jingleSession, jingl
             });
         },
         error => {
-            logger.error(
-                'Failed to accept incoming P2P Jingle session', error);
+            logger.error('Failed to accept incoming P2P Jingle session', error);
+            if (this.p2pJingleSession) {
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+            }
         },
         localTracks);
 };
@@ -3397,11 +3393,20 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
 
     const localTracks = this.getLocalTracks();
 
-    this.p2pJingleSession.invite(localTracks);
+    this.p2pJingleSession.invite(localTracks)
+        .then(() => {
+            this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
+            });
+        })
+        .catch(error => {
+            logger.error('Failed to start P2P Jingle session', error);
 
-    this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
-        this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
-    });
+            if (this.p2pJingleSession) {
+                this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.OFFER_ANSWER_FAILED, error);
+            }
+        });
 };
 
 /**
@@ -4272,4 +4277,17 @@ JitsiConference.prototype.getBreakoutRooms = function() {
  */
 JitsiConference.prototype.getMetadataHandler = function() {
     return this.room?.getMetadataHandler();
+};
+
+/**
+ * Requests short-term credentials from the backend if available.
+ * @param {string} service - The service for which to request the credentials.
+ * @returns {Promise}
+ */
+JitsiConference.prototype.getShortTermCredentials = function(service) {
+    if (this.room) {
+        return this.room.getShortTermCredentials(service);
+    }
+
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
