@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash-es';
-import { Strophe } from 'strophe.js';
+import Strophe  from 'strophe';
 
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
