@@ -1,8 +1,11 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import EventEmitter from '../util/EventEmitter';
-
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import * as DetectionEvents from './DetectionEvents';
+
+import type JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import type JitsiConference from '../../JitsiConference';
+import type TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 // We wait a certain time interval for constant silence input from the current device to account for
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
@@ -17,18 +20,26 @@ const SILENCE_PERIOD_MS = 4000;
  * @fires DetectionEvents.NO_AUDIO_INPUT
  */
 export default class NoAudioSignalDetection extends EventEmitter {
+    private _conference: JitsiConference;
+    private _timeoutTrigger: NodeJS.Timeout | null;
+    private _hasAudioInput: boolean | null;
+    private _audioTrack: JitsiLocalTrack | null;
+    private _eventFired: boolean;
+
     /**
      * Creates new NoAudioSignalDetection.
      *
      * @param conference the JitsiConference instance that created us.
      * @constructor
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         super();
 
         this._conference = conference;
         this._timeoutTrigger = null;
         this._hasAudioInput = null;
+        this._audioTrack = null;
+        this._eventFired = false;
 
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
     }
@@ -36,19 +47,20 @@ export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * Clear the timeout state.
      */
-    _clearTriggerTimeout() {
-        clearTimeout(this._timeoutTrigger);
-        this._timeoutTrigger = null;
+    private _clearTriggerTimeout(): void {
+        if (this._timeoutTrigger) {
+            clearTimeout(this._timeoutTrigger);
+            this._timeoutTrigger = null;
+        }
     }
-
 
     /**
      * Generated event triggered by a change in the current conference audio input state.
      *
-     * @param {*} audioLevel - The audio level of the ssrc.
+     * @param {number} audioLevel - The audio level of the ssrc.
      * @fires DetectionEvents.AUDIO_INPUT_STATE_CHANGE
      */
-    _handleAudioInputStateChange(audioLevel) {
+    private _handleAudioInputStateChange(audioLevel: number): void {
         // Current audio input state of the active local track in the conference, true for audio input false for no
         // audio input.
         const status = audioLevel !== 0;
@@ -67,7 +79,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * @param {number} audioLevel - The audio level of the ssrc.
      * @fires DetectionEvents.NO_AUDIO_INPUT
      */
-    _handleNoAudioInputDetection(audioLevel) {
+    private _handleNoAudioInputDetection(audioLevel: number): void {
         if (this._eventFired) {
             return;
         }
@@ -92,7 +104,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * @param {number} audioLevel - The audio level of the ssrc.
      * @param {boolean} isLocal - true for local/send streams or false for remote/receive streams.
      */
-    _audioLevel(tpc, ssrc, audioLevel, isLocal) {
+    private _audioLevel(tpc: TraceablePeerConnection, ssrc: number, audioLevel: number, isLocal: boolean): void {
         // We are interested in the local audio streams
         if (!isLocal || !this._audioTrack) {
             return;
@@ -119,7 +131,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      *
      * @param {JitsiTrack} track - The added JitsiTrack.
      */
-    _trackAdded(track) {
+    private _trackAdded(track: JitsiLocalTrack): void {
         if (track.isLocalAudioTrack()) {
             // Reset state for the new track.
             this._audioTrack = track;
@@ -129,13 +141,13 @@ export default class NoAudioSignalDetection extends EventEmitter {
             // Listen for the audio levels on the newly added audio track
             track.on(
                 JitsiTrackEvents.NO_AUDIO_INPUT,
-                audioLevel => {
+                (audioLevel: number) => {
                     this._handleNoAudioInputDetection(audioLevel);
                 }
             );
             track.on(
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                audioLevel => {
+                (audioLevel: number) => {
                     this._handleNoAudioInputDetection(audioLevel);
                     this._handleAudioInputStateChange(audioLevel);
                 }
