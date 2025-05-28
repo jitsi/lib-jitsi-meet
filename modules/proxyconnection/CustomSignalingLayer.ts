@@ -36,7 +36,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * @inheritDoc
      */
     getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): IPeerMediaInfo {
-        return { muted: false };
+        return { };
     }
 
     /**
