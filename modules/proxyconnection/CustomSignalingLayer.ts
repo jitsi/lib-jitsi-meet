@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { MediaType } from '../../service/RTC/MediaType';
 import SignalingLayer from '../../service/RTC/SignalingLayer';
 import ChatRoom from '../xmpp/ChatRoom';
-
+import type { IPeerMediaInfo } from '../../service/RTC/SignalingLayer';
 const logger = getLogger('modules/proxyconnection/CustomSignalingLayer');
 
 /**
@@ -35,7 +35,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): { muted: boolean; videoType?: string; } {
+    getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): IPeerMediaInfo {
         return { muted: false };
     }
 
