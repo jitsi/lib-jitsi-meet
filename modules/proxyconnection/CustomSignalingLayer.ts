@@ -35,14 +35,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName: string): { muted: boolean; videoType?: string; } { // eslint-disable-line @typescript-eslint/no-unused-vars
+    getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): { muted: boolean; videoType?: string; } {
         return { muted: false };
     }
 
     /**
      * @inheritDoc
      */
-    getPeerSourceInfo(owner: string, sourceName: string): any { // eslint-disable-line @typescript-eslint/no-unused-vars
+    getPeerSourceInfo(_owner: string, _sourceName: string): any {
         return undefined;
     }
 
@@ -56,7 +56,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getTrackSourceName(ssrc: number): string | undefined { // eslint-disable-line @typescript-eslint/no-unused-vars
+    getTrackSourceName(_ssrc: number): string | undefined {
         return undefined;
     }
 
@@ -102,14 +102,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackMuteStatus(sourceName: string, muted: boolean): boolean { // eslint-disable-line @typescript-eslint/no-unused-vars
+    setTrackMuteStatus(_sourceName: string, _muted: boolean): boolean {
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    setTrackVideoType(sourceName: string, videoType: string): boolean { // eslint-disable-line @typescript-eslint/no-unused-vars
+    setTrackVideoType(_sourceName: string, _videoType: string): boolean {
         return false;
     }
 
