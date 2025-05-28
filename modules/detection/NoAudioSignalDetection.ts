@@ -115,7 +115,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
 
         // Only target the current active track in the tpc. For some reason audio levels for previous
         // devices are also picked up from the PeerConnection so we filter them out.
-        if (!localSSRCs || !localSSRCs.ssrcs.includes(ssrc)) {
+        if (!localSSRCs?.ssrcs.includes(ssrc)) {
             return;
         }
 
