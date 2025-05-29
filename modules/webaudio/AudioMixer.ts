@@ -30,7 +30,7 @@ export default class AudioMixer {
      * @param {MediaStream} stream - MediaStream to be mixed.
      */
     addMediaStream(stream: MediaStream): void {
-        if (!stream.getAudioTracks || stream.getAudioTracks().length === 0) {
+        if (!stream.getAudioTracks() || stream.getAudioTracks().length === 0) {
             logger.warn('Added MediaStream doesn\'t contain audio tracks.');
         }
 
