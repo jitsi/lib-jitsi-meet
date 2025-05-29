@@ -14,7 +14,7 @@ export interface ISourceInfo {
 }
 
 export interface IPeerMediaInfo {
-    muted: boolean;
+    muted?: boolean;
     videoType?: string;
 }
 /* eslint-disable @typescript-eslint/no-unused-vars */

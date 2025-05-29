@@ -1,7 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
+import { MediaType } from '../../service/RTC/MediaType';
 import SignalingLayer from '../../service/RTC/SignalingLayer';
-
+import ChatRoom from '../xmpp/ChatRoom';
+import type { IPeerMediaInfo } from '../../service/RTC/SignalingLayer';
 const logger = getLogger('modules/proxyconnection/CustomSignalingLayer');
 
 /**
@@ -9,56 +11,59 @@ const logger = getLogger('modules/proxyconnection/CustomSignalingLayer');
  */
 export default class CustomSignalingLayer extends SignalingLayer {
     /**
+     * A map that stores SSRCs of remote streams.
+     * @type {Map<number, string>} maps SSRC number to jid
+     */
+    private ssrcOwners: Map<number, string>;
+
+    /**
+     *
+     * @type {ChatRoom|null}
+     */
+    public chatRoom: ChatRoom | null;
+
+    /**
      * Creates new instance.
      */
     constructor() {
         super();
 
-        /**
-         * A map that stores SSRCs of remote streams.
-         * @type {Map<number, string>} maps SSRC number to jid
-         */
-        this.ssrcOwners = new Map();
-
-        /**
-         *
-         * @type {ChatRoom|null}
-         */
+        this.ssrcOwners = new Map<number, string>();
         this.chatRoom = null;
     }
 
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(owner, mediaType, sourceName) { // eslint-disable-line no-unused-vars
-        return {};
+    getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): IPeerMediaInfo {
+        return { };
     }
 
     /**
      * @inheritDoc
      */
-    getPeerSourceInfo(owner, sourceName) { // eslint-disable-line no-unused-vars
+    getPeerSourceInfo(_owner: string, _sourceName: string): any {
         return undefined;
     }
 
     /**
      * @inheritDoc
      */
-    getSSRCOwner(ssrc) {
+    getSSRCOwner(ssrc: number): string | undefined {
         return this.ssrcOwners.get(ssrc);
     }
 
     /**
      * @inheritDoc
      */
-    getTrackSourceName(ssrc) { // eslint-disable-line no-unused-vars
+    getTrackSourceName(_ssrc: number): string | undefined {
         return undefined;
     }
 
     /**
      * @inheritDoc
      */
-    removeSSRCOwners(ssrcList) {
+    removeSSRCOwners(ssrcList: number[]): void {
         if (!ssrcList?.length) {
             return;
         }
@@ -72,14 +77,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
      * Sets the <tt>ChatRoom</tt> instance used.
      * @param {ChatRoom} room
      */
-    setChatRoom(room) {
+    setChatRoom(room: ChatRoom): void {
         this.chatRoom = room;
     }
 
     /**
      * @inheritDoc
      */
-    setSSRCOwner(ssrc, endpointId) {
+    setSSRCOwner(ssrc: number, endpointId: string): void {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
@@ -97,24 +102,24 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackMuteStatus(sourceName, muted) { // eslint-disable-line no-unused-vars
+    setTrackMuteStatus(_sourceName: string, _muted: boolean): boolean {
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    setTrackVideoType(sourceName, videoType) { // eslint-disable-line no-unused-vars
+    setTrackVideoType(_sourceName: string, _videoType: string): boolean {
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    updateSsrcOwnersOnLeave(id) {
+    updateSsrcOwnersOnLeave(id: string): void {
         const ssrcs = Array.from(this.ssrcOwners)
-            .filter(entry => entry[1] === id)
-            .map(entry => entry[0]);
+            .filter((entry: [number, string]) => entry[1] === id)
+            .map((entry: [number, string]) => entry[0]);
 
         if (!ssrcs?.length) {
             return;
