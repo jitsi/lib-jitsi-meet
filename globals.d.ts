@@ -1,7 +1,7 @@
 export {};
 
 declare global {    
-    type Timeout = NodeJS.Timeout | ReturnType<typeof setTimeout>;
+    type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
     }
