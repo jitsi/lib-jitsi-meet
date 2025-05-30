@@ -141,9 +141,9 @@ export default class JitsiConference {
      */
     constructor(options) {
         if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
-            const errmsg =
-                'Invalid conference name (no conference name passed or it ' +
-                'contains invalid characters like capital letters)!';
+            const errmsg
+                = 'Invalid conference name (no conference name passed or it '
+                + 'contains invalid characters like capital letters)!';
             const additionalLogMsg = options.name
                 ? `roomName=${options.name}; condition - ${options.name.toLowerCase()}!==${options.name.toString()}`
                 : 'No room name passed!';
@@ -307,7 +307,8 @@ export default class JitsiConference {
 
         /**
          * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max audio sender limit has
-         * been reached for the call. Once this is set, unmuting audio will be disabled from the client until it gets reset
+         * been reached for the call. Once this is set, unmuting audio will be disabled 
+         * from the client until it gets reset
          * again by Jicofo.
          */
         this._audioSenderLimitReached = undefined;
@@ -348,7 +349,8 @@ export default class JitsiConference {
             mucNickname = RandomUtil.randomHexString(8).toLowerCase();
         } else {
             // Use first part of node for anonymous users if it matches format
-            mucNickname = Strophe.getNodeFromJid(jid)?.substr(0, 8).toLowerCase();
+            mucNickname = Strophe.getNodeFromJid(jid)?.substr(0, 8)
+.toLowerCase();
 
             const re = /[0-9a-f]{8}/g;
 
@@ -365,7 +367,7 @@ export default class JitsiConference {
      * @param options {object}
      * @param options.connection {JitsiConnection} overrides this.connection
      */
-    _init(options){
+    _init(options) {
         this.eventManager.setupXMPPListeners();
 
         const { config } = this.options;
@@ -494,6 +496,7 @@ export default class JitsiConference {
                 }
 
                 const vadTalkMutedDetection = new VADTalkMutedDetection();
+
                 vadTalkMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
                     this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
                 this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
@@ -509,6 +512,7 @@ export default class JitsiConference {
                 }
 
                 const vadNoiseDetection = new VADNoiseDetection();
+
                 vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
                     this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
                 this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
@@ -561,7 +565,7 @@ export default class JitsiConference {
         }
     }
 
-      /**
+    /**
    * Authenticates and upgrades the role of the local participant/user.
    *
    * @param {Object} options - Configuration options for authentication.
@@ -569,221 +573,224 @@ export default class JitsiConference {
    * authenticating and upgrading the role of the local participant/user finishes
    * and (2) has a cancel method that allows the caller to interrupt the process.
    */
-  authenticateAndUpgradeRole(options) {
-    return authenticateAndUpgradeRole.call(this, {
-      ...options,
-      onCreateResource: JitsiConference.resourceCreator
-    });
-  }
+    authenticateAndUpgradeRole(options) {
+        return authenticateAndUpgradeRole.call(this, {
+            ...options,
+            onCreateResource: JitsiConference.resourceCreator
+        });
+    }
 
-  /**
+    /**
    * Check if joined to the conference.
    * @returns {boolean} True if joined, false otherwise.
    */
-  isJoined() {
-    return this.room && this.room.joined;
-  }
+    isJoined() {
+        return this.room && this.room.joined;
+    }
 
-  /**
+    /**
    * Tells whether or not the P2P mode is enabled in the configuration.
    * @returns {boolean} True if P2P is enabled, false otherwise.
    */
-  isP2PEnabled() {
-    return (
-      Boolean(this.options.config.p2p && this.options.config.p2p.enabled) ||
-      // FIXME: remove once we have a default config template. -saghul
-      typeof this.options.config.p2p === 'undefined'
-    );
-  }
+    isP2PEnabled() {
+        return (
+            Boolean(this.options.config.p2p && this.options.config.p2p.enabled)
 
-  /**
+      // FIXME: remove once we have a default config template. -saghul
+      || typeof this.options.config.p2p === 'undefined'
+        );
+    }
+
+    /**
    * When in P2P test mode, the conference will not automatically switch to P2P
    * when there are 2 participants.
    * @returns {boolean} True if P2P test mode is enabled, false otherwise.
    */
-  isP2PTestModeEnabled() {
-    return Boolean(
+    isP2PTestModeEnabled() {
+        return Boolean(
       this.options.config.testing && this.options.config.testing.p2pTestMode
-    );
-  }
+        );
+    }
 
     /**
    * Leaves the conference.
    * @param {string|undefined} reason - The reason for leaving the conference.
    * @returns {Promise}
    */
-  async leave(reason) {
-    if (this.avgRtpStatsReporter) {
-      this.avgRtpStatsReporter.dispose();
-      this.avgRtpStatsReporter = null;
-    }
+    async leave(reason) {
+        if (this.avgRtpStatsReporter) {
+            this.avgRtpStatsReporter.dispose();
+            this.avgRtpStatsReporter = null;
+        }
 
-    if (this.e2eping) {
-      this.e2eping.stop();
-      this.e2eping = null;
-    }
+        if (this.e2eping) {
+            this.e2eping.stop();
+            this.e2eping = null;
+        }
 
-    this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
+        this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
 
-    this.rtc.closeBridgeChannel();
+        this.rtc.closeBridgeChannel();
 
-    this._sendConferenceLeftAnalyticsEvent();
+        this._sendConferenceLeftAnalyticsEvent();
 
-    if (this.statistics) {
-      this.statistics.dispose();
-    }
+        if (this.statistics) {
+            this.statistics.dispose();
+        }
 
-    this._delayedIceFailed && this._delayedIceFailed.cancel();
+        this._delayedIceFailed && this._delayedIceFailed.cancel();
 
-    this._maybeClearSITimeout();
+        this._maybeClearSITimeout();
 
-    // Close both JVb and P2P JingleSessions
-    if (this.jvbJingleSession) {
-      this.jvbJingleSession.close();
-      this.jvbJingleSession = null;
-    }
-    if (this.p2pJingleSession) {
-      this.p2pJingleSession.close();
-      this.p2pJingleSession = null;
-    }
+        // Close both JVb and P2P JingleSessions
+        if (this.jvbJingleSession) {
+            this.jvbJingleSession.close();
+            this.jvbJingleSession = null;
+        }
+        if (this.p2pJingleSession) {
+            this.p2pJingleSession.close();
+            this.p2pJingleSession = null;
+        }
 
-    // Leave the conference. If this.room == null we are calling second time leave().
-    if (!this.room) {
-      return;
-    }
+        // Leave the conference. If this.room == null we are calling second time leave().
+        if (!this.room) {
+            return;
+        }
 
-    // let's check is this breakout
-    if (reason === 'switch_room' && this.getBreakoutRooms()?.isBreakoutRoom()) {
-      const mJid = this.getBreakoutRooms().getMainRoomJid();
-      this.xmpp.connection._breakoutMovingToMain = mJid;
-    }
+        // let's check is this breakout
+        if (reason === 'switch_room' && this.getBreakoutRooms()?.isBreakoutRoom()) {
+            const mJid = this.getBreakoutRooms().getMainRoomJid();
 
-    const room = this.room;
+            this.xmpp.connection._breakoutMovingToMain = mJid;
+        }
 
-    // Unregister connection state listeners
-    room.removeListener(
+        const room = this.room;
+
+        // Unregister connection state listeners
+        room.removeListener(
       XMPPEvents.CONNECTION_INTERRUPTED,
       this._onIceConnectionInterrupted
-    );
-    room.removeListener(
+        );
+        room.removeListener(
       XMPPEvents.CONNECTION_RESTORED,
       this._onIceConnectionRestored
-    );
-    room.removeListener(
+        );
+        room.removeListener(
       XMPPEvents.CONNECTION_ESTABLISHED,
       this._onIceConnectionEstablished
-    );
+        );
 
-    room.removeListener(
+        room.removeListener(
       XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
       this._updateProperties
-    );
+        );
 
-    room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
-    room.removeListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
-    room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
-    room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
-    room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
+        room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
+        room.removeListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
+        room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
+        room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
+        room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
-    this.eventManager.removeXMPPListeners();
+        this.eventManager.removeXMPPListeners();
 
-    this._signalingLayer.setChatRoom(null);
+        this._signalingLayer.setChatRoom(null);
 
-    this.room = null;
+        this.room = null;
 
-    let leaveError;
+        let leaveError;
 
-    try {
-      await room.leave(reason);
-    } catch (err) {
-      leaveError = err;
+        try {
+            await room.leave(reason);
+        } catch (err) {
+            leaveError = err;
 
-      // Remove all participants because currently the conference
-      // won't be usable anyway. This is done on success automatically
-      // by the ChatRoom instance.
-      this.getParticipants().forEach(
+            // Remove all participants because currently the conference
+            // won't be usable anyway. This is done on success automatically
+            // by the ChatRoom instance.
+            this.getParticipants().forEach(
         participant => this.onMemberLeft(participant.getJid())
-      );
+            );
+        }
+
+        if (this.rtc) {
+            this.rtc.destroy();
+        }
+
+        if (leaveError) {
+            throw leaveError;
+        }
     }
 
-    if (this.rtc) {
-      this.rtc.destroy();
-    }
-
-    if (leaveError) {
-      throw leaveError;
-    }
-  }
-
-  /**
+    /**
    * Disposes of conference resources. This operation is a short-hand for leaving
    * the conference and disconnecting the connection.
    * @returns {Promise}
    */
-  async dispose() {
-    await this.leave();
-    await this.connection?.disconnect();
-  }
+    async dispose() {
+        await this.leave();
+        await this.connection?.disconnect();
+    }
 
-  /**
+    /**
    * Returns true if end conference support is enabled in the backend.
    * @returns {boolean} whether end conference is supported in the backend.
    */
-  isEndConferenceSupported() {
-    return Boolean(this.room && this.room.xmpp.endConferenceComponentAddress);
-  }
+    isEndConferenceSupported() {
+        return Boolean(this.room && this.room.xmpp.endConferenceComponentAddress);
+    }
 
-  /**
+    /**
    * Ends the conference.
    */
-  end() {
-    if (!this.isEndConferenceSupported()) {
-      logger.warn('Cannot end conference: is not supported.');
-      return;
-    }
-    if (!this.room) {
-      throw new Error('You have already left the conference');
+    end() {
+        if (!this.isEndConferenceSupported()) {
+            logger.warn('Cannot end conference: is not supported.');
+
+            return;
+        }
+        if (!this.room) {
+            throw new Error('You have already left the conference');
+        }
+
+        this.room.end();
     }
 
-    this.room.end();
-  }
-
-  /**
+    /**
    * Returns the currently active media session if any.
    * @returns {JingleSessionPC|undefined}
    */
-  getActiveMediaSession() {
-    return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
-  }
+    getActiveMediaSession() {
+        return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
+    }
 
-  /**
+    /**
    * Returns an array containing all media sessions existing in this conference.
    * @returns {Array<JingleSessionPC>}
    */
-  getMediaSessions() {
-    const sessions = [];
+    getMediaSessions() {
+        const sessions = [];
 
-    this.jvbJingleSession && sessions.push(this.jvbJingleSession);
-    this.p2pJingleSession && sessions.push(this.p2pJingleSession);
+        this.jvbJingleSession && sessions.push(this.jvbJingleSession);
+        this.p2pJingleSession && sessions.push(this.p2pJingleSession);
 
-    return sessions;
-  }
+        return sessions;
+    }
 
-  /**
+    /**
    * Registers event listeners on the RTC instance.
    * @param {RTC} rtc - the RTC module instance used by this conference.
    * @private
    * @returns {void}
    */
-  _registerRtcListeners(rtc) {
-    rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
-      for (const localTrack of this.rtc.localTracks) {
-        localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
-      }
-    });
-  }
+    _registerRtcListeners(rtc) {
+        rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
+            for (const localTrack of this.rtc.localTracks) {
+                localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
+            }
+        });
+    }
 
-  /**
+    /**
    * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
    * decisions based on the video type of the local source.
    *
@@ -791,438 +798,441 @@ export default class JitsiConference {
    * @returns {void}
    * @private
    */
-  _sendBridgeVideoTypeMessage(localtrack) {
-    let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
+    _sendBridgeVideoTypeMessage(localtrack) {
+        let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
 
-    if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
-      videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
+        if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
+            videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
+        }
+
+        localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
     }
 
-    localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
-  }
-
-  /**
+    /**
    * Returns name of this conference.
    * @returns {string}
    */
-  getName() {
-    return this.options.name.toString();
-  }
+    getName() {
+        return this.options.name.toString();
+    }
 
-  /**
+    /**
    * Returns the {@link JitsiConnection} used by this conference.
    * @returns {JitsiConnection}
    */
-  getConnection() {
-    return this.connection;
-  }
+    getConnection() {
+        return this.connection;
+    }
 
-  /**
+    /**
    * Check if authentication is enabled for this conference.
    * @returns {boolean}
    */
-  isAuthEnabled() {
-    return this.authEnabled;
-  }
+    isAuthEnabled() {
+        return this.authEnabled;
+    }
 
-  /**
+    /**
    * Check if user is logged in.
    * @returns {boolean}
    */
-  isLoggedIn() {
-    return Boolean(this.authIdentity);
-  }
+    isLoggedIn() {
+        return Boolean(this.authIdentity);
+    }
 
-  /**
+    /**
    * Get authorized login.
    * @returns {string|null}
    */
-  getAuthLogin() {
-    return this.authIdentity;
-  }
+    getAuthLogin() {
+        return this.authIdentity;
+    }
 
-  /**
+    /**
    * Returns the local tracks of the given media type, or all local tracks if no
    * specific type is given.
    * @param {MediaType} [mediaType] Optional media type (audio or video).
    * @returns {Array<JitsiLocalTrack>}
    */
-  getLocalTracks(mediaType) {
-    let tracks = [];
+    getLocalTracks(mediaType) {
+        let tracks = [];
 
-    if (this.rtc) {
-      tracks = this.rtc.getLocalTracks(mediaType);
+        if (this.rtc) {
+            tracks = this.rtc.getLocalTracks(mediaType);
+        }
+
+        return tracks;
     }
 
-    return tracks;
-  }
-
-  /**
+    /**
    * Obtains local audio track.
    * @returns {JitsiLocalTrack|null}
    */
-  getLocalAudioTrack() {
-    return this.rtc ? this.rtc.getLocalAudioTrack() : null;
-  }
+    getLocalAudioTrack() {
+        return this.rtc ? this.rtc.getLocalAudioTrack() : null;
+    }
 
-  /**
+    /**
    * Obtains local video track.
    * @returns {JitsiLocalTrack|null}
    */
-  getLocalVideoTrack() {
-    return this.rtc ? this.rtc.getLocalVideoTrack() : null;
-  }
+    getLocalVideoTrack() {
+        return this.rtc ? this.rtc.getLocalVideoTrack() : null;
+    }
 
-  /**
+    /**
    * Returns all the local video tracks.
    * @returns {Array<JitsiLocalTrack>|null}
    */
-  getLocalVideoTracks() {
-    return this.rtc ? this.rtc.getLocalVideoTracks() : null;
-  }
+    getLocalVideoTracks() {
+        return this.rtc ? this.rtc.getLocalVideoTracks() : null;
+    }
 
-  /**
+    /**
    * Obtains the performance statistics.
    * @returns {Object|null}
    */
-  getPerformanceStats() {
-    return {
-      longTasksStats: this.statistics.getLongTasksStats()
-    };
-  }
+    getPerformanceStats() {
+        return {
+            longTasksStats: this.statistics.getLongTasksStats()
+        };
+    }
 
-  /**
+    /**
    * Attaches a handler for events (e.g., "participant joined") in the conference.
    * All possible events are defined in JitsiConferenceEvents.
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-  on(eventId, handler) {
-    if (this.eventEmitter) {
-      this.eventEmitter.on(eventId, handler);
+    on(eventId, handler) {
+        if (this.eventEmitter) {
+            this.eventEmitter.on(eventId, handler);
+        }
     }
-  }
 
-  /**
+    /**
    * Adds a one-time listener function for the event.
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-  once(eventId, handler) {
-    if (this.eventEmitter) {
-      this.eventEmitter.once(eventId, handler);
+    once(eventId, handler) {
+        if (this.eventEmitter) {
+            this.eventEmitter.once(eventId, handler);
+        }
     }
-  }
 
-  /**
+    /**
    * Removes event listener.
    * @param {string} eventId - The event ID.
    * @param {Function} [handler] - Optional, the specific handler to unbind.
    */
-  off(eventId, handler) {
-    if (this.eventEmitter) {
-      this.eventEmitter.removeListener(eventId, handler);
+    off(eventId, handler) {
+        if (this.eventEmitter) {
+            this.eventEmitter.removeListener(eventId, handler);
+        }
     }
-  }
 
-  /**
+    /**
    * Alias for on method.
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-  addEventListener(eventId, handler) {
-    this.on(eventId, handler);
-  }
+    addEventListener(eventId, handler) {
+        this.on(eventId, handler);
+    }
 
-  /**
+    /**
    * Alias for off method.
    * @param {string} eventId - The event ID.
    * @param {Function} [handler] - Optional, the specific handler to unbind.
    */
-  removeEventListener(eventId, handler) {
-    this.off(eventId, handler);
-  }
+    removeEventListener(eventId, handler) {
+        this.off(eventId, handler);
+    }
 
-  /**
+    /**
    * Receives notifications from other participants about commands / custom events
    * (sent by sendCommand or sendCommandOnce methods).
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler for the command.
    */
-  addCommandListener(command, handler) {
-    if (this.room) {
-      this.room.addPresenceListener(command, handler);
+    addCommandListener(command, handler) {
+        if (this.room) {
+            this.room.addPresenceListener(command, handler);
+        }
     }
-  }
 
-  /**
+    /**
    * Removes command listener.
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler to remove for the command.
    */
-  removeCommandListener(command, handler) {
-    if (this.room) {
-      this.room.removePresenceListener(command, handler);
+    removeCommandListener(command, handler) {
+        if (this.room) {
+            this.room.removePresenceListener(command, handler);
+        }
     }
-  }
 
-  /**
+    /**
    * Sends text message to the other participants in the conference.
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-  sendTextMessage(message, elementName = 'body') {
-    if (this.room) {
-      this.room.sendMessage(message, elementName);
+    sendTextMessage(message, elementName = 'body') {
+        if (this.room) {
+            this.room.sendMessage(message, elementName);
+        }
     }
-  }
 
-  /**
+    /**
    * Sends a reaction to the other participants in the conference.
    * @param {string} reaction - The reaction.
    * @param {string} messageId - The ID of the message to attach the reaction to.
    * @param {string} receiverId - The intended recipient, if the message is private.
    */
-  sendReaction(reaction, messageId, receiverId) {
-    if (this.room) {
-      this.room.sendReaction(reaction, messageId, receiverId);
+    sendReaction(reaction, messageId, receiverId) {
+        if (this.room) {
+            this.room.sendReaction(reaction, messageId, receiverId);
+        }
     }
-  }
 
-  /**
+    /**
    * Sends private text message to another participant of the conference.
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-  sendPrivateTextMessage(id, message, elementName = 'body') {
-    if (this.room) {
-      this.room.sendPrivateMessage(id, message, elementName);
+    sendPrivateTextMessage(id, message, elementName = 'body') {
+        if (this.room) {
+            this.room.sendPrivateMessage(id, message, elementName);
+        }
     }
-  }
 
-   /**
+    /**
    * Send presence command.
    * @param {string} name - The name of the command.
    * @param {Object} values - With keys and values that will be sent.
    */
-  sendCommand(name, values) {
-    if (this.room) {
-      this.room.addOrReplaceInPresence(name, values) && this.room.sendPresence();
-    } else {
-      logger.warn('Not sending a command, room not initialized.');
+    sendCommand(name, values) {
+        if (this.room) {
+            this.room.addOrReplaceInPresence(name, values) && this.room.sendPresence();
+        } else {
+            logger.warn('Not sending a command, room not initialized.');
+        }
     }
-  }
 
-  /**
+    /**
    * Send presence command one time.
    * @param {string} name - The name of the command.
    * @param {Object} values - With keys and values that will be sent.
    */
-  sendCommandOnce(name, values) {
-    this.sendCommand(name, values);
-    this.removeCommand(name);
-  }
+    sendCommandOnce(name, values) {
+        this.sendCommand(name, values);
+        this.removeCommand(name);
+    }
 
-  /**
+    /**
    * Removes presence command.
    * @param {string} name - The name of the command.
    */
-  removeCommand(name) {
-    if (this.room) {
-      this.room.removeFromPresence(name);
+    removeCommand(name) {
+        if (this.room) {
+            this.room.removeFromPresence(name);
+        }
     }
-  }
 
-  /**
+    /**
    * Sets the display name for this conference.
    * @param {string} name - The display name to set.
    */
-  setDisplayName(name) {
-    if (this.room) {
-      const nickKey = 'nick';
+    setDisplayName(name) {
+        if (this.room) {
+            const nickKey = 'nick';
 
-      if (name) {
-        this.room.addOrReplaceInPresence(nickKey, {
-          attributes: { xmlns: 'http://jabber.org/protocol/nick' },
-          value: name
-        }) && this.room.sendPresence();
-      } else if (this.room.getFromPresence(nickKey)) {
-        this.room.removeFromPresence(nickKey);
-        this.room.sendPresence();
-      }
+            if (name) {
+                this.room.addOrReplaceInPresence(nickKey, {
+                    attributes: { xmlns: 'http://jabber.org/protocol/nick' },
+                    value: name
+                }) && this.room.sendPresence();
+            } else if (this.room.getFromPresence(nickKey)) {
+                this.room.removeFromPresence(nickKey);
+                this.room.sendPresence();
+            }
+        }
     }
-  }
 
-  /**
+    /**
    * Set join without audio.
    * @param {boolean} silent - Whether user joined without audio.
    */
-  setIsSilent(silent) {
-    if (this.room) {
-      this.room.addOrReplaceInPresence('silent', {
-        attributes: { xmlns: 'http://jitsi.org/protocol/silent' },
-        value: silent
-      }) && this.room.sendPresence();
+    setIsSilent(silent) {
+        if (this.room) {
+            this.room.addOrReplaceInPresence('silent', {
+                attributes: { xmlns: 'http://jitsi.org/protocol/silent' },
+                value: silent
+            }) && this.room.sendPresence();
+        }
     }
-  }
 
-  /**
+    /**
    * Set new subject for this conference. (Available only for moderator)
    * @param {string} subject - New subject.
    */
-  setSubject(subject) {
-    if (this.room && this.isModerator()) {
-      this.room.setSubject(subject);
-    } else {
-      logger.warn(`Failed to set subject, ${this.room ? '' : 'not in a room, '}${
-        this.isModerator() ? '' : 'participant is not a moderator'}`);
+    setSubject(subject) {
+        if (this.room && this.isModerator()) {
+            this.room.setSubject(subject);
+        } else {
+            logger.warn(`Failed to set subject, ${this.room ? '' : 'not in a room, '}${
+                this.isModerator() ? '' : 'participant is not a moderator'}`);
+        }
     }
-  }
 
-  /**
+    /**
    * Returns the transcription status.
    * @returns {string} "on" or "off".
    */
-  getTranscriptionStatus() {
-    return this.room.transcriptionStatus;
-  }
+    getTranscriptionStatus() {
+        return this.room.transcriptionStatus;
+    }
 
-  /**
+    /**
    * Adds JitsiLocalTrack object to the conference.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
    * @returns {Promise<JitsiLocalTrack>}
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
-  addTrack(track) {
-    if (!track) {
-      throw new Error('addTrack - a track is required');
-    }
+    addTrack(track) {
+        if (!track) {
+            throw new Error('addTrack - a track is required');
+        }
 
-    const mediaType = track.getType();
-    const localTracks = this.rtc.getLocalTracks(mediaType);
+        const mediaType = track.getType();
+        const localTracks = this.rtc.getLocalTracks(mediaType);
 
-    if (localTracks.length > 0) {
-      if (track === localTracks[0]) {
-        return Promise.resolve(track);
-      }
+        if (localTracks.length > 0) {
+            if (track === localTracks[0]) {
+                return Promise.resolve(track);
+            }
 
-      if (this.options.config.testing?.allowMultipleTracks
+            if (this.options.config.testing?.allowMultipleTracks
           || (mediaType === MediaType.VIDEO && !localTracks.find(t => t.getVideoType() === track.getVideoType()))) {
-        const sourceName = getSourceNameForJitsiTrack(
+                const sourceName = getSourceNameForJitsiTrack(
           this.myUserId(),
           mediaType,
           this.getLocalTracks(mediaType)?.length);
 
-        track.setSourceName(sourceName);
-        const addTrackPromises = [];
+                track.setSourceName(sourceName);
+                const addTrackPromises = [];
 
-        this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
-        this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
+                this.p2pJingleSession && addTrackPromises.push(this.p2pJingleSession.addTracks([ track ]));
+                this.jvbJingleSession && addTrackPromises.push(this.jvbJingleSession.addTracks([ track ]));
 
-        return Promise.all(addTrackPromises)
+                return Promise.all(addTrackPromises)
           .then(() => {
-            this._setupNewTrack(track);
-            mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
-            this._updateRoomPresence(this.getActiveMediaSession());
+              this._setupNewTrack(track);
+              mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
+              this._updateRoomPresence(this.getActiveMediaSession());
 
-            if (this.isMutedByFocus || this.isVideoMutedByFocus) {
-              this._fireMuteChangeEvent(track);
+              if (this.isMutedByFocus || this.isVideoMutedByFocus) {
+                  this._fireMuteChangeEvent(track);
+              }
+
+              return track;
+          });
             }
 
-            return track;
-          });
-      }
+            return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
+        }
 
-      return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
+        return this.replaceTrack(null, track)
+      .then(() => {
+          if (track.getVideoType() === VideoType.DESKTOP) {
+              this._updateRoomPresence(this.getActiveMediaSession());
+          }
+
+          return track;
+      });
     }
 
-    return this.replaceTrack(null, track)
-      .then(() => {
-        if (track.getVideoType() === VideoType.DESKTOP) {
-          this._updateRoomPresence(this.getActiveMediaSession());
-        }
-        return track;
-      });
-  }
-
-  /**
+    /**
    * Fires TRACK_AUDIO_LEVEL_CHANGED change conference event (for local tracks).
    * @param {number} audioLevel - The audio level.
    * @param {TraceablePeerConnection} [tpc] - The peer connection.
    */
-  _fireAudioLevelChangeEvent(audioLevel, tpc) {
-    const activeTpc = this.getActivePeerConnection();
+    _fireAudioLevelChangeEvent(audioLevel, tpc) {
+        const activeTpc = this.getActivePeerConnection();
 
-    if (!tpc || activeTpc === tpc) {
-      this.eventEmitter.emit(
+        if (!tpc || activeTpc === tpc) {
+            this.eventEmitter.emit(
         JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
         this.myUserId(), audioLevel);
+        }
     }
-  }
 
-  /**
+    /**
    * Fires TRACK_MUTE_CHANGED change conference event.
    * @param {JitsiTrack} track - The JitsiTrack object related to the event.
    */
-  _fireMuteChangeEvent(track) {
-    if (this.isMutedByFocus && track.isAudioTrack() && !track.isMuted()) {
-      this.isMutedByFocus = false;
-      this.room.muteParticipant(this.room.myroomjid, false, MediaType.AUDIO);
-    } else if (this.isVideoMutedByFocus && track.isVideoTrack() && !track.isMuted()) {
-      this.isVideoMutedByFocus = false;
-      this.room.muteParticipant(this.room.myroomjid, false, MediaType.VIDEO);
-    }
+    _fireMuteChangeEvent(track) {
+        if (this.isMutedByFocus && track.isAudioTrack() && !track.isMuted()) {
+            this.isMutedByFocus = false;
+            this.room.muteParticipant(this.room.myroomjid, false, MediaType.AUDIO);
+        } else if (this.isVideoMutedByFocus && track.isVideoTrack() && !track.isMuted()) {
+            this.isVideoMutedByFocus = false;
+            this.room.muteParticipant(this.room.myroomjid, false, MediaType.VIDEO);
+        }
 
-    let actorParticipant;
+        let actorParticipant;
 
-    if (this.mutedByFocusActor && track.isAudioTrack()) {
-      const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
-      actorParticipant = this.participants.get(actorId);
-    } else if (this.mutedVideoByFocusActor && track.isVideoTrack()) {
-      const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
-      actorParticipant = this.participants.get(actorId);
-    }
+        if (this.mutedByFocusActor && track.isAudioTrack()) {
+            const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
 
-    const doesVideoMuteByStreamRemove
+            actorParticipant = this.participants.get(actorId);
+        } else if (this.mutedVideoByFocusActor && track.isVideoTrack()) {
+            const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
+
+            actorParticipant = this.participants.get(actorId);
+        }
+
+        const doesVideoMuteByStreamRemove
       = browser.isReactNative() ? track.videoType === VideoType.DESKTOP : browser.doesVideoMuteByStreamRemove();
 
-    if (track.isVideoTrack() && !doesVideoMuteByStreamRemove) {
-      this._sendBridgeVideoTypeMessage(track);
+        if (track.isVideoTrack() && !doesVideoMuteByStreamRemove) {
+            this._sendBridgeVideoTypeMessage(track);
+        }
+
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
     }
 
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
-  }
-
-  /**
+    /**
    * Clear JitsiLocalTrack properties and listeners.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
    */
-  onLocalTrackRemoved(track) {
-    track.setConference(null);
-    this.rtc.removeLocalTrack(track);
-    track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
-    if (track.isAudioTrack()) {
-      track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
+    onLocalTrackRemoved(track) {
+        track.setConference(null);
+        this.rtc.removeLocalTrack(track);
+        track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
+        if (track.isAudioTrack()) {
+            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
+        }
+
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
     }
 
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-  }
-
-  /**
+    /**
    * Removes JitsiLocalTrack from the conference and performs
    * a new offer/answer cycle.
    * @param {JitsiLocalTrack} track - The track to remove.
    * @returns {Promise}
    */
-  removeTrack(track) {
-    return this.replaceTrack(track, null);
-  }
+    removeTrack(track) {
+        return this.replaceTrack(track, null);
+    }
 
-  /**
+    /**
    * Replaces oldTrack with newTrack and performs a single offer/answer
    * cycle after both operations are done. Either oldTrack or newTrack
    * can be null; replacing a valid 'oldTrack' with a null 'newTrack'
@@ -1231,64 +1241,65 @@ export default class JitsiConference {
    * @param {JitsiLocalTrack} newTrack - The new stream to use.
    * @returns {Promise} Resolves when the replacement is finished.
    */
-  replaceTrack(oldTrack, newTrack) {
-    const oldVideoType = oldTrack?.getVideoType();
-    const mediaType = oldTrack?.getType() || newTrack?.getType();
-    const newVideoType = newTrack?.getVideoType();
+    replaceTrack(oldTrack, newTrack) {
+        const oldVideoType = oldTrack?.getVideoType();
+        const mediaType = oldTrack?.getType() || newTrack?.getType();
+        const newVideoType = newTrack?.getVideoType();
 
-    if (oldTrack && newTrack && oldVideoType !== newVideoType) {
-      throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
+        if (oldTrack && newTrack && oldVideoType !== newVideoType) {
+            throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
         + ' not supported in this mode.');
-    }
+        }
 
-    if (newTrack) {
-      const sourceName = oldTrack
-        ? oldTrack.getSourceName()
-        : getSourceNameForJitsiTrack(
+        if (newTrack) {
+            const sourceName = oldTrack
+                ? oldTrack.getSourceName()
+                : getSourceNameForJitsiTrack(
             this.myUserId(),
             mediaType,
             this.getLocalTracks(mediaType)?.length);
 
-      newTrack.setSourceName(sourceName);
-    }
-    const oldTrackBelongsToConference = this === oldTrack?.conference;
+            newTrack.setSourceName(sourceName);
+        }
+        const oldTrackBelongsToConference = this === oldTrack?.conference;
 
-    if (oldTrackBelongsToConference && oldTrack.disposed) {
-      return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-    if (newTrack?.disposed) {
-      return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
+        if (oldTrackBelongsToConference && oldTrack.disposed) {
+            return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
+        if (newTrack?.disposed) {
+            return Promise.reject(new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
 
-    if (oldTrack && !oldTrackBelongsToConference) {
-      logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
-    }
+        if (oldTrack && !oldTrackBelongsToConference) {
+            logger.warn(`JitsiConference.replaceTrack oldTrack (${oldTrack} does not belong to this conference`);
+        }
 
-    return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
+        return this._doReplaceTrack(oldTrackBelongsToConference ? oldTrack : null, newTrack)
       .then(() => {
-        if (oldTrackBelongsToConference && !oldTrack.isMuted() && !newTrack) {
-          oldTrack._sendMuteStatus(true);
-        }
-        oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
-        newTrack && this._setupNewTrack(newTrack);
+          if (oldTrackBelongsToConference && !oldTrack.isMuted() && !newTrack) {
+              oldTrack._sendMuteStatus(true);
+          }
+          oldTrackBelongsToConference && this.onLocalTrackRemoved(oldTrack);
+          newTrack && this._setupNewTrack(newTrack);
 
-        if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
-          this._sendBridgeVideoTypeMessage(newTrack);
-        }
-        this._updateRoomPresence(this.getActiveMediaSession());
-        if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
-          this._fireMuteChangeEvent(newTrack);
-        }
+          if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
+              this._sendBridgeVideoTypeMessage(newTrack);
+          }
+          this._updateRoomPresence(this.getActiveMediaSession());
+          if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
+              this._fireMuteChangeEvent(newTrack);
+          }
 
-        return Promise.resolve();
+          return Promise.resolve();
       })
       .catch(error => {
-        logger.error(`replaceTrack failed: ${error?.stack}`);
-        return Promise.reject(error);
-      });
-  }
+          logger.error(`replaceTrack failed: ${error?.stack}`);
 
-  /**
+          return Promise.reject(error);
+      });
+    }
+
+    /**
    * Replaces the tracks at the lower level by going through the Jingle session
    * and WebRTC peer connection. The method will resolve immediately if there is
    * currently no JingleSession started.
@@ -1300,88 +1311,88 @@ export default class JitsiConference {
    * which describes the error.
    * @private
    */
-  _doReplaceTrack(oldTrack, newTrack) {
-    const replaceTrackPromises = [];
+    _doReplaceTrack(oldTrack, newTrack) {
+        const replaceTrackPromises = [];
 
-    if (this.jvbJingleSession) {
-      replaceTrackPromises.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack));
-    } else {
-      logger.info('_doReplaceTrack - no JVB JingleSession');
+        if (this.jvbJingleSession) {
+            replaceTrackPromises.push(this.jvbJingleSession.replaceTrack(oldTrack, newTrack));
+        } else {
+            logger.info('_doReplaceTrack - no JVB JingleSession');
+        }
+
+        if (this.p2pJingleSession) {
+            replaceTrackPromises.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack));
+        } else {
+            logger.info('_doReplaceTrack - no P2P JingleSession');
+        }
+
+        return Promise.all(replaceTrackPromises);
     }
 
-    if (this.p2pJingleSession) {
-      replaceTrackPromises.push(this.p2pJingleSession.replaceTrack(oldTrack, newTrack));
-    } else {
-      logger.info('_doReplaceTrack - no P2P JingleSession');
-    }
-
-    return Promise.all(replaceTrackPromises);
-  }
-
-  /**
+    /**
    * Handler for when a source-add for a local source is rejected by Jicofo.
    * @param {JingleSessionPC} jingleSession - The media session.
    * @param {Error} error - The error message.
    * @param {MediaType} mediaType - The media type of the track associated with the source that was rejected.
    * @returns {void}
    */
-  _removeLocalSourceOnReject(jingleSession, error, mediaType) {
-    if (!jingleSession) {
-      return;
+    _removeLocalSourceOnReject(jingleSession, error, mediaType) {
+        if (!jingleSession) {
+            return;
+        }
+        logger.warn(`Source-add rejected on ${jingleSession}, reason="${error?.reason}", message="${error?.msg}"`);
+        const track = this.getLocalTracks(mediaType)[0];
+
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track);
     }
-    logger.warn(`Source-add rejected on ${jingleSession}, reason="${error?.reason}", message="${error?.msg}"`);
-    const track = this.getLocalTracks(mediaType)[0];
 
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track);
-  }
-
-  /**
+    /**
    * Operations related to creating a new track.
    * @param {JitsiLocalTrack} newTrack - The new track being created.
    */
-  _setupNewTrack(newTrack) {
-    const mediaType = newTrack.getType();
+    _setupNewTrack(newTrack) {
+        const mediaType = newTrack.getType();
 
-    if (!newTrack.getSourceName()) {
-      const sourceName = getSourceNameForJitsiTrack(
+        if (!newTrack.getSourceName()) {
+            const sourceName = getSourceNameForJitsiTrack(
         this.myUserId(),
         mediaType,
         this.getLocalTracks(mediaType)?.length);
 
-      newTrack.setSourceName(sourceName);
+            newTrack.setSourceName(sourceName);
+        }
+
+        this.rtc.addLocalTrack(newTrack);
+        newTrack.setConference(this);
+
+        newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
+        newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack.muteHandler);
+
+        if (newTrack.isAudioTrack()) {
+            newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
+            newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, newTrack.audioLevelHandler);
+        }
+
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
     }
 
-    this.rtc.addLocalTrack(newTrack);
-    newTrack.setConference(this);
-
-    newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
-    newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack.muteHandler);
-
-    if (newTrack.isAudioTrack()) {
-      newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-      newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, newTrack.audioLevelHandler);
-    }
-
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
-  }
-
-  /**
+    /**
    * Sets the video type.
    * @param {JitsiLocalTrack} track - The track.
    * @return {boolean} <tt>true</tt> if video type was changed in presence.
    * @private
    */
-  _setNewVideoType(track) {
-    let videoTypeChanged = false;
+    _setNewVideoType(track) {
+        let videoTypeChanged = false;
 
-    if (track) {
-      videoTypeChanged = this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
+        if (track) {
+            videoTypeChanged = this._signalingLayer.setTrackVideoType(track.getSourceName(), track.videoType);
+        }
+
+        return videoTypeChanged;
     }
 
-    return videoTypeChanged;
-  }
-
-  /**
+    /**
    * Sets mute status.
    * @param {MediaType} mediaType - The media type.
    * @param {JitsiLocalTrack} localTrack - The local track.
@@ -1389,89 +1400,89 @@ export default class JitsiConference {
    * @return {boolean} <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
    * @private
    */
-  _setTrackMuteStatus(mediaType, localTrack, isMuted) {
-    let presenceChanged = false;
+    _setTrackMuteStatus(mediaType, localTrack, isMuted) {
+        let presenceChanged = false;
 
-    if (localTrack) {
-      presenceChanged = this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
-      presenceChanged && logger.debug(`Mute state of ${localTrack} changed to muted=${isMuted}`);
+        if (localTrack) {
+            presenceChanged = this._signalingLayer.setTrackMuteStatus(localTrack.getSourceName(), isMuted);
+            presenceChanged && logger.debug(`Mute state of ${localTrack} changed to muted=${isMuted}`);
+        }
+
+        return presenceChanged;
     }
 
-    return presenceChanged;
-  }
-
-  /**
+    /**
    * Method called by the {@link JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
    * @param {JitsiLocalTrack} track - The local track that will be added to the pc.
    * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
    */
-  _addLocalTrackToPc(track) {
-    const addPromises = [];
+    _addLocalTrackToPc(track) {
+        const addPromises = [];
 
-    if (track.conference === this) {
-      if (this.jvbJingleSession) {
-        addPromises.push(this.jvbJingleSession.addTrackToPc(track));
-      } else {
-        logger.debug('Add local MediaStream - no JVB Jingle session started yet');
-      }
+        if (track.conference === this) {
+            if (this.jvbJingleSession) {
+                addPromises.push(this.jvbJingleSession.addTrackToPc(track));
+            } else {
+                logger.debug('Add local MediaStream - no JVB Jingle session started yet');
+            }
 
-      if (this.p2pJingleSession) {
-        addPromises.push(this.p2pJingleSession.addTrackToPc(track));
-      } else {
-        logger.debug('Add local MediaStream - no P2P Jingle session started yet');
-      }
-    } else {
-      addPromises.push(this.addTrack(track));
+            if (this.p2pJingleSession) {
+                addPromises.push(this.p2pJingleSession.addTrackToPc(track));
+            } else {
+                logger.debug('Add local MediaStream - no P2P Jingle session started yet');
+            }
+        } else {
+            addPromises.push(this.addTrack(track));
+        }
+
+        return Promise.allSettled(addPromises);
     }
 
-    return Promise.allSettled(addPromises);
-  }
-
-  /**
+    /**
    * Method called by the {@link JitsiLocalTrack} in order to remove the underlying MediaStream from the
    * RTCPeerConnection.
    * @param {JitsiLocalTrack} track - The local track that will be removed.
    * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
    */
-  _removeLocalTrackFromPc(track) {
-    const removePromises = [];
+    _removeLocalTrackFromPc(track) {
+        const removePromises = [];
 
-    if (track.conference === this) {
-      if (this.jvbJingleSession) {
-        removePromises.push(this.jvbJingleSession.removeTrackFromPc(track));
-      } else {
-        logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
-      }
-      if (this.p2pJingleSession) {
-        removePromises.push(this.p2pJingleSession.removeTrackFromPc(track));
-      } else {
-        logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
-      }
+        if (track.conference === this) {
+            if (this.jvbJingleSession) {
+                removePromises.push(this.jvbJingleSession.removeTrackFromPc(track));
+            } else {
+                logger.debug('Remove local MediaStream - no JVB JingleSession started yet');
+            }
+            if (this.p2pJingleSession) {
+                removePromises.push(this.p2pJingleSession.removeTrackFromPc(track));
+            } else {
+                logger.debug('Remove local MediaStream - no P2P JingleSession started yet');
+            }
+        }
+
+        return Promise.allSettled(removePromises);
     }
 
-    return Promise.allSettled(removePromises);
-  }
-
-  /**
+    /**
    * Get role of the local user.
    * @returns {string} User role: 'moderator' or 'none'.
    */
-  getRole() {
-    return this.room.role;
-  }
+    getRole() {
+        return this.room.role;
+    }
 
-  /**
+    /**
    * Returns whether or not the current conference has been joined as a hidden user.
    * @returns {boolean|null} True if hidden, false otherwise. Will return null if no connection is active.
    */
-  isHidden() {
-    if (!this.connection) {
-      return null;
-    }
+    isHidden() {
+        if (!this.connection) {
+            return null;
+        }
 
-    return Strophe.getDomainFromJid(this.connection.getJid())
+        return Strophe.getDomainFromJid(this.connection.getJid())
       === this.options.config.hiddenDomain;
-  }
+    }
 }
 
 
