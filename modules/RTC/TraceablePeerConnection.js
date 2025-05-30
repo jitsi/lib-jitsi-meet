@@ -599,12 +599,10 @@ TraceablePeerConnection.prototype._peerMutedChanged = function(endpointId, media
  * @param {boolean} isMuted - The new mute state.
  */
 TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isMuted) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+    const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
 
     if (!track) {
-        if (FeatureFlags.isSsrcRewritingSupported()) {
-            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
-        }
+        logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
 
         return;
     }
@@ -619,7 +617,7 @@ TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isM
  * @param {boolean} isMuted - The new value.
  */
 TraceablePeerConnection.prototype._sourceVideoTypeChanged = function(sourceName, videoType) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+    const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
 
     if (!track) {
         return;

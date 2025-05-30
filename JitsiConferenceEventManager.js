@@ -193,11 +193,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         XMPPEvents.BRIDGE_DOWN,
         () => Statistics.sendAnalytics(createBridgeDownEvent()));
 
-    chatRoom.addListener(XMPPEvents.CONNECTION_RESTARTED,
-        jingleSession => {
-            conference._onConferenceRestarted(jingleSession);
-        });
-
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.RESERVATION_ERROR);
