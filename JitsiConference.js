@@ -359,280 +359,254 @@ export default class JitsiConference {
 
         return mucNickname;
     }
-}
 
-/**
- * Initializes the conference object properties
- * @param options {object}
- * @param options.connection {JitsiConnection} overrides this.connection
- */
-JitsiConference.prototype._init = function(options = {}) {
-    this.eventManager.setupXMPPListeners();
+    /**
+     * Initializes the conference object properties
+     * @param options {object}
+     * @param options.connection {JitsiConnection} overrides this.connection
+     */
+    _init(options){
+        this.eventManager.setupXMPPListeners();
 
-    const { config } = this.options;
+        const { config } = this.options;
 
-    this._statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
-    this.room = this.xmpp.createRoom(
-        this.options.name, {
-            ...config,
-            statsId: this._statsCurrentId
-        },
-        JitsiConference.resourceCreator
-    );
+        this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
+        this.room = this.xmpp.createRoom(
+            this.options.name, {
+                ...config,
+                statsId: this._statsCurrentId
+            },
+            JitsiConference.resourceCreator
+        );
 
-    this._signalingLayer.setChatRoom(this.room);
-    this._signalingLayer.on(
-        SignalingEvents.SOURCE_UPDATED,
-        (sourceName, endpointId, muted, videoType) => {
-            const participant = this.participants.get(endpointId);
-            const mediaType = getMediaTypeFromSourceName(sourceName);
+        this._signalingLayer.setChatRoom(this.room);
+        this._signalingLayer.on(
+            SignalingEvents.SOURCE_UPDATED,
+            (sourceName, endpointId, muted, videoType) => {
+                const participant = this.participants.get(endpointId);
+                const mediaType = getMediaTypeFromSourceName(sourceName);
 
-            if (participant) {
-                participant._setSources(mediaType, muted, sourceName, videoType);
-                this.eventEmitter.emit(JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED, participant);
-            }
-        });
-
-    // ICE Connection interrupted/restored listeners.
-    this._onIceConnectionEstablished = this._onIceConnectionEstablished.bind(this);
-    this.room.addListener(XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
-
-    this._onIceConnectionFailed = this._onIceConnectionFailed.bind(this);
-    this.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED, this._onIceConnectionFailed);
-
-    this._onIceConnectionInterrupted = this._onIceConnectionInterrupted.bind(this);
-    this.room.addListener(XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
-
-    this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
-    this.room.addListener(XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
-
-    this._updateProperties = this._updateProperties.bind(this);
-    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
-
-    this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
-    this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
-
-    this._removeLocalSourceOnReject = this._removeLocalSourceOnReject.bind(this);
-    this._updateRoomPresence = this._updateRoomPresence.bind(this);
-    this.room.addListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
-    this.room.addListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
-    this.room.addListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
-    this.room.addListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
-
-    if (config.e2eping?.enabled) {
-        this.e2eping = new E2ePing(
-            this,
-            config,
-            (message, to) => {
-                try {
-                    this.sendMessage(message, to, true /* sendThroughVideobridge */);
-                } catch (error) {
-                    logger.warn('Failed to send E2E ping request or response.', error && error.msg);
+                if (participant) {
+                    participant._setSources(mediaType, muted, sourceName, videoType);
+                    this.eventEmitter.emit(JitsiConferenceEvents.PARTICIPANT_SOURCE_UPDATED, participant);
                 }
             });
-    }
 
-    if (!this.rtc) {
-        this.rtc = new RTC(this, options);
-        this.eventManager.setupRTCListeners();
-        this._registerRtcListeners(this.rtc);
-    }
+        this._onIceConnectionEstablished = this._onIceConnectionEstablished.bind(this);
+        this.room.addListener(XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
 
-    // Get the codec preference settings from config.js.
-    const qualityOptions = {
-        enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
-        lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
-        jvb: {
-            preferenceOrder: browser.isMobileDevice()
-                ? config.videoQuality?.mobileCodecPreferenceOrder
-                : config.videoQuality?.codecPreferenceOrder,
-            disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
-            screenshareCodec: browser.isMobileDevice()
-                ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.videoQuality?.screenshareCodec),
-            enableAV1ForFF: config.testing?.enableAV1ForFF
-        },
-        p2p: {
-            preferenceOrder: browser.isMobileDevice()
-                ? config.p2p?.mobileCodecPreferenceOrder
-                : config.p2p?.codecPreferenceOrder,
-            disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
-            preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
-            screenshareCodec: browser.isMobileDevice()
-                ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
-                : _getCodecMimeType(config.p2p?.screenshareCodec),
-            enableAV1ForFF: true // For P2P no simulcast is needed, therefore AV1 can be used.
+        this._onIceConnectionFailed = this._onIceConnectionFailed.bind(this);
+        this.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED, this._onIceConnectionFailed);
+
+        this._onIceConnectionInterrupted = this._onIceConnectionInterrupted.bind(this);
+        this.room.addListener(XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
+
+        this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
+        this.room.addListener(XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
+
+        this._updateProperties = this._updateProperties.bind(this);
+        this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
+
+        this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
+        this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
+
+        this._removeLocalSourceOnReject = this._removeLocalSourceOnReject.bind(this);
+        this._updateRoomPresence = this._updateRoomPresence.bind(this);
+        this.room.addListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
+        this.room.addListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
+        this.room.addListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
+        this.room.addListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
+
+        if (config.e2eping?.enabled) {
+            this.e2eping = new E2ePing(
+                this,
+                config,
+                (message, to) => {
+                    try {
+                        this.sendMessage(message, to, true /* sendThroughVideobridge */);
+                    } catch (error) {
+                        logger.warn('Failed to send E2E ping request or response.', error?.msg);
+                    }
+                });
         }
-    };
 
-    this.qualityController = new QualityController(this, qualityOptions);
-
-    if (!this.statistics) {
-        this.statistics = new Statistics(this, {
-            aliasName: this._statsCurrentId,
-            userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
-            confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
-            roomName: this.options.name,
-            applicationName: config.applicationName
-        });
-        Statistics.analytics.addPermanentProperties({
-            'callstats_name': this._statsCurrentId
-        });
-
-        // Start performance observer for monitoring long tasks
-        if (config.longTasksStatsInterval) {
-            this.statistics.attachLongTasksStats();
+        if (!this.rtc) {
+            this.rtc = new RTC(this, options);
+            this.eventManager.setupRTCListeners();
+            this._registerRtcListeners(this.rtc);
         }
-    }
 
-    this.eventManager.setupChatRoomListeners();
-
-    // Always add listeners because on reload we are executing leave and the
-    // listeners are removed from statistics module.
-    this.eventManager.setupStatisticsListeners();
-
-    // Disable VAD processing on Safari since it causes audio input to
-    // fail on some of the mobile devices.
-    if (config.enableTalkWhileMuted && browser.supportsVADDetection()) {
-        // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
-        // based detection.
-        if (config.createVADProcessor) {
-            logger.info('Using VAD detection for generating talk while muted events');
-
-            if (!this._audioAnalyser) {
-                this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+        const qualityOptions = {
+            enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
+            lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
+            jvb: {
+                preferenceOrder: browser.isMobileDevice()
+                    ? config.videoQuality?.mobileCodecPreferenceOrder
+                    : config.videoQuality?.codecPreferenceOrder,
+                disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
+                preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
+                screenshareCodec: browser.isMobileDevice()
+                    ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
+                    : _getCodecMimeType(config.videoQuality?.screenshareCodec),
+                enableAV1ForFF: config.testing?.enableAV1ForFF
+            },
+            p2p: {
+                preferenceOrder: browser.isMobileDevice()
+                    ? config.p2p?.mobileCodecPreferenceOrder
+                    : config.p2p?.codecPreferenceOrder,
+                disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
+                preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
+                screenshareCodec: browser.isMobileDevice()
+                    ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
+                    : _getCodecMimeType(config.p2p?.screenshareCodec),
+                enableAV1ForFF: true
             }
+        };
 
-            const vadTalkMutedDetection = new VADTalkMutedDetection();
+        this.qualityController = new QualityController(this, qualityOptions);
 
-            vadTalkMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
-                this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+        if (!this.statistics) {
+            this.statistics = new Statistics(this, {
+                aliasName: this._statsCurrentId,
+                userName: config.statisticsDisplayName ?? this.myUserId(),
+                confID: config.confID ?? `${this.connection.options.hosts.domain}/${this.options.name}`,
+                roomName: this.options.name,
+                applicationName: config.applicationName
+            });
+            Statistics.analytics.addPermanentProperties({
+                'callstats_name': this._statsCurrentId
+            });
 
-            this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
-        } else {
-            logger.warn('No VAD Processor was provided. Talk while muted detection service was not initialized!');
-        }
-    }
-
-    // Disable noisy mic detection on safari since it causes the audio input to
-    // fail on Safari on iPadOS.
-    if (config.enableNoisyMicDetection && browser.supportsVADDetection()) {
-        if (config.createVADProcessor) {
-            if (!this._audioAnalyser) {
-                this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+            if (config.longTasksStatsInterval) {
+                this.statistics.attachLongTasksStats();
             }
-
-            const vadNoiseDetection = new VADNoiseDetection();
-
-            vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
-                this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
-
-            this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
-        } else {
-            logger.warn('No VAD Processor was provided. Noisy microphone detection service was not initialized!');
         }
-    }
 
-    // Generates events based on no audio input detector.
-    if (config.enableNoAudioDetection && !config.disableAudioLevels && LocalStatsCollector.isLocalStatsSupported()) {
-        this._noAudioSignalDetection = new NoAudioSignalDetection(this);
-        this._noAudioSignalDetection.on(DetectionEvents.NO_AUDIO_INPUT, () => {
-            this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT);
-        });
-        this._noAudioSignalDetection.on(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, hasAudioSignal => {
-            this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE, hasAudioSignal);
-        });
-    }
+        this.eventManager.setupChatRoomListeners();
+        this.eventManager.setupStatisticsListeners();
 
-    if ('channelLastN' in config) {
-        this.setLastN(config.channelLastN);
+        if (config.enableTalkWhileMuted && browser.supportsVADDetection()) {
+            if (config.createVADProcessor) {
+                logger.info('Using VAD detection for generating talk while muted events');
+
+                if (!this._audioAnalyser) {
+                    this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+                }
+
+                const vadTalkMutedDetection = new VADTalkMutedDetection();
+                vadTalkMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
+                    this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+                this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
+            } else {
+                logger.warn('No VAD Processor was provided. Talk while muted detection service was not initialized!');
+            }
+        }
+
+        if (config.enableNoisyMicDetection && browser.supportsVADDetection()) {
+            if (config.createVADProcessor) {
+                if (!this._audioAnalyser) {
+                    this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+                }
+
+                const vadNoiseDetection = new VADNoiseDetection();
+                vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
+                    this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
+                this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
+            } else {
+                logger.warn('No VAD Processor was provided. Noisy microphone detection service was not initialized!');
+            }
+        }
+
+        if (config.enableNoAudioDetection && !config.disableAudioLevels && LocalStatsCollector.isLocalStatsSupported()) {
+            this._noAudioSignalDetection = new NoAudioSignalDetection(this);
+            this._noAudioSignalDetection.on(DetectionEvents.NO_AUDIO_INPUT, () =>
+                this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT));
+            this._noAudioSignalDetection.on(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, hasAudioSignal =>
+                this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE, hasAudioSignal));
+        }
+
+        if ('channelLastN' in config) {
+            this.setLastN(config.channelLastN);
+        }
+
+        /**
+         * Emits {@link JitsiConferenceEvents.JVB121_STATUS}.
+         * @type {Jvb121EventGenerator}
+         */
+        this.jvb121Status = new Jvb121EventGenerator(this);
+        this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
+
+        if (config?.deploymentInfo?.userRegion) {
+            this.setLocalParticipantProperty('region', config.deploymentInfo.userRegion);
+        }
+
+        this.setLocalParticipantProperty('codecList', this.qualityController.codecController.getCodecPreferenceList('jvb'));
+
+        const transcriptionLanguage = config?.transcriptionLanguage ?? DEFAULT_TRANSCRIPTION_LANGUAGE;
+
+        if (transcriptionLanguage !== DEFAULT_TRANSCRIPTION_LANGUAGE) {
+            this.setTranscriptionLanguage(transcriptionLanguage);
+        }
     }
 
     /**
-     * Emits {@link JitsiConferenceEvents.JVB121_STATUS}.
-     * @type {Jvb121EventGenerator}
+     * Joins the conference.
+     * @param password {string} the password
+     * @param replaceParticipant {boolean} whether the current join replaces
+     * an existing participant with same jwt from the meeting.
      */
-    this.jvb121Status = new Jvb121EventGenerator(this);
-
-    // creates dominant speaker detection that works only in p2p mode
-    this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
-
-    // TODO: Drop this after the change to use the region from the http requests
-    //  to prosody is propagated to majority of deployments
-    if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
-        this.setLocalParticipantProperty(
-            'region', config.deploymentInfo.userRegion);
+    join(password = '', replaceParticipant = false) {
+        if (this.room) {
+            this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
+        }
     }
 
-    // Publish the codec preference to presence.
-    this.setLocalParticipantProperty('codecList', this.qualityController.codecController.getCodecPreferenceList('jvb'));
-
-    // Set transcription language presence extension.
-    // In case the language config is undefined or has the default value that the transcriber uses
-    // (in our case Jigasi uses 'en-US'), don't set the participant property in order to avoid
-    // needlessly polluting the presence stanza.
-    const transcriptionLanguage = config?.transcriptionLanguage ?? DEFAULT_TRANSCRIPTION_LANGUAGE;
-
-    if (transcriptionLanguage !== DEFAULT_TRANSCRIPTION_LANGUAGE) {
-        this.setTranscriptionLanguage(transcriptionLanguage);
-    }
-};
-
-/**
- * Joins the conference.
- * @param password {string} the password
- * @param replaceParticipant {boolean} whether the current join replaces
- * an existing participant with same jwt from the meeting.
- */
-JitsiConference.prototype.join = function(password = '', replaceParticipant = false) {
-    if (this.room) {
-        this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
-    }
-};
-
-/**
- * Authenticates and upgrades the role of the local participant/user.
- *
- * @returns {Object} A <tt>thenable</tt> which (1) settles when the process of
- * authenticating and upgrading the role of the local participant/user finishes
- * and (2) has a <tt>cancel</tt> method that allows the caller to interrupt the
- * process.
- */
-JitsiConference.prototype.authenticateAndUpgradeRole = function(options) {
+      /**
+   * Authenticates and upgrades the role of the local participant/user.
+   *
+   * @param {Object} options - Configuration options for authentication.
+   * @returns {Object} A thenable which (1) settles when the process of
+   * authenticating and upgrading the role of the local participant/user finishes
+   * and (2) has a cancel method that allows the caller to interrupt the process.
+   */
+  authenticateAndUpgradeRole(options) {
     return authenticateAndUpgradeRole.call(this, {
-        ...options,
-        onCreateResource: JitsiConference.resourceCreator
+      ...options,
+      onCreateResource: JitsiConference.resourceCreator
     });
-};
+  }
 
-/**
- * Check if joined to the conference.
- */
-JitsiConference.prototype.isJoined = function() {
+  /**
+   * Check if joined to the conference.
+   * @returns {boolean} True if joined, false otherwise.
+   */
+  isJoined() {
     return this.room && this.room.joined;
-};
+  }
 
-/**
- * Tells whether or not the P2P mode is enabled in the configuration.
- * @return {boolean}
- */
-JitsiConference.prototype.isP2PEnabled = function() {
-    return Boolean(this.options.config.p2p && this.options.config.p2p.enabled)
+  /**
+   * Tells whether or not the P2P mode is enabled in the configuration.
+   * @returns {boolean} True if P2P is enabled, false otherwise.
+   */
+  isP2PEnabled() {
+    return (
+      Boolean(this.options.config.p2p && this.options.config.p2p.enabled) ||
+      // FIXME: remove once we have a default config template. -saghul
+      typeof this.options.config.p2p === 'undefined'
+    );
+  }
 
-        // FIXME: remove once we have a default config template. -saghul
-        || typeof this.options.config.p2p === 'undefined';
-};
-
-/**
- * When in P2P test mode, the conference will not automatically switch to P2P
- * when there 2 participants.
- * @return {boolean}
- */
-JitsiConference.prototype.isP2PTestModeEnabled = function() {
-    return Boolean(this.options.config.testing
-        && this.options.config.testing.p2pTestMode);
-};
+  /**
+   * When in P2P test mode, the conference will not automatically switch to P2P
+   * when there are 2 participants.
+   * @returns {boolean} True if P2P test mode is enabled, false otherwise.
+   */
+  isP2PTestModeEnabled() {
+    return Boolean(
+      this.options.config.testing && this.options.config.testing.p2pTestMode
+    );
+  }
+}
 
 /**
  * Leaves the conference.
