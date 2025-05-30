@@ -307,7 +307,7 @@ export default class JitsiConference {
 
         /**
          * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max audio sender limit has
-         * been reached for the call. Once this is set, unmuting audio will be disabled 
+         * been reached for the call. Once this is set, unmuting audio will be disabled
          * from the client until it gets reset
          * again by Jicofo.
          */
@@ -315,7 +315,8 @@ export default class JitsiConference {
 
         /**
          * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max video sender limit has
-         * been reached for the call. Once this is set, unmuting video will be disabled from the client until it gets reset
+         * been reached for the call. Once this is set, unmuting video will be disabled
+         * from the client until it gets reset
          * again by Jicofo.
          */
         this._videoSenderLimitReached = undefined;
@@ -521,7 +522,8 @@ export default class JitsiConference {
             }
         }
 
-        if (config.enableNoAudioDetection && !config.disableAudioLevels && LocalStatsCollector.isLocalStatsSupported()) {
+        if (config.enableNoAudioDetection && !config.disableAudioLevels
+            && LocalStatsCollector.isLocalStatsSupported()) {
             this._noAudioSignalDetection = new NoAudioSignalDetection(this);
             this._noAudioSignalDetection.on(DetectionEvents.NO_AUDIO_INPUT, () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT));
@@ -544,7 +546,8 @@ export default class JitsiConference {
             this.setLocalParticipantProperty('region', config.deploymentInfo.userRegion);
         }
 
-        this.setLocalParticipantProperty('codecList', this.qualityController.codecController.getCodecPreferenceList('jvb'));
+        this.setLocalParticipantProperty('codecList',
+             this.qualityController.codecController.getCodecPreferenceList('jvb'));
 
         const transcriptionLanguage = config?.transcriptionLanguage ?? DEFAULT_TRANSCRIPTION_LANGUAGE;
 
@@ -1247,7 +1250,8 @@ export default class JitsiConference {
         const newVideoType = newTrack?.getVideoType();
 
         if (oldTrack && newTrack && oldVideoType !== newVideoType) {
-            throw new Error(`Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
+            throw new Error(
+                `Replacing a track of videoType=${oldVideoType} with a track of videoType=${newVideoType} is`
         + ' not supported in this mode.');
         }
 
