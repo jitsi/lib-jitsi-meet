@@ -288,7 +288,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia(): boolean {
-        return typeof navigator.getDisplayMedia !== 'undefined'
+        return typeof (navigator as any).getDisplayMedia !== 'undefined'
             || (typeof navigator.mediaDevices !== 'undefined'
                 && typeof navigator.mediaDevices.getDisplayMedia
                     !== 'undefined');
@@ -313,7 +313,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsInsertableStreams(): boolean {
         if (!(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedStreams)) {
+            && (window.RTCRtpSender.prototype as any).createEncodedStreams)) {
             return false;
         }
 
