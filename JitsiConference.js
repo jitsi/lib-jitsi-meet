@@ -1487,526 +1487,521 @@ export default class JitsiConference {
         return Strophe.getDomainFromJid(this.connection.getJid())
       === this.options.config.hiddenDomain;
     }
-}
 
-
-/**
- * Check if local user is moderator.
- * @returns {boolean|null} true if local user is moderator, false otherwise. If
- * we're no longer in the conference room then <tt>null</tt> is returned.
- */
-JitsiConference.prototype.isModerator = function() {
-    return this.room ? this.room.isModerator() : null;
-};
-
-/**
- * Set password for the room.
- * @param {string} password new password for the room.
- * @returns {Promise}
- */
-JitsiConference.prototype.lock = function(password) {
-    if (!this.isModerator()) {
-        return Promise.reject(new Error('You are not moderator.'));
+    /**
+     * Check if local user is moderator.
+     * @returns {boolean|null} true if local user is moderator, false otherwise. If
+     * we're no longer in the conference room then <tt>null</tt> is returned.
+     */
+    isModerator() {
+        return this.room ? this.room.isModerator() : null;
     }
 
-    return new Promise((resolve, reject) => {
-        this.room.lockRoom(
-            password || '',
-            () => resolve(),
-            err => reject(err),
-            () => reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED));
-    });
-};
+    /**
+     * Set password for the room.
+     * @param {string} password new password for the room.
+     * @returns {Promise}
+     */
+    lock(password) {
+        if (!this.isModerator()) {
+            return Promise.reject(new Error('You are not moderator.'));
+        }
 
-/**
- * Remove password from the room.
- * @returns {Promise}
- */
-JitsiConference.prototype.unlock = function() {
-    return this.lock();
-};
-
-/**
- * Obtains the current value for "lastN". See {@link setLastN} for more info.
- * @returns {number}
- */
-JitsiConference.prototype.getLastN = function() {
-    return this.qualityController.receiveVideoController.getLastN();
-};
-
-/**
- * Obtains the forwarded sources list in this conference.
- * @return {Array<string>|null}
- */
-JitsiConference.prototype.getForwardedSources = function() {
-    return this.rtc.getForwardedSources();
-};
-
-/**
- * Selects a new value for "lastN". The requested amount of videos are going
- * to be delivered after the value is in effect. Set to -1 for unlimited or
- * all available videos.
- * @param lastN the new number of videos the user would like to receive.
- * @throws Error or RangeError if the given value is not a number or is smaller
- * than -1.
- */
-JitsiConference.prototype.setLastN = function(lastN) {
-    if (!Number.isInteger(lastN) && !Number.parseInt(lastN, 10)) {
-        throw new Error(`Invalid value for lastN: ${lastN}`);
-    }
-    const n = Number(lastN);
-
-    if (n < -1) {
-        throw new RangeError('lastN cannot be smaller than -1');
-    }
-    this.qualityController.receiveVideoController.setLastN(n);
-
-    // If the P2P session is not fully established yet, we wait until it gets established.
-    if (this.p2pJingleSession) {
-        const isVideoActive = n !== 0;
-
-        this.p2pJingleSession
-            .setP2pVideoTransferActive(isVideoActive)
-            .catch(error => {
-                logger.error(`Failed to adjust video transfer status (${isVideoActive})`, error);
-            });
-    }
-};
-
-/**
- * @return Array<JitsiParticipant> an array of all participants in this conference.
- */
-JitsiConference.prototype.getParticipants = function() {
-    return Array.from(this.participants.values());
-};
-
-/**
- * Returns the number of participants in the conference, including the local
- * participant.
- * @param countHidden {boolean} Whether or not to include hidden participants
- * in the count. Default: false.
- **/
-JitsiConference.prototype.getParticipantCount = function(countHidden = false) {
-    let participants = this.getParticipants();
-
-    if (!countHidden) {
-        participants = participants.filter(p => !p.isHidden());
+        return new Promise((resolve, reject) => {
+            this.room.lockRoom(
+                password || '',
+                () => resolve(),
+                err => reject(err),
+                () => reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED));
+        });
     }
 
-    // Add one for the local participant.
-    return participants.length + 1;
-};
-
-/**
- * @returns {JitsiParticipant} the participant in this conference with the
- * specified id (or undefined if there isn't one).
- * @param id the id of the participant.
- */
-JitsiConference.prototype.getParticipantById = function(id) {
-    return this.participants.get(id);
-};
-
-/**
- * Grant owner rights to the participant.
- * @param {string} id id of the participant to grant owner rights to.
- */
-JitsiConference.prototype.grantOwner = function(id) {
-    const participant = this.getParticipantById(id);
-
-    if (!participant) {
-        return;
+    /**
+     * Remove password from the room.
+     * @returns {Promise}
+     */
+    unlock() {
+        return this.lock();
     }
-    this.room.setAffiliation(participant.getConnectionJid(), 'owner');
-};
 
-/**
- * Revoke owner rights to the participant or local Participant as
- * the user might want to refuse to be a moderator.
- * @param {string} id id of the participant to revoke owner rights to.
- */
-JitsiConference.prototype.revokeOwner = function(id) {
-    const participant = this.getParticipantById(id);
-    const isMyself = this.myUserId() === id;
-    const role = this.isMembersOnly() ? 'member' : 'none';
-
-    if (isMyself) {
-        this.room.setAffiliation(this.connection.getJid(), role);
-    } else if (participant) {
-        this.room.setAffiliation(participant.getConnectionJid(), role);
+    /**
+     * Obtains the current value for "lastN". See {@link setLastN} for more info.
+     * @returns {number}
+     */
+    getLastN() {
+        return this.qualityController.receiveVideoController.getLastN();
     }
-};
 
-/**
- * Kick participant from this conference.
- * @param {string} id id of the participant to kick
- * @param {string} reason reason of the participant to kick
- */
-JitsiConference.prototype.kickParticipant = function(id, reason) {
-    const participant = this.getParticipantById(id);
-
-    if (!participant) {
-        return;
+    /**
+     * Obtains the forwarded sources list in this conference.
+     * @return {Array<string>|null}
+     */
+    getForwardedSources() {
+        return this.rtc.getForwardedSources();
     }
-    this.room.kick(participant.getJid(), reason);
-};
 
-/**
- * Maybe clears the timeout which emits {@link ACTION_JINGLE_SI_TIMEOUT}
- * analytics event.
- * @private
- */
-JitsiConference.prototype._maybeClearSITimeout = function() {
-    if (this._sessionInitiateTimeout
-            && (this.jvbJingleSession || this.getParticipantCount() < 2)) {
-        window.clearTimeout(this._sessionInitiateTimeout);
-        this._sessionInitiateTimeout = null;
+    /**
+     * Selects a new value for "lastN". The requested amount of videos are going
+     * to be delivered after the value is in effect. Set to -1 for unlimited or
+     * all available videos.
+     * @param lastN the new number of videos the user would like to receive.
+     * @throws Error or RangeError if the given value is not a number or is smaller
+     * than -1.
+     */
+    setLastN(lastN) {
+        if (!Number.isInteger(lastN) && !Number.parseInt(lastN, 10)) {
+            throw new Error(`Invalid value for lastN: ${lastN}`);
+        }
+        const n = Number(lastN);
+
+        if (n < -1) {
+            throw new RangeError('lastN cannot be smaller than -1');
+        }
+        this.qualityController.receiveVideoController.setLastN(n);
+
+        // If the P2P session is not fully established yet, we wait until it gets established.
+        if (this.p2pJingleSession) {
+            const isVideoActive = n !== 0;
+
+            this.p2pJingleSession
+                .setP2pVideoTransferActive(isVideoActive)
+                .catch(error => {
+                    logger.error(`Failed to adjust video transfer status (${isVideoActive})`, error);
+                });
+        }
     }
-};
 
-/**
- * Sets a timeout which will emit {@link ACTION_JINGLE_SI_TIMEOUT} analytics
- * event.
- * @private
- */
-JitsiConference.prototype._maybeSetSITimeout = function() {
-    // Jicofo is supposed to invite if there are at least 2 participants
-    if (!this.jvbJingleSession
-            && this.getParticipantCount() >= 2
-            && !this._sessionInitiateTimeout) {
-        this._sessionInitiateTimeout = window.setTimeout(() => {
+    /**
+     * @return Array<JitsiParticipant> an array of all participants in this conference.
+     */
+    getParticipants() {
+        return Array.from(this.participants.values());
+    }
+
+    /**
+     * Returns the number of participants in the conference, including the local
+     * participant.
+     * @param countHidden {boolean} Whether or not to include hidden participants
+     * in the count. Default: false.
+     **/
+    getParticipantCount(countHidden = false) {
+        let participants = this.getParticipants();
+
+        if (!countHidden) {
+            participants = participants.filter(p => !p.isHidden());
+        }
+
+        // Add one for the local participant.
+        return participants.length + 1;
+    }
+
+    /**
+     * @returns {JitsiParticipant} the participant in this conference with the
+     * specified id (or undefined if there isn't one).
+     * @param id the id of the participant.
+     */
+    getParticipantById(id) {
+        return this.participants.get(id);
+    }
+
+    /**
+     * Grant owner rights to the participant.
+     * @param {string} id id of the participant to grant owner rights to.
+     */
+    grantOwner(id) {
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+        this.room.setAffiliation(participant.getConnectionJid(), 'owner');
+    }
+
+    /**
+     * Revoke owner rights to the participant or local Participant as
+     * the user might want to refuse to be a moderator.
+     * @param {string} id id of the participant to revoke owner rights to.
+     */
+    revokeOwner(id) {
+        const participant = this.getParticipantById(id);
+        const isMyself = this.myUserId() === id;
+        const role = this.isMembersOnly() ? 'member' : 'none';
+
+        if (isMyself) {
+            this.room.setAffiliation(this.connection.getJid(), role);
+        } else if (participant) {
+            this.room.setAffiliation(participant.getConnectionJid(), role);
+        }
+    }
+
+    /**
+     * Kick participant from this conference.
+     * @param {string} id id of the participant to kick
+     * @param {string} reason reason of the participant to kick
+     */
+    kickParticipant(id, reason) {
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+        this.room.kick(participant.getJid(), reason);
+    }
+
+    /**
+     * Maybe clears the timeout which emits {@link ACTION_JINGLE_SI_TIMEOUT}
+     * analytics event.
+     * @private
+     */
+    _maybeClearSITimeout() {
+        if (this._sessionInitiateTimeout
+                && (this.jvbJingleSession || this.getParticipantCount() < 2)) {
+            window.clearTimeout(this._sessionInitiateTimeout);
             this._sessionInitiateTimeout = null;
-            Statistics.sendAnalytics(createJingleEvent(
-                ACTION_JINGLE_SI_TIMEOUT,
-                {
-                    p2p: false,
-                    value: JINGLE_SI_TIMEOUT
-                }));
-        }, JINGLE_SI_TIMEOUT);
-    }
-};
-
-/**
- * Mutes a participant.
- * @param {string} id The id of the participant to mute.
- */
-JitsiConference.prototype.muteParticipant = function(id, mediaType) {
-    const muteMediaType = mediaType ? mediaType : MediaType.AUDIO;
-
-    if (muteMediaType !== MediaType.AUDIO && muteMediaType !== MediaType.VIDEO) {
-        logger.error(`Unsupported media type: ${muteMediaType}`);
-
-        return;
+        }
     }
 
-    const participant = this.getParticipantById(id);
-
-    if (!participant) {
-        return;
-    }
-    this.room.muteParticipant(participant.getJid(), true, muteMediaType);
-};
-
-/* eslint-disable max-params */
-
-/**
- * Notifies this JitsiConference that a new member has joined its chat room.
- *
- * FIXME This should NOT be exposed!
- *
- * @param jid the jid of the participant in the MUC
- * @param nick the display name of the participant
- * @param role the role of the participant in the MUC
- * @param isHidden indicates if this is a hidden participant (system
- * participant for example a recorder).
- * @param statsID the participant statsID (optional)
- * @param status the initial status if any
- * @param identity the member identity, if any
- * @param botType the member botType, if any
- * @param fullJid the member full jid, if any
- * @param features the member botType, if any
- * @param isReplaceParticipant whether this join replaces a participant with
- * the same jwt.
- */
-JitsiConference.prototype.onMemberJoined = function(
-        jid, nick, role, isHidden, statsID, status, identity, botType, fullJid, features, isReplaceParticipant) {
-    const id = Strophe.getResourceFromJid(jid);
-
-    if (id === 'focus' || this.myUserId() === id) {
-        return;
-    }
-    const participant = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
-
-    participant.setConnectionJid(fullJid);
-    participant.setRole(role);
-    participant.setBotType(botType);
-    participant.setFeatures(features);
-    participant.setIsReplacing(isReplaceParticipant);
-
-    // Set remote tracks on the participant if source signaling was received before presence.
-    const remoteTracks = this.isP2PActive()
-        ? this.p2pJingleSession?.peerconnection.getRemoteTracks(id) ?? []
-        : this.jvbJingleSession?.peerconnection.getRemoteTracks(id) ?? [];
-
-    for (const track of remoteTracks) {
-        participant._tracks.push(track);
+    /**
+     * Sets a timeout which will emit {@link ACTION_JINGLE_SI_TIMEOUT} analytics
+     * event.
+     * @private
+     */
+    _maybeSetSITimeout() {
+        // Jicofo is supposed to invite if there are at least 2 participants
+        if (!this.jvbJingleSession
+                && this.getParticipantCount() >= 2
+                && !this._sessionInitiateTimeout) {
+            this._sessionInitiateTimeout = window.setTimeout(() => {
+                this._sessionInitiateTimeout = null;
+                Statistics.sendAnalytics(createJingleEvent(
+                    ACTION_JINGLE_SI_TIMEOUT,
+                    {
+                        p2p: false,
+                        value: JINGLE_SI_TIMEOUT
+                    }));
+            }, JINGLE_SI_TIMEOUT);
+        }
     }
 
-    this.participants.set(id, participant);
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.USER_JOINED,
-        id,
-        participant);
+    /**
+     * Mutes a participant.
+     * @param {string} id The id of the participant to mute.
+     */
+    muteParticipant(id, mediaType) {
+        const muteMediaType = mediaType ? mediaType : MediaType.AUDIO;
 
-    this._updateFeatures(participant);
+        if (muteMediaType !== MediaType.AUDIO && muteMediaType !== MediaType.VIDEO) {
+            logger.error(`Unsupported media type: ${muteMediaType}`);
 
-    // maybeStart only if we had finished joining as then we will have information for the number of participants
-    if (this.isJoined()) {
-        this._maybeStartOrStopP2P();
+            return;
+        }
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+        this.room.muteParticipant(participant.getJid(), true, muteMediaType);
     }
 
-    this._maybeSetSITimeout();
-    const { startAudioMuted, startVideoMuted } = this.options.config;
+    /* eslint-disable max-params */
 
-    // Ignore startAudio/startVideoMuted settings if the media session has already been established.
-    // Apply the policy if the number of participants exceeds the startMuted thresholds.
-    if ((this.jvbJingleSession && this.getActiveMediaSession() === this.jvbJingleSession)
-        || ((typeof startAudioMuted === 'undefined' || startAudioMuted === -1)
-            && (typeof startVideoMuted === 'undefined' || startVideoMuted === -1))) {
-        return;
-    }
-
-    let audioMuted = false;
-    let videoMuted = false;
-    const numberOfParticipants = this.getParticipantCount();
-
-    if (numberOfParticipants > this.options.config.startAudioMuted) {
-        audioMuted = true;
-    }
-
-    if (numberOfParticipants > this.options.config.startVideoMuted) {
-        videoMuted = true;
-    }
-
-    if ((audioMuted && !this.startMutedPolicy.audio) || (videoMuted && !this.startMutedPolicy.video)) {
-        this._updateStartMutedPolicy(audioMuted, videoMuted);
-    }
-};
-
-/* eslint-enable max-params */
-
-/**
- * Get notified when we joined the room.
- *
- * @private
- */
-JitsiConference.prototype._onMucJoined = function() {
-    this._numberOfParticipantsOnJoin = this.getParticipantCount();
-    this._maybeStartOrStopP2P();
-};
-
-/**
- * Updates features for a participant.
- * @param {JitsiParticipant} participant - The participant to query for features.
- * @returns {void}
- * @private
- */
-JitsiConference.prototype._updateFeatures = function(participant) {
-    participant.getFeatures()
-        .then(features => {
-            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
-            this.updateDTMFSupport();
-
-            if (features.has(FEATURE_JIGASI)) {
-                participant.setProperty('features_jigasi', true);
-            }
-
-            if (features.has(FEATURE_E2EE)) {
-                participant.setProperty('features_e2ee', true);
-            }
-        })
-        .catch(() => false);
-};
-
-/**
- * Get notified when member bot type had changed.
- * @param jid the member jid
- * @param botType the new botType value
- * @private
- */
-JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
-
-    // find the participant and mark it as non bot, as the real one will join
-    // in a moment
-    const peers = this.getParticipants();
-    const botParticipant = peers.find(p => p.getJid() === jid);
-
-    if (botParticipant) {
-        botParticipant.setBotType(botType);
+    /**
+     * Notifies this JitsiConference that a new member has joined its chat room.
+     *
+     * FIXME This should NOT be exposed!
+     *
+     * @param jid the jid of the participant in the MUC
+     * @param nick the display name of the participant
+     * @param role the role of the participant in the MUC
+     * @param isHidden indicates if this is a hidden participant (system
+     * participant for example a recorder).
+     * @param statsID the participant statsID (optional)
+     * @param status the initial status if any
+     * @param identity the member identity, if any
+     * @param botType the member botType, if any
+     * @param fullJid the member full jid, if any
+     * @param features the member botType, if any
+     * @param isReplaceParticipant whether this join replaces a participant with
+     * the same jwt.
+     */
+    onMemberJoined(
+            jid, nick, role, isHidden, statsID, status, identity, botType, fullJid, features, isReplaceParticipant
+    ) {
         const id = Strophe.getResourceFromJid(jid);
 
+        if (id === 'focus' || this.myUserId() === id) {
+            return;
+        }
+        const participant = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
+
+        participant.setConnectionJid(fullJid);
+        participant.setRole(role);
+        participant.setBotType(botType);
+        participant.setFeatures(features);
+        participant.setIsReplacing(isReplaceParticipant);
+
+        // Set remote tracks on the participant if source signaling was received before presence.
+        const remoteTracks = this.isP2PActive()
+            ? this.p2pJingleSession?.peerconnection.getRemoteTracks(id) ?? []
+            : this.jvbJingleSession?.peerconnection.getRemoteTracks(id) ?? [];
+
+        for (const track of remoteTracks) {
+            participant._tracks.push(track);
+        }
+
+        this.participants.set(id, participant);
         this.eventEmitter.emit(
-            JitsiConferenceEvents.BOT_TYPE_CHANGED,
+            JitsiConferenceEvents.USER_JOINED,
             id,
-            botType);
+            participant);
+
+        this._updateFeatures(participant);
+
+        // maybeStart only if we had finished joining as then we will have information for the number of participants
+        if (this.isJoined()) {
+            this._maybeStartOrStopP2P();
+        }
+
+        this._maybeSetSITimeout();
+        const { startAudioMuted, startVideoMuted } = this.options.config;
+
+        // Ignore startAudio/startVideoMuted settings if the media session has already been established.
+        // Apply the policy if the number of participants exceeds the startMuted thresholds.
+        if ((this.jvbJingleSession && this.getActiveMediaSession() === this.jvbJingleSession)
+            || ((typeof startAudioMuted === 'undefined' || startAudioMuted === -1)
+                && (typeof startVideoMuted === 'undefined' || startVideoMuted === -1))) {
+            return;
+        }
+
+        let audioMuted = false;
+        let videoMuted = false;
+        const numberOfParticipants = this.getParticipantCount();
+
+        if (numberOfParticipants > this.options.config.startAudioMuted) {
+            audioMuted = true;
+        }
+
+        if (numberOfParticipants > this.options.config.startVideoMuted) {
+            videoMuted = true;
+        }
+
+        if ((audioMuted && !this.startMutedPolicy.audio) || (videoMuted && !this.startMutedPolicy.video)) {
+            this._updateStartMutedPolicy(audioMuted, videoMuted);
+        }
     }
 
-    // if botType changed to undefined, botType was removed, in case of
-    // poltergeist mode this is the moment when the poltergeist had exited and
-    // the real participant had already replaced it.
-    // In this case we can check and try p2p
-    if (!botParticipant.getBotType()) {
+    /* eslint-enable max-params */
+
+    /**
+     * Get notified when we joined the room.
+     *
+     * @private
+     */
+    _onMucJoined() {
+        this._numberOfParticipantsOnJoin = this.getParticipantCount();
         this._maybeStartOrStopP2P();
     }
-};
 
-JitsiConference.prototype.onMemberLeft = function(jid, reason) {
-    const id = Strophe.getResourceFromJid(jid);
+    /**
+     * Updates features for a participant.
+     * @param {JitsiParticipant} participant - The participant to query for features.
+     * @returns {void}
+     * @private
+     */
+    _updateFeatures(participant) {
+        participant.getFeatures()
+            .then(features => {
+                participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
+                this.updateDTMFSupport();
 
-    if (id === 'focus' || this.myUserId() === id) {
-        return;
+                if (features.has(FEATURE_JIGASI)) {
+                    participant.setProperty('features_jigasi', true);
+                }
+
+                if (features.has(FEATURE_E2EE)) {
+                    participant.setProperty('features_e2ee', true);
+                }
+            })
+            .catch(() => false);
     }
 
-    const mediaSessions = this.getMediaSessions();
-    let tracksToBeRemoved = [];
+    /**
+     * Get notified when member bot type had changed.
+     * @param jid the member jid
+     * @param botType the new botType value
+     * @private
+     */
+    _onMemberBotTypeChanged(jid, botType) {
+        // find the participant and mark it as non bot, as the real one will join
+        // in a moment
+        const peers = this.getParticipants();
+        const botParticipant = peers.find(p => p.getJid() === jid);
 
-    for (const session of mediaSessions) {
-        const remoteTracks = session.peerconnection.getRemoteTracks(id);
+        if (botParticipant) {
+            botParticipant.setBotType(botType);
+            const id = Strophe.getResourceFromJid(jid);
 
-        remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
+            this.eventEmitter.emit(
+                JitsiConferenceEvents.BOT_TYPE_CHANGED,
+                id,
+                botType);
+        }
 
-        // Update the SSRC owners list.
-        session._signalingLayer.updateSsrcOwnersOnLeave(id);
-        if (!FeatureFlags.isSsrcRewritingSupported()) {
-            // Remove the ssrcs from the remote description and renegotiate.
-            session.removeRemoteStreamsOnLeave(id);
+        // if botType changed to undefined, botType was removed, in case of
+        // poltergeist mode this is the moment when the poltergeist had exited and
+        // the real participant had already replaced it.
+        // In this case we can check and try p2p
+        if (!botParticipant.getBotType()) {
+            this._maybeStartOrStopP2P();
         }
     }
 
-    tracksToBeRemoved.forEach(track => {
-        // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    onMemberLeft(jid, reason) {
+        const id = Strophe.getResourceFromJid(jid);
 
-        if (FeatureFlags.isSsrcRewritingSupported()) {
-            track.setSourceName(null);
-            track.setOwner(null);
+        if (id === 'focus' || this.myUserId() === id) {
+            return;
         }
-    });
 
-    const participant = this.participants.get(id);
+        const mediaSessions = this.getMediaSessions();
+        let tracksToBeRemoved = [];
 
-    if (participant) {
-        this.participants.delete(id);
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+        for (const session of mediaSessions) {
+            const remoteTracks = session.peerconnection.getRemoteTracks(id);
+
+            remoteTracks && (tracksToBeRemoved = [ ...tracksToBeRemoved, ...remoteTracks ]);
+
+            // Update the SSRC owners list.
+            session._signalingLayer.updateSsrcOwnersOnLeave(id);
+            if (!FeatureFlags.isSsrcRewritingSupported()) {
+                // Remove the ssrcs from the remote description and renegotiate.
+                session.removeRemoteStreamsOnLeave(id);
+            }
+        }
+
+        tracksToBeRemoved.forEach(track => {
+            // Fire the event before renegotiation is done so that the thumbnails can be removed immediately.
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+
+            if (FeatureFlags.isSsrcRewritingSupported()) {
+                track.setSourceName(null);
+                track.setOwner(null);
+            }
+        });
+
+        const participant = this.participants.get(id);
+
+        if (participant) {
+            this.participants.delete(id);
+            this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+        }
+
+        if (this.room !== null) { // Skip if we have left the room already.
+            this._maybeStartOrStopP2P(true /* triggered by user left event */);
+            this._maybeClearSITimeout();
+        }
     }
 
-    if (this.room !== null) { // Skip if we have left the room already.
-        this._maybeStartOrStopP2P(true /* triggered by user left event */);
-        this._maybeClearSITimeout();
-    }
-};
+    /* eslint-disable max-params */
 
-/* eslint-disable max-params */
+    /**
+     * Designates an event indicating that we were kicked from the XMPP MUC.
+     * @param {boolean} isSelfPresence - whether it is for local participant
+     * or another participant.
+     * @param {string} actorId - the id of the participant who was initiator
+     * of the kick.
+     * @param {string?} kickedParticipantId - when it is not a kick for local participant,
+     * this is the id of the participant which was kicked.
+     * @param {string} reason - reason of the participant to kick
+     * @param {boolean?} isReplaceParticipant - whether this is a server initiated kick in order
+     * to replace it with a participant with same jwt.
+     */
+    onMemberKicked(isSelfPresence, actorId, kickedParticipantId, reason, isReplaceParticipant) {
+        let actorParticipant;
 
-/**
- * Designates an event indicating that we were kicked from the XMPP MUC.
- * @param {boolean} isSelfPresence - whether it is for local participant
- * or another participant.
- * @param {string} actorId - the id of the participant who was initiator
- * of the kick.
- * @param {string?} kickedParticipantId - when it is not a kick for local participant,
- * this is the id of the participant which was kicked.
- * @param {string} reason - reason of the participant to kick
- * @param {boolean?} isReplaceParticipant - whether this is a server initiated kick in order
- * to replace it with a participant with same jwt.
- */
-JitsiConference.prototype.onMemberKicked = function(
-        isSelfPresence,
-        actorId,
-        kickedParticipantId,
-        reason,
-        isReplaceParticipant) {
-    let actorParticipant;
+        if (actorId === this.myUserId()) {
+            // When we kick someone we also want to send the PARTICIPANT_KICKED event, but there is no
+            // JitsiParticipant object for ourselves so create a minimum fake one.
+            actorParticipant = {
+                getId: () => actorId
+            };
+        } else {
+            actorParticipant = this.participants.get(actorId);
+        }
 
-    if (actorId === this.myUserId()) {
-        // When we kick someone we also want to send the PARTICIPANT_KICKED event, but there is no
-        // JitsiParticipant object for ourselves so create a minimum fake one.
-        actorParticipant = {
-            getId: () => actorId
-        };
-    } else {
-        actorParticipant = this.participants.get(actorId);
-    }
+        if (isSelfPresence) {
+            this.leave().finally(() => this.xmpp.disconnect());
+            this.eventEmitter.emit(
+                JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
 
-    if (isSelfPresence) {
-        this.leave().finally(() => this.xmpp.disconnect());
+            return;
+        }
+
+        const kickedParticipant = this.participants.get(kickedParticipantId);
+
+        kickedParticipant.setIsReplaced(isReplaceParticipant);
+
         this.eventEmitter.emit(
-            JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
-
-        return;
+            JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant, reason);
     }
 
-    const kickedParticipant = this.participants.get(kickedParticipantId);
-
-    kickedParticipant.setIsReplaced(isReplaceParticipant);
-
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant, reason);
-};
-
-/**
- * Method called on local MUC role change.
- * @param {string} role the name of new user's role as defined by XMPP MUC.
- */
-JitsiConference.prototype.onLocalRoleChanged = function(role) {
-    // Emit role changed for local  JID
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
-};
-
-JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
-    const id = Strophe.getResourceFromJid(jid);
-    const participant = this.getParticipantById(id);
-
-    if (!participant) {
-        return;
-    }
-    participant.setRole(role);
-    this.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, id, role);
-};
-
-JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
-    const id = Strophe.getResourceFromJid(jid);
-    const participant = this.getParticipantById(id);
-
-    if (!participant) {
-        return;
+    /**
+     * Method called on local MUC role change.
+     * @param {string} role the name of new user's role as defined by XMPP MUC.
+     */
+    onLocalRoleChanged(role) {
+        // Emit role changed for local JID
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
     }
 
-    if (participant._displayName === displayName) {
-        return;
+    onUserRoleChanged(jid, role) {
+        const id = Strophe.getResourceFromJid(jid);
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+        participant.setRole(role);
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, id, role);
     }
 
-    participant._displayName = displayName;
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
-        id,
-        displayName);
-};
+    onDisplayNameChanged(jid, displayName) {
+        const id = Strophe.getResourceFromJid(jid);
+        const participant = this.getParticipantById(id);
 
-JitsiConference.prototype.onSilentStatusChanged = function(jid, isSilent) {
-    const id = Strophe.getResourceFromJid(jid);
-    const participant = this.getParticipantById(id);
+        if (!participant) {
+            return;
+        }
 
-    if (!participant) {
-        return;
+        if (participant._displayName === displayName) {
+            return;
+        }
+
+        participant._displayName = displayName;
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
+            id,
+            displayName);
     }
 
-    participant.setIsSilent(isSilent);
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.SILENT_STATUS_CHANGED,
-        id,
-        isSilent);
-};
+    onSilentStatusChanged(jid, isSilent) {
+        const id = Strophe.getResourceFromJid(jid);
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        participant.setIsSilent(isSilent);
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.SILENT_STATUS_CHANGED,
+            id,
+            isSilent);
+    }
+}
+
 
 /**
  * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
