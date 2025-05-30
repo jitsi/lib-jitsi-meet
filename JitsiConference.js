@@ -135,236 +135,231 @@ function _getCodecMimeType(codec) {
  *       {@link JitsiConference.onMemberLeft}
  *       and so on...
  */
-export default function JitsiConference(options) {
-    if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
-        const errmsg
-            = 'Invalid conference name (no conference name passed or it '
-                + 'contains invalid characters like capital letters)!';
-        const additionalLogMsg = options.name
-            ? `roomName=${options.name}; condition - ${options.name.toLowerCase()}!==${options.name.toString()}`
-            : 'No room name passed!';
-
-        logger.error(`${errmsg} ${additionalLogMsg}`);
-        throw new Error(errmsg);
-    }
-    this.connection = options.connection;
-    this.xmpp = this.connection?.xmpp;
-
-    if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
-        const errmsg = 'A conference with the same name has already been created!';
-
-        delete this.connection;
-        delete this.xmpp;
-        logger.error(errmsg);
-        throw new Error(errmsg);
-    }
-    this.eventEmitter = new EventEmitter();
-    this.options = options;
-    this.eventManager = new JitsiConferenceEventManager(this);
-
+export default class JitsiConference {
     /**
-     * List of all the participants in the conference.
-     * @type {Map<string, JitsiParticipant>};
+     * @param {Object} options
      */
-    this.participants = new Map();
+    constructor(options) {
+        if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
+            const errmsg =
+                'Invalid conference name (no conference name passed or it ' +
+                'contains invalid characters like capital letters)!';
+            const additionalLogMsg = options.name
+                ? `roomName=${options.name}; condition - ${options.name.toLowerCase()}!==${options.name.toString()}`
+                : 'No room name passed!';
 
-    /**
-     * The signaling layer instance.
-     * @type {SignalingLayerImpl}
-     * @private
-     */
-    this._signalingLayer = new SignalingLayerImpl();
-
-    this._init(options);
-    this.componentsVersions = new ComponentsVersions(this);
-
-    /**
-     * Jingle session instance for the JVB connection.
-     * @type {JingleSessionPC}
-     */
-    this.jvbJingleSession = null;
-    this.lastDominantSpeaker = null;
-    this.dtmfManager = null;
-    this.somebodySupportsDTMF = false;
-    this.authEnabled = false;
-    this.startMutedPolicy = {
-        audio: false,
-        video: false
-    };
-    this.isMutedByFocus = false;
-
-    // when muted by focus we receive the jid of the initiator of the mute
-    this.mutedByFocusActor = null;
-
-    this.isVideoMutedByFocus = false;
-
-    // when video muted by focus we receive the jid of the initiator of the mute
-    this.mutedVideoByFocusActor = null;
-
-    // Flag indicates if the 'onCallEnded' method was ever called on this
-    // instance. Used to log extra analytics event for debugging purpose.
-    // We need to know if the potential issue happened before or after
-    // the restart.
-    this.wasStopped = false;
-
-    // Conference properties, maintained by jicofo.
-    this.properties = {};
-
-    /**
-     * The object which monitors local and remote connection statistics (e.g.
-     * sending bitrate) and calculates a number which represents the connection
-     * quality.
-     */
-    this.connectionQuality
-        = new ConnectionQuality(this, this.eventEmitter, options);
-
-    /**
-     * Reports average RTP statistics to the analytics module.
-     * @type {AvgRTPStatsReporter}
-     */
-    this.avgRtpStatsReporter
-        = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
-
-    /**
-     * Indicates whether the connection is interrupted or not.
-     */
-    this.isJvbConnectionInterrupted = false;
-
-    /**
-     * The object which tracks active speaker times
-     */
-    this.speakerStatsCollector = new SpeakerStatsCollector(this);
-
-    /* P2P related fields below: */
-
-    /**
-     * Stores reference to deferred start P2P task. It's created when 3rd
-     * participant leaves the room in order to avoid ping pong effect (it
-     * could be just a page reload).
-     * @type {number|null}
-     */
-    this.deferredStartP2PTask = null;
-
-    const delay = Number.parseInt(options.config.p2p?.backToP2PDelay, 10);
-
-    /**
-     * A delay given in seconds, before the conference switches back to P2P
-     * after the 3rd participant has left.
-     * @type {number}
-     */
-    this.backToP2PDelay = isValidNumber(delay) ? delay : 5;
-    logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
-
-    /**
-     * If set to <tt>true</tt> it means the P2P ICE is no longer connected.
-     * When <tt>false</tt> it means that P2P ICE (media) connection is up
-     * and running.
-     * @type {boolean}
-     */
-    this.isP2PConnectionInterrupted = false;
-
-    /**
-     * Flag set to <tt>true</tt> when P2P session has been established
-     * (ICE has been connected) and this conference is currently in the peer to
-     * peer mode (P2P connection is the active one).
-     * @type {boolean}
-     */
-    this.p2p = false;
-
-    /**
-     * A JingleSession for the direct peer to peer connection.
-     * @type {JingleSessionPC}
-     */
-    this.p2pJingleSession = null;
-
-    this.videoSIPGWHandler = new VideoSIPGW(this.room);
-    this.recordingManager = new RecordingManager(this.room);
-
-    /**
-     * If the conference.joined event has been sent this will store the timestamp when it happened.
-     *
-     * @type {undefined|number}
-     * @private
-     */
-    this._conferenceJoinAnalyticsEventSent = undefined;
-
-    /**
-     * End-to-End Encryption. Make it available if supported.
-     */
-    if (this.isE2EESupported()) {
-        logger.info('End-to-End Encryption is supported');
-
-        this._e2eEncryption = new E2EEncryption(this);
-    }
-
-    if (FeatureFlags.isRunInLiteModeEnabled()) {
-        logger.info('Lite mode enabled');
-
-        this._liteModeContext = new LiteModeContext(this);
-    }
-
-    /**
-     * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max audio sender limit has
-     * been reached for the call. Once this is set, unmuting audio will be disabled from the client until it gets reset
-     * again by Jicofo.
-     */
-    this._audioSenderLimitReached = undefined;
-
-    /**
-     * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max video sender limit has
-     * been reached for the call. Once this is set, unmuting video will be disabled from the client until it gets reset
-     * again by Jicofo.
-     */
-    this._videoSenderLimitReached = undefined;
-
-    this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
-        && (this.options.config.testing?.enableFirefoxP2p ?? true);
-
-    /**
-     * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
-     */
-    this._iceRestarts = 0;
-}
-
-// FIXME convert JitsiConference to ES6 - ASAP !
-JitsiConference.prototype.constructor = JitsiConference;
-
-/**
- * Create a resource for the a jid. We use the room nickname (the resource part
- * of the occupant JID, see XEP-0045) as the endpoint ID in colibri. We require
- * endpoint IDs to be 8 hex digits because in some cases they get serialized
- * into a 32bit field.
- *
- * @param {string} jid - The id set onto the XMPP connection.
- * @param {boolean} isAuthenticatedUser - Whether or not the user has connected
- * to the XMPP service with a password.
- * @returns {string}
- * @static
- */
-JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
-    let mucNickname;
-
-    if (isAuthenticatedUser) {
-        // For authenticated users generate a random ID.
-        mucNickname = RandomUtil.randomHexString(8).toLowerCase();
-    } else {
-        // We try to use the first part of the node (which for anonymous users
-        // on prosody is a UUID) to match the previous behavior (and maybe make
-        // debugging easier).
-        mucNickname = Strophe.getNodeFromJid(jid)?.substr(0, 8)
-            .toLowerCase();
-
-        // But if this doesn't have the required format we just generate a new
-        // random nickname.
-        const re = /[0-9a-f]{8}/g;
-
-        if (!mucNickname || !re.test(mucNickname)) {
-            mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+            logger.error(`${errmsg} ${additionalLogMsg}`);
+            throw new Error(errmsg);
         }
+
+        this.connection = options.connection;
+        this.xmpp = this.connection?.xmpp;
+
+        if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
+            const errmsg = 'A conference with the same name has already been created!';
+
+            delete this.connection;
+            delete this.xmpp;
+            logger.error(errmsg);
+            throw new Error(errmsg);
+        }
+
+        this.eventEmitter = new EventEmitter();
+        this.options = options;
+        this.eventManager = new JitsiConferenceEventManager(this);
+
+        /**
+         * List of all the participants in the conference.
+         * @type {Map<string, JitsiParticipant>}
+         */
+        this.participants = new Map();
+
+        /**
+         * The signaling layer instance.
+         * @type {SignalingLayerImpl}
+         * @private
+         */
+        this._signalingLayer = new SignalingLayerImpl();
+
+        this._init(options);
+        this.componentsVersions = new ComponentsVersions(this);
+
+        /**
+         * Jingle session instance for the JVB connection.
+         * @type {JingleSessionPC}
+         */
+        this.jvbJingleSession = null;
+        this.lastDominantSpeaker = null;
+        this.dtmfManager = null;
+        this.somebodySupportsDTMF = false;
+        this.authEnabled = false;
+        this.startMutedPolicy = {
+            audio: false,
+            video: false
+        };
+        this.isMutedByFocus = false;
+
+        // when muted by focus we receive the jid of the initiator of the mute
+        this.mutedByFocusActor = null;
+
+        this.isVideoMutedByFocus = false;
+
+        // when video muted by focus we receive the jid of the initiator of the mute
+        this.mutedVideoByFocusActor = null;
+
+        // Flag indicates if the 'onCallEnded' method was ever called on this
+        // instance. Used to log extra analytics event for debugging purpose.
+        // We need to know if the potential issue happened before or after
+        // the restart.
+        this.wasStopped = false;
+
+        // Conference properties, maintained by jicofo.
+        this.properties = {};
+
+        /**
+         * The object which monitors local and remote connection statistics (e.g.
+         * sending bitrate) and calculates a number which represents the connection
+         * quality.
+         */
+        this.connectionQuality = new ConnectionQuality(this, this.eventEmitter, options);
+
+        /**
+         * Reports average RTP statistics to the analytics module.
+         * @type {AvgRTPStatsReporter}
+         */
+        this.avgRtpStatsReporter = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
+
+        /**
+         * Indicates whether the connection is interrupted or not.
+         */
+        this.isJvbConnectionInterrupted = false;
+
+        /**
+         * The object which tracks active speaker times
+         */
+        this.speakerStatsCollector = new SpeakerStatsCollector(this);
+
+        /* P2P related fields below: */
+
+        /**
+         * Stores reference to deferred start P2P task. It's created when 3rd
+         * participant leaves the room in order to avoid ping pong effect (it
+         * could be just a page reload).
+         * @type {number|null}
+         */
+        this.deferredStartP2PTask = null;
+
+        const delay = Number.parseInt(options.config.p2p?.backToP2PDelay, 10);
+
+        /**
+         * A delay given in seconds, before the conference switches back to P2P
+         * after the 3rd participant has left.
+         * @type {number}
+         */
+        this.backToP2PDelay = isValidNumber(delay) ? delay : 5;
+        logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
+
+        /**
+         * If set to <tt>true</tt> it means the P2P ICE is no longer connected.
+         * When <tt>false</tt> it means that P2P ICE (media) connection is up
+         * and running.
+         * @type {boolean}
+         */
+        this.isP2PConnectionInterrupted = false;
+
+        /**
+         * Flag set to <tt>true</tt> when P2P session has been established
+         * (ICE has been connected) and this conference is currently in the peer to
+         * peer mode (P2P connection is the active one).
+         * @type {boolean}
+         */
+        this.p2p = false;
+
+        /**
+         * A JingleSession for the direct peer to peer connection.
+         * @type {JingleSessionPC}
+         */
+        this.p2pJingleSession = null;
+
+        this.videoSIPGWHandler = new VideoSIPGW(this.room);
+        this.recordingManager = new RecordingManager(this.room);
+
+        /**
+         * If the conference.joined event has been sent this will store the timestamp when it happened.
+         *
+         * @type {undefined|number}
+         * @private
+         */
+        this._conferenceJoinAnalyticsEventSent = undefined;
+
+        /**
+         * End-to-End Encryption. Make it available if supported.
+         */
+        if (this.isE2EESupported()) {
+            logger.info('End-to-End Encryption is supported');
+            this._e2eEncryption = new E2EEncryption(this);
+        }
+
+        if (FeatureFlags.isRunInLiteModeEnabled()) {
+            logger.info('Lite mode enabled');
+            this._liteModeContext = new LiteModeContext(this);
+        }
+
+        /**
+         * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max audio sender limit has
+         * been reached for the call. Once this is set, unmuting audio will be disabled from the client until it gets reset
+         * again by Jicofo.
+         */
+        this._audioSenderLimitReached = undefined;
+
+        /**
+         * Flag set to <tt>true</tt> when Jicofo sends a presence message indicating that the max video sender limit has
+         * been reached for the call. Once this is set, unmuting video will be disabled from the client until it gets reset
+         * again by Jicofo.
+         */
+        this._videoSenderLimitReached = undefined;
+
+        this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
+            && (this.options.config.testing?.enableFirefoxP2p ?? true);
+
+        /**
+         * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
+         */
+        this._iceRestarts = 0;
     }
 
-    return mucNickname;
-};
+    /**
+     * Create a resource for the a jid. We use the room nickname (the resource part
+     * of the occupant JID, see XEP-0045) as the endpoint ID in colibri. We require
+     * endpoint IDs to be 8 hex digits because in some cases they get serialized
+     * into a 32bit field.
+     *
+     * @param {string} jid - The id set onto the XMPP connection.
+     * @param {boolean} isAuthenticatedUser - Whether or not the user has connected
+     * to the XMPP service with a password.
+     * @returns {string}
+     * @static
+     */
+    static resourceCreator(jid, isAuthenticatedUser) {
+        let mucNickname;
+
+        if (isAuthenticatedUser) {
+            // For authenticated users generate a random ID.
+            mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+        } else {
+            // Use first part of node for anonymous users if it matches format
+            mucNickname = Strophe.getNodeFromJid(jid)?.substr(0, 8).toLowerCase();
+
+            const re = /[0-9a-f]{8}/g;
+
+            if (!mucNickname || !re.test(mucNickname)) {
+                mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+            }
+        }
+
+        return mucNickname;
+    }
+}
 
 /**
  * Initializes the conference object properties
