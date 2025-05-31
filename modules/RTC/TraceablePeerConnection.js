@@ -36,404 +36,409 @@ const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 /* eslint-disable max-params */
 
 /**
- * Creates new instance of 'TraceablePeerConnection'.
+ * Represents a WebRTC PeerConnection with additional functionality for managing tracks and media.
+ * @class
+ * @param {RTC} rtc - The instance of RTC service.
+ * @param {number} id - The peer connection id assigned by the parent RTC module.
+ * @param {SignalingLayer} signalingLayer - The signaling layer instance.
+ * @param {object} pcConfig - The RTCConfiguration to use for the WebRTC peer connection.
+ * @param {object} constraints - WebRTC PeerConnection constraints.
+ * @param {boolean} isP2P - Indicates whether this instance is used in a peer-to-peer connection.
+ * @param {object} options - Configuration options for TraceablePeerConnection.
+ * @param {Object} options.audioQuality - Quality settings to apply on the outbound audio stream.
+ * @param {boolean} options.capScreenshareBitrate - If true, lower layers will be disabled for screenshare.
+ * @param {Array<CodecMimeType>} options.codecSettings - Codec settings for video streams.
+ * @param {boolean} options.disableSimulcast - If true, disables simulcast.
+ * @param {boolean} options.disableRtx - If true, disables RTX.
+ * @param {boolean} options.enableInsertableStreams - Enables insertable streams constraints on the PeerConnection.
+ * @param {boolean} options.forceTurnRelay - If true, generates only Relay ICE candidates.
+ * @param {boolean} options.startSilent - If true, no audio will be sent or received.
+ * @param {Object} options.videoQuality - Quality settings for outbound video streams.
  *
- * @param {RTC} rtc the instance of <tt>RTC</tt> service
- * @param {number} id the peer connection id assigned by the parent RTC module.
- * @param {SignalingLayer} signalingLayer the signaling layer instance
- * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
- * @param {object} constraints WebRTC 'PeerConnection' constraints
- * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
- * @param {object} options <tt>TracablePeerConnection</tt> config options.
- * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
- * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
- * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
- * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
- * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
- * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
- * enabled on the PeerConnection.
- * @param {boolean} options.forceTurnRelay If set to true, the browser will generate only Relay ICE candidates.
- * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
- * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
- *
- * FIXME: initially the purpose of TraceablePeerConnection was to be able to
- * debug the peer connection. Since many other responsibilities have been added
- * it would make sense to extract a separate class from it and come up with
- * a more suitable name.
- *
- * @constructor
+ * FIXME: Initially, TraceablePeerConnection was for debugging the peer connection. Since many other
+ * responsibilities have been added, it would make sense to extract a separate class from it and come up
+ * with a more suitable name.
  */
-export default function TraceablePeerConnection(
-        rtc,
-        id,
-        signalingLayer,
-        pcConfig,
-        constraints,
-        isP2P,
-        options) {
-
+export default class TraceablePeerConnection {
     /**
-     * Indicates whether or not this peer connection instance is actively
-     * sending/receiving audio media. When set to <tt>false</tt> the SDP audio
-     * media direction will be adjusted to 'inactive' in order to suspend
-     * the transmission.
-     * @type {boolean}
-     * @private
+     * Creates an instance of TraceablePeerConnection.
+     * @constructor
      */
-    this.audioTransferActive = !(options.startSilent === true);
+    constructor(rtc, id, signalingLayer, pcConfig, constraints, isP2P, options) {
+        /**
+         * Indicates whether or not this peer connection instance is actively
+         * sending/receiving audio media. When set to <tt>false</tt> the SDP audio
+         * media direction will be adjusted to 'inactive' in order to suspend
+         * the transmission.
+         * @type {boolean}
+         * @private
+         */
+        this.audioTransferActive = !(options.startSilent === true);
 
-    /**
-     * The DTMF sender instance used to send DTMF tones.
-     *
-     * @type {RTCDTMFSender|undefined}
-     * @private
-     */
-    this._dtmfSender = undefined;
+        /**
+         * The DTMF sender instance used to send DTMF tones.
+         *
+         * @type {RTCDTMFSender|undefined}
+         * @private
+         */
+        this._dtmfSender = undefined;
 
-    /**
-     * @typedef {Object} TouchToneRequest
-     * @property {string} tones - The DTMF tones string as defined by
-     * {@code RTCDTMFSender.insertDTMF}, 'tones' argument.
-     * @property {number} duration - The amount of time in milliseconds that
-     * each DTMF should last.
-     * @property {string} interToneGap - The length of time in miliseconds to
-     * wait between tones.
-     */
-    /**
-     * TouchToneRequests which are waiting to be played. This queue is filled
-     * if there are touch tones currently being played.
-     *
-     * @type {Array<TouchToneRequest>}
-     * @private
-     */
-    this._dtmfTonesQueue = [];
+        /**
+         * @typedef {Object} TouchToneRequest
+         * @property {string} tones - The DTMF tones string as defined by
+         * {@code RTCDTMFSender.insertDTMF}, 'tones' argument.
+         * @property {number} duration - The amount of time in milliseconds that
+         * each DTMF should last.
+         * @property {string} interToneGap - The length of time in miliseconds to
+         * wait between tones.
+         */
+        /**
+         * TouchToneRequests which are waiting to be played. This queue is filled
+         * if there are touch tones currently being played.
+         *
+         * @type {Array<TouchToneRequest>}
+         * @private
+         */
+        this._dtmfTonesQueue = [];
 
-    /**
-     * Indicates whether or not this peer connection instance is actively
-     * sending/receiving video media. When set to <tt>false</tt> the SDP video
-     * media direction will be adjusted to 'inactive' in order to suspend
-     * the transmission.
-     * @type {boolean}
-     * @private
-     */
-    this.videoTransferActive = true;
+        /**
+         * Indicates whether or not this peer connection instance is actively
+         * sending/receiving video media. When set to <tt>false</tt> the SDP video
+         * media direction will be adjusted to 'inactive' in order to suspend
+         * the transmission.
+         * @type {boolean}
+         * @private
+         */
+        this.videoTransferActive = true;
 
-    /**
-     * The parent instance of RTC service which created this
-     * <tt>TracablePeerConnection</tt>.
-     * @type {RTC}
-     */
-    this.rtc = rtc;
+        /**
+         * The parent instance of RTC service which created this
+         * <tt>TraceablePeerConnection</tt>.
+         * @type {RTC}
+         */
+        this.rtc = rtc;
 
-    /**
-     * The peer connection identifier assigned by the RTC module.
-     * @type {number}
-     */
-    this.id = id;
+        /**
+         * The peer connection identifier assigned by the RTC module.
+         * @type {number}
+         */
+        this.id = id;
 
-    /**
-     * Indicates whether or not this instance is used in a peer to peer
-     * connection.
-     * @type {boolean}
-     */
-    this.isP2P = isP2P;
+        /**
+         * Indicates whether or not this instance is used in a peer to peer
+         * connection.
+         * @type {boolean}
+         */
+        this.isP2P = isP2P;
 
-    /**
-     * A map that holds remote tracks signaled on the peerconnection indexed by their SSRC.
-     * @type {Map<number, JitsiRemoteTrack>}
-     */
-    this.remoteTracksBySsrc = new Map();
+        /**
+         * A map that holds remote tracks signaled on the peerconnection indexed by their SSRC.
+         * @type {Map<number, JitsiRemoteTrack>}
+         */
+        this.remoteTracksBySsrc = new Map();
 
-    /**
-     * The map holds remote tracks associated with this peer connection. It maps user's JID to media type and a set of
-     * remote tracks.
-     * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
-     */
-    this.remoteTracks = new Map();
+        /**
+         * The map holds remote tracks associated with this peer connection. It maps user's JID to media type and a set of
+         * remote tracks.
+         * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
+         */
+        this.remoteTracks = new Map();
 
-    /**
-     * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
-     * @type {Map<number, JitsiLocalTrack>}
-     */
-    this.localTracks = new Map();
+        /**
+         * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
+         * @type {Map<number, JitsiLocalTrack>}
+         */
+        this.localTracks = new Map();
 
-    /**
-     * @typedef {Object} TPCGroupInfo
-     * @property {string} semantics the SSRC groups semantics
-     * @property {Array<number>} ssrcs group's SSRCs in order where the first
-     * one is group's primary SSRC, the second one is secondary (RTX) and so
-     * on...
-     */
-    /**
-     * @typedef {Object} TPCSSRCInfo
-     * @property {Array<number>} ssrcs an array which holds all track's SSRCs
-     * @property {Array<TPCGroupInfo>} groups an array stores all track's SSRC
-     * groups
-     */
-    /**
-     * Holds the info about local track's SSRCs mapped per their
-     * {@link JitsiLocalTrack.rtcId}
-     * @type {Map<number, TPCSSRCInfo>}
-     */
-    this.localSSRCs = new Map();
+        /**
+         * @typedef {Object} TPCGroupInfo
+         * @property {string} semantics - The SSRC groups semantics
+         * @property {Array<number>} ssrcs - Group's SSRCs in order where the first
+         * one is group's primary SSRC, the second one is secondary (RTX) and so
+         * on...
+         */
+        /**
+         * @typedef {Object} TPCSSRCInfo
+         * @property {Array<number>} ssrcs - An array which holds all track's SSRCs
+         * @property {Array<TPCGroupInfo>} groups - An array stores all track's SSRC
+         * groups
+         */
+        /**
+         * Holds the info about local track's SSRCs mapped per their
+         * {@link JitsiLocalTrack.rtcId}
+         * @type {Map<number, TPCSSRCInfo>}
+         */
+        this.localSSRCs = new Map();
 
-    /**
-     * The set of remote SSRCs seen so far.
-     * Distinguishes new SSRCs from those that have been remapped.
-     * @type {Set<number>}
-     */
-    this.remoteSSRCs = new Set();
+        /**
+         * The set of remote SSRCs seen so far.
+         * Distinguishes new SSRCs from those that have been remapped.
+         * @type {Set<number>}
+         */
+        this.remoteSSRCs = new Set();
 
-    /**
-     * Mapping of source-names and their associated SSRCs that have been signaled by the JVB.
-     * @type {Map<string, number>}
-     */
-    this.remoteSources = new Map();
+        /**
+         * Mapping of source-names and their associated SSRCs that have been signaled by the JVB.
+         * @type {Map<string, number>}
+         */
+        this.remoteSources = new Map();
 
-    /**
-     * The local ICE username fragment for this session.
-     */
-    this.localUfrag = null;
+        /**
+         * The local ICE username fragment for this session.
+         */
+        this.localUfrag = null;
 
-    /**
-     * The remote ICE username fragment for this session.
-     */
-    this.remoteUfrag = null;
+        /**
+         * The remote ICE username fragment for this session.
+         */
+        this.remoteUfrag = null;
 
-    /**
-     * The DTLS transport object for the PeerConnection.
-     * Note: this assume only one shared transport exists because we bundled
-     *       all streams on the same underlying transport.
-     */
-    this._dtlsTransport = null;
+        /**
+         * The DTLS transport object for the PeerConnection.
+         * Note: this assumes only one shared transport exists because we bundled
+         * all streams on the same underlying transport.
+         */
+        this._dtlsTransport = null;
 
-    /**
-     * The signaling layer which operates this peer connection.
-     * @type {SignalingLayer}
-     */
-    this.signalingLayer = signalingLayer;
+        /**
+         * The signaling layer which operates this peer connection.
+         * @type {SignalingLayer}
+         */
+        this.signalingLayer = signalingLayer;
 
-    // SignalingLayer listeners
-    this._peerVideoTypeChanged = this._peerVideoTypeChanged.bind(this);
-    this.signalingLayer.on(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+        // SignalingLayer listeners
+        this._peerVideoTypeChanged = this._peerVideoTypeChanged.bind(this);
+        this.signalingLayer.on(SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
 
-    this._peerMutedChanged = this._peerMutedChanged.bind(this);
-    this.signalingLayer.on(SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
-    this.options = options;
+        this._peerMutedChanged = this._peerMutedChanged.bind(this);
+        this.signalingLayer.on(SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
+        this.options = options;
 
-    // Setup SignalingLayer listeners for source-name based events.
-    this.signalingLayer.on(SignalingEvents.SOURCE_MUTED_CHANGED,
-        (sourceName, isMuted) => this._sourceMutedChanged(sourceName, isMuted));
-    this.signalingLayer.on(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
-        (sourceName, videoType) => this._sourceVideoTypeChanged(sourceName, videoType));
+        // Setup SignalingLayer listeners for source-name based events.
+        this.signalingLayer.on(SignalingEvents.SOURCE_MUTED_CHANGED,
+            (sourceName, isMuted) => this._sourceMutedChanged(sourceName, isMuted));
+        this.signalingLayer.on(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
+            (sourceName, videoType) => this._sourceVideoTypeChanged(sourceName, videoType));
 
-    // Make sure constraints is properly formatted in order to provide information about whether or not this
-    // connection is P2P to rtcstats.
-    const safeConstraints = constraints || {};
+        // Make sure constraints is properly formatted in order to provide information about whether or not this
+        // connection is P2P to rtcstats.
+        const safeConstraints = constraints || {};
 
-    safeConstraints.optional = safeConstraints.optional || [];
+        safeConstraints.optional = safeConstraints.optional || [];
 
-    // The `optional` parameter needs to be of type array, otherwise chrome will throw an error.
-    // Firefox and Safari just ignore it.
-    if (Array.isArray(safeConstraints.optional)) {
-        safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
-    } else {
-        logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
-    }
+        // The `optional` parameter needs to be of type array, otherwise chrome will throw an error.
+        // Firefox and Safari just ignore it.
+        if (Array.isArray(safeConstraints.optional)) {
+            safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
+        } else {
+            logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
+        }
 
-    this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
+        this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
 
-    this.tpcUtils = new TPCUtils(this, {
-        audioQuality: options.audioQuality,
-        isP2P: this.isP2P,
-        videoQuality: options.videoQuality
-    });
-    this.updateLog = [];
-    this.stats = {};
-    this.statsinterval = null;
-
-    /**
-     * Flag used to indicate if low fps screenshare is desired.
-     */
-    this._capScreenshareBitrate = this.options.capScreenshareBitrate;
-
-    /**
-     * Codec preferences set for the peerconnection through config.js.
-     */
-    this.codecSettings = this.options.codecSettings;
-
-    /**
-     * Flag used to indicate if RTCRtpTransceiver#setCodecPreferences is to be used instead of SDP
-     * munging for codec selection.
-     */
-    browser.supportsCodecPreferences()
-        && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
-
-    /**
-     * Flag used to indicate if the codecs are configured using the codec selection API without having the need to
-     * trigger a renegotiation for the change to be effective.
-     */
-    this._usesCodecSelectionAPI = this.options.usesCodecSelectionAPI;
-
-    /**
-     * Indicates whether an audio track has ever been added to the peer connection.
-     */
-    this._hasHadAudioTrack = false;
-
-    /**
-     * Indicates whether a video track has ever been added to the peer connection.
-     */
-    this._hasHadVideoTrack = false;
-
-    /**
-     * @type {number} The max number of stats to keep in this.stats. Limit to
-     * 300 values, i.e. 5 minutes; set to 0 to disable
-     */
-    this.maxstats = options.maxstats;
-
-    this.simulcast = new SdpSimulcast();
-
-    /**
-     * Munges local SDP provided to the Jingle Session in order to prevent from
-     * sending SSRC updates on attach/detach and mute/unmute (for video).
-     * @type {LocalSdpMunger}
-     */
-    this.localSdpMunger = new LocalSdpMunger(this, this.rtc.getLocalEndpointId());
-
-    /**
-     * TracablePeerConnection uses RTC's eventEmitter
-     * @type {EventEmitter}
-     */
-    this.eventEmitter = rtc.eventEmitter;
-    this.rtxModifier = new RtxModifier();
-
-    /**
-     * The height constraints to be applied on the sender per local video source (source name as the key).
-     * @type {Map<string, number>}
-     */
-    this._senderMaxHeights = new Map();
-
-    /**
-     * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
-     * {@link JitsiLocalTrack.rtcId}.
-     * @type {Map<string, string>}
-     */
-    this.localTrackTransceiverMids = new Map();
-
-    /**
-     * Holds the SSRC map for the local tracks mapped by their source names.
-     *
-     * @type {Map<string, TPCSourceInfo>}
-     * @property {string} msid - The track's MSID.
-     * @property {Array<string>} ssrcs - The SSRCs associated with the track.
-     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
-     */
-    this._localSsrcMap = null;
-
-    /**
-     * Holds the SSRC map for the remote tracks mapped by their source names.
-     *
-     * @type {Map<string, TPCSourceInfo>}
-     * @property {string} mediaType - The media type of the track.
-     * @property {string} msid - The track's MSID.
-     * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
-     * @property {Array<string>} ssrcList - The SSRCs associated with the track.
-     * @property {VideoType} videoType - The videoType of the track (undefined for audio tracks).
-     */
-    this._remoteSsrcMap = new Map();
-
-    // override as desired
-    this.trace = (what, info) => {
-        logger.trace(what, info);
-
-        this.updateLog.push({
-            time: new Date(),
-            type: what,
-            value: info || ''
+        this.tpcUtils = new TPCUtils(this, {
+            audioQuality: options.audioQuality,
+            isP2P: this.isP2P,
+            videoQuality: options.videoQuality
         });
-    };
-    this.onicecandidate = null;
-    this.peerconnection.onicecandidate = event => {
-        this.trace(
-            'onicecandidate',
-            JSON.stringify(event.candidate, null, ' '));
+        this.updateLog = [];
+        this.stats = {};
 
-        if (this.onicecandidate !== null) {
-            this.onicecandidate(event);
-        }
-    };
+        /**
+         * @type {number|null} The interval ID for stats collection.
+         */
+        this.statsinterval = null;
 
-    this.onTrack = evt => {
-        const stream = evt.streams[0];
+        /**
+         * Flag used to indicate if low fps screenshare is desired.
+         */
+        this._capScreenshareBitrate = this.options.capScreenshareBitrate;
 
-        this._remoteTrackAdded(stream, evt.track, evt.transceiver);
-        stream.addEventListener('removetrack', e => {
-            this._remoteTrackRemoved(stream, e.track);
-        });
-    };
-    this.peerconnection.addEventListener('track', this.onTrack);
+        /**
+         * Codec preferences set for the peerconnection through config.js.
+         */
+        this.codecSettings = this.options.codecSettings;
 
-    this.onsignalingstatechange = null;
-    this.peerconnection.onsignalingstatechange = event => {
-        this.trace('onsignalingstatechange', this.signalingState);
-        if (this.onsignalingstatechange !== null) {
-            this.onsignalingstatechange(event);
-        }
-    };
-    this.oniceconnectionstatechange = null;
-    this.peerconnection.oniceconnectionstatechange = event => {
-        this.trace('oniceconnectionstatechange', this.iceConnectionState);
-        if (this.oniceconnectionstatechange !== null) {
-            this.oniceconnectionstatechange(event);
-        }
-    };
-    this.onnegotiationneeded = null;
-    this.peerconnection.onnegotiationneeded = event => {
-        this.trace('onnegotiationneeded');
-        if (this.onnegotiationneeded !== null) {
-            this.onnegotiationneeded(event);
-        }
-    };
-    this.onconnectionstatechange = null;
-    this.peerconnection.onconnectionstatechange = event => {
-        this.trace('onconnectionstatechange', this.connectionState);
-        if (this.onconnectionstatechange !== null) {
-            this.onconnectionstatechange(event);
-        }
-    };
-    this.ondatachannel = null;
-    this.peerconnection.ondatachannel = event => {
-        this.trace('ondatachannel');
-        if (this.ondatachannel !== null) {
-            this.ondatachannel(event);
-        }
-    };
+        /**
+         * Flag used to indicate if RTCRtpTransceiver#setCodecPreferences is to be used instead of SDP
+         * munging for codec selection.
+         */
+        browser.supportsCodecPreferences()
+            && logger.info('Using RTCRtpTransceiver#setCodecPreferences for codec selection');
 
-    if (this.maxstats) {
-        this.statsinterval = window.setInterval(() => {
-            this.getStats().then(stats => {
-                if (typeof stats?.result === 'function') {
-                    const results = stats.result();
+        /**
+         * Flag used to indicate if the codecs are configured using the codec selection API without having the need to
+         * trigger a renegotiation for the change to be effective.
+         */
+        this._usesCodecSelectionAPI = this.options.usesCodecSelectionAPI;
 
-                    for (let i = 0; i < results.length; ++i) {
-                        const res = results[i];
+        /**
+         * Indicates whether an audio track has ever been added to the peer connection.
+         */
+        this._hasHadAudioTrack = false;
 
-                        res.names().forEach(name => {
-                            this._processStat(res, name, res.stat(name));
-                        });
-                    }
-                } else {
-                    stats.forEach(r => this._processStat(r, '', r));
-                }
+        /**
+         * Indicates whether a video track has ever been added to the peer connection.
+         */
+        this._hasHadVideoTrack = false;
+
+        /**
+         * @type {number} The max number of stats to keep in this.stats. Limit to
+         * 300 values, i.e. 5 minutes; set to 0 to disable
+         */
+        this.maxstats = options.maxstats;
+
+        this.simulcast = new SdpSimulcast();
+
+        /**
+         * Munges local SDP provided to the Jingle Session in order to prevent from
+         * sending SSRC updates on attach/detach and mute/unmute (for video).
+         * @type {LocalSdpMunger}
+         */
+        this.localSdpMunger = new LocalSdpMunger(this, this.rtc.getLocalEndpointId());
+
+        /**
+         * TraceablePeerConnection uses RTC's eventEmitter
+         * @type {EventEmitter}
+         */
+        this.eventEmitter = rtc.eventEmitter;
+        this.rtxModifier = new RtxModifier();
+
+        /**
+         * The height constraints to be applied on the sender per local video source (source name as the key).
+         * @type {Map<string, number>}
+         */
+        this._senderMaxHeights = new Map();
+
+        /**
+         * Holds the RTCRtpTransceiver mids that the local tracks are attached to, mapped per their
+         * {@link JitsiLocalTrack.rtcId}.
+         * @type {Map<string, string>}
+         */
+        this.localTrackTransceiverMids = new Map();
+
+        /**
+         * Holds the SSRC map for the local tracks mapped by their source names.
+         *
+         * @type {Map<string, TPCSourceInfo>}
+         * @property {string} msid - The track's MSID.
+         * @property {Array<string>} ssrcs - The SSRCs associated with the track.
+         * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
+         */
+        this._localSsrcMap = null;
+
+        /**
+         * Holds the SSRC map for the remote tracks mapped by their source names.
+         *
+         * @type {Map<string, TPCSourceInfo>}
+         * @property {string} mediaType - The media type of the track.
+         * @property {string} msid - The track's MSID.
+         * @property {Array<TPCGroupInfo>} groups - The SSRC groups associated with the track.
+         * @property {Array<string>} ssrcList - The SSRCs associated with the track.
+         * @property {VideoType} videoType - The videoType of the track (undefined for audio tracks).
+         */
+        this._remoteSsrcMap = new Map();
+
+        // override as desired
+        this.trace = (what, info) => {
+            logger.trace(what, info);
+
+            this.updateLog.push({
+                time: new Date(),
+                type: what,
+                value: info || ''
             });
-        }, 1000);
+        };
+
+        this.onicecandidate = null;
+        this.peerconnection.onicecandidate = event => {
+            this.trace(
+                'onicecandidate',
+                JSON.stringify(event.candidate, null, ' '));
+
+            if (this.onicecandidate !== null) {
+                this.onicecandidate(event);
+            }
+        };
+
+        /**
+         * Handles the 'track' event on the peer connection.
+         * @param {Event} evt - The track event.
+         * @private
+         */
+        this.onTrack = evt => {
+            const stream = evt.streams[0];
+
+            this._remoteTrackAdded(stream, evt.track, evt.transceiver);
+            stream.addEventListener('removetrack', e => {
+                this._remoteTrackRemoved(stream, e.track);
+            });
+        };
+        this.peerconnection.addEventListener('track', this.onTrack);
+
+        this.onsignalingstatechange = null;
+        this.peerconnection.onsignalingstatechange = event => {
+            this.trace('onsignalingstatechange', this.signalingState);
+            if (this.onsignalingstatechange !== null) {
+                this.onsignalingstatechange(event);
+            }
+        };
+
+        this.oniceconnectionstatechange = null;
+        this.peerconnection.oniceconnectionstatechange = event => {
+            this.trace('oniceconnectionstatechange', this.iceConnectionState);
+            if (this.oniceconnectionstatechange !== null) {
+                this.oniceconnectionstatechange(event);
+            }
+        };
+
+        this.onnegotiationneeded = null;
+        this.peerconnection.onnegotiationneeded = event => {
+            this.trace('onnegotiationneeded');
+            if (this.onnegotiationneeded !== null) {
+                this.onnegotiationneeded(event);
+            }
+        };
+
+        this.onconnectionstatechange = null;
+        this.peerconnection.onconnectionstatechange = event => {
+            this.trace('onconnectionstatechange', this.connectionState);
+            if (this.onconnectionstatechange !== null) {
+                this.onconnectionstatechange(event);
+            }
+        };
+
+        this.ondatachannel = null;
+        this.peerconnection.ondatachannel = event => {
+            this.trace('ondatachannel');
+            if (this.ondatachannel !== null) {
+                this.ondatachannel(event);
+            }
+        };
+
+        if (this.maxstats) {
+            this.statsinterval = window.setInterval(() => {
+                this.getStats().then(stats => {
+                    if (typeof stats?.result === 'function') {
+                        const results = stats.result();
+
+                        for (let i = 0; i < results.length; ++i) {
+                            const res = results[i];
+
+                            res.names().forEach(name => {
+                                this._processStat(res, name, res.stat(name));
+                            });
+                        }
+                    } else {
+                        stats.forEach(r => this._processStat(r, '', r));
+                    }
+                });
+            }, 1000);
+        }
+
+        this._lastVideoSenderUpdatePromise = Promise.resolve();
     }
-
-    this._lastVideoSenderUpdatePromise = Promise.resolve();
-
-    logger.info(`Create new ${this}`);
 }
-
 /* eslint-enable max-params */
 
 /**
