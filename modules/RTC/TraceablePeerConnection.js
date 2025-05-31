@@ -996,184 +996,762 @@ export default class TraceablePeerConnection {
 
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
   }
-}
 
-/**
- * Handles remote media track removal.
- *
- * @param {MediaStream} stream - WebRTC MediaStream instance which is the parent of the track.
- * @param {MediaStreamTrack} track - WebRTC MediaStreamTrack which has been removed from the PeerConnection.
- * @returns {void}
- */
-TraceablePeerConnection.prototype._remoteTrackRemoved = function(stream, track) {
-    const streamId = stream.id;
-    const trackId = track?.id;
-
-    // Ignore stream removed events for JVB "mixed" sources (used for RTCP termination).
-    if (!RTCUtils.isUserStreamById(streamId)) {
-        return;
-    }
-
-    if (!streamId) {
-        logger.error(`${this} remote track removal failed - no stream ID`);
-
-        return;
-    }
-
-    if (!trackId) {
-        logger.error(`${this} remote track removal failed - no track ID`);
-
-        return;
-    }
-
-    const toBeRemoved = this.getRemoteTracks().find(
-        remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
-
-    if (!toBeRemoved) {
-        logger.error(`${this} remote track removal failed - track not found`);
-
-        return;
-    }
-
-    this._removeRemoteTrack(toBeRemoved);
-};
-
-/**
- * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits {@link RTCEvents.REMOTE_TRACK_REMOVED}.
- *
- * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
- * @returns {void}
- */
-TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
-    logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
-        + `trackId=${toBeRemoved.getTrackId()}]`);
-
-    toBeRemoved.dispose();
-    const participantId = toBeRemoved.getParticipantId();
-
-    if (FeatureFlags.isSsrcRewritingSupported() && !participantId) {
-        return;
-    } else if (!FeatureFlags.isSsrcRewritingSupported()) {
-        const userTracksByMediaType = this.remoteTracks.get(participantId);
-
-        if (!userTracksByMediaType) {
-            logger.error(`${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`);
-        } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
-            logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
-        }
-    }
-
-    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
-};
-
-/**
- * Processes the local SDP and creates an SSRC map for every local track.
- *
- * @param {string} localSDP - SDP from the local description.
- * @returns {void}
- */
-TraceablePeerConnection.prototype._processAndExtractSourceInfo = function(localSDP) {
-    /**
-     * @type {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
+  /**
+     * Handles remote media track removal.
+     *
+     * @param {MediaStream} stream - WebRTC MediaStream instance which is the parent of the track.
+     * @param {MediaStreamTrack} track - WebRTC MediaStreamTrack which has been removed from the PeerConnection.
+     * @returns {void}
      */
-    const ssrcMap = new Map();
+    _remoteTrackRemoved(stream, track) {
+        const streamId = stream.id;
+        const trackId = track?.id;
 
-    if (!localSDP || typeof localSDP !== 'string') {
-        throw new Error('Local SDP must be a valid string, aborting!!');
+        // Ignore stream removed events for JVB "mixed" sources (used for RTCP termination).
+        if (!RTCUtils.isUserStreamById(streamId)) {
+            return;
+        }
+
+        if (!streamId) {
+            this.logger.error(`${this} remote track removal failed - no stream ID`);
+            return;
+        }
+
+        if (!trackId) {
+            this.logger.error(`${this} remote track removal failed - no track ID`);
+            return;
+        }
+
+        const toBeRemoved = this.getRemoteTracks().find(
+            remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
+
+        if (!toBeRemoved) {
+            this.logger.error(`${this} remote track removal failed - track not found`);
+            return;
+        }
+
+        this._removeRemoteTrack(toBeRemoved);
     }
-    const session = transform.parse(localSDP);
-    const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
-        || mline.direction === MediaDirection.SENDRECV);
 
-    if (!media.length) {
+    /**
+     * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits {@link RTCEvents.REMOTE_TRACK_REMOVED}.
+     *
+     * @param {JitsiRemoteTrack} toBeRemoved - The remote track to be removed.
+     * @returns {void}
+     */
+    _removeRemoteTrack(toBeRemoved) {
+        this.logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
+            + `trackId=${toBeRemoved.getTrackId()}]`);
+
+        toBeRemoved.dispose();
+        const participantId = toBeRemoved.getParticipantId();
+
+        if (FeatureFlags.isSsrcRewritingSupported() && !participantId) {
+            return;
+        } else if (!FeatureFlags.isSsrcRewritingSupported()) {
+            const userTracksByMediaType = this.remoteTracks.get(participantId);
+
+            if (!userTracksByMediaType) {
+                this.logger.error(`${this} removeRemoteTrack: no remote tracks map for endpoint=${participantId}`);
+            } else if (!userTracksByMediaType.get(toBeRemoved.getType())?.delete(toBeRemoved)) {
+                this.logger.error(`${this} Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+            }
+        }
+
+        this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+    }
+
+    /**
+     * Processes the local SDP and creates an SSRC map for every local track.
+     *
+     * @param {string} localSDP - SDP from the local description.
+     * @returns {void}
+     * @throws {Error} If localSDP is not a valid string.
+     */
+    _processAndExtractSourceInfo(localSDP) {
+        /**
+         * @type {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
+         */
+        const ssrcMap = new Map();
+
+        if (!localSDP || typeof localSDP !== 'string') {
+            throw new Error('Local SDP must be a valid string, aborting!!');
+        }
+        const session = transform.parse(localSDP);
+        const media = session.media.filter(mline => mline.direction === MediaDirection.SENDONLY
+            || mline.direction === MediaDirection.SENDRECV);
+
+        if (!media.length) {
+            this._localSsrcMap = ssrcMap;
+            return;
+        }
+
+        for (const localTrack of this.localTracks.values()) {
+            const sourceName = localTrack.getSourceName();
+            const trackIndex = getSourceIndexFromSourceName(sourceName);
+            const mediaType = localTrack.getType();
+            const mLines = media.filter(m => m.type === mediaType);
+            const ssrcGroups = mLines[trackIndex].ssrcGroups;
+            let ssrcs = mLines[trackIndex].ssrcs;
+
+            if (ssrcs?.length) {
+                // Filter the ssrcs with 'cname' attribute.
+                ssrcs = ssrcs.filter(s => s.attribute === 'cname');
+
+                const msid = `${this.rtc.getLocalEndpointId()}-${mediaType}-${trackIndex}`;
+                const ssrcInfo = {
+                    ssrcs: [],
+                    groups: [],
+                    msid
+                };
+
+                ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
+
+                if (ssrcGroups?.length) {
+                    for (const group of ssrcGroups) {
+                        group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
+                        ssrcInfo.groups.push(group);
+                    }
+
+                    const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
+
+                    // Add a SIM group if its missing in the description (happens on Firefox).
+                    if (this.isSpatialScalabilityOn() && !simGroup) {
+                        const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
+
+                        ssrcInfo.groups.push({
+                            semantics: SSRC_GROUP_SEMANTICS.SIM,
+                            ssrcs: groupSsrcs
+                        });
+                    }
+                }
+
+                ssrcMap.set(sourceName, ssrcInfo);
+
+                const oldSsrcInfo = this.localSSRCs.get(localTrack.rtcId);
+                const oldSsrc = this._extractPrimarySSRC(oldSsrcInfo);
+                const newSsrc = this._extractPrimarySSRC(ssrcInfo);
+
+                if (oldSsrc !== newSsrc) {
+                    oldSsrc && this.logger.debug(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
+                    this.localSSRCs.set(localTrack.rtcId, ssrcInfo);
+                    localTrack.setSsrc(newSsrc);
+                }
+            }
+        }
         this._localSsrcMap = ssrcMap;
-
-        return;
     }
 
-    for (const localTrack of this.localTracks.values()) {
-        const sourceName = localTrack.getSourceName();
-        const trackIndex = getSourceIndexFromSourceName(sourceName);
-        const mediaType = localTrack.getType();
-        const mLines = media.filter(m => m.type === mediaType);
-        const ssrcGroups = mLines[trackIndex].ssrcGroups;
-        let ssrcs = mLines[trackIndex].ssrcs;
+    /**
+     * Gets the primary SSRC for a given local track.
+     *
+     * @param {JitsiLocalTrack} localTrack - The local track.
+     * @returns {number|null} The primary SSRC or null if not found.
+     */
+    getLocalSSRC(localTrack) {
+        const ssrcInfo = this._getSSRC(localTrack.rtcId);
+        return ssrcInfo && ssrcInfo.ssrcs[0];
+    }
 
-        if (ssrcs?.length) {
-            // Filter the ssrcs with 'cname' attribute.
-            ssrcs = ssrcs.filter(s => s.attribute === 'cname');
+    /**
+     * Gets the SSRC information for a given track RTC ID.
+     *
+     * @param {number} rtcId - The RTC ID of the track.
+     * @returns {Object|null} The SSRC information or null if not found.
+     * @private
+     */
+    _getSSRC(rtcId) {
+        return this.localSSRCs.get(rtcId);
+    }
 
-            const msid = `${this.rtc.getLocalEndpointId()}-${mediaType}-${trackIndex}`;
-            const ssrcInfo = {
-                ssrcs: [],
-                groups: [],
-                msid
+    /**
+     * Checks if low fps screensharing is in progress.
+     *
+     * @private
+     * @returns {boolean} Returns true if 5 fps screensharing is in progress, false otherwise.
+     */
+    isSharingLowFpsScreen() {
+        return this._isSharingScreen() && this._capScreenshareBitrate;
+    }
+
+    /**
+     * Checks if screensharing is in progress.
+     *
+     * @returns {boolean} Returns true if a desktop track has been added to the peerconnection, false otherwise.
+     */
+    _isSharingScreen() {
+        const tracks = this.getLocalVideoTracks();
+        return Boolean(tracks.find(track => track.videoType === VideoType.DESKTOP));
+    }
+
+    /**
+     * Add {@link JitsiLocalTrack} to this TPC.
+     * @param {JitsiLocalTrack} track - The local track to add.
+     * @param {boolean} isInitiator - Indicates if the endpoint is the offerer.
+     * @returns {Promise<void>} Resolved when done.
+     */
+    async addTrack(track, isInitiator = false) {
+        const rtcId = track.rtcId;
+
+        if (this.localTracks.has(rtcId)) {
+            throw new Error(`${track} is already in ${this}`);
+        }
+
+        this.logger.info(`${this} adding ${track}`);
+        const webrtcStream = track.getOriginalStream();
+        const mediaStreamTrack = track.getTrack();
+        let transceiver;
+
+        if (isInitiator) {
+            const streams = [];
+            webrtcStream && streams.push(webrtcStream);
+
+            // Use pc.addTransceiver() for the initiator case when local tracks are getting added
+            // to the peerconnection before a session-initiate is sent over to the peer.
+            const transceiverInit = {
+                direction: MediaDirection.SENDRECV,
+                streams,
+                sendEncodings: []
             };
 
-            ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
-
-            if (ssrcGroups?.length) {
-                for (const group of ssrcGroups) {
-                    group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
-                    ssrcInfo.groups.push(group);
-                }
-
-                const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
-
-                // Add a SIM group if its missing in the description (happens on Firefox).
-                if (this.isSpatialScalabilityOn() && !simGroup) {
-                    const groupSsrcs = ssrcGroups.map(group => group.ssrcs[0]);
-
-                    ssrcInfo.groups.push({
-                        semantics: SSRC_GROUP_SEMANTICS.SIM,
-                        ssrcs: groupSsrcs
-                    });
-                }
+            if (!browser.isFirefox()) {
+                transceiverInit.sendEncodings = this.tpcUtils.getStreamEncodings(track);
             }
 
-            ssrcMap.set(sourceName, ssrcInfo);
+            transceiver = this.peerconnection.addTransceiver(mediaStreamTrack, transceiverInit);
+        } else {
+            // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
+            // when setRemoteDescription was called. pc.addTrack() automatically attaches to any existing
+            // unused "recv-only" transceiver.
+            const sender = this.peerconnection.addTrack(mediaStreamTrack);
 
-            const oldSsrcInfo = this.localSSRCs.get(localTrack.rtcId);
-            const oldSsrc = this._extractPrimarySSRC(oldSsrcInfo);
-            const newSsrc = this._extractPrimarySSRC(ssrcInfo);
+            // Find the corresponding transceiver that the track was attached to.
+            transceiver = this.peerconnection.getTransceivers().find(t => t.sender === sender);
+        }
 
-            if (oldSsrc !== newSsrc) {
-                oldSsrc && logger.debug(`${this} Overwriting SSRC for track=${localTrack}] with ssrc=${newSsrc}`);
-                this.localSSRCs.set(localTrack.rtcId, ssrcInfo);
-                localTrack.setSsrc(newSsrc);
+        if (transceiver?.mid) {
+            this.localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
+        }
+
+        if (track) {
+            this.localTracks.set(rtcId, track);
+            if (track.isAudioTrack()) {
+                this._hasHadAudioTrack = true;
+            } else {
+                this._hasHadVideoTrack = true;
+            }
+        }
+
+        // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
+        if (browser.isFirefox() && webrtcStream && this.doesTrueSimulcast(track)) {
+            await this._setEncodings(track);
+        }
+    }
+
+    /**
+     * Adds local track to the RTCPeerConnection.
+     *
+     * @param {JitsiLocalTrack} track - The track to be added to the pc.
+     * @returns {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
+     * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
+     */
+    addTrackToPc(track) {
+        this.logger.info(`${this} Adding track=${track} to PC`);
+
+        if (!this._assertTrackBelongs('addTrackToPc', track)) {
+            // Abort
+            return Promise.reject('Track not found on the peerconnection');
+        }
+
+        const webRtcStream = track.getOriginalStream();
+
+        if (!webRtcStream) {
+            this.logger.error(`${this} Unable to add track=${track} to PC - no WebRTC stream`);
+            return Promise.reject('Stream not found');
+        }
+
+        return this.replaceTrack(null, track, true /* isMuteOperation */).then(() => {
+            if (track) {
+                if (track.isAudioTrack()) {
+                    this._hasHadAudioTrack = true;
+                } else {
+                    this._hasHadVideoTrack = true;
+                }
+            }
+            return false;
+        });
+    }
+
+    /**
+     * This method when called will check if given <tt>localTrack</tt> belongs to
+     * this TPC (that it has been previously added using {@link addTrack}). If the
+     * track does not belong an error message will be logged.
+     * @param {string} methodName - The method name that will be logged in an error message.
+     * @param {JitsiLocalTrack} localTrack - The local track to check.
+     * @returns {boolean} <tt>true</tt> if given local track belongs to this TPC or <tt>false</tt> otherwise.
+     * @private
+     */
+    _assertTrackBelongs(methodName, localTrack) {
+        const doesBelong = this.localTracks.has(localTrack?.rtcId);
+
+        if (!doesBelong) {
+            this.logger.error(`${this} ${methodName}: track=${localTrack} does not belong to pc`);
+        }
+
+        return doesBelong;
+    }
+
+    /**
+     * Returns the codecs in the current order of preference as configured on the peerconnection.
+     *
+     * @param {RTCSessionDescription} description - The local description to be used.
+     * @returns {Array} The list of configured video codecs.
+     */
+    getConfiguredVideoCodecs(description) {
+        return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
+    }
+
+    /**
+     * Enables or disables simulcast for screenshare based on the frame rate requested for desktop track capture.
+     *
+     * @param {number} maxFps - Framerate to be used for desktop track capture.
+     * @returns {void}
+     */
+    setDesktopSharingFrameRate(maxFps) {
+        const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
+        this._capScreenshareBitrate = this.isSpatialScalabilityOn() && lowFps;
+    }
+
+    /**
+     * Sets the codec preference on the peerconnection. The codec preference goes into effect when
+     * the next renegotiation happens for older clients that do not support the codec selection API.
+     *
+     * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
+     * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
+     * @returns {boolean} Returns true if the codec settings were updated, false otherwise.
+     */
+    setVideoCodecs(codecList, screenshareCodec) {
+        let updated = false;
+
+        if (!this.codecSettings || !codecList?.length) {
+            return updated;
+        }
+
+        this.codecSettings.codecList = codecList;
+        if (screenshareCodec) {
+            this.codecSettings.screenshareCodec = screenshareCodec;
+        }
+
+        if (!this.usesCodecSelectionAPI()) {
+            return updated;
+        }
+
+        for (const track of this.getLocalVideoTracks()) {
+            const currentCodec = this.tpcUtils.getConfiguredVideoCodec(track);
+
+            if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
+                this.configureVideoSenderEncodings(track, screenshareCodec);
+                updated = true;
+            } else if (currentCodec !== codecList[0]) {
+                this.configureVideoSenderEncodings(track);
+                updated = true;
+            }
+        }
+
+        return updated;
+    }
+
+    /**
+     * Remove local track from this TPC.
+     * @param {JitsiLocalTrack} localTrack - The track to be removed from this TPC.
+     * @returns {void}
+     */
+    removeTrack(localTrack) {
+        const webRtcStream = localTrack.getOriginalStream();
+
+        this.trace(
+            'removeStream',
+            localTrack.rtcId, webRtcStream ? webRtcStream.id : undefined);
+
+        if (!this._assertTrackBelongs('removeStream', localTrack)) {
+            // Abort - nothing to be done here
+            return;
+        }
+        this.localTracks.delete(localTrack.rtcId);
+        this.localSSRCs.delete(localTrack.rtcId);
+
+        if (webRtcStream) {
+            this.peerconnection.removeStream(webRtcStream);
+        }
+    }
+
+    /**
+     * Returns the receiver corresponding to the given MediaStreamTrack.
+     *
+     * @param {MediaStreamTrack} track - The media stream track used for the search.
+     * @returns {RTCRtpReceiver|undefined} The found receiver or undefined if no receiver was found.
+     */
+    findReceiverForTrack(track) {
+        return this.peerconnection.getReceivers().find(r => r.track === track);
+    }
+
+    /**
+     * Returns the sender corresponding to the given MediaStreamTrack.
+     *
+     * @param {MediaStreamTrack} track - The media stream track used for the search.
+     * @returns {RTCRtpSender|undefined} The found sender or undefined if no sender was found.
+     */
+    findSenderForTrack(track) {
+        return this.peerconnection.getSenders().find(s => s.track === track);
+    }
+
+    /**
+     * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
+     *
+     * @param {Array<JitsiLocalTrack>} localTracks - Local tracks that are added to the peerconnection.
+     * @returns {void}
+     */
+    processLocalSdpForTransceiverInfo(localTracks) {
+        const localSdp = this.localDescription?.sdp;
+
+        if (!localSdp) {
+            return;
+        }
+
+        [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+            const tracks = localTracks.filter(t => t.getType() === mediaType);
+            const parsedSdp = transform.parse(localSdp);
+            const mLines = parsedSdp.media.filter(mline => mline.type === mediaType);
+
+            tracks.forEach((track, idx) => {
+                if (!this.localTrackTransceiverMids.has(track.rtcId)) {
+                    this.localTrackTransceiverMids.set(track.rtcId, mLines[idx].mid.toString());
+                }
+            });
+        });
+    }
+
+    /**
+     * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
+     * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
+     * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
+     * <tt>oldTrack</tt>
+     *
+     * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be replaced on the pc.
+     * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
+     * @param {boolean} isMuteOperation - Whether the operation is a mute/unmute operation.
+     * @returns {Promise<boolean>} If the promise resolves with true, renegotiation will be needed.
+     * Otherwise no renegotiation is needed.
+     */
+    async replaceTrack(oldTrack, newTrack, isMuteOperation = false) {
+        if (!(oldTrack || newTrack)) {
+            this.logger.info(`${this} replaceTrack called with no new track and no old track`);
+            return Promise.resolve();
+        }
+
+        this.logger.info(`${this} TPC.replaceTrack old=${oldTrack}, new=${newTrack}`);
+
+        let transceiver;
+        const mediaType = newTrack?.getType() ?? oldTrack?.getType();
+        const localTracks = this.getLocalTracks(mediaType);
+        const track = newTrack?.getTrack() ?? null;
+        const isNewLocalSource = localTracks?.length
+            && !oldTrack
+            && newTrack
+            && !localTracks.find(t => t === newTrack);
+
+        // If old track exists, replace the track on the corresponding sender.
+        if (oldTrack && !oldTrack.isMuted()) {
+            transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
+
+        // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
+        // As part of the track addition, a new m-line was added to the remote description with direction set to
+        // recvonly.
+        } else if (isNewLocalSource) {
+            transceiver = this.peerconnection.getTransceivers().find(
+                t => t.receiver.track.kind === mediaType
+                && t.direction === MediaDirection.RECVONLY
+                // Re-use any existing recvonly transceiver (if available) for p2p case.
+                && ((this.isP2P && t.currentDirection === MediaDirection.RECVONLY)
+                    || (t.currentDirection === MediaDirection.INACTIVE && !t.stopped)));
+
+        // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
+        // otherwise it is assumed to be the first local track that was added to the peerconnection.
+        } else {
+            transceiver = this.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
+            const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
+
+            if (sourceName) {
+                const trackIndex = getSourceIndexFromSourceName(sourceName);
+
+                if (this.isP2P) {
+                    transceiver = this.peerconnection.getTransceivers()
+                        .filter(t => t.receiver.track.kind === mediaType)[trackIndex];
+                } else if (oldTrack) {
+                    const transceiverMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
+                    transceiver = this.peerconnection.getTransceivers().find(t => t.mid === transceiverMid);
+                } else if (trackIndex) {
+                    transceiver = this.peerconnection.getTransceivers()
+                        .filter(t => t.receiver.track.kind === mediaType
+                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
+                }
+            }
+        }
+
+        if (!transceiver) {
+            return Promise.reject(
+                new Error(`Replace track failed - no transceiver for old: ${oldTrack}, new: ${newTrack}`));
+        }
+
+        return transceiver.sender.replaceTrack(track)
+            .then(() => {
+                if (isMuteOperation) {
+                    return Promise.resolve();
+                }
+                if (oldTrack) {
+                    this.localTracks.delete(oldTrack.rtcId);
+                    this.localTrackTransceiverMids.delete(oldTrack.rtcId);
+                }
+
+                if (newTrack) {
+                    if (newTrack.isAudioTrack()) {
+                        this._hasHadAudioTrack = true;
+                    } else {
+                        this._hasHadVideoTrack = true;
+                    }
+                    this.localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
+                    this.localTracks.set(newTrack.rtcId, newTrack);
+                }
+
+                // Update the local SSRC cache for the case when one track gets replaced with another and no
+                // renegotiation is triggered as a result of this.
+                if (oldTrack && newTrack) {
+                    const oldTrackSSRC = this.localSSRCs.get(oldTrack.rtcId);
+
+                    if (oldTrackSSRC) {
+                        this.localSSRCs.delete(oldTrack.rtcId);
+                        this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
+                        const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
+                        newTrack.setSsrc(oldSsrcNum);
+                    }
+                }
+
+                // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
+                // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
+                // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
+                // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
+                // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
+                // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
+                // be reused on a new m-line and if the remote participant is FF due to
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
+                // That's why we need keep the direction to SENDRECV for FF.
+                //
+                // NOTE: If we return to the approach of not removing the track for FF and instead using the
+                // enabled property for muting the track, we may need to change the direction to
+                // RECVONLY if FF still sends the media even though the enabled flag is set to false.
+                transceiver.direction
+                    = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+
+                // Configure simulcast encodings on Firefox when a track is added to the peerconnection for the first time.
+                const configureEncodingsPromise
+                    = browser.isFirefox() && !oldTrack && newTrack && this.doesTrueSimulcast(newTrack)
+                        ? this._setEncodings(newTrack)
+                        : Promise.resolve();
+
+                return configureEncodingsPromise.then(() => this.isP2P);
+            });
+    }
+
+    /**
+     * Removes local track from the RTCPeerConnection.
+     *
+     * @param {JitsiLocalTrack} localTrack - The local track to be removed.
+     * @returns {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
+     * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
+     */
+    removeTrackFromPc(localTrack) {
+        const webRtcStream = localTrack.getOriginalStream();
+
+        this.trace('removeTrack', localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
+
+        if (!this._assertTrackBelongs('removeTrack', localTrack)) {
+            // Abort - nothing to be done here
+            return Promise.reject('Track not found in the peerconnection');
+        }
+
+        return this.replaceTrack(localTrack, null, true /* isMuteOperation */).then(() => false);
+    }
+
+    /**
+     * Updates the remote source map with the given source map for adding or removing sources.
+     *
+     * @param {Map<string, TPCSourceInfo>} sourceMap - The map of source names to their corresponding SSRCs.
+     * @param {boolean} isAdd - Whether the sources are being added or removed.
+     * @returns {void}
+     */
+    updateRemoteSources(sourceMap, isAdd) {
+        for (const [ sourceName, ssrcInfo ] of sourceMap) {
+            if (isAdd) {
+                this._remoteSsrcMap.set(sourceName, ssrcInfo);
+            } else {
+                this._remoteSsrcMap.delete(sourceName);
             }
         }
     }
-    this._localSsrcMap = ssrcMap;
-};
 
-/**
- *
- * @param {JitsiLocalTrack} localTrack
- */
-TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
-    const ssrcInfo = this._getSSRC(localTrack.rtcId);
+    /**
+     * Returns true if the codec selection API is used for switching between codecs for the video sources.
+     *
+     * @returns {boolean}
+     */
+    usesCodecSelectionAPI() {
+        // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to be
+        // selected.
+        // TODO: Remove this check when the above issue is fixed.
+        return this._usesCodecSelectionAPI && this.codecSettings.codecList[0] !== CodecMimeType.H264;
+    }
 
-    return ssrcInfo && ssrcInfo.ssrcs[0];
-};
+    /**
+     * Creates a data channel on the peerconnection.
+     *
+     * @param {string} label - The label for the data channel.
+     * @param {Object} opts - Options for the data channel.
+     * @returns {RTCDataChannel} The created data channel.
+     */
+    createDataChannel(label, opts) {
+        this.trace('createDataChannel', label, opts);
+        return this.peerconnection.createDataChannel(label, opts);
+    }
 
-/* eslint-disable-next-line vars-on-top */
-const getters = {
-    signalingState() {
+    /**
+     * Adjusts the media direction on the remote description based on availability of local and remote sources in a p2p
+     * media connection.
+     *
+     * @param {RTCSessionDescription} remoteDescription - The WebRTC session description instance for the remote description.
+     * @returns {RTCSessionDescription} The transformed remoteDescription.
+     * @private
+     */
+    _adjustRemoteMediaDirection(remoteDescription) {
+        const transformer = new SdpTransformWrap(remoteDescription.sdp);
+
+        [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
+            const media = transformer.selectMedia(mediaType);
+            const localSources = this.getLocalTracks(mediaType).length;
+            const remoteSources = this.getRemoteTracks(null, mediaType).length;
+
+            media.forEach((mLine, idx) => {
+                if (localSources && localSources === remoteSources) {
+                    mLine.direction = MediaDirection.SENDRECV;
+                } else if (!localSources && !remoteSources) {
+                    mLine.direction = MediaDirection.INACTIVE;
+                } else if (!localSources) {
+                    mLine.direction = MediaDirection.SENDONLY;
+                } else if (!remoteSources) {
+                    mLine.direction = MediaDirection.RECVONLY;
+                // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
+                // the second one needs to be set to 'recvonly'.
+                } else if (localSources > remoteSources) {
+                    mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
+                // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
+                // the second one needs to be set to 'sendonly'.
+                } else {
+                    mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
+                }
+            });
+        });
+
+        return {
+            type: remoteDescription.type,
+            sdp: transformer.toRawSDP()
+        };
+    }
+
+    /**
+     * Returns the codec to be used for screenshare based on the supported codecs and the preferred codec requested
+     * through config.js setting.
+     *
+     * @param {CodecMimeType} defaultCodec - The preferred codec for video tracks.
+     * @returns {CodecMimeType} The codec to be used for screenshare.
+     */
+    _getPreferredCodecForScreenshare(defaultCodec) {
+        // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
+        if (!this.usesCodecSelectionAPI()) {
+            return defaultCodec;
+        }
+
+        const { screenshareCodec } = this.codecSettings;
+
+        if (screenshareCodec && this.codecSettings.codecList.find(c => c === screenshareCodec)) {
+            return screenshareCodec;
+        }
+
+        // Default to AV1 for screenshare if its supported and is not overriden through config.js.
+        if (this.codecSettings.codecList.find(c => c === CodecMimeType.AV1)) {
+            return CodecMimeType.AV1;
+        }
+
+        return defaultCodec;
+    }
+
+    /**
+     * Sets up the _dtlsTransport object and initializes callbacks for it.
+     * @returns {void}
+     */
+    _initializeDtlsTransport() {
+        // We are assuming here that we only have one bundled transport here
+        if (!this.peerconnection.getSenders || this._dtlsTransport) {
+            return;
+        }
+
+        const senders = this.peerconnection.getSenders();
+
+        if (senders.length !== 0 && senders[0].transport) {
+            this._dtlsTransport = senders[0].transport;
+
+            this._dtlsTransport.onerror = error => {
+                this.logger.error(`${this} DtlsTransport error: ${error}`);
+            };
+
+            this._dtlsTransport.onstatechange = () => {
+                this.trace('dtlsTransport.onstatechange', this._dtlsTransport.state);
+            };
+        }
+    }
+
+    /**
+     * Gets the signaling state of the peerconnection.
+     * @returns {string} The signaling state.
+     */
+    get signalingState() {
         return this.peerconnection.signalingState;
-    },
-    iceConnectionState() {
+    }
+
+    /**
+     * Gets the ICE connection state of the peerconnection.
+     * @returns {string} The ICE connection state.
+     */
+    get iceConnectionState() {
         return this.peerconnection.iceConnectionState;
-    },
-    connectionState() {
+    }
+
+    /**
+     * Gets the connection state of the peerconnection.
+     * @returns {string} The connection state.
+     */
+    get connectionState() {
         return this.peerconnection.connectionState;
-    },
-    localDescription() {
+    }
+
+    /**
+     * Gets the local description of the peerconnection.
+     * @returns {RTCSessionDescription|Object} The local description or an empty object if none exists.
+     */
+    get localDescription() {
         let desc = this.peerconnection.localDescription;
 
         if (!desc) {
-            logger.debug(`${this} getLocalDescription no localDescription found`);
-
+            this.logger.debug(`${this} getLocalDescription no localDescription found`);
             return {};
         }
 
@@ -1188,13 +1766,17 @@ const getters = {
         desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
 
         return desc;
-    },
-    remoteDescription() {
+    }
+
+    /**
+     * Gets the remote description of the peerconnection.
+     * @returns {RTCSessionDescription|Object} The remote description or an empty object if none exists.
+     */
+    get remoteDescription() {
         let desc = this.peerconnection.remoteDescription;
 
         if (!desc) {
-            logger.debug(`${this} getRemoteDescription no remoteDescription found`);
-
+            this.logger.debug(`${this} getRemoteDescription no remoteDescription found`);
             return {};
         }
         this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
@@ -1206,586 +1788,8 @@ const getters = {
 
         return desc;
     }
-};
+}
 
-Object.keys(getters).forEach(prop => {
-    Object.defineProperty(
-        TraceablePeerConnection.prototype,
-        prop, {
-            get: getters[prop]
-        }
-    );
-});
-
-TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
-    return this.localSSRCs.get(rtcId);
-};
-
-/**
- * Checks if low fps screensharing is in progress.
- *
- * @private
- * @returns {boolean} Returns true if 5 fps screensharing is in progress, false otherwise.
- */
-TraceablePeerConnection.prototype.isSharingLowFpsScreen = function() {
-    return this._isSharingScreen() && this._capScreenshareBitrate;
-};
-
-/**
- * Checks if screensharing is in progress.
- *
- * @returns {boolean}  Returns true if a desktop track has been added to the peerconnection, false otherwise.
- */
-TraceablePeerConnection.prototype._isSharingScreen = function() {
-    const tracks = this.getLocalVideoTracks();
-
-    return Boolean(tracks.find(track => track.videoType === VideoType.DESKTOP));
-};
-
-/**
- * Add {@link JitsiLocalTrack} to this TPC.
- * @param {JitsiLocalTrack} track
- * @param {boolean} isInitiator indicates if the endpoint is the offerer.
- * @returns {Promise<void>} - resolved when done.
- */
-TraceablePeerConnection.prototype.addTrack = async function(track, isInitiator = false) {
-    const rtcId = track.rtcId;
-
-    if (this.localTracks.has(rtcId)) {
-        throw new Error(`${track} is already in ${this}`);
-    }
-
-    logger.info(`${this} adding ${track}`);
-    const webrtcStream = track.getOriginalStream();
-    const mediaStreamTrack = track.getTrack();
-    let transceiver;
-
-    if (isInitiator) {
-        const streams = [];
-
-        webrtcStream && streams.push(webrtcStream);
-
-        // Use pc.addTransceiver() for the initiator case when local tracks are getting added
-        // to the peerconnection before a session-initiate is sent over to the peer.
-        const transceiverInit = {
-            direction: MediaDirection.SENDRECV,
-            streams,
-            sendEncodings: []
-        };
-
-        if (!browser.isFirefox()) {
-            transceiverInit.sendEncodings = this.tpcUtils.getStreamEncodings(track);
-        }
-
-        transceiver = this.peerconnection.addTransceiver(mediaStreamTrack, transceiverInit);
-    } else {
-        // Use pc.addTrack() for responder case so that we can re-use the m-lines that were created
-        // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
-        // unused "recv-only" transceiver.
-        const sender = this.peerconnection.addTrack(mediaStreamTrack);
-
-        // Find the corresponding transceiver that the track was attached to.
-        transceiver = this.peerconnection.getTransceivers().find(t => t.sender === sender);
-    }
-
-    if (transceiver?.mid) {
-        this.localTrackTransceiverMids.set(track.rtcId, transceiver.mid.toString());
-    }
-
-    if (track) {
-        this.localTracks.set(rtcId, track);
-        if (track.isAudioTrack()) {
-            this._hasHadAudioTrack = true;
-        } else {
-            this._hasHadVideoTrack = true;
-        }
-    }
-
-    // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
-    if (browser.isFirefox() && webrtcStream && this.doesTrueSimulcast(track)) {
-        await this._setEncodings(track);
-    }
-};
-
-/**
- * Adds local track to the RTCPeerConnection.
- *
- * @param {JitsiLocalTrack} track the track to be added to the pc.
- * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
- * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
- */
-TraceablePeerConnection.prototype.addTrackToPc = function(track) {
-    logger.info(`${this} Adding track=${track} to PC`);
-
-    if (!this._assertTrackBelongs('addTrackToPc', track)) {
-        // Abort
-
-        return Promise.reject('Track not found on the peerconnection');
-    }
-
-    const webRtcStream = track.getOriginalStream();
-
-    if (!webRtcStream) {
-        logger.error(`${this} Unable to add track=${track} to PC - no WebRTC stream`);
-
-        return Promise.reject('Stream not found');
-    }
-
-    return this.replaceTrack(null, track, true /* isMuteOperation */).then(() => {
-        if (track) {
-            if (track.isAudioTrack()) {
-                this._hasHadAudioTrack = true;
-            } else {
-                this._hasHadVideoTrack = true;
-            }
-        }
-
-        return false;
-    });
-};
-
-/**
- * This method when called will check if given <tt>localTrack</tt> belongs to
- * this TPC (that it has been previously added using {@link addTrack}). If the
- * track does not belong an error message will be logged.
- * @param {string} methodName the method name that will be logged in an error
- * message
- * @param {JitsiLocalTrack} localTrack
- * @return {boolean} <tt>true</tt> if given local track belongs to this TPC or
- * <tt>false</tt> otherwise.
- * @private
- */
-TraceablePeerConnection.prototype._assertTrackBelongs = function(
-        methodName,
-        localTrack) {
-    const doesBelong = this.localTracks.has(localTrack?.rtcId);
-
-    if (!doesBelong) {
-        logger.error(`${this} ${methodName}: track=${localTrack} does not belong to pc`);
-    }
-
-    return doesBelong;
-};
-
-/**
- * Returns the codecs in the current order of preference as configured on the peerconnection.
- *
- * @param {RTCSessionDescription} - The local description to be used.
- * @returns {Array}
- */
-TraceablePeerConnection.prototype.getConfiguredVideoCodecs = function(description) {
-    return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
-};
-
-/**
- * Enables or disables simulcast for screenshare based on the frame rate requested for desktop track capture.
- *
- * @param {number} maxFps framerate to be used for desktop track capture.
- */
-TraceablePeerConnection.prototype.setDesktopSharingFrameRate = function(maxFps) {
-    const lowFps = maxFps <= SS_DEFAULT_FRAME_RATE;
-
-    this._capScreenshareBitrate = this.isSpatialScalabilityOn() && lowFps;
-};
-
-/**
- * Sets the codec preference on the peerconnection. The codec preference goes into effect when
- * the next renegotiation happens for older clients that do not support the codec selection API.
- *
- * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
- * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
- * @returns {boolean} - Returns true if the codec settings were updated, false otherwise.
- */
-TraceablePeerConnection.prototype.setVideoCodecs = function(codecList, screenshareCodec) {
-    let updated = false;
-
-    if (!this.codecSettings || !codecList?.length) {
-        return updated;
-    }
-
-    this.codecSettings.codecList = codecList;
-    if (screenshareCodec) {
-        this.codecSettings.screenshareCodec = screenshareCodec;
-    }
-
-    if (!this.usesCodecSelectionAPI()) {
-        return updated;
-    }
-
-    for (const track of this.getLocalVideoTracks()) {
-        const currentCodec = this.tpcUtils.getConfiguredVideoCodec(track);
-
-        if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
-            this.configureVideoSenderEncodings(track, screenshareCodec);
-            updated = true;
-        } else if (currentCodec !== codecList[0]) {
-            this.configureVideoSenderEncodings(track);
-            updated = true;
-        }
-    }
-
-    return updated;
-};
-
-/**
- * Remove local track from this TPC.
- * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
- *
- * FIXME It should probably remove a boolean just like {@link removeTrackFromPc}
- *       The same applies to addTrack.
- */
-TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
-    const webRtcStream = localTrack.getOriginalStream();
-
-    this.trace(
-        'removeStream',
-        localTrack.rtcId, webRtcStream ? webRtcStream.id : undefined);
-
-    if (!this._assertTrackBelongs('removeStream', localTrack)) {
-        // Abort - nothing to be done here
-        return;
-    }
-    this.localTracks.delete(localTrack.rtcId);
-    this.localSSRCs.delete(localTrack.rtcId);
-
-    if (webRtcStream) {
-        this.peerconnection.removeStream(webRtcStream);
-    }
-};
-
-/**
- * Returns the receiver corresponding to the given MediaStreamTrack.
- *
- * @param {MediaSreamTrack} track - The media stream track used for the search.
- * @returns {RTCRtpReceiver|undefined} - The found receiver or undefined if no receiver
- * was found.
- */
-TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
-    return this.peerconnection.getReceivers().find(r => r.track === track);
-};
-
-/**
- * Returns the sender corresponding to the given MediaStreamTrack.
- *
- * @param {MediaSreamTrack} track - The media stream track used for the search.
- * @returns {RTCRtpSender|undefined} - The found sender or undefined if no sender
- * was found.
- */
-TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
-    return this.peerconnection.getSenders().find(s => s.track === track);
-};
-
-/**
- * Processes the local description SDP and caches the mids of the mlines associated with the given tracks.
- *
- * @param {Array<JitsiLocalTrack>} localTracks - local tracks that are added to the peerconnection.
- * @returns {void}
- */
-TraceablePeerConnection.prototype.processLocalSdpForTransceiverInfo = function(localTracks) {
-    const localSdp = this.localDescription?.sdp;
-
-    if (!localSdp) {
-        return;
-    }
-
-    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-        const tracks = localTracks.filter(t => t.getType() === mediaType);
-        const parsedSdp = transform.parse(localSdp);
-        const mLines = parsedSdp.media.filter(mline => mline.type === mediaType);
-
-        tracks.forEach((track, idx) => {
-            if (!this.localTrackTransceiverMids.has(track.rtcId)) {
-                this.localTrackTransceiverMids.set(track.rtcId, mLines[idx].mid.toString());
-            }
-        });
-    });
-};
-
-/**
- * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
- * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
- * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
- * <tt>oldTrack</tt>
- *
- * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be replaced on the pc.
- * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
- * @param {boolean} isMuteOperation - Whether the operation is a mute/unmute operation.
- * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
- * Otherwise no renegotiation is needed.
- */
-TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack, isMuteOperation = false) {
-    if (!(oldTrack || newTrack)) {
-        logger.info(`${this} replaceTrack called with no new track and no old track`);
-
-        return Promise.resolve();
-    }
-
-    logger.info(`${this} TPC.replaceTrack old=${oldTrack}, new=${newTrack}`);
-
-    let transceiver;
-    const mediaType = newTrack?.getType() ?? oldTrack?.getType();
-    const localTracks = this.getLocalTracks(mediaType);
-    const track = newTrack?.getTrack() ?? null;
-    const isNewLocalSource = localTracks?.length
-        && !oldTrack
-        && newTrack
-        && !localTracks.find(t => t === newTrack);
-
-    // If old track exists, replace the track on the corresponding sender.
-    if (oldTrack && !oldTrack.isMuted()) {
-        transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
-
-    // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
-    // As part of the track addition, a new m-line was added to the remote description with direction set to
-    // recvonly.
-    } else if (isNewLocalSource) {
-        transceiver = this.peerconnection.getTransceivers().find(
-            t => t.receiver.track.kind === mediaType
-            && t.direction === MediaDirection.RECVONLY
-
-            // Re-use any existing recvonly transceiver (if available) for p2p case.
-            && ((this.isP2P && t.currentDirection === MediaDirection.RECVONLY)
-                || (t.currentDirection === MediaDirection.INACTIVE && !t.stopped)));
-
-    // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
-    // otherwise it is assumed to be the first local track that was added to the peerconnection.
-    } else {
-        transceiver = this.peerconnection.getTransceivers().find(t => t.receiver.track.kind === mediaType);
-        const sourceName = newTrack?.getSourceName() ?? oldTrack?.getSourceName();
-
-        if (sourceName) {
-            const trackIndex = getSourceIndexFromSourceName(sourceName);
-
-            if (this.isP2P) {
-                transceiver = this.peerconnection.getTransceivers()
-                    .filter(t => t.receiver.track.kind === mediaType)[trackIndex];
-            } else if (oldTrack) {
-                const transceiverMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
-
-                transceiver = this.peerconnection.getTransceivers().find(t => t.mid === transceiverMid);
-            } else if (trackIndex) {
-                transceiver = this.peerconnection.getTransceivers()
-                        .filter(t => t.receiver.track.kind === mediaType
-                            && t.direction !== MediaDirection.RECVONLY)[trackIndex];
-            }
-        }
-    }
-
-    if (!transceiver) {
-        return Promise.reject(
-            new Error(`Replace track failed - no transceiver for old: ${oldTrack}, new: ${newTrack}`));
-    }
-
-    return transceiver.sender.replaceTrack(track)
-        .then(() => {
-            if (isMuteOperation) {
-                return Promise.resolve();
-            }
-            if (oldTrack) {
-                this.localTracks.delete(oldTrack.rtcId);
-                this.localTrackTransceiverMids.delete(oldTrack.rtcId);
-            }
-
-            if (newTrack) {
-                if (newTrack.isAudioTrack()) {
-                    this._hasHadAudioTrack = true;
-                } else {
-                    this._hasHadVideoTrack = true;
-                }
-                this.localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
-                this.localTracks.set(newTrack.rtcId, newTrack);
-            }
-
-            // Update the local SSRC cache for the case when one track gets replaced with another and no
-            // renegotiation is triggered as a result of this.
-            if (oldTrack && newTrack) {
-                const oldTrackSSRC = this.localSSRCs.get(oldTrack.rtcId);
-
-                if (oldTrackSSRC) {
-                    this.localSSRCs.delete(oldTrack.rtcId);
-                    this.localSSRCs.set(newTrack.rtcId, oldTrackSSRC);
-                    const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
-
-                    newTrack.setSsrc(oldSsrcNum);
-                }
-            }
-
-            // In the scenario where we remove the oldTrack (oldTrack is not null and newTrack is null) on FF
-            // if we change the direction to RECVONLY, create answer will generate SDP with only 1 receive
-            // only ssrc instead of keeping all 6 ssrcs that we currently have. Stopping the screen sharing
-            // and then starting it again will trigger 2 rounds of source-remove and source-add replacing
-            // the 6 ssrcs for the screen sharing with 1 receive only ssrc and then removing the receive
-            // only ssrc and adding the same 6 ssrcs. On the remote participant's side the same ssrcs will
-            // be reused on a new m-line and if the remote participant is FF due to
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1768729 the video stream won't be rendered.
-            // That's why we need keep the direction to SENDRECV for FF.
-            //
-            // NOTE: If we return to the approach of not removing the track for FF and instead using the
-            // enabled property for muting the track, we may need to change the direction to
-            // RECVONLY if FF still sends the media even though the enabled flag is set to false.
-            transceiver.direction
-                = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
-
-            // Configure simulcast encodings on Firefox when a track is added to the peerconnection for the first time.
-            const configureEncodingsPromise
-                = browser.isFirefox() && !oldTrack && newTrack && this.doesTrueSimulcast(newTrack)
-                    ? this._setEncodings(newTrack)
-                    : Promise.resolve();
-
-            return configureEncodingsPromise.then(() => this.isP2P);
-        });
-};
-
-/**
- * Removes local track from the RTCPeerConnection.
- *
- * @param {JitsiLocalTrack} localTrack the local track to be removed.
- * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's state has changed and
- * renegotiation is required, false if no renegotiation is needed or Promise is rejected when something goes wrong.
- */
-TraceablePeerConnection.prototype.removeTrackFromPc = function(localTrack) {
-    const webRtcStream = localTrack.getOriginalStream();
-
-    this.trace('removeTrack', localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
-
-    if (!this._assertTrackBelongs('removeTrack', localTrack)) {
-        // Abort - nothing to be done here
-        return Promise.reject('Track not found in the peerconnection');
-    }
-
-    return this.replaceTrack(localTrack, null, true /* isMuteOperation */).then(() => false);
-};
-
-/**
- * Updates the remote source map with the given source map for adding or removing sources.
- *
- * @param {Map<string, TPCSourceInfo>} sourceMap - The map of source names to their corresponding SSRCs.
- * @param {boolean} isAdd - Whether the sources are being added or removed.
- * @returns {void}
- */
-TraceablePeerConnection.prototype.updateRemoteSources = function(sourceMap, isAdd) {
-    for (const [ sourceName, ssrcInfo ] of sourceMap) {
-        if (isAdd) {
-            this._remoteSsrcMap.set(sourceName, ssrcInfo);
-        } else {
-            this._remoteSsrcMap.delete(sourceName);
-        }
-    }
-};
-
-/**
- * Returns true if the codec selection API is used for switching between codecs for the video sources.
- *
- * @returns {boolean}
- */
-TraceablePeerConnection.prototype.usesCodecSelectionAPI = function() {
-    // Browser throws an error when H.264 is set on the encodings. Therefore, munge the SDP when H.264 needs to be
-    // selected.
-    // TODO: Remove this check when the above issue is fixed.
-    return this._usesCodecSelectionAPI && this.codecSettings.codecList[0] !== CodecMimeType.H264;
-};
-
-TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
-    this.trace('createDataChannel', label, opts);
-
-    return this.peerconnection.createDataChannel(label, opts);
-};
-
-/**
- * Adjusts the media direction on the remote description based on availability of local and remote sources in a p2p
- * media connection.
- *
- * @param {RTCSessionDescription} remoteDescription the WebRTC session description instance for the remote description.
- * @returns the transformed remoteDescription.
- * @private
- */
-TraceablePeerConnection.prototype._adjustRemoteMediaDirection = function(remoteDescription) {
-    const transformer = new SdpTransformWrap(remoteDescription.sdp);
-
-    [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
-        const media = transformer.selectMedia(mediaType);
-        const localSources = this.getLocalTracks(mediaType).length;
-        const remoteSources = this.getRemoteTracks(null, mediaType).length;
-
-        media.forEach((mLine, idx) => {
-            if (localSources && localSources === remoteSources) {
-                mLine.direction = MediaDirection.SENDRECV;
-            } else if (!localSources && !remoteSources) {
-                mLine.direction = MediaDirection.INACTIVE;
-            } else if (!localSources) {
-                mLine.direction = MediaDirection.SENDONLY;
-            } else if (!remoteSources) {
-                mLine.direction = MediaDirection.RECVONLY;
-
-            // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
-            // the second one needs to be set to 'recvonly'.
-            } else if (localSources > remoteSources) {
-                mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
-
-            // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
-            // the second one needs to be set to 'sendonly'.
-            } else {
-                mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
-            }
-        });
-    });
-
-    return {
-        type: remoteDescription.type,
-        sdp: transformer.toRawSDP()
-    };
-};
-
-/**
- * Returns the codec to be used for screenshare based on the supported codecs and the preferred codec requested
- * through config.js setting.
- *
- * @param {CodecMimeType} defaultCodec - the preferred codec for video tracks.
- * @returns {CodecMimeType}
- */
-TraceablePeerConnection.prototype._getPreferredCodecForScreenshare = function(defaultCodec) {
-    // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
-    if (!this.usesCodecSelectionAPI()) {
-        return defaultCodec;
-    }
-
-    const { screenshareCodec } = this.codecSettings;
-
-    if (screenshareCodec && this.codecSettings.codecList.find(c => c === screenshareCodec)) {
-        return screenshareCodec;
-    }
-
-    // Default to AV1 for screenshare if its supported and is not overriden through config.js.
-    if (this.codecSettings.codecList.find(c => c === CodecMimeType.AV1)) {
-        return CodecMimeType.AV1;
-    }
-
-    return defaultCodec;
-};
-
-/**
- * Sets up the _dtlsTransport object and initializes callbacks for it.
- */
-TraceablePeerConnection.prototype._initializeDtlsTransport = function() {
-    // We are assuming here that we only have one bundled transport here
-    if (!this.peerconnection.getSenders || this._dtlsTransport) {
-        return;
-    }
-
-    const senders = this.peerconnection.getSenders();
-
-    if (senders.length !== 0 && senders[0].transport) {
-        this._dtlsTransport = senders[0].transport;
-
-        this._dtlsTransport.onerror = error => {
-            logger.error(`${this} DtlsTransport error: ${error}`);
-        };
-
-        this._dtlsTransport.onstatechange = () => {
-            this.trace('dtlsTransport.onstatechange', this._dtlsTransport.state);
-        };
-    }
-};
 
 /**
  * Returns the expected send resolution for a local video track based on what encodings are currently active.
