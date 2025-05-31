@@ -30,22 +30,48 @@ const IV_LENGTH = 12;
 
 const RATCHET_WINDOW_SIZE = 8;
 
+export interface IContextOptions {
+    sharedKey?: boolean;
+}
+
+export interface IEncodedFrame {
+    data: ArrayBuffer;
+    getMetadata: () => { synchronizationSource: number; };
+    timestamp: number;
+    type?: keyof typeof UNENCRYPTED_BYTES;
+}
+
+export interface ITransformStreamDefaultController {
+    enqueue: (frame: IEncodedFrame) => void;
+}
+
+export interface ICryptoKeyData {
+    encryptionKey: CryptoKey;
+    material: CryptoKey;
+}
+
 /**
  * Per-participant context holding the cryptographic keys and
  * encode/decode functions
  */
 export class Context {
+    private _cryptoKeyRing: (ICryptoKeyData | false)[];
+    private _currentKeyIndex: number;
+    private _sendCounts: Map<number, number>;
+    private _sharedKey: boolean;
+    private _enabled: boolean;
+
     /**
      * @param {Object} options
      */
-    constructor({ sharedKey = false } = {}) {
+    constructor({ sharedKey = false }: IContextOptions = {}) {
         // An array (ring) of keys that we use for sending and receiving.
         this._cryptoKeyRing = new Array(KEYRING_SIZE);
 
         // A pointer to the currently used key.
         this._currentKeyIndex = -1;
 
-        this._sendCounts = new Map();
+        this._sendCounts = new Map<number, number>();
 
         this._sharedKey = sharedKey;
 
@@ -56,7 +82,7 @@ export class Context {
      * Enables or disables the E2EE context. When disabled packets are passed through.
      * @param {boolean} enabled True if E2EE is enabled, false otherwise.
      */
-    setEnabled(enabled) {
+    setEnabled(enabled: boolean): void {
         this._enabled = enabled;
     }
 
@@ -66,12 +92,12 @@ export class Context {
      * @param {Uint8Array|false} key bytes. Pass false to disable.
      * @param {Number} keyIndex
      */
-    async setKey(key, keyIndex = -1) {
-        let newKey = false;
+    async setKey(key: Uint8Array | false, keyIndex: number = -1): Promise<void> {
+        let newKey: ICryptoKeyData | false = false;
 
         if (key) {
             if (this._sharedKey) {
-                newKey = key;
+                newKey = key as unknown as ICryptoKeyData;
             } else {
                 const material = await importKey(key);
 
@@ -89,7 +115,7 @@ export class Context {
      * @param {Number} keyIndex optional
      * @private
      */
-    _setKeys(keys, keyIndex = -1) {
+    _setKeys(keys: ICryptoKeyData | false, keyIndex: number = -1): void {
         if (keyIndex >= 0) {
             this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
         }
@@ -101,7 +127,7 @@ export class Context {
      * Function that will be injected in a stream and will encrypt the given encoded frames.
      *
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
-     * @param {TransformStreamDefaultController} controller - TransportStreamController.
+     * @param {ITransformStreamDefaultController} controller - TransportStreamController.
      *
      * The VP8 payload descriptor described in
      * https://tools.ietf.org/html/rfc7741#section-4.2
@@ -119,19 +145,19 @@ export class Context {
      * 8) Append a single byte for the key identifier.
      * 9) Enqueue the encrypted frame for sending.
      */
-    encodeFunction(encodedFrame, controller) {
+    encodeFunction(encodedFrame: IEncodedFrame, controller: ITransformStreamDefaultController): Promise<void> | void {
         if (!this._enabled) {
             return controller.enqueue(encodedFrame);
         }
 
         const keyIndex = this._currentKeyIndex;
-        const currentKey = this._cryptoKeyRing[keyIndex];
+        const currentKey = this._cryptoKeyRing[keyIndex] as ICryptoKeyData | false;
 
         if (currentKey) {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             // This is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']);
 
             // Frame trailer contains the R|IV_LENGTH and key index
             const frameTrailer = new Uint8Array(2);
@@ -152,7 +178,7 @@ export class Context {
                 iv,
                 additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
             }, currentKey.encryptionKey, new Uint8Array(encodedFrame.data,
-                UNENCRYPTED_BYTES[encodedFrame.type]))
+                UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']))
             .then(cipherText => {
                 const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
                     + iv.byteLength + frameTrailer.byteLength);
@@ -183,9 +209,9 @@ export class Context {
      * Function that will be injected in a stream and will decrypt the given encoded frames.
      *
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
-     * @param {TransformStreamDefaultController} controller - TransportStreamController.
+     * @param {ITransformStreamDefaultController} controller - TransportStreamController.
      */
-    async decodeFunction(encodedFrame, controller) {
+    async decodeFunction(encodedFrame: IEncodedFrame, controller: ITransformStreamDefaultController): Promise<void> {
         if (!this._enabled) {
             return controller.enqueue(encodedFrame);
         }
@@ -215,13 +241,14 @@ export class Context {
      * @private
      */
     async _decryptFrame(
-            encodedFrame,
-            keyIndex,
-            initialKey = undefined,
-            ratchetCount = 0) {
+            encodedFrame: IEncodedFrame,
+            keyIndex: number,
+            initialKey: ICryptoKeyData | undefined = undefined,
+            ratchetCount: number = 0): Promise<IEncodedFrame | undefined> {
 
-        const { encryptionKey } = this._cryptoKeyRing[keyIndex];
-        let { material } = this._cryptoKeyRing[keyIndex];
+        const keyData = this._cryptoKeyRing[keyIndex] as ICryptoKeyData;
+        const { encryptionKey } = keyData;
+        let { material } = keyData;
 
         // Construct frame trailer. Similar to the frame header described in
         // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
@@ -232,7 +259,7 @@ export class Context {
         // ---------+-------------------------+-+---------+----
 
         try {
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
 
             const ivLength = frameTrailer[0];
@@ -268,7 +295,7 @@ export class Context {
             }
 
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
-                const currentKey = this._cryptoKeyRing[this._currentKeyIndex];
+                const currentKey = this._cryptoKeyRing[this._currentKeyIndex] as ICryptoKeyData;
 
                 material = await importKey(await ratchet(material));
 
@@ -289,7 +316,7 @@ export class Context {
              * yet and ratcheting, of course, did not solve the problem. So if we fail RATCHET_WINDOW_SIZE times,
              * we come back to the initial key.
              */
-            this._setKeys(initialKey);
+            this._setKeys(initialKey as ICryptoKeyData);
 
             // TODO: notify the application about error status.
         }
@@ -315,7 +342,7 @@ export class Context {
      *
      * See also https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
      */
-    _makeIV(synchronizationSource, timestamp) {
+    _makeIV(synchronizationSource: number, timestamp: number): ArrayBuffer {
         const iv = new ArrayBuffer(IV_LENGTH);
         const ivView = new DataView(iv);
 
@@ -325,7 +352,7 @@ export class Context {
             this._sendCounts.set(synchronizationSource, Math.floor(Math.random() * 0xFFFF));
         }
 
-        const sendCount = this._sendCounts.get(synchronizationSource);
+        const sendCount = this._sendCounts.get(synchronizationSource) as number;
 
         ivView.setUint32(0, synchronizationSource);
         ivView.setUint32(4, timestamp);
