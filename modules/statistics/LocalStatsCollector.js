@@ -66,114 +66,118 @@ function animateLevel(newLevel, lastLevel) {
     return parseFloat(value.toFixed(3));
 }
 
-
 /**
  * <tt>LocalStatsCollector</tt> calculates statistics for the local stream.
- *
- * @param stream the local stream
- * @param interval stats refresh interval given in ms.
- * @param callback function that receives the audio levels.
- * @constructor
  */
-export default function LocalStatsCollector(stream, interval, callback) {
-    this.stream = stream;
-    this.intervalId = null;
-    this.intervalMilis = interval;
-    this.audioLevel = 0;
-    this.callback = callback;
-    this.source = null;
-    this.analyser = null;
-}
-
-/**
- * Starts the collecting the statistics.
- */
-LocalStatsCollector.prototype.start = function() {
-    if (!LocalStatsCollector.isLocalStatsSupported()) {
-        return;
-    }
-
-    context.resume();
-    this.analyser = context.createAnalyser();
-
-    this.analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;
-    this.analyser.fftSize = WEBAUDIO_ANALYZER_FFT_SIZE;
-
-    this.source = context.createMediaStreamSource(this.stream);
-
-    this.source.connect(this.analyser);
-
-    this.intervalId = setInterval(
-        () => {
-            const array = new Uint8Array(this.analyser.frequencyBinCount);
-
-            this.analyser.getByteTimeDomainData(array);
-            const audioLevel = timeDomainDataToAudioLevel(array);
-
-            // Set the audio levels always as NoAudioSignalDetection now
-            // uses audio levels from LocalStatsCollector and waits for
-            // atleast 4 secs for a no audio signal before displaying the
-            // notification on the UI.
-            this.audioLevel = animateLevel(audioLevel, this.audioLevel);
-            this.callback(this.audioLevel);
-        },
-        this.intervalMilis
-    );
-};
-
-/**
- * Stops collecting the statistics.
- */
-LocalStatsCollector.prototype.stop = function() {
-    if (this.intervalId) {
-        clearInterval(this.intervalId);
+export default class LocalStatsCollector {
+    /**
+     * Creates a new instance of LocalStatsCollector.
+     *
+     * @param {MediaStream} stream - the local stream
+     * @param {number} interval - stats refresh interval given in ms.
+     * @param {Function} callback - function that receives the audio levels.
+     * @constructor
+     */
+    constructor(stream, interval, callback) {
+        this.stream = stream;
         this.intervalId = null;
+        this.intervalMilis = interval;
+        this.audioLevel = 0;
+        this.callback = callback;
+        this.source = null;
+        this.analyser = null;
     }
 
-    this.analyser?.disconnect();
-    this.analyser = null;
-    this.source?.disconnect();
-    this.source = null;
-};
+    /**
+     * Starts the collecting the statistics.
+     */
+    start() {
+        if (!LocalStatsCollector.isLocalStatsSupported()) {
+            return;
+        }
 
-/**
- * Initialize collector.
- */
-LocalStatsCollector.init = function() {
-    LocalStatsCollector.connectAudioContext();
-};
+        context.resume();
+        this.analyser = context.createAnalyser();
 
-/**
- * Checks if the environment has the necessary conditions to support
- * collecting stats from local streams.
- *
- * @returns {boolean}
- */
-LocalStatsCollector.isLocalStatsSupported = function() {
-    return Boolean(window?.AudioContext);
-};
+        this.analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;
+        this.analyser.fftSize = WEBAUDIO_ANALYZER_FFT_SIZE;
 
-/**
- * Disconnects the audio context.
- */
-LocalStatsCollector.disconnectAudioContext = async function() {
-    if (context) {
-        logger.info('Disconnecting audio context');
-        await context.close();
-        context = null;
-    }
-};
+        this.source = context.createMediaStreamSource(this.stream);
 
-/**
- * Connects the audio context.
- */
-LocalStatsCollector.connectAudioContext = function() {
-    if (!LocalStatsCollector.isLocalStatsSupported()) {
-        return;
+        this.source.connect(this.analyser);
+
+        this.intervalId = setInterval(
+            () => {
+                const array = new Uint8Array(this.analyser.frequencyBinCount);
+
+                this.analyser.getByteTimeDomainData(array);
+                const audioLevel = timeDomainDataToAudioLevel(array);
+
+                // Set the audio levels always as NoAudioSignalDetection now
+                // uses audio levels from LocalStatsCollector and waits for
+                // atleast 4 secs for a no audio signal before displaying the
+                // notification on the UI.
+                this.audioLevel = animateLevel(audioLevel, this.audioLevel);
+                this.callback(this.audioLevel);
+            },
+            this.intervalMilis
+        );
     }
 
-    logger.info('Connecting audio context');
-    context = new AudioContext();
+    /**
+     * Stops collecting the statistics.
+     */
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
 
-    context.suspend();
-};
+        this.analyser?.disconnect();
+        this.analyser = null;
+        this.source?.disconnect();
+        this.source = null;
+    }
+
+    /**
+     * Initialize collector.
+     */
+    static init() {
+        LocalStatsCollector.connectAudioContext();
+    }
+
+    /**
+     * Checks if the environment has the necessary conditions to support
+     * collecting stats from local streams.
+     *
+     * @returns {boolean}
+     */
+    static isLocalStatsSupported() {
+        return Boolean(window?.AudioContext);
+    }
+
+    /**
+     * Disconnects the audio context.
+     */
+    static async disconnectAudioContext() {
+        if (context) {
+            logger.info('Disconnecting audio context');
+            await context.close();
+            context = null;
+        }
+    }
+
+    /**
+     * Connects the audio context.
+     */
+    static connectAudioContext() {
+        if (!LocalStatsCollector.isLocalStatsSupported()) {
+            return;
+        }
+
+        logger.info('Connecting audio context');
+        context = new AudioContext();
+
+        context.suspend();
+    }
+}
