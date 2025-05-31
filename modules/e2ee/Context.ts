@@ -36,9 +36,9 @@ export interface IContextOptions {
 
 export interface IEncodedFrame {
     data: ArrayBuffer;
-    type?: keyof typeof UNENCRYPTED_BYTES;
+    getMetadata: () => { synchronizationSource: number; };
     timestamp: number;
-    getMetadata: () => { synchronizationSource: number };
+    type?: keyof typeof UNENCRYPTED_BYTES;
 }
 
 export interface ITransformStreamDefaultController {
@@ -47,7 +47,7 @@ export interface ITransformStreamDefaultController {
 
 export interface ICryptoKeyData {
     encryptionKey: CryptoKey;
-    material: CryptoKey | Uint8Array;
+    material: CryptoKey;
 }
 
 /**
