@@ -438,455 +438,425 @@ export default class TraceablePeerConnection {
 
         this._lastVideoSenderUpdatePromise = Promise.resolve();
     }
-}
-/* eslint-enable max-params */
 
-/**
- * Process stat and adds it to the array of stats we store.
- * @param report the current stats report.
- * @param name the name of the report, if available
- * @param statValue the value to add.
- * @private
- */
-TraceablePeerConnection.prototype._processStat
-    = function(report, name, statValue) {
-        const id = `${report.id}-${name}`;
-        let s = this.stats[id];
-        const now = new Date();
+    /**
+   * Process stat and adds it to the array of stats we store.
+   * @param {Object} report - The current stats report.
+   * @param {string} name - The name of the report, if available.
+   * @param {number} statValue - The value to add.
+   * @private
+   */
+  _processStat(report, name, statValue) {
+    const id = `${report.id}-${name}`;
+    let s = this.stats[id];
+    const now = new Date();
 
-        if (!s) {
-            this.stats[id] = s = {
-                startTime: now,
-                endTime: now,
-                values: [],
-                times: []
-            };
-        }
-        s.values.push(statValue);
-        s.times.push(now.getTime());
-        if (s.values.length > this.maxstats) {
-            s.values.shift();
-            s.times.shift();
-        }
-        s.endTime = now;
-    };
-
-/**
- * Returns a string representation of a SessionDescription object.
- */
-const dumpSDP = function(description) {
-    if (typeof description === 'undefined' || description === null) {
-        return '';
+    if (!s) {
+      this.stats[id] = s = {
+        startTime: now,
+        endTime: now,
+        values: [],
+        times: []
+      };
     }
+    s.values.push(statValue);
+    s.times.push(now.getTime());
+    if (s.values.length > this.maxstats) {
+      s.values.shift();
+      s.times.shift();
+    }
+    s.endTime = now;
+  }
 
-    return `type: ${description.type}\r\n${description.sdp}`;
-};
-
-
-/**
- * Forwards the {@link peerconnection.iceConnectionState} state except that it
- * will convert "completed" into "connected" where both mean that the ICE has
- * succeeded and is up and running. We never see "completed" state for
- * the JVB connection, but it started appearing for the P2P one. This method
- * allows to adapt old logic to this new situation.
- * @return {string}
- */
-TraceablePeerConnection.prototype.getConnectionState = function() {
+  /**
+   * Forwards the {@link peerconnection.iceConnectionState} state except that it
+   * will convert "completed" into "connected" where both mean that the ICE has
+   * succeeded and is up and running. We never see "completed" state for
+   * the JVB connection, but it started appearing for the P2P one. This method
+   * allows to adapt old logic to this new situation.
+   * @returns {string} The connection state.
+   */
+  getConnectionState() {
     const state = this.peerconnection.iceConnectionState;
 
     if (state === 'completed') {
-        return 'connected';
+      return 'connected';
     }
 
     return state;
-};
+  }
 
-/**
- * Obtains the media direction for given {@link MediaType} that needs to be set on a p2p peerconnection's remote SDP
- * after a source-add or source-remove action. The method takes into account whether or not there are any
- * local tracks for the given media type.
- * @param {MediaType} mediaType - The media type for which the direction is to be calculated.
- * @param {boolean} isAddOperation whether the direction is to be calculated after a source-add action.
- * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.) which should be used when setting
- * local description on the peerconnection.
- * @private
- */
-TraceablePeerConnection.prototype.getDesiredMediaDirection = function(mediaType, isAddOperation = false) {
+  /**
+   * Obtains the media direction for given {@link MediaType} that needs to be set on a p2p peerconnection's remote SDP
+   * after a source-add or source-remove action. The method takes into account whether or not there are any
+   * local tracks for the given media type.
+   * @param {string} mediaType - The media type for which the direction is to be calculated.
+   * @param {boolean} [isAddOperation=false] - Whether the direction is to be calculated after a source-add action.
+   * @returns {string} One of the SDP direction constants ('sendrecv', 'recvonly', etc.).
+   * @private
+   */
+  getDesiredMediaDirection(mediaType, isAddOperation = false) {
     return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
-};
+  }
 
-/**
- * Returns the list of RTCRtpReceivers created for the source of the given media type associated with
- * the set of remote endpoints specified.
- * @param {Array<string>} endpoints list of the endpoints
- * @param {string} mediaType 'audio' or 'video'
- * @returns {Array<RTCRtpReceiver>} list of receivers created by the peerconnection.
- */
-TraceablePeerConnection.prototype._getReceiversByEndpointIds = function(endpoints, mediaType) {
+  /**
+   * Returns the list of RTCRtpReceivers created for the source of the given media type associated with
+   * the set of remote endpoints specified.
+   * @param {Array<string>} endpoints - List of the endpoints.
+   * @param {string} mediaType - 'audio' or 'video'.
+   * @returns {Array<RTCRtpReceiver>} List of receivers created by the peerconnection.
+   */
+  _getReceiversByEndpointIds(endpoints, mediaType) {
     let remoteTracks = [];
     let receivers = [];
 
     for (const endpoint of endpoints) {
-        remoteTracks = remoteTracks.concat(this.getRemoteTracks(endpoint, mediaType));
+      remoteTracks = remoteTracks.concat(this.getRemoteTracks(endpoint, mediaType));
     }
 
     // Get the ids of the MediaStreamTracks associated with each of these remote tracks.
     const remoteTrackIds = remoteTracks.map(remote => remote.track?.id);
 
     receivers = this.peerconnection.getReceivers()
-        .filter(receiver => receiver.track
-            && receiver.track.kind === mediaType
-            && remoteTrackIds.find(trackId => trackId === receiver.track.id));
+      .filter(receiver => receiver.track
+        && receiver.track.kind === mediaType
+        && remoteTrackIds.find(trackId => trackId === receiver.track.id));
 
     return receivers;
-};
+  }
 
-/**
- * Tells whether or not this TPC instance has spatial scalability enabled.
- * @return {boolean} <tt>true</tt> if spatial scalability is enabled and active or
- * <tt>false</tt> if it's turned off.
- */
-TraceablePeerConnection.prototype.isSpatialScalabilityOn = function() {
+  /**
+   * Tells whether or not this TPC instance has spatial scalability enabled.
+   * @returns {boolean} <tt>true</tt> if spatial scalability is enabled and active or
+   * <tt>false</tt> if it's turned off.
+   */
+  isSpatialScalabilityOn() {
     const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-        && this.tpcUtils.supportsDDHeaderExt;
+      && this.tpcUtils.supportsDDHeaderExt;
 
     return !this.options.disableSimulcast
-        && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
-};
+      && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
+  }
 
-/**
- * Handles {@link SignalingEvents.PEER_VIDEO_TYPE_CHANGED}
- * @param {string} endpointId the video owner's ID (MUC nickname)
- * @param {VideoType} videoType the new value
- * @private
- */
-TraceablePeerConnection.prototype._peerVideoTypeChanged = function(endpointId, videoType) {
+  /**
+   * Handles {@link SignalingEvents.PEER_VIDEO_TYPE_CHANGED}
+   * @param {string} endpointId - The video owner's ID (MUC nickname).
+   * @param {string} videoType - The new value.
+   * @private
+   */
+  _peerVideoTypeChanged(endpointId, videoType) {
     // Check if endpointId has a value to avoid action on random track
     if (!endpointId) {
-        logger.error(`${this} No endpointID on peerVideoTypeChanged`);
-
-        return;
+      logger.error(`${this} No endpointID on peerVideoTypeChanged`);
+      return;
     }
     const videoTrack = this.getRemoteTracks(endpointId, MediaType.VIDEO);
 
     if (videoTrack.length) {
-        // NOTE 1 track per media type is assumed
-        videoTrack[0]._setVideoType(videoType);
+      // NOTE 1 track per media type is assumed
+      videoTrack[0]._setVideoType(videoType);
     }
-};
+  }
 
-/**
- * Handles remote track mute / unmute events.
- * @param {string} endpointId the track owner's identifier (MUC nickname)
- * @param {MediaType} mediaType "audio" or "video"
- * @param {boolean} isMuted the new mute state
- * @private
- */
-TraceablePeerConnection.prototype._peerMutedChanged = function(endpointId, mediaType, isMuted) {
+  /**
+   * Handles remote track mute / unmute events.
+   * @param {string} endpointId - The track owner's identifier (MUC nickname).
+   * @param {string} mediaType - "audio" or "video".
+   * @param {boolean} isMuted - The new mute state.
+   * @private
+   */
+  _peerMutedChanged(endpointId, mediaType, isMuted) {
     // Check if endpointId is a value to avoid doing action on all remote tracks
     if (!endpointId) {
-        logger.error(`${this} On peerMuteChanged - no endpoint ID`);
-
-        return;
+      logger.error(`${this} On peerMuteChanged - no endpoint ID`);
+      return;
     }
     const track = this.getRemoteTracks(endpointId, mediaType);
 
     if (track.length) {
-        // NOTE 1 track per media type is assumed
-        track[0].setMute(isMuted);
+      // NOTE 1 track per media type is assumed
+      track[0].setMute(isMuted);
     }
-};
+  }
 
-/**
- * Handles remote source mute and unmute changed events.
- *
- * @param {string} sourceName - The name of the remote source.
- * @param {boolean} isMuted - The new mute state.
- */
-TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isMuted) {
+  /**
+   * Handles remote source mute and unmute changed events.
+   * @param {string} sourceName - The name of the remote source.
+   * @param {boolean} isMuted - The new mute state.
+   */
+  _sourceMutedChanged(sourceName, isMuted) {
     const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
 
     if (!track) {
-        if (FeatureFlags.isSsrcRewritingSupported()) {
-            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
-        }
-
-        return;
+      if (FeatureFlags.isSsrcRewritingSupported()) {
+        logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
+      }
+      return;
     }
 
     track.setMute(isMuted);
-};
+  }
 
-/**
- * Handles remote source videoType changed events.
- *
- * @param {string} sourceName - The name of the remote source.
- * @param {boolean} isMuted - The new value.
- */
-TraceablePeerConnection.prototype._sourceVideoTypeChanged = function(sourceName, videoType) {
+  /**
+   * Handles remote source videoType changed events.
+   * @param {string} sourceName - The name of the remote source.
+   * @param {string} videoType - The new value.
+   */
+  _sourceVideoTypeChanged(sourceName, videoType) {
     const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
 
     if (!track) {
-        return;
+      return;
     }
 
     track._setVideoType(videoType);
-};
+  }
 
-/**
- * Obtains audio levels of the remote audio tracks by getting the source information on the RTCRtpReceivers.
- * The information relevant to the ssrc is updated each time a RTP packet constaining the ssrc is received.
- * @param {Array<string>} speakerList list of endpoint ids for which audio levels are to be gathered.
- * @returns {Object} containing ssrc and audio level information as a key-value pair.
- */
-TraceablePeerConnection.prototype.getAudioLevels = function(speakerList = []) {
+  /**
+   * Obtains audio levels of the remote audio tracks by getting the source information on the RTCRtpReceivers.
+   * The information relevant to the ssrc is updated each time a RTP packet containing the ssrc is received.
+   * @param {Array<string>} [speakerList=[]] - List of endpoint ids for which audio levels are to be gathered.
+   * @returns {Object} Containing ssrc and audio level information as a key-value pair.
+   */
+  getAudioLevels(speakerList = []) {
     const audioLevels = {};
     const audioReceivers = speakerList.length
-        ? this._getReceiversByEndpointIds(speakerList, MediaType.AUDIO)
-        : this.peerconnection.getReceivers()
-            .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
+      ? this._getReceiversByEndpointIds(speakerList, MediaType.AUDIO)
+      : this.peerconnection.getReceivers()
+          .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
 
     audioReceivers.forEach(remote => {
-        const ssrc = remote.getSynchronizationSources();
+      const ssrc = remote.getSynchronizationSources();
 
-        if (ssrc && ssrc.length) {
-            // As per spec, this audiolevel is a value between 0..1 (linear), where 1.0
-            // represents 0 dBov, 0 represents silence, and 0.5 represents approximately
-            // 6 dBSPL change in the sound pressure level from 0 dBov.
-            // https://www.w3.org/TR/webrtc/#dom-rtcrtpcontributingsource-audiolevel
-            audioLevels[ssrc[0].source] = ssrc[0].audioLevel;
-        }
+      if (ssrc && ssrc.length) {
+        // As per spec, this audiolevel is a value between 0..1 (linear), where 1.0
+        // represents 0 dBov, 0 represents silence, and 0.5 represents approximately
+        // 6 dBSPL change in the sound pressure level from 0 dBov.
+        // https://www.w3.org/TR/webrtc/#dom-rtcrtpcontributingsource-audiolevel
+        audioLevels[ssrc[0].source] = ssrc[0].audioLevel;
+      }
     });
 
     return audioLevels;
-};
+  }
 
-/**
- * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
- * bridge. Currently this happens always for VP8 and only if simulcast is enabled for VP9/AV1/H264.
- *
- * @param {JitsiLocalTrack} localTrack - The local video track.
- * @returns {boolean}
- */
-TraceablePeerConnection.prototype.doesTrueSimulcast = function(localTrack) {
+  /**
+   * Checks if the browser is currently doing true simulcast where three different media streams are being sent to the
+   * bridge. Currently this happens always for VP8 and only if simulcast is enabled for VP9/AV1/H264.
+   * @param {JitsiLocalTrack} localTrack - The local video track.
+   * @returns {boolean}
+   */
+  doesTrueSimulcast(localTrack) {
     const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
     return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
-};
+  }
 
-/**
- * Returns the SSRCs associated with a given local video track.
- *
- * @param {JitsiLocalTrack} localTrack
- * @returns
- */
-TraceablePeerConnection.prototype.getLocalVideoSSRCs = function(localTrack) {
+  /**
+   * Returns the SSRCs associated with a given local video track.
+   * @param {JitsiLocalTrack} localTrack - The local video track.
+   * @returns {Array<number>} The SSRCs associated with the track.
+   */
+  getLocalVideoSSRCs(localTrack) {
     const ssrcs = [];
 
     if (!localTrack || !localTrack.isVideoTrack()) {
-        return ssrcs;
+      return ssrcs;
     }
 
     const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
     return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
-};
+  }
 
-/**
- * Obtains local tracks for given {@link MediaType}. If the <tt>mediaType</tt>
- * argument is omitted the list of all local tracks will be returned.
- * @param {MediaType} [mediaType]
- * @return {Array<JitsiLocalTrack>}
- */
-TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
+  /**
+   * Obtains local tracks for given {@link MediaType}. If the <tt>mediaType</tt>
+   * argument is omitted the list of all local tracks will be returned.
+   * @param {string} [mediaType] - The media type ('audio' or 'video').
+   * @returns {Array<JitsiLocalTrack>} The local tracks.
+   */
+  getLocalTracks(mediaType) {
     let tracks = Array.from(this.localTracks.values());
 
     if (mediaType !== undefined) {
-        tracks = tracks.filter(track => track.getType() === mediaType);
+      tracks = tracks.filter(track => track.getType() === mediaType);
     }
 
     return tracks;
-};
+  }
 
-/**
- * Retrieves the local video tracks.
- *
- * @returns {Array<JitsiLocalTrack>} - local video tracks.
- */
-TraceablePeerConnection.prototype.getLocalVideoTracks = function() {
+  /**
+   * Retrieves the local video tracks.
+   * @returns {Array<JitsiLocalTrack>} Local video tracks.
+   */
+  getLocalVideoTracks() {
     return this.getLocalTracks(MediaType.VIDEO);
-};
+  }
 
-/**
- * Obtains all remote tracks currently known to this PeerConnection instance.
- *
- * @param {string} [endpointId] - The track owner's identifier (MUC nickname)
- * @param {MediaType} [mediaType] - The remote tracks will be filtered by their media type if this argument is
- * specified.
- * @return {Array<JitsiRemoteTrack>}
- */
-TraceablePeerConnection.prototype.getRemoteTracks = function(endpointId, mediaType) {
+  /**
+   * Obtains all remote tracks currently known to this PeerConnection instance.
+   * @param {string} [endpointId] - The track owner's identifier (MUC nickname).
+   * @param {string} [mediaType] - The remote tracks will be filtered by their media type if specified.
+   * @returns {Array<JitsiRemoteTrack>} The remote tracks.
+   */
+  getRemoteTracks(endpointId, mediaType) {
     let remoteTracks = [];
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
-        for (const remoteTrack of this.remoteTracksBySsrc.values()) {
-            const owner = remoteTrack.getParticipantId();
+      for (const remoteTrack of this.remoteTracksBySsrc.values()) {
+        const owner = remoteTrack.getParticipantId();
 
-            if (owner && (!endpointId || owner === endpointId)) {
-                if (!mediaType || remoteTrack.getType() === mediaType) {
-                    remoteTracks.push(remoteTrack);
-                }
-            }
+        if (owner && (!endpointId || owner === endpointId)) {
+          if (!mediaType || remoteTrack.getType() === mediaType) {
+            remoteTracks.push(remoteTrack);
+          }
         }
+      }
 
-        return remoteTracks;
+      return remoteTracks;
     }
 
-    const endpoints = endpointId ? [ endpointId ] : this.remoteTracks.keys();
+    const endpoints = endpointId ? [endpointId] : this.remoteTracks.keys();
 
     for (const endpoint of endpoints) {
-        const endpointTracksByMediaType = this.remoteTracks.get(endpoint);
+      const endpointTracksByMediaType = this.remoteTracks.get(endpoint);
 
-        if (endpointTracksByMediaType) {
-            for (const trackMediaType of endpointTracksByMediaType.keys()) {
-                // per media type filtering
-                if (!mediaType || mediaType === trackMediaType) {
-                    remoteTracks = remoteTracks.concat(Array.from(endpointTracksByMediaType.get(trackMediaType)));
-                }
-            }
+      if (endpointTracksByMediaType) {
+        for (const trackMediaType of endpointTracksByMediaType.keys()) {
+          // per media type filtering
+          if (!mediaType || mediaType === trackMediaType) {
+            remoteTracks = remoteTracks.concat(Array.from(endpointTracksByMediaType.get(trackMediaType)));
+          }
         }
+      }
     }
 
     return remoteTracks;
-};
+  }
 
-/**
- * Returns the remote sourceInfo for a given source name.
- *
- * @param {string} sourceName - The source name.
- * @returns {TPCSourceInfo}
- */
-TraceablePeerConnection.prototype.getRemoteSourceInfoBySourceName = function(sourceName) {
+  /**
+   * Returns the remote sourceInfo for a given source name.
+   * @param {string} sourceName - The source name.
+   * @returns {Object} The remote source info.
+   */
+  getRemoteSourceInfoBySourceName(sourceName) {
     return cloneDeep(this._remoteSsrcMap.get(sourceName));
-};
+  }
 
-/**
- * Returns a map of source names and their associated SSRCs for the remote participant.
- *
- * @param {string} id Endpoint id of the remote participant.
- * @returns {Map<string, TPCSourceInfo>} The map of source names and their associated SSRCs.
- */
-TraceablePeerConnection.prototype.getRemoteSourceInfoByParticipant = function(id) {
+  /**
+   * Returns a map of source names and their associated SSRCs for the remote participant.
+   * @param {string} id - Endpoint id of the remote participant.
+   * @returns {Map<string, Object>} The map of source names and their associated SSRCs.
+   */
+  getRemoteSourceInfoByParticipant(id) {
     const removeSsrcInfo = new Map();
     const remoteTracks = this.getRemoteTracks(id);
 
     if (!remoteTracks?.length) {
-        return removeSsrcInfo;
+      return removeSsrcInfo;
     }
     const primarySsrcs = remoteTracks.map(track => track.getSSRC());
 
-    for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap) {
-        if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
-            removeSsrcInfo.set(sourceName, sourceInfo);
-        }
+    for (const [sourceName, sourceInfo] of this._remoteSsrcMap) {
+      if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
+        removeSsrcInfo.set(sourceName, sourceInfo);
+      }
     }
 
     return removeSsrcInfo;
-};
+  }
 
-/**
- * Returns the target bitrates configured for the local video source.
- *
- * @param {JitsiLocalTrack} - The local video track.
- * @returns {Object}
- */
-TraceablePeerConnection.prototype.getTargetVideoBitrates = function(localTrack) {
+  /**
+   * Returns the target bitrates configured for the local video source.
+   * @param {JitsiLocalTrack} localTrack - The local video track.
+   * @returns {Object} The target bitrates.
+   */
+  getTargetVideoBitrates(localTrack) {
     const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
     return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
-};
+  }
 
-/**
- * Tries to find {@link JitsiTrack} for given SSRC number. It will search both local and remote tracks bound to this
- * instance.
- * @param {number} ssrc
- * @return {JitsiTrack|null}
- */
-TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
+  /**
+   * Tries to find {@link JitsiTrack} for given SSRC number. It will search both local and remote tracks bound to this
+   * instance.
+   * @param {number} ssrc - The SSRC number.
+   * @returns {JitsiTrack|null} The track associated with the SSRC or null.
+   * @throws {Error} If SSRC is not a number.
+   */
+  getTrackBySSRC(ssrc) {
     if (typeof ssrc !== 'number') {
-        throw new Error(`SSRC ${ssrc} is not a number`);
+      throw new Error(`SSRC ${ssrc} is not a number`);
     }
     for (const localTrack of this.localTracks.values()) {
-        const { ssrcs } = this.localSSRCs.get(localTrack.rtcId) ?? { ssrcs: [] };
+      const { ssrcs } = this.localSSRCs.get(localTrack.rtcId) ?? { ssrcs: [] };
 
-        if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
-            return localTrack;
-        }
+      if (ssrcs.find(localSsrc => Number(localSsrc) === ssrc)) {
+        return localTrack;
+      }
     }
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
-        return this.remoteTracksBySsrc.get(ssrc);
+      return this.remoteTracksBySsrc.get(ssrc);
     }
 
     for (const remoteTrack of this.getRemoteTracks()) {
-        if (remoteTrack.getSSRC() === ssrc) {
-            return remoteTrack;
-        }
+      if (remoteTrack.getSSRC() === ssrc) {
+        return remoteTrack;
+      }
     }
 
     return null;
-};
+  }
 
-/**
- * Tries to find SSRC number for given {@link JitsiTrack} id. It will search
- * both local and remote tracks bound to this instance.
- * @param {string} id
- * @return {number|null}
- */
-TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
-
+  /**
+   * Tries to find SSRC number for given {@link JitsiTrack} id. It will search
+   * both local and remote tracks bound to this instance.
+   * @param {string} id - The track ID.
+   * @returns {number|null} The SSRC number or null.
+   */
+  getSsrcByTrackId(id) {
     const findTrackById = track => track.getTrack().id === id;
     const localTrack = this.getLocalTracks().find(findTrackById);
 
     if (localTrack) {
-        return this.getLocalSSRC(localTrack);
+      return this.getLocalSSRC(localTrack);
     }
 
     const remoteTrack = this.getRemoteTracks().find(findTrackById);
 
     if (remoteTrack) {
-        return remoteTrack.getSSRC();
+      return remoteTrack.getSSRC();
     }
 
     return null;
-};
+  }
 
-/**
- * Called on "track added" and "stream added" PeerConnection events (because we
- * handle streams on per track basis). Finds the owner and the SSRC for
- * the track and passes that to ChatRoom for further processing.
- * @param {MediaStream} stream the WebRTC MediaStream instance which is
- * the parent of the track
- * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack added for remote
- * participant.
- * @param {RTCRtpTransceiver} transceiver the WebRTC transceiver that is created
- * for the remote participant in unified plan.
- */
-TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, transceiver = null) {
+  /**
+   * Called on "track added" and "stream added" PeerConnection events (because we
+   * handle streams on per track basis). Finds the owner and the SSRC for
+   * the track and passes that to ChatRoom for further processing.
+   * @param {MediaStream} stream - The WebRTC MediaStream instance which is
+   * the parent of the track.
+   * @param {MediaStreamTrack} track - The WebRTC MediaStreamTrack added for remote
+   * participant.
+   * @param {RTCRtpTransceiver} [transceiver=null] - The WebRTC transceiver that is created
+   * for the remote participant in unified plan.
+   */
+  _remoteTrackAdded(stream, track, transceiver = null) {
     const streamId = stream.id;
     const mediaType = track.kind;
 
     // Do not create remote tracks for 'mixed' JVB SSRCs (used by JVB for RTCP termination).
     if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
-        return;
+      return;
     }
     logger.info(`${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`);
 
     // look up an associated JID for a stream id
     if (!mediaType) {
-        logger.error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`);
-
-        return;
+      logger.error(`MediaType undefined for remote track, stream id: ${streamId}, track creation failed!`);
+      return;
     }
 
     const remoteSDP = new SDP(this.remoteDescription.sdp);
@@ -894,32 +864,30 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
 
     // Find the matching mline using 'mid' or the 'msid' attr of the stream.
     if (transceiver?.mid) {
-        const mid = transceiver.mid;
+      const mid = transceiver.mid;
 
-        mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
+      mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
     } else {
-        mediaLine = remoteSDP.media.find(mls => {
-            const msid = SDPUtil.findLine(mls, 'a=msid:');
+      mediaLine = remoteSDP.media.find(mls => {
+        const msid = SDPUtil.findLine(mls, 'a=msid:');
 
-            return typeof msid === 'string' && streamId === msid.substring(7).split(' ')[0];
-        });
+        return typeof msid === 'string' && streamId === msid.substring(7).split(' ')[0];
+      });
     }
 
     if (!mediaLine) {
-        logger.error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
-                + 'track creation failed!');
-
-        return;
+      logger.error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
+              + 'track creation failed!');
+      return;
     }
 
     let ssrcLines = SDPUtil.findLines(mediaLine, 'a=ssrc:');
 
     ssrcLines = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
     if (!ssrcLines.length) {
-        logger.error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
-                + 'track creation failed!');
-
-        return;
+      logger.error(`No SSRC lines found in remote SDP for remote stream[msid=${streamId},type=${mediaType}]`
+              + 'track creation failed!');
+      return;
     }
 
     // FIXME the length of ssrcLines[0] not verified, but it will fail
@@ -929,51 +897,48 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
     if (!isValidNumber(trackSsrc) || trackSsrc < 0) {
-        logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-                + 'track creation failed!');
-
-        return;
+      logger.error(`Invalid SSRC for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+              + 'track creation failed!');
+      return;
     }
 
     if (!ownerEndpointId) {
-        logger.error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
-            + 'track creation failed!');
-
-        return;
+      logger.error(`No SSRC owner known for remote stream[ssrc=${trackSsrc},id=${streamId},type=${mediaType}]`
+          + 'track creation failed!');
+      return;
     }
 
     const sourceName = this.signalingLayer.getTrackSourceName(trackSsrc);
     const peerMediaInfo = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
     const trackDetails = {
-        mediaType,
-        muted: peerMediaInfo?.muted ?? true,
-        stream,
-        track,
-        ssrc: trackSsrc,
-        videoType: peerMediaInfo?.videoType
+      mediaType,
+      muted: peerMediaInfo?.muted ?? true,
+      stream,
+      track,
+      ssrc: trackSsrc,
+      videoType: peerMediaInfo?.videoType
     };
 
     if (this._remoteSsrcMap.has(sourceName) && mediaType === MediaType.VIDEO) {
-        trackDetails.videoType = this._remoteSsrcMap.get(sourceName).videoType;
+      trackDetails.videoType = this._remoteSsrcMap.get(sourceName).videoType;
     }
 
     this._createRemoteTrack(ownerEndpointId, sourceName, trackDetails);
-};
+  }
 
-/**
- * Initializes a new JitsiRemoteTrack instance with the data provided by the signaling layer and SDP.
- *
- * @param {string} ownerEndpointId - The owner's endpoint ID (MUC nickname)
- * @param {String} sourceName - The track's source name
- * @param {Object} trackDetails - The track's details.
- * @param {MediaType} trackDetails.mediaType - media type, 'audio' or 'video'.
- * @param {boolean} trackDetails.muted - The initial muted status.
- * @param {number} trackDetails.ssrc - The track's main SSRC number.
- * @param {MediaStream} trackDetails.stream - The WebRTC stream instance.
- * @param {MediaStreamTrack} trackDetails.track - The WebRTC track instance.
- * @param {VideoType} trackDetails.videoType - The track's type of the video (if applicable).
- */
-TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId, sourceName, trackDetails) {
+  /**
+   * Initializes a new JitsiRemoteTrack instance with the data provided by the signaling layer and SDP.
+   * @param {string} ownerEndpointId - The owner's endpoint ID (MUC nickname).
+   * @param {string} sourceName - The track's source name.
+   * @param {Object} trackDetails - The track's details.
+   * @param {string} trackDetails.mediaType - Media type, 'audio' or 'video'.
+   * @param {boolean} trackDetails.muted - The initial muted status.
+   * @param {number} trackDetails.ssrc - The track's main SSRC number.
+   * @param {MediaStream} trackDetails.stream - The WebRTC stream instance.
+   * @param {MediaStreamTrack} trackDetails.track - The WebRTC track instance.
+   * @param {string} trackDetails.videoType - The track's type of the video (if applicable).
+   */
+  _createRemoteTrack(ownerEndpointId, sourceName, trackDetails) {
     const { mediaType, muted, ssrc, stream, track, videoType } = trackDetails;
 
     logger.info(`${this} creating remote track[endpoint=${ownerEndpointId},ssrc=${ssrc},`
@@ -982,57 +947,56 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(ownerEndpointId,
     let userTracksByMediaType;
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
-        const existingTrack = this.remoteTracksBySsrc.get(ssrc);
+      const existingTrack = this.remoteTracksBySsrc.get(ssrc);
 
-        if (existingTrack) {
-            logger.info(`${this} ignored duplicated track event for SSRC[ssrc=${ssrc},type=${mediaType}]`);
-
-            return;
-        }
+      if (existingTrack) {
+        logger.info(`${this} ignored duplicated track event for SSRC[ssrc=${ssrc},type=${mediaType}]`);
+        return;
+      }
     } else {
-        remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
+      remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
-        if (!remoteTracksMap) {
-            remoteTracksMap = new Map();
-            remoteTracksMap.set(MediaType.AUDIO, new Set());
-            remoteTracksMap.set(MediaType.VIDEO, new Set());
-            this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
-        }
+      if (!remoteTracksMap) {
+        remoteTracksMap = new Map();
+        remoteTracksMap.set(MediaType.AUDIO, new Set());
+        remoteTracksMap.set(MediaType.VIDEO, new Set());
+        this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
+      }
 
-        userTracksByMediaType = remoteTracksMap.get(mediaType);
+      userTracksByMediaType = remoteTracksMap.get(mediaType);
 
-        if (userTracksByMediaType?.size
-            && Array.from(userTracksByMediaType).find(jitsiTrack => jitsiTrack.getTrack() === track)) {
-            // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
-            logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},`
-                + `type=${mediaType}]`);
-
-            return;
-        }
+      if (userTracksByMediaType?.size
+          && Array.from(userTracksByMediaType).find(jitsiTrack => jitsiTrack.getTrack() === track)) {
+        // Ignore duplicated event which can originate either from 'onStreamAdded' or 'onTrackAdded'.
+        logger.info(`${this} ignored duplicated track event for track[endpoint=${ownerEndpointId},`
+            + `type=${mediaType}]`);
+        return;
+      }
     }
 
-    const remoteTrack
-        = new JitsiRemoteTrack(
-                this.rtc,
-                this.rtc.conference,
-                ownerEndpointId,
-                stream,
-                track,
-                mediaType,
-                videoType,
-                ssrc,
-                muted,
-                this.isP2P,
-                sourceName);
+    const remoteTrack = new JitsiRemoteTrack(
+      this.rtc,
+      this.rtc.conference,
+      ownerEndpointId,
+      stream,
+      track,
+      mediaType,
+      videoType,
+      ssrc,
+      muted,
+      this.isP2P,
+      sourceName
+    );
 
     if (FeatureFlags.isSsrcRewritingSupported()) {
-        this.remoteTracksBySsrc.set(ssrc, remoteTrack);
+      this.remoteTracksBySsrc.set(ssrc, remoteTrack);
     } else {
-        userTracksByMediaType.add(remoteTrack);
+      userTracksByMediaType.add(remoteTrack);
     }
 
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
-};
+  }
+}
 
 /**
  * Handles remote media track removal.
