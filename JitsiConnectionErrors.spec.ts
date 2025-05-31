@@ -10,6 +10,7 @@ describe( "/JitsiConnectionErrors members", () => {
         OTHER_ERROR,
         PASSWORD_REQUIRED,
         SERVER_ERROR,
+        SHARD_CHANGED_ERROR,
         JitsiConnectionErrors,
         ...others
     } = exported;
@@ -30,6 +31,7 @@ describe( "/JitsiConnectionErrors members", () => {
         expect( JitsiConnectionErrors.OTHER_ERROR ).toBe( 'connection.otherError' );
         expect( JitsiConnectionErrors.PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
         expect( JitsiConnectionErrors.SERVER_ERROR ).toBe( 'connection.serverError' );
+        expect( JitsiConnectionErrors.SHARD_CHANGED_ERROR ).toBe( 'connection.shardChangedError' );
     } );
 
     it( "unknown members", () => {

@@ -14,7 +14,6 @@
   CONNECTION_INTERRUPTED = 'xmpp.connection.interrupted',
   CONNECTION_RESTORED = 'xmpp.connection.restored',
   CONNECTION_ICE_FAILED = 'xmpp.connection.ice.failed',
-  CONNECTION_RESTARTED = 'xmpp.connection.restart',
   CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
   DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',
   EMUC_ROOM_ADDED = 'xmpp.emuc_room_added',

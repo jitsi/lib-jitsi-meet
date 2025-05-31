@@ -100,10 +100,6 @@ export enum XMPPEvents {
     // interrupted. This should go to the RTC module.
     CONNECTION_INTERRUPTED = 'xmpp.connection.interrupted',
 
-    // Designates an event indicating that the call has been migrated to a different
-    // bridge and that the client needs to be restarted for a successful transition.
-    CONNECTION_RESTARTED = 'xmpp.connection.restart',
-
     // Designates an event indicating that the media (ICE) connection was
     // restored. This should go to the RTC module.
     CONNECTION_RESTORED = 'xmpp.connection.restored',
