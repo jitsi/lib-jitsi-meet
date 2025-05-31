@@ -1,9 +1,9 @@
 /**
  * Provides statistics for the local stream.
  */
+import { getLogger } from '@jitsi/logger';
 
-const logger = require('@jitsi/logger').getLogger('modules/statistics/LocalStatsCollector');
-
+const logger = getLogger('modules/statistics/LocalStatsCollector');
 /**
  * Size of the webaudio analyzer buffer.
  * @type {number}
@@ -86,9 +86,9 @@ export default class LocalStatsCollector {
      * @constructor
      */
     constructor(
-        stream: MediaStream,
-        interval: number,
-        callback: (audioLevel: number) => void
+            stream: MediaStream,
+            interval: number,
+            callback: (audioLevel: number) => void
     ) {
         this.stream = stream;
         this.intervalId = null;
