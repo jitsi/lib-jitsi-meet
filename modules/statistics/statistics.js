@@ -28,42 +28,42 @@ export default class Statistics {
      * @type {boolean}
      */
     static audioLevelsEnabled = false;
-    
+
     /**
      * The interval for audio levels stats collection.
      * @static
      * @type {number}
      */
     static audioLevelsInterval = 200;
-    
+
     /**
      * The interval for peer connection stats collection.
      * @static
      * @type {number}
      */
     static pcStatsInterval = 10000;
-    
+
     /**
      * Flag indicating whether third party requests are disabled.
      * @static
      * @type {boolean}
      */
     static disableThirdPartyRequests = false;
-    
+
     /**
      * Analytics adapter for sending events.
      * @static
      * @type {Object}
      */
     static analytics = analytics;
-    
+
     /**
      * Array holding local statistics collectors.
      * @static
      * @type {Array}
      */
     static localStats = [];
-    
+
     /**
      * Local JID constant.
      * @static
