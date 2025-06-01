@@ -1,6 +1,7 @@
 export {};
 
 declare global {
+    type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
     }
