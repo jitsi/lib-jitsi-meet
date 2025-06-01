@@ -6,18 +6,23 @@ import Listenable from '../util/Listenable';
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
 const logger = getLogger('modules/videosipgw/JitsiVideoSIPGWSession');
+import ChatRoom  from '../xmpp/ChatRoom';
 
 /**
  * The event name for current sip video session state changed.
  * @type {string} event name for sip video session state changed.
  */
-const STATE_CHANGED = 'STATE_CHANGED';
+const STATE_CHANGED: string = 'STATE_CHANGED';
 
 /**
  * Jitsi video SIP GW session. Holding its state and able to start/stop it.
  * When session is in OFF or FAILED stated it cannot be used anymore.
  */
 export default class JitsiVideoSIPGWSession extends Listenable {
+    sipAddress: string;
+    displayName: string;
+    chatRoom: ChatRoom;
+    state: string | undefined;
 
     /**
      * Creates new session with the desired sip address and display name.
@@ -28,7 +33,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * that participant.
      * @param {ChatRoom} chatRoom - The chat room this session is bound to.
      */
-    constructor(sipAddress, displayName, chatRoom) {
+    constructor(sipAddress: string, displayName: string, chatRoom: any) {
         super();
 
         this.sipAddress = sipAddress;
@@ -48,7 +53,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     /**
      * Stops the current session.
      */
-    stop() {
+    stop(): void {
         if (this.state === VideoSIPGWConstants.STATE_OFF
             || this.state === VideoSIPGWConstants.STATE_FAILED) {
             logger.warn('Video SIP GW session already stopped or failed!');
@@ -62,7 +67,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     /**
      * Starts a new session. Sends an iq to the focus.
      */
-    start() {
+    start(): void {
         // if state is off, this session was active for some reason
         // and we should create new one, rather than reusing it
         if (this.state === VideoSIPGWConstants.STATE_ON
@@ -85,7 +90,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * was entered.
      * @returns {void}
      */
-    setState(newState, failureReason) {
+    setState(newState: string, failureReason?: string): void {
         if (newState === this.state) {
             return;
         }
@@ -110,7 +115,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      *
      * @param {Function} listener - The function that will receive the event.
      */
-    addStateListener(listener) {
+    addStateListener(listener: Function): void {
         this.addListener(STATE_CHANGED, listener);
     }
 
@@ -119,7 +124,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      *
      * @param {Function} listener - The function to be removed.
      */
-    removeStateListener(listener) {
+    removeStateListener(listener: Function): void {
         this.removeListener(STATE_CHANGED, listener);
     }
 
@@ -129,8 +134,13 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * @private
      * @param {string} action - The action to send ('start' or 'stop').
      */
-    _sendJibriIQ(action) {
-        const attributes = {
+    private _sendJibriIQ(action: string): void {
+        const attributes: {
+            xmlns: string;
+            action: string;
+            sipaddress: string;
+            displayname?: string;
+        } = {
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
             sipaddress: this.sipAddress
@@ -148,7 +158,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         this.chatRoom.connection.sendIQ(
             iq,
             () => {}, // eslint-disable-line no-empty-function
-            error => {
+            (error: any) => {
                 logger.error(
                     `Failed to ${action} video SIP GW session, error: `, error);
                 this.setState(VideoSIPGWConstants.STATE_FAILED);
