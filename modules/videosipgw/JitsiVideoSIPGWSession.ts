@@ -113,18 +113,18 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * Subscribes the passed listener to the event for state change of this
      * session.
      *
-     * @param {Function} listener - The function that will receive the event.
+     * @param {EventListener} listener - The function that will receive the event.
      */
-    addStateListener(listener: Function): void {
+    addStateListener(listener: EventListener): void {
         this.addListener(STATE_CHANGED, listener);
     }
 
     /**
      * Unsubscribes the passed handler.
      *
-     * @param {Function} listener - The function to be removed.
+     * @param {EventListener} listener - The function to be removed.
      */
-    removeStateListener(listener: Function): void {
+    removeStateListener(listener: EventListener): void {
         this.removeListener(STATE_CHANGED, listener);
     }
 
@@ -162,6 +162,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
                 logger.error(
                     `Failed to ${action} video SIP GW session, error: `, error);
                 this.setState(VideoSIPGWConstants.STATE_FAILED);
-            });
+            },
+            undefined);
     }
 }
