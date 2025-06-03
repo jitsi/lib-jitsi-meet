@@ -1,7 +1,7 @@
 export {};
 
-declare global {
-    type Interval = ReturnType<typeof setInterval>;
+declare global {    
+    type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
         webkitAudioContext?: typeof AudioContext;

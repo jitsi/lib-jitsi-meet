@@ -1,5 +1,5 @@
-import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
+import emojiRegex from 'emoji-regex';
 import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
@@ -24,6 +24,11 @@ import XmppConnection from './XmppConnection';
 import { FEATURE_TRANSCRIBER } from './xmpp';
 
 const logger = getLogger('modules/xmpp/ChatRoom');
+
+/**
+ * Regex that matches all emojis.
+ */
+const EMOJI_REGEX = emojiRegex();
 
 /**
  * How long we're going to wait for IQ response, before timeout error is triggered.
@@ -421,18 +426,6 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
-            }
-
-            const roomMetadataEl
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_jitsimetadata"]>value');
-            const roomMetadataText = roomMetadataEl?.text();
-
-            if (roomMetadataText) {
-                try {
-                    this.roomMetadata._handleMessages(safeJsonParse(roomMetadataText));
-                } catch (e) {
-                    logger.warn('Failed to set room metadata', e);
-                }
             }
 
             this.initialDiscoRoomInfoReceived = true;
@@ -994,6 +987,12 @@ export default class ChatRoom extends Listenable {
      * @param {string} receiverId - The receiver of the message if it is private.
      */
     sendReaction(reaction, messageId, receiverId) {
+        const m = reaction.match(EMOJI_REGEX);
+
+        if (!m || !m[0]) {
+            throw new Error(`Invalid reaction: ${reaction}`);
+        }
+
         // Adds the 'to' attribute depending on if the message is private or not.
         const msg = receiverId ? $msg({ to: `${this.roomjid}/${receiverId}`,
             type: 'chat' }) : $msg({ to: this.roomjid,
@@ -1001,7 +1000,7 @@ export default class ChatRoom extends Listenable {
 
         msg.c('reactions', { id: messageId,
             xmlns: 'urn:xmpp:reactions:0' })
-            .c('reaction', {}, reaction)
+            .c('reaction', {}, m[0])
             .up().c('store', { xmlns: 'urn:xmpp:hints' });
 
         this.connection.send(msg);
@@ -1216,11 +1215,17 @@ export default class ChatRoom extends Listenable {
 
             reactions.each((_, reactionElem) => {
                 const reaction = $(reactionElem).text();
+                const m = reaction.match(EMOJI_REGEX);
 
-                reactionList.push(reaction);
+                // Only allow one reaction per <reaction> element.
+                if (m && m[0]) {
+                    reactionList.push(m[0]);
+                }
             });
 
-            this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
+            if (reactionList.length > 0) {
+                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
+            }
 
             return true;
         }
