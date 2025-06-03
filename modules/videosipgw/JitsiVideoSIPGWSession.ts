@@ -6,7 +6,8 @@ import Listenable from '../util/Listenable';
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
 const logger = getLogger('modules/videosipgw/JitsiVideoSIPGWSession');
-import ChatRoom  from '../xmpp/ChatRoom';
+
+import ChatRoom from '../xmpp/ChatRoom';
 
 /**
  * The event name for current sip video session state changed.
@@ -22,7 +23,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     sipAddress: string;
     displayName: string;
     chatRoom: ChatRoom;
-    state: string | undefined;
+    state?: string;
 
     /**
      * Creates new session with the desired sip address and display name.
@@ -33,7 +34,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * that participant.
      * @param {ChatRoom} chatRoom - The chat room this session is bound to.
      */
-    constructor(sipAddress: string, displayName: string, chatRoom: any) {
+    constructor(sipAddress: string, displayName: string, chatRoom: ChatRoom) {
         super();
 
         this.sipAddress = sipAddress;
@@ -136,10 +137,10 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      */
     private _sendJibriIQ(action: string): void {
         const attributes: {
-            xmlns: string;
             action: string;
-            sipaddress: string;
             displayname?: string;
+            sipaddress: string;
+            xmlns: string;
         } = {
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
@@ -157,7 +158,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         logger.debug(`${action} video SIP GW session`, iq.nodeTree);
         this.chatRoom.connection.sendIQ(
             iq,
-            () => {}, // eslint-disable-line no-empty-function
+            () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
             (error: any) => {
                 logger.error(
                     `Failed to ${action} video SIP GW session, error: `, error);
