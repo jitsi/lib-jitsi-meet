@@ -27,11 +27,13 @@ let context: AudioContext | null = null;
 function timeDomainDataToAudioLevel(samples: Uint8Array): number {
     let maxVolume = 0;
     const length = samples.length;
+
     for (let i = 0; i < length; i++) {
         if (maxVolume < samples[i]) {
             maxVolume = samples[i];
         }
     }
+
     return Number.parseFloat(((maxVolume - 127) / 128).toFixed(3));
 }
 
