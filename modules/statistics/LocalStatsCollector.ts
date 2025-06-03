@@ -1,6 +1,3 @@
-/**
- * Provides statistics for the local stream.
- */
 import { getLogger } from '@jitsi/logger';
 
 const logger = getLogger('modules/statistics/LocalStatsCollector');
@@ -30,18 +27,14 @@ let context: AudioContext | null = null;
  * @returns {number} the audio level
  */
 function timeDomainDataToAudioLevel(samples: Uint8Array): number {
-
     let maxVolume = 0;
-
     const length = samples.length;
-
     for (let i = 0; i < length; i++) {
         if (maxVolume < samples[i]) {
             maxVolume = samples[i];
         }
     }
-
-    return parseFloat(((maxVolume - 127) / 128).toFixed(3));
+    return Number.parseFloat(((maxVolume - 127) / 128).toFixed(3));
 }
 
 /**
@@ -62,15 +55,15 @@ function animateLevel(newLevel: number, lastLevel: number): number {
         value = newLevel;
     }
 
-    return parseFloat(value.toFixed(3));
+    return Number.parseFloat(value.toFixed(3));
 }
 
 /**
- * <tt>LocalStatsCollector</tt> calculates statistics for the local stream.
+ * Provides statistics for the local stream.
  */
 export default class LocalStatsCollector {
     stream: MediaStream;
-    intervalId: Interval | null;
+    intervalId: Timeout | null;
     intervalMilis: number;
     audioLevel: number;
     callback: (audioLevel: number) => void;
