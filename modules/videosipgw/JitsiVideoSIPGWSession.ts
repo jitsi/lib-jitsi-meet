@@ -136,18 +136,12 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * @param {string} action - The action to send ('start' or 'stop').
      */
     private _sendJibriIQ(action: string): void {
-        const attributes: {
-            action: string;
-            displayname?: string;
-            sipaddress: string;
-            xmlns: string;
-        } = {
+        const attributes = {
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
-            sipaddress: this.sipAddress
+            'sipaddress': this.sipAddress,
+            'displayname': this.displayName
         };
-
-        attributes.displayname = this.displayName;
 
         const iq = $iq({
             to: this.chatRoom.focusMucJid,
