@@ -4,7 +4,6 @@ export enum JitsiConferenceErrors {
   CONFERENCE_DESTROYED = 'conference.destroyed',
   CONFERENCE_MAX_USERS = 'conference.max_users',
   CONNECTION_ERROR = 'conference.connectionError',
-  CONFERENCE_RESTARTED = 'conference.restarted',
   NOT_ALLOWED_ERROR = 'conference.connectionError.notAllowed',
   MEMBERS_ONLY_ERROR = 'conference.connectionError.membersOnly',
   CONFERENCE_ACCESS_DENIED = 'conference.connectionError.accessDenied',

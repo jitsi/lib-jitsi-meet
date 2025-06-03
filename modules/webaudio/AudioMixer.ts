@@ -9,6 +9,12 @@ const logger = getLogger('modules/webaudio/AudioMixer');
  * MediaStream.
  */
 export default class AudioMixer {
+    private _started: boolean;
+    private _streamsToMix: MediaStream[];
+    private _streamMSSArray: MediaStreamAudioSourceNode[];
+    private _audioContext?: AudioContext;
+    private _mixedMSD?: MediaStreamAudioDestinationNode;
+
     /**
      * Create AudioMixer instance.
      */
@@ -23,8 +29,8 @@ export default class AudioMixer {
      *
      * @param {MediaStream} stream - MediaStream to be mixed.
      */
-    addMediaStream(stream) {
-        if (!stream.getAudioTracks()) {
+    addMediaStream(stream: MediaStream): void {
+        if (!stream.getAudioTracks() || stream.getAudioTracks().length === 0) {
             logger.warn('Added MediaStream doesn\'t contain audio tracks.');
         }
 
@@ -35,12 +41,12 @@ export default class AudioMixer {
      * At this point a WebAudio ChannelMergerNode is created and and the two associated MediaStreams are connected to
      * it; the resulting mixed MediaStream is returned.
      *
-     * @returns {MediaStream} - MediaStream containing added streams mixed together, or null if no MediaStream
+     * @returns {MediaStream | null} - MediaStream containing added streams mixed together, or null if no MediaStream
      * is added.
      */
-    start() {
+    start(): MediaStream | null {
         // If the mixer was already started just return the existing mixed stream.
-        if (this._started) {
+        if (this._started && this._mixedMSD) {
             return this._mixedMSD.stream;
         }
 
@@ -54,10 +60,10 @@ export default class AudioMixer {
 
         this._started = true;
 
-        this._mixedMSD = this._audioContext.createMediaStreamDestination();
+        this._mixedMSD = this._audioContext!.createMediaStreamDestination();
 
         for (const stream of this._streamsToMix) {
-            const streamMSS = this._audioContext.createMediaStreamSource(stream);
+            const streamMSS = this._audioContext!.createMediaStreamSource(stream);
 
             streamMSS.connect(this._mixedMSD);
 
@@ -73,7 +79,7 @@ export default class AudioMixer {
      *
      * @returns {void}
      */
-    reset() {
+    reset(): void {
         this._started = false;
         this._streamsToMix = [];
 
@@ -87,5 +93,6 @@ export default class AudioMixer {
         if (this._audioContext) {
             this._audioContext = undefined;
         }
+        this._mixedMSD = undefined;
     }
 }
