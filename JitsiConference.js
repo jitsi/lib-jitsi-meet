@@ -484,11 +484,6 @@ JitsiConference.prototype._init = function(options = {}) {
         Statistics.analytics.addPermanentProperties({
             'callstats_name': this._statsCurrentId
         });
-
-        // Start performance observer for monitoring long tasks
-        if (config.longTasksStatsInterval) {
-            this.statistics.attachLongTasksStats();
-        }
     }
 
     this.eventManager.setupChatRoomListeners();
