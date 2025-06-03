@@ -1,13 +1,11 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
-
+import ChatRoom from '../xmpp/ChatRoom';
 import Listenable from '../util/Listenable';
 
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
 const logger = getLogger('modules/videosipgw/JitsiVideoSIPGWSession');
-
-import ChatRoom from '../xmpp/ChatRoom';
 
 /**
  * The event name for current sip video session state changed.
