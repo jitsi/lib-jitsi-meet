@@ -6,6 +6,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import JitsiVideoSIPGWSession from './JitsiVideoSIPGWSession';
 import * as Constants from './VideoSIPGWConstants';
 import ChatRoom from '../xmpp/ChatRoom';
+import EventEmitter from '../util/EventEmitter';
 
 
 export interface ISessionStateChangeEvent {
@@ -26,7 +27,7 @@ export interface INodeAttributes {
  */
 export default class VideoSIPGW {
     private chatRoom: ChatRoom;
-    private eventEmitter: any;
+    private eventEmitter: EventEmitter;
     private sessions: Record<string, JitsiVideoSIPGWSession>;
     private sessionStateChangeListener: (event: ISessionStateChangeEvent) => void;
     private state?: string;
