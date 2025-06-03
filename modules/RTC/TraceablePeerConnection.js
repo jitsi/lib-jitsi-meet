@@ -589,27 +589,28 @@ export default class TraceablePeerConnection {
     _sourceMutedChanged(sourceName, isMuted) {
         const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
 
-    if (!track) {
-      if (FeatureFlags.isSsrcRewritingSupported()) {
-        logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
-      }
-      return;
+        if (!track) {
+            if (FeatureFlags.isSsrcRewritingSupported()) {
+                logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
+            }
+
+            return;
+        }
+
+        track.setMute(isMuted);
     }
 
-    track.setMute(isMuted);
-  }
-
-  /**
+    /**
    * Handles remote source videoType changed events.
    * @param {string} sourceName - The name of the remote source.
    * @param {string} videoType - The new value.
    */
-  _sourceVideoTypeChanged(sourceName, videoType) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+    _sourceVideoTypeChanged(sourceName, videoType) {
+        const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
 
-    if (!track) {
-      return;
-    }
+        if (!track) {
+            return;
+        }
 
         track._setVideoType(videoType);
     }
