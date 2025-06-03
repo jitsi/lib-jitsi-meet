@@ -2907,18 +2907,6 @@ JitsiConference.prototype.isConnectionInterrupted = function() {
 };
 
 /**
- * Handles {@link XMPPEvents.CONNECTION_RESTARTED} event. This happens when the bridge goes down
- * and Jicofo moves conferences away to a different bridge.
- * @param {JingleSessionPC} session
- * @private
- */
-JitsiConference.prototype._onConferenceRestarted = function(session) {
-    if (!session.isP2P && this.options.config.enableForcedReload) {
-        this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONFERENCE_RESTARTED);
-    }
-};
-
-/**
  * Handles {@link XMPPEvents.CONNECTION_INTERRUPTED}
  * @param {JingleSessionPC} session
  * @private

@@ -196,12 +196,19 @@ export default class XMPP extends Listenable {
             };
             /* eslint-enable camelcase */
 
-            this.eventEmitter.emit(
-                JitsiConnectionEvents.CONNECTION_FAILED,
-                JitsiConnectionErrors.OTHER_ERROR,
-                undefined,
-                undefined,
-                details);
+            if (this.options.testing?.enableGracefulReconnect) {
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
+                    JitsiConnectionErrors.SHARD_CHANGED_ERROR
+                );
+            } else {
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
+                    JitsiConnectionErrors.OTHER_ERROR,
+                    undefined,
+                    undefined,
+                    details);
+            }
         });
 
         this._initStrophePlugins();
