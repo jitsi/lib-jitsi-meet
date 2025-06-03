@@ -13,8 +13,6 @@ const WEBAUDIO_ANALYZER_FFT_SIZE: number = 2048;
  */
 const WEBAUDIO_ANALYZER_SMOOTING_TIME: number = 0.8;
 
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-
 /**
  * The audio context.
  * @type {AudioContext}

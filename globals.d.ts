@@ -4,8 +4,6 @@ declare global {
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
-        webkitAudioContext?: typeof AudioContext;
-        AudioContext: typeof AudioContext;
     }
     interface RTCRtpReceiver {
         createEncodedStreams?: () => {
