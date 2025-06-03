@@ -13,15 +13,30 @@ import RTPStats from './RTPStatsCollector';
 const logger = require('@jitsi/logger').getLogger('modules/statistics/statistics');
 
 /**
- * Stores all active {@link Statistics} instances.
- * @type {Set<Statistics>}
- */
-let _instances;
-
-/**
  * Statistics class provides various functionality related to collecting and reporting statistics.
  */
 export default class Statistics {
+
+    /**
+     * Stores all active Statistics instances.
+     * @type {Set<Statistics>}
+     */
+    static _instances;
+
+    /**
+     * Static getter for instances property
+     * Returns the Set holding all active Statistics instances. Lazily
+     * initializes the Set to allow any Set polyfills to be applied.
+     * @type {Set<Statistics>}
+     */
+    static get instances() {
+        if (!Statistics._instances) {
+            Statistics._instances = new Set();
+        }
+
+        return Statistics._instances;
+    }
+
     /**
      * Flag indicating whether audio levels are enabled or not.
      * @static
@@ -489,20 +504,3 @@ export default class Statistics {
     }
 }
 
-/**
- * Static getter for instances property
- */
-Object.defineProperty(Statistics, 'instances', {
-    /**
-     * Returns the Set holding all active {@link Statistics} instances. Lazily
-     * initializes the Set to allow any Set polyfills to be applied.
-     * @type {Set<Statistics>}
-     */
-    get() {
-        if (!_instances) {
-            _instances = new Set();
-        }
-
-        return _instances;
-    }
-});
