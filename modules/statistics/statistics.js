@@ -1,4 +1,3 @@
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
@@ -9,7 +8,6 @@ import WatchRTC from '../watchRTC/WatchRTC';
 
 import analytics from './AnalyticsAdapter';
 import LocalStats from './LocalStatsCollector';
-import { PerformanceObserverStats } from './PerformanceObserverStats';
 import RTPStats from './RTPStatsCollector';
 
 const logger = require('@jitsi/logger').getLogger('modules/statistics/statistics');
@@ -32,10 +30,6 @@ Statistics.init = function(options) {
 
     if (typeof options.audioLevelsInterval === 'number') {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
-    }
-
-    if (typeof options.longTasksStatsInterval === 'number') {
-        Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
     }
 
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
@@ -227,31 +221,6 @@ Statistics.prototype.removeByteSentStatsListener = function(listener) {
  */
 Statistics.prototype.addLongTasksStatsListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
-};
-
-/**
- * Creates an instance of {@link PerformanceObserverStats} and starts the
- * observer that records the stats periodically.
- *
- * @returns {void}
- */
-Statistics.prototype.attachLongTasksStats = function() {
-    if (!browser.supportsPerformanceObserver()) {
-        logger.warn('Performance observer for long tasks not supported by browser!');
-
-        return;
-    }
-
-    this.performanceObserverStats = new PerformanceObserverStats(
-        this.eventEmitter,
-        Statistics.longTasksStatsInterval);
-
-    this.conference.on(
-        JitsiConferenceEvents.CONFERENCE_JOINED,
-        () => this.performanceObserverStats.startObserver());
-    this.conference.on(
-        JitsiConferenceEvents.CONFERENCE_LEFT,
-        () => this.performanceObserverStats.stopObserver());
 };
 
 /**
