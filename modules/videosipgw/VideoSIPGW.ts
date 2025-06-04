@@ -2,11 +2,11 @@ import { getLogger } from '@jitsi/logger';
 const logger = getLogger('modules/videosipgw/VideoSIPGW');
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import EventEmitter from '../util/EventEmitter';
+import ChatRoom from '../xmpp/ChatRoom';
 
 import JitsiVideoSIPGWSession from './JitsiVideoSIPGWSession';
 import * as Constants from './VideoSIPGWConstants';
-import ChatRoom from '../xmpp/ChatRoom';
-import EventEmitter from '../util/EventEmitter';
 
 
 export interface ISessionStateChangeEvent {

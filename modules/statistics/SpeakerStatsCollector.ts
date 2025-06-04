@@ -1,9 +1,9 @@
+import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
-import SpeakerStats from './SpeakerStats';
-import JitsiConference from '../../JitsiConference';
-import type { IFaceLandmarks } from './SpeakerStats';
+import { type IFaceLandmarks, default as SpeakerStats } from './SpeakerStats';
+
 /**
  * The value to use for the "type" field for messages sent
  * over the data channel that contain a face landmark.

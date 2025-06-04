@@ -36,7 +36,7 @@
     "@babel/core": "7.25.9",
     "@babel/preset-env": "7.25.9",
     "@babel/preset-typescript": "7.25.9",
-    "@jitsi/eslint-config": "6.0.3",
+    "@jitsi/eslint-config": "6.0.4",
     "@types/async": "3.2.12",
     "@types/jasmine": "4.0.3",
     "@types/lodash-es": "4.17.12",
