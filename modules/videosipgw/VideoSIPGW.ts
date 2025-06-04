@@ -5,18 +5,39 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import JitsiVideoSIPGWSession from './JitsiVideoSIPGWSession';
 import * as Constants from './VideoSIPGWConstants';
+import ChatRoom from '../xmpp/ChatRoom';
+import EventEmitter from '../util/EventEmitter';
+
+
+export interface ISessionStateChangeEvent {
+    address: string;
+    displayName?: string;
+    newState: string;
+    oldState?: string;
+}
+
+export interface INodeAttributes {
+    failure_reason?: string;
+    sipaddress?: string;
+    state: string;
+}
 
 /**
  * Main video SIP GW handler. Stores references of all created sessions.
  */
 export default class VideoSIPGW {
+    private chatRoom: ChatRoom;
+    private eventEmitter: EventEmitter;
+    private sessions: Record<string, JitsiVideoSIPGWSession>;
+    private sessionStateChangeListener: (event: ISessionStateChangeEvent) => void;
+    private state?: string;
 
     /**
      * Creates new handler.
      *
      * @param {ChatRoom} chatRoom - Tha chat room to handle.
      */
-    constructor(chatRoom) {
+    constructor(chatRoom: ChatRoom) {
         this.chatRoom = chatRoom;
         this.eventEmitter = chatRoom.eventEmitter;
         logger.debug('creating VideoSIPGW');
@@ -37,7 +58,7 @@ export default class VideoSIPGW {
      * @param {Object} node the presence node Object to handle.
      * Object representing part of the presence received over xmpp.
      */
-    handleJibriSIPState(node) {
+    handleJibriSIPState(node: { attributes?: INodeAttributes; }): void {
         const attributes = node.attributes;
 
         if (!attributes) {
@@ -84,7 +105,7 @@ export default class VideoSIPGW {
      * @param {string} displayName - The display name to use.
      * @returns {JitsiVideoSIPGWSession|Error}
      */
-    createVideoSIPGWSession(sipAddress, displayName) {
+    createVideoSIPGWSession(sipAddress: string, displayName: string): JitsiVideoSIPGWSession | Error {
         if (this.sessions[sipAddress]) {
             logger.warn('There was already a Video SIP GW session for address',
                 sipAddress);
@@ -108,7 +129,7 @@ export default class VideoSIPGW {
      *
      * @param {options} event - { address, oldState, newState, displayName }
      */
-    sessionStateChanged(event) {
+    sessionStateChanged(event: ISessionStateChangeEvent): void {
         const address = event.address;
 
         if (event.newState === Constants.STATE_OFF
