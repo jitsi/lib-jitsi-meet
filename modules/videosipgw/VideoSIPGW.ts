@@ -116,7 +116,7 @@ export default class VideoSIPGW {
         const session = new JitsiVideoSIPGWSession(
             sipAddress, displayName, this.chatRoom);
 
-        session.addStateListener(this.sessionStateChangeListener);
+        session.addStateListener(this.sessionStateChangeListener as unknown as EventListener);
 
         this.sessions[sipAddress] = session;
 
@@ -143,7 +143,7 @@ export default class VideoSIPGW {
                 return;
             }
 
-            session.removeStateListener(this.sessionStateChangeListener);
+            session.removeStateListener(this.sessionStateChangeListener as unknown as EventListener);
             delete this.sessions[address];
         }
 
