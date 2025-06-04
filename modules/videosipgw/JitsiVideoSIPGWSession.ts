@@ -1,7 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
-import ChatRoom from '../xmpp/ChatRoom';
+
 import Listenable from '../util/Listenable';
+import ChatRoom from '../xmpp/ChatRoom';
 
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
