@@ -3888,7 +3888,7 @@ JitsiConference.prototype._sendConferenceLeftAnalyticsEvent = function() {
         meetingId,
         participantId: `${meetingId}.${this._statsCurrentId}`,
         stats: {
-            duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000),
+            duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000)
         }
     }));
 };
