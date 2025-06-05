@@ -2661,7 +2661,7 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
 JitsiConference.prototype._setTranscribingEnabled = function(enabled) {
     if (this._transcribingEnabled !== enabled) {
         this._transcribingEnabled = enabled;
-        this._maybeStartOrStopP2P(true)
+        this._maybeStartOrStopP2P(true);
     }
 }
 
@@ -3504,7 +3504,8 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
     const peers = this.getParticipants();
     const peerCount = peers.length;
     const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist' || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors && !this.getMetadataHandler().getMetadata()?.recording?.isTranscribingEnabled;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
+        && !this.getMetadataHandler().getMetadata()?.recording?.isTranscribingEnabled;
 
     logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
