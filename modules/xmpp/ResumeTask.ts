@@ -55,57 +55,6 @@ export default class ResumeTask {
     }
 
     /**
-     * Called by {@link XmppConnection} when the connection drops and it's a signal it wants to schedule a reconnect.
-     *
-     * @returns {void}
-     */
-    schedule(): void {
-        this._cancelResume();
-        this._removeNetworkOnlineListener();
-
-        this._resumeRetryN += 1;
-
-        this._networkOnlineListener = NetworkInfo.addCancellableListener(
-            NETWORK_INFO_EVENT,
-            ({ isOnline }: INetworkInfoEvent) => {
-                if (isOnline) {
-                    this._scheduleResume();
-                } else {
-                    this._cancelResume();
-                }
-            }
-        ) as () => void;
-
-        NetworkInfo.isOnline() && this._scheduleResume();
-    }
-
-    /**
-     * Schedules a delayed timeout which will execute the resume action.
-     * @private
-     * @returns {void}
-     */
-    private _scheduleResume(): void {
-        if (this._resumeTimeout) {
-            // NO-OP
-            return;
-        }
-
-        // The retry delay will be:
-        //   1st retry: 1.5s - 3s
-        //   2nd retry: 3s - 9s
-        //   3rd and next retry: 4.5s - 27s
-        this._retryDelay = getJitterDelay(
-            /* retry */ this._resumeRetryN,
-            /* minDelay */ this._resumeRetryN * 1500,
-            3
-        );
-
-        logger.info(`Will try to resume the XMPP connection in ${this.retryDelay}ms`);
-
-        this._resumeTimeout = setTimeout(() => this._resumeConnection(), this.retryDelay);
-    }
-
-    /**
      * Cancels the delayed resume task.
      *
      * @private
@@ -178,6 +127,32 @@ export default class ResumeTask {
     }
 
     /**
+     * Schedules a delayed timeout which will execute the resume action.
+     * @private
+     * @returns {void}
+     */
+    private _scheduleResume(): void {
+        if (this._resumeTimeout) {
+            // NO-OP
+            return;
+        }
+
+        // The retry delay will be:
+        //   1st retry: 1.5s - 3s
+        //   2nd retry: 3s - 9s
+        //   3rd and next retry: 4.5s - 27s
+        this._retryDelay = getJitterDelay(
+            /* retry */ this._resumeRetryN,
+            /* minDelay */ this._resumeRetryN * 1500,
+            3
+        );
+
+        logger.info(`Will try to resume the XMPP connection in ${this.retryDelay}ms`);
+
+        this._resumeTimeout = setTimeout(() => this._resumeConnection(), this.retryDelay);
+    }
+
+    /**
      * Cancels the retry task. It's called by {@link XmppConnection} when it's no longer interested in reconnecting for
      * example when the disconnect method is called.
      *
@@ -187,5 +162,30 @@ export default class ResumeTask {
         this._cancelResume();
         this._removeNetworkOnlineListener();
         this._resumeRetryN = 0;
+    }
+
+    /**
+     * Called by {@link XmppConnection} when the connection drops and it's a signal it wants to schedule a reconnect.
+     *
+     * @returns {void}
+     */
+    schedule(): void {
+        this._cancelResume();
+        this._removeNetworkOnlineListener();
+
+        this._resumeRetryN += 1;
+
+        this._networkOnlineListener = NetworkInfo.addCancellableListener(
+            NETWORK_INFO_EVENT,
+            ({ isOnline }: INetworkInfoEvent) => {
+                if (isOnline) {
+                    this._scheduleResume();
+                } else {
+                    this._cancelResume();
+                }
+            }
+        ) as () => void;
+
+        NetworkInfo.isOnline() && this._scheduleResume();
     }
 }
