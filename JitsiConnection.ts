@@ -45,8 +45,8 @@ export interface IAttachOptions {
 export default class JitsiConnection {
     private appID?: string;
     private token: string | null;
-    readonly options: IConnectionOptions;
     private xmpp: XMPP;
+    readonly options: IConnectionOptions;
 
     /**
      * Creates a new JitsiConnection instance.

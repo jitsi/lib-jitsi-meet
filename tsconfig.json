@@ -14,6 +14,11 @@
       "ES2024.Promise"
     ],
     "outDir": "dist/esm/",
+    "paths": {
+      "@jitsi/js-utils": [
+        "./node_modules/@jitsi/js-utils/types/*"
+      ]
+    }
   },
   "exclude": [
     "dist",
