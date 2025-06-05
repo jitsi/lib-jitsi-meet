@@ -1,7 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import $ from 'jquery';
-import { $iq } from 'strophe.js';
-import type { Connection } from 'strophe.js';
+import { $iq, type Connection } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
