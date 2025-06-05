@@ -1,5 +1,6 @@
 import EventEmitter from '../util/EventEmitter';
 import { calculateAverage } from '../util/MathUtil';
+
 import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
 
 /**

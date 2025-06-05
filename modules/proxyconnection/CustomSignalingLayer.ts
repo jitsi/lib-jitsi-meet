@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
-import SignalingLayer from '../../service/RTC/SignalingLayer';
+import { type IPeerMediaInfo, default as SignalingLayer } from '../../service/RTC/SignalingLayer';
 import ChatRoom from '../xmpp/ChatRoom';
-import type { IPeerMediaInfo } from '../../service/RTC/SignalingLayer';
+
 const logger = getLogger('modules/proxyconnection/CustomSignalingLayer');
 
 /**

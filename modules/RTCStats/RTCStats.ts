@@ -3,7 +3,6 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import JitsiConference from '../../JitsiConference';
-import JitsiConnection from '../../JitsiConnection';
 import {
     BEFORE_STATISTICS_DISPOSED,
     CONFERENCE_CREATED_TIMESTAMP,
@@ -11,6 +10,7 @@ import {
     CONFERENCE_LEFT,
     CONFERENCE_UNIQUE_ID_SET
 } from '../../JitsiConferenceEvents';
+import JitsiConnection from '../../JitsiConnection';
 import Settings from '../settings/Settings';
 import EventEmitter from '../util/EventEmitter';
 

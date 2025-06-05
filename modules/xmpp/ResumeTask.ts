@@ -1,11 +1,11 @@
 import { getLogger } from '@jitsi/logger';
+import Strophe from 'strophe.js';
 
 import {
     NETWORK_INFO_EVENT,
     default as NetworkInfo
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
-import Strophe from 'strophe.js';
 
 const logger = getLogger('modules/xmpp/ResumeTask');
 

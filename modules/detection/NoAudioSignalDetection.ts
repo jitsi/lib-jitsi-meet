@@ -1,11 +1,11 @@
-import EventEmitter from '../util/EventEmitter';
+import type JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import * as DetectionEvents from './DetectionEvents';
-
 import type JitsiLocalTrack from '../RTC/JitsiLocalTrack';
-import type JitsiConference from '../../JitsiConference';
 import type TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import EventEmitter from '../util/EventEmitter';
+
+import * as DetectionEvents from './DetectionEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
