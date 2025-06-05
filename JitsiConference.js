@@ -902,16 +902,6 @@ JitsiConference.prototype.getLocalVideoTracks = function() {
 };
 
 /**
- * Obtains the performance statistics.
- * @returns {Object|null}
- */
-JitsiConference.prototype.getPerformanceStats = function() {
-    return {
-        longTasksStats: this.statistics.getLongTasksStats()
-    };
-};
-
-/**
  * Attaches a handler for events(For example - "participant joined".) in the
  * conference. All possible event are defined in JitsiConferenceEvents.
  * @param eventId the event ID.
