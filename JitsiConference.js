@@ -3504,8 +3504,7 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
     const peers = this.getParticipants();
     const peerCount = peers.length;
     const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist' || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this.getMetadataHandler().getMetadata()?.recording?.isTranscribingEnabled;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors && !this._transcribingEnabled;
 
     logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
