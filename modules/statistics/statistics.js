@@ -383,43 +383,6 @@ export default class Statistics {
     }
 
     /**
-     * Creates an instance of {@link PerformanceObserverStats} and starts the
-     * observer that records the stats periodically.
-     *
-     * @returns {void}
-     */
-    attachLongTasksStats() {
-        if (!browser.supportsPerformanceObserver()) {
-            logger.warn('Performance observer for long tasks not supported by browser!');
-
-            return;
-        }
-
-        this.performanceObserverStats = new PerformanceObserverStats(
-            this.eventEmitter,
-            Statistics.longTasksStatsInterval);
-
-        this.conference.on(
-            JitsiConferenceEvents.CONFERENCE_JOINED,
-            () => this.performanceObserverStats.startObserver());
-        this.conference.on(
-            JitsiConferenceEvents.CONFERENCE_LEFT,
-            () => this.performanceObserverStats.stopObserver());
-    }
-
-    /**
-     * Obtains the current value of the LongTasks event statistics.
-     *
-     * @returns {Object|null} stats object if the observer has been
-     * created, null otherwise.
-     */
-    getLongTasksStats() {
-        return this.performanceObserverStats
-            ? this.performanceObserverStats.getLongTasksStats()
-            : null;
-    }
-
-    /**
      * Removes the given listener for the LONG_TASKS_STATS event.
      *
      * @param {Function} listener the listener we want to remove.
