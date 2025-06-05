@@ -25,8 +25,8 @@ export interface IProto {
 
 export class MockStropheConnection extends Listenable {
     private _connectCb?: (status: Strophe.Status) => void;
-    public sentIQs: any[];
     private _proto: IProto;
+    public sentIQs: any[];
 
     /**
      * A constructor...

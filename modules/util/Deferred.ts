@@ -6,12 +6,12 @@
  * In addition a "reject on timeout" functionality is provided.
  */
 export default class Deferred<T = any> {
+    private _timeout?: Timeout;
     promise: Promise<T>;
     resolve: (value: T | PromiseLike<T>) => void;
     reject: (reason?: any) => void;
     then: Promise<T>['then'];
     catch: Promise<T>['catch'];
-    private _timeout?: Timeout;
 
     /**
      * Instantiates a Deferred object.
