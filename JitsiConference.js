@@ -2663,7 +2663,7 @@ JitsiConference.prototype._setTranscribingEnabled = function(enabled) {
         this._transcribingEnabled = enabled;
         this._maybeStartOrStopP2P(true);
     }
-}
+};
 
 /**
  * Updates conference startMuted policy if needed and fires an event.
