@@ -1,8 +1,8 @@
+import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
-import SpeakerStats from './SpeakerStats';
-
+import { type IFaceLandmarks, default as SpeakerStats } from './SpeakerStats';
 
 /**
  * The value to use for the "type" field for messages sent
@@ -11,11 +11,26 @@ import SpeakerStats from './SpeakerStats';
 
 const FACE_LANDMARK_MESSAGE_TYPE = 'face-landmarks';
 
+export interface ISpeakerStatsState {
+    dominantSpeakerId: string | null;
+    users: {
+        [userId: string]: SpeakerStats;
+    };
+}
+
+export interface IFaceLandmarkMessage {
+    faceLandmarks: IFaceLandmarks;
+    type: string;
+}
+
 /**
  * A collection for tracking speaker stats. Attaches listeners
  * to the conference to automatically update on tracked events.
  */
 export default class SpeakerStatsCollector {
+    stats: ISpeakerStatsState;
+    conference: JitsiConference;
+
     /**
      * Initializes a new SpeakerStatsCollector instance.
      *
@@ -23,7 +38,7 @@ export default class SpeakerStatsCollector {
      * @param {JitsiConference} conference - The conference to track.
      * @returns {void}
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         this.stats = {
             users: {
 
@@ -52,7 +67,7 @@ export default class SpeakerStatsCollector {
 
         conference.on(
             JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-                (participant, { type, faceLandmarks }) => {
+                (participant: any, { type, faceLandmarks }: IFaceLandmarkMessage) => {
                     if (type === FACE_LANDMARK_MESSAGE_TYPE) {
                         this._onFaceLandmarkAdd(participant.getId(), faceLandmarks);
                     }
@@ -74,12 +89,12 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onDominantSpeaker(dominantSpeakerId, previous, silence) {
+    _onDominantSpeaker(dominantSpeakerId: string, previous: string[], silence: boolean): void {
         const oldDominantSpeaker
-            = this.stats.users[this.stats.dominantSpeakerId];
+            = this.stats.users[this.stats.dominantSpeakerId as string];
         const newDominantSpeaker = this.stats.users[dominantSpeakerId];
 
-        oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false);
+        oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false, false);
         newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true, silence);
         this.stats.dominantSpeakerId = dominantSpeakerId;
     }
@@ -92,13 +107,13 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onUserJoin(userId, participant) {
+    _onUserJoin(userId: string, participant: any): void {
         if (participant.isHidden()) {
             return;
         }
 
         if (!this.stats.users[userId]) {
-            this.stats.users[userId] = new SpeakerStats(userId, participant.getDisplayName());
+            this.stats.users[userId] = new SpeakerStats(userId, participant.getDisplayName(), false);
         }
     }
 
@@ -110,7 +125,7 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onUserLeave(userId) {
+    _onUserLeave(userId: string): void {
         const savedUser = this.stats.users[userId];
 
         if (savedUser) {
@@ -126,7 +141,7 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onDisplayNameChange(userId, newName) {
+    _onDisplayNameChange(userId: string, newName: string): void {
         const savedUser = this.stats.users[userId];
 
         if (savedUser) {
@@ -142,7 +157,7 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onFaceLandmarkAdd(userId, data) {
+    _onFaceLandmarkAdd(userId: string, data: any): void {
         const savedUser = this.stats.users[userId];
 
         if (savedUser && data) {
@@ -156,7 +171,7 @@ export default class SpeakerStatsCollector {
      * @returns {Object} The keys are the user ids and the values are the
      * associated user's SpeakerStats model.
      */
-    getStats() {
+    getStats(): { [userId: string]: SpeakerStats; } {
         return this.stats.users;
     }
 
@@ -166,13 +181,13 @@ export default class SpeakerStatsCollector {
      * @param {Object} newStats - The new values used to update current one.
      * @private
      */
-    _updateStats(newStats) {
+    _updateStats(newStats: { [userId: string]: any; }): void {
         for (const userId in newStats) { // eslint-disable-line guard-for-in
             let speakerStatsToUpdate;
             const newParticipant = this.conference.getParticipantById(userId);
 
             // we want to ignore hidden participants
-            if (!newParticipant || !newParticipant.isHidden()) {
+            if (!newParticipant?.isHidden()) {
                 if (this.stats.users[userId]) {
                     speakerStatsToUpdate = this.stats.users[userId];
 
@@ -182,7 +197,7 @@ export default class SpeakerStatsCollector {
                     }
                 } else {
                     speakerStatsToUpdate = new SpeakerStats(
-                        userId, newStats[userId].displayName);
+                        userId, newStats[userId].displayName, false);
                     this.stats.users[userId] = speakerStatsToUpdate;
                     speakerStatsToUpdate.markAsHasLeft();
                 }
