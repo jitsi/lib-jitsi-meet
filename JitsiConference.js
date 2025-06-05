@@ -916,16 +916,6 @@ export default class JitsiConference {
     }
 
     /**
-   * Obtains the performance statistics.
-   * @returns {Object|null}
-   */
-    getPerformanceStats() {
-        return {
-            longTasksStats: this.statistics.getLongTasksStats()
-        };
-    }
-
-    /**
    * Attaches a handler for events (e.g., "participant joined") in the conference.
    * All possible events are defined in JitsiConferenceEvents.
    * @param {string} eventId - The event ID.
