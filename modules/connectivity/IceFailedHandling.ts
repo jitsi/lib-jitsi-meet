@@ -1,8 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
-import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 const logger = getLogger('modules/connectivity/IceFailedHandling');
 
@@ -11,8 +9,7 @@ const logger = getLogger('modules/connectivity/IceFailedHandling');
  *
  * If ICE connection is not re-established within 2 secs after the internet comes back online, the client will initiate
  * a session restart via 'session-terminate'. This results in Jicofo re-inviting the participant into the conference by
- * recreating the jvb media session so that there is minimla disruption to the user by default. However, if the
- * 'enableForcedReload' option is set in config.js, the conference will be forcefully reloaded.
+ * recreating the jvb media session so that there is minimla disruption to the user by default.
  */
 export default class IceFailedHandling {
     private _conference: JitsiConference;
@@ -35,19 +32,6 @@ export default class IceFailedHandling {
      */
     _actOnIceFailed(): void {
         if (!this._conference.room) {
-            return;
-        }
-
-        const { enableForcedReload } = this._conference.options.config;
-
-        logger.info(`ICE failed, enableForcedReload: ${enableForcedReload}`);
-
-        if (enableForcedReload) {
-            logger.info('ICE failed, force reloading the conference');
-            this._conference.eventEmitter.emit(
-                JitsiConferenceEvents.CONFERENCE_FAILED,
-                JitsiConferenceErrors.CONFERENCE_RESTARTED);
-
             return;
         }
 

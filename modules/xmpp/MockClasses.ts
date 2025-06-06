@@ -1,4 +1,5 @@
 import { Strophe } from 'strophe.js';
+
 import Listenable from '../util/Listenable';
 
 /* eslint-disable no-empty-function */

@@ -1,7 +1,8 @@
 import { $iq } from 'strophe.js';
 
-import recordingXMLUtils from './recordingXMLUtils';
 import JitsiParticipant from '../../JitsiParticipant';
+
+import recordingXMLUtils from './recordingXMLUtils';
 
 export interface IJibriSessionOptions {
     connection?: any;

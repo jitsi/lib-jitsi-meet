@@ -2,8 +2,9 @@
  * Attaches to the {@link Strophe.Connection.rawInput} which is called whenever any data is received from the server.
  */
 
-import XmppConnection from './XmppConnection';
 import { Strophe } from 'strophe.js';
+
+import XmppConnection from './XmppConnection';
 
 
 export default class LastRequestTracker {

@@ -1,7 +1,7 @@
 /**
  * Interface for face landmarks.
  */
-interface IFaceLandmarks {
+export interface IFaceLandmarks {
     duration: number;
     faceExpression: string;
 }

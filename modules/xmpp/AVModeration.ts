@@ -1,7 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg } from 'strophe.js';
+
 import { MediaType } from '../../service/RTC/MediaType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+
 import ChatRoom from './ChatRoom';
 import XMPP from './xmpp';
 

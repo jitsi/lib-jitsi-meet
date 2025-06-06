@@ -27,7 +27,6 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.CONNECTION_INTERRUPTED ).toBe( 'xmpp.connection.interrupted' );
         expect( XMPPEvents.CONNECTION_RESTORED ).toBe( 'xmpp.connection.restored' );
         expect( XMPPEvents.CONNECTION_ICE_FAILED ).toBe( 'xmpp.connection.ice.failed' );
-        expect( XMPPEvents.CONNECTION_RESTARTED ).toBe( 'xmpp.connection.restart' );
         expect( XMPPEvents.CONNECTION_STATUS_CHANGED ).toBe( 'xmpp.connection.status.changed' );
         expect( XMPPEvents.DISPLAY_NAME_CHANGED ).toBe( 'xmpp.display_name_changed' );
         expect( XMPPEvents.EMUC_ROOM_ADDED ).toBe( 'xmpp.emuc_room_added' );
