@@ -8,7 +8,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
 import XMPP from './xmpp';
-import JitsiConnection from '../../JitsiConnection';
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger('modules/xmpp/strophe.emuc');
 
@@ -53,7 +53,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param connection
      */
-    init(connection: JitsiConnection): void {
+    init(connection: XmppConnection): void {
         super.init(connection);
 
         // add handlers (just once)
