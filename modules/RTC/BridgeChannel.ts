@@ -288,6 +288,20 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a 'ReceiverAudioSubscriptionMessage' message via the bridge channel.
+     * 
+     * @param {SourceName[]} sourceNames - the source names of the audio tracks.
+     * @returns {void}
+     */
+    sendReceiverAudioSubscriptionMessage(sourceNames: SourceName[]): void {
+        logger.info(`Sending ReceiverAudioSubscriptionMessage with sourceNames: ${sourceNames}`);
+        this._send({
+            colibriClass: 'ReceiverAudioSubscription',
+            sourceNames
+        });
+    }
+
+    /**
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
     _handleChannel(channel: RTCDataChannel | WebSocket): void {
