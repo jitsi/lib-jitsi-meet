@@ -16,13 +16,13 @@ const logger = getLogger('modules/xmpp/strophe.emuc');
  * Interface for room options
  */
 interface IRoomOptions {
+    [key: string]: any;
+    channelLastN?: number;
     disableDiscoInfo?: boolean;
     disableFocus?: boolean;
     enableLobby?: boolean;
-    channelLastN?: number;
     enableP2P?: boolean;
     p2pPreferredCodec?: string;
-    [key: string]: any;
 }
 
 /**
@@ -37,7 +37,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
     /**
      * Map of room JIDs to ChatRoom instances
      */
-    private rooms: { [roomJid: string]: ChatRoom };
+    private rooms: { [roomJid: string]: ChatRoom; };
 
     /**
      *
