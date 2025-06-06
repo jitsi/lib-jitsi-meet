@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { queue, AsyncQueue as AsyncQueueType } from 'async-es';
+import { AsyncQueue as AsyncQueueType, queue } from 'async-es';
 
 const logger = getLogger('modules/util/AsyncQueue');
 

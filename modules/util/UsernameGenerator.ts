@@ -1,4 +1,4 @@
-import { randomElement, randomAlphanumStr } from './RandomUtil';
+import { randomAlphanumStr, randomElement } from './RandomUtil';
 
 /**
  * from faker.js - Copyright (c) 2014-2015 Matthew Bergman & Marak Squires

@@ -31,12 +31,6 @@ export enum JitsiConferenceErrors {
     CONFERENCE_MAX_USERS = 'conference.max_users',
 
     /**
-     * Indicates that the client has been forced to restart by jicofo when the
-     * conference was migrated from one bridge to another.
-     */
-    CONFERENCE_RESTARTED = 'conference.restarted',
-
-    /**
      * Indicates that a connection error occurred when trying to join a conference.
      */
     CONNECTION_ERROR = 'conference.connectionError',
@@ -135,7 +129,6 @@ export const SETTINGS_ERROR = JitsiConferenceErrors.SETTINGS_ERROR;
 export const CONFERENCE_DESTROYED = JitsiConferenceErrors.CONFERENCE_DESTROYED;
 export const CONFERENCE_MAX_USERS = JitsiConferenceErrors.CONFERENCE_MAX_USERS;
 export const CONNECTION_ERROR = JitsiConferenceErrors.CONNECTION_ERROR;
-export const CONFERENCE_RESTARTED = JitsiConferenceErrors.CONFERENCE_RESTARTED;
 export const NOT_ALLOWED_ERROR = JitsiConferenceErrors.NOT_ALLOWED_ERROR;
 export const MEMBERS_ONLY_ERROR = JitsiConferenceErrors.MEMBERS_ONLY_ERROR;
 export const CONFERENCE_ACCESS_DENIED = JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED;

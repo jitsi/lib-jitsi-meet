@@ -484,11 +484,6 @@ JitsiConference.prototype._init = function(options = {}) {
         Statistics.analytics.addPermanentProperties({
             'callstats_name': this._statsCurrentId
         });
-
-        // Start performance observer for monitoring long tasks
-        if (config.longTasksStatsInterval) {
-            this.statistics.attachLongTasksStats();
-        }
     }
 
     this.eventManager.setupChatRoomListeners();
@@ -904,16 +899,6 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
  */
 JitsiConference.prototype.getLocalVideoTracks = function() {
     return this.rtc ? this.rtc.getLocalVideoTracks() : null;
-};
-
-/**
- * Obtains the performance statistics.
- * @returns {Object|null}
- */
-JitsiConference.prototype.getPerformanceStats = function() {
-    return {
-        longTasksStats: this.statistics.getLongTasksStats()
-    };
 };
 
 /**
@@ -2661,6 +2646,15 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
     });
 };
 
+/** Set the transcribingEnabled flag. When transcribing is enabled p2p is
+ * disabled. */
+JitsiConference.prototype._setTranscribingEnabled = function(enabled) {
+    if (this._transcribingEnabled !== enabled) {
+        this._transcribingEnabled = enabled;
+        this._maybeStartOrStopP2P(true);
+    }
+};
+
 /**
  * Updates conference startMuted policy if needed and fires an event.
  *
@@ -3500,7 +3494,7 @@ JitsiConference.prototype._shouldBeInP2PMode = function() {
     const peers = this.getParticipants();
     const peerCount = peers.length;
     const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist' || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors && !this._transcribingEnabled;
 
     logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
@@ -3903,8 +3897,7 @@ JitsiConference.prototype._sendConferenceLeftAnalyticsEvent = function() {
         meetingId,
         participantId: `${meetingId}.${this._statsCurrentId}`,
         stats: {
-            duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000),
-            perf: this.getPerformanceStats()
+            duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000)
         }
     }));
 };

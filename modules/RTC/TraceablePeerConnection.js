@@ -611,7 +611,6 @@ export default class TraceablePeerConnection {
         if (!track) {
             return;
         }
-
         track._setVideoType(videoType);
     }
 

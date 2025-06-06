@@ -89,21 +89,4 @@ describe('IceFailedHandling', () => {
                 });
         });
     });
-    describe('when forced reloads are enabled', () => {
-        beforeEach(() => {
-            mockConference.options.config.enableForcedReload = true;
-
-            mockConference.room = {};
-        });
-
-        it('emits conference restarted when force reloads are enabled', () => {
-            iceFailedHandling.start();
-
-            return nextTick() // tick for ping
-                .then(() => nextTick(2500)) // tick for ice timeout
-                .then(() => {
-                    expect(emitEventSpy).toHaveBeenCalled();
-                });
-        });
-    });
 });
