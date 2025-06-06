@@ -289,7 +289,7 @@ export default class BridgeChannel {
 
     /**
      * Sends a 'ReceiverAudioSubscriptionMessage' message via the bridge channel.
-     * 
+     *
      * @param {SourceName[]} sourceNames - the source names of the audio tracks.
      * @returns {void}
      */
