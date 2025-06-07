@@ -2,6 +2,8 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import EventEmitter from '../util/EventEmitter';
+import JitsiTrack from '../RTC/JitsiTrack';
+import JitsiConference from '../../JitsiConference';
 
 import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
@@ -12,13 +14,40 @@ const logger = getLogger('modules/detection/VADAudioAnalyser');
  * Sample rate of TrackVADEmitter, it defines how many audio samples are processed at a time.
  * @type {number}
  */
-const VAD_EMITTER_SAMPLE_RATE = 4096;
+const VAD_EMITTER_SAMPLE_RATE: number = 4096;
+
+export interface IVADProcessor {
+    getSampleLength: () => number;
+    getRequiredPCMFrequency: () => number;
+    calculateAudioFrameVAD: (pcmSample: Float32Array | number[]) => number;
+}
+
+export interface IVADDetectionService {
+    on: (event: string, handler: () => void) => void;
+    isActive: () => boolean;
+    processVADScore: (vadScore: IVADScore) => void;
+    changeMuteState: (isMuted: boolean) => void;
+    reset: () => void;
+}
+
+export interface IVADScore {
+    timestamp: number;
+    score: number;
+    pcmData: Float32Array | number[];
+    deviceId: string;
+}
 
 /**
  * Connects a TrackVADEmitter to the target conference local audio track and manages various services that use
  * the data to produce audio analytics (VADTalkMutedDetection and VADNoiseDetection).
  */
 export default class VADAudioAnalyser extends EventEmitter {
+    private _createVADProcessor: () => IVADProcessor | Promise<IVADProcessor>;
+    private _vadEmitter: TrackVADEmitter | null;
+    private _isVADEmitterRunning: boolean;
+    private _detectionServices: IVADDetectionService[];
+    private _vadInitTracker: Promise<void>;
+
     /**
      * Creates <tt>VADAudioAnalyser</tt>
      * @param {JitsiConference} conference - JitsiConference instance that created us.
@@ -29,7 +58,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
      * @constructor
      */
-    constructor(conference, createVADProcessor) {
+    constructor(conference: JitsiConference, createVADProcessor: () => IVADProcessor | Promise<IVADProcessor>) {
         super();
 
         /**
@@ -77,7 +106,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      *
      * @param {Object} vadTMDetector
      */
-    addVADDetectionService(vadService) {
+    addVADDetectionService(vadService: IVADDetectionService): void {
         this._detectionServices.push(vadService);
         vadService.on(DETECTOR_STATE_CHANGE, () => {
             // When the state of a detector changes check if there are any active detectors attached so that
@@ -99,7 +128,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * Start the {@link TrackVADEmitter} and attach the event listener.
      * @returns {void}
      */
-    _startVADEmitter() {
+    _startVADEmitter(): void {
         if (this._vadEmitter) {
             this._vadEmitter.on(VAD_SCORE_PUBLISHED, this._processVADScore);
             this._vadEmitter.start();
@@ -111,7 +140,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * Stop the {@link TrackVADEmitter} and detach the event listener.
      * @returns {void}
      */
-    _stopVADEmitter() {
+    _stopVADEmitter(): void {
         if (this._vadEmitter) {
             this._vadEmitter.removeListener(VAD_SCORE_PUBLISHED, this._processVADScore);
             this._vadEmitter.stop();
@@ -129,7 +158,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @param {string} vadScore.deviceId - Device id of the associated track.
      * @listens VAD_SCORE_PUBLISHED
      */
-    _processVADScore(vadScore) {
+    _processVADScore(vadScore: IVADScore): void {
         for (const detector of this._detectionServices) {
             detector.processVADScore(vadScore);
         }
@@ -140,7 +169,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      *
      * @param {boolean} isMuted
      */
-    _changeDetectorsMuteState(isMuted) {
+    _changeDetectorsMuteState(isMuted: boolean): void {
         for (const detector of this._detectionServices) {
             detector.changeMuteState(isMuted);
         }
@@ -153,15 +182,15 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @returns {void}
      * @listens TRACK_ADDED
      */
-    _trackAdded(track) {
+    _trackAdded(track: JitsiTrack): void {
         if (track.isLocalAudioTrack()) {
             // Keep a track promise so we take into account successive TRACK_ADD events being generated so that we
             // destroy/create the processing context in the proper order.
             this._vadInitTracker = this._vadInitTracker.then(() => this._createVADProcessor())
-                .then(vadProcessor =>
+                .then((vadProcessor: IVADProcessor) =>
                     TrackVADEmitter.create(track.getDeviceId(), VAD_EMITTER_SAMPLE_RATE, vadProcessor)
                 )
-                .then(vadEmitter => {
+                .then((vadEmitter: TrackVADEmitter) => {
                     logger.debug('Created VAD emitter for track: ', track.getTrackLabel());
 
                     this._vadEmitter = vadEmitter;
@@ -183,7 +212,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @returns {void}
      * @listens TRACK_MUTE_CHANGED
      */
-    _trackMuteChanged(track) {
+    _trackMuteChanged(track: JitsiTrack): void {
         if (track.isLocalAudioTrack()) {
             // On a mute toggle reset the state.
             this._vadInitTracker = this._vadInitTracker.then(() => {
@@ -201,7 +230,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * @returns {void}
      * @listens TRACK_REMOVED
      */
-    _trackRemoved(track) {
+    _trackRemoved(track: JitsiTrack): void {
         if (track.isLocalAudioTrack()) {
             // Use the promise to make sure operations are in sequence.
             this._vadInitTracker = this._vadInitTracker.then(() => {
@@ -221,6 +250,4 @@ export default class VADAudioAnalyser extends EventEmitter {
             });
         }
     }
-
-
 }
