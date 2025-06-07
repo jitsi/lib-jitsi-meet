@@ -7,8 +7,8 @@ import $ from '../util/XMLParser';
 
 import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
-import XMPP from './xmpp';
 import XmppConnection from './XmppConnection';
+import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/strophe.emuc');
 
