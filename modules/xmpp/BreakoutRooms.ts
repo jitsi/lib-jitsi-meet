@@ -22,23 +22,23 @@ const logger = getLogger('modules/xmpp/BreakoutRooms');
 /**
  * Types for breakout room participants and rooms.
  */
-interface IBreakoutRoomParticipant {
+export interface IBreakoutRoomParticipant {
     [key: string]: unknown;
     jid: string;
 }
 
-interface IBreakoutRoom {
+export interface IBreakoutRoom {
     [key: string]: unknown;
     participants?: { [key: string]: IBreakoutRoomParticipant; };
 }
 
-interface IBreakoutRoomsUpdatePayload {
+export interface IBreakoutRoomsUpdatePayload {
     [key: string]: unknown;
     event: string;
     rooms: { [key: string]: IBreakoutRoom; };
 }
 
-interface IBreakoutRoomsMoveToRoomPayload {
+export interface IBreakoutRoomsMoveToRoomPayload {
     [key: string]: unknown;
     event: string;
     roomJid: string;
