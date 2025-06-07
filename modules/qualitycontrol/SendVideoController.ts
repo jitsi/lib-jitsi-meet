@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
-import MediaSessionEvents from '../xmpp/MediaSessionEvents';
-import JingleSessionPC from '../xmpp/JingleSessionPC';
 import JitsiConference from '../../JitsiConference';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
+import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 const logger = getLogger('modules/qualitycontrol/SendVideoController');
 const MAX_LOCAL_RESOLUTION = 2160;
@@ -160,7 +160,7 @@ export default class SendVideoController {
         const promises: Promise<void>[] = [];
 
         for (const sourceName of this._sourceSenderConstraints.keys()) {
-            promises.push(this._propagateSendMaxFrameHeight(sourceName).then(() => {}));
+            promises.push(this._propagateSendMaxFrameHeight(sourceName).then(() => {}));// eslint-disable-line @typescript-eslint/no-empty-function
         }
 
         return Promise.allSettled(promises);
