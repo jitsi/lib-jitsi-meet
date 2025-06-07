@@ -2,7 +2,22 @@
  * A collection of utility functions for taking in XML and parsing it to return
  * certain values.
  */
-export default {
+
+export interface IFocusRecordingUpdate {
+    error: string | null;
+    initiator: string | null;
+    recordingMode: string | null;
+    sessionID: string | null;
+    status: string | null;
+}
+
+export interface IHiddenDomainUpdate {
+    liveStreamViewURL: string | null | undefined;
+    mode: string | null | undefined;
+    sessionID: string | null | undefined;
+}
+
+const recordingXMLUtils = {
     /**
      * Parses the presence update of the focus and returns an object with the
      * statuses related to recording.
@@ -10,9 +25,8 @@ export default {
      * @param {Node} presence - An XMPP presence update.
      * @returns {Object} The current presence values related to recording.
      */
-    getFocusRecordingUpdate(presence) {
-        const jibriStatus = presence
-            && presence.getElementsByTagName('jibri-recording-status')[0];
+    getFocusRecordingUpdate(presence: Element | null): IFocusRecordingUpdate | undefined {
+        const jibriStatus = presence?.getElementsByTagName('jibri-recording-status')[0];
 
         if (!jibriStatus) {
             return;
@@ -34,20 +48,10 @@ export default {
      * @param {Node} presence - An XMPP presence update.
      * @returns {Object} The current presence values related to recording.
      */
-    getHiddenDomainUpdate(presence) {
-        const liveStreamViewURLContainer
-            = presence.getElementsByTagName('live-stream-view-url')[0];
-        const liveStreamViewURL = liveStreamViewURLContainer
-            && liveStreamViewURLContainer.textContent;
-        const modeContainer
-            = presence.getElementsByTagName('mode')[0];
-        const mode = modeContainer
-            && modeContainer.textContent
-            && modeContainer.textContent.toLowerCase();
-        const sessionIDContainer
-            = presence.getElementsByTagName('session_id')[0];
-        const sessionID
-            = sessionIDContainer && sessionIDContainer.textContent;
+    getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
+        const liveStreamViewURL = presence.getElementsByTagName('live-stream-view-url')[0]?.textContent;
+        const mode = presence.getElementsByTagName('mode')[0]?.textContent?.toLowerCase();
+        const sessionID = presence.getElementsByTagName('session_id')[0]?.textContent;
 
         return {
             liveStreamViewURL,
@@ -62,10 +66,8 @@ export default {
      * @param {Node} response - The response from the IQ.
      * @returns {string} The session ID of the recording session.
      */
-    getSessionIdFromIq(response) {
-        const jibri = response && response.getElementsByTagName('jibri')[0];
-
-        return jibri && jibri.getAttribute('session_id');
+    getSessionIdFromIq(response: Element | null): string | null {
+        return response?.getElementsByTagName('jibri')[0]?.getAttribute('session_id') ?? null;
     },
 
     /**
@@ -74,12 +76,8 @@ export default {
      * @param {Node} presence - An XMPP presence update.
      * @returns {string|undefined} The session ID of the recording session.
      */
-    getSessionId(presence) {
-        const sessionIdContainer
-            = presence.getElementsByTagName('session_id')[0];
-        const sessionId = sessionIdContainer && sessionIdContainer.textContent;
-
-        return sessionId;
+    getSessionId(presence: Element): string | null | undefined {
+        return presence.getElementsByTagName('session_id')[0]?.textContent;
     },
 
     /**
@@ -88,7 +86,9 @@ export default {
      * @param {Node} presence - An XMPP presence update.
      * @returns {boolean} True if the presence is from the focus.
      */
-    isFromFocus(presence) {
-        return presence.getAttribute('from').includes('focus');
+    isFromFocus(presence: Element): boolean {
+        return presence.getAttribute('from')?.includes('focus') ?? false;
     }
 };
+
+export default recordingXMLUtils;
