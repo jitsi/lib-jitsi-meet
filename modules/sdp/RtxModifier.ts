@@ -13,24 +13,24 @@ const logger = getLogger('modules/sdp/RtxModifier');
  * Helper interfaces for type safety.
  */
 export interface IPrimarySsrcInfo {
+    cname?: string;
     id: number;
     msid?: string;
-    cname?: string;
 }
 
 export interface IMLineWrap {
-    getRtxSSRC(primarySsrc: number): number | undefined;
-    removeSSRC(ssrc: number): void;
-    removeGroupsWithSSRC(ssrc: number): void;
-    addSSRCAttribute(attr: { id: number; attribute: string; value: string }): void;
-    addSSRCGroup(group: { semantics: string; ssrcs: string }): void;
+    addSSRCAttribute: (attr: { attribute: string; id: number; value: string; }) => void;
+    addSSRCGroup: (group: { semantics: string; ssrcs: string; }) => void;
+    containsAnySSRCGroups: () => boolean;
     direction: string;
-    getSSRCCount(): number;
-    getPrimaryVideoSSRCs(): number[];
-    getSSRCAttrValue(ssrc: number, attribute: string): string | undefined;
-    containsAnySSRCGroups(): boolean;
-    findGroups(semantics: string): Array<{ semantics: string; ssrcs: string }>;
-    removeGroupsBySemantics(semantics: string): void;
+    findGroups: (semantics: string) => Array<{ semantics: string; ssrcs: string; }>;
+    getPrimaryVideoSSRCs: () => number[];
+    getRtxSSRC: (primarySsrc: number) => number | undefined;
+    getSSRCAttrValue: (ssrc: number, attribute: string) => string | undefined;
+    getSSRCCount: () => number;
+    removeGroupsBySemantics: (semantics: string) => void;
+    removeGroupsWithSSRC: (ssrc: number) => void;
+    removeSSRC: (ssrc: number) => void;
 }
 
 /**
@@ -47,9 +47,9 @@ export interface IMLineWrap {
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
 function updateAssociatedRtxStream(
-    mLine: IMLineWrap,
-    primarySsrcInfo: IPrimarySsrcInfo,
-    rtxSsrc: number
+        mLine: IMLineWrap,
+        primarySsrcInfo: IPrimarySsrcInfo,
+        rtxSsrc: number
 ): void {
     const primarySsrc = primarySsrcInfo.id;
     const primarySsrcMsid = primarySsrcInfo.msid;
@@ -146,7 +146,7 @@ export default class RtxModifier {
             return sdpStr;
         }
 
-        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [videoMLines]) {
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [ videoMLines ]) {
             if (this.modifyRtxSsrcs2(videoMLine as IMLineWrap)) {
                 modified = true;
             }
@@ -220,11 +220,11 @@ export default class RtxModifier {
             return sdpStr;
         }
 
-        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [videoMLines]) {
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [ videoMLines ]) {
             if (
-                videoMLine.direction !== MediaDirection.RECVONLY &&
-                videoMLine.getSSRCCount() &&
-                videoMLine.containsAnySSRCGroups()
+                videoMLine.direction !== MediaDirection.RECVONLY
+                && videoMLine.getSSRCCount()
+                && videoMLine.containsAnySSRCGroups()
             ) {
                 const fidGroups = videoMLine.findGroups(SSRC_GROUP_SEMANTICS.FID);
 
