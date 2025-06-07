@@ -10,6 +10,30 @@ import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
 const logger = getLogger('modules/sdp/RtxModifier');
 
 /**
+ * Helper interfaces for type safety.
+ */
+export interface IPrimarySsrcInfo {
+    cname?: string;
+    id: number;
+    msid?: string;
+}
+
+export interface IMLineWrap {
+    addSSRCAttribute: (attr: { attribute: string; id: number; value: string; }) => void;
+    addSSRCGroup: (group: { semantics: string; ssrcs: string; }) => void;
+    containsAnySSRCGroups: () => boolean;
+    direction: string;
+    findGroups: (semantics: string) => Array<{ semantics: string; ssrcs: string; }>;
+    getPrimaryVideoSSRCs: () => number[];
+    getRtxSSRC: (primarySsrc: number) => number | undefined;
+    getSSRCAttrValue: (ssrc: number, attribute: string) => string | undefined;
+    getSSRCCount: () => number;
+    removeGroupsBySemantics: (semantics: string) => void;
+    removeGroupsWithSSRC: (ssrc: number) => void;
+    removeSSRC: (ssrc: number) => void;
+}
+
+/**
  * Begin helper functions
  */
 /**
@@ -22,7 +46,11 @@ const logger = getLogger('modules/sdp/RtxModifier');
  *  primary ssrc
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
-function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
+function updateAssociatedRtxStream(
+        mLine: IMLineWrap,
+        primarySsrcInfo: IPrimarySsrcInfo,
+        rtxSsrc: number
+): void {
     const primarySsrc = primarySsrcInfo.id;
     const primarySsrcMsid = primarySsrcInfo.msid;
     const primarySsrcCname = primarySsrcInfo.cname;
@@ -41,7 +69,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     mLine.addSSRCAttribute({
         id: rtxSsrc,
         attribute: 'cname',
-        value: primarySsrcCname
+        value: primarySsrcCname || ''
     });
     primarySsrcMsid && mLine.addSSRCAttribute({
         id: rtxSsrc,
@@ -64,6 +92,12 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
  */
 export default class RtxModifier {
     /**
+     * Map of video ssrc to corresponding RTX
+     *  ssrc
+     */
+    private correspondingRtxSsrcs: Map<number, number>;
+
+    /**
      * Constructor
      */
     constructor() {
@@ -71,7 +105,7 @@ export default class RtxModifier {
          * Map of video ssrc to corresponding RTX
          *  ssrc
          */
-        this.correspondingRtxSsrcs = new Map();
+        this.correspondingRtxSsrcs = new Map<number, number>();
     }
 
     /**
@@ -79,7 +113,7 @@ export default class RtxModifier {
      *  their corresponding rtx ssrcs so that they will
      *  not be used for the next call to modifyRtxSsrcs
      */
-    clearSsrcCache() {
+    clearSsrcCache(): void {
         this.correspondingRtxSsrcs.clear();
     }
 
@@ -89,7 +123,7 @@ export default class RtxModifier {
      * @param {Map} ssrcMapping a mapping of primary video
      *  ssrcs to their corresponding rtx ssrcs
      */
-    setSsrcCache(ssrcMapping) {
+    setSsrcCache(ssrcMapping: Map<number, number>): void {
         logger.debug('Setting ssrc cache to ', ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
     }
@@ -101,19 +135,19 @@ export default class RtxModifier {
      * @param {string} sdpStr sdp in raw string format
      * @returns {string} The modified sdp in raw string format.
      */
-    modifyRtxSsrcs(sdpStr) {
+    modifyRtxSsrcs(sdpStr: string): string {
         let modified = false;
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLines = sdpTransformer.selectMedia(MediaType.VIDEO);
 
-        if (!videoMLines?.length) {
+        if (!videoMLines || (Array.isArray(videoMLines) && videoMLines.length === 0)) {
             logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
 
-        for (const videoMLine of videoMLines) {
-            if (this.modifyRtxSsrcs2(videoMLine)) {
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [ videoMLines ]) {
+            if (this.modifyRtxSsrcs2(videoMLine as IMLineWrap)) {
                 modified = true;
             }
         }
@@ -128,7 +162,7 @@ export default class RtxModifier {
      * @return {boolean} <tt>true</tt> if the SDP wrapped by {@link SdpTransformWrap} has been modified or
      * <tt>false</tt> otherwise.
      */
-    modifyRtxSsrcs2(videoMLine) {
+    modifyRtxSsrcs2(videoMLine: IMLineWrap): boolean {
         if (videoMLine.direction === MediaDirection.RECVONLY) {
             return false;
         }
@@ -161,7 +195,8 @@ export default class RtxModifier {
                     cname,
                     msid
                 },
-                correspondingRtxSsrc);
+                correspondingRtxSsrc
+            );
         }
 
         // FIXME we're not looking into much details whether the SDP has been
@@ -175,20 +210,22 @@ export default class RtxModifier {
      * @param {string} sdpStr sdp in raw string format
      * @returns {string} sdp string with all rtx streams stripped
      */
-    stripRtx(sdpStr) {
+    stripRtx(sdpStr: string): string {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLines = sdpTransformer.selectMedia(MediaType.VIDEO);
 
-        if (!videoMLines?.length) {
+        if (!videoMLines || (Array.isArray(videoMLines) && videoMLines.length === 0)) {
             logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
 
-        for (const videoMLine of videoMLines) {
-            if (videoMLine.direction !== MediaDirection.RECVONLY
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [ videoMLines ]) {
+            if (
+                videoMLine.direction !== MediaDirection.RECVONLY
                 && videoMLine.getSSRCCount()
-                && videoMLine.containsAnySSRCGroups()) {
+                && videoMLine.containsAnySSRCGroups()
+            ) {
                 const fidGroups = videoMLine.findGroups(SSRC_GROUP_SEMANTICS.FID);
 
                 // Remove the fid groups from the mline
