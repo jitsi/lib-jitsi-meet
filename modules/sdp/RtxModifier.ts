@@ -140,14 +140,14 @@ export default class RtxModifier {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLines = sdpTransformer.selectMedia(MediaType.VIDEO);
 
-        if (!videoMLines?.length) {
+        if (!videoMLines || (Array.isArray(videoMLines) && videoMLines.length === 0)) {
             logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
 
-        for (const videoMLine of videoMLines as IMLineWrap[]) {
-            if (this.modifyRtxSsrcs2(videoMLine)) {
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [videoMLines]) {
+            if (this.modifyRtxSsrcs2(videoMLine as IMLineWrap)) {
                 modified = true;
             }
         }
@@ -214,13 +214,13 @@ export default class RtxModifier {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLines = sdpTransformer.selectMedia(MediaType.VIDEO);
 
-        if (!videoMLines?.length) {
+        if (!videoMLines || (Array.isArray(videoMLines) && videoMLines.length === 0)) {
             logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
 
-        for (const videoMLine of videoMLines as IMLineWrap[]) {
+        for (const videoMLine of Array.isArray(videoMLines) ? videoMLines : [videoMLines]) {
             if (
                 videoMLine.direction !== MediaDirection.RECVONLY &&
                 videoMLine.getSSRCCount() &&
