@@ -1,4 +1,4 @@
-/* eslint-disable max-len*/
+/* eslint-disable max-len */
 import * as transform from 'sdp-transform';
 
 // A generic sdp session block
@@ -571,66 +571,66 @@ const sdpFirefoxStr = baseSessionSdp + baseAudioMLineSdp + videoMlineFF;
 const sdpFirefoxP2pStr = baseSessionSdp + baseAudioMLineSdp + videoLineP2pFF;
 
 export default {
-    get simulcastSdpStr() {
+    get simulcastSdpStr(): string {
         return simulcastSdpStr;
     },
 
-    get simulcastDifferentSsrcSdpStr() {
+    get simulcastDifferentSsrcSdpStr(): string {
         return simulcastDifferentSsrcSdpStr;
     },
 
-    get simulcastSdp() {
+    get simulcastSdp(): Transform {
         return transform.parse(simulcastSdpStr);
     },
 
-    get simulcastNoRtxSdp() {
+    get simulcastNoRtxSdp(): Transform {
         return transform.parse(simulcastNoRtxSdpStr);
     },
 
-    get simulcastRtxSdp() {
+    get simulcastRtxSdp(): Transform {
         return transform.parse(simulcastRtxSdpStr);
     },
 
-    get simulcastRtxSdpReplacedTrack() {
+    get simulcastRtxSdpReplacedTrack(): Transform {
         return transform.parse(simulcastRtxSdpTrackReplaced);
     },
 
-    get plainVideoSdp() {
+    get plainVideoSdp(): Transform {
         return transform.parse(plainVideoSdpStr);
     },
 
-    get rtxVideoSdp() {
+    get rtxVideoSdp(): Transform {
         return transform.parse(rtxVideoSdpStr);
     },
 
-    get multiCodecVideoSdp() {
+    get multiCodecVideoSdp(): Transform {
         return transform.parse(multiCodecVideoSdpStr);
     },
 
-    get flexFecSdp() {
+    get flexFecSdp(): Transform {
         return transform.parse(flexFecSdpStr);
     },
 
-    get recvOnlySdpStr() {
+    get recvOnlySdpStr(): string {
         return recvOnlySdpStr;
     },
 
-    get recvOnlySdpStrChrome() {
+    get recvOnlySdpStrChrome(): string {
         return recvOnlySdpStrChrome;
     },
 
-    get recvOnlySdp() {
+    get recvOnlySdp(): Transform {
         return transform.parse(recvOnlySdpStr);
     },
 
-    get firefoxSdp() {
+    get firefoxSdp(): Transform {
         return transform.parse(sdpFirefoxStr);
     },
 
-    get firefoxP2pSdp() {
+    get firefoxP2pSdp(): Transform {
         return transform.parse(sdpFirefoxP2pStr);
     }
 
 };
 
-/* eslint-enable max-len*/
+/* eslint-enable max-len */
