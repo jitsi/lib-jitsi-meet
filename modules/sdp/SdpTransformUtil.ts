@@ -2,6 +2,13 @@ import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
+export interface ImLine{
+    ssrcs?: Array<{ id: number; attribute: string; value: string }>;
+    ssrcGroups?: Array<{ semantics: string; ssrcs: string }>;
+    direction?: string;
+    type?: string;
+}
+
 /**
  * Parses the primary SSRC of given SSRC group.
  * @param {object} group the SSRC group object as defined by the 'sdp-transform'
@@ -25,7 +32,7 @@ export function parseSecondarySSRC(group: { ssrcs: string }): number {
  * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
  * @return {number}
  */
-function _getSSRCCount(mLine: { ssrcs?: Array<{ id: number }> }): number {
+function _getSSRCCount(mLine: ImLine): number {
     if (!mLine.ssrcs) {
         return 0;
     }
@@ -41,12 +48,7 @@ function _getSSRCCount(mLine: { ssrcs?: Array<{ id: number }> }): number {
  * utility methods for common SDP/SSRC related operations.
  */
 class MLineWrap {
-    private mLine: {
-        ssrcs?: Array<{ id: number; attribute: string; value: string }>;
-        ssrcGroups?: Array<{ semantics: string; ssrcs: string }>;
-        direction?: string;
-        type?: string;
-    };
+    private mLine: ImLine;
 
     /**
      * Creates new <tt>MLineWrap</t>>
@@ -373,14 +375,7 @@ class MLineWrap {
  * }
  */
 export class SdpTransformWrap {
-    private parsedSDP: {
-        media: Array<{
-            type?: string;
-            ssrcs?: Array<{ id: number; attribute: string; value: string }>;
-            ssrcGroups?: Array<{ semantics: string; ssrcs: string }>;
-            direction?: string;
-        }>;
-    };
+    private parsedSDP: transform.SessionDescription;
 
     /**
      * Creates new instance and parses the raw SDP into objects using
@@ -402,7 +397,7 @@ export class SdpTransformWrap {
     selectMedia(mediaType: string): MLineWrap[] | null {
         const selectedMLines = this.parsedSDP.media
             .filter(mLine => mLine.type === mediaType)
-            .map(mLine => new MLineWrap(mLine));
+            .map(mLine => new MLineWrap(mLine as ImLine));
 
         return selectedMLines ?? null;
     }
