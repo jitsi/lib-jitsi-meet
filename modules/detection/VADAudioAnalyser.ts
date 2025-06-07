@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import EventEmitter from '../util/EventEmitter';
-import JitsiTrack from '../RTC/JitsiTrack';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiConference from '../../JitsiConference';
 
 import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
@@ -178,11 +178,11 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Notifies the detector that a track was added to the associated {@link JitsiConference}.
      * Only take into account local audio tracks.
-     * @param {JitsiTrack} track - The added track.
+     * @param {JitsiLocalTrack} track - The added track.
      * @returns {void}
      * @listens TRACK_ADDED
      */
-    _trackAdded(track: JitsiTrack): void {
+    _trackAdded(track: JitsiLocalTrack): void {
         if (track.isLocalAudioTrack()) {
             // Keep a track promise so we take into account successive TRACK_ADD events being generated so that we
             // destroy/create the processing context in the proper order.
@@ -208,11 +208,11 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Notifies the detector that the mute state of a {@link JitsiConference} track has changed. Only takes into account
      * local audio tracks.
-     * @param {JitsiTrack} track - The track whose mute state has changed.
+     * @param {JitsiLocalTrack} track - The track whose mute state has changed.
      * @returns {void}
      * @listens TRACK_MUTE_CHANGED
      */
-    _trackMuteChanged(track: JitsiTrack): void {
+    _trackMuteChanged(track: JitsiLocalTrack): void {
         if (track.isLocalAudioTrack()) {
             // On a mute toggle reset the state.
             this._vadInitTracker = this._vadInitTracker.then(() => {
@@ -226,11 +226,11 @@ export default class VADAudioAnalyser extends EventEmitter {
      * Notifies the detector that a track associated with the {@link JitsiConference} was removed. Only takes into
      * account local audio tracks. Cleans up resources associated with the track and resets the processing context.
      *
-     * @param {JitsiTrack} track - The removed track.
+     * @param {JitsiLocalTrack} track - The removed track.
      * @returns {void}
      * @listens TRACK_REMOVED
      */
-    _trackRemoved(track: JitsiTrack): void {
+    _trackRemoved(track: JitsiLocalTrack): void {
         if (track.isLocalAudioTrack()) {
             // Use the promise to make sure operations are in sequence.
             this._vadInitTracker = this._vadInitTracker.then(() => {
