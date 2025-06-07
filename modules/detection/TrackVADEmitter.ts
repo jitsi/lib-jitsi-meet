@@ -1,8 +1,19 @@
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import RTC from '../RTC/RTC';
 import EventEmitter from '../util/EventEmitter';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
 
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
+
+export interface IVadProcessor {
+    calculateAudioFrameVAD: (pcmSample: Float32Array | number[]) => number;
+    getRequiredPCMFrequency: () => number;
+    getSampleLength: () => number;
+}
+
+export type AudioContextType = AudioContext;
+export type ScriptProcessorNodeType = ScriptProcessorNode;
+export type MediaStreamAudioSourceNodeType = MediaStreamAudioSourceNode;
 
 /**
  * Connects an audio JitsiLocalTrack to a vadProcessor using WebAudio ScriptProcessorNode.
@@ -14,6 +25,16 @@ import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
  * @fires VAD_SCORE_PUBLISHED
  */
 export default class TrackVADEmitter extends EventEmitter {
+    private _procNodeSampleRate: number;
+    private _vadProcessor: IVadProcessor;
+    private _localTrack: JitsiLocalTrack;
+    private _bufferResidue: Float32Array;
+    private _audioContext: AudioContextType;
+    private _vadSampleSize: number;
+    private _audioSource!: MediaStreamAudioSourceNodeType;
+    private _audioProcessingNode!: ScriptProcessorNodeType;
+    private _destroyed?: boolean;
+
     /**
      * Constructor.
      *
@@ -22,7 +43,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @param {Object} vadProcessor - VAD processor that allows us to calculate VAD score for PCM samples.
      * @param {JitsiLocalTrack} jitsiLocalTrack - JitsiLocalTrack corresponding to micDeviceId.
      */
-    constructor(procNodeSampleRate, vadProcessor, jitsiLocalTrack) {
+    constructor(procNodeSampleRate: number, vadProcessor: IVadProcessor, jitsiLocalTrack: JitsiLocalTrack) {
         super();
 
         /**
@@ -77,11 +98,15 @@ export default class TrackVADEmitter extends EventEmitter {
      * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
      * @returns {Promise<TrackVADEmitter>} - Promise resolving in a new instance of TrackVADEmitter.
      */
-    static create(micDeviceId, procNodeSampleRate, vadProcessor) {
+    static create(
+            micDeviceId: string,
+            procNodeSampleRate: number,
+            vadProcessor: IVadProcessor
+    ): Promise<TrackVADEmitter> {
         return RTC.obtainAudioAndVideoPermissions({
             devices: [ 'audio' ],
             micDeviceId
-        }).then(localTrack => {
+        }).then((localTrack: JitsiLocalTrack[]) => {
             // We only expect one audio track when specifying a device id.
             if (!localTrack[0]) {
                 throw new Error(`Failed to create jitsi local track for device id: ${micDeviceId}`);
@@ -99,7 +124,7 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    _initializeAudioContext() {
+    _initializeAudioContext(): void {
         this._audioSource = this._audioContext.createMediaStreamSource(this._localTrack.stream);
 
         // TODO AudioProcessingNode is deprecated in the web audio specifications and the recommended replacement
@@ -122,7 +147,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {void}
      * @fires VAD_SCORE_PUBLISHED
      */
-    _onAudioProcess(audioEvent) {
+    _onAudioProcess(audioEvent: AudioProcessingEvent): void {
         // Prepend the residue PCM buffer from the previous process callback.
         const inData = audioEvent.inputBuffer.getChannelData(0);
         const completeInData = [ ...this._bufferResidue, ...inData ];
@@ -144,7 +169,7 @@ export default class TrackVADEmitter extends EventEmitter {
             });
         }
 
-        this._bufferResidue = completeInData.slice(i, completeInData.length);
+        this._bufferResidue = new Float32Array(completeInData.slice(i, completeInData.length));
     }
 
     /**
@@ -152,7 +177,7 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    _connectAudioGraph() {
+    _connectAudioGraph(): void {
         this._audioProcessingNode.onaudioprocess = this._onAudioProcess;
         this._audioSource.connect(this._audioProcessingNode);
         this._audioProcessingNode.connect(this._audioContext.destination);
@@ -163,11 +188,11 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    _disconnectAudioGraph() {
+    _disconnectAudioGraph(): void {
         // Even thought we disconnect the processing node it seems that some callbacks remain queued,
         // resulting in calls with and uninitialized context.
         // eslint-disable-next-line no-empty-function
-        this._audioProcessingNode.onaudioprocess = () => {};
+        this._audioProcessingNode.onaudioprocess = () => {}; // eslint-disable-line  @typescript-eslint/no-empty-function
         this._audioProcessingNode.disconnect();
         this._audioSource.disconnect();
     }
@@ -177,7 +202,7 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    _cleanupResources() {
+    _cleanupResources(): void {
         this._disconnectAudioGraph();
         this._localTrack.stopStream();
     }
@@ -187,18 +212,17 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {string}
      */
-    getDeviceId() {
+    getDeviceId(): string {
         return this._localTrack.getDeviceId();
     }
-
 
     /**
      * Get the associated track label.
      *
      * @returns {string}
      */
-    getTrackLabel() {
-        return this._localTrack.getDeviceLabel();
+    getTrackLabel(): string {
+        return (this._localTrack as any).getDeviceLabel();
     }
 
     /**
@@ -206,7 +230,7 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    start() {
+    start(): void {
         this._connectAudioGraph();
     }
 
@@ -215,9 +239,9 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    stop() {
+    stop(): void {
         this._disconnectAudioGraph();
-        this._bufferResidue = [];
+        this._bufferResidue = new Float32Array([]);
     }
 
     /**
@@ -225,7 +249,7 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @returns {void}
      */
-    destroy() {
+    destroy(): void {
         if (this._destroyed) {
             return;
         }
