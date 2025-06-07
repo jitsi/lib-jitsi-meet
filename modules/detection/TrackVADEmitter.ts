@@ -30,7 +30,7 @@ export default class TrackVADEmitter extends EventEmitter {
     private _bufferResidue: Float32Array;
     private _audioContext: AudioContextType;
     private _vadSampleSize: number;
-    private _onAudioProcess: (audioEvent: AudioProcessingEvent) => void;
+    private _onAudioProcessHandler: (audioEvent: AudioProcessingEvent) => void;
     private _audioSource!: MediaStreamAudioSourceNodeType;
     private _audioProcessingNode!: ScriptProcessorNodeType;
     private _destroyed?: boolean;
@@ -81,7 +81,7 @@ export default class TrackVADEmitter extends EventEmitter {
          * Event listener function that will be called by the ScriptProcessNode with raw PCM data, depending on the set
          * sample rate.
          */
-        this._onAudioProcess = this._onAudioProcess.bind(this);
+        this._onAudioProcessHandler = this._onAudioProcess.bind(this);
 
         this._initializeAudioContext();
     }
@@ -178,7 +178,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {void}
      */
     _connectAudioGraph(): void {
-        this._audioProcessingNode.onaudioprocess = this._onAudioProcess;
+        this._audioProcessingNode.onaudioprocess = this._onAudioProcessHandler;
         this._audioSource.connect(this._audioProcessingNode);
         this._audioProcessingNode.connect(this._audioContext.destination);
     }
@@ -222,7 +222,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {string}
      */
     getTrackLabel(): string {
-        return this._localTrack.getDeviceLabel();
+        return (this._localTrack as any).getDeviceLabel();
     }
 
     /**
