@@ -1,13 +1,14 @@
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import RTC from '../RTC/RTC';
 import EventEmitter from '../util/EventEmitter';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
-import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
 
 export interface IVadProcessor {
-    getSampleLength: () => number;
-    getRequiredPCMFrequency: () => number;
     calculateAudioFrameVAD: (pcmSample: Float32Array | number[]) => number;
+    getRequiredPCMFrequency: () => number;
+    getSampleLength: () => number;
 }
 
 export type AudioContextType = AudioContext;
@@ -30,7 +31,6 @@ export default class TrackVADEmitter extends EventEmitter {
     private _bufferResidue: Float32Array;
     private _audioContext: AudioContextType;
     private _vadSampleSize: number;
-    private _onAudioProcessHandler: (audioEvent: AudioProcessingEvent) => void;
     private _audioSource!: MediaStreamAudioSourceNodeType;
     private _audioProcessingNode!: ScriptProcessorNodeType;
     private _destroyed?: boolean;
@@ -81,7 +81,7 @@ export default class TrackVADEmitter extends EventEmitter {
          * Event listener function that will be called by the ScriptProcessNode with raw PCM data, depending on the set
          * sample rate.
          */
-        this._onAudioProcessHandler = this._onAudioProcess.bind(this);
+        this._onAudioProcess = this._onAudioProcess.bind(this);
 
         this._initializeAudioContext();
     }
@@ -99,9 +99,9 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {Promise<TrackVADEmitter>} - Promise resolving in a new instance of TrackVADEmitter.
      */
     static create(
-        micDeviceId: string,
-        procNodeSampleRate: number,
-        vadProcessor: IVadProcessor
+            micDeviceId: string,
+            procNodeSampleRate: number,
+            vadProcessor: IVadProcessor
     ): Promise<TrackVADEmitter> {
         return RTC.obtainAudioAndVideoPermissions({
             devices: [ 'audio' ],
@@ -178,7 +178,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {void}
      */
     _connectAudioGraph(): void {
-        this._audioProcessingNode.onaudioprocess = this._onAudioProcessHandler;
+        this._audioProcessingNode.onaudioprocess = this._onAudioProcess;
         this._audioSource.connect(this._audioProcessingNode);
         this._audioProcessingNode.connect(this._audioContext.destination);
     }
@@ -192,7 +192,7 @@ export default class TrackVADEmitter extends EventEmitter {
         // Even thought we disconnect the processing node it seems that some callbacks remain queued,
         // resulting in calls with and uninitialized context.
         // eslint-disable-next-line no-empty-function
-        this._audioProcessingNode.onaudioprocess = () => {};
+        this._audioProcessingNode.onaudioprocess = () => {}; // eslint-disable-line  @typescript-eslint/no-empty-function
         this._audioProcessingNode.disconnect();
         this._audioSource.disconnect();
     }
