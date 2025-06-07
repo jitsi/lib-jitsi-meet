@@ -1,13 +1,16 @@
 import { getLogger } from '@jitsi/logger';
 
 import Listenable from '../util/Listenable';
-import XmppConnection from './XmppConnection';
-import ChatRoom from './ChatRoom';
-import RTC from '../RTC/RTC';
-import SignalingLayerImpl from './SignalingLayerImpl';
 
+import ChatRoom from './ChatRoom';
 
 import * as JingleSessionState from './JingleSessionState';
+
+import RTC from '../RTC/RTC';
+
+import SignalingLayerImpl from './SignalingLayerImpl';
+
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger('modules/xmpp/JingleSession');
 
