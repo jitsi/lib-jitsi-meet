@@ -4,17 +4,17 @@
  */
 
 export interface IFocusRecordingUpdate {
-    error: string | null;
-    initiator: string | null;
-    recordingMode: string | null;
-    sessionID: string | null;
-    status: string | null;
+    error?: string;
+    initiator?: string;
+    recordingMode?: string;
+    sessionID?: string;
+    status?: string;
 }
 
 export interface IHiddenDomainUpdate {
-    liveStreamViewURL: string | null | undefined;
-    mode: string | null | undefined;
-    sessionID: string | null | undefined;
+    liveStreamViewURL?: string;
+    mode?: string;
+    sessionID?: string;
 }
 
 /**
