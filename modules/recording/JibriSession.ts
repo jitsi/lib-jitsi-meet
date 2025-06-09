@@ -2,7 +2,7 @@ import { $iq } from 'strophe.js';
 
 import JitsiParticipant from '../../JitsiParticipant';
 
-import recordingXMLUtils from './recordingXMLUtils';
+import {getSessionIdFromIq} from './recordingXMLUtils';
 
 export interface IJibriSessionOptions {
     connection?: any;
@@ -236,7 +236,7 @@ export default class JibriSession {
                 (result: any) => {
                     this.setStatus('pending');
                     this._setSessionID(
-                        recordingXMLUtils.getSessionIdFromIq(result)
+                        getSessionIdFromIq(result)
                     );
 
                     resolve();

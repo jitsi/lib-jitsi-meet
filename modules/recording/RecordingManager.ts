@@ -4,7 +4,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from '../xmpp/ChatRoom';
 
 import JibriSession from './JibriSession';
-import recordingXMLUtils from './recordingXMLUtils';
+import { getFocusRecordingUpdate , isFromFocus, getHiddenDomainUpdate } from './recordingXMLUtils';
 
 const logger = getLogger('modules/recording/RecordingManager');
 
@@ -80,14 +80,14 @@ class RecordingManager {
      * focus which controls recording).
      *
      * @param {Object} event - The presence data from the pubsub event.
-     * @param {Node} event.presence - An XMPP presence update.
+     * @param {Element} event.presence - An XMPP presence update.
      * @param {boolean} event.fromHiddenDomain - Whether or not the update comes
      * from a participant that is trusted but not visible, as would be the case
      * with the Jibri recorder participant.
      * @returns {void}
      */
-    onPresence({ fromHiddenDomain, presence }: { fromHiddenDomain: boolean; presence: Node; }): void {
-        if (recordingXMLUtils.isFromFocus(presence)) {
+    onPresence({ fromHiddenDomain, presence }: { fromHiddenDomain: boolean; presence: Element; }): void {
+        if (isFromFocus(presence)) {
             this._handleFocusPresence(presence);
         } else if (fromHiddenDomain) {
             this._handleJibriPresence(presence);
@@ -228,11 +228,11 @@ class RecordingManager {
      * Parses presence to update an existing JibriSession or to create a new
      * JibriSession.
      *
-     * @param {Node} presence - An XMPP presence update.
+     * @param {Element} presence - An XMPP presence update.
      * @returns {void}
      */
-    _handleFocusPresence(presence: Node): void {
-        const jibriStatus = recordingXMLUtils.getFocusRecordingUpdate(presence);
+    _handleFocusPresence(presence: Element): void {
+        const jibriStatus = getFocusRecordingUpdate(presence);
 
         if (!jibriStatus) {
             return;
@@ -291,7 +291,7 @@ class RecordingManager {
      */
     _handleJibriPresence(presence: any): void {
         const { liveStreamViewURL, mode, sessionID }
-            = recordingXMLUtils.getHiddenDomainUpdate(presence);
+            = getHiddenDomainUpdate(presence);
 
         if (!sessionID) {
             logger.warn(
