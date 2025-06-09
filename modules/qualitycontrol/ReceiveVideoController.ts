@@ -213,8 +213,8 @@ export default class ReceiveVideoController {
      * @param {number|undefined} maxFrameHeight - the new value.
      * @returns {void}
      */
-    setPreferredReceiveMaxFrameHeight(maxFrameHeight: number | undefined): void {
-        this._maxFrameHeight = maxFrameHeight as number;
+    setPreferredReceiveMaxFrameHeight(maxFrameHeight?: number): void {
+        this._maxFrameHeight = maxFrameHeight;
 
         for (const session of this._conference.getMediaSessions()) {
             if (session.isP2P) {
