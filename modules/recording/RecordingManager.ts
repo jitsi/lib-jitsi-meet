@@ -4,7 +4,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from '../xmpp/ChatRoom';
 
 import JibriSession from './JibriSession';
-import { getFocusRecordingUpdate , isFromFocus, getHiddenDomainUpdate } from './recordingXMLUtils';
+import { getFocusRecordingUpdate, getHiddenDomainUpdate, isFromFocus } from './recordingXMLUtils';
 
 const logger = getLogger('modules/recording/RecordingManager');
 
