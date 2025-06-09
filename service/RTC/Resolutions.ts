@@ -1,4 +1,4 @@
-const Resolutions = {
+export const Resolutions = {
     '2160': {
         width: 3840,
         height: 2160
@@ -53,4 +53,3 @@ const Resolutions = {
     }
 };
 
-module.exports = Resolutions;

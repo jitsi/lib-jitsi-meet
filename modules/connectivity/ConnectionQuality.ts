@@ -5,9 +5,13 @@ import * as RTCEvents from '../../service/RTC/RTCEvents';
 import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 
-const Resolutions = require('../../service/RTC/Resolutions');
-const { VideoType } = require('../../service/RTC/VideoType');
-const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
+import EventEmitter from '../util/EventEmitter';
+import { Resolutions } from '../../service/RTC/Resolutions';
+import { VideoType } from '../../service/RTC/VideoType';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import JitsiConference from '../../JitsiConference';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 
 const logger = getLogger('modules/connectivity/ConnectionQuality');
 
@@ -15,19 +19,58 @@ const logger = getLogger('modules/connectivity/ConnectionQuality');
  * The value to use for the "type" field for messages sent by ConnectionQuality
  * over the data channel.
  */
-const STATS_MESSAGE_TYPE = 'stats';
+const STATS_MESSAGE_TYPE: string = 'stats';
 
 /**
  * The maximum bitrate to use as a measurement against the participant's current
  * bitrate. This cap helps in the cases where the participant's bitrate is high
  * but not enough to fulfill high targets, such as with 1080p.
  */
-const MAX_TARGET_BITRATE = 2500;
+const MAX_TARGET_BITRATE: number = 2500;
 
 /**
  * The initial bitrate for video in kbps.
  */
-let startBitrate = 800;
+let startBitrate: number = 800;
+
+export interface IBitrateStats {
+    upload: number;
+    download?: number;
+}
+
+export interface IPacketLossStats {
+    upload: number;
+    download?: number;
+}
+
+export interface ILocalStats {
+    connectionQuality: number;
+    jvbRTT?: number;
+    bitrate?: IBitrateStats;
+    packetLoss?: IPacketLossStats;
+    serverRegion?: string;
+    maxEnabledResolution?: number;
+    bridgeCount?: number;
+    bandwidth?: IBitrateStats;
+}
+
+export interface IRemoteStats {
+    bitrate?: IBitrateStats;
+    packetLoss?: IPacketLossStats;
+    connectionQuality?: number;
+    jvbRTT?: number;
+    serverRegion?: string;
+    maxEnabledResolution?: number;
+}
+
+export interface IOptions {
+    config?: {
+        startBitrate?: number;
+        disableLocalStats?: boolean;
+        disableLocalStatsBroadcast?: boolean;
+        pcStatsInterval?: number;
+    };
+}
 
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.
@@ -36,7 +79,12 @@ let startBitrate = 800;
  * @param millisSinceStart {number} the number of milliseconds since sending video started.
  * @param bitrates {Object} the bitrates for the local video source.
  */
-function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
+function getTarget(
+    simulcast: boolean,
+    resolution: { height: number; width: number },
+    millisSinceStart: number,
+    bitrates: { [level: string]: number }
+): number {
     let target = 0;
     let height = Math.min(resolution.height, resolution.width);
 
@@ -73,7 +121,7 @@ function getTarget(simulcast, resolution, millisSinceStart, bitrates) {
  * @param millisSinceStart {number} the number of milliseconds since sending
  * video was enabled.
  */
-function rampUp(millisSinceStart) {
+function rampUp(millisSinceStart: number): number {
     if (millisSinceStart > 60000) {
         return Number.MAX_SAFE_INTEGER;
     }
@@ -91,13 +139,22 @@ function rampUp(millisSinceStart) {
  * value of 0% indicates a poor connection.
  */
 export default class ConnectionQuality {
+    private eventEmitter: EventEmitter;
+    private _conference: JitsiConference;
+    private _localStats: ILocalStats;
+    private _lastConnectionQualityUpdate: number;
+    private _options: IOptions;
+    private _remoteStats: { [id: string]: IRemoteStats };
+    private _timeIceConnected: number;
+    private _timeVideoUnmuted: number;
+
     /**
      *
      * @param conference
      * @param eventEmitter
      * @param options
      */
-    constructor(conference, eventEmitter, options) {
+    constructor(conference: JitsiConference, eventEmitter: EventEmitter, options: IOptions) {
         this.eventEmitter = eventEmitter;
 
         /**
@@ -142,13 +199,13 @@ export default class ConnectionQuality {
         this._timeVideoUnmuted = -1;
 
         // We assume a global startBitrate value for the sake of simplicity.
-        if (this._options.config?.startBitrate > 0) {
+        if (this._options.config?.startBitrate && this._options.config.startBitrate > 0) {
             startBitrate = this._options.config.startBitrate;
         }
 
         conference.on(
             ConferenceEvents.BRIDGE_BWE_STATS_RECEIVED,
-            bwe => {
+            (bwe: number) => {
                 if (bwe && this._localStats?.bandwidth) {
                     this._localStats.bandwidth.download = Math.floor(bwe / 1000);
                 }
@@ -166,7 +223,7 @@ export default class ConnectionQuality {
 
         conference.room.addListener(
             XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
-            (jingleSession, newState) => {
+            (jingleSession: { isP2P: boolean }, newState: string) => {
                 if (!jingleSession.isP2P && newState === 'connected') {
                     this._timeIceConnected = window.performance.now();
                 }
@@ -178,7 +235,7 @@ export default class ConnectionQuality {
         // message format for sending the endpoint stats.
         conference.on(
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            (participant, payload) => {
+            (participant: { getId: () => string }, payload: { type: string; values: object }) => {
                 if (payload.type === STATS_MESSAGE_TYPE) {
                     this._updateRemoteStats(participant.getId(), payload.values);
                 }
@@ -186,11 +243,11 @@ export default class ConnectionQuality {
 
         conference.on(
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
-            (participant, payload) => {
+            (participant: { getId: () => string }, payload: object) => {
                 this._updateRemoteStats(participant.getId(), payload);
             });
 
-        if (!this._options.config.disableLocalStats) {
+        if (!this._options.config?.disableLocalStats) {
             // Listen to local statistics events originating from the RTC module and update the _localStats field.
             conference.statistics.addConnectionStatsListener(this._updateLocalStats.bind(this));
         }
@@ -198,7 +255,7 @@ export default class ConnectionQuality {
         // Save the last time we were unmuted.
         conference.on(
             ConferenceEvents.TRACK_MUTE_CHANGED,
-            track => {
+            (track: JitsiLocalTrack) => {
                 if (track.isVideoTrack()) {
                     if (track.isMuted()) {
                         this._timeVideoUnmuted = -1;
@@ -209,7 +266,7 @@ export default class ConnectionQuality {
             });
         conference.on(
             ConferenceEvents.TRACK_ADDED,
-            track => {
+            (track: JitsiLocalTrack) => {
                 if (track.isVideoTrack() && !track.isMuted()) {
                     this._maybeUpdateUnmuteTime();
                 }
@@ -221,19 +278,19 @@ export default class ConnectionQuality {
 
         conference.rtc.on(
             RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
-            track => {
+            (track: JitsiLocalTrack) => {
                 this._localStats.maxEnabledResolution = track.maxEnabledResolution;
             });
 
         conference.on(
             ConferenceEvents.SERVER_REGION_CHANGED,
-            serverRegion => {
+            (serverRegion: string) => {
                 this._localStats.serverRegion = serverRegion;
             });
 
         conference.on(
             ConferenceEvents.PROPERTIES_CHANGED,
-            properties => {
+            (properties: { [key: string]: string }) => {
                 this._localStats.bridgeCount
                     = Number((properties || {})['bridge-count']);
             }
@@ -246,7 +303,7 @@ export default class ConnectionQuality {
      * @private
      * @returns {void}
      */
-    _resetVideoUnmuteTime() {
+    private _resetVideoUnmuteTime(): void {
         this._timeVideoUnmuted = -1;
         this._maybeUpdateUnmuteTime();
     }
@@ -255,7 +312,7 @@ export default class ConnectionQuality {
      * Sets _timeVideoUnmuted if it was previously unset. If it was already set,
      * doesn't change it.
      */
-    _maybeUpdateUnmuteTime() {
+    private _maybeUpdateUnmuteTime(): void {
         if (this._timeVideoUnmuted < 0) {
             this._timeVideoUnmuted = window.performance.now();
         }
@@ -268,14 +325,20 @@ export default class ConnectionQuality {
      * @param resolutionName {Resolution} the input resolution used by the camera.
      * @returns {*} the newly calculated connection quality.
      */
-    _calculateConnectionQuality(videoType, isMuted, resolutionName) {
+    private _calculateConnectionQuality(
+        videoType: VideoType,
+        isMuted: boolean,
+        resolutionName: string | number | null
+    ): number {
 
         // resolutionName is an index into Resolutions (where "720" is
         // "1280x720" and "960" is "960x720" ...).
-        const resolution = Resolutions[resolutionName];
+        const resolution = (resolutionName !== null && resolutionName !== undefined)
+            ? (Resolutions as any)[resolutionName]
+            : undefined;
 
         let quality = 100;
-        let packetLoss;
+        let packetLoss: number | undefined;
 
         // TODO: take into account packet loss for received streams
         if (this._localStats.packetLoss) {
@@ -324,7 +387,7 @@ export default class ConnectionQuality {
                 target = Math.min(target, MAX_TARGET_BITRATE);
 
                 // Calculate the quality only after the stats are available (after video was enabled).
-                if (millisSinceStart > statsInterval) {
+                if (millisSinceStart > statsInterval && this._localStats.bitrate?.upload) {
                     quality = 100 * this._localStats.bitrate.upload / target;
                 }
             }
@@ -349,9 +412,9 @@ export default class ConnectionQuality {
 
     /**
      * Updates the localConnectionQuality value
-     * @param values {number} the new value. Should be in [0, 100].
+     * @param value {number} the new value. Should be in [0, 100].
      */
-    _updateLocalConnectionQuality(value) {
+    private _updateLocalConnectionQuality(value: number): void {
         this._localStats.connectionQuality = value;
         this._lastConnectionQualityUpdate = window.performance.now();
     }
@@ -360,9 +423,9 @@ export default class ConnectionQuality {
      * Broadcasts the local statistics to all other participants in the
      * conference.
      */
-    _broadcastLocalStats() {
+    private _broadcastLocalStats(): void {
         // broadcasting local stats is disabled
-        if (this._options.config.disableLocalStatsBroadcast) {
+        if (this._options.config?.disableLocalStatsBroadcast) {
             return;
         }
 
@@ -390,7 +453,7 @@ export default class ConnectionQuality {
      * the stats
      * @param data new statistics
      */
-    _updateLocalStats(tpc, data) {
+    private _updateLocalStats(tpc: TraceablePeerConnection, data: { [key: string]: any }): void {
         // Update jvbRTT
         if (!tpc.isP2P) {
             const jvbRTT
@@ -406,7 +469,7 @@ export default class ConnectionQuality {
             return;
         }
 
-        let key;
+        let key: string;
         const updateLocalConnectionQuality = !this._conference.isConnectionInterrupted();
         const localVideoTrack = this._conference.getLocalVideoTrack();
         const videoType = localVideoTrack?.videoType;
@@ -420,16 +483,16 @@ export default class ConnectionQuality {
 
         // Copy the fields already in 'data'.
         for (key in data) {
-            if (data.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
                 // Prevent overwriting available download bandwidth as this statistic is provided by the bridge.
                 if (key === 'bandwidth' && data[key].hasOwnProperty('download') && !tpc.isP2P) {
-                    if (!this._localStats[key]) {
-                        this._localStats[key] = {};
+                    if (!(this._localStats as any)[key]) {
+                        (this._localStats as any)[key] = {};
                     }
-                    this._localStats[key].download = this._localStats[key].download || data[key].download;
-                    this._localStats[key].upload = data[key].upload;
+                    (this._localStats as any)[key].download = (this._localStats as any)[key].download || data[key].download;
+                    (this._localStats as any)[key].upload = data[key].upload;
                 } else {
-                    this._localStats[key] = data[key];
+                    (this._localStats as any)[key] = data[key];
                 }
             }
         }
@@ -452,7 +515,7 @@ export default class ConnectionQuality {
      * @param id the id of the remote participant
      * @param data the statistics received
      */
-    _updateRemoteStats(id, data) {
+    private _updateRemoteStats(id: string, data: { [key: string]: any }): void {
         // Use only the fields we need
         this._remoteStats[id] = {
             bitrate: data.bitrate,
@@ -473,7 +536,7 @@ export default class ConnectionQuality {
      * Returns the local statistics.
      * Exported only for use in jitsi-meet-torture.
      */
-    getStats() {
+    getStats(): ILocalStats {
         return this._localStats;
     }
 }
