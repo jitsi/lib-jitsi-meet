@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import EventEmitter from '../util/EventEmitter';
-import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiConference from '../../JitsiConference';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import EventEmitter from '../util/EventEmitter';
 
 import { DETECTOR_STATE_CHANGE, VAD_SCORE_PUBLISHED } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
@@ -17,24 +17,24 @@ const logger = getLogger('modules/detection/VADAudioAnalyser');
 const VAD_EMITTER_SAMPLE_RATE: number = 4096;
 
 export interface IVADProcessor {
-    getSampleLength: () => number;
-    getRequiredPCMFrequency: () => number;
     calculateAudioFrameVAD: (pcmSample: Float32Array | number[]) => number;
+    getRequiredPCMFrequency: () => number;
+    getSampleLength: () => number;
 }
 
 export interface IVADDetectionService {
-    on: (event: string, handler: () => void) => void;
-    isActive: () => boolean;
-    processVADScore: (vadScore: IVADScore) => void;
     changeMuteState: (isMuted: boolean) => void;
+    isActive: () => boolean;
+    on: (event: string, handler: () => void) => void;
+    processVADScore: (vadScore: IVADScore) => void;
     reset: () => void;
 }
 
 export interface IVADScore {
-    timestamp: number;
-    score: number;
-    pcmData: Float32Array | number[];
     deviceId: string;
+    pcmData: Float32Array | number[];
+    score: number;
+    timestamp: number;
 }
 
 /**
@@ -42,7 +42,7 @@ export interface IVADScore {
  * the data to produce audio analytics (VADTalkMutedDetection and VADNoiseDetection).
  */
 export default class VADAudioAnalyser extends EventEmitter {
-    private _createVADProcessor: () => IVADProcessor | Promise<IVADProcessor>;
+    private _createVADProcessor: () => IVADProcessor;
     private _vadEmitter: TrackVADEmitter | null;
     private _isVADEmitterRunning: boolean;
     private _detectionServices: IVADDetectionService[];
@@ -58,7 +58,7 @@ export default class VADAudioAnalyser extends EventEmitter {
      * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
      * @constructor
      */
-    constructor(conference: JitsiConference, createVADProcessor: () => IVADProcessor | Promise<IVADProcessor>) {
+    constructor(conference: JitsiConference, createVADProcessor: () => IVADProcessor) {
         super();
 
         /**
