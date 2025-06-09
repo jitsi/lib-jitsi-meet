@@ -34,44 +34,45 @@ const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
 /* eslint-disable max-params */
-
 /**
  * Creates new instance of 'TraceablePeerConnection'.
- *
- * @param {RTC} rtc the instance of <tt>RTC</tt> service
- * @param {number} id the peer connection id assigned by the parent RTC module.
- * @param {SignalingLayer} signalingLayer the signaling layer instance
- * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
- * @param {object} constraints WebRTC 'PeerConnection' constraints
- * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
- * @param {object} options <tt>TracablePeerConnection</tt> config options.
- * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
- * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
- * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
- * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
- * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
- * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
- * enabled on the PeerConnection.
- * @param {boolean} options.forceTurnRelay If set to true, the browser will generate only Relay ICE candidates.
- * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
- * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
- *
- * FIXME: initially the purpose of TraceablePeerConnection was to be able to
- * debug the peer connection. Since many other responsibilities have been added
- * it would make sense to extract a separate class from it and come up with
- * a more suitable name.
- *
- * @constructor
  */
 export default class TraceablePeerConnection {
+
+    /**
+     * @param {RTC} rtc the instance of <tt>RTC</tt> service
+     * @param {number} id the peer connection id assigned by the parent RTC module.
+     * @param {SignalingLayer} signalingLayer the signaling layer instance
+     * @param {object} pcConfig The {@code RTCConfiguration} to use for the WebRTC peer connection.
+     * @param {object} constraints WebRTC 'PeerConnection' constraints
+     * @param {boolean} isP2P indicates whether or not the new instance will be used in a peer to peer connection.
+     * @param {object} options <tt>TracablePeerConnection</tt> config options.
+     * @param {Object} options.audioQuality - Quality settings to applied on the outbound audio stream.
+     * @param {boolean} options.capScreenshareBitrate if set to true, lower layers will be disabled for screenshare.
+     * @param {Array<CodecMimeType>} options.codecSettings - codec settings to be applied for video streams.
+     * @param {boolean} options.disableSimulcast if set to 'true' will disable the simulcast.
+     * @param {boolean} options.disableRtx if set to 'true' will disable the RTX.
+     * @param {boolean} options.enableInsertableStreams set to true when the insertable streams constraints is to be
+     * enabled on the PeerConnection.
+     * @param {boolean} options.forceTurnRelay If set to true, the browser will generate only Relay ICE candidates.
+     * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
+     * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
+     *
+     * FIXME: initially the purpose of TraceablePeerConnection was to be able to
+     * debug the peer connection. Since many other responsibilities have been added
+     * it would make sense to extract a separate class from it and come up with
+     * a more suitable name.
+     *
+     * @constructor
+     */
     constructor(
-        rtc,
-        id,
-        signalingLayer,
-        pcConfig,
-        constraints,
-        isP2P,
-        options
+            rtc,
+            id,
+            signalingLayer,
+            pcConfig,
+            constraints,
+            isP2P,
+            options
     ) {
         /**
          * Indicates whether or not this peer connection instance is actively
@@ -146,7 +147,8 @@ export default class TraceablePeerConnection {
         this.remoteTracksBySsrc = new Map();
 
         /**
-         * The map holds remote tracks associated with this peer connection. It maps user's JID to media type and a set of
+         * The map holds remote tracks associated with this peer connection.
+         * It maps user's JID to media type and a set of
          * remote tracks.
          * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
          */
@@ -469,7 +471,7 @@ export default class TraceablePeerConnection {
     /**
      * Returns a string representation of a SessionDescription object.
      */
-    const dumpSDP = function(description) {
+    static dumpSDP = function(description) {
         if (typeof description === 'undefined' || description === null) {
             return '';
         }
@@ -502,7 +504,8 @@ export default class TraceablePeerConnection {
      * local tracks for the given media type.
      * @param {MediaType} mediaType - The media type for which the direction is to be calculated.
      * @param {boolean} isAddOperation whether the direction is to be calculated after a source-add action.
-     * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.) which should be used when setting
+     * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.)
+     * which should be used when setting
      * local description on the peerconnection.
      * @private
      */
@@ -637,7 +640,8 @@ export default class TraceablePeerConnection {
         const audioReceivers = speakerList.length
             ? this._getReceiversByEndpointIds(speakerList, MediaType.AUDIO)
             : this.peerconnection.getReceivers()
-                .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
+                .filter(receiver => receiver.track
+                    && receiver.track.kind === MediaType.AUDIO && receiver.track.enabled);
 
         audioReceivers.forEach(remote => {
             const ssrc = remote.getSynchronizationSources();
@@ -655,7 +659,8 @@ export default class TraceablePeerConnection {
     }
 
     /**
-     * Checks if the browser is currently doing true simulcast where in three different media streams are being sent to the
+     * Checks if the browser is currently doing true simulcast where in three
+     * different media streams are being sent to the
      * bridge. Currently this happens always for VP8 and only if simulcast is enabled for VP9/AV1/H264.
      *
      * @param {JitsiLocalTrack} localTrack - The local video track.
@@ -682,7 +687,8 @@ export default class TraceablePeerConnection {
 
         const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
-        return this.localSSRCs.get(localTrack.rtcId)?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
+        return this.localSSRCs.get(localTrack.rtcId)
+        ?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
     }
 
     /**
@@ -899,7 +905,8 @@ export default class TraceablePeerConnection {
         }
 
         if (!mediaLine) {
-            logger.error(`Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
+            logger.error(
+                `Matching media line not found in remote SDP for remote stream[id=${streamId},type=${mediaType}],`
                     + 'track creation failed!');
 
             return;
@@ -1186,66 +1193,76 @@ export default class TraceablePeerConnection {
         return ssrcInfo && ssrcInfo.ssrcs[0];
     }
 
-    /* eslint-disable-next-line vars-on-top */
-    static getters = {
-        signalingState() {
-            return this.peerconnection.signalingState;
-        },
-        iceConnectionState() {
-            return this.peerconnection.iceConnectionState;
-        },
-        connectionState() {
-            return this.peerconnection.connectionState;
-        },
-        localDescription() {
-            let desc = this.peerconnection.localDescription;
+    /**
+     * Gets the signaling state of the peer connection.
+     */
+    get signalingState() {
+        return this.peerconnection.signalingState;
+    }
 
-            if (!desc) {
-                logger.debug(`${this} getLocalDescription no localDescription found`);
+    /**
+     * Gets the ICE connection state of the peer connection.
+     */
+    get iceConnectionState() {
+        return this.peerconnection.iceConnectionState;
+    }
 
-                return {};
-            }
+    /**
+     * Gets the connection state of the peer connection.
+     */
+    get connectionState() {
+        return this.peerconnection.connectionState;
+    }
 
-            this.trace('getLocalDescription::preTransform', dumpSDP(desc));
+    /**
+     * Gets the local description of the peer connection, with optional transformations for
+     * simulcast and stream identifiers.
+     */
+    get localDescription() {
+        let desc = this.peerconnection.localDescription;
 
-            if (!this.isP2P) {
-                desc = this.tpcUtils.injectSsrcGroupForSimulcast(desc);
-                this.trace('getLocalDescription::postTransform (inject ssrc group)', dumpSDP(desc));
-            }
+        if (!desc) {
+            logger.debug(`${this} getLocalDescription no localDescription found`);
 
-            // See the method's doc for more info about this transformation.
-            desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
-
-            return desc;
-        },
-        remoteDescription() {
-            let desc = this.peerconnection.remoteDescription;
-
-            if (!desc) {
-                logger.debug(`${this} getRemoteDescription no remoteDescription found`);
-
-                return {};
-            }
-            this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
-
-            if (this.isP2P) {
-                // Adjust the media direction for p2p based on whether a local source has been added.
-                desc = this._adjustRemoteMediaDirection(desc);
-            }
-
-            return desc;
+            return {};
         }
-    };
 
-    Object.keys(getters).forEach(prop => {
-        Object.defineProperty(
-            TraceablePeerConnection.prototype,
-            prop, {
-                get: getters[prop]
-            }
-        );
-    });
+        this.trace('getLocalDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
 
+        if (!this.isP2P) {
+            desc = this.tpcUtils.injectSsrcGroupForSimulcast(desc);
+            this.trace('getLocalDescription::postTransform (inject ssrc group)', TraceablePeerConnection.dumpSDP(desc));
+        }
+
+        desc = this.localSdpMunger.transformStreamIdentifiers(desc, this._localSsrcMap);
+
+        return desc;
+    }
+
+    /**
+     * Gets the remote description of the peer connection, with optional adjustments for media direction in P2P mode.
+     */
+    get remoteDescription() {
+        let desc = this.peerconnection.remoteDescription;
+
+        if (!desc) {
+            logger.debug(`${this} getRemoteDescription no remoteDescription found`);
+
+            return {};
+        }
+        this.trace('getRemoteDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
+
+        if (this.isP2P) {
+            desc = this._adjustRemoteMediaDirection(desc);
+        }
+
+        return desc;
+    }
+
+    /**
+     * Retrieves the SSRC (Synchronization Source) identifier associated with the given RTC ID.
+     * @private
+     */
     _getSSRC(rtcId) {
         return this.localSSRCs.get(rtcId);
     }
@@ -1653,7 +1670,8 @@ export default class TraceablePeerConnection {
                 transceiver.direction
                     = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
 
-                // Configure simulcast encodings on Firefox when a track is added to the peerconnection for the first time.
+                // Configure simulcast encodings on Firefox when a track is added to the
+                // peerconnection for the first time.
                 const configureEncodingsPromise
                     = browser.isFirefox() && !oldTrack && newTrack && this.doesTrueSimulcast(newTrack)
                         ? this._setEncodings(newTrack)
@@ -1712,6 +1730,9 @@ export default class TraceablePeerConnection {
         return this._usesCodecSelectionAPI && this.codecSettings.codecList[0] !== CodecMimeType.H264;
     }
 
+    /**
+     * Creates a new data channel on the peer connection with the specified label and options.
+     */
     createDataChannel(label, opts) {
         this.trace('createDataChannel', label, opts);
 
@@ -1722,7 +1743,8 @@ export default class TraceablePeerConnection {
      * Adjusts the media direction on the remote description based on availability of local and remote sources in a p2p
      * media connection.
      *
-     * @param {RTCSessionDescription} remoteDescription the WebRTC session description instance for the remote description.
+     * @param {RTCSessionDescription} remoteDescription the WebRTC session description
+     *  instance for the remote description.
      * @returns the transformed remoteDescription.
      * @private
      */
@@ -1744,12 +1766,14 @@ export default class TraceablePeerConnection {
                 } else if (!remoteSources) {
                     mLine.direction = MediaDirection.RECVONLY;
 
-                // When there are 2 local sources and 1 remote source, the first m-line should be set to 'sendrecv' while
+                // When there are 2 local sources and 1 remote source,
+                // the first m-line should be set to 'sendrecv' while
                 // the second one needs to be set to 'recvonly'.
                 } else if (localSources > remoteSources) {
                     mLine.direction = idx ? MediaDirection.RECVONLY : MediaDirection.SENDRECV;
 
-                // When there are 2 remote sources and 1 local source, the first m-line should be set to 'sendrecv' while
+                // When there are 2 remote sources and 1 local source, the first m-line
+                // should be set to 'sendrecv' while
                 // the second one needs to be set to 'sendonly'.
                 } else {
                     mLine.direction = idx ? MediaDirection.SENDONLY : MediaDirection.SENDRECV;
@@ -1875,7 +1899,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTracj} localTrack - The local track whose outbound stream needs to be configured.
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
-    _configureSenderEncodings = async (localTrack) => {
+    _configureSenderEncodings = async localTrack => {
         const mediaType = localTrack.getType();
         const transceiver = localTrack?.track && localTrack.getOriginalStream()
             ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
@@ -1913,7 +1937,8 @@ export default class TraceablePeerConnection {
     };
 
     /**
-     * Configures the stream encodings depending on the video type, scalability mode and the bitrate settings for the codec
+     * Configures the stream encodings depending on the video type,
+     * scalability mode and the bitrate settings for the codec
      * that is currently selected.
      *
      * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
@@ -1924,7 +1949,8 @@ export default class TraceablePeerConnection {
         const preferredCodec = codec ?? this.codecSettings.codecList[0];
 
         if (localVideoTrack) {
-            const height = this._senderMaxHeights.get(localVideoTrack.getSourceName()) ?? VIDEO_QUALITY_LEVELS[0].height;
+            const height = this._senderMaxHeights.get(localVideoTrack.getSourceName())
+            ?? VIDEO_QUALITY_LEVELS[0].height;
 
             return this.setSenderVideoConstraints(height, localVideoTrack, preferredCodec);
         }
@@ -1961,7 +1987,7 @@ export default class TraceablePeerConnection {
      * @returns {RTCSessionDescription} - The munged description.
      */
     _mungeDescription(description) {
-        this.trace('RTCSessionDescription::preTransform', dumpSDP(description));
+        this.trace('RTCSessionDescription::preTransform', TraceablePeerConnection.dumpSDP(description));
         let mungedSdp = transform.parse(description.sdp);
 
         mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
@@ -1972,7 +1998,7 @@ export default class TraceablePeerConnection {
             sdp: transform.write(mungedSdp)
         };
 
-        this.trace('RTCSessionDescription::postTransform', dumpSDP(mungedDescription));
+        this.trace('RTCSessionDescription::postTransform', TraceablePeerConnection.dumpSDP(mungedDescription));
 
         return mungedDescription;
     }
@@ -2020,10 +2046,14 @@ export default class TraceablePeerConnection {
 
         if (this.isSpatialScalabilityOn()) {
             remoteDescription = this.tpcUtils.insertUnifiedPlanSimulcastReceive(remoteDescription);
-            this.trace('setRemoteDescription::postTransform (sim receive)', dumpSDP(remoteDescription));
+            this.trace(
+                'setRemoteDescription::postTransform (sim receive)',
+                TraceablePeerConnection.dumpSDP(remoteDescription));
         }
         remoteDescription = this.tpcUtils.ensureCorrectOrderOfSsrcs(remoteDescription);
-        this.trace('setRemoteDescription::postTransform (correct ssrc order)', dumpSDP(remoteDescription));
+        this.trace(
+            'setRemoteDescription::postTransform (correct ssrc order)',
+             TraceablePeerConnection.dumpSDP(remoteDescription));
 
         remoteDescription = this._mungeDescription(remoteDescription);
 
@@ -2051,12 +2081,14 @@ export default class TraceablePeerConnection {
 
     /**
      * Changes the resolution of the video stream that is sent to the peer based on the resolution requested by the peer
-     * and user preference, sets the degradation preference on the sender based on the video type, configures the maximum
+     * and user preference, sets the degradation preference on the sender
+     * based on the video type, configures the maximum
      * bitrates on the send stream.
      *
      * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
      * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
-     * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
+     * @param {preferredCodec} - The video codec that needs to be configured on the
+     * sender associated with the video source.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
     setSenderVideoConstraints(frameHeight, localVideoTrack, preferredCodec) {
@@ -2082,8 +2114,10 @@ export default class TraceablePeerConnection {
     }
 
     /**
-     * Returns a wrapped-up promise so that the setParameters() call on the RTCRtpSender for video sources are chained.
-     * This is needed on Chrome as it resets the transaction id after executing setParameters() and can affect the next on
+     * Returns a wrapped-up promise so that the setParameters() call on the RTCRtpSender
+     * for video sources are chained.
+     * This is needed on Chrome as it resets the transaction id after
+     * executing setParameters() and can affect the next on
      * the fly updates if they are not chained.
      * https://chromium.googlesource.com/external/webrtc/+/master/pc/rtp_sender.cc#340
      * @param {Function} nextFunction - The function to be called when the last video sender update promise is settled.
@@ -2103,7 +2137,8 @@ export default class TraceablePeerConnection {
      *
      * @param {number} frameHeight - The max frame height to be imposed on the outgoing video stream.
      * @param {JitsiLocalTrack} - The local track for which the sender constraints have to be applied.
-     * @param {preferredCodec} - The video codec that needs to be configured on the sender associated with the video source.
+     * @param {preferredCodec} - The video codec that needs to be configured on
+     * the sender associated with the video source.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
     _updateVideoSenderEncodings(frameHeight, localVideoTrack, preferredCodec) {
@@ -2139,7 +2174,8 @@ export default class TraceablePeerConnection {
         let needsUpdate = false;
 
         // Do not configure 'scaleResolutionDownBy' and 'maxBitrate' for encoders running in VP9 legacy K-SVC mode since
-        // the browser sends only the lowest resolution layer when those are configured. Those fields need to be reset in
+        // the browser sends only the lowest resolution layer when those
+        // are configured. Those fields need to be reset in
         // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
         // K-SVC codec.
         if (codec === CodecMimeType.VP9
@@ -2262,7 +2298,8 @@ export default class TraceablePeerConnection {
     /**
      * Enables/disables outgoing video media transmission on this peer connection. When disabled the stream encoding's
      * active state is enabled or disabled to send or stop the media.
-     * @param {boolean} active <tt>true</tt> to enable video media transmission or <tt>false</tt> to disable. If the value
+     * @param {boolean} active <tt>true</tt> to enable video media transmission
+     * or <tt>false</tt> to disable. If the value
      * is not a boolean the call will have no effect.
      * @return {Promise} A promise that is resolved when the change is succesful, rejected otherwise.
      * @public
@@ -2391,14 +2428,25 @@ export default class TraceablePeerConnection {
         this.peerconnection.close();
     }
 
+    /**
+     * Creates an SDP answer for the peer connection based on the provided constraints.
+     */
     createAnswer(constraints) {
         return this._createOfferOrAnswer(false /* answer */, constraints);
     }
 
+    /**
+     * Creates an SDP offer for the peer connection based on the provided constraints.
+     */
     createOffer(constraints) {
         return this._createOfferOrAnswer(true /* offer */, constraints);
     }
 
+    /**
+     * Internal method to create an SDP offer or answer for the peer connection.
+     * Handles codec preferences, SDP munging for simulcast and RTX, and source information extraction.
+     * @private
+     */
     _createOfferOrAnswer(isOffer, constraints) {
         const logName = isOffer ? 'Offer' : 'Answer';
 
@@ -2407,13 +2455,14 @@ export default class TraceablePeerConnection {
         const handleSuccess = (resultSdp, resolveFn, rejectFn) => {
             try {
                 this.trace(
-                    `create${logName}OnSuccess::preTransform`, dumpSDP(resultSdp));
+                    `create${logName}OnSuccess::preTransform`, TraceablePeerConnection.dumpSDP(resultSdp));
 
                 // Munge local description to add 3 SSRCs for video tracks when spatial scalability is enabled.
                 if (this.isSpatialScalabilityOn() && browser.usesSdpMungingForSimulcast()) {
                     // eslint-disable-next-line no-param-reassign
                     resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
-                    this.trace(`create${logName} OnSuccess::postTransform (simulcast)`, dumpSDP(resultSdp));
+                    this.trace(`create${logName} OnSuccess::postTransform (simulcast)`,
+                         TraceablePeerConnection.dumpSDP(resultSdp));
                 }
 
                 if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
@@ -2426,7 +2475,7 @@ export default class TraceablePeerConnection {
                     this.trace(
                         `create${logName}`
                              + 'OnSuccess::postTransform (rtx modifier)',
-                        dumpSDP(resultSdp));
+                        TraceablePeerConnection.dumpSDP(resultSdp));
                 }
 
                 this._processAndExtractSourceInfo(resultSdp.sdp);
@@ -2434,8 +2483,8 @@ export default class TraceablePeerConnection {
                 resolveFn(resultSdp);
             } catch (e) {
                 this.trace(`create${logName}OnError`, e);
-                this.trace(`create${logName}OnError`, dumpSDP(resultSdp));
-                logger.error(`${this} create${logName}OnError`, e, dumpSDP(resultSdp));
+                this.trace(`create${logName}OnError`, TraceablePeerConnection.dumpSDP(resultSdp));
+                logger.error(`${this} create${logName}OnError`, e, TraceablePeerConnection.dumpSDP(resultSdp));
 
                 rejectFn(e);
             }
@@ -2524,6 +2573,9 @@ export default class TraceablePeerConnection {
         return !existing;
     }
 
+    /**
+     * Adds an ICE candidate to the peer connection.
+     */
     addIceCandidate(candidate) {
         this.trace('addIceCandidate', JSON.stringify({
             candidate: candidate.candidate,
