@@ -191,8 +191,8 @@ export default class TrackVADEmitter extends EventEmitter {
     _disconnectAudioGraph(): void {
         // Even thought we disconnect the processing node it seems that some callbacks remain queued,
         // resulting in calls with and uninitialized context.
-        // eslint-disable-next-line no-empty-function
-        this._audioProcessingNode.onaudioprocess = () => {}; // eslint-disable-line  @typescript-eslint/no-empty-function
+        // eslint-disable-next-line  @typescript-eslint/no-empty-function
+        this._audioProcessingNode.onaudioprocess = () => {};
         this._audioProcessingNode.disconnect();
         this._audioSource.disconnect();
     }
@@ -205,24 +205,6 @@ export default class TrackVADEmitter extends EventEmitter {
     _cleanupResources(): void {
         this._disconnectAudioGraph();
         this._localTrack.stopStream();
-    }
-
-    /**
-     * Get the associated track device ID.
-     *
-     * @returns {string}
-     */
-    getDeviceId(): string {
-        return this._localTrack.getDeviceId();
-    }
-
-    /**
-     * Get the associated track label.
-     *
-     * @returns {string}
-     */
-    getTrackLabel(): string {
-        return (this._localTrack as any).getDeviceLabel();
     }
 
     /**
