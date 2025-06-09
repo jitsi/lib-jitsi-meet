@@ -160,7 +160,7 @@ export default class SendVideoController {
         const promises: Promise<void>[] = [];
 
         for (const sourceName of this._sourceSenderConstraints.keys()) {
-            promises.push(this._propagateSendMaxFrameHeight(sourceName).then(() => {}));// eslint-disable-line @typescript-eslint/no-empty-function
+            promises.push(this._propagateSendMaxFrameHeight(sourceName).then(() => undefined));
         }
 
         return Promise.allSettled(promises);
