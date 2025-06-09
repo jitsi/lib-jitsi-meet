@@ -172,7 +172,7 @@ export default class ReceiveVideoController {
      * @param {number|undefined} assumedBandwidthBps - the new value.
      * @returns {void}
      */
-    setAssumedBandwidthBps(assumedBandwidthBps: number | undefined): void {
+    setAssumedBandwidthBps(assumedBandwidthBps?: number): void {
         if (this._receiverVideoConstraints.assumedBandwidthBps !== assumedBandwidthBps) {
             this._receiverVideoConstraints.assumedBandwidthBps = assumedBandwidthBps;
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
