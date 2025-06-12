@@ -948,7 +948,7 @@ export default class JitsiConference {
             this.eventEmitter.removeListener(eventId, handler);
         }
     }
-  
+
     /**
    * Alias for on method.
    * @param {string} eventId - The event ID.
@@ -2728,8 +2728,8 @@ export default class JitsiConference {
             );
         }
     }
-  
-      /**
+
+    /**
      * Set the transcribingEnabled flag. When transcribing is enabled, p2p is disabled.
      * @param {boolean} enabled - Whether transcribing should be enabled.
      */
@@ -3456,7 +3456,7 @@ export default class JitsiConference {
                 logger.error('Failed to suspend media transfer over the JVB connection:', error);
             });
     }
-  
+
     /**
      * Method when called will decide whether it's the time to start or stop
      * the P2P session.
@@ -3546,7 +3546,7 @@ export default class JitsiConference {
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-        const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors 
+        const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
         && !this._hasVisitors && !this._transcribingEnabled;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
@@ -3960,7 +3960,7 @@ export default class JitsiConference {
             meetingId,
             participantId: `${meetingId}.${this._statsCurrentId}`,
             stats: {
-                duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000),
+                duration: Math.floor((Date.now() - this._conferenceJoinAnalyticsEventSent) / 1000)
             }
         }));
     }
