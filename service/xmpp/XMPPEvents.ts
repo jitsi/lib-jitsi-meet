@@ -130,6 +130,26 @@ export enum XMPPEvents {
 
     ETHERPAD = 'xmpp.etherpad',
 
+    /**
+     * Event fired when we receive a message for files sharing.
+     */
+    FILE_SHARING_EVENT = 'xmpp.files-sharing.event',
+
+    /**
+     * Event emitted when a list file is received in the conference.
+     */
+    FILE_SHARING_FILES_RECEIVED = 'xmpp.files-sharing.list',
+
+    /**
+     * Event emitted when a file is added to the conference.
+     */
+    FILE_SHARING_FILE_ADDED = 'xmpp.files-sharing.add',
+
+    /**
+     * Event emitted when a file is removed from the conference.
+     */
+    FILE_SHARING_FILE_REMOVED = 'xmpp.files-sharing.remove',
+
     FOCUS_DISCONNECTED = 'xmpp.focus_disconnected',
 
     FOCUS_LEFT = 'xmpp.focus_left',

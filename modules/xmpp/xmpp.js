@@ -16,6 +16,7 @@ import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
 
 import Caps, { parseDiscoInfo } from './Caps';
+import { IDENTITY_TYPE as FILE_SHARING_IDENTITY_TYPE } from './FileSharing';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
 import './strophe.disco';
@@ -523,6 +524,11 @@ export default class XMPP extends Listenable {
                         .then(({ features: f }) => processBreakoutRoomsFeatures(f))
                         .catch(e => logger.warn('Error getting features for breakout rooms.', e && e.message));
                 }
+            }
+
+            if (identity.type === FILE_SHARING_IDENTITY_TYPE) {
+                this.fileSharingComponentAddress = identity.name;
+                this._components.push(this.fileSharingComponentAddress);
             }
 
             if (identity.type === 'room_metadata') {
@@ -1090,6 +1096,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.AV_MODERATION_RECEIVED, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'breakout_rooms') {
             this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_EVENT, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === FILE_SHARING_IDENTITY_TYPE) {
+            this.eventEmitter.emit(XMPPEvents.FILE_SHARING_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'room_metadata') {
             this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'visitors') {

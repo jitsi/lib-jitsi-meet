@@ -402,6 +402,14 @@ export default class JitsiConferenceEventManager {
         this.chatRoomForwarder.forward(XMPPEvents.BREAKOUT_ROOMS_UPDATED,
             JitsiConferenceEvents.BREAKOUT_ROOMS_UPDATED);
 
+        // File sharing
+        this.chatRoomForwarder.forward(XMPPEvents.FILE_SHARING_FILES_RECEIVED,
+            JitsiConferenceEvents.FILE_SHARING_FILES_RECEIVED);
+        this.chatRoomForwarder.forward(XMPPEvents.FILE_SHARING_FILE_ADDED,
+            JitsiConferenceEvents.FILE_SHARING_FILE_ADDED);
+        this.chatRoomForwarder.forward(XMPPEvents.FILE_SHARING_FILE_REMOVED,
+            JitsiConferenceEvents.FILE_SHARING_FILE_REMOVED);
+
         // Room metadata.
         chatRoom.addListener(XMPPEvents.ROOM_METADATA_UPDATED, metadata => {
             if (metadata.startMuted) {
