@@ -32,6 +32,10 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.EMUC_ROOM_ADDED ).toBe( 'xmpp.emuc_room_added' );
         expect( XMPPEvents.EMUC_ROOM_REMOVED ).toBe( 'xmpp.emuc_room_removed' );
         expect( XMPPEvents.ETHERPAD ).toBe( 'xmpp.etherpad' );
+        expect( XMPPEvents.FILE_SHARING_EVENT ).toBe( 'xmpp.files-sharing.event' );
+        expect( XMPPEvents.FILE_SHARING_FILES_RECEIVED ).toBe( 'xmpp.files-sharing.list' );
+        expect( XMPPEvents.FILE_SHARING_FILE_ADDED ).toBe( 'xmpp.files-sharing.add' );
+        expect( XMPPEvents.FILE_SHARING_FILE_REMOVED ).toBe( 'xmpp.files-sharing.remove' );
         expect( XMPPEvents.FOCUS_DISCONNECTED ).toBe( 'xmpp.focus_disconnected' );
         expect( XMPPEvents.FOCUS_LEFT ).toBe( 'xmpp.focus_left' );
         expect( XMPPEvents.GRACEFUL_SHUTDOWN ).toBe( 'xmpp.graceful_shutdown' );
