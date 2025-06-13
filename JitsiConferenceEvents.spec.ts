@@ -31,6 +31,9 @@ describe( "/JitsiConferenceEvents members", () => {
         ENCODE_TIME_STATS_RECEIVED,
         ENDPOINT_MESSAGE_RECEIVED,
         ENDPOINT_STATS_RECEIVED,
+        FILE_SHARING_FILES_RECEIVED,
+        FILE_SHARING_FILE_ADDED,
+        FILE_SHARING_FILE_REMOVED,
         JVB121_STATUS,
         KICKED,
         PARTICIPANT_KICKED,
@@ -117,6 +120,9 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( DTMF_SUPPORT_CHANGED ).toBe( 'conference.dtmfSupportChanged' );
         expect( ENDPOINT_MESSAGE_RECEIVED ).toBe( 'conference.endpoint_message_received' );
         expect( ENDPOINT_STATS_RECEIVED ).toBe( 'conference.endpoint_stats_received' );
+        expect( FILE_SHARING_FILES_RECEIVED ).toBe( 'conference.file_sharing.files_received' );
+        expect( FILE_SHARING_FILE_ADDED ).toBe( 'conference.file_sharing.file_added' );
+        expect( FILE_SHARING_FILE_REMOVED ).toBe( 'conference.file_sharing.file_removed' );
         expect( JVB121_STATUS ).toBe( 'conference.jvb121Status' );
         expect( KICKED ).toBe( 'conference.kicked' );
         expect( PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
@@ -201,6 +207,9 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED ).toBe( 'conference.encode_time_stats_received' );
         expect( JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED ).toBe( 'conference.endpoint_message_received' );
         expect( JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED ).toBe( 'conference.endpoint_stats_received' );
+        expect( JitsiConferenceEvents.FILE_SHARING_FILES_RECEIVED ).toBe( 'conference.file_sharing.files_received' );
+        expect( JitsiConferenceEvents.FILE_SHARING_FILE_ADDED ).toBe( 'conference.file_sharing.file_added' );
+        expect( JitsiConferenceEvents.FILE_SHARING_FILE_REMOVED ).toBe( 'conference.file_sharing.file_removed' );
         expect( JitsiConferenceEvents.JVB121_STATUS ).toBe( 'conference.jvb121Status' );
         expect( JitsiConferenceEvents.KICKED ).toBe( 'conference.kicked' );
         expect( JitsiConferenceEvents.PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );

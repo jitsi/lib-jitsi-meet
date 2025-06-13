@@ -27,18 +27,17 @@ export interface IMessageObject {
  * The AVModeration logic.
  */
 export default class AVModeration {
-
-    /**
-     * Constructs AV moderation room.
-     *
-     * @param {ChatRoom} room the main room.
-     */
     private _xmpp: XMPP;
     private _mainRoom: ChatRoom;
     private _moderationEnabledByType: IModerationEnabledByType;
     private _whitelistAudio: string[];
     private _whitelistVideo: string[];
 
+    /**
+     * Constructs AV moderation room.
+     *
+     * @param {ChatRoom} room the main room.
+     */
     constructor(room: ChatRoom) {
         this._xmpp = room.xmpp;
 

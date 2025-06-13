@@ -4252,6 +4252,15 @@ JitsiConference.prototype.getBreakoutRooms = function() {
 };
 
 /**
+ * Returns the file sharing manager object.
+ *
+ * @returns {Object} the file sharing manager.
+ */
+JitsiConference.prototype.getFileSharing = function() {
+    return this.room?.getFileSharing();
+};
+
+/**
  * Returns the metadata handler object.
  *
  * @returns {Object} the room metadata handler.
