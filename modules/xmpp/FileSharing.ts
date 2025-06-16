@@ -50,6 +50,10 @@ export default class FileSharing {
         return IDENTITY_TYPE;
     }
 
+    /**
+     * Adds a file to the file sharing component after the file has been uploaded.
+     * @param metadata - The metadata of the file to be added.
+     */
     addFile(metadata: any) {
         const message = {
             type: 'add',
@@ -59,6 +63,10 @@ export default class FileSharing {
         this._sendMessage(message, metadata);
     }
 
+    /**
+     * Removes a file from the file sharing component after the file was deleted.
+     * @param fileId - The file ID of the file to be removed.
+     */
     removeFile(fileId: string) {
         const message = {
             type: 'remove',
