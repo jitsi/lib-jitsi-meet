@@ -204,7 +204,7 @@ export enum JitsiConferenceEvents {
     /**
      * Event emitted when a list file is received in the conference. This event is fired when a participant joins
      * and the file list is sent to them.
-     * @param {Array<Object>} files - The list of files received in the conference.
+     * @param {Map<String, Object>} files - The map of files received in the conference with key the file ID.
      */
     FILE_SHARING_FILES_RECEIVED = 'conference.file_sharing.files_received',
 
