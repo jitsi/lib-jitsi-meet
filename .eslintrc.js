@@ -1,10 +1,7 @@
 module.exports = {
     parser: '@typescript-eslint/parser',
     extends: [
-        '@jitsi/eslint-config'
-    ],
-    plugins: [
-        '@typescript-eslint'
+        '@jitsi/eslint-config/typescript',
     ],
     rules: {
         '@typescript-eslint/member-ordering': [
