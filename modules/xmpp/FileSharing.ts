@@ -6,6 +6,58 @@ import XMPP from './xmpp';
 export const IDENTITY_TYPE = 'file-sharing';
 
 /**
+ * The file metadata used in file sharing.
+ * Fields like `authorParticipantId`, `authorParticipantJid`, and `authorParticipantName` and `conferenceFullName` will
+ * be set by the backend, so passing them is optional.
+ */
+export type IFileMetadata = {
+    /**
+     * The ID of the participant who uploaded the file.
+     */
+    authorParticipantId?: string;
+
+    /**
+     * The connection JID of the participant who uploaded the file.
+     */
+    authorParticipantJid?: string;
+
+    /**
+     * The name of the participant who uploaded the file.
+     */
+    authorParticipantName?: string;
+
+    /**
+     * The jid of the conference where the file was uploaded.
+     */
+    conferenceFullName?: string;
+
+    /**
+     * The unique ID of the file.
+     */
+    fileId: string;
+
+    /**
+     * The name of the file.
+     */
+    fileName: string;
+
+    /**
+     * The size of the file in bytes.
+     */
+    fileSize: number;
+
+    /**
+     * The file type (file extension).
+     */
+    fileType: string;
+
+    /**
+     * The time when it was uploaded.
+     */
+    timestamp: number;
+};
+
+/**
  * The FileSharing logic.
  */
 export default class FileSharing {
@@ -54,7 +106,7 @@ export default class FileSharing {
      * Adds a file to the file sharing component after the file has been uploaded.
      * @param metadata - The metadata of the file to be added.
      */
-    addFile(metadata: any) {
+    addFile(metadata: IFileMetadata) {
         const message = {
             type: 'add',
             xmlns: 'http://jitsi.org/jitmeet'
