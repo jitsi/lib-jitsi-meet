@@ -218,18 +218,23 @@ export default class XMPP extends Listenable {
         // Initialize features advertised in disco-info
         this.initFeaturesList();
 
+        this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
+
         // Setup a disconnect on unload as a way to facilitate API consumers. It
         // sounds like they would want that. A problem for them though may be if
         // they wanted to utilize the connected connection in an unload handler
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
-        $(window).on(`${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`, ev => {
+        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
+        const handleDisconnect = ev => {
             this.disconnect(ev).catch(() => {
-                // ignore errors in order to not brake the unload.
+                // Ignore errors in order to not break the unload.
             });
-        });
+        };
 
-        this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
+        for (const event of events.split(' ')) {
+            window.addEventListener(event, handleDisconnect);
+        }
     }
 
     /**
