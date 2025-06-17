@@ -140,21 +140,18 @@ function getConstraints(um = [], options = {}) {
 
     if (um.indexOf('audio') >= 0) {
         if (!constraints.audio || typeof constraints.audio === 'boolean') {
-            constraints.audio = {};
+            constraints.audio = {
+                autoGainControl: !disableAGC && !disableAP,
+                echoCancellation: !disableAEC && !disableAP,
+                noiseSuppression: !disableNS && !disableAP
+            };
+            if (stereo) {
+                Object.assign(constraints.audio, { channelCount: 2 });
+            }
         }
-
-        constraints.audio = {
-            autoGainControl: !disableAGC && !disableAP,
-            echoCancellation: !disableAEC && !disableAP,
-            noiseSuppression: !disableNS && !disableAP
-        };
 
         if (options.micDeviceId) {
             constraints.audio.deviceId = { exact: options.micDeviceId };
-        }
-
-        if (stereo) {
-            Object.assign(constraints.audio, { channelCount: 2 });
         }
     } else {
         constraints.audio = false;
