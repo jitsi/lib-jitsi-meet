@@ -18,6 +18,7 @@ import { getJitterDelay } from '../util/Retry';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
+import FileSharing from './FileSharing';
 import Lobby from './Lobby';
 import RoomMetadata from './RoomMetadata';
 import XmppConnection from './XmppConnection';
@@ -195,6 +196,7 @@ export default class ChatRoom extends Listenable {
         }
         this.avModeration = new AVModeration(this);
         this.breakoutRooms = new BreakoutRooms(this);
+        this.fileSharing = new FileSharing(this);
         this.roomMetadata = new RoomMetadata(this);
         this.initPresenceMap(options);
         this.lastPresences = {};
@@ -1882,6 +1884,13 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * @returns {FileSharing}
+     */
+    getFileSharing() {
+        return this.fileSharing;
+    }
+
+    /**
      * @returns {RoomMetadata}
      */
     getMetadataHandler() {
@@ -2011,6 +2020,7 @@ export default class ChatRoom extends Listenable {
     leave(reason) {
         this.avModeration.dispose();
         this.breakoutRooms.dispose();
+        this.fileSharing.dispose();
         this.roomMetadata.dispose();
 
         const promises = [];

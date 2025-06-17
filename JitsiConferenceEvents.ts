@@ -202,6 +202,25 @@ export enum JitsiConferenceEvents {
     ENDPOINT_STATS_RECEIVED = 'conference.endpoint_stats_received',
 
     /**
+     * Event emitted when a list file is received in the conference. This event is fired when a participant joins
+     * and the file list is sent to them.
+     * @param {Map<String, IFileMetadata>} files - The map of files received in the conference with key the file ID.
+     */
+    FILE_SHARING_FILES_RECEIVED = 'conference.file_sharing.files_received',
+
+    /**
+     * Event emitted when a file is added to the conference.
+     * @param {IFileMetadata} file - The file object containing metadata about the file.
+     */
+    FILE_SHARING_FILE_ADDED = 'conference.file_sharing.file_added',
+
+    /**
+     * Event emitted when a file is removed from the conference.
+     * @param {String} fileId - The ID of the file that was removed.
+     */
+    FILE_SHARING_FILE_REMOVED = 'conference.file_sharing.file_removed',
+
+    /**
      * The forwarded sources set is changed.
      *
      * @param {Array<string>} leavingForwardedSources the sourceNames of all the tracks which are leaving forwarded
@@ -549,6 +568,9 @@ export const E2EE_VERIFICATION_READY = JitsiConferenceEvents.E2EE_VERIFICATION_R
 export const ENCODE_TIME_STATS_RECEIVED = JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED;
 export const ENDPOINT_MESSAGE_RECEIVED = JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED;
 export const ENDPOINT_STATS_RECEIVED = JitsiConferenceEvents.ENDPOINT_STATS_RECEIVED;
+export const FILE_SHARING_FILES_RECEIVED = JitsiConferenceEvents.FILE_SHARING_FILES_RECEIVED;
+export const FILE_SHARING_FILE_ADDED = JitsiConferenceEvents.FILE_SHARING_FILE_ADDED;
+export const FILE_SHARING_FILE_REMOVED = JitsiConferenceEvents.FILE_SHARING_FILE_REMOVED;
 export const FORWARDED_SOURCES_CHANGED = JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED;
 export const JVB121_STATUS = JitsiConferenceEvents.JVB121_STATUS;
 export const KICKED = JitsiConferenceEvents.KICKED;

@@ -4316,6 +4316,15 @@ export default class JitsiConference {
     }
 
     /**
+     * Returns the file sharing manager object.
+     *
+     * @returns {Object} the file sharing manager.
+     */
+    getFileSharing() {
+        return this.room?.getFileSharing();
+    }
+
+    /**
      * Returns the metadata handler object.
      *
      * @returns {Object} the room metadata handler.
