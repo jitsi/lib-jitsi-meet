@@ -977,4 +977,55 @@ export default class JitsiLocalTrack extends JitsiTrack {
     unmute() {
         return this._queueSetMuted(false);
     }
+
+    /**
+     * Applies media constraints to the current MediaStreamTrack.
+     *
+     * @param {Object} constraints - Media constraints to apply.
+     * @returns {Promise<void>}
+     */
+    async applyConstraints(constraints) {
+        const initialSettings = this.track.getSettings();
+        const mediaType = this.getType();
+
+        this.stopStream();
+
+        const constraintsToApply = {
+            ...initialSettings,
+            ...constraints
+        };
+        let mediaStreamData;
+
+        try {
+            const mediaStreamsData
+                = await RTCUtils.obtainAudioAndVideoPermissions({
+                    devices: [ mediaType ],
+                    micDeviceId: constraintsToApply.deviceId,
+                    constraints: { [mediaType]: constraintsToApply }
+                });
+
+            mediaStreamData = mediaStreamsData[0];
+
+            if (!mediaStreamData) {
+                throw new Error('No media stream data');
+            }
+        } catch (error) {
+            this.stream.getTracks().forEach(track => {
+                if (track.start) {
+                    track.start();
+                }
+            });
+
+            return;
+        }
+
+        await this.conference._removeLocalTrackFromPc(this);
+
+        this._setStream(mediaStreamData.stream);
+        this.track = mediaStreamData.track;
+
+        await this.conference._addLocalTrackToPc(this);
+    }
 }
+
+
