@@ -1076,7 +1076,7 @@ export default class XMPP extends Listenable {
             return true;
         }
 
-        const jsonMessage = $(msg).find('>json-message')
+        const jsonMessage = $(msg).find('>json-message[xmlns="http://jitsi.org/jitmeet"]')
             .text();
         const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
 
