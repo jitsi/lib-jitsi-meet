@@ -1281,7 +1281,7 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        const jsonMessage = $(msg).find('>json-message').text();
+        const jsonMessage = $(msg).find('>json-message[xmlns="http://jitsi.org/jitmeet"]').text();
 
         if (jsonMessage) {
             const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
