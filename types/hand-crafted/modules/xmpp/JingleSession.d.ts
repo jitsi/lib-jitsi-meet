@@ -15,5 +15,5 @@ export default class JingleSession extends Listenable {
   addSources: ( contents: unknown ) => void; // TODO:
   removeSources: ( contents: unknown ) => void; // TODO:
   terminate: ( success: ( params: unknown ) => unknown, failure: ( params: unknown ) => unknown, options: { reason: string, reasonDescription: string, requestRestart?: boolean, sendSessionTerminate?: boolean } ) => void; // TODO:
-  acceptOffer: ( jingle: JQuery, success: ( params: unknown ) => unknown, failure: ( params: unknown ) => unknown ) => void; // TODO:
+  acceptOffer: ( jingle: Object, success: ( params: unknown ) => unknown, failure: ( params: unknown ) => unknown ) => void; // TODO:
 }

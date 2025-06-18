@@ -1,4 +1,4 @@
-import $ from 'jquery';
+
 import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 import { Strophe } from 'strophe.js';
@@ -8,6 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import browser from '../browser';
+import $ from '../util/XMLParser';
 
 import SDPUtil from './SDPUtil';
 

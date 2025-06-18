@@ -1,8 +1,8 @@
-import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';
 import { expandSourcesFromJson } from '../xmpp/JingleHelperFunctions';
+import $ from '../util/XMLParser';
 
 import SDP from './SDP';
 

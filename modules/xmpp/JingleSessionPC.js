@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { $build, $iq, Strophe } from 'strophe.js';
 
@@ -23,6 +22,7 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
+import $ from '../util/XMLParser';
 
 import browser from './../browser';
 import JingleSession from './JingleSession';
@@ -113,7 +113,7 @@ function _addSourceElement(description, s, ssrc_, msid) {
 export default class JingleSessionPC extends JingleSession {
     /**
      * Parses 'senders' attribute of the video content.
-     * @param {jQuery} jingleContents
+     * @param {Object} jingleContents
      * @return {string|null} one of the values of content "senders" attribute
      * defined by Jingle. If there is no "senders" attribute or if the value is
      * invalid then <tt>null</tt> will be returned.
@@ -140,7 +140,7 @@ export default class JingleSessionPC extends JingleSession {
      * Parses the source-name and max frame height value of the 'content-modify' IQ when source-name signaling
      * is enabled.
      *
-     * @param {jQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
+     * @param {Object} jingleContents - An element pointing to the '>jingle' element.
      * @returns {Object|null}
      */
     static parseSourceMaxFrameHeight(jingleContents) {
@@ -503,7 +503,7 @@ export default class JingleSessionPC extends JingleSession {
      * Takes in a jingle offer iq, returns the new sdp offer that can be set as remote description in the
      * peerconnection.
      *
-     * @param {jquery xml element} offerIq the incoming offer.
+     * @param {Object} offerIq the incoming offer.
      * @returns {SDP object} the jingle offer translated to SDP.
      * @private
      */
@@ -529,7 +529,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Parses the SSRC information from the source-add/source-remove element passed and updates the SSRC owners.
      *
-     * @param {jquery xml element} sourceElement the source-add/source-remove element from jingle.
+     * @param {Object} sourceElement the source-add/source-remove element from jingle.
      * @param {boolean} isAdd true if the sources are being added, false if they are to be removed.
      * @returns {Map<string, Object>} - The map of source name to ssrcs, msid and groups.
      */
@@ -966,7 +966,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
      *
-     * @param jingleOffer jQuery selector pointing to the jingle element of the offer IQ
+     * @param jingleOffer element pointing to the jingle element of the offer IQ
      * @param success callback called when we accept incoming session successfully and receive RESULT packet to
      * 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept the incoming offer. 'error' argument
@@ -2128,7 +2128,7 @@ export default class JingleSessionPC extends JingleSession {
      * This is a setRemoteDescription/setLocalDescription cycle which starts at converting Strophe Jingle IQ into
      * remote offer SDP. Once converted, setRemoteDescription, createAnswer and setLocalDescription calls follow.
      *
-     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element of the offer (or answer) IQ
+     * @param jingleOfferAnswerIq element pointing to the jingle element of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we fail at any point during setRD,
      * createAnswer, setLD.

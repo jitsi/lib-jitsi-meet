@@ -1,12 +1,12 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { $build } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import $ from '../util/XMLParser';
 
 const logger = getLogger('modules/xmpp/JingleHelperFunctions');
 

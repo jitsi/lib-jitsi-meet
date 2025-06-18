@@ -1,6 +1,5 @@
-import $ from 'jquery';
-
 import { MockRTC } from '../RTC/MockClasses';
+import $ from '../util/XMLParser';
 
 import JingleSessionPC from './JingleSessionPC';
 import * as JingleSessionState from './JingleSessionState';
@@ -9,7 +8,7 @@ import { MockChatRoom, MockStropheConnection } from './MockClasses';
 
 /**
  * Creates 'content-modify' Jingle IQ.
- * @returns {jQuery}
+ * @returns {Object}
  */
 function createContentModifyForSourceNames() {
     const modifyContentsIq = $.parseXML(

@@ -1,6 +1,5 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { unescape } from 'lodash-es';
 import { $msg, Strophe } from 'strophe.js';
 
@@ -14,6 +13,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
+import $ from '../util/XMLParser';
 
 import Caps, { parseDiscoInfo } from './Caps';
 import { IDENTITY_TYPE as FILE_SHARING_IDENTITY_TYPE } from './FileSharing';

@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
+import $ from '../../modules/util/XMLParser';
 import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -162,11 +162,11 @@ export default class ProxyConnectionService {
     }
 
     /**
-     * Transforms a stringified xML into a XML wrapped in jQuery.
+     * Transforms a stringified xML into a XML element.
      *
      * @param {string} xml - The XML in string form.
      * @private
-     * @returns {Object|null} A jQuery version of the xml. Null will be returned
+     * @returns {Object|null} An element version of the xml. Null will be returned
      * if an error is encountered during transformation.
      */
     _convertStringToXML(xml) {
