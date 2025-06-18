@@ -1,8 +1,8 @@
-import $ from 'jquery';
 import { Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
+import $ from '../util/XMLParser';
 
 import sha1 from './sha1';
 

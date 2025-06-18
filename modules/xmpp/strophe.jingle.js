@@ -1,10 +1,10 @@
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { cloneDeep } from 'lodash-es';
 import { $iq, Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RandomUtil from '../util/RandomUtil';
+import $ from '../util/XMLParser';
 
 import ConnectionPlugin from './ConnectionPlugin';
 import { expandSourcesFromJson } from './JingleHelperFunctions';

@@ -332,7 +332,7 @@ export default class ProxyConnectionPC {
      * The passed in jingle element should contain an SDP answer to a previously
      * sent SDP offer.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Object} $jingle - The jingle element.
      * @private
      * @returns {void}
      */
@@ -350,7 +350,7 @@ export default class ProxyConnectionPC {
      * Callback invoked in response to a request to start a proxy connection.
      * The passed in jingle element should contain an SDP offer.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Object} $jingle - The jingle element.
      * @private
      * @returns {void}
      */
@@ -404,7 +404,7 @@ export default class ProxyConnectionPC {
      * Callback invoked in response to ICE candidates from the remote peer.
      * The passed in jingle element should contain an ICE candidate.
      *
-     * @param {Object} $jingle - The jingle element wrapped in jQuery.
+     * @param {Object} $jingle - The jingle element.
      * @private
      * @returns {void}
      */

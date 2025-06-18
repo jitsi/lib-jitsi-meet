@@ -1,5 +1,4 @@
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { Strophe } from 'strophe.js';
 
@@ -38,6 +37,7 @@ import EventEmitter from './modules/util/EventEmitter';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
+import $ from './modules/util/XMLParser';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -2108,7 +2108,7 @@ export default class JitsiConference {
     /**
      * Callback called by the Jingle plugin when 'session-answer' is received.
      * @param {JingleSessionPC} session - The Jingle session for which an answer was received.
-     * @param {jQuery} answer - A jQuery selector pointing to 'jingle' IQ element.
+     * @param {Object} answer - An element pointing to 'jingle' IQ element.
      */
     onCallAccepted(session, answer) {
         if (this.p2pJingleSession === session) {
@@ -2133,7 +2133,7 @@ export default class JitsiConference {
     /**
      * Callback called by the Jingle plugin when 'transport-info' is received.
      * @param {JingleSessionPC} session - The Jingle session for which the IQ was received.
-     * @param {jQuery} transportInfo - A jQuery selector pointing to 'jingle' IQ element.
+     * @param {Object} transportInfo - An element pointing to 'jingle' IQ element.
      */
     onTransportInfo(session, transportInfo) {
         if (this.p2pJingleSession === session) {
@@ -2168,7 +2168,7 @@ export default class JitsiConference {
     /**
      * Handles an incoming call event for the P2P Jingle session.
      * @param {JingleSessionPC} jingleSession - The Jingle session for the incoming call.
-     * @param {jQuery} jingleOffer - A jQuery selector pointing to 'jingle' IQ element containing the offer.
+     * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @private
      */
     _onIncomingCallP2P(jingleSession, jingleOffer) {
@@ -2216,7 +2216,7 @@ export default class JitsiConference {
     /**
      * Handles an incoming call event.
      * @param {JingleSessionPC} jingleSession - The Jingle session for the incoming call.
-     * @param {jQuery} jingleOffer - A jQuery selector pointing to 'jingle' IQ element containing the offer.
+     * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @param {number} now - The timestamp when the call was received.
      */
     onIncomingCall(jingleSession, jingleOffer, now) {
@@ -2243,7 +2243,7 @@ export default class JitsiConference {
     /**
      * Accepts an incoming call event for the JVB Jingle session.
      * @param {JingleSessionPC} jingleSession - The Jingle session for the incoming call.
-     * @param {jQuery} jingleOffer - A jQuery selector pointing to 'jingle' IQ element containing the offer.
+     * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @param {number} now - The timestamp when the call was received.
      * @private
      */
@@ -2338,7 +2338,7 @@ export default class JitsiConference {
     /**
      * Sets the BridgeChannel.
      *
-     * @param {jQuery} offerIq - A jQuery selector pointing to the jingle element of
+     * @param {Object} offerIq - An element pointing to the jingle element of
      * the offer IQ which may carry the WebSocket URL for the 'websocket'
      * BridgeChannel mode.
      * @param {TraceablePeerConnection} pc - The peer connection which will be used
@@ -3033,7 +3033,7 @@ export default class JitsiConference {
     /**
      * Accepts an incoming P2P Jingle call.
      * @param {JingleSessionPC} jingleSession - The Jingle session instance.
-     * @param {jQuery} jingleOffer - A jQuery selector pointing to 'jingle' IQ element containing the offer.
+     * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @private
      */
     _acceptP2PIncomingCall(jingleSession, jingleOffer) {

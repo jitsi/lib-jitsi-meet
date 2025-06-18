@@ -1,6 +1,5 @@
 import { getLogger } from '@jitsi/logger';
 import emojiRegex from 'emoji-regex';
-import $ from 'jquery';
 import { isEqual } from 'lodash-es';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +14,7 @@ import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
+import $ from '../util/XMLParser';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';

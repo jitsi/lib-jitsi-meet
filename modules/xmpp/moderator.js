@@ -1,12 +1,12 @@
 /* eslint-disable newline-per-chained-call */
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { $iq } from 'strophe.js';
 
 import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
+import $ from '../util/XMLParser';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');

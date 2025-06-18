@@ -1,9 +1,9 @@
 import { getLogger } from '@jitsi/logger';
-import $ from 'jquery';
 import { Strophe } from 'strophe.js';
 
 import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import $ from '../util/XMLParser';
 
 import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
