@@ -10,7 +10,10 @@ module.exports = (minimize, analyzeBundle) => {
             alias: {
                 'jquery': require.resolve('jquery/dist/jquery.slim.min.js')
             },
-            extensions: [ '', '.js', '.ts' ]
+            extensions: [ '', '.js', '.ts' ],
+           fallback: {
+                "events": require.resolve("events/")
+            }
         },
         mode: minimize ? 'production' : 'development',
         module: {
