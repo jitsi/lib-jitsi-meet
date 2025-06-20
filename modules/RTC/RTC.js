@@ -325,11 +325,12 @@ export default class RTC extends Listenable {
 
     /**
      * Sends the audio subscription message to the JVB.
-     * @param {SourceName[]} sourceNames - the source names of the audio tracks.
+     * @param {SourceName[]} include - the source names of the audio tracks to include.
+     * @param {SourceName[]} exclude - the source names of the audio tracks to exclude.
      */
-    sendReceiverAudioSubscription(sourceNames) {
+    sendReceiverAudioSubscription(include, exclude) {
         if (this._channel && this._channel.isOpen()) {
-            this._channel.sendReceiverAudioSubscriptionMessage(sourceNames);
+            this._channel.sendReceiverAudioSubscriptionMessage(include, exclude);
         }
     }
 

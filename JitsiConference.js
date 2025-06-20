@@ -834,24 +834,22 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
 
 JitsiConference.prototype.setIsDeafened = function(deafened) {
     this._sendReceiverAudioSubscriptionMessage(
-
-        // TODO: implement subscription to all audio sources
-        deafened
-            ? []
-            : this.getLocalTracks(MediaType.AUDIO).map(track => getSourceNameForJitsiTrack(track, MediaType.AUDIO))
+        deafened ? [] : ['*'],
+        deafened ? ['*'] : []
     );
 };
 
 /**
  * Sends the "ReceiverAudioSubscriptionMessage" to the bridge on the bridge channel
  *
- * @param {string[]} sourceNames - The source names to subscribe to.
+ * @param {string[]} include - The source names to include in the subscription.
+ * @param {string[]} exclude - The source names to exclude from the subscription.
  * @returns {void}
  * @private
  */
-JitsiConference.prototype._sendReceiverAudioSubscriptionMessage = function(sourceNames) {
+JitsiConference.prototype._sendReceiverAudioSubscriptionMessage = function(include, exclude) {
     if (this.rtc) {
-        this.rtc.sendReceiverAudioSubscription(sourceNames);
+        this.rtc.sendReceiverAudioSubscription(include, exclude);
     }
 };
 
