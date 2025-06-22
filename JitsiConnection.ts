@@ -24,6 +24,10 @@ export interface IConnectionOptions {
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: number;
     xmppPing?: any;
+    bridgeChannel?: {
+    ignoreDomain?: string;
+    preferSctp?: boolean;
+}
 }
 
 export interface IConnectOptions {

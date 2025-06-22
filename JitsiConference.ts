@@ -80,6 +80,11 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import JibriSession from './modules/recording/JibriSession';
+import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
+import BreakoutRooms from './modules/xmpp/BreakoutRooms';
+import FileSharing from './modules/xmpp/FileSharing';
+import RoomMetadata from './modules/xmpp/RoomMetadata';
 
 // Import necessary types
 
@@ -2313,7 +2318,12 @@ export default class JitsiConference {
             const tracks = participant.getTracks();
 
             for (let i = 0; i < tracks.length; i++) {
-                if (tracks[i] === removedTrack) {
+                // Compare by a unique property to avoid type incompatibility
+                if (
+                    typeof tracks[i].getId === 'function'
+                    && typeof removedTrack.getId === 'function'
+                    && tracks[i].getId() === removedTrack.getId()
+                ) {
                     // Since the tracks have been compared and are
                     // considered equal the result of splice can be ignored.
                     participant._tracks.splice(i, 1);
@@ -2506,7 +2516,7 @@ export default class JitsiConference {
      * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
      * @private
      */
-    _setBridgeChannel(offerIq: any, pc: TraceablePeerConnection): void {
+    _setBridgeChannel(offerIq: Element, pc: TraceablePeerConnection): void {
         const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
         const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? true;
         const sctpOffered = $(offerIq).find('>content[name="data"]')
@@ -2544,7 +2554,7 @@ export default class JitsiConference {
             this.rtc.initializeBridgeChannel(null, wsUrl);
         } else if (sctpOffered) {
             // Otherwise, fall back to an attempt to use SCTP.
-            this.rtc.initializeBridgeChannel(pc, null);
+            this.rtc.initializeBridgeChannel(pc.peerconnection, null);
         } else {
             logger.warn('Neither SCTP nor a websocket is available. Will not initialize bridge channel.');
         }
@@ -2560,7 +2570,11 @@ export default class JitsiConference {
      * @param {string} options.errorMsg - An error message to be logged on global error handler.
      * @private
      */
-    _rejectIncomingCall(jingleSession: JingleSessionPC, options: any): void {
+    _rejectIncomingCall(jingleSession: JingleSessionPC, options: {
+    reason?: string;
+    reasonDescription?: string;
+    errorMsg?: string;
+}): void {
         if (options?.errorMsg) {
             logger.warn(options.errorMsg);
         }
@@ -2609,7 +2623,7 @@ export default class JitsiConference {
             // Let the RTC service do any cleanups
             this.rtc.onCallEnded();
         } else if (jingleSession === this.p2pJingleSession) {
-            const stopOptions = {};
+            const stopOptions: { requestRestart?: boolean } = {};
 
             if (reasonCondition === 'connectivity-error' && reasonText === 'ICE FAILED') {
                 // It can happen that the other peer detects ICE failed and
@@ -2709,7 +2723,7 @@ export default class JitsiConference {
      * {@link Chatroom#startRecording} for more info.
      * @returns {Promise} Resolves when recording starts successfully, rejects otherwise.
      */
-    startRecording(options: any): Promise<void> {
+    startRecording(options: any): Promise<JibriSession> {
         if (this.room) {
             return this.recordingManager.startRecording(options);
         }
@@ -2845,7 +2859,7 @@ export default class JitsiConference {
                 video: policy.video,
                 xmlns: 'http://jitsi.org/jitmeet/start-muted'
             }
-        }) && this.room.sendPresence();
+        }) && this.room.sendPresence(false);
 
         this.getMetadataHandler().setMetadata('startMuted', {
             audio: policy.audio,
@@ -2930,7 +2944,7 @@ export default class JitsiConference {
     removeLocalParticipantProperty(name: string): void {
         this.removeCommand(`jitsi_participant_${name}`);
         if (this.room) {
-            this.room.sendPresence();
+            this.room.sendPresence(false);
         }
     }
 
@@ -2985,7 +2999,7 @@ export default class JitsiConference {
      * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
      */
     getSsrcByTrack(track: JitsiTrack): number | undefined {
-        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSSRC();
+        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
     }
 
 
@@ -3157,7 +3171,7 @@ export default class JitsiConference {
             this._delayedIceFailed = new IceFailedHandling(this);
             setTimeout(() => {
                 logger.error(`triggering ice restart after ${jitterDelay} `);
-                this._delayedIceFailed.start(session);
+                this._delayedIceFailed.start();
                 this._iceRestarts++;
             }, jitterDelay);
         } else if (this.jvbJingleSession === session) {
@@ -3559,7 +3573,7 @@ export default class JitsiConference {
 
         this.isP2PConnectionInterrupted = false;
         this.p2pJingleSession
-            = this.xmpp.connection.jingle.newP2PJingleSession(
+            = (this.xmpp.connection as any).jingle.newP2PJingleSession(
                 this.room.myroomjid,
                 remoteJid);
         logger.info(
@@ -3671,9 +3685,9 @@ export default class JitsiConference {
                         return;
                     }
                     logger.info(`Will start P2P with: ${jid} after ${this.backToP2PDelay} seconds...`);
-                    this.deferredStartP2PTask = setTimeout(
+                    this.deferredStartP2PTask = Number(setTimeout(
                         this._startP2PSession.bind(this, jid),
-                        this.backToP2PDelay * 1000);
+                        this.backToP2PDelay * 1000));
                 } else {
                     logger.info(`Will start P2P with: ${jid}`);
                     this._startP2PSession(jid);
@@ -3885,7 +3899,7 @@ export default class JitsiConference {
             presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
         }
 
-        presenceChanged && this.room.sendPresence();
+        presenceChanged && this.room.sendPresence(false);
     }
 
     /**
@@ -4036,7 +4050,7 @@ export default class JitsiConference {
      * @returns {Promise} promise that will be resolved when the operation is
      * successful and rejected otherwise.
      */
-    setSenderVideoConstraint(maxFrameHeight: number): Promise<void> {
+    setSenderVideoConstraint(maxFrameHeight: number): Promise<void[]> {
         return this.qualityController.sendVideoController.setPreferredSendMaxFrameHeight(maxFrameHeight);
     }
 
@@ -4335,7 +4349,7 @@ export default class JitsiConference {
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    addLobbyMessageListener(listener: (message: any) => void): void {
+    addLobbyMessageListener(listener: (message: any) => void): Function | undefined {
         if (this.room) {
             return this.room.getLobby().addMessageListener(listener);
         }
@@ -4393,7 +4407,7 @@ export default class JitsiConference {
     enableAVModeration(mediaType: MediaType): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
-            this.room.getAVModeration().enable(true, mediaType);
+            this.room.getAVModeration().enable('true', mediaType);
         } else {
             logger.warn(`Failed to enable AV moderation, ${this.room ? '' : 'not in a room, '}${
                 this.isModerator() ? '' : 'participant is not a moderator, '}${
@@ -4409,7 +4423,7 @@ export default class JitsiConference {
     disableAVModeration(mediaType: MediaType): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
-            this.room.getAVModeration().enable(false, mediaType);
+            this.room.getAVModeration().enable('false', mediaType);
         } else {
             logger.warn(`Failed to disable AV moderation, ${this.room ? '' : 'not in a room, '}${
                 this.isModerator() ? '' : 'participant is not a moderator, '}${
@@ -4472,7 +4486,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the breakout rooms manager.
      */
-    getBreakoutRooms(): BreakoutRoomsManager | undefined {
+    getBreakoutRooms(): BreakoutRooms | undefined {
         return this.room?.getBreakoutRooms();
     }
 
@@ -4481,7 +4495,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the file sharing manager.
      */
-    getFileSharing(): FileSharingManager | undefined {
+    getFileSharing(): FileSharing | undefined {
         return this.room?.getFileSharing();
     }
 
@@ -4490,7 +4504,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the room metadata handler.
      */
-    getMetadataHandler(): MetadataHandler | undefined {
+    getMetadataHandler(): RoomMetadata | undefined {
         return this.room?.getMetadataHandler();
     }
 
