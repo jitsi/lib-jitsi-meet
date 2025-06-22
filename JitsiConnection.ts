@@ -240,4 +240,7 @@ export default class JitsiConnection {
 
         return data;
     }
+    public getXmpp(): XMPP {
+        return this.xmpp;
+    }
 }
