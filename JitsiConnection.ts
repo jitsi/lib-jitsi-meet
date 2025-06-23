@@ -15,6 +15,10 @@ const logger = getLogger('JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
+    bridgeChannel?: {
+        ignoreDomain?: string;
+        preferSctp?: boolean;
+    };
     disableFocus?: boolean;
     enableWebsocketResume: boolean;
     flags?: Record<string, any>;
@@ -24,10 +28,6 @@ export interface IConnectionOptions {
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: number;
     xmppPing?: any;
-    bridgeChannel?: {
-    ignoreDomain?: string;
-    preferSctp?: boolean;
-}
 }
 
 export interface IConnectOptions {
@@ -244,6 +244,7 @@ export default class JitsiConnection {
 
         return data;
     }
+
     public getXmpp(): XMPP {
         return this.xmpp;
     }
