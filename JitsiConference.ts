@@ -32,6 +32,7 @@ import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import { LiteModeContext } from './modules/litemode/LiteModeContext';
 import { QualityController } from './modules/qualitycontrol/QualityController';
+import JibriSession from './modules/recording/JibriSession';
 import RecordingManager from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
@@ -44,11 +45,15 @@ import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
 import $ from './modules/util/XMLParser';
 import ComponentsVersions from './modules/version/ComponentsVersions';
+import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import BreakoutRooms from './modules/xmpp/BreakoutRooms';
 import type ChatRoom from './modules/xmpp/ChatRoom';
+import FileSharing from './modules/xmpp/FileSharing';
 import type JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import MediaSessionEvents from './modules/xmpp/MediaSessionEvents';
+import RoomMetadata from './modules/xmpp/RoomMetadata';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import XMPP, {
     FEATURE_E2EE,
@@ -80,11 +85,6 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
-import JibriSession from './modules/recording/JibriSession';
-import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
-import BreakoutRooms from './modules/xmpp/BreakoutRooms';
-import FileSharing from './modules/xmpp/FileSharing';
-import RoomMetadata from './modules/xmpp/RoomMetadata';
 
 // Import necessary types
 
@@ -312,7 +312,7 @@ export default class JitsiConference {
         }
 
         this.connection = options.connection;
-        this.xmpp = this.connection?.getXmpp();
+        this.xmpp = this.connection?.xmpp;
 
         if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
             const errmsg = 'A conference with the same name has already been created!';
@@ -480,7 +480,7 @@ export default class JitsiConference {
          */
         this._videoSenderLimitReached = undefined;
 
-        this._firefoxP2pEnabled = browser.isVersionGreaterThan(109) //TODO: to be fixed
+        this._firefoxP2pEnabled = browser.isVersionGreaterThan(109) // TODO: to be fixed
             && (this.options.config.testing?.enableFirefoxP2p ?? true);
 
         /**
@@ -1334,7 +1334,7 @@ export default class JitsiConference {
                 // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
                 // only be sent after a session-accept or source-add is ack'ed.
                 if (track.getVideoType() === VideoType.DESKTOP) {
-                    this._updateRoomPresence(this.getActiveMediaSession(),undefined);
+                    this._updateRoomPresence(this.getActiveMediaSession(), undefined);
                 }
             });
     }
@@ -1485,7 +1485,7 @@ export default class JitsiConference {
                 if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
                     this._sendBridgeVideoTypeMessage(newTrack);
                 }
-                this._updateRoomPresence(this.getActiveMediaSession(),undefined);
+                this._updateRoomPresence(this.getActiveMediaSession(), undefined);
                 if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
                     this._fireMuteChangeEvent(newTrack);
                 }
@@ -1540,7 +1540,8 @@ export default class JitsiConference {
         if (!jingleSession) {
             return;
         }
-        const errorReason = (error as { reason?: string })?.reason;
+        const errorReason = (error as { reason?: string; })?.reason;
+
         logger.warn(`Source-add rejected on ${jingleSession}, reason="${errorReason}", message="${error?.message}"`);
         const track = this.getLocalTracks(mediaType)[0];
 
@@ -1940,7 +1941,7 @@ export default class JitsiConference {
         participant.setConnectionJid(fullJid);
         participant.setRole(role);
         participant.setBotType(botType);
-        participant.setFeatures(features ? new Set([features]) : undefined);
+        participant.setFeatures(features ? new Set([ features ]) : undefined);
         participant.setIsReplacing(isReplaceParticipant);
 
         // Set remote tracks on the participant if source signaling was received before presence.
@@ -2245,7 +2246,7 @@ export default class JitsiConference {
 
         // Add track to JitsiParticipant.
         if (participant) {
-            participant._tracks.push(track as unknown as JitsiTrack);
+            participant._tracks.push(track);
         } else {
             logger.info(`Source signaling received before presence for ${id}`);
         }
@@ -2257,7 +2258,7 @@ export default class JitsiConference {
             () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
         track.isAudioTrack() && track.addEventListener(
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            (audioLevel, tpc) => {
+            (audioLevel, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
 
                 if (activeTPC === tpc) {
@@ -2571,10 +2572,10 @@ export default class JitsiConference {
      * @private
      */
     _rejectIncomingCall(jingleSession: JingleSessionPC, options: {
-    reason?: string;
-    reasonDescription?: string;
-    errorMsg?: string;
-}): void {
+        errorMsg?: string;
+        reason?: string;
+        reasonDescription?: string;
+    }): void {
         if (options?.errorMsg) {
             logger.warn(options.errorMsg);
         }
@@ -2623,7 +2624,7 @@ export default class JitsiConference {
             // Let the RTC service do any cleanups
             this.rtc.onCallEnded();
         } else if (jingleSession === this.p2pJingleSession) {
-            const stopOptions: { requestRestart?: boolean } = {};
+            const stopOptions: { requestRestart?: boolean; } = {};
 
             if (reasonCondition === 'connectivity-error' && reasonText === 'ICE FAILED') {
                 // It can happen that the other peer detects ICE failed and
