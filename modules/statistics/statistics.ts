@@ -13,6 +13,8 @@ import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 import JitsiTrack from '../RTC/JitsiTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import JitsiConference from '../../JitsiConference';
+import XMPP from '../xmpp/xmpp';
 
 const logger = getLogger('modules/statistics/statistics');
 
@@ -241,15 +243,15 @@ export default class Statistics {
      */
     rtpStatsMap: Map<string, RTPStats>;
     eventEmitter: EventEmitter;
-    conference: any;
-    xmpp: any;
+    conference: JitsiConference;
+    xmpp: XMPP;
     options: Record<string, any>;
 
-    constructor(conference: any, options: Record<string, any>) {
+    constructor(conference: JitsiConference, options: Record<string, any>) {
         /**
          * {@link RTPStats} mapped by {@link TraceablePeerConnection.id} which
          * collect RTP statistics for each peerconnection.
-         * @type {Map<string, RTPStats}
+         * @type {Map<string, RTPStats>}
          */
         this.rtpStatsMap = new Map();
         this.eventEmitter = new EventEmitter();
