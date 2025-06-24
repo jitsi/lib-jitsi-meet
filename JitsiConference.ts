@@ -312,7 +312,7 @@ export default class JitsiConference {
         }
 
         this.connection = options.connection;
-        this.xmpp = this.connection?.xmpp;
+        this.xmpp = this.connection?._xmpp;
 
         if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
             const errmsg = 'A conference with the same name has already been created!';
@@ -1929,7 +1929,7 @@ export default class JitsiConference {
      * the same jwt.
      */
     onMemberJoined(
-            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: string, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
+            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: Object, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
     ): void {
         const id = Strophe.getResourceFromJid(jid);
 

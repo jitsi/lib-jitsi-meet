@@ -423,7 +423,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Sends mute status for a track to conference if any.
      *
      * @param {boolean} mute - If track is muted.
-     * @private
+     * @public
      * @returns {void}
      */
     private _sendMuteStatus(mute: boolean): void {
