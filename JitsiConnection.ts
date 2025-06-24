@@ -50,7 +50,7 @@ export default class JitsiConnection {
     private appID?: string;
     private token: string | null;
     readonly options: IConnectionOptions;
-    private xmpp: XMPP;
+    public _xmpp: XMPP;
 
     /**
      * Creates a new JitsiConnection instance.
@@ -66,7 +66,7 @@ export default class JitsiConnection {
         // Initialize the feature flags so that they are advertised through the disco-info.
         FeatureFlags.init(options.flags || {});
 
-        this.xmpp = new XMPP(options, token);
+        this._xmpp = new XMPP(options, token);
 
         this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
             (errType: string, msg: string, credentials: any, details: any) => {
@@ -104,15 +104,15 @@ export default class JitsiConnection {
         RTCStats.startWithConnection(this);
 
         // if we get redirected, we set disableFocus to skip sending the conference request twice
-        if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
+        if (this._xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
             // The domain (optional) will uses this.options.hosts.muc.toLowerCase() if not provided
-            this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name, undefined))
+            this._xmpp.moderator.sendConferenceRequest(this._xmpp.getRoomJid(options.name, undefined))
                 .then(() => {
-                    this.xmpp.connect(options.id, options.password);
+                    this._xmpp.connect(options.id, options.password);
                 })
                 .catch(e => logger.trace('sendConferenceRequest rejected', e));
         } else {
-            this.xmpp.connect(options.id, options.password);
+            this._xmpp.connect(options.id, options.password);
         }
     }
 
@@ -124,7 +124,7 @@ export default class JitsiConnection {
      * @param options - Connecting options - rid, sid and jid.
      */
     attach(options: IAttachOptions): void {
-        this.xmpp.attach(options);
+        this._xmpp.attach(options);
     }
 
     /**
@@ -137,7 +137,7 @@ export default class JitsiConnection {
         // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
         // may optionally pass the event which triggered the disconnect in order to
         // provide the implementation with finer-grained context.
-        return this.xmpp.disconnect(...args);
+        return this._xmpp.disconnect(...args);
     }
 
     /**
@@ -146,7 +146,7 @@ export default class JitsiConnection {
      * @returns The jid of the participant.
      */
     getJid(): string {
-        return this.xmpp.getJid();
+        return this._xmpp.getJid();
     }
 
     /**
@@ -179,7 +179,7 @@ export default class JitsiConnection {
      * @param listener - The function that will receive the event
      */
     addEventListener(event: JitsiConnectionEvents, listener: (...args: any[]) => void): void {
-        this.xmpp.addListener(event, listener);
+        this._xmpp.addListener(event, listener);
     }
 
     /**
@@ -188,7 +188,7 @@ export default class JitsiConnection {
      * @param listener - The function that will receive the event
      */
     removeEventListener(event: JitsiConnectionEvents, listener: (...args: any[]) => void): void {
-        this.xmpp.removeListener(event, listener);
+        this._xmpp.removeListener(event, listener);
     }
 
     /**
@@ -196,7 +196,7 @@ export default class JitsiConnection {
      * @returns Object containing connection timing information
      */
     getConnectionTimes(): Record<string, any> {
-        return this.xmpp.connectionTimes;
+        return this._xmpp.connectionTimes;
     }
 
     /**
@@ -207,7 +207,7 @@ export default class JitsiConnection {
      * immediately submitted to the others.
      */
     addFeature(feature: string, submit: boolean = false): void {
-        this.xmpp.caps.addFeature(feature, submit, true);
+        this._xmpp.caps.addFeature(feature, submit, true);
     }
 
     /**
@@ -218,7 +218,7 @@ export default class JitsiConnection {
      * immediately submitted to the others.
      */
     removeFeature(feature: string, submit: boolean = false): void {
-        this.xmpp.caps.removeFeature(feature, submit, true);
+        this._xmpp.caps.removeFeature(feature, submit, true);
     }
 
     /**
@@ -226,7 +226,7 @@ export default class JitsiConnection {
      * @returns Object containing connection logs and metadata
      */
     getLogs(): Record<string, any> {
-        const data = this.xmpp.getJingleLog();
+        const data = this._xmpp.getJingleLog();
 
         const metadata: Record<string, any> = {};
 
@@ -234,7 +234,7 @@ export default class JitsiConnection {
         metadata.url = window.location.href;
         metadata.ua = navigator.userAgent;
 
-        const log = this.xmpp.getXmppLog();
+        const log = this._xmpp.getXmppLog();
 
         if (log) {
             metadata.xmpp = log;
@@ -246,6 +246,6 @@ export default class JitsiConnection {
     }
 
     public getXmpp(): XMPP {
-        return this.xmpp;
+        return this._xmpp;
     }
 }

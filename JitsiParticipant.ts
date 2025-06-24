@@ -18,9 +18,9 @@ export default class JitsiParticipant {
     private _jid: string;
     private _id: string;
     private _conference: JitsiConference;
-    private _displayName: string;
-    private _supportsDTMF: boolean;
-    private _tracks: JitsiTrack[];
+    public _displayName: string;
+    public _supportsDTMF: boolean;
+    public _tracks: JitsiTrack[];
     private _role: string;
     private _status?: string;
     private _hidden: boolean;
