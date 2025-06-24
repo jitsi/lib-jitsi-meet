@@ -3,6 +3,7 @@ import { Strophe } from 'strophe.js';
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import JitsiTrack from './modules/RTC/JitsiTrack';
+import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { MediaType } from './service/RTC/MediaType';
 
 export interface ISourceInfo {
@@ -20,7 +21,7 @@ export default class JitsiParticipant {
     private _conference: JitsiConference;
     public _displayName: string;
     public _supportsDTMF: boolean;
-    public _tracks: JitsiTrack[];
+    public _tracks: (JitsiTrack | JitsiRemoteTrack)[];
     private _role: string;
     private _status?: string;
     private _hidden: boolean;
@@ -240,19 +241,19 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array.<JitsiTrack>} The list of media tracks for this
+     * @returns {Array.<JitsiTrack|JitsiRemoteTrack>} The list of media tracks for this
      * participant.
      */
-    getTracks(): JitsiTrack[] {
+    getTracks(): (JitsiTrack | JitsiRemoteTrack)[] {
         return this._tracks.slice();
     }
 
     /**
      * @param {MediaType} mediaType
-     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * @returns {Array.<JitsiTrack|JitsiRemoteTrack>} an array of media tracks for this
      * participant, for given media type.
      */
-    getTracksByMediaType(mediaType: MediaType): JitsiTrack[] {
+    getTracksByMediaType(mediaType: MediaType): (JitsiTrack | JitsiRemoteTrack)[] {
         return this.getTracks().filter(track => track.getType() === mediaType);
     }
 
