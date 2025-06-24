@@ -86,9 +86,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
-// Import necessary types
-
-interface ConferenceOptions {
+export interface IConferenceOptions {
     config: {
         applicationName?: string;
         avgRtpStatsN?: number;
@@ -145,12 +143,12 @@ interface ConferenceOptions {
     name: string;
 }
 
-interface StartMutedPolicy {
+export interface StartMutedPolicy {
     audio: boolean;
     video: boolean;
 }
 
-interface ConferenceProperties {
+export interface IConferenceProperties {
     [key: string]: any;
     'audio-limit-reached'?: string;
     'bridge-count'?: string;
@@ -159,7 +157,7 @@ interface ConferenceProperties {
     'visitor-count'?: number;
 }
 
-interface StatisticsOptions {
+export interface IStatisticsOptions {
     aliasName?: string;
     applicationName?: string;
     confID?: string;
@@ -167,7 +165,7 @@ interface StatisticsOptions {
     userName?: string;
 }
 
-interface StopSessionOptions {
+export interface IStopSessionOptions {
     reason?: string;
     reasonDescription?: string;
     requestRestart?: boolean;
@@ -181,12 +179,12 @@ const logger = getLogger('JitsiConference');
  * {@link ACTION_JINGLE_SI_TIMEOUT} analytics event is sent (in ms).
  * @type {number}
  */
-const JINGLE_SI_TIMEOUT = 5000;
+const JINGLE_SI_TIMEOUT: number = 5000;
 
 /**
  * Default source language for transcribing the local participant.
  */
-const DEFAULT_TRANSCRIPTION_LANGUAGE = 'en-US';
+const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
 
 /**
  * Checks if a given string is a valid video codec mime type.
@@ -239,32 +237,32 @@ export default class JitsiConference {
     connection: JitsiConnection;
     xmpp: XMPP;
     eventEmitter: EventEmitter;
-    options: ConferenceOptions;
+    options: IConferenceOptions;
     eventManager: JitsiConferenceEventManager;
     participants: Map<string, JitsiParticipant>;
     _signalingLayer: SignalingLayerImpl;
     componentsVersions: ComponentsVersions;
-    jvbJingleSession: JingleSessionPC | null;
-    lastDominantSpeaker: string | null;
+    jvbJingleSession?: JingleSessionPC;
+    lastDominantSpeaker?: string;
     dtmfManager: any;
     somebodySupportsDTMF: boolean;
     authEnabled: boolean;
     startMutedPolicy: StartMutedPolicy;
     isMutedByFocus: boolean;
-    mutedByFocusActor: string | null;
+    mutedByFocusActor?: string;
     isVideoMutedByFocus: boolean;
-    mutedVideoByFocusActor: string | null;
+    mutedVideoByFocusActor?: string;
     wasStopped: boolean;
-    properties: ConferenceProperties;
+    properties: IConferenceProperties;
     connectionQuality: ConnectionQuality;
-    avgRtpStatsReporter: AvgRTPStatsReporter | null;
+    avgRtpStatsReporter?: AvgRTPStatsReporter;
     isJvbConnectionInterrupted: boolean;
     speakerStatsCollector: SpeakerStatsCollector;
-    deferredStartP2PTask: number | null;
+    deferredStartP2PTask?: number;
     backToP2PDelay: number;
     isP2PConnectionInterrupted: boolean;
     p2p: boolean;
-    p2pJingleSession: JingleSessionPC | null;
+    p2pJingleSession?: JingleSessionPC;
     videoSIPGWHandler: VideoSIPGW;
     recordingManager: RecordingManager;
     _conferenceJoinAnalyticsEventSent?: number;
@@ -286,7 +284,7 @@ export default class JitsiConference {
     p2pDominantSpeakerDetection?: P2PDominantSpeakerDetection;
     _desktopSharingFrameRate?: number;
     authIdentity?: string;
-    _sessionInitiateTimeout: number | null;
+    _sessionInitiateTimeout?: number;
     _numberOfParticipantsOnJoin?: number;
     _delayedIceFailed?: IceFailedHandling;
     p2pEstablishmentDuration?: number;
@@ -298,7 +296,7 @@ export default class JitsiConference {
     /**
      * @param {Object} options
      */
-    constructor(options: ConferenceOptions) {
+    constructor(options: IConferenceOptions) {
         if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
             const errmsg
                 = 'Invalid conference name (no conference name passed or it '
@@ -529,7 +527,7 @@ export default class JitsiConference {
      * @param options {object}
      * @param options.connection {JitsiConnection} overrides this.connection
      */
-    _init(options: ConferenceOptions): void {
+    _init(options: IConferenceOptions): void {
         this.eventManager.setupXMPPListeners();
 
         const { config } = this.options;
@@ -1276,7 +1274,7 @@ export default class JitsiConference {
     /**
    * Adds JitsiLocalTrack object to the conference.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
-   * @returns {Promise<JitsiLocalTrack>}
+   * @returns {Promise<void | JitsiLocalTrack>}
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
@@ -2258,7 +2256,7 @@ export default class JitsiConference {
             () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
         track.isAudioTrack() && track.addEventListener(
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            (audioLevel, tpc: TraceablePeerConnection) => {
+            (audioLevel: number, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
 
                 if (activeTPC === tpc) {

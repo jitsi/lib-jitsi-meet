@@ -15,6 +15,9 @@ const logger = getLogger('JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
+    hosts: {
+        domain: string;
+    };
     bridgeChannel?: {
         ignoreDomain?: string;
         preferSctp?: boolean;

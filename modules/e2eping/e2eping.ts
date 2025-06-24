@@ -42,6 +42,7 @@ export interface IPingMessage {
 
 export interface IE2ePingOptions {
     e2eping?: {
+        enabled?: boolean;
         maxConferenceSize?: number;
         maxMessagesPerSecond?: number;
         numRequests?: number;
