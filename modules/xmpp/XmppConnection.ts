@@ -22,7 +22,7 @@ interface IXmppPingOptions extends IPingOptions {
  * Interface for connection plugins
  */
 interface IConnectionPlugin {
-    init(connection: XmppConnection): void;
+    init: (connection: XmppConnection) => void;
 }
 
 /**
@@ -38,7 +38,7 @@ type IQErrorCallback = (error: string | Element | Error | undefined) => void;
 /**
  * Connection status callback type
  */
-type ConnectionStatusCallback = (status: Strophe.Status, condition?: string, element?: Element) => void;
+type IConnectionStatusCallback = (status: Strophe.Status, condition?: string, element?: Element) => void;
 
 /**
  * @typedef DeferredSendIQ Object
@@ -48,21 +48,21 @@ type ConnectionStatusCallback = (status: Strophe.Status, condition?: string, ele
  * @property {number} timeout - The ID of the timeout task that needs to be cleared, before sending the IQ.
  * @property {number} start - The timestamp when the deferred IQ was created.
  */
-interface DeferredSendIQ {
+interface IDeferredSendIQ {
     iq: Element | undefined;
-    resolve: (result: Element) => void;
     reject: (error: string | Element | Error | undefined) => void;
-    timeout: ReturnType<typeof setTimeout>;
+    resolve: (result: Element) => void;
     start: number;
+    timeout: ReturnType<typeof setTimeout>;
 }
 
 /**
  * Constructor options interface for XmppConnection
  */
 interface IXmppConnectionOptions {
+    enableWebsocketResume?: boolean;
     serviceUrl: string;
     shard?: string;
-    enableWebsocketResume?: boolean;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: string;
     xmppPing?: IXmppPingOptions;
@@ -88,7 +88,7 @@ export default class XmppConnection extends Listenable {
     private _usesWebsocket: boolean;
     private _rawInputTracker: LastSuccessTracker;
     private _resumeTask: ResumeTask;
-    private _deferredIQs: DeferredSendIQ[];
+    private _deferredIQs: IDeferredSendIQ[];
     private _oneSuccessfulConnect: boolean;
     private _status: Strophe.Status;
     private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
@@ -198,7 +198,7 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean}
      */
     get connected(): boolean {
-        const websocket = this._stropheConn && this._stropheConn._proto && this._stropheConn._proto.socket;
+        const websocket = this._stropheConn?._proto?.socket;
 
         return (this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED)
             && (!this.isUsingWebSocket || (websocket && websocket.readyState === WebSocket.OPEN));
@@ -255,7 +255,7 @@ export default class XmppConnection extends Listenable {
      * @returns {string}
      */
     get lastResponseHeaders(): string {
-        return this._stropheConn._proto && this._stropheConn._proto.lastResponseHeaders;
+        return this._stropheConn._proto?.lastResponseHeaders;
     }
 
     /**
@@ -351,7 +351,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    attach(jid: string, sid: string, rid: string, callback: (status: Strophe.Status, ...args: unknown[]) => void, ...args: Parameters<Strophe.Connection['attach']>): void {
+    attach(jid: string, sid: string, rid: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['attach']>): void {
         this._stropheConn.attach(jid, sid, rid, this._stropheConnectionCb.bind(this, callback), ...args);
     }
 
@@ -361,7 +361,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    connect(jid: string, pass: string, callback: (status: Strophe.Status, ...args: unknown[]) => void, ...args: Parameters<Strophe.Connection['connect']>): void {
+    connect(jid: string, pass: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['connect']>): void {
         this._stropheConn.connect(jid, pass, this._stropheConnectionCb.bind(this, callback), ...args);
     }
 
@@ -375,8 +375,8 @@ export default class XmppConnection extends Listenable {
      * @param {Strophe.Status} status - The new connection status.
      * @param {*} args - The rest of the arguments passed by Strophe.
      * @private
-     */
-    _stropheConnectionCb(targetCallback: (status: Strophe.Status, ...args: unknown[]) => void, status: Strophe.Status, ...args: unknown[]): void {
+    */
+    _stropheConnectionCb(targetCallback: IConnectionStatusCallback, status: Strophe.Status, condition?: string, element?: Element): void {
         this._status = status;
 
         let blockCallback = false;
@@ -406,7 +406,7 @@ export default class XmppConnection extends Listenable {
         }
 
         if (!blockCallback) {
-            targetCallback(status, ...args);
+            targetCallback(status, condition, element);
             this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
         }
     }
@@ -429,7 +429,7 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     closeWebsocket(): void {
-        if (this._stropheConn && this._stropheConn._proto) {
+        if (this._stropheConn?._proto) {
             this._stropheConn._proto._closeSocket();
             this._stropheConn._proto._onClose(null);
         }
@@ -625,7 +625,7 @@ export default class XmppConnection extends Listenable {
      * The time when the connection is reconnecting is included, which means that
      * the IQ may never be sent and still fail with a timeout.
      */
-    sendIQ2(iq: Element, { timeout }: { timeout: number }): Promise<Element> {
+    sendIQ2(iq: Element, { timeout }: { timeout: number; }): Promise<Element> {
         return new Promise((resolve, reject) => {
             if (this.connected) {
                 this.sendIQ(
@@ -634,7 +634,7 @@ export default class XmppConnection extends Listenable {
                     error => reject(error),
                     timeout);
             } else {
-                const deferred: DeferredSendIQ = {
+                const deferred: IDeferredSendIQ = {
                     iq,
                     resolve,
                     reject,
@@ -731,7 +731,7 @@ export default class XmppConnection extends Listenable {
      */
     _tryResumingConnection(): boolean {
         const { streamManagement } = this._stropheConn;
-        const resumeToken = streamManagement && streamManagement.getResumeToken();
+        const resumeToken = streamManagement?.getResumeToken();
 
         if (resumeToken) {
             this._resumeTask.schedule();
