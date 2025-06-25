@@ -30,15 +30,15 @@ const logger = getLogger('modules/xmpp/ChatRoom');
 /**
  * Regex that matches all emojis.
  */
-const EMOJI_REGEX = emojiRegex();
+const EMOJI_REGEX: RegExp = emojiRegex();
 
 /**
  * How long we're going to wait for IQ response, before timeout error is triggered.
  * @type {number}
  */
-const IQ_TIMEOUT = 10000;
+const IQ_TIMEOUT: number = 10000;
 
-// Type definitions
+
 interface PresenceNode {
     tagName: string;
     attributes?: Record<string, string>;
