@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
-import JitsiParticipant from '../../JitsiParticipant';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import AuthenticationEvents from '../../service/authentication/AuthenticationEvents';
@@ -100,36 +99,36 @@ interface ExtendedPeerMediaInfo extends PeerMediaInfo {
     codecType: string;
 }
 
-interface IdentityInfo {
+export interface IdentityInfo {
     user?: {
         [key: string]: string;
     };
     group?: string;
 }
 
-interface XmppConnectionExtended extends XmppConnection {
-    rayo?: {
-        dial: (number: string, type: string, roomJid: string, password: string, focusJid: string | null) => any;
-        hangup: () => any;
-    };
-    emuc?: {
-        doLeave: (roomJid: string) => void;
-    };
-}
+// interface XmppConnectionExtended extends XmppConnection {
+//     rayo?: {
+//         dial: (number: string, type: string, roomJid: string, password: string, focusJid: string | null) => any;
+//         hangup: () => any;
+//     };
+//     emuc?: {
+//         doLeave: (roomJid: string) => void;
+//     };
+// }
 
-interface XmppOptionsExtended {
-    serviceUrl: string;
-    enableWebsocketResume: boolean;
-    websocketKeepAlive?: number;
-    websocketKeepAliveUrl?: number;
-    xmppPing?: any;
-    p2pStunServers: any[];
-    displayJids?: boolean;
-    hosts?: {
-        domain?: string;
-        anonymousdomain?: string;
-    };
-}
+// interface XmppOptionsExtended {
+//     serviceUrl: string;
+//     enableWebsocketResume: boolean;
+//     websocketKeepAlive?: number;
+//     websocketKeepAliveUrl?: number;
+//     xmppPing?: any;
+//     p2pStunServers: any[];
+//     displayJids?: boolean;
+//     hosts?: {
+//         domain?: string;
+//         anonymousdomain?: string;
+//     };
+// }
 
 export const parser = {
     packet2JSON(xmlElement: Element, nodes: PresenceNode[]): void {
