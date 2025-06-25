@@ -1009,8 +1009,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 ...initialSettings,
                 ...constraints
             };
-            
-            const deviceIdKey = mediaType === 'audio' ? 'micDeviceId' : 'cameraDeviceId';
+
+            const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
 
             const [ mediaStreamData ]
                 = await RTCUtils.obtainAudioAndVideoPermissions({
