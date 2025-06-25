@@ -148,6 +148,28 @@ function getConstraints(um = [], options = {}) {
             if (stereo) {
                 Object.assign(constraints.audio, { channelCount: 2 });
             }
+        } else {
+            const allowedAudioProps = {
+                echoCancellation: 'boolean',
+                noiseSuppression: 'boolean',
+                autoGainControl: 'boolean',
+                channelCount: 'number'
+            };
+
+            const validConstraints = {};
+
+            for (const [ key, value ] of Object.entries(constraints.audio)) {
+                if (allowedAudioProps[key]) {
+                    if (typeof value !== allowedAudioProps[key]) {
+                        continue;
+                    }
+                    if (key === 'channelCount' && ![ 1, 2 ].includes(value)) {
+                        continue;
+                    }
+                    validConstraints[key] = value;
+                }
+            }
+            constraints.audio = validConstraints;
         }
 
         if (options.micDeviceId) {

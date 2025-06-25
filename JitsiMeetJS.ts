@@ -538,6 +538,7 @@ export default {
                     domain: jaasDomain,
                     muc: `conference.${appId}.${jaasDomain}`
                 },
+                conferenceRequestUrl: `https://${jaasDomain}/${appId}/conference-request/v1?room=${roomName}`,
                 serviceUrl: `wss://${jaasDomain}/${appId}/xmpp-websocket?room=${roomName}`,
                 websocketKeepAliveUrl: `https://${jaasDomain}/${appId}/_unlock?room=${roomName}`,
                 analytics: {
