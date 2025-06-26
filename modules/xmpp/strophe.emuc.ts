@@ -13,19 +13,6 @@ import XMPP from './xmpp';
 const logger = getLogger('modules/xmpp/strophe.emuc');
 
 /**
- * Interface for room options
- */
-interface IRoomOptions {
-    [key: string]: any;
-    channelLastN?: number;
-    disableDiscoInfo?: boolean;
-    disableFocus?: boolean;
-    enableLobby?: boolean;
-    enableP2P?: boolean;
-    p2pPreferredCodec?: string;
-}
-
-/**
  * MUC connection plugin.
  */
 export default class MucConnectionPlugin extends ConnectionPluginListenable {
@@ -79,7 +66,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param password
      * @param options
      */
-    createRoom(jid: string, password: string, options: IRoomOptions): ChatRoom {
+    createRoom(jid: string, password: string, options: any): ChatRoom {
         const roomJid = Strophe.getBareJidFromJid(jid);
 
         if (this.isRoomCreated(roomJid)) {
