@@ -109,6 +109,12 @@ export enum XMPPEvents {
      */
     CONNECTION_STATUS_CHANGED = 'xmpp.connection.status.changed',
 
+    /**
+     * Designates an event indicating that the focus has asked us to disable our
+     * desktop share.
+     */
+    DESKTOP_MUTED_BY_FOCUS = 'xmpp.desktop_muted_by_focus',
+
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED = 'xmpp.display_name_changed',

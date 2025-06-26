@@ -67,7 +67,7 @@ export default class JitsiConferenceEventManager {
                 conference.mutedByFocusActor = actor;
 
                 // set isMutedByFocus when setAudioMute Promise ends
-                conference.rtc.setAudioMute(true).then(
+                conference.rtc.setAudioMute().then(
                     () => {
                         conference.isMutedByFocus = true;
                         conference.mutedByFocusActor = null;
@@ -91,7 +91,7 @@ export default class JitsiConferenceEventManager {
                 conference.mutedVideoByFocusActor = actor;
 
                 // set isVideoMutedByFocus when setVideoMute Promise ends
-                conference.rtc.setVideoMute(true).then(
+                conference.rtc.setVideoMute().then(
                     () => {
                         conference.isVideoMutedByFocus = true;
                         conference.mutedVideoByFocusActor = null;
@@ -101,6 +101,30 @@ export default class JitsiConferenceEventManager {
                             conference.mutedVideoByFocusActor = null;
                             logger.warn(
                                 'Error while video muting due to focus request', error);
+                        });
+            }
+        );
+
+        chatRoom.addListener(XMPPEvents.DESKTOP_MUTED_BY_FOCUS,
+            actor => {
+                // TODO: Add a way to differentiate between commands which caused
+                // us to mute and those that did not change our state (i.e. we were
+                // already muted).
+                Statistics.sendAnalytics(createRemotelyMutedEvent(MediaType.DESKTOP));
+
+                conference.mutedDesktopByFocusActor = actor;
+
+                // set isDesktopMutedByFocus when setDesktopMute Promise ends
+                conference.rtc.setDesktopMute().then(
+                    () => {
+                        conference.isDesktopMutedByFocus = true;
+                        conference.mutedDesktopByFocusActor = null;
+                    })
+                    .catch(
+                        error => {
+                            conference.mutedDesktopByFocusActor = null;
+                            logger.warn(
+                                'Error while desktop video muting due to focus request', error);
                         });
             }
         );

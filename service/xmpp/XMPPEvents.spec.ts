@@ -14,6 +14,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.ADD_ICE_CANDIDATE_FAILED ).toBe( 'xmpp.add_ice_candidate_failed' );
         expect( XMPPEvents.AUDIO_MUTED_BY_FOCUS ).toBe( 'xmpp.audio_muted_by_focus' );
         expect( XMPPEvents.VIDEO_MUTED_BY_FOCUS ).toBe( 'xmpp.video_muted_by_focus' );
+        expect( XMPPEvents.DESKTOP_MUTED_BY_FOCUS ).toBe( 'xmpp.desktop_muted_by_focus' );
         expect( XMPPEvents.AUTHENTICATION_REQUIRED ).toBe( 'xmpp.authentication_required' );
         expect( XMPPEvents.BRIDGE_DOWN ).toBe( 'xmpp.bridge_down' );
         expect( XMPPEvents.CALL_ACCEPTED ).toBe( 'xmpp.callaccepted.jingle' );

@@ -74,6 +74,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
+
 const logger = getLogger('JitsiConference');
 
 /**
@@ -197,15 +198,14 @@ export default class JitsiConference {
             audio: false,
             video: false
         };
+
+        // AV Moderation.
         this.isMutedByFocus = false;
-
-        // when muted by focus we receive the jid of the initiator of the mute
-        this.mutedByFocusActor = null;
-
         this.isVideoMutedByFocus = false;
-
-        // when video muted by focus we receive the jid of the initiator of the mute
+        this.isDesktopMutedByFocus = false;
+        this.mutedByFocusActor = null;
         this.mutedVideoByFocusActor = null;
+        this.mutedDesktopByFocusActor = null;
 
         // Flag indicates if the 'onCallEnded' method was ever called on this
         // instance. Used to log extra analytics event for debugging purpose.
@@ -1155,7 +1155,7 @@ export default class JitsiConference {
                         mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
                         this._updateRoomPresence(this.getActiveMediaSession());
 
-                        if (this.isMutedByFocus || this.isVideoMutedByFocus) {
+                        if (this.isMutedByFocus || this.isVideoMutedByFocus || this.isDesktopMutedByFocus) {
                             this._fireMuteChangeEvent(track);
                         }
                     });
@@ -1206,11 +1206,18 @@ export default class JitsiConference {
 
             // unmute local user on server
             this.room.muteParticipant(this.room.myroomjid, false, MediaType.AUDIO);
-        } else if (this.isVideoMutedByFocus && track.isVideoTrack() && !track.isMuted()) {
+        } else if (this.isVideoMutedByFocus && track.isVideoTrack()
+                && track.getVideoType() !== VideoType.DESKTOP && !track.isMuted()) {
             this.isVideoMutedByFocus = false;
 
             // unmute local user on server
             this.room.muteParticipant(this.room.myroomjid, false, MediaType.VIDEO);
+        } else if (this.isDesktopMutedByFocus && track.isVideoTrack()
+                && track.getVideoType() === VideoType.DESKTOP && !track.isMuted()) {
+            this.isDesktopMutedByFocus = false;
+
+            // unmute local user on server
+            this.room.muteParticipant(this.room.myroomjid, false, MediaType.DESKTOP);
         }
 
         let actorParticipant;
@@ -1219,8 +1226,14 @@ export default class JitsiConference {
             const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
 
             actorParticipant = this.participants.get(actorId);
-        } else if (this.mutedVideoByFocusActor && track.isVideoTrack()) {
+        } else if (this.mutedVideoByFocusActor && track.isVideoTrack()
+                && track.getVideoType() !== VideoType.DESKTOP) {
             const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
+
+            actorParticipant = this.participants.get(actorId);
+        } else if (this.mutedDesktopByFocusActor && track.isVideoTrack()
+                && track.getVideoType() === VideoType.DESKTOP) {
+            const actorId = Strophe.getResourceFromJid(this.mutedDesktopByFocusActor);
 
             actorParticipant = this.participants.get(actorId);
         }
@@ -1322,7 +1335,8 @@ export default class JitsiConference {
                     this._sendBridgeVideoTypeMessage(newTrack);
                 }
                 this._updateRoomPresence(this.getActiveMediaSession());
-                if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
+                if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus
+                        || this.isDesktopMutedByFocus)) {
                     this._fireMuteChangeEvent(newTrack);
                 }
 
@@ -1724,10 +1738,8 @@ export default class JitsiConference {
      * @param {string} id The id of the participant to mute.
      */
     muteParticipant(id, mediaType) {
-        const muteMediaType = mediaType ? mediaType : MediaType.AUDIO;
-
-        if (muteMediaType !== MediaType.AUDIO && muteMediaType !== MediaType.VIDEO) {
-            logger.error(`Unsupported media type: ${muteMediaType}`);
+        if (!mediaType) {
+            logger.error('muteParticipant: mediaType is required');
 
             return;
         }
@@ -1737,7 +1749,8 @@ export default class JitsiConference {
         if (!participant) {
             return;
         }
-        this.room.muteParticipant(participant.getJid(), true, muteMediaType);
+
+        this.room.muteParticipant(participant.getJid(), true, mediaType);
     }
 
     /* eslint-disable max-params */
@@ -4226,12 +4239,12 @@ export default class JitsiConference {
 
     /**
      * Enables AV Moderation.
-     * @param {MediaType} mediaType "audio" or "video"
+     * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @returns {void}
      */
     enableAVModeration(mediaType) {
         if (this.room && this.isModerator()
-            && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+            && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
             this.room.getAVModeration().enable(true, mediaType);
         } else {
             logger.warn(`Failed to enable AV moderation, ${this.room ? '' : 'not in a room, '}${
@@ -4242,12 +4255,12 @@ export default class JitsiConference {
 
     /**
      * Disables AV Moderation.
-     * @param {MediaType} mediaType "audio" or "video"
+     * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @returns {void}
      */
     disableAVModeration(mediaType) {
         if (this.room && this.isModerator()
-            && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+            && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
             this.room.getAVModeration().enable(false, mediaType);
         } else {
             logger.warn(`Failed to disable AV moderation, ${this.room ? '' : 'not in a room, '}${
@@ -4259,13 +4272,13 @@ export default class JitsiConference {
     /**
      * Approve participant access to certain media, allows unmuting audio or video.
      *
-     * @param {MediaType} mediaType "audio" or "video"
+     * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @param id the id of the participant.
      * @returns {void}
      */
     avModerationApprove(mediaType, id) {
         if (this.room && this.isModerator()
-            && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+            && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
 
             const participant = this.getParticipantById(id);
 
@@ -4284,13 +4297,13 @@ export default class JitsiConference {
     /**
      * Reject participant access to certain media, blocks unmuting audio or video.
      *
-     * @param {MediaType} mediaType "audio" or "video"
+     * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @param id the id of the participant.
      * @returns {void}
      */
     avModerationReject(mediaType, id) {
         if (this.room && this.isModerator()
-            && (mediaType === MediaType.AUDIO || mediaType === MediaType.VIDEO)) {
+            && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
 
             const participant = this.getParticipantById(id);
 

@@ -11,6 +11,7 @@ const logger = getLogger('modules/xmpp/AVModeration');
 
 export interface IModerationEnabledByType {
     audio: boolean;
+    desktop: boolean;
     video: boolean;
 }
 
@@ -31,6 +32,7 @@ export default class AVModeration {
     private _mainRoom: ChatRoom;
     private _moderationEnabledByType: IModerationEnabledByType;
     private _whitelistAudio: string[];
+    private _whitelistDesktop: string[];
     private _whitelistVideo: string[];
 
     /**
@@ -45,10 +47,12 @@ export default class AVModeration {
 
         this._moderationEnabledByType = {
             [MediaType.AUDIO]: false,
+            [MediaType.DESKTOP]: false,
             [MediaType.VIDEO]: false
         };
 
         this._whitelistAudio = [];
+        this._whitelistDesktop = [];
         this._whitelistVideo = [];
 
         this._onMessage = this._onMessage.bind(this);
@@ -74,7 +78,7 @@ export default class AVModeration {
     /**
      * Enables or disables AV Moderation by sending a msg with command to the component.
      */
-    enable(state: string, mediaType: MediaType) {
+    enable(state: boolean, mediaType: MediaType) {
         if (!this.isSupported() || !this._mainRoom.isModerator()) {
             logger.error(`Cannot enable:${state} AV moderation supported:${this.isSupported()},
                 moderator:${this._mainRoom.isModerator()}`);
@@ -152,9 +156,23 @@ export default class AVModeration {
         const { removed, mediaType: media, enabled, approved, actor, whitelists: newWhitelists } = obj;
 
         if (newWhitelists) {
-            const oldList = media === MediaType.AUDIO
-                ? this._whitelistAudio
-                : this._whitelistVideo;
+            let oldList;
+
+            switch (media) {
+            case MediaType.AUDIO:
+                oldList = this._whitelistAudio;
+                break;
+            case MediaType.DESKTOP:
+                oldList = this._whitelistDesktop;
+                break;
+            case MediaType.VIDEO:
+                oldList = this._whitelistVideo;
+                break;
+            default:
+                logger.error(`Unknown media type: ${media}`);
+
+                return;
+            }
             const newList = Array.isArray(newWhitelists[media]) ? newWhitelists[media] : [];
 
             if (removed) {
@@ -167,10 +185,16 @@ export default class AVModeration {
                         .emit(XMPPEvents.AV_MODERATION_PARTICIPANT_APPROVED, media, jid));
             }
 
-            if (media === MediaType.AUDIO) {
+            switch (media) {
+            case MediaType.AUDIO:
                 this._whitelistAudio = newList;
-            } else {
+                break;
+            case MediaType.DESKTOP:
+                this._whitelistDesktop = newList;
+                break;
+            case MediaType.VIDEO:
                 this._whitelistVideo = newList;
+                break;
             }
         } else if (enabled !== undefined && this._moderationEnabledByType[media] !== enabled) {
             this._moderationEnabledByType[media] = enabled;
