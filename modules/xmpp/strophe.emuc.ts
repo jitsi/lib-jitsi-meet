@@ -7,6 +7,8 @@ import $ from '../util/XMLParser';
 
 import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
+import XmppConnection from './XmppConnection';
+import XMPP from './xmpp';
 
 const logger = getLogger('modules/xmpp/strophe.emuc');
 
@@ -15,10 +17,20 @@ const logger = getLogger('modules/xmpp/strophe.emuc');
  */
 export default class MucConnectionPlugin extends ConnectionPluginListenable {
     /**
+     * XMPP connection instance
+     */
+    private xmpp: XMPP;
+
+    /**
+     * Map of room JIDs to ChatRoom instances
+     */
+    private rooms: { [roomJid: string]: ChatRoom; };
+
+    /**
      *
      * @param xmpp
      */
-    constructor(xmpp) {
+    constructor(xmpp: XMPP) {
         super();
         this.xmpp = xmpp;
         this.rooms = {};
@@ -28,7 +40,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param connection
      */
-    init(connection) {
+    init(connection: XmppConnection): void {
         super.init(connection);
 
         // add handlers (just once)
@@ -54,7 +66,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param password
      * @param options
      */
-    createRoom(jid, password, options) {
+    createRoom(jid: string, password: string, options: any): ChatRoom {
         const roomJid = Strophe.getBareJidFromJid(jid);
 
         if (this.isRoomCreated(roomJid)) {
@@ -77,7 +89,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param {string} roomJid - The JID of the room.
      * @returns {boolean}
      */
-    isRoomCreated(roomJid) {
+    isRoomCreated(roomJid: string): boolean {
         return roomJid in this.rooms;
     }
 
@@ -85,7 +97,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param jid
      */
-    doLeave(jid) {
+    doLeave(jid: string): void {
         this.eventEmitter.emit(
             XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
@@ -95,7 +107,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param pres
      */
-    onPresence(pres) {
+    onPresence(pres: Element): boolean {
         const from = pres.getAttribute('from');
 
         // What is this for? A workaround for something?
@@ -124,7 +136,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param pres
      */
-    onPresenceUnavailable(pres) {
+    onPresenceUnavailable(pres: Element): boolean {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
@@ -141,7 +153,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param pres
      */
-    onPresenceError(pres) {
+    onPresenceError(pres: Element): boolean {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
@@ -158,7 +170,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param msg
      */
-    onMessage(msg) {
+    onMessage(msg: Element): boolean {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
@@ -176,7 +188,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * TODO: Document
      * @param iq
      */
-    onMute(iq) {
+    onMute(iq: Element): boolean {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
@@ -194,7 +206,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * TODO: Document
      * @param iq
      */
-    onMuteVideo(iq) {
+    onMuteVideo(iq: Element): boolean {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
@@ -213,7 +225,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param iq The received iq.
      * @returns {boolean}
      */
-    onVisitors(iq) {
+    onVisitors(iq: Element): boolean {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
