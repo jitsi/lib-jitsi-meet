@@ -57,7 +57,7 @@ export default class ReceiveVideoController {
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
-        this._lastN = config?.startLastN ?? (config?.channelLastN ?? LAST_N_UNLIMITED);
+        this._lastN = config?.startLastN ?? config?.channelLastN ?? LAST_N_UNLIMITED;
 
         // The number representing the maximum video height the local client should receive from the bridge.
         this._maxFrameHeight = MAX_HEIGHT;
@@ -127,7 +127,7 @@ export default class ReceiveVideoController {
     /**
      * Returns the last set of receiver constraints that were set on the bridge channel.
      *
-     * @returns {Object}
+     * @returns {IReceiverVideoConstraints}
      */
     getCurrentReceiverConstraints(): IReceiverVideoConstraints {
         return this._receiverVideoConstraints;
@@ -229,7 +229,7 @@ export default class ReceiveVideoController {
     /**
      * Sets the receiver constraints for the conference.
      *
-     * @param {Object} constraints The video constraints.
+     * @param {IReceiverVideoConstraints} constraints The video constraints.
      */
     setReceiverConstraints(constraints: IReceiverVideoConstraints): void {
         if (!constraints) {
