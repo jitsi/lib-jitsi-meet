@@ -1408,9 +1408,9 @@ export default class JitsiConference {
     onLocalTrackRemoved(track: JitsiLocalTrack): void {
         track.setConference(null);
         this.rtc.removeLocalTrack(track);
-        track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
+        track.removeAllListeners(JitsiTrackEvents.TRACK_MUTE_CHANGED);
         if (track.isAudioTrack()) {
-            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
+            track.removeAllListeners(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED);
         }
 
         this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
@@ -1567,12 +1567,10 @@ export default class JitsiConference {
 
 
         // Add event handlers.
-        newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
-        newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack.muteHandler);
+        newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._fireMuteChangeEvent.bind(this, newTrack));
 
         if (newTrack.isAudioTrack()) {
-            newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-            newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, newTrack.audioLevelHandler);
+            newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, this._fireAudioLevelChangeEvent.bind(this));
         }
 
         this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
