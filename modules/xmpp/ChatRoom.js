@@ -1947,7 +1947,8 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * TODO: Document
+     * Handle remote mute reqyest from focus.
+     *
      * @param iq
      */
     onMute(iq) {
@@ -1972,7 +1973,8 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * TODO: Document
+     * Handle remote video mute request from focus.
+     *
      * @param iq
      */
     onMuteVideo(iq) {
@@ -1987,6 +1989,32 @@ export default class ChatRoom extends Listenable {
 
         if (mute.length && mute.text() === 'true') {
             this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, mute.attr('actor'));
+        } else {
+            // XXX Why do we support anything but muting? Why do we encode the
+            // value in the text of the element? Why do we use a separate XML
+            // namespace?
+            logger.warn('Ignoring a mute request which does not explicitly '
+                + 'specify a positive mute command.');
+        }
+    }
+
+    /**
+     * Handle remote desktop sharing mute request from focus.
+     *
+     * @param iq
+     */
+    onMuteDesktop(iq) {
+        const from = iq.getAttribute('from');
+
+        if (from !== this.focusMucJid) {
+            logger.warn('Ignored mute from non focus peer');
+
+            return;
+        }
+        const mute = $(iq).find('mute');
+
+        if (mute.length && mute.text() === 'true') {
+            this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, mute.attr('actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
