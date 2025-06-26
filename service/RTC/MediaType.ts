@@ -11,6 +11,11 @@ export enum MediaType {
     AUDIO = 'audio',
 
     /**
+     * The desktop type (screen sharing).
+     */
+    DESKTOP = 'desktop',
+
+    /**
      * The video type.
      */
     VIDEO = 'video'
