@@ -3,7 +3,7 @@ import * as transform from 'sdp-transform';
 
 import RtxModifier from './RtxModifier.js';
 import SDPUtil from './SDPUtil';
-import { default as SampleSdpStrings } from './SampleSdpStrings.js';
+import { default as SampleSdpStrings } from './SampleSdpStrings';
 
 /**
  * Returns the number of video ssrcs in the given sdp
