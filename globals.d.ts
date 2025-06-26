@@ -1,7 +1,6 @@
 export {};
 
 declare global {
-    type Transform = ReturnType<typeof transform.parse>
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
