@@ -121,7 +121,6 @@ export default class Statistics {
         audioLevelsInterval?: number;
         longTasksStatsInterval?: number;
         disableThirdPartyRequests?: boolean;
-        [key: string]: any;
     }): void {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
         if (typeof options.pcStatsInterval === 'number') {
