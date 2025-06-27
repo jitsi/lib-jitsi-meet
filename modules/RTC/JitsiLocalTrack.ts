@@ -31,27 +31,28 @@ import TraceablePeerConnection from './TraceablePeerConnection';
 const logger = getLogger('modules/RTC/JitsiLocalTrack');
 
 export interface IStreamEffect {
-    isEnabled(track: JitsiLocalTrack): boolean;
-    startEffect(stream: MediaStream): MediaStream;
-    stopEffect(): void;
-    setMuted?(muted: boolean): void;
-    isMuted?(): boolean;
+    isEnabled: (track: JitsiLocalTrack) => boolean;
+    isMuted?: () => boolean;
+    setMuted?: (muted: boolean) => void;
+    startEffect: (stream: MediaStream) => MediaStream;
+    stopEffect: () => void;
 }
 
 export interface ITrackMetadata {
-    timestamp: number;
     displaySurface?: string;
+    timestamp: number;
 }
 
 export interface ITrackConstraints {
+    [key: string]: any;
     height?: any;
     width?: any;
-    [key: string]: any;
 }
 
 export interface ITrackInfo {
     constraints: ITrackConstraints;
     deviceId: string;
+    effects?: IStreamEffect[];
     facingMode?: CameraFacingMode;
     mediaType: MediaType;
     rtcId: number;
@@ -60,7 +61,6 @@ export interface ITrackInfo {
     stream: MediaStream;
     track: MediaStreamTrack;
     videoType?: VideoType;
-    effects?: IStreamEffect[];
 }
 
 export interface IStreamInfo {
@@ -74,13 +74,6 @@ export interface IStreamInfo {
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
  */
 export default class JitsiLocalTrack extends JitsiTrack {
-    public metadata: ITrackMetadata;
-    public rtcId: number;
-    public sourceId?: string;
-    public sourceType?: string;
-    public deviceId: string;
-    public resolution?: number;
-    public maxEnabledResolution?: number;
     private _setEffectInProgress: boolean;
     private _constraints: ITrackConstraints;
     private _prevSetMuted: Promise<void>;
@@ -98,6 +91,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _originalStream?: MediaStream;
     private _stopStreamInProgress: boolean;
     private _effectEnabled?: boolean;
+    public metadata: ITrackMetadata;
+    public rtcId: number;
+    public sourceId?: string;
+    public sourceType?: string;
+    public deviceId: string;
+    public resolution?: number;
+    public maxEnabledResolution?: number;
     public conference: JitsiConference | null;
 
     /**
@@ -468,7 +468,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // If we have a stream effect that implements its own mute functionality, prioritize it before
             // normal mute e.g. the stream effect that implements system audio sharing has a custom
             // mute state in which if the user mutes, system audio still has to go through.
-            if (this._streamEffect && this._streamEffect.setMuted) {
+            if (this._streamEffect?.setMuted) {
                 this._streamEffect.setMuted(muted);
             } else if (this.track) {
                 this.track.enabled = !muted;
@@ -546,7 +546,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._sendMuteStatus(muted);
 
                 // Send the videoType message to the bridge.
-                this.isVideoTrack() && this.conference && this.conference._sendBridgeVideoTypeMessage(this);
+                this.isVideoTrack() && this.conference?._sendBridgeVideoTypeMessage(this);
                 this.emit(TRACK_MUTE_CHANGED, this);
             });
     }
@@ -580,17 +580,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         } else {
             this._realDeviceId = undefined;
         }
-    }
-
-    /**
-     * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
-     *
-     * @param {MediaStream} stream - The new MediaStream.
-     * @private
-     * @returns {void}
-     */
-    protected _setStream(stream: MediaStream | null): void {
-        super._setStream(stream);
     }
 
     /**
@@ -662,6 +651,18 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._startStreamEffect(effect);
         }
     }
+
+    /**
+     * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
+     *
+     * @param {MediaStream} stream - The new MediaStream.
+     * @private
+     * @returns {void}
+     */
+    protected _setStream(stream: MediaStream | null): void {
+        super._setStream(stream);
+    }
+
 
     /**
      * @inheritdoc
@@ -772,7 +773,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
      */
     getParticipantId(): string {
-        return this.conference && this.conference.myUserId();
+        return this.conference?.myUserId();
     }
 
     /**
@@ -831,11 +832,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         // If currently used stream effect has its own muted state, use that.
-        if (this._streamEffect && this._streamEffect.isMuted) {
+        if (this._streamEffect?.isMuted) {
             return this._streamEffect.isMuted();
         }
 
-        return !this.track || !this.track.enabled;
+        return !this.track?.enabled;
     }
 
     /**
