@@ -1,13 +1,13 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VIDEO_CODECS_BY_COMPLEXITY } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import browser from '../browser';
-import JitsiConference from '../../JitsiConference';
-import JingleSessionPC from '../xmpp/JingleSessionPC';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import browser from '../browser';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 const logger = getLogger('modules/qualitycontrol/CodecSelection');
 
@@ -19,15 +19,15 @@ const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMi
 export interface ICodecSelectionOptions {
     [connectionType: string]: {
         disabledCodec?: string;
-        preferredCodec?: string;
-        preferenceOrder?: string[];
         enableAV1ForFF?: boolean;
+        preferenceOrder?: string[];
+        preferredCodec?: string;
         screenshareCodec?: string;
     };
 }
 
-export type CodecPreferenceOrder = { [connectionType: string]: string[] };
-export type ScreenshareCodec = { [connectionType: string]: string };
+export type CodecPreferenceOrder = { [connectionType: string]: string[]; };
+export type ScreenshareCodec = { [connectionType: string]: string; };
 
 /**
  * This class handles the codec selection mechanism for the conference based on the config.js settings.
