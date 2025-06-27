@@ -18,6 +18,17 @@ import XMPP from '../xmpp/xmpp';
 
 const logger = getLogger('modules/statistics/statistics');
 
+export type IStatisticsOptions = {
+    applicationName: string,
+    aliasName: string,
+    userName: string,
+    confID: string,
+    callStatsID: string,
+    callStatsSecret: string,
+    customScriptUrl: string,
+    roomName: string
+}
+
 /**
  * Statistics class provides various functionality related to collecting and reporting statistics.
  */
@@ -245,9 +256,9 @@ export default class Statistics {
     eventEmitter: EventEmitter;
     conference: JitsiConference;
     xmpp: XMPP;
-    options: Record<string, any>;
+    options: IStatisticsOptions;
 
-    constructor(conference: JitsiConference, options: Record<string, any>) {
+    constructor(conference: JitsiConference, options: IStatisticsOptions) {
         /**
          * {@link RTPStats} mapped by {@link TraceablePeerConnection.id} which
          * collect RTP statistics for each peerconnection.
@@ -257,7 +268,7 @@ export default class Statistics {
         this.eventEmitter = new EventEmitter();
         this.conference = conference;
         this.xmpp = conference?.xmpp;
-        this.options = options || {};
+        this.options = options || ({} as IStatisticsOptions);
         Statistics.instances.add(this);
         RTCStats.attachToConference(this.conference);
         // WatchRTC is not required to work for react native
