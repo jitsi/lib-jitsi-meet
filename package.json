@@ -16,7 +16,7 @@
   "author": "",
   "readmeFilename": "README.md",
   "dependencies": {
-    "@jitsi/js-utils": "2.2.1",
+    "@jitsi/js-utils": "2.4.6",
     "@jitsi/logger": "2.0.2",
     "@jitsi/precall-test": "1.0.6",
     "@jitsi/rtcstats": "9.7.0",

@@ -1,4 +1,4 @@
-import { BrowserDetection } from '@jitsi/js-utils';
+import BrowserDetection from '@jitsi/js-utils/browser-detection/BrowserDetection';
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
@@ -21,13 +21,39 @@ const FROZEN_MACOS_VERSION = '10.15.7';
  */
 export default class BrowserCapabilities extends BrowserDetection {
     /**
+     * Returns the version of an ios browser.
+     *
+     * @returns {Number}
+     */
+    _getIOSVersion(): number {
+        if (this.isWebKitBased()) {
+            return Number.parseInt(this.getOSVersion(), 10);
+        }
+
+        return -1;
+    }
+
+    /**
+     * Returns the version of a Safari browser.
+     *
+     * @returns {Number}
+     */
+    _getSafariVersion(): number {
+        if (this.isSafari()) {
+            return Number.parseInt(this.getVersion(), 10);
+        }
+
+        return -1;
+    }
+
+    /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
      * https://bugzilla.mozilla.org/show_bug.cgi?id=1735951
      *
      * @return {boolean} <tt>true</tt> if the current browser supports this strategy or <tt>false</tt> otherwise.
      */
-    doesVideoMuteByStreamRemove() {
+    doesVideoMuteByStreamRemove(): boolean {
         return this.isChromiumBased() || this.isWebKitBased() || this.isFirefox();
     }
 
@@ -36,7 +62,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    isAndroidBrowser() {
+    isAndroidBrowser(): boolean {
         return !this.isReactNative() && this.getOS() === 'Android';
     }
 
@@ -45,14 +71,16 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    isIosBrowser() {
+    isIosBrowser(): boolean {
         return !this.isReactNative() && this.getOS() === 'iOS';
     }
 
     /**
      * Checks if the client is running on a mobile device.
+     *
+     * @returns {boolean}
      */
-    isMobileDevice() {
+    isMobileDevice(): boolean {
         return this.isAndroidBrowser() || this.isIosBrowser() || this.isReactNative();
     }
 
@@ -61,7 +89,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean} Whether the current context is a TWA.
      */
-    isTwa() {
+    isTwa(): boolean {
         return 'matchMedia' in window && window.matchMedia('(display-mode:standalone)').matches;
     }
 
@@ -70,7 +98,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean} true if the browser is supported, false otherwise.
      */
-    isSupported() {
+    isSupported(): boolean {
         // First check for WebRTC APIs because some "security" extensions are dumb.
         if (typeof RTCPeerConnection === 'undefined'
                 || !navigator?.mediaDevices?.enumerateDevices || !navigator?.mediaDevices?.getUserMedia) {
@@ -88,18 +116,20 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns whether the browser is supported for Android
-     * @returns {boolean} true if the browser is supported for Android devices
+     * Returns whether the browser is supported for Android.
+     *
+     * @returns {boolean} true if the browser is supported for Android devices.
      */
-    isSupportedAndroidBrowser() {
+    isSupportedAndroidBrowser(): boolean {
         return this.isChromiumBased() || this.isFirefox();
     }
 
     /**
-     * Returns whether the browser is supported for iOS
-     * @returns {boolean} true if the browser is supported for iOS devices
+     * Returns whether the browser is supported for iOS.
+     *
+     * @returns {boolean} true if the browser is supported for iOS devices.
      */
-    isSupportedIOSBrowser() {
+    isSupportedIOSBrowser(): boolean {
         // After iPadOS 13 we have no way to know the Safari or iPadOS version, so YOLO.
         if (!this.isSafari() && this.isWebKitBased() && this.getOSVersion() === FROZEN_MACOS_VERSION) {
             return true;
@@ -115,26 +145,26 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    isUserInteractionRequiredForUnmute() {
-        return this.isFirefox() && this.isVersionLessThan('68');
+    isUserInteractionRequiredForUnmute(): boolean {
+        return this.isFirefox() && this.isVersionLessThan(68);
     }
 
     /**
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
-     * @returns {*|boolean} 'true' if the event is supported or 'false'
-     * otherwise.
+     *
+     * @returns {*|boolean} 'true' if the event is supported or 'false' otherwise.
      */
-    supportsVideoMuteOnConnInterrupted() {
+    supportsVideoMuteOnConnInterrupted(): any | boolean {
         return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
-     * Checks if the current browser reports upload and download bandwidth
-     * statistics.
+     * Checks if the current browser reports upload and download bandwidth statistics.
+     *
      * @return {boolean}
      */
-    supportsBandwidthStatistics() {
+    supportsBandwidthStatistics(): boolean {
         // FIXME bandwidth stats are currently not implemented for FF on our
         // side, but not sure if not possible ?
         return !this.isFirefox() && !this.isWebKitBased();
@@ -142,13 +172,12 @@ export default class BrowserCapabilities extends BrowserDetection {
 
     /**
      * Checks if the current browser supports setting codec preferences on the transceiver.
+     *
      * @returns {boolean}
      */
-    supportsCodecPreferences() {
-        return Boolean(window.RTCRtpTransceiver
-            && 'setCodecPreferences' in window.RTCRtpTransceiver.prototype
-            && window.RTCRtpReceiver
-            && typeof window.RTCRtpReceiver.getCapabilities !== 'undefined')
+    supportsCodecPreferences(): boolean {
+        return Boolean('setCodecPreferences' in window.RTCRtpTransceiver?.prototype
+            && typeof window.RTCRtpReceiver?.getCapabilities !== 'undefined')
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
@@ -167,7 +196,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsCodecSelectionAPI() {
+    supportsCodecSelectionAPI(): boolean {
         return this.isChromiumBased() && this.isEngineVersionGreaterThan(125);
     }
 
@@ -176,44 +205,35 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsDDExtHeaders() {
-        return !(this.isFirefox() && this.isVersionLessThan('136'));
+    supportsDDExtHeaders(): boolean {
+        return !(this.isFirefox() && this.isVersionLessThan(136));
     }
 
     /**
      * Checks if the current browser support the device change event.
      * @return {boolean}
      */
-    supportsDeviceChangeEvent() {
-        return navigator.mediaDevices
-            && typeof navigator.mediaDevices.ondevicechange !== 'undefined'
-            && typeof navigator.mediaDevices.addEventListener !== 'undefined';
-    }
-
-    /**
-     * Checks if the current browser supports the Long Tasks API that lets us observe
-     * performance measurement events and be notified of tasks that take longer than
-     * 50ms to execute on the main thread.
-     */
-    supportsPerformanceObserver() {
-        return typeof window.PerformanceObserver !== 'undefined'
-            && PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
+    supportsDeviceChangeEvent(): boolean {
+        return typeof navigator.mediaDevices?.ondevicechange !== 'undefined'
+            && typeof navigator.mediaDevices?.addEventListener !== 'undefined';
     }
 
     /**
      * Checks if the current browser supports audio level stats on the receivers.
+     *
+     * @return {boolean}
      */
-    supportsReceiverStats() {
+    supportsReceiverStats(): boolean {
         return typeof window.RTCRtpReceiver !== 'undefined'
             && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
     }
 
     /**
-     * Checks if the current browser reports round trip time statistics for
-     * the ICE candidate pair.
+     * Checks if the current browser reports round trip time statistics for the ICE candidate pair.
+     *
      * @return {boolean}
      */
-    supportsRTTStatistics() {
+    supportsRTTStatistics(): boolean {
         // Firefox does not seem to report RTT for ICE candidate pair:
         // eslint-disable-next-line max-len
         // https://www.w3.org/TR/webrtc-stats/#dom-rtcicecandidatepairstats-currentroundtriptime
@@ -232,16 +252,17 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsScalabilityModeAPI() {
+    supportsScalabilityModeAPI(): boolean {
         return this.isChromiumBased() && this.isEngineVersionGreaterThan(112);
     }
 
     /**
      * Returns true if the browser supports track based statistics for the local video track. Otherwise,
      * track resolution and framerate will be calculated based on the 'outbound-rtp' statistics.
+     *
      * @returns {boolean}
      */
-    supportsTrackBasedStats() {
+    supportsTrackBasedStats(): boolean {
         return this.isChromiumBased() && this.isEngineVersionLessThan(112);
     }
 
@@ -249,8 +270,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
      * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
      * details.
+     *
+     * @returns {boolean}
      */
-    supportsVP9() {
+    supportsVP9(): boolean {
         // Keep this disabled for FF because simulcast is disabled by default.
         // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
         // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
@@ -262,7 +285,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsSVC() {
+    supportsSVC(): boolean {
         return !this.isFirefox();
     }
 
@@ -271,27 +294,29 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    usesSdpMungingForSimulcast() {
+    usesSdpMungingForSimulcast(): boolean {
         return this.isChromiumBased() || this.isReactNative() || this.isWebKitBased();
     }
 
     /**
      * Checks if the browser uses RIDs/MIDs for siganling the simulcast streams
      * to the bridge instead of the ssrcs.
+     *
+     * @returns {boolean}
      */
-    usesRidsForSimulcast() {
+    usesRidsForSimulcast(): boolean {
         return false;
     }
 
     /**
      * Checks if the browser supports getDisplayMedia.
+     *
      * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
-    supportsGetDisplayMedia() {
+    supportsGetDisplayMedia(): boolean {
+        // @ts-ignore
         return typeof navigator.getDisplayMedia !== 'undefined'
-            || (typeof navigator.mediaDevices !== 'undefined'
-                && typeof navigator.mediaDevices.getDisplayMedia
-                    !== 'undefined');
+            || (typeof navigator.mediaDevices?.getDisplayMedia !== 'undefined');
     }
 
     /**
@@ -303,17 +328,18 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean} {@code true} if the browser supports it.
      */
-    supportsEncodedTransform() {
+    supportsEncodedTransform(): boolean {
         return Boolean(window.RTCRtpScriptTransform);
     }
 
     /**
      * Checks if the browser supports insertable streams, needed for E2EE.
+     *
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
-    supportsInsertableStreams() {
-        if (!(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedStreams)) {
+    supportsInsertableStreams(): boolean {
+        // @ts-ignore
+        if (!window.RTCRtpSender?.prototype.createEncodedStreams) {
             return false;
         }
 
@@ -332,14 +358,12 @@ export default class BrowserCapabilities extends BrowserDetection {
 
     /**
      * Whether the browser supports the RED format for audio.
+     *
+     * @returns {boolean} {@code true} if the browser supports RED.
      */
-    supportsAudioRed() {
-        return Boolean(window.RTCRtpSender
-            && window.RTCRtpSender.getCapabilities
-            && window.RTCRtpSender.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red')
-            && window.RTCRtpReceiver
-            && window.RTCRtpReceiver.getCapabilities
-            && window.RTCRtpReceiver.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red'));
+    supportsAudioRed(): boolean {
+        return Boolean(window.RTCRtpSender?.getCapabilities('audio')?.codecs.some(codec => codec.mimeType === 'audio/red')
+            && window.RTCRtpReceiver?.getCapabilities('audio')?.codecs.some(codec => codec.mimeType === 'audio/red'));
     }
 
     /**
@@ -347,7 +371,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsVADDetection() {
+    supportsVADDetection(): boolean {
         return this.isChromiumBased();
     }
 
@@ -356,35 +380,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      *
      * @returns {boolean}
      */
-    supportsRTX() {
+    supportsRTX(): boolean {
         // Disable RTX on Firefox up to 96 because we prefer simulcast over RTX
         // see https://bugzilla.mozilla.org/show_bug.cgi?id=1738504
-        return !(this.isFirefox() && this.isVersionLessThan('96'));
-    }
-
-    /**
-     * Returns the version of a Safari browser.
-     *
-     * @returns {Number}
-     */
-    _getSafariVersion() {
-        if (this.isSafari()) {
-            return Number.parseInt(this.getVersion(), 10);
-        }
-
-        return -1;
-    }
-
-    /**
-     * Returns the version of an ios browser.
-     *
-     * @returns {Number}
-     */
-    _getIOSVersion() {
-        if (this.isWebKitBased()) {
-            return Number.parseInt(this.getOSVersion(), 10);
-        }
-
-        return -1;
+        return !(this.isFirefox() && this.isVersionLessThan(96));
     }
 }
