@@ -818,7 +818,7 @@ export default class JitsiConference {
    *
    * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
    * @returns {void}
-   * @private
+   * @public
    */
     _sendBridgeVideoTypeMessage(localtrack) {
         let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
@@ -1436,7 +1436,7 @@ export default class JitsiConference {
    * @param {JitsiLocalTrack} localTrack - The local track.
    * @param {boolean} isMuted - Whether the track is muted.
    * @return {boolean} <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
-   * @private
+   * @public
    */
     _setTrackMuteStatus(mediaType, localTrack, isMuted) {
         let presenceChanged = false;
