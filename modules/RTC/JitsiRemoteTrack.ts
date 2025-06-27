@@ -1,7 +1,10 @@
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { getLogger } from '@jitsi/logger';
+
 import JitsiConference from '../../JitsiConference';
-import { VideoType } from '../../service/RTC/VideoType';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { VideoType } from '../../service/RTC/VideoType';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
 import Statistics from '../statistics/statistics';
@@ -10,9 +13,7 @@ import { isValidNumber } from '../util/MathUtil';
 import JitsiTrack from './JitsiTrack';
 import RTC from './RTC';
 
-const logger = require('@jitsi/logger').getLogger('modules/RTC/JitsiRemoteTrack');
-
-const RTCEvents = require('../../service/RTC/RTCEvents');
+const logger = getLogger('modules/RTC/JitsiRemoteTrack');
 
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;
@@ -28,12 +29,8 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
 /**
  * Represents a single media track (either audio or video).
  */
+// @ts-ignore - Base class incorrectly marks _attachTTFMTracker as private
 export default class JitsiRemoteTrack extends JitsiTrack {
-    rtc: RTC;
-    ssrc: number;
-    ownerEndpointId: string;
-    muted: boolean;
-    isP2P: boolean;
     private _sourceName: string;
     private _trackStreamingStatus?: TrackStreamingStatus;
     private _trackStreamingStatusImpl?: TrackStreamingStatusImpl;
@@ -46,8 +43,14 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     private _enteredForwardedSourcesTimestamp?: number;
 
+    private _containerHandlers: { [key: string]: (event: Event) => void; };
+
+    rtc: RTC;
+    ssrc: number;
+    ownerEndpointId: string;
+    muted: boolean;
+    isP2P: boolean;
     hasBeenMuted: boolean;
-    private _containerHandlers: { [key: string]: (event: Event) => void };
 
     /**
      * Creates new JitsiRemoteTrack instance.
