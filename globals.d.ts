@@ -4,6 +4,7 @@ declare global {
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
         connectionTimes: any;
+        attachEvent?(event: string, listener: EventListenerOrEventListenerObject): boolean;
     }
     interface RTCRtpReceiver {
         createEncodedStreams?: () => {

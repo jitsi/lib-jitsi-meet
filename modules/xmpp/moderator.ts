@@ -7,6 +7,8 @@ import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionE
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 import $ from '../util/XMLParser';
+import XMPP from './xmpp';
+import XmppConnection from './XmppConnection';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
@@ -14,15 +16,63 @@ const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
 const logger = getLogger('modules/xmpp/moderator');
 
+
+interface IXMPPOptions {
+    serviceUrl?: string;
+    enableWebsocketResume?: boolean;
+    websocketKeepAlive?: number;
+    websocketKeepAliveUrl?: number;
+    xmppPing?: any;
+    p2pStunServers?: any[];
+    hosts?: {
+        focus?: string;
+        domain?: string;
+    };
+    conferenceRequestUrl?: string;
+    focusUserJid?: string;
+    preferVisitor?: boolean;
+    iAmRecorder?: boolean;
+    iAmSipGateway?: boolean;
+    startAudioMuted?: boolean;
+    startVideoMuted?: boolean;
+    analytics?: {
+        rtcstatsEnabled?: boolean;
+    };
+}
+
+interface IConferenceRequestProperties {
+    [key: string]: any;
+    startAudioMuted?: boolean;
+    startVideoMuted?: boolean;
+    rtcstatsEnabled?: boolean;
+    'visitors-version'?: number;
+    visitor?: boolean;
+    authentication?: string;
+    externalAuth?: string;
+    sipGatewayEnabled?: string;
+    live?: string;
+}
+
+interface IConferenceRequest {
+    properties: IConferenceRequestProperties;
+    machineUid: string;
+    room: string;
+    sessionId?: string;
+    focusJid?: string;
+    identity?: string;
+    ready?: boolean;
+    vnode?: string;
+}
+
 /**
  * Exponential backoff timer.
  * @param step the step to use.
  */
-function createExpBackoffTimer(step) {
+function createExpBackoffTimer(step: number): (reset?: boolean) => number | void {
     let count = 1;
     const maxTimeout = 120000;
 
-    return function(reset) {
+    return function(reset?: boolean): number | void {
         // Reset call
         if (reset) {
             count = 1;
@@ -43,11 +93,23 @@ function createExpBackoffTimer(step) {
  * The moderator/focus responsible for direct communication with jicofo
  */
 export default class Moderator extends Listenable {
+    private getNextTimeout: (reset?: boolean) => number | void;
+    private getNextErrorTimeout: (reset?: boolean) => number | void;
+    private options: IXMPPOptions;
+    private sipGatewayEnabled: boolean;
+    private xmpp: XMPP;
+    private connection: XmppConnection;
+    private targetJid: string;
+    private targetUrl?: string;
+    private mode: 'http' | 'xmpp';
+    private focusUserJids: Set<string>;
+    private conferenceRequestSent: boolean;
+
     /**
      * Constructs moderator.
      * @param xmpp The xmpp.
      */
-    constructor(xmpp) {
+    constructor(xmpp: XMPP) {
         super();
 
         this.getNextTimeout = createExpBackoffTimer(1000);
@@ -62,7 +124,7 @@ export default class Moderator extends Listenable {
         this.connection = xmpp.connection;
 
         // The JID to which conference-iq requests are sent over XMPP.
-        this.targetJid = this.options.hosts?.focus;
+        this.targetJid = this.options.hosts?.focus || '';
 
         // If not specified default to 'focus.domain'
         if (!this.targetJid) {
@@ -88,7 +150,7 @@ export default class Moderator extends Listenable {
          *
          * @param event
          */
-        function listener(event) {
+        function listener(event: MessageEvent): void {
             if (event.data && event.data.sessionId) {
                 if (event.origin !== window.location.origin) {
                     logger.warn(`Ignoring sessionId from different origin: ${event.origin}`);
@@ -105,7 +167,7 @@ export default class Moderator extends Listenable {
         if (window.addEventListener) {
             window.addEventListener('message', listener, false);
         } else {
-            window.attachEvent('onmessage', listener);
+            window.attachEvent?.('onmessage', listener);
         }
     }
 
@@ -114,7 +176,7 @@ export default class Moderator extends Listenable {
      * @param jid
      * @returns {boolean}
      */
-    isFocusJid(jid) {
+    isFocusJid(jid: string): boolean {
         if (!jid) {
             return false;
         }
@@ -133,7 +195,7 @@ export default class Moderator extends Listenable {
      * Is sip gw enabled.
      * @returns {boolean}
      */
-    isSipGatewayEnabled() {
+    isSipGatewayEnabled(): boolean {
         return this.sipGatewayEnabled;
     }
 
@@ -155,11 +217,11 @@ export default class Moderator extends Listenable {
      *
      * @returns the created conference request.
      */
-    _createConferenceRequest(roomJid) {
+    _createConferenceRequest(roomJid: string): IConferenceRequest {
         // Session Id used for authentication
         const { sessionId } = Settings;
         const config = this.options;
-        const properties = {};
+        const properties: IConferenceRequestProperties = {};
 
         if (config.startAudioMuted !== undefined) {
             properties.startAudioMuted = config.startAudioMuted;
@@ -180,7 +242,7 @@ export default class Moderator extends Listenable {
             properties.rtcstatsEnabled = false;
         }
 
-        const conferenceRequest = {
+        const conferenceRequest: IConferenceRequest = {
             properties,
             machineUid: Settings.machineId,
             room: roomJid
@@ -206,7 +268,7 @@ export default class Moderator extends Listenable {
      *
      * @param roomJid - The room jid for which to send conference request.
      */
-    _createConferenceIq(roomJid) {
+    _createConferenceIq(roomJid: string): any {
         const conferenceRequest = this._createConferenceRequest(roomJid);
 
         // Generate create conference IQ
@@ -246,8 +308,8 @@ export default class Moderator extends Listenable {
      * @returns {{properties: {}}} Returns an object with the parsed properties.
      * @private
      */
-    _parseConferenceIq(resultIq) {
-        const conferenceRequest = { properties: {} };
+    _parseConferenceIq(resultIq: Element): IConferenceRequest {
+        const conferenceRequest: IConferenceRequest = { properties: {}, machineUid: '', room: '' };
 
         conferenceRequest.focusJid = $(resultIq)
             .find('conference')
@@ -294,7 +356,7 @@ export default class Moderator extends Listenable {
      * @returns {Promise} - Resolved when Jicofo allows to join the room. It's never
      * rejected, and it'll keep on pinging Jicofo forever.
      */
-    sendConferenceRequest(roomJid) {
+    sendConferenceRequest(roomJid: string): Promise<void> {
         // there is no point of sending conference iq when in visitor mode (disableFocus)
         // when we have sent early the conference request via http
         // we want to skip sending it here, or visitors can loop
@@ -312,7 +374,7 @@ export default class Moderator extends Listenable {
                 this.connection.sendIQ(
                     this._createConferenceIq(roomJid),
                     result => this._handleIqSuccess(roomJid, result, resolve, reject),
-                    error => this._handleIqError(roomJid, error, resolve, reject));
+                    error => this._handleIqError(roomJid, error, resolve, reject),undefined);
 
                 // XXX We're pressed for time here because we're beginning a complex
                 // and/or lengthy conference-establishment process which supposedly
@@ -321,7 +383,7 @@ export default class Moderator extends Listenable {
                 this.connection.flush();
             } else {
                 logger.info(`Sending conference request over HTTP to ${this.targetUrl}`);
-                fetch(this.targetUrl, {
+                fetch(this.targetUrl!, {
                     method: 'POST',
                     body: JSON.stringify(this._createConferenceRequest(roomJid)),
                     headers: {
@@ -375,7 +437,7 @@ export default class Moderator extends Listenable {
      * @param errorCallback
      * @private
      */
-    _handleSuccess(roomJid, conferenceRequest, callback, errorCallback) {
+    _handleSuccess(roomJid: string, conferenceRequest: IConferenceRequest, callback: (value?: unknown) => void, errorCallback: (reason?: any) => void): void {
         // Reset the error timeout (because we haven't failed here).
         this.getNextErrorTimeout(true);
 
@@ -398,7 +460,7 @@ export default class Moderator extends Listenable {
         this.eventEmitter.emit(
             AuthenticationEvents.IDENTITY_UPDATED, authenticationEnabled, conferenceRequest.identity);
 
-        this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
+        this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled === 'true';
         logger.info(`Sip gateway enabled: ${this.sipGatewayEnabled}`);
 
         if (conferenceRequest.properties.live === 'false' && this.options.preferVisitor) {
@@ -440,7 +502,7 @@ export default class Moderator extends Listenable {
             logger.info('Conference-request successful, ready to join the MUC.');
             callback();
         } else {
-            const waitMs = this.getNextTimeout();
+            const waitMs = this.getNextTimeout() as number;
 
             // This was a successful response, but the "ready" flag is not set. Retry after a timeout.
             logger.info(`Not ready yet, will retry in ${waitMs} ms.`);
@@ -460,7 +522,7 @@ export default class Moderator extends Listenable {
      * @param errorCallback
      * @private
      */
-    _handleError(roomJid, sessionError, notAuthorized, callback, errorCallback) { // eslint-disable-line max-params
+    _handleError(roomJid: string, sessionError?: boolean, notAuthorized?: boolean, callback?: (value?: unknown) => void, errorCallback?: (reason?: any) => void): void { // eslint-disable-line max-params
         // If the session is invalid, remove and try again without session ID to get
         // a new one
         if (sessionError) {
@@ -473,27 +535,27 @@ export default class Moderator extends Listenable {
             logger.warn('Unauthorized to start the conference');
             this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
 
-            errorCallback();
+            errorCallback?.();
 
             return;
         }
 
-        const waitMs = this.getNextErrorTimeout();
+        const waitMs = this.getNextErrorTimeout() as number;
 
         if (sessionError && waitMs < 60000) {
             // If the session is invalid, retry a limited number of times and then fire an error.
             logger.info(`Invalid session, will retry after ${waitMs} ms.`);
             this.getNextTimeout(true);
             window.setTimeout(() => this.sendConferenceRequest(roomJid)
-                .then(callback)
-                .catch(errorCallback), waitMs);
+                .then(callback!)
+                .catch(errorCallback!), waitMs);
         } else {
             logger.error('Failed to get a successful response, giving up.');
 
             // This is a "fatal" error and the user of the lib should handle it accordingly.
             this.xmpp.eventEmitter.emit(CONNECTION_FAILED, CONFERENCE_REQUEST_FAILED);
 
-            errorCallback();
+            errorCallback?.();
         }
     }
 
@@ -506,7 +568,7 @@ export default class Moderator extends Listenable {
      * successful allocation of the conference focus
      * @param errorCallback
      */
-    _handleIqError(roomJid, error, callback, errorCallback) {
+    _handleIqError(roomJid: string, error: Error, callback: (value?: unknown) => void, errorCallback: (reason?: any) => void): void {
         // The reservation system only works over XMPP. Handle the error separately.
         // Check for error returned by the reservation system
         const reservationErr = $(error).find('>error>reservation-error');
@@ -549,7 +611,7 @@ export default class Moderator extends Listenable {
      * successful allocation of the conference focus
      * @param errorCallback
      */
-    _handleIqSuccess(roomJid, result, callback, errorCallback) {
+    _handleIqSuccess(roomJid: string, result: Element, callback: (value?: unknown) => void, errorCallback: (reason?: any) => void): void {
         // Setup config options
         const conferenceRequest = this._parseConferenceIq(result);
 
@@ -561,7 +623,7 @@ export default class Moderator extends Listenable {
      * @param roomJid The room jid.
      * @returns {Promise<unknown>}
      */
-    authenticate(roomJid) {
+    authenticate(roomJid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.sendIQ(
                 this._createConferenceIq(roomJid),
@@ -586,7 +648,8 @@ export default class Moderator extends Listenable {
                     message: $(errorIq)
                         .find('iq>error>text')
                         .text()
-                })
+                }),
+                undefined
             );
         });
     }
@@ -595,7 +658,7 @@ export default class Moderator extends Listenable {
      * Logout by sending conference IQ.
      * @param callback
      */
-    logout(callback) {
+    logout(callback: () => void): void {
         const iq = $iq({
             to: this.targetJid,
             type: 'set'
@@ -620,7 +683,8 @@ export default class Moderator extends Listenable {
             },
             error => {
                 logger.error('Logout error', error);
-            }
+            },
+            undefined
         );
     }
 }
