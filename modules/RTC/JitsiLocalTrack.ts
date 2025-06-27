@@ -448,7 +448,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return Promise.reject(new JitsiTrackError(TRACK_IS_DISPOSED));
         }
 
-        let promise: Promise<void> = Promise.resolve();
+        let promise: Promise<void | IStreamInfo[]> = Promise.resolve();
 
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
@@ -508,9 +508,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 = RTCUtils.obtainAudioAndVideoPermissions({
 
                     ...streamOptions,
-                    constraints: { video: this._constraints } });
+                    constraints: { video: this._constraints } } as any) as Promise<IStreamInfo[]>;
 
-            promise = promise.then(streamsInfo => {
+            promise = promise.then((streamsInfo: IStreamInfo[]) => {
                 const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
 
                 if (streamInfo) {
