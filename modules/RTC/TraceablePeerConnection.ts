@@ -8,11 +8,13 @@ import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
-import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import browser from '../browser';
+import EventEmitter from '../util/EventEmitter';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
 import RtxModifier from '../sdp/RtxModifier';
@@ -23,9 +25,12 @@ import { SdpTransformWrap } from '../sdp/SdpTransformUtil';
 import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
+import JitsiLocalTrack from './JitsiLocalTrack';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
+import JitsiTrack from './JitsiTrack';
 import RTCUtils from './RTCUtils';
 import { TPCUtils } from './TPCUtils';
+import RTC from './RTC';
 
 // FIXME SDP tools should end up in some kind of util module
 
@@ -33,11 +38,98 @@ const logger = getLogger('modules/RTC/TraceablePeerConnection');
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
+interface TPCGroupInfo {
+    semantics: string;
+    ssrcs: Array<number>;
+}
+
+
+interface TPCSSRCInfo {
+    ssrcs: Array<number>;
+    groups: Array<TPCGroupInfo>;
+}
+
+interface TPCSourceInfo {
+    mediaType?: MediaType;
+    msid: string;
+    groups: Array<TPCGroupInfo>;
+    ssrcList?: Array<string>;
+    ssrcs?: Array<string>;
+    videoType?: VideoType;
+}
+
+interface TouchToneRequest {
+    tones: string;
+    duration: number;
+    interToneGap: number;
+}
+
+export interface TPCOptions {
+    audioQuality: Object;
+    capScreenshareBitrate: boolean;
+    codecSettings: Array<CodecMimeType>;
+    disableSimulcast: boolean;
+    disableRtx: boolean;
+    enableInsertableStreams: boolean;
+    forceTurnRelay: boolean;
+    startSilent: boolean;
+    videoQuality: Object;
+}
+
 /* eslint-disable max-params */
 /**
  * Creates new instance of 'TraceablePeerConnection'.
  */
 export default class TraceablePeerConnection {
+    // Class property declarations
+    audioTransferActive: boolean;
+    videoTransferActive: boolean;
+    id: number;
+    isP2P: boolean;
+    remoteTracksBySsrc: Map<number, JitsiRemoteTrack>;
+    remoteTracks: Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>;
+    localTracks: Map<number, JitsiLocalTrack>;
+    localSSRCs: Map<number, TPCSSRCInfo>;
+    remoteSSRCs: Set<number>;
+    remoteSources: Map<string, number>;
+    localUfrag: string;
+    remoteUfrag: string;
+    signalingLayer: SignalingLayer;
+    options: any;
+    peerconnection: RTCPeerConnection;
+    tpcUtils: TPCUtils;
+    updateLog: Array<any>; // TODO:
+    stats: any; // TODO:
+    statsinterval?: number;
+    simulcast: SdpSimulcast;
+    localSdpMunger: LocalSdpMunger;
+    eventEmitter: EventEmitter;
+    rtxModifier: RtxModifier;
+    localTrackTransceiverMids: Map<number, string>;
+    codecSettings: any; // TODO:
+    maxstats: number;
+    rtc: RTC;
+    trace: (what: any, info?: any) => void; // TODO:
+    onicecandidate?: ((event: RTCPeerConnectionIceEvent) => void);
+    onTrack: (evt: RTCTrackEvent) => void;
+    onsignalingstatechange?: ((event: Event) => void);
+    oniceconnectionstatechange?: ((event: Event) => void);
+    onnegotiationneeded?: ((event: Event) => void);
+    onconnectionstatechange?: ((event: Event) => void);
+    ondatachannel?: ((event: RTCDataChannelEvent) => void);
+
+    // Private properties
+    private _dtmfSender?: RTCDTMFSender;
+    private _dtmfTonesQueue: TouchToneRequest[];
+    private _dtlsTransport?: RTCDtlsTransport;
+    private _capScreenshareBitrate: boolean;
+    private _usesCodecSelectionAPI: boolean;
+    private _hasHadAudioTrack: boolean;
+    private _hasHadVideoTrack: boolean;
+    private _senderMaxHeights: Map<string, number>;
+    private _localSsrcMap?: Map<string, TPCSourceInfo>;
+    private _remoteSsrcMap: Map<string, TPCSourceInfo>;
+    private _lastVideoSenderUpdatePromise: Promise<any>;
 
     /**
      * @param {RTC} rtc the instance of <tt>RTC</tt> service
@@ -66,13 +158,13 @@ export default class TraceablePeerConnection {
      * @constructor
      */
     constructor(
-            rtc,
-            id,
-            signalingLayer,
-            pcConfig,
-            constraints,
-            isP2P,
-            options
+            rtc: RTC,
+            id: number,
+            signalingLayer: SignalingLayer,
+            pcConfig: RTCConfiguration,
+            constraints: Object,
+            isP2P: boolean,
+            options: TPCOptions
     ) {
         /**
          * Indicates whether or not this peer connection instance is actively
@@ -244,7 +336,7 @@ export default class TraceablePeerConnection {
             logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
         }
 
-        this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
+        this.peerconnection = new RTCPeerConnection(pcConfig);
 
         this.tpcUtils = new TPCUtils(this, {
             audioQuality: options.audioQuality,
@@ -446,7 +538,7 @@ export default class TraceablePeerConnection {
      * @param statValue the value to add.
      * @private
      */
-    _processStat(report, name, statValue) {
+    _processStat(report: any, name: string, statValue: any): void {
         const id = `${report.id}-${name}`;
         let s = this.stats[id];
         const now = new Date();
@@ -601,8 +693,9 @@ export default class TraceablePeerConnection {
      * @param {string} sourceName - The name of the remote source.
      * @param {boolean} isMuted - The new mute state.
      */
-    _sourceMutedChanged(sourceName, isMuted) {
-        const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
+    _sourceMutedChanged(sourceName: string, isMuted: boolean) {
+        const tracks = this.getRemoteTracks(undefined, undefined);
+        const track = tracks.slice().reverse().find(t => t.getSourceName() === sourceName);
 
         if (!track) {
             logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
@@ -619,8 +712,9 @@ export default class TraceablePeerConnection {
      * @param {string} sourceName - The name of the remote source.
      * @param {boolean} isMuted - The new value.
      */
-    _sourceVideoTypeChanged(sourceName, videoType) {
-        const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
+    _sourceVideoTypeChanged(sourceName: string, videoType: VideoType) {
+        const tracks = this.getRemoteTracks(undefined, undefined);
+        const track = tracks.slice().reverse().find(t => t.getSourceName() === sourceName);
 
         if (!track) {
             return;
