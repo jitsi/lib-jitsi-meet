@@ -1,9 +1,16 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 const logger = getLogger('modules/qualitycontrol/SendVideoController');
 const MAX_LOCAL_RESOLUTION = 2160;
+
+export interface IVideoConstraint {
+    maxHeight: number;
+    sourceName: string;
+}
 
 /**
  * The class manages send video constraints across media sessions({@link JingleSessionPC}) which belong to
@@ -13,13 +20,21 @@ const MAX_LOCAL_RESOLUTION = 2160;
  * different.
  */
 export default class SendVideoController {
+    private _conference: JitsiConference;
+    private _preferredSendMaxFrameHeight: number;
+    /**
+     * Source name based sender constraints.
+     * @type {Map<string, number>};
+     */
+    private _sourceSenderConstraints: Map<string, number>;
+
     /**
      * Creates new instance for a given conference.
      *
      * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
      * the send video quality constraints.
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         this._conference = conference;
         this._preferredSendMaxFrameHeight = MAX_LOCAL_RESOLUTION;
 
@@ -35,23 +50,23 @@ export default class SendVideoController {
      * sessions for the reasons mentioned in this class description.
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
-     * @returns {Promise<void[]>}
+     * @returns {Promise<void>}
      * @private
      */
-    _propagateSendMaxFrameHeight(sourceName) {
+    async _propagateSendMaxFrameHeight(sourceName: string): Promise<void> {
         if (!sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }
         const sendMaxFrameHeight = this._selectSendMaxFrameHeight(sourceName);
         const promises = [];
 
-        if (sendMaxFrameHeight >= 0) {
+        if (sendMaxFrameHeight !== undefined && sendMaxFrameHeight >= 0) {
             for (const session of this._conference.getMediaSessions()) {
                 promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight, sourceName));
             }
         }
 
-        return Promise.all(promises);
+        await Promise.all(promises);
     }
 
     /**
@@ -62,7 +77,7 @@ export default class SendVideoController {
      * @returns {number|undefined}
      * @private
      */
-    _selectSendMaxFrameHeight(sourceName) {
+    _selectSendMaxFrameHeight(sourceName: string): number | undefined {
         if (!sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }
@@ -71,9 +86,9 @@ export default class SendVideoController {
             ? this._sourceSenderConstraints.get(sourceName)
             : undefined;
 
-        if (this._preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight >= 0) {
+        if (this._preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight !== undefined && remoteRecvMaxFrameHeight >= 0) {
             return Math.min(this._preferredSendMaxFrameHeight, remoteRecvMaxFrameHeight);
-        } else if (remoteRecvMaxFrameHeight >= 0) {
+        } else if (remoteRecvMaxFrameHeight !== undefined && remoteRecvMaxFrameHeight >= 0) {
             return remoteRecvMaxFrameHeight;
         }
 
@@ -85,7 +100,7 @@ export default class SendVideoController {
      *
      * @returns {void}
      */
-    configureConstraintsForLocalSources() {
+    configureConstraintsForLocalSources(): void {
         for (const track of this._conference.getLocalVideoTracks()) {
             const sourceName = track.getSourceName();
 
@@ -100,10 +115,10 @@ export default class SendVideoController {
      *
      * @param {JingleSessionPC} mediaSession - the started media session.
      */
-    onMediaSessionStarted(mediaSession) {
+    onMediaSessionStarted(mediaSession: JingleSessionPC): void {
         mediaSession.addListener(
             MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
-            (session, sourceConstraints) => {
+            (session: JingleSessionPC, sourceConstraints: Array<IVideoConstraint>) => {
                 session === this._conference.getActiveMediaSession()
                     && sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
             });
@@ -112,10 +127,10 @@ export default class SendVideoController {
     /**
      * Propagates the video constraints if they have changed.
      *
-     * @param {Object} videoConstraints - The sender video constraints received from the bridge.
-     * @returns {Promise<void[]>}
+     * @param {IVideoConstraint} videoConstraints - The sender video constraints received from the bridge.
+     * @returns {Promise<void>}
      */
-    onSenderConstraintsReceived(videoConstraints) {
+    async onSenderConstraintsReceived(videoConstraints: IVideoConstraint): Promise<void> {
         const { maxHeight, sourceName } = videoConstraints;
         const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
 
@@ -129,7 +144,7 @@ export default class SendVideoController {
                         ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
                         : maxHeight);
                 logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
-                this._propagateSendMaxFrameHeight(sourceName);
+                await this._propagateSendMaxFrameHeight(sourceName);
             }
         }
     }
@@ -138,16 +153,16 @@ export default class SendVideoController {
      * Sets local preference for max send video frame height.
      *
      * @param {number} maxFrameHeight - the new value to set.
-     * @returns {Promise<void[]>} - resolved when the operation is complete.
+     * @returns {Promise<void>} - resolved when the operation is complete.
      */
-    setPreferredSendMaxFrameHeight(maxFrameHeight) {
+    async setPreferredSendMaxFrameHeight(maxFrameHeight: number): Promise<void> {
         this._preferredSendMaxFrameHeight = maxFrameHeight;
-        const promises = [];
+        const promises: Promise<void>[] = [];
 
         for (const sourceName of this._sourceSenderConstraints.keys()) {
             promises.push(this._propagateSendMaxFrameHeight(sourceName));
         }
 
-        return Promise.allSettled(promises);
+        await Promise.allSettled(promises);
     }
 }
