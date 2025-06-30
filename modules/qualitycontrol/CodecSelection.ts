@@ -1,11 +1,13 @@
-
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VIDEO_CODECS_BY_COMPLEXITY } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import browser from '../browser';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 const logger = getLogger('modules/qualitycontrol/CodecSelection');
 
@@ -13,6 +15,19 @@ const logger = getLogger('modules/qualitycontrol/CodecSelection');
 const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.AV1, CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];
 const MOBILE_P2P_VIDEO_CODEC_ORDER = [ CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.AV1 ];
 const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMimeType.H264, CodecMimeType.AV1 ];
+
+export interface ICodecSelectionOptions {
+    [connectionType: string]: {
+        disabledCodec?: string;
+        enableAV1ForFF?: boolean;
+        preferenceOrder?: string[];
+        preferredCodec?: string;
+        screenshareCodec?: string;
+    };
+}
+
+export type CodecPreferenceOrder = { [connectionType: string]: string[]; };
+export type ScreenshareCodec = { [connectionType: string]: string; };
 
 /**
  * This class handles the codec selection mechanism for the conference based on the config.js settings.
@@ -22,6 +37,13 @@ const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMi
  * connections.
  */
 export class CodecSelection {
+    private codecPreferenceOrder: CodecPreferenceOrder;
+    private conference: JitsiConference;
+    private encodeTimeStats: Map<string, unknown>;
+    private options: ICodecSelectionOptions;
+    private screenshareCodec: ScreenshareCodec;
+    private visitorCodecs: string[];
+
     /**
      * Creates a new instance for a given conference.
      *
@@ -30,7 +52,7 @@ export class CodecSelection {
      * @param {string} options.jvb settings (codec list, preferred and disabled) for the jvb connection.
      * @param {string} options.p2p settings (codec list, preferred and disabled) for the p2p connection.
      */
-    constructor(conference, options) {
+    constructor(conference: JitsiConference, options: ICodecSelectionOptions) {
         this.codecPreferenceOrder = {};
         this.conference = conference;
         this.encodeTimeStats = new Map();
@@ -112,7 +134,7 @@ export class CodecSelection {
      * @param {string} connectionType - media connection type, p2p or jvb.
      * @returns {Array}
      */
-    _getSupportedVideoCodecs(connectionType) {
+    _getSupportedVideoCodecs(connectionType: string): string[] {
         const videoCodecMimeTypes = browser.isMobileDevice() && connectionType === 'p2p'
             ? MOBILE_P2P_VIDEO_CODEC_ORDER
             : browser.isMobileDevice() ? MOBILE_VIDEO_CODEC_ORDER : DESKTOP_VIDEO_CODEC_ORDER;
@@ -134,7 +156,7 @@ export class CodecSelection {
      * @param {String} connectionType The media connection type, 'p2p' or 'jvb'.
      * @returns {Array<string>}
      */
-    getCodecPreferenceList(connectionType) {
+    getCodecPreferenceList(connectionType: string): string[] {
         return this.codecPreferenceOrder[connectionType];
     }
 
@@ -144,7 +166,7 @@ export class CodecSelection {
      * @param {String} connectionType The media connection type, 'p2p' or 'jvb'.
      * @returns CodecMimeType
      */
-    getScreenshareCodec(connectionType) {
+    getScreenshareCodec(connectionType: string): string | undefined {
         return this.screenshareCodec[connectionType];
     }
 
@@ -154,7 +176,7 @@ export class CodecSelection {
      *
      * @param {JingleSessionPC} mediaSession session for which the codec selection has to be made.
      */
-    selectPreferredCodec(mediaSession) {
+    selectPreferredCodec(mediaSession?: JingleSessionPC): void {
         const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
 
         if (!session) {
@@ -179,12 +201,12 @@ export class CodecSelection {
             }
 
             return [];
-        });
+        }) ?? [];
 
         // Include the visitor codecs.
         this.visitorCodecs.length && remoteCodecsPerParticipant.push(this.visitorCodecs);
 
-        const selectedCodecOrder = localPreferredCodecOrder.reduce((acc, localCodec) => {
+        const selectedCodecOrder = localPreferredCodecOrder.reduce<string[]>((acc, localCodec) => {
             let codecNotSupportedByRemote = false;
 
             // Remove any codecs that are not supported by any of the remote endpoints. The order of the supported
@@ -220,7 +242,7 @@ export class CodecSelection {
      * @param {CodecMimeType} codec - The codec used for encoding the given local video track.
      * @returns boolean - Returns true if the codec order has been updated, false otherwise.
      */
-    changeCodecPreferenceOrder(localTrack, codec) {
+    changeCodecPreferenceOrder(localTrack: JitsiLocalTrack, codec: string): boolean {
         const session = this.conference.getActiveMediaSession();
         const connectionType = session.isP2P ? 'p2p' : 'jvb';
         const codecOrder = this.codecPreferenceOrder[connectionType];
@@ -258,7 +280,7 @@ export class CodecSelection {
      * @param {Array} codecList - visitor codecs.
      * @returns {void}
      */
-    updateVisitorCodecs(codecList) {
+    updateVisitorCodecs(codecList: string[]): void {
         if (this.visitorCodecs === codecList) {
             return;
         }
