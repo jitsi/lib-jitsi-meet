@@ -1,11 +1,25 @@
 import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
+import JitsiConference from '../../JitsiConference';
 import { MediaType } from '../../service/RTC/MediaType';
 import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/StandardVideoQualitySettings';
+import RTC from '../RTC/RTC';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 const logger = getLogger('modules/qualitycontrol/ReceiveVideoController');
 const MAX_HEIGHT = 2160;
+
+export interface IReceiverVideoConstraint {
+    maxHeight: number;
+}
+
+export interface IReceiverVideoConstraints {
+    assumedBandwidthBps?: number;
+    constraints?: { [sourceName: string]: IReceiverVideoConstraint; };
+    defaultConstraints?: IReceiverVideoConstraint;
+    lastN?: number;
+}
 
 /**
  * This class manages the receive video contraints for a given {@link JitsiConference}. These constraints are
@@ -13,19 +27,37 @@ const MAX_HEIGHT = 2160;
  * for communicating these constraints to the bridge over the bridge channel.
  */
 export default class ReceiveVideoController {
+    private _conference: JitsiConference;
+    private _rtc: RTC;
+    private _lastN: number;
+    private _maxFrameHeight: number;
+    /**
+     * The map that holds the max frame height requested per remote source for p2p connection.
+     *
+     * @type Map<string, number>
+     */
+    private _sourceReceiverConstraints: Map<string, number>;
+    /**
+     * The number of bps requested from the bridge.
+     */
+    private _assumedBandwidthBps: number;
+    private _lastNLimitedByCpu: boolean;
+    private _receiveResolutionLimitedByCpu: boolean;
+    private _receiverVideoConstraints: IReceiverVideoConstraints;
+
     /**
      * Creates a new instance for a given conference.
      *
      * @param {JitsiConference} conference the conference instance for which the new instance will be managing
      * the receive video quality constraints.
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         this._conference = conference;
         this._rtc = conference.rtc;
         const { config } = conference.options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
-        this._lastN = config?.startLastN ?? (config?.channelLastN || LAST_N_UNLIMITED);
+        this._lastN = config?.startLastN ?? config?.channelLastN ?? LAST_N_UNLIMITED;
 
         // The number representing the maximum video height the local client should receive from the bridge.
         this._maxFrameHeight = MAX_HEIGHT;
@@ -59,10 +91,13 @@ export default class ReceiveVideoController {
      * @param {number} maxFrameHeight - the height to be requested for remote sources.
      * @returns
      */
-    _getDefaultSourceReceiverConstraints(mediaSession, maxFrameHeight) {
+    _getDefaultSourceReceiverConstraints(
+            mediaSession: JingleSessionPC,
+            maxFrameHeight?: number
+    ): Map<string, number> {
         const height = maxFrameHeight ?? MAX_HEIGHT;
         const remoteVideoTracks = mediaSession.peerconnection?.getRemoteTracks(null, MediaType.VIDEO) || [];
-        const receiverConstraints = new Map();
+        const receiverConstraints = new Map<string, number>();
 
         for (const track of remoteVideoTracks) {
             receiverConstraints.set(track.getSourceName(), height);
@@ -77,7 +112,7 @@ export default class ReceiveVideoController {
      * @param {number} maxFrameHeight - the height to be requested for remote sources.
      * @returns {void}
      */
-    _updateIndividualConstraints(maxFrameHeight) {
+    _updateIndividualConstraints(maxFrameHeight?: number): void {
         const individualConstraints = this._receiverVideoConstraints.constraints;
 
         if (individualConstraints && Object.keys(individualConstraints).length) {
@@ -92,9 +127,9 @@ export default class ReceiveVideoController {
     /**
      * Returns the last set of receiver constraints that were set on the bridge channel.
      *
-     * @returns {Object}
+     * @returns {IReceiverVideoConstraints}
      */
-    getCurrentReceiverConstraints() {
+    getCurrentReceiverConstraints(): IReceiverVideoConstraints {
         return this._receiverVideoConstraints;
     }
 
@@ -103,7 +138,7 @@ export default class ReceiveVideoController {
      *
      * @returns {number}
      */
-    getLastN() {
+    getLastN(): number {
         return this._lastN;
     }
 
@@ -112,7 +147,7 @@ export default class ReceiveVideoController {
      *
      * @returns {boolean}
      */
-    isLastNLimitedByCpu() {
+    isLastNLimitedByCpu(): boolean {
         return this._lastNLimitedByCpu;
     }
 
@@ -123,7 +158,7 @@ export default class ReceiveVideoController {
      * @param {JingleSessionPC} mediaSession - the started media session.
      * @returns {void}
      */
-    onMediaSessionStarted(mediaSession) {
+    onMediaSessionStarted(mediaSession: JingleSessionPC): void {
         if (mediaSession.isP2P) {
             mediaSession.setReceiverVideoConstraint(this._getDefaultSourceReceiverConstraints(mediaSession));
         } else {
@@ -137,7 +172,7 @@ export default class ReceiveVideoController {
      * @param {number|undefined} assumedBandwidthBps - the new value.
      * @returns {void}
      */
-    setAssumedBandwidthBps(assumedBandwidthBps) {
+    setAssumedBandwidthBps(assumedBandwidthBps?: number): void {
         if (this._receiverVideoConstraints.assumedBandwidthBps !== assumedBandwidthBps) {
             this._receiverVideoConstraints.assumedBandwidthBps = assumedBandwidthBps;
             this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
@@ -151,7 +186,7 @@ export default class ReceiveVideoController {
      * @param {number} value the new value for lastN.
      * @returns {void}
      */
-    setLastN(value) {
+    setLastN(value: number): void {
         if (this._lastN !== value) {
             this._lastN = value;
             this._receiverVideoConstraints.lastN = value;
@@ -165,7 +200,7 @@ export default class ReceiveVideoController {
      * @param {boolean} enabled
      * @returns {void}
      */
-    setLastNLimitedByCpu(enabled) {
+    setLastNLimitedByCpu(enabled: boolean): void {
         if (this._lastNLimitedByCpu !== enabled) {
             this._lastNLimitedByCpu = enabled;
             logger.info(`ReceiveVideoController - Setting the lastNLimitedByCpu flag to ${enabled}`);
@@ -178,7 +213,7 @@ export default class ReceiveVideoController {
      * @param {number|undefined} maxFrameHeight - the new value.
      * @returns {void}
      */
-    setPreferredReceiveMaxFrameHeight(maxFrameHeight) {
+    setPreferredReceiveMaxFrameHeight(maxFrameHeight?: number): void {
         this._maxFrameHeight = maxFrameHeight;
 
         for (const session of this._conference.getMediaSessions()) {
@@ -194,9 +229,9 @@ export default class ReceiveVideoController {
     /**
      * Sets the receiver constraints for the conference.
      *
-     * @param {Object} constraints The video constraints.
+     * @param {IReceiverVideoConstraints} constraints The video constraints.
      */
-    setReceiverConstraints(constraints) {
+    setReceiverConstraints(constraints: IReceiverVideoConstraints): void {
         if (!constraints) {
             return;
         }
@@ -221,12 +256,8 @@ export default class ReceiveVideoController {
                 return;
             }
 
-            const mappedConstraints = Array.from(Object.entries(this._receiverVideoConstraints.constraints))
-                .map(constraint => {
-                    constraint[1] = constraint[1].maxHeight;
-
-                    return constraint;
-                });
+            const mappedConstraints: [string, number][] = Array.from(Object.entries(this._receiverVideoConstraints.constraints))
+                .map(([ key, value ]) => [ key, value.maxHeight ]);
 
             this._sourceReceiverConstraints = new Map(mappedConstraints);
 
@@ -238,10 +269,10 @@ export default class ReceiveVideoController {
     /**
      * Updates the receivedResolutioLimitedByCpu field.
      *
-     * @param {booem} enabled
+     * @param {boolean} enabled
      * @return {void}
      */
-    setReceiveResolutionLimitedByCpu(enabled) {
+    setReceiveResolutionLimitedByCpu(enabled: boolean): void {
         if (this._receiveResolutionLimitedByCpu !== enabled) {
             this._receiveResolutionLimitedByCpu = enabled;
             logger.info(`ReceiveVideoController - Setting the receiveResolutionLimitedByCpu flag to ${enabled}`);
