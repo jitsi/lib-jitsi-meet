@@ -180,7 +180,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Unregisters all event handlers bound to the underlying media stream/track
-     * @private
+     * @public
      */
     _unregisterHandlers() {
         if (!this.stream) {
