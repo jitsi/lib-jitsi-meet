@@ -140,21 +140,40 @@ function getConstraints(um = [], options = {}) {
 
     if (um.indexOf('audio') >= 0) {
         if (!constraints.audio || typeof constraints.audio === 'boolean') {
-            constraints.audio = {};
-        }
+            constraints.audio = {
+                autoGainControl: !disableAGC && !disableAP,
+                echoCancellation: !disableAEC && !disableAP,
+                noiseSuppression: !disableNS && !disableAP
+            };
+            if (stereo) {
+                Object.assign(constraints.audio, { channelCount: 2 });
+            }
+        } else {
+            const allowedAudioProps = {
+                echoCancellation: 'boolean',
+                noiseSuppression: 'boolean',
+                autoGainControl: 'boolean',
+                channelCount: 'number'
+            };
 
-        constraints.audio = {
-            autoGainControl: !disableAGC && !disableAP,
-            echoCancellation: !disableAEC && !disableAP,
-            noiseSuppression: !disableNS && !disableAP
-        };
+            const validConstraints = {};
+
+            for (const [ key, value ] of Object.entries(constraints.audio)) {
+                if (allowedAudioProps[key]) {
+                    if (typeof value !== allowedAudioProps[key]) {
+                        continue;
+                    }
+                    if (key === 'channelCount' && ![ 1, 2 ].includes(value)) {
+                        continue;
+                    }
+                    validConstraints[key] = value;
+                }
+            }
+            constraints.audio = validConstraints;
+        }
 
         if (options.micDeviceId) {
             constraints.audio.deviceId = { exact: options.micDeviceId };
-        }
-
-        if (stereo) {
-            Object.assign(constraints.audio, { channelCount: 2 });
         }
     } else {
         constraints.audio = false;

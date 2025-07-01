@@ -568,8 +568,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _switchCamera() {
         if (this.isVideoTrack()
-                && this.videoType === VideoType.CAMERA
-                && typeof this.track._switchCamera === 'function') {
+            && this.videoType === VideoType.CAMERA
+            && typeof this.track._switchCamera === 'function') {
             this.track._switchCamera();
 
             this._facingMode
@@ -799,7 +799,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         return stream.getTracks().some(track =>
             (!('readyState' in track) || track.readyState === 'live')
-                && (!('muted' in track) || track.muted !== true));
+            && (!('muted' in track) || track.muted !== true));
     }
 
     /**
@@ -977,4 +977,61 @@ export default class JitsiLocalTrack extends JitsiTrack {
     unmute() {
         return this._queueSetMuted(false);
     }
+
+    /**
+     * @typedef {Object} AudioConstraints
+     * @property {boolean} [echoCancellation] - Whether to enable or disable echo cancellation.
+     * @property {boolean} [noiseSuppression] - Whether to enable or disable noise suppression.
+     * @property {boolean} [autoGainControl] - Whether to enable or disable automatic gain control.
+     * @property {number} [channelCount] - Number of audio channels (1 for mono, 2 for stereo).
+     */
+
+    /**
+     * Applies media constraints to the current MediaStreamTrack.
+     *
+     * @param {AudioConstraints} constraints - Media constraints to apply.
+     * @returns {Promise<void>}
+     */
+    async applyConstraints(constraints) {
+        const mediaType = this.getType();
+
+        if (!this.isAudioTrack()) {
+            throw new Error(`Media ${mediaType} is not supported, track must be audio`);
+        }
+
+        try {
+            await this.conference._removeLocalTrackFromPc(this);
+
+            this.stopStream();
+
+            const initialSettings = this.track.getSettings();
+            const constraintsToApply = {
+                ...initialSettings,
+                ...constraints
+            };
+
+            const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
+
+            const [ mediaStreamData ]
+                = await RTCUtils.obtainAudioAndVideoPermissions({
+                    devices: [ mediaType ],
+                    [deviceIdKey]: constraintsToApply.deviceId,
+                    constraints: { [mediaType]: constraintsToApply }
+                });
+
+            this._setStream(mediaStreamData.stream);
+            this.track = mediaStreamData.track;
+
+            await this.conference._addLocalTrackToPc(this);
+        } catch (error) {
+            logger.error(
+                `applyConstraints failed for track ${this} with constraints: ${JSON.stringify(
+                    constraints
+                )}: `,
+                error
+            );
+            throw error;
+        }
+    }
 }
+
