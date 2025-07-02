@@ -19,14 +19,14 @@ import XMPP from '../xmpp/xmpp';
 const logger = getLogger('modules/statistics/statistics');
 
 export type IStatisticsOptions = {
-    applicationName: string,
-    aliasName: string,
-    userName: string,
-    confID: string,
-    callStatsID: string,
-    callStatsSecret: string,
-    customScriptUrl: string,
-    roomName: string
+    applicationName?: string,
+    aliasName?: string,
+    userName?: string,
+    confID?: string,
+    callStatsID?: string,
+    callStatsSecret?: string,
+    customScriptUrl?: string,
+    roomName?: string
 }
 
 /**
