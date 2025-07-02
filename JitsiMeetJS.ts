@@ -93,6 +93,8 @@ interface IJitsiMeetJSOptions {
         rtcstatsStoreLogs?: boolean;
     };
     desktopSharingSources?: Array<desktopSharingSourceType>;
+    disableAudioLevels?: boolean;
+    disableThirdPartyRequests?: boolean;
     enableAnalyticsLogging?: boolean;
     enableWindowOnErrorHandler?: boolean;
     externalStorage?: Storage;
@@ -100,6 +102,9 @@ interface IJitsiMeetJSOptions {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
     };
+    longTasksStatsInterval?: number;
+    audioLevelsInterval?: number;
+    pcStatsInterval?: number;
 }
 
 interface ICreateLocalTrackFromMediaStreamOptions {
