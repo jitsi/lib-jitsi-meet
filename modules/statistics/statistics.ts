@@ -1,34 +1,34 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import { LOCAL_JID } from '../../service/statistics/constants';
+import JitsiTrack from '../RTC/JitsiTrack';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
 import WatchRTC from '../watchRTC/WatchRTC';
+import XMPP from '../xmpp/xmpp';
 
 import analytics from './AnalyticsAdapter';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
-import JitsiTrack from '../RTC/JitsiTrack';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
-import JitsiConference from '../../JitsiConference';
-import XMPP from '../xmpp/xmpp';
 
 const logger = getLogger('modules/statistics/statistics');
 
 export type IStatisticsOptions = {
-    applicationName?: string,
-    aliasName?: string,
-    userName?: string,
-    confID?: string,
-    callStatsID?: string,
-    callStatsSecret?: string,
-    customScriptUrl?: string,
-    roomName?: string
-}
+    aliasName?: string;
+    applicationName?: string;
+    callStatsID?: string;
+    callStatsSecret?: string;
+    confID?: string;
+    customScriptUrl?: string;
+    roomName?: string;
+    userName?: string;
+};
 
 /**
  * Statistics class provides various functionality related to collecting and reporting statistics.
@@ -50,6 +50,7 @@ export default class Statistics {
         if (!Statistics._instances) {
             Statistics._instances = new Set();
         }
+
         return Statistics._instances;
     }
 
@@ -110,10 +111,10 @@ export default class Statistics {
      * @param {Object} options - The options to initialize statistics with
      */
     static init(options: {
-        disableAudioLevels?: boolean;
-        pcStatsInterval?: number;
         audioLevelsInterval?: number;
+        disableAudioLevels?: boolean;
         disableThirdPartyRequests?: boolean;
+        pcStatsInterval?: number;
     }): void {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
         if (typeof options.pcStatsInterval === 'number') {
@@ -172,6 +173,7 @@ export default class Statistics {
         );
         const stream = track.getOriginalStream();
         const localStats = new LocalStats(stream, Statistics.audioLevelsInterval, callback);
+
         this.localStats.push(localStats);
         localStats.start();
     }
@@ -186,9 +188,11 @@ export default class Statistics {
             return;
         }
         const stream = track.getOriginalStream();
+
         for (let i = 0; i < Statistics.localStats.length; i++) {
             if (Statistics.localStats[i].stream === stream) {
                 const localStats = Statistics.localStats.splice(i, 1);
+
                 localStats[0].stop();
                 break;
             }
@@ -204,9 +208,11 @@ export default class Statistics {
     static sendAnalyticsAndLog(event: string | Record<string, any>, properties: Record<string, any> = {}): void {
         if (!event) {
             logger.warn('No event or event name given.');
+
             return;
         }
         let eventToLog;
+
         // Also support an API with a single object as an event.
         if (typeof event === 'object') {
             eventToLog = event;
@@ -279,6 +285,7 @@ export default class Statistics {
                 Statistics.pcStatsInterval,
                 this.eventEmitter
             );
+
             rtpStats.start(Statistics.audioLevelsEnabled);
             this.rtpStatsMap.set(String(peerconnection.id), rtpStats);
         } catch (e) {
@@ -414,6 +421,7 @@ export default class Statistics {
      */
     _stopRemoteStats(tpcId: string): void {
         const rtpStats = this.rtpStatsMap.get(tpcId);
+
         if (rtpStats) {
             rtpStats.stop();
             this.rtpStatsMap.delete(tpcId);
@@ -445,6 +453,7 @@ export default class Statistics {
                 comment
             }
         );
+
         return Promise.resolve();
     }
 }
