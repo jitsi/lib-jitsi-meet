@@ -90,6 +90,10 @@ export interface IConferenceOptions {
     config: {
         applicationName?: string;
         avgRtpStatsN?: number;
+        analytics?: {
+            rtcstatsEnabled?: boolean;
+            rtcstatsEndpoint?: string;
+        };
         channelLastN?: number;
         confID?: string;
         createVADProcessor?: () => any;
@@ -118,6 +122,7 @@ export interface IConferenceOptions {
         startVideoMuted?: number;
         statisticsDisplayName?: string;
         statisticsId?: string;
+        startLastN?: number;
         testing?: {
             allowMultipleTracks?: boolean;
             enableAV1ForFF?: boolean;
@@ -636,6 +641,7 @@ export default class JitsiConference {
 
         if (!this.statistics) {
             this.statistics = new Statistics(this, {
+                //@ts-ignore
                 aliasName: this._statsCurrentId,
                 userName: config.statisticsDisplayName ?? this.myUserId(),
                 confID: config.confID ?? `${this.connection.options.hosts.domain}/${this.options.name}`,
@@ -845,6 +851,7 @@ export default class JitsiConference {
         if (reason === 'switch_room' && this.getBreakoutRooms()?.isBreakoutRoom()) {
             const mJid = this.getBreakoutRooms().getMainRoomJid();
 
+            //@ts-ignore
             this.xmpp.connection._breakoutMovingToMain = mJid;
         }
 
@@ -1616,7 +1623,7 @@ export default class JitsiConference {
    * @param {JitsiLocalTrack} track - The local track that will be added to the pc.
    * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
    */
-    _addLocalTrackToPc(track: JitsiLocalTrack): Promise<PromiseSettledResult<void>[]> {
+    _addLocalTrackToPc(track: JitsiLocalTrack): Promise<void> {
         const addPromises = [];
 
         if (track.conference === this) {
@@ -1637,7 +1644,7 @@ export default class JitsiConference {
             addPromises.push(this.addTrack(track));
         }
 
-        return Promise.allSettled(addPromises);
+        return Promise.allSettled(addPromises).then(() => {});
     }
 
     /**
@@ -4047,7 +4054,7 @@ export default class JitsiConference {
      * @returns {Promise} promise that will be resolved when the operation is
      * successful and rejected otherwise.
      */
-    setSenderVideoConstraint(maxFrameHeight: number): Promise<void[]> {
+    setSenderVideoConstraint(maxFrameHeight: number): Promise<void> {
         return this.qualityController.sendVideoController.setPreferredSendMaxFrameHeight(maxFrameHeight);
     }
 
@@ -4199,7 +4206,7 @@ export default class JitsiConference {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    setMediaEncryptionKey(keyInfo: any): void {
+    setMediaEncryptionKey(keyInfo: CryptoKey): void {
         this._e2eEncryption.setEncryptionKey(keyInfo);
     }
 
