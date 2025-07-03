@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiTrackError from '../../JitsiTrackError';
 import {
+    JitsiTrackErrors,
     TRACK_IS_DISPOSED,
     TRACK_NO_STREAM_FOUND
 } from '../../JitsiTrackErrors';
@@ -999,30 +1000,42 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new Error(`Media ${mediaType} is not supported, track must be audio`);
         }
 
+        const hasAudioMixEffect = Boolean(this._streamEffect?._audioMixer);
+
+        if (this._streamEffect && !hasAudioMixEffect) {
+            throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
+                this._streamEffect)} is active`
+            );
+        }
+
+        await this.conference._removeLocalTrackFromPc(this);
+
+        if (hasAudioMixEffect) {
+            this._stopStreamEffect();
+        }
+
+        this.stopStream();
+
+        const initialSettings = this.track.getSettings();
+        const constraintsToApply = {
+            ...initialSettings,
+            ...constraints
+        };
+
+        const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
+        let mediaStreamData;
+
         try {
-            await this.conference._removeLocalTrackFromPc(this);
+            [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
+                devices: [ mediaType ],
+                [deviceIdKey]: constraintsToApply.deviceId,
+                constraints: { [mediaType]: constraintsToApply }
+            });
 
-            this.stopStream();
+            if (!mediaStreamData?.stream) {
+                throw new JitsiTrackError(JitsiTrackErrors.CONSTRAINT_FAILED);
+            }
 
-            const initialSettings = this.track.getSettings();
-            const constraintsToApply = {
-                ...initialSettings,
-                ...constraints
-            };
-
-            const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
-
-            const [ mediaStreamData ]
-                = await RTCUtils.obtainAudioAndVideoPermissions({
-                    devices: [ mediaType ],
-                    [deviceIdKey]: constraintsToApply.deviceId,
-                    constraints: { [mediaType]: constraintsToApply }
-                });
-
-            this._setStream(mediaStreamData.stream);
-            this.track = mediaStreamData.track;
-
-            await this.conference._addLocalTrackToPc(this);
         } catch (error) {
             logger.error(
                 `applyConstraints failed for track ${this} with constraints: ${JSON.stringify(
@@ -1030,8 +1043,26 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 )}: `,
                 error
             );
-            throw error;
+
+            [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
+                devices: [ mediaType ],
+                [deviceIdKey]: constraintsToApply.deviceId,
+                constraints: { [mediaType]: initialSettings }
+            });
         }
+
+        if (!mediaStreamData?.stream) {
+            throw new JitsiTrackError(JitsiTrackErrors.GENERAL);
+        }
+
+        this._setStream(mediaStreamData.stream);
+        this.track = mediaStreamData.track;
+
+        if (hasAudioMixEffect) {
+            this._startStreamEffect(this._streamEffect);
+        }
+
+        await this.conference._addLocalTrackToPc(this);
     }
 }
 
