@@ -7,14 +7,86 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
+// Type definitions for SDP utility return types
+interface ICEParams {
+    ufrag: string;
+    pwd: string;
+}
+
+interface MLineData {
+    media: string;
+    port: string;
+    proto: string;
+    fmt: string[];
+}
+
+interface RTPMapData {
+    id: string;
+    name: string;
+    clockrate: string;
+    channels: string;
+}
+
+interface CryptoData {
+    tag: string;
+    'crypto-suite': string;
+    'key-params': string;
+    'session-params'?: string;
+}
+
+interface FingerprintData {
+    hash: string;
+    fingerprint: string;
+}
+
+interface ICECandidate {
+    foundation: string;
+    component: string;
+    protocol: string;
+    priority: string;
+    ip: string;
+    port: string;
+    type: string;
+    generation: number | string;
+    'rel-addr'?: string;
+    'rel-port'?: string;
+    tcptype?: string;
+    network: string;
+    id: string;
+    hasOwnAttribute?: (attr: string) => boolean;
+}
+
+interface FmtpData {
+    name: string;
+    value: string;
+}
+
+interface RTCPFBData {
+    pt: string;
+    type: string;
+    params: string[];
+}
+
+interface ExtmapData {
+    value: string;
+    direction: string;
+    uri: string;
+    params: string[];
+}
+
+interface SSRCGroupData {
+    semantics: string;
+    ssrcs: string[];
+}
+
 const SDPUtil = {
-    filterSpecialChars(text) {
+    filterSpecialChars(text: string): string {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
         // eslint-disable-next-line no-useless-escape
         return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
     },
-    iceparams(mediadesc, sessiondesc) {
+    iceparams(mediadesc: string, sessiondesc?: string): ICEParams | null {
         let data = null;
         let pwd, ufrag;
 
@@ -32,19 +104,19 @@ const SDPUtil = {
 
         return data;
     },
-    parseICEUfrag(line) {
+    parseICEUfrag(line: string): string {
         return line.substring(12);
     },
-    buildICEUfrag(frag) {
+    buildICEUfrag(frag: string): string {
         return `a=ice-ufrag:${frag}`;
     },
-    parseICEPwd(line) {
+    parseICEPwd(line: string): string {
         return line.substring(10);
     },
-    buildICEPwd(pwd) {
+    buildICEPwd(pwd: string): string {
         return `a=ice-pwd:${pwd}`;
     },
-    parseMID(line) {
+    parseMID(line: string): string {
         return line.substring(6);
     },
 
@@ -54,7 +126,7 @@ const SDPUtil = {
      * @param {string[]} ssrcLines - an array of lines similar to 'a:213123 msid:stream-id track-id'.
      * @returns {undefined|string}
      */
-    parseMSIDAttribute(ssrcLines) {
+    parseMSIDAttribute(ssrcLines: string[]): string | undefined {
         const msidLine = ssrcLines.find(line => line.indexOf(' msid:') > 0);
 
         if (!msidLine) {
@@ -65,13 +137,18 @@ const SDPUtil = {
 
         return SDPUtil.filterSpecialChars(v);
     },
-    parseMLine(line) {
-        const data = {};
+    parseMLine(line: string): MLineData {
+        const data: MLineData = {
+            media: '',
+            port: '',
+            proto: '',
+            fmt: []
+        };
         const parts = line.substring(2).split(' ');
 
-        data.media = parts.shift();
-        data.port = parts.shift();
-        data.proto = parts.shift();
+        data.media = parts.shift() || '';
+        data.port = parts.shift() || '';
+        data.proto = parts.shift() || '';
         if (parts[parts.length - 1] === '') { // trailing whitespace
             parts.pop();
         }
@@ -79,20 +156,25 @@ const SDPUtil = {
 
         return data;
     },
-    buildMLine(mline) {
+    buildMLine(mline: MLineData): string {
         return (
             `m=${mline.media} ${mline.port} ${mline.proto} ${
                 mline.fmt.join(' ')}`);
     },
-    parseRTPMap(line) {
-        const data = {};
+    parseRTPMap(line: string): RTPMapData {
+        const data: RTPMapData = {
+            id: '',
+            name: '',
+            clockrate: '',
+            channels: ''
+        };
         let parts = line.substring(9).split(' ');
 
-        data.id = parts.shift();
+        data.id = parts.shift() || '';
         parts = parts[0].split('/');
-        data.name = parts.shift();
-        data.clockrate = parts.shift();
-        data.channels = parts.length ? parts.shift() : '1';
+        data.name = parts.shift() || '';
+        data.clockrate = parts.shift() || '';
+        data.channels = parts.length ? parts.shift() || '1' : '1';
 
         return data;
     },
@@ -102,7 +184,7 @@ const SDPUtil = {
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
      * @returns [SCTP port number, protocol, streams]
      */
-    parseSCTPMap(line) {
+    parseSCTPMap(line: string): [string, string, string | null] {
         const parts = line.substring(10).split(' ');
         const sctpPort = parts[0];
         const protocol = parts[1];
@@ -110,13 +192,12 @@ const SDPUtil = {
         // Stream count is optional
         const streamCount = parts.length > 2 ? parts[2] : null;
 
-
         return [ sctpPort, protocol, streamCount ];// SCTP port
     },
-    parseSCTPPort(line) {
+    parseSCTPPort(line: string): string {
         return line.substring(12);
     },
-    buildRTPMap(el) {
+    buildRTPMap(el: Element): string {
         let line
             = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
                 el.getAttribute('clockrate')}`;
@@ -128,31 +209,38 @@ const SDPUtil = {
 
         return line;
     },
-    parseCrypto(line) {
-        const data = {};
+    parseCrypto(line: string): CryptoData {
+        const data: CryptoData = {
+            tag: '',
+            'crypto-suite': '',
+            'key-params': ''
+        };
         const parts = line.substring(9).split(' ');
 
-        data.tag = parts.shift();
-        data['crypto-suite'] = parts.shift();
-        data['key-params'] = parts.shift();
+        data.tag = parts.shift() || '';
+        data['crypto-suite'] = parts.shift() || '';
+        data['key-params'] = parts.shift() || '';
         if (parts.length) {
             data['session-params'] = parts.join(' ');
         }
 
         return data;
     },
-    parseFingerprint(line) { // RFC 4572
-        const data = {};
+    parseFingerprint(line: string): FingerprintData { // RFC 4572
+        const data: FingerprintData = {
+            hash: '',
+            fingerprint: ''
+        };
         const parts = line.substring(14).split(' ');
 
-        data.hash = parts.shift();
-        data.fingerprint = parts.shift();
+        data.hash = parts.shift() || '';
+        data.fingerprint = parts.shift() || '';
 
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
-    parseFmtp(line) {
-        const data = [];
+    parseFmtp(line: string): FmtpData[] {
+        const data: FmtpData[] = [];
         let parts = line.split(' ');
 
         parts.shift();
@@ -177,8 +265,19 @@ const SDPUtil = {
 
         return data;
     },
-    parseICECandidate(line) {
-        const candidate = {};
+    parseICECandidate(line: string): ICECandidate {
+        const candidate: ICECandidate = {
+            foundation: '',
+            component: '',
+            protocol: '',
+            priority: '',
+            ip: '',
+            port: '',
+            type: '',
+            generation: 0,
+            network: '',
+            id: ''
+        };
         const elems = line.split(' ');
 
         candidate.foundation = elems[0].substring(12);
@@ -219,7 +318,7 @@ const SDPUtil = {
 
         return candidate;
     },
-    buildICECandidate(cand) {
+    buildICECandidate(cand: ICECandidate): string {
         let line = [
             `a=candidate:${cand.foundation}`,
             cand.component,
@@ -236,7 +335,7 @@ const SDPUtil = {
         case 'srflx':
         case 'prflx':
         case 'relay':
-            if (cand.hasOwnAttribute('rel-addr')
+            if (cand.hasOwnAttribute && cand.hasOwnAttribute('rel-addr')
                     && cand.hasOwnAttribute('rel-port')) {
                 line += 'raddr';
                 line += ' ';
@@ -249,7 +348,7 @@ const SDPUtil = {
             }
             break;
         }
-        if (cand.hasOwnAttribute('tcptype')) {
+        if (cand.hasOwnAttribute && cand.hasOwnAttribute('tcptype')) {
             line += 'tcptype';
             line += ' ';
             line += cand.tcptype;
@@ -257,15 +356,15 @@ const SDPUtil = {
         }
         line += 'generation';
         line += ' ';
-        line += cand.hasOwnAttribute('generation') ? cand.generation : '0';
+        line += (cand.hasOwnAttribute && cand.hasOwnAttribute('generation')) ? cand.generation : '0';
 
         return line;
     },
-    parseSSRC(desc) {
+    parseSSRC(desc: string): Map<string, string[]> {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
         // on google docs and parse according to that
-        const data = new Map();
+        const data = new Map<string, string[]>();
         const lines = desc.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
@@ -277,7 +376,7 @@ const SDPUtil = {
                     data.set(ssrc, []);
                 }
 
-                data.get(ssrc).push(lines[i]);
+                data.get(ssrc)!.push(lines[i]);
             }
         }
 
@@ -290,11 +389,11 @@ const SDPUtil = {
      * @param {string} line - The media line to parse.
      * @returns {object}
      */
-    parseSSRCGroupLine(line) {
+    parseSSRCGroupLine(line: string): SSRCGroupData {
         const parts = line.substr(13).split(' ');
 
         return {
-            semantics: parts.shift(),
+            semantics: parts.shift() || '',
             ssrcs: parts
         };
     },
@@ -305,7 +404,7 @@ const SDPUtil = {
      * @param {string[]} ssrcLines
      * @returns {string | undefined}
      */
-    parseSourceNameLine(ssrcLines) {
+    parseSourceNameLine(ssrcLines: string[]): string | undefined {
         const sourceNameLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(' name:') > 0);
 
         // Everything past the "name:" part
@@ -319,39 +418,48 @@ const SDPUtil = {
      * @param {string[]} ssrcLines
      * @returns {string | undefined}
      */
-    parseVideoTypeLine(ssrcLines) {
+    parseVideoTypeLine(ssrcLines: string[]): string | undefined {
         const s = ' videoType:';
         const videoTypeLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(s) > 0);
 
         return videoTypeLine?.substring(videoTypeLine.indexOf(s) + s.length);
     },
-    parseRTCPFB(line) {
+    parseRTCPFB(line: string): RTCPFBData {
         const parts = line.substr(10).split(' ');
-        const data = {};
+        const data: RTCPFBData = {
+            pt: '',
+            type: '',
+            params: []
+        };
 
-        data.pt = parts.shift();
-        data.type = parts.shift();
+        data.pt = parts.shift() || '';
+        data.type = parts.shift() || '';
         data.params = parts;
 
         return data;
     },
-    parseExtmap(line) {
+    parseExtmap(line: string): ExtmapData {
         const parts = line.substr(9).split(' ');
-        const data = {};
+        const data: ExtmapData = {
+            value: '',
+            direction: '',
+            uri: '',
+            params: []
+        };
 
-        data.value = parts.shift();
+        data.value = parts.shift() || '';
         if (data.value.indexOf('/') === -1) {
             data.direction = 'both';
         } else {
             data.direction = data.value.substr(data.value.indexOf('/') + 1);
             data.value = data.value.substr(0, data.value.indexOf('/'));
         }
-        data.uri = parts.shift();
+        data.uri = parts.shift() || '';
         data.params = parts;
 
         return data;
     },
-    findLine(haystack, needle, sessionpart) {
+    findLine(haystack: string, needle: string, sessionpart?: string): string | false {
         let lines = haystack.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
@@ -373,9 +481,9 @@ const SDPUtil = {
 
         return false;
     },
-    findLines(haystack, needle, sessionpart) {
+    findLines(haystack: string, needle: string, sessionpart?: string): string[] {
         let lines = haystack.split('\r\n');
-        const needles = [];
+        const needles: string[] = [];
 
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) === needle) {
@@ -396,7 +504,7 @@ const SDPUtil = {
 
         return needles;
     },
-    candidateToJingle(line) {
+    candidateToJingle(line: string): ICECandidate | null {
         // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host
         // generation 0
         //      <candidate component=... foundation=... generation=... id=...
@@ -416,7 +524,18 @@ const SDPUtil = {
             // eslint-disable-next-line no-param-reassign
             line = line.substring(0, line.length - 2);
         }
-        const candidate = {};
+        const candidate: ICECandidate = {
+            foundation: '',
+            component: '',
+            protocol: '',
+            priority: '',
+            ip: '',
+            port: '',
+            type: '',
+            generation: '0',
+            network: '',
+            id: ''
+        };
         const elems = line.split(' ');
 
         if (elems[6] !== 'typ') {
@@ -462,7 +581,7 @@ const SDPUtil = {
 
         return candidate;
     },
-    candidateFromJingle(cand) {
+    candidateFromJingle(cand: Element): string {
         let line = 'a=candidate:';
 
         line += cand.getAttribute('foundation');
@@ -474,7 +593,7 @@ const SDPUtil = {
 
         // use tcp candidates for FF
 
-        if (browser.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
+        if (browser.isFirefox() && protocol && protocol.toLowerCase() === 'ssltcp') {
             protocol = 'tcp';
         }
 
@@ -506,7 +625,7 @@ const SDPUtil = {
             }
             break;
         }
-        if (protocol.toLowerCase() === 'tcp') {
+        if (protocol && protocol.toLowerCase() === 'tcp') {
             line += 'tcptype';
             line += ' ';
             line += cand.getAttribute('tcptype');
@@ -524,10 +643,10 @@ const SDPUtil = {
      * @param {object} mLine object as parsed from transform.parse
      * @return {number} the primary video ssrc from the given m line
      */
-    parsePrimaryVideoSsrc(videoMLine) {
+    parsePrimaryVideoSsrc(videoMLine: any): number | undefined {
         const numSsrcs = videoMLine.ssrcs
-            .map(ssrcInfo => ssrcInfo.id)
-            .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
+            .map((ssrcInfo: any) => ssrcInfo.id)
+            .filter((ssrc: any, index: number, array: any[]) => array.indexOf(ssrc) === index)
             .length;
         const numGroups
             = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
@@ -544,7 +663,7 @@ const SDPUtil = {
             // Can figure it out if there's an FID group
             const fidGroup
                 = videoMLine.ssrcGroups.find(
-                    group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
+                    (group: any) => group.semantics === SSRC_GROUP_SEMANTICS.FID);
 
             if (fidGroup) {
                 primarySsrc = fidGroup.ssrcs.split(' ')[0];
@@ -553,7 +672,7 @@ const SDPUtil = {
             // Can figure it out if there's a sim group
             const simGroup
                 = videoMLine.ssrcGroups.find(
-                    group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
+                    (group: any) => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
             if (simGroup) {
                 primarySsrc = simGroup.ssrcs.split(' ')[0];
@@ -567,7 +686,7 @@ const SDPUtil = {
      * Generate an ssrc
      * @returns {number} an ssrc
      */
-    generateSsrc() {
+    generateSsrc(): number {
         return RandomUtil.randomInt(1, 0xffffffff);
     },
 
@@ -580,7 +699,7 @@ const SDPUtil = {
      * @returns {string} the value corresponding to the given ssrc
      *  and attributeName
      */
-    getSsrcAttribute(mLine, ssrc, attributeName) {
+    getSsrcAttribute(mLine: any, ssrc: number, attributeName: string): string | undefined {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             const ssrcLine = mLine.ssrcs[i];
 
@@ -599,11 +718,11 @@ const SDPUtil = {
      * @returns {list<number>} a list of the ssrcs in the group
      *  parsed as numbers
      */
-    parseGroupSsrcs(ssrcGroup) {
+    parseGroupSsrcs(ssrcGroup: any): number[] {
         return ssrcGroup
             .ssrcs
             .split(' ')
-            .map(ssrcStr => parseInt(ssrcStr, 10));
+            .map((ssrcStr: string) => parseInt(ssrcStr, 10));
     },
 
     /**
@@ -612,15 +731,15 @@ const SDPUtil = {
      * @param {string} type the type of the desired mline (e.g. "video")
      * @returns {object} a media object
      */
-    getMedia(sdp, type) {
-        return sdp.media.find(m => m.type === type);
+    getMedia(sdp: any, type: string): any {
+        return sdp.media.find((m: any) => m.type === type);
     },
 
     /**
      * Extracts the ICE username fragment from an SDP string.
      * @param {string} sdp the SDP in raw text format
      */
-    getUfrag(sdp) {
+    getUfrag(sdp: string): string | undefined {
         const ufragLines
             = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
 
@@ -637,20 +756,20 @@ const SDPUtil = {
      * @param {string} codecName the name of the preferred codec.
      * @param {boolean} sortPayloadTypes whether the payloadtypes need to be sorted for a given codec.
      */
-    preferCodec(mline, codecName, sortPayloadTypes = false) {
+    preferCodec(mline: any, codecName: string, sortPayloadTypes: boolean = false): void {
         if (!mline || !codecName) {
             return;
         }
 
         const matchingPayloadTypes = mline.rtp
-            .filter(rtp => rtp.codec && rtp.codec.toLowerCase() === codecName.toLowerCase())
-            .map(rtp => rtp.payload);
+            .filter((rtp: any) => rtp.codec && rtp.codec.toLowerCase() === codecName.toLowerCase())
+            .map((rtp: any) => rtp.payload);
 
         if (matchingPayloadTypes) {
             if (sortPayloadTypes && codecName === CodecMimeType.H264) {
                 // Move all the H.264 codecs with packetization-mode=0 to top of the list.
-                const payloadsWithMode0 = matchingPayloadTypes.filter(payload => {
-                    const fmtp = mline.fmtp.find(item => item.payload === payload);
+                const payloadsWithMode0 = matchingPayloadTypes.filter((payload: any) => {
+                    const fmtp = mline.fmtp.find((item: any) => item.payload === payload);
 
                     if (fmtp) {
                         return fmtp.config.includes('packetization-mode=0');
@@ -660,7 +779,7 @@ const SDPUtil = {
                 });
 
                 for (const pt of payloadsWithMode0.reverse()) {
-                    const idx = matchingPayloadTypes.findIndex(payloadType => payloadType === pt);
+                    const idx = matchingPayloadTypes.findIndex((payloadType: any) => payloadType === pt);
 
                     if (idx >= 0) {
                         matchingPayloadTypes.splice(idx, 1);
@@ -675,7 +794,7 @@ const SDPUtil = {
                 = mline.payloads
                 .toString()
                 .split(' ')
-                .map(p => parseInt(p, 10));
+                .map((p: string) => parseInt(p, 10));
 
             for (const pt of matchingPayloadTypes.reverse()) {
                 const payloadIndex = payloadTypes.indexOf(pt);
@@ -699,13 +818,13 @@ const SDPUtil = {
      * @param {boolean} highProfile determines if only the high profile codec needs to be stripped from the sdp for a
      * given codec type.
      */
-    stripCodec(mLine, codecName, highProfile = false) {
+    stripCodec(mLine: any, codecName: string, highProfile: boolean = false): void {
         if (!mLine || !codecName) {
             return;
         }
 
-        const highProfileCodecs = new Map();
-        let removePts = [];
+        const highProfileCodecs = new Map<number, string>();
+        let removePts: number[] = [];
 
         for (const rtp of mLine.rtp) {
             if (rtp.codec && rtp.codec.toLowerCase() === codecName.toLowerCase()) {
@@ -719,7 +838,7 @@ const SDPUtil = {
 
         if (highProfile) {
             removePts = mLine.fmtp
-                .filter(item => {
+                .filter((item: any) => {
                     const codec = highProfileCodecs.get(item.payload);
 
                     if (codec) {
@@ -730,7 +849,7 @@ const SDPUtil = {
 
                     return false;
                 })
-                .map(item => item.payload);
+                .map((item: any) => item.payload);
         }
 
         if (removePts.length > 0) {
@@ -738,9 +857,9 @@ const SDPUtil = {
             // for the codecs we want to disable.
             const rtxApts = removePts.map(item => `apt=${item}`);
             const rtxPts = mLine.fmtp.filter(
-                item => rtxApts.indexOf(item.config) !== -1);
+                (item: any) => rtxApts.indexOf(item.config) !== -1);
 
-            removePts.push(...rtxPts.map(item => item.payload));
+            removePts.push(...rtxPts.map((item: any) => item.payload));
 
             // Call toString() on payloads to get around an issue within
             // SDPTransform that sets payloads as a number, instead of a string,
@@ -761,12 +880,12 @@ const SDPUtil = {
             }
 
             mLine.rtp = mLine.rtp.filter(
-                item => keepPts.indexOf(item.payload) !== -1);
+                (item: any) => keepPts.indexOf(item.payload) !== -1);
             mLine.fmtp = mLine.fmtp.filter(
-                item => keepPts.indexOf(item.payload) !== -1);
+                (item: any) => keepPts.indexOf(item.payload) !== -1);
             if (mLine.rtcpFb) {
                 mLine.rtcpFb = mLine.rtcpFb.filter(
-                    item => keepPts.indexOf(item.payload) !== -1);
+                    (item: any) => keepPts.indexOf(item.payload) !== -1);
             }
         }
     }
