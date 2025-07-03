@@ -114,7 +114,7 @@ class JitsiMediaDevices extends Listenable {
         // The status attribute is deprecated, and state
         // should be used instead, but check both for now
         // for backwards compatibility.
-        const status = permissionStatus.state || (permissionStatus as any).status;
+        const status = permissionStatus.state;
 
         if (typeof status !== 'string') {
             throw new TypeError();
@@ -145,7 +145,6 @@ class JitsiMediaDevices extends Listenable {
             if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
                 // Triggering device list update when the permissions are granted in order to update
                 // the labels the devices.
-                // eslint-disable-next-line @typescript-eslint/no-empty-function
                 this.enumerateDevices(() => {
                     // Empty callback - device list update triggered
                 });
@@ -266,7 +265,7 @@ class JitsiMediaDevices extends Listenable {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    setAudioOutputDevice(deviceId: string): Promise<unknown> {
+    setAudioOutputDevice(deviceId: string): Promise<void> {
         return RTC.setAudioOutputDevice(deviceId);
     }
 }
