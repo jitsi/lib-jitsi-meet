@@ -150,7 +150,7 @@ export interface IConferenceOptions {
     name: string;
 }
 
-export interface StartMutedPolicy {
+export interface IStartMutedPolicy {
     audio: boolean;
     video: boolean;
 }
@@ -253,7 +253,7 @@ export default class JitsiConference {
     dtmfManager?: object;
     somebodySupportsDTMF: boolean;
     authEnabled: boolean;
-    startMutedPolicy: StartMutedPolicy;
+    startMutedPolicy: IStartMutedPolicy;
     isMutedByFocus: boolean;
     mutedByFocusActor?: string;
     isVideoMutedByFocus: boolean;
@@ -776,7 +776,7 @@ export default class JitsiConference {
    * @returns {boolean} True if joined, false otherwise.
    */
     isJoined(): boolean {
-        return this.room && this.room.joined;
+        return this.room?.joined;
     }
 
     /**
@@ -785,7 +785,7 @@ export default class JitsiConference {
    */
     isP2PEnabled(): boolean {
         return (
-            Boolean(this.options.config.p2p && this.options.config.p2p.enabled)
+            Boolean(this.options.config.p2p?.enabled)
 
       // FIXME: remove once we have a default config template. -saghul
       || typeof this.options.config.p2p === 'undefined'
@@ -799,7 +799,7 @@ export default class JitsiConference {
    */
     isP2PTestModeEnabled(): boolean {
         return Boolean(
-      this.options.config.testing && this.options.config.testing.p2pTestMode
+      this.options.config.testing?.p2pTestMode
         );
     }
 
@@ -1532,7 +1532,7 @@ export default class JitsiConference {
             logger.info('_doReplaceTrack - no P2P JingleSession');
         }
 
-        return Promise.all(replaceTrackPromises).then(() => {});
+        return Promise.all(replaceTrackPromises).then(() => { /* No-op */ });
     }
 
     /**
@@ -1645,7 +1645,7 @@ export default class JitsiConference {
             addPromises.push(this.addTrack(track));
         }
 
-        return Promise.allSettled(addPromises).then(() => {});
+        return Promise.allSettled(addPromises).then(() => { /* No-op */ });
     }
 
     /**
@@ -4177,7 +4177,7 @@ export default class JitsiConference {
      * @returns {boolean}
      */
     isE2EEEnabled(): boolean {
-        return Boolean(this._e2eEncryption && this._e2eEncryption.isEnabled());
+        return Boolean(this._e2eEncryption?.isEnabled());
     }
 
     /**
@@ -4257,7 +4257,7 @@ export default class JitsiConference {
      * @returns {boolean} whether lobby is supported in the backend.
      */
     isLobbySupported(): boolean {
-        return Boolean(this.room && this.room.getLobby().isSupported());
+        return Boolean(this.room?.getLobby().isSupported());
     }
 
     /**
@@ -4360,9 +4360,9 @@ export default class JitsiConference {
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    addLobbyMessageListener(listener: (message: object) => void): Function | undefined {
+    addLobbyMessageListener(listener: (message: object) => void): ((...args: unknown[]) => unknown) | undefined {
         if (this.room) {
-            return this.room.getLobby().addMessageListener(listener);
+            return this.room.getLobby().addMessageListener(listener) as ((...args: unknown[]) => unknown) | undefined;
         }
     }
 
@@ -4407,7 +4407,7 @@ export default class JitsiConference {
      * @returns {boolean} whether AV Moderation is supported in the backend.
      */
     isAVModerationSupported(): boolean {
-        return Boolean(this.room && this.room.getAVModeration().isSupported());
+        return Boolean(this.room?.getAVModeration().isSupported());
     }
 
     /**
