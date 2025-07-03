@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import { LOCAL_JID } from '../../service/statistics/constants';
 import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
@@ -101,7 +102,7 @@ export default class Statistics {
      * @static
      * @type {string}
      */
-    static LOCAL_JID: string = require('../../service/statistics/constants').LOCAL_JID;
+    static LOCAL_JID: string = LOCAL_JID;
 
     /**
      * Init statistic options
@@ -373,26 +374,6 @@ export default class Statistics {
     removeByteSentStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
             listener);
-    }
-
-    /**
-     * Add a listener that would be notified on a LONG_TASKS_STATS event.
-     *
-     * @param {Function} listener a function that would be called when notified.
-     * @returns {void}
-     */
-    addLongTasksStatsListener(listener: (...args: any[]) => void): void {
-        this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
-    }
-
-    /**
-     * Removes the given listener for the LONG_TASKS_STATS event.
-     *
-     * @param {Function} listener the listener we want to remove.
-     * @returns {void}
-     */
-    removeLongTasksStatsListener(listener: (...args: any[]) => void): void {
-        this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
     }
 
     /**
