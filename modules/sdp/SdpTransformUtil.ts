@@ -2,10 +2,10 @@ import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
-export interface ImLine{
-    ssrcs?: Array<{ id: number; attribute: string; value: string }>;
-    ssrcGroups?: Array<{ semantics: string; ssrcs: string }>;
+export interface IMLine {
     direction?: string;
+    ssrcGroups?: Array<{ semantics: string; ssrcs: string; }>;
+    ssrcs?: Array<{ attribute: string; id: number; value: string; }>;
     type?: string;
 }
 
@@ -14,7 +14,7 @@ export interface ImLine{
  * @param {object} group the SSRC group object as defined by the 'sdp-transform'
  * @return {Number} the primary SSRC number
  */
-export function parsePrimarySSRC(group: { ssrcs: string }): number {
+export function parsePrimarySSRC(group: { ssrcs: string; }): number {
     return parseInt(group.ssrcs.split(' ')[0], 10);
 }
 
@@ -23,7 +23,7 @@ export function parsePrimarySSRC(group: { ssrcs: string }): number {
  * @param {object} group the SSRC group object as defined by the 'sdp-transform'
  * @return {Number} the secondary SSRC number
  */
-export function parseSecondarySSRC(group: { ssrcs: string }): number {
+export function parseSecondarySSRC(group: { ssrcs: string; }): number {
     return parseInt(group.ssrcs.split(' ')[1], 10);
 }
 
@@ -32,7 +32,7 @@ export function parseSecondarySSRC(group: { ssrcs: string }): number {
  * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
  * @return {number}
  */
-function _getSSRCCount(mLine: ImLine): number {
+function _getSSRCCount(mLine: IMLine): number {
     if (!mLine.ssrcs) {
         return 0;
     }
@@ -48,7 +48,7 @@ function _getSSRCCount(mLine: ImLine): number {
  * utility methods for common SDP/SSRC related operations.
  */
 class MLineWrap {
-    private mLine: ImLine;
+    private mLine: IMLine;
 
     /**
      * Creates new <tt>MLineWrap</t>>
@@ -56,9 +56,9 @@ class MLineWrap {
      * lib.
      */
     constructor(mLine: {
-        ssrcs?: Array<{ id: number; attribute: string; value: string }>;
-        ssrcGroups?: Array<{ semantics: string; ssrcs: string }>;
         direction?: string;
+        ssrcGroups?: Array<{ semantics: string; ssrcs: string; }>;
+        ssrcs?: Array<{ attribute: string; id: number; value: string; }>;
         type?: string;
     }) {
         if (!mLine) {
@@ -75,7 +75,7 @@ class MLineWrap {
      * @return {Array<Object>} an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    get ssrcs(): Array<{ id: number; attribute: string; value: string }> {
+    get ssrcs(): Array<{ attribute: string; id: number; value: string; }> {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];
         }
@@ -89,7 +89,7 @@ class MLineWrap {
      * @param {Array<Object>} ssrcs an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    set ssrcs(ssrcs: Array<{ id: number; attribute: string; value: string }>) {
+    set ssrcs(ssrcs: Array<{ attribute: string; id: number; value: string; }>) {
         this.mLine.ssrcs = ssrcs;
     }
 
@@ -113,7 +113,7 @@ class MLineWrap {
      * Exposes the SSRC group array of the underlying media description object.
      * @return {Array.<Object>}
      */
-    get ssrcGroups(): Array<{ semantics: string; ssrcs: string }> {
+    get ssrcGroups(): Array<{ semantics: string; ssrcs: string; }> {
         if (!this.mLine.ssrcGroups) {
             this.mLine.ssrcGroups = [];
         }
@@ -126,7 +126,7 @@ class MLineWrap {
      * object.
      * @param {Array.<Object>} ssrcGroups
      */
-    set ssrcGroups(ssrcGroups: Array<{ semantics: string; ssrcs: string }>) {
+    set ssrcGroups(ssrcGroups: Array<{ semantics: string; ssrcs: string; }>) {
         this.mLine.ssrcGroups = ssrcGroups;
     }
 
@@ -152,7 +152,7 @@ class MLineWrap {
      * removed.
      */
     removeSSRC(ssrcNum: number): void {
-        if (!this.mLine.ssrcs || !this.mLine.ssrcs.length) {
+        if (!this.mLine.ssrcs?.length) {
             return;
         }
 
@@ -165,7 +165,7 @@ class MLineWrap {
      * @param {object} ssrcObj the SSRC attribute object as defined in
      * the 'sdp-transform' lib.
      */
-    addSSRCAttribute(ssrcObj: { id: number; attribute: string; value: string }): void {
+    addSSRCAttribute(ssrcObj: { attribute: string; id: number; value: string; }): void {
         this.ssrcs.push(ssrcObj);
     }
 
@@ -177,7 +177,7 @@ class MLineWrap {
      * @return {object|undefined} the SSRC group object or <tt>undefined</tt> if
      * not found.
      */
-    findGroup(semantics: string, ssrcs?: string): { semantics: string; ssrcs: string } | undefined {
+    findGroup(semantics: string, ssrcs?: string): { semantics: string; ssrcs: string; } | undefined {
         return this.ssrcGroups.find(
             group =>
                 group.semantics === semantics
@@ -190,7 +190,7 @@ class MLineWrap {
      * @return {Array.<object>} an array of SSRC group objects as defined by
      * the 'sdp-transform' lib.
      */
-    findGroups(semantics: string): Array<{ semantics: string; ssrcs: string }> {
+    findGroups(semantics: string): Array<{ semantics: string; ssrcs: string; }> {
         return this.ssrcGroups.filter(
             group => group.semantics === semantics);
     }
@@ -201,7 +201,7 @@ class MLineWrap {
      * @param {number} primarySSRC the primary SSRC number to be matched
      * @return {Object} SSRC group object as defined by the 'sdp-transform' lib.
      */
-    findGroupByPrimarySSRC(semantics: string, primarySSRC: number): { semantics: string; ssrcs: string } | undefined {
+    findGroupByPrimarySSRC(semantics: string, primarySSRC: number): { semantics: string; ssrcs: string; } | undefined {
         return this.ssrcGroups.find(
             group => group.semantics === semantics
                 && parsePrimarySSRC(group) === primarySSRC);
@@ -353,7 +353,7 @@ class MLineWrap {
      * @param {object} group the SSRC group object as defined by
      * the 'sdp-transform' lib.
      */
-    addSSRCGroup(group: { semantics: string; ssrcs: string }): void {
+    addSSRCGroup(group: { semantics: string; ssrcs: string; }): void {
         this.ssrcGroups.push(group);
     }
 }
@@ -397,7 +397,7 @@ export class SdpTransformWrap {
     selectMedia(mediaType: string): MLineWrap[] | null {
         const selectedMLines = this.parsedSDP.media
             .filter(mLine => mLine.type === mediaType)
-            .map(mLine => new MLineWrap(mLine as ImLine));
+            .map(mLine => new MLineWrap(mLine as IMLine));
 
         return selectedMLines ?? null;
     }
