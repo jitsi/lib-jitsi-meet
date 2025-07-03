@@ -15,9 +15,6 @@ const logger = getLogger('JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
-    hosts: {
-        domain: string;
-    };
     bridgeChannel?: {
         ignoreDomain?: string;
         preferSctp?: boolean;
@@ -25,6 +22,9 @@ export interface IConnectionOptions {
     disableFocus?: boolean;
     enableWebsocketResume: boolean;
     flags?: Record<string, any>;
+    hosts: {
+        domain: string;
+    };
     name?: string;
     p2pStunServers: any[];
     serviceUrl: string;
@@ -53,7 +53,7 @@ export default class JitsiConnection {
     private appID?: string;
     private token?: string;
     readonly options: IConnectionOptions;
-    public _xmpp: XMPP
+    public _xmpp: XMPP;
 
     /**
      * Creates a new JitsiConnection instance.
