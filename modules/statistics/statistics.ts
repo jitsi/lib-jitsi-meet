@@ -74,13 +74,6 @@ export default class Statistics {
     static pcStatsInterval: number = 10000;
 
     /**
-     * The interval for long tasks stats collection.
-     * @static
-     * @type {number}
-     */
-    static longTasksStatsInterval: number = 0;
-
-    /**
      * Flag indicating whether third party requests are disabled.
      * @static
      * @type {boolean}
@@ -119,7 +112,6 @@ export default class Statistics {
         disableAudioLevels?: boolean;
         pcStatsInterval?: number;
         audioLevelsInterval?: number;
-        longTasksStatsInterval?: number;
         disableThirdPartyRequests?: boolean;
     }): void {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
@@ -128,9 +120,6 @@ export default class Statistics {
         }
         if (typeof options.audioLevelsInterval === 'number') {
             Statistics.audioLevelsInterval = options.audioLevelsInterval;
-        }
-        if (typeof options.longTasksStatsInterval === 'number') {
-            Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
         }
         Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
         LocalStats.init();
