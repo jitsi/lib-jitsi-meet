@@ -140,7 +140,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @returns {void}
      */
-    _bindTrackHandlers(): void {
+    private _bindTrackHandlers(): void {
         this.track.addEventListener('mute', () => this._onTrackMute());
         this.track.addEventListener('unmute', () => this._onTrackUnmute());
         this.track.addEventListener('ended', () => {
@@ -155,7 +155,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    _addEventListener(event: string, handler: (...args: any[]) => void): void {
+    private _addEventListener(event: string, handler: (...args: any[]) => void): void {
         super.addListener(event, handler);
 
         if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
@@ -173,7 +173,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    _removeEventListener(event: string, handler: (...args: any[]) => void): void {
+    private _removeEventListener(event: string, handler: (...args: any[]) => void): void {
         super.removeListener(event, handler);
 
         if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
@@ -191,7 +191,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      * @returns {void}
      */
-    _onTrackMute(): void {
+    private _onTrackMute(): void {
         logger.debug(`"onmute" event(${Date.now()}): ${this}`);
 
         // Ignore mute events that get fired on desktop tracks because of 0Hz screensharing introduced in Chromium.
@@ -213,10 +213,211 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      * @returns {void}
      */
-    _onTrackUnmute(): void {
+    private _onTrackUnmute(): void {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+    }
+
+    /**
+     * Changes the video type of the track.
+     *
+     * @param {string} type - The new video type("camera", "desktop").
+     */
+    private _setVideoType(type: VideoType): void {
+        if (this.videoType === type) {
+            return;
+        }
+        this.videoType = type;
+        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
+    }
+
+    /**
+     * Handles track play events.
+     */
+    private _playCallback(): void {
+        if (!this.conference.room) {
+            return;
+        }
+
+        const type = this.isVideoTrack() ? 'video' : 'audio';
+
+        const now = window.performance.now();
+
+        logger.info(`(TIME) Render ${type}:\t`, now);
+        this.conference.getConnectionTimes()[`${type}.render`] = now;
+
+        // The conference can be started without calling GUM
+        // FIXME if there would be a module for connection times this kind
+        // of logic (gumDuration or ttfm) should end up there
+        const gumStart = window.connectionTimes['obtainPermissions.start'];
+        const gumEnd = window.connectionTimes['obtainPermissions.end'];
+        const gumDuration
+            = isValidNumber(gumEnd) && isValidNumber(gumStart) ? gumEnd - gumStart : 0;
+
+        // Subtract the muc.joined-to-session-initiate duration because jicofo
+        // waits until there are 2 participants to start Jingle sessions.
+        const ttfm = now
+            - (this.conference.getConnectionTimes()['session.initiate']
+                - this.conference.getConnectionTimes()['muc.joined'])
+            - gumDuration;
+
+        this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
+        logger.info(`(TIME) TTFM ${type}:\t`, ttfm);
+
+        Statistics.sendAnalytics(createTtfmEvent(
+            {
+                'media_type': type,
+                muted: this.hasBeenMuted,
+                value: ttfm
+            }));
+
+    }
+
+    /**
+     * Called when the track has been attached to a new container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @private
+     */
+    private _onTrackAttach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.addEventListener(event, this._containerHandlers[event]);
+        });
+    }
+
+    /**
+     * Called when the track has been detached from a container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @private
+     */
+    private _onTrackDetach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.removeEventListener(event, this._containerHandlers[event]);
+        });
+    }
+
+    /**
+     * An event handler for events triggered by the attached container.
+     *
+     * @param {string} type - The type of the event.
+     */
+    private _containerEventHandler(type: string): void {
+        logger.debug(`${type} handler was called for a container with attached ${this}`);
+    }
+
+    /**
+     * Returns a string with a description of the current status of the track.
+     *
+     * @returns {string}
+     */
+    private _getStatus(): string {
+        const { enabled, muted, readyState } = this.track;
+
+        return `readyState: ${readyState}, muted: ${muted}, enabled: ${enabled}`;
+    }
+
+    /**
+     * Initializes trackStreamingStatusImpl.
+     */
+    private _initTrackStreamingStatus(): void {
+        const config = this.conference.options.config;
+
+        this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
+
+        this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
+            this.rtc,
+            this.conference,
+            this,
+            {
+                // These options are not public API, leaving it here only as an entry point through config for
+                // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
+                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
+                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
+            });
+
+        this._trackStreamingStatusImpl.init();
+
+        // In some edge cases, both browser 'unmute' and bridge's forwarded sources events are received before a
+        // LargeVideoUpdate is scheduled for auto-pinning a new screenshare track. If there are no layout changes and
+        // no further track events are received for the SS track, a black tile will be displayed for screenshare on
+        // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
+        // track to prevent this from happening.
+        !this._trackStreamingStatusImpl.isVideoTrackFrozen()
+            && this.rtc.eventEmitter.emit(
+                JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
+                this,
+                this._trackStreamingStatus);
+    }
+
+    /**
+     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
+     */
+    private _disposeTrackStreamingStatus(): void {
+        if (this._trackStreamingStatusImpl) {
+            this._trackStreamingStatusImpl.dispose();
+            this._trackStreamingStatusImpl = null;
+            this._trackStreamingStatus = null;
+        }
+    }
+
+    /**
+     * Attach time to first media tracker only if there is conference and only
+     * for the first element.
+     * @param container the HTML container which can be 'video' or 'audio'
+     * element.
+     * @public
+     */
+    _attachTTFMTracker(container: HTMLElement): void {
+        if ((ttfmTrackerAudioAttached && this.isAudioTrack())
+                || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
+            return;
+        }
+
+        if (this.isAudioTrack()) {
+            ttfmTrackerAudioAttached = true;
+        }
+        if (this.isVideoTrack()) {
+            ttfmTrackerVideoAttached = true;
+        }
+
+        container.addEventListener('canplay', this._playCallback.bind(this));
+    }
+
+    /**
+         * Updates track's streaming status.
+         *
+         * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+         */
+    _setTrackStreamingStatus(status: TrackStreamingStatus): void {
+        this._trackStreamingStatus = status;
+    }
+
+    /**
+     * Clears the timestamp of when the track entered forwarded sources.
+     */
+    _clearEnteredForwardedSourcesTimestamp(): void {
+        this._enteredForwardedSourcesTimestamp = null;
+    }
+
+    /**
+     * Updates the timestamp of when the track entered forwarded sources.
+     *
+     * @param {number} timestamp the time in millis
+     */
+    _setEnteredForwardedSourcesTimestamp(timestamp: number): void {
+        this._enteredForwardedSourcesTimestamp = timestamp;
+    }
+
+    /**
+     * Returns the timestamp of when the track entered forwarded sources.
+     *
+     * @returns {number} the time in millis
+     */
+    _getEnteredForwardedSourcesTimestamp(): number | null {
+        return this._enteredForwardedSourcesTimestamp;
     }
 
     /**
@@ -323,182 +524,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Changes the video type of the track.
-     *
-     * @param {string} type - The new video type("camera", "desktop").
-     */
-    _setVideoType(type: VideoType): void {
-        if (this.videoType === type) {
-            return;
-        }
-        this.videoType = type;
-        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
-    }
-
-    /**
-     * Handles track play events.
-     */
-    _playCallback(): void {
-        if (!this.conference.room) {
-            return;
-        }
-
-        const type = this.isVideoTrack() ? 'video' : 'audio';
-
-        const now = window.performance.now();
-
-        logger.info(`(TIME) Render ${type}:\t`, now);
-        this.conference.getConnectionTimes()[`${type}.render`] = now;
-
-        // The conference can be started without calling GUM
-        // FIXME if there would be a module for connection times this kind
-        // of logic (gumDuration or ttfm) should end up there
-        const gumStart = window.connectionTimes['obtainPermissions.start'];
-        const gumEnd = window.connectionTimes['obtainPermissions.end'];
-        const gumDuration
-            = isValidNumber(gumEnd) && isValidNumber(gumStart) ? gumEnd - gumStart : 0;
-
-        // Subtract the muc.joined-to-session-initiate duration because jicofo
-        // waits until there are 2 participants to start Jingle sessions.
-        const ttfm = now
-            - (this.conference.getConnectionTimes()['session.initiate']
-                - this.conference.getConnectionTimes()['muc.joined'])
-            - gumDuration;
-
-        this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
-        logger.info(`(TIME) TTFM ${type}:\t`, ttfm);
-
-        Statistics.sendAnalytics(createTtfmEvent(
-            {
-                'media_type': type,
-                muted: this.hasBeenMuted,
-                value: ttfm
-            }));
-
-    }
-
-    /**
-     * Attach time to first media tracker only if there is conference and only
-     * for the first element.
-     * @param container the HTML container which can be 'video' or 'audio'
-     * element.
-     * @public
-     */
-    _attachTTFMTracker(container: HTMLElement): void {
-        if ((ttfmTrackerAudioAttached && this.isAudioTrack())
-            || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
-            return;
-        }
-
-        if (this.isAudioTrack()) {
-            ttfmTrackerAudioAttached = true;
-        }
-        if (this.isVideoTrack()) {
-            ttfmTrackerVideoAttached = true;
-        }
-
-        container.addEventListener('canplay', this._playCallback.bind(this));
-    }
-
-    /**
-     * Called when the track has been attached to a new container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackAttach(container: HTMLElement): void {
-        containerEvents.forEach(event => {
-            container.addEventListener(event, this._containerHandlers[event]);
-        });
-    }
-
-    /**
-     * Called when the track has been detached from a container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackDetach(container: HTMLElement): void {
-        containerEvents.forEach(event => {
-            container.removeEventListener(event, this._containerHandlers[event]);
-        });
-    }
-
-    /**
-     * An event handler for events triggered by the attached container.
-     *
-     * @param {string} type - The type of the event.
-     */
-    _containerEventHandler(type: string): void {
-        logger.debug(`${type} handler was called for a container with attached ${this}`);
-    }
-
-    /**
-     * Returns a string with a description of the current status of the track.
-     *
-     * @returns {string}
-     */
-    _getStatus(): string {
-        const { enabled, muted, readyState } = this.track;
-
-        return `readyState: ${readyState}, muted: ${muted}, enabled: ${enabled}`;
-    }
-
-    /**
-     * Initializes trackStreamingStatusImpl.
-     */
-    _initTrackStreamingStatus(): void {
-        const config = this.conference.options.config;
-
-        this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
-
-        this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
-            this.rtc,
-            this.conference,
-            this,
-            {
-                // These options are not public API, leaving it here only as an entry point through config for
-                // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
-                p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
-                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
-            });
-
-        this._trackStreamingStatusImpl.init();
-
-        // In some edge cases, both browser 'unmute' and bridge's forwarded sources events are received before a
-        // LargeVideoUpdate is scheduled for auto-pinning a new screenshare track. If there are no layout changes and
-        // no further track events are received for the SS track, a black tile will be displayed for screenshare on
-        // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
-        // track to prevent this from happening.
-        !this._trackStreamingStatusImpl.isVideoTrackFrozen()
-            && this.rtc.eventEmitter.emit(
-                JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
-                this,
-                this._trackStreamingStatus);
-    }
-
-    /**
-     * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
-     */
-    _disposeTrackStreamingStatus(): void {
-        if (this._trackStreamingStatusImpl) {
-            this._trackStreamingStatusImpl.dispose();
-            this._trackStreamingStatusImpl = null;
-            this._trackStreamingStatus = null;
-        }
-    }
-
-    /**
-     * Updates track's streaming status.
-     *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
-     */
-    _setTrackStreamingStatus(status: TrackStreamingStatus): void {
-        this._trackStreamingStatus = status;
-    }
-
-    /**
      * Returns track's streaming status.
      *
      * @returns {string} the streaming status <tt>TrackStreamingStatus</tt> of the track. Returns null
@@ -508,31 +533,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     getTrackStreamingStatus(): TrackStreamingStatus | null {
         return this._trackStreamingStatus;
-    }
-
-    /**
-     * Clears the timestamp of when the track entered forwarded sources.
-     */
-    _clearEnteredForwardedSourcesTimestamp(): void {
-        this._enteredForwardedSourcesTimestamp = null;
-    }
-
-    /**
-     * Updates the timestamp of when the track entered forwarded sources.
-     *
-     * @param {number} timestamp the time in millis
-     */
-    _setEnteredForwardedSourcesTimestamp(timestamp: number): void {
-        this._enteredForwardedSourcesTimestamp = timestamp;
-    }
-
-    /**
-     * Returns the timestamp of when the track entered forwarded sources.
-     *
-     * @returns {number} the time in millis
-     */
-    _getEnteredForwardedSourcesTimestamp(): number | null {
-        return this._enteredForwardedSourcesTimestamp;
     }
 
     /**
