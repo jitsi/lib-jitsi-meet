@@ -102,7 +102,6 @@ interface IJitsiMeetJSOptions {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
     };
-    longTasksStatsInterval?: number;
     audioLevelsInterval?: number;
     pcStatsInterval?: number;
 }
