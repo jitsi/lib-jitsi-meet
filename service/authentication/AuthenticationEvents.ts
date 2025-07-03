@@ -1,4 +1,4 @@
-const AuthenticationEvents = {
+export const AuthenticationEvents = {
     /**
      * Event callback arguments:
      * function(authenticationEnabled, userIdentity)
@@ -10,4 +10,4 @@ const AuthenticationEvents = {
     IDENTITY_UPDATED: 'authentication.identity_updated'
 };
 
-module.exports = AuthenticationEvents;
+export default AuthenticationEvents;
