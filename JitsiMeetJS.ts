@@ -92,6 +92,7 @@ interface IJitsiMeetJSOptions {
         rtcstatsLogFlushSizeBytes?: number;
         rtcstatsStoreLogs?: boolean;
     };
+    audioLevelsInterval?: number;
     desktopSharingSources?: Array<desktopSharingSourceType>;
     disableAudioLevels?: boolean;
     disableThirdPartyRequests?: boolean;
@@ -102,7 +103,6 @@ interface IJitsiMeetJSOptions {
         runInLiteMode?: boolean;
         ssrcRewritingEnabled?: boolean;
     };
-    audioLevelsInterval?: number;
     pcStatsInterval?: number;
 }
 
