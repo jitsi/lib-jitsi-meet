@@ -41,7 +41,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStats from './modules/statistics/SpeakerStats';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import EventEmitter from './modules/util/EventEmitter';
+import EventEmitter, { EventListener } from './modules/util/EventEmitter';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
@@ -240,64 +240,65 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  *       and so on...
  */
 export default class JitsiConference {
-    connection: JitsiConnection;
-    xmpp: XMPP;
-    eventEmitter: EventEmitter;
-    options: IConferenceOptions;
-    eventManager: JitsiConferenceEventManager;
-    participants: Map<string, JitsiParticipant>;
-    _signalingLayer: SignalingLayerImpl;
-    componentsVersions: ComponentsVersions;
-    jvbJingleSession?: JingleSessionPC;
-    lastDominantSpeaker?: string;
-    dtmfManager?: object;
-    somebodySupportsDTMF: boolean;
-    authEnabled: boolean;
-    startMutedPolicy: IStartMutedPolicy;
-    isMutedByFocus: boolean;
-    mutedByFocusActor?: string;
-    isVideoMutedByFocus: boolean;
-    mutedVideoByFocusActor?: string;
-    wasStopped: boolean;
-    properties: IConferenceProperties;
-    connectionQuality: ConnectionQuality;
-    avgRtpStatsReporter?: AvgRTPStatsReporter;
-    isJvbConnectionInterrupted: boolean;
-    speakerStatsCollector: SpeakerStatsCollector;
-    deferredStartP2PTask?: number;
-    backToP2PDelay: number;
-    isP2PConnectionInterrupted: boolean;
-    p2p: boolean;
-    p2pJingleSession?: JingleSessionPC;
-    videoSIPGWHandler: VideoSIPGW;
-    recordingManager: RecordingManager;
-    _conferenceJoinAnalyticsEventSent?: number;
-    _e2eEncryption?: E2EEncryption;
-    _liteModeContext?: LiteModeContext;
-    _audioSenderLimitReached?: boolean;
-    _videoSenderLimitReached?: boolean;
-    _firefoxP2pEnabled: boolean;
-    _iceRestarts: number;
-    room?: ChatRoom;
-    _statsCurrentId: string;
-    e2eping?: E2ePing;
-    rtc?: RTC;
-    qualityController?: QualityController;
-    statistics?: Statistics;
-    _audioAnalyser?: VADAudioAnalyser;
-    _noAudioSignalDetection?: NoAudioSignalDetection;
-    jvb121Status?: Jvb121EventGenerator;
-    p2pDominantSpeakerDetection?: P2PDominantSpeakerDetection;
-    _desktopSharingFrameRate?: number;
-    authIdentity?: string;
-    _sessionInitiateTimeout?: number;
-    _numberOfParticipantsOnJoin?: number;
-    _delayedIceFailed?: IceFailedHandling;
-    p2pEstablishmentDuration?: number;
-    jvbEstablishmentDuration?: number;
-    _transcribingEnabled?: boolean;
-    _visitorCodecs?: string[];
-    _hasVisitors?: boolean;
+    private _transcribingEnabled?: boolean;
+    private _visitorCodecs?: string[];
+    private _hasVisitors?: boolean;
+    private _sessionInitiateTimeout?: number;
+    private _desktopSharingFrameRate?: number;
+    private _numberOfParticipantsOnJoin?: number;
+    private _delayedIceFailed?: IceFailedHandling;
+    private _audioAnalyser?: VADAudioAnalyser;
+    private _noAudioSignalDetection?: NoAudioSignalDetection;
+    private _signalingLayer: SignalingLayerImpl;
+    private _conferenceJoinAnalyticsEventSent?: number;
+    private _e2eEncryption?: E2EEncryption;
+    private _liteModeContext?: LiteModeContext;
+    private _audioSenderLimitReached?: boolean;
+    private _videoSenderLimitReached?: boolean;
+    private _firefoxP2pEnabled: boolean;
+    private _iceRestarts: number;
+    public _statsCurrentId: string;
+    public connection: JitsiConnection;
+    public xmpp: XMPP;
+    public eventEmitter: EventEmitter;
+    public options: IConferenceOptions;
+    public eventManager: JitsiConferenceEventManager;
+    public participants: Map<string, JitsiParticipant>;
+    public componentsVersions: ComponentsVersions;
+    public jvbJingleSession?: JingleSessionPC;
+    public lastDominantSpeaker?: string;
+    public dtmfManager?: object;
+    public somebodySupportsDTMF: boolean;
+    public authEnabled: boolean;
+    public startMutedPolicy: IStartMutedPolicy;
+    public isMutedByFocus: boolean;
+    public mutedByFocusActor?: string;
+    public isVideoMutedByFocus: boolean;
+    public mutedVideoByFocusActor?: string;
+    public wasStopped: boolean;
+    public properties: IConferenceProperties;
+    public connectionQuality: ConnectionQuality;
+    public avgRtpStatsReporter?: AvgRTPStatsReporter;
+    public isJvbConnectionInterrupted: boolean;
+    public speakerStatsCollector: SpeakerStatsCollector;
+    public deferredStartP2PTask?: number;
+    public backToP2PDelay: number;
+    public isP2PConnectionInterrupted: boolean;
+    public p2p: boolean;
+    public p2pJingleSession?: JingleSessionPC;
+    public videoSIPGWHandler: VideoSIPGW;
+    public recordingManager: RecordingManager;
+    public room?: ChatRoom;
+    public e2eping?: E2ePing;
+    public rtc?: RTC;
+    public qualityController?: QualityController;
+    public statistics?: Statistics;
+    public jvb121Status?: Jvb121EventGenerator;
+    public p2pDominantSpeakerDetection?: P2PDominantSpeakerDetection;
+    public authIdentity?: string;
+    public p2pEstablishmentDuration?: number;
+    public jvbEstablishmentDuration?: number;
+
 
     /**
      * @param {IConferenceOptions} options
@@ -726,7 +727,7 @@ export default class JitsiConference {
 
         // Publish the codec preference to presence.
         this.setLocalParticipantProperty('codecList',
-             this.qualityController.codecController.getCodecPreferenceList('jvb').join(','));
+             this.qualityController.codecController.getCodecPreferenceList('jvb'));
 
         // Set transcription language presence extension.
         // In case the language config is undefined or has the default value that the transcriber uses
@@ -1081,7 +1082,7 @@ export default class JitsiConference {
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-    on(eventId: string, handler: (...args: any[]) => void): void {
+    on(eventId: string, handler: EventListener): void {
         if (this.eventEmitter) {
             this.eventEmitter.on(eventId, handler);
         }
@@ -1092,7 +1093,7 @@ export default class JitsiConference {
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-    once(eventId: string, handler: (...args: any[]) => void): void {
+    once(eventId: string, handler: EventListener): void {
         if (this.eventEmitter) {
             this.eventEmitter.once(eventId, handler);
         }
@@ -1103,7 +1104,7 @@ export default class JitsiConference {
    * @param {string} eventId - The event ID.
    * @param {Function} [handler] - Optional, the specific handler to unbind.
    */
-    off(eventId: string, handler?: (...args: any[]) => void): void {
+    off(eventId: string, handler?: EventListener): void {
         if (this.eventEmitter) {
             this.eventEmitter.removeListener(eventId, handler);
         }
@@ -1114,7 +1115,7 @@ export default class JitsiConference {
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-    addEventListener(eventId: string, handler: (...args: any[]) => void): void {
+    addEventListener(eventId: string, handler: EventListener): void {
         this.on(eventId, handler);
     }
 
@@ -1123,7 +1124,7 @@ export default class JitsiConference {
    * @param {string} eventId - The event ID.
    * @param {Function} [handler] - Optional, the specific handler to unbind.
    */
-    removeEventListener(eventId: string, handler?: (...args: any[]) => void): void {
+    removeEventListener(eventId: string, handler?: EventListener): void {
         this.off(eventId, handler);
     }
 
@@ -1133,7 +1134,7 @@ export default class JitsiConference {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler for the command.
    */
-    addCommandListener(command: string, handler: (...args: any[]) => void): void {
+    addCommandListener(command: string, handler: EventListener): void {
         if (this.room) {
             this.room.addPresenceListener(command, handler);
         }
@@ -1144,7 +1145,7 @@ export default class JitsiConference {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler to remove for the command.
    */
-    removeCommandListener(command: string, handler: (...args: any[]) => void): void {
+    removeCommandListener(command: string, handler: EventListener): void {
         if (this.room) {
             this.room.removePresenceListener(command, handler);
         }
@@ -1680,7 +1681,7 @@ export default class JitsiConference {
      * Returns whether or not the current conference has been joined as a hidden user.
      * @returns {boolean} True if hidden, false otherwise. Will return false if no connection is active.
      */
-    isHidden(): boolean{
+    isHidden(): boolean {
         if (!this.connection) {
             return false;
         }
@@ -2932,7 +2933,7 @@ export default class JitsiConference {
      * @param {string} value - The value of the property.
      * @returns {void}
      */
-    setLocalParticipantProperty(name: string, value: string): void {
+    setLocalParticipantProperty(name: string, value: string | string[]): void {
         this.sendCommand(`jitsi_participant_${name}`, { value });
     }
 
