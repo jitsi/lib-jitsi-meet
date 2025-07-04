@@ -199,7 +199,7 @@ const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
  * @returns {CodecMimeType|null} mime type if valid, null otherwise.
  * @private
  */
-function _getCodecMimeType(codec: string): CodecMimeType | null {
+function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
     if (typeof codec === 'string') {
         return Object.values(CodecMimeType).find(value => value === codec.toLowerCase()) || null;
     }
@@ -951,7 +951,7 @@ export default class JitsiConference {
    * Returns the currently active media session if any.
    * @returns {JingleSessionPC|undefined}
    */
-    getActiveMediaSession(): JingleSessionPC | undefined {
+    getActiveMediaSession(): Optional<JingleSessionPC> {
         return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
     }
 
@@ -1036,7 +1036,7 @@ export default class JitsiConference {
    * Get authorized login.
    * @returns {string|null}
    */
-    getAuthLogin(): string | null {
+    getAuthLogin(): Nullable<string> {
         return this.authIdentity;
     }
 
@@ -1060,7 +1060,7 @@ export default class JitsiConference {
    * Obtains local audio track.
    * @returns {JitsiLocalTrack|null}
    */
-    getLocalAudioTrack(): JitsiLocalTrack | null {
+    getLocalAudioTrack(): Nullable<JitsiLocalTrack> {
         return this.rtc ? this.rtc.getLocalAudioTrack() : null;
     }
 
@@ -1068,7 +1068,7 @@ export default class JitsiConference {
    * Obtains local video track.
    * @returns {JitsiLocalTrack|null}
    */
-    getLocalVideoTrack(): JitsiLocalTrack | null {
+    getLocalVideoTrack(): Nullable<JitsiLocalTrack> {
         return this.rtc ? this.rtc.getLocalVideoTrack() : null;
     }
 
@@ -1076,7 +1076,7 @@ export default class JitsiConference {
    * Returns all the local video tracks.
    * @returns {Array<JitsiLocalTrack>|null}
    */
-    getLocalVideoTracks(): JitsiLocalTrack[] | null {
+    getLocalVideoTracks(): Nullable<JitsiLocalTrack[]> {
         return this.rtc ? this.rtc.getLocalVideoTracks() : null;
     }
 
@@ -1685,7 +1685,7 @@ export default class JitsiConference {
      * Returns whether or not the current conference has been joined as a hidden user.
      * @returns {boolean|null} True if hidden, false otherwise. Will return null if no connection is active.
      */
-    isHidden(): boolean | null {
+    isHidden(): Nullable<boolean> {
         if (!this.connection) {
             return null;
         }
@@ -1699,7 +1699,7 @@ export default class JitsiConference {
      * @returns {boolean|null} true if local user is moderator, false otherwise. If
      * we're no longer in the conference room then <tt>null</tt> is returned.
      */
-    isModerator(): boolean | null {
+    isModerator(): Nullable<boolean> {
         return this.room ? this.room.isModerator() : null;
     }
 
@@ -1743,7 +1743,7 @@ export default class JitsiConference {
      * Obtains the forwarded sources list in this conference.
      * @return {Array<string>|null}
      */
-    getForwardedSources(): string[] | null {
+    getForwardedSources(): Nullable<string[]> {
         return this.rtc.getForwardedSources();
     }
 
@@ -1807,7 +1807,7 @@ export default class JitsiConference {
      * specified id (or undefined if there isn't one).
      * @param id the id of the participant.
      */
-    getParticipantById(id: string): JitsiParticipant | undefined {
+    getParticipantById(id: string): Optional<JitsiParticipant> {
         return this.participants.get(id);
     }
 
@@ -2697,7 +2697,7 @@ export default class JitsiConference {
      * Returns the local user's ID.
      * @returns {string|null} Local user's ID or null if not available.
      */
-    myUserId(): string | null {
+    myUserId(): Nullable<string> {
         return (
             this.room?.myroomjid
                 ? Strophe.getResourceFromJid(this.room.myroomjid)
@@ -2787,7 +2787,7 @@ export default class JitsiConference {
      * Returns the phone number for joining the conference.
      * @returns {string|null} The phone number or null if not available.
      */
-    getPhoneNumber(): string | null {
+    getPhoneNumber(): Nullable<string> {
         if (this.room) {
             return this.room.getPhoneNumber();
         }
@@ -2799,7 +2799,7 @@ export default class JitsiConference {
      * Returns the PIN for joining the conference via phone.
      * @returns {string|null} The phone PIN or null if not available.
      */
-    getPhonePin(): string | null {
+    getPhonePin(): Nullable<string> {
         if (this.room) {
             return this.room.getPhonePin();
         }
@@ -2811,7 +2811,7 @@ export default class JitsiConference {
      * Returns the meeting unique ID if any.
      * @returns {string|undefined} The meeting ID or undefined if not available.
      */
-    getMeetingUniqueId(): string | undefined {
+    getMeetingUniqueId(): Optional<string> {
         if (this.room) {
             return this.room.getMeetingId();
         }
@@ -2822,7 +2822,7 @@ export default class JitsiConference {
      * @returns {TraceablePeerConnection|null} The active peer connection or null if none is available.
      * @public
      */
-    getActivePeerConnection(): TraceablePeerConnection | null {
+    getActivePeerConnection(): Nullable<TraceablePeerConnection> {
         const session = this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
 
         return session ? session.peerconnection : null;
@@ -2834,7 +2834,7 @@ export default class JitsiConference {
      * be converted to "connected".
      * @returns {string|null} The ICE connection state or null if no active peer connection exists.
      */
-    getConnectionState(): string | null {
+    getConnectionState(): Nullable<string> {
         const peerConnection = this.getActivePeerConnection();
 
         return peerConnection ? peerConnection.getConnectionState() : null;
@@ -2969,7 +2969,7 @@ export default class JitsiConference {
      * @param {string} name - The name of the property to retrieve.
      * @returns {string|undefined} The value of the property if it exists, otherwise undefined.
      */
-    getLocalParticipantProperty(name: string): string | undefined {
+    getLocalParticipantProperty(name: string): Optional<string> {
         const property = this.room.presMap.nodes.find(prop =>
             prop.tagName === `jitsi_participant_${name}`
         );
@@ -3003,7 +3003,7 @@ export default class JitsiConference {
      * @param {JitsiTrack} track - The track to find the SSRC for.
      * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
      */
-    getSsrcByTrack(track: JitsiTrack): number | undefined {
+    getSsrcByTrack(track: JitsiTrack): Optional<number> {
         return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
     }
 
@@ -3022,7 +3022,7 @@ export default class JitsiConference {
      * @returns {boolean|null} True if the user is the conference focus,
      * false if not, null if not in MUC or invalid JID.
      */
-    isFocus(mucJid: string): boolean | null {
+    isFocus(mucJid: string): Nullable<boolean> {
         return this.room ? this.room.isFocus(mucJid) : null;
     }
 
@@ -3925,7 +3925,7 @@ export default class JitsiConference {
      * @return {string|null} an ICE state or <tt>null</tt> if there's currently
      * no P2P connection.
      */
-    getP2PConnectionState(): string | null {
+    getP2PConnectionState(): Nullable<string> {
         if (this.isP2PActive()) {
             return this.p2pJingleSession.peerconnection.getConnectionState();
         }
@@ -4328,7 +4328,7 @@ export default class JitsiConference {
      *
      * @returns {string}
      */
-    myLobbyUserId(): string | undefined {
+    myLobbyUserId(): Optional<string> {
         if (this.room) {
             return this.room.getLobby().getLocalId();
         }
@@ -4360,9 +4360,9 @@ export default class JitsiConference {
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    addLobbyMessageListener(listener: (message: object) => void): ((...args: unknown[]) => unknown) | undefined {
+    addLobbyMessageListener(listener: (message: object) => void): Optional<((...args: unknown[]) => unknown)> {
         if (this.room) {
-            return this.room.getLobby().addMessageListener(listener) as ((...args: unknown[]) => unknown) | undefined;
+            return this.room.getLobby().addMessageListener(listener) as Optional<((...args: unknown[]) => unknown)>;
         }
     }
 
@@ -4497,7 +4497,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the breakout rooms manager.
      */
-    getBreakoutRooms(): BreakoutRooms | undefined {
+    getBreakoutRooms(): Optional<BreakoutRooms> {
         return this.room?.getBreakoutRooms();
     }
 
@@ -4506,7 +4506,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the file sharing manager.
      */
-    getFileSharing(): FileSharing | undefined {
+    getFileSharing(): Optional<FileSharing> {
         return this.room?.getFileSharing();
     }
 
@@ -4515,7 +4515,7 @@ export default class JitsiConference {
      *
      * @returns {Object} the room metadata handler.
      */
-    getMetadataHandler(): RoomMetadata | undefined {
+    getMetadataHandler(): Optional<RoomMetadata> {
         return this.room?.getMetadataHandler();
     }
 
