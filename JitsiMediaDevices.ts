@@ -111,9 +111,6 @@ class JitsiMediaDevices extends Listenable {
      * @throws {TypeError}
      */
     _parsePermissionState(permissionStatus: PermissionStatus = {} as PermissionStatus): boolean {
-        // The status attribute is deprecated, and state
-        // should be used instead, but check both for now
-        // for backwards compatibility.
         const status = permissionStatus.state;
 
         if (typeof status !== 'string') {
