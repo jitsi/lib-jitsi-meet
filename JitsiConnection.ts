@@ -53,7 +53,7 @@ export default class JitsiConnection {
     private appID?: string;
     private token?: string;
     readonly options: IConnectionOptions;
-    public _xmpp: XMPP;
+    private _xmpp: XMPP;
 
     /**
      * Creates a new JitsiConnection instance.
@@ -247,8 +247,11 @@ export default class JitsiConnection {
 
         return data;
     }
-
-    public getXmpp(): XMPP {
+    /**
+     * Get the XMPP instance.
+     * @internal
+     */
+    get xmpp(): XMPP {
         return this._xmpp;
     }
 }
