@@ -56,6 +56,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
         this.connection.addHandler(this.onMuteVideo.bind(this),
             'http://jitsi.org/jitmeet/video', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onMuteDesktop.bind(this),
+            'http://jitsi.org/jitmeet/desktop', 'iq', 'set', null, null);
         this.connection.addHandler(this.onVisitors.bind(this),
             'jitsi:visitors', 'iq', 'set', null, null);
     }
@@ -185,7 +187,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
     }
 
     /**
-     * TODO: Document
+     * Handle remote mute request from focus.
+     *
      * @param iq
      */
     onMute(iq: Element): boolean {
@@ -203,7 +206,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
     }
 
     /**
-     * TODO: Document
+     * Handle remote video mute request from focus.
+     *
      * @param iq
      */
     onMuteVideo(iq: Element): boolean {
@@ -216,6 +220,25 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         room.onMuteVideo(iq);
+
+        return true;
+    }
+
+    /**
+     * Handle remote desktop sharing mute request from focus.
+     *
+     * @param iq
+     */
+    onMuteDesktop(iq) {
+        const from = iq.getAttribute('from');
+        const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
+        // Returning false would result in the listener being deregistered by Strophe
+        if (!room) {
+            return true;
+        }
+
+        room.onMuteDesktop(iq);
 
         return true;
     }
