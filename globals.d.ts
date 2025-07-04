@@ -2,8 +2,8 @@ export {};
 
 declare global {
     type Timeout = ReturnType<typeof setTimeout>;
-    type Nullable<T> = T | null;
     type Optional<T> = T | undefined;
+    type Nullable<T> = T | null;
     interface Window {
                 JitsiMeetJS?: {
             app?: {

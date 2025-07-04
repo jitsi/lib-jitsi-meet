@@ -834,7 +834,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
-    disconnect(ev) {
+    disconnect(ev = undefined) {
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {

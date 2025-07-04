@@ -68,7 +68,7 @@ export default class JingleSession extends Listenable {
         /**
          * The signaling layer.
          * @type {SignalingLayerImpl | null}
-         * @public
+         * @internal
          */
         this._signalingLayer = null;
 

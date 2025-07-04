@@ -484,7 +484,7 @@ export default class JitsiConference {
          */
         this._videoSenderLimitReached = undefined;
 
-        this._firefoxP2pEnabled = browser.isVersionGreaterThan(109) // TODO: to be fixed
+        this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
             && (this.options.config.testing?.enableFirefoxP2p ?? true);
 
         /**
@@ -533,24 +533,19 @@ export default class JitsiConference {
      * @param options {object}
      * @param options.connection {JitsiConnection} overrides this.connection
      */
-    _init(options: IConferenceOptions): void {
+    async _init(options: IConferenceOptions): Promise<void> {
         this.eventManager.setupXMPPListeners();
 
         const { config } = this.options;
 
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
-        this.xmpp.createRoom(
+        this.room = await this.xmpp.createRoom(
             this.options.name, {
                 ...config,
                 statsId: this._statsCurrentId
             },
             JitsiConference.resourceCreator
-        ).then(room => {
-            this.room = room as ChatRoom;
-        });
-
-        // Initialize with undefined, will be set when the promise resolves
-        this.room = undefined;
+        );
 
         this._signalingLayer.setChatRoom(this.room);
         this._signalingLayer.on(
@@ -900,7 +895,7 @@ export default class JitsiConference {
             // won't be usable anyway. This is done on success automatically
             // by the ChatRoom instance.
             this.getParticipants().forEach(
-        participant => this.onMemberLeft(participant.getJid(), 'conference-left')
+        participant => this.onMemberLeft(participant.getJid())
             );
         }
 
@@ -1199,7 +1194,7 @@ export default class JitsiConference {
    */
     sendCommand(name: string, values: Record<string, unknown>): void {
         if (this.room) {
-            this.room.addOrReplaceInPresence(name, values) && this.room.sendPresence(false);
+            this.room.addOrReplaceInPresence(name, values) && this.room.sendPresence();
         } else {
             logger.warn('Not sending a command, room not initialized.');
         }
@@ -1282,7 +1277,7 @@ export default class JitsiConference {
     /**
    * Adds JitsiLocalTrack object to the conference.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
-   * @returns {Promise<void | JitsiLocalTrack>}
+   * @returns {Promise<undefined | JitsiLocalTrack>}
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
@@ -1323,7 +1318,7 @@ export default class JitsiConference {
                     .then(() => {
                         this._setupNewTrack(track);
                         mediaType === MediaType.VIDEO && this._sendBridgeVideoTypeMessage(track);
-                        this._updateRoomPresence(this.getActiveMediaSession(), undefined);
+                        this._updateRoomPresence(this.getActiveMediaSession());
 
                         if (this.isMutedByFocus || this.isVideoMutedByFocus) {
                             this._fireMuteChangeEvent(track);
@@ -1340,7 +1335,7 @@ export default class JitsiConference {
                 // before signaling so that a fake participant tile is created for screenshare. Otherwise, presence will
                 // only be sent after a session-accept or source-add is ack'ed.
                 if (track.getVideoType() === VideoType.DESKTOP) {
-                    this._updateRoomPresence(this.getActiveMediaSession(), undefined);
+                    this._updateRoomPresence(this.getActiveMediaSession());
                 }
             });
     }
@@ -1491,7 +1486,7 @@ export default class JitsiConference {
                 if ((oldTrackBelongsToConference && oldTrack?.isVideoTrack()) || newTrack?.isVideoTrack()) {
                     this._sendBridgeVideoTypeMessage(newTrack);
                 }
-                this._updateRoomPresence(this.getActiveMediaSession(), undefined);
+                this._updateRoomPresence(this.getActiveMediaSession());
                 if (newTrack !== null && (this.isMutedByFocus || this.isVideoMutedByFocus)) {
                     this._fireMuteChangeEvent(newTrack);
                 }
@@ -1517,7 +1512,7 @@ export default class JitsiConference {
    * which describes the error.
    * @private
    */
-    _doReplaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
+    async _doReplaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
         const replaceTrackPromises = [];
 
         if (this.jvbJingleSession) {
@@ -1532,7 +1527,7 @@ export default class JitsiConference {
             logger.info('_doReplaceTrack - no P2P JingleSession');
         }
 
-        return Promise.all(replaceTrackPromises).then(() => { /* No-op */ });
+        await Promise.all(replaceTrackPromises);
     }
 
     /**
@@ -1624,7 +1619,7 @@ export default class JitsiConference {
    * @param {JitsiLocalTrack} track - The local track that will be added to the pc.
    * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
    */
-    _addLocalTrackToPc(track: JitsiLocalTrack): Promise<void> {
+    async _addLocalTrackToPc(track: JitsiLocalTrack): Promise<void> {
         const addPromises = [];
 
         if (track.conference === this) {
@@ -1645,7 +1640,7 @@ export default class JitsiConference {
             addPromises.push(this.addTrack(track));
         }
 
-        return Promise.allSettled(addPromises).then(() => { /* No-op */ });
+        await Promise.allSettled(addPromises);
     }
 
     /**
@@ -1683,11 +1678,11 @@ export default class JitsiConference {
 
     /**
      * Returns whether or not the current conference has been joined as a hidden user.
-     * @returns {boolean|null} True if hidden, false otherwise. Will return null if no connection is active.
+     * @returns {boolean} True if hidden, false otherwise. Will return false if no connection is active.
      */
-    isHidden(): Nullable<boolean> {
+    isHidden(): boolean{
         if (!this.connection) {
-            return null;
+            return false;
         }
 
         return Strophe.getDomainFromJid(this.connection.getJid())
@@ -1696,11 +1691,11 @@ export default class JitsiConference {
 
     /**
      * Check if local user is moderator.
-     * @returns {boolean|null} true if local user is moderator, false otherwise. If
-     * we're no longer in the conference room then <tt>null</tt> is returned.
+     * @returns {boolean} true if local user is moderator, false otherwise. If
+     * we're no longer in the conference room then <tt>false</tt> is returned.
      */
-    isModerator(): Nullable<boolean> {
-        return this.room ? this.room.isModerator() : null;
+    isModerator(): boolean {
+        return this.room ? this.room.isModerator() : false;
     }
 
     /**
@@ -1741,9 +1736,9 @@ export default class JitsiConference {
 
     /**
      * Obtains the forwarded sources list in this conference.
-     * @return {Array<string>|null}
+     * @return {Array<string>}
      */
-    getForwardedSources(): Nullable<string[]> {
+    getForwardedSources(): string[] {
         return this.rtc.getForwardedSources();
     }
 
@@ -1756,7 +1751,7 @@ export default class JitsiConference {
      * than -1.
      */
     setLastN(lastN: number): void {
-        if (!Number.isInteger(lastN) && !Number.parseInt(String(lastN), 10)) {
+        if (!Number.isInteger(lastN)) {
             throw new Error(`Invalid value for lastN: ${lastN}`);
         }
         const n = Number(lastN);
@@ -1967,7 +1962,7 @@ export default class JitsiConference {
 
         // maybeStart only if we had finished joining as then we will have information for the number of participants
         if (this.isJoined()) {
-            this._maybeStartOrStopP2P(false);
+            this._maybeStartOrStopP2P();
         }
 
         this._maybeSetSITimeout();
@@ -2007,7 +2002,7 @@ export default class JitsiConference {
      */
     _onMucJoined(): void {
         this._numberOfParticipantsOnJoin = this.getParticipantCount();
-        this._maybeStartOrStopP2P(false);
+        this._maybeStartOrStopP2P();
     }
 
     /**
@@ -2061,7 +2056,7 @@ export default class JitsiConference {
         // the real participant had already replaced it.
         // In this case we can check and try p2p
         if (!botParticipant.getBotType()) {
-            this._maybeStartOrStopP2P(false);
+            this._maybeStartOrStopP2P();
         }
     }
 
@@ -2144,7 +2139,7 @@ export default class JitsiConference {
         }
 
         if (isSelfPresence) {
-            this.leave().finally(() => this.xmpp.disconnect(undefined));
+            this.leave().finally(() => this.xmpp.disconnect());
             this.eventEmitter.emit(
                 JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
 
@@ -2864,7 +2859,7 @@ export default class JitsiConference {
                 video: policy.video,
                 xmlns: 'http://jitsi.org/jitmeet/start-muted'
             }
-        }) && this.room.sendPresence(false);
+        }) && this.room.sendPresence();
 
         this.getMetadataHandler().setMetadata('startMuted', {
             audio: policy.audio,
@@ -2949,7 +2944,7 @@ export default class JitsiConference {
     removeLocalParticipantProperty(name: string): void {
         this.removeCommand(`jitsi_participant_${name}`);
         if (this.room) {
-            this.room.sendPresence(false);
+            this.room.sendPresence();
         }
     }
 
@@ -3640,7 +3635,7 @@ export default class JitsiConference {
      * originates from the user left event.
      * @private
      */
-    _maybeStartOrStopP2P(userLeftEvent: boolean): void {
+    _maybeStartOrStopP2P(userLeftEvent: boolean = false): void {
         if (!this.isP2PEnabled()
                 || this.isP2PTestModeEnabled()
                 || (browser.isFirefox() && !this._firefoxP2pEnabled)
@@ -3906,7 +3901,7 @@ export default class JitsiConference {
             presenceChanged = presenceChanged || muteStatusChanged || videoTypeChanged;
         }
 
-        presenceChanged && this.room.sendPresence(false);
+        presenceChanged && this.room.sendPresence();
     }
 
     /**
