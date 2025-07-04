@@ -5,14 +5,18 @@ import Listenable from './modules/util/Listenable';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
 
-const AUDIO_PERMISSION_NAME = 'microphone';
+const AUDIO_PERMISSION_NAME = 'microphone' as PermissionName;
 const PERMISSION_GRANTED_STATUS = 'granted';
-const VIDEO_PERMISSION_NAME = 'camera';
+const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 
 /**
  * Media devices utilities for Jitsi.
  */
 class JitsiMediaDevices extends Listenable {
+    private _initialized: boolean;
+    private _permissions: { [key: string]: boolean; };
+    private _permissionsApiSupported: Promise<boolean>;
+
     /**
      * Initializes a {@code JitsiMediaDevices} object. There will be a single
      * instance of this class.
@@ -21,12 +25,13 @@ class JitsiMediaDevices extends Listenable {
         super();
         this._initialized = false;
         this._permissions = {};
+        this._permissionsApiSupported = Promise.resolve(false);
     }
 
     /**
      * Initialize. Start listening for device changes and initialize permissions checks.
      */
-    init() {
+    init(): void {
         if (this._initialized) {
             return;
         }
@@ -53,19 +58,17 @@ class JitsiMediaDevices extends Listenable {
                 return;
             }
 
-            const self = this;
-
-            const promises = [];
+            const promises: Promise<boolean>[] = [];
 
             promises.push(navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
                 .then(status => {
                     this._handlePermissionsChange({
                         [MediaType.VIDEO]: this._parsePermissionState(status)
                     });
-                    status.onchange = function() {
+                    status.onchange = () => {
                         try {
-                            self._handlePermissionsChange({
-                                [MediaType.VIDEO]: self._parsePermissionState(this)
+                            this._handlePermissionsChange({
+                                [MediaType.VIDEO]: this._parsePermissionState(status)
                             });
                         } catch (error) {
                             // Nothing to do.
@@ -81,10 +84,10 @@ class JitsiMediaDevices extends Listenable {
                     this._handlePermissionsChange({
                         [MediaType.AUDIO]: this._parsePermissionState(status)
                     });
-                    status.onchange = function() {
+                    status.onchange = () => {
                         try {
-                            self._handlePermissionsChange({
-                                [MediaType.AUDIO]: self._parsePermissionState(this)
+                            this._handlePermissionsChange({
+                                [MediaType.AUDIO]: this._parsePermissionState(status)
                             });
                         } catch (error) {
                             // Nothing to do.
@@ -107,11 +110,8 @@ class JitsiMediaDevices extends Listenable {
      * @returns {boolean} - True for granted and false for denied.
      * @throws {TypeError}
      */
-    _parsePermissionState(permissionStatus = {}) {
-        // The status attribute is deprecated, and state
-        // should be used instead, but check both for now
-        // for backwards compatibility.
-        const status = permissionStatus.state || permissionStatus.status;
+    _parsePermissionState(permissionStatus: PermissionStatus = {} as PermissionStatus): boolean {
+        const status = permissionStatus.state;
 
         if (typeof status !== 'string') {
             throw new TypeError();
@@ -127,7 +127,7 @@ class JitsiMediaDevices extends Listenable {
      *
      * @param {Object} permissions - Object with the permissions.
      */
-    _handlePermissionsChange(permissions) {
+    _handlePermissionsChange(permissions: { [key: string]: boolean; }): void {
         const hasPermissionsChanged
             = [ MediaType.AUDIO, MediaType.VIDEO ]
                 .some(type => type in permissions && permissions[type] !== this._permissions[type]);
@@ -142,8 +142,9 @@ class JitsiMediaDevices extends Listenable {
             if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
                 // Triggering device list update when the permissions are granted in order to update
                 // the labels the devices.
-                // eslint-disable-next-line no-empty-function
-                this.enumerateDevices(() => {});
+                this.enumerateDevices(() => {
+                    // Empty callback - device list update triggered
+                });
             }
         }
     }
@@ -152,7 +153,7 @@ class JitsiMediaDevices extends Listenable {
      * Executes callback with list of media devices connected.
      * @param {function} callback
      */
-    enumerateDevices(callback) {
+    enumerateDevices(callback: (devices: MediaDeviceInfo[]) => void): void {
         RTC.enumerateDevices(callback);
     }
 
@@ -163,7 +164,7 @@ class JitsiMediaDevices extends Listenable {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable(deviceType) {
+    isDeviceChangeAvailable(deviceType?: string): boolean {
         return RTC.isDeviceChangeAvailable(deviceType);
     }
 
@@ -174,7 +175,7 @@ class JitsiMediaDevices extends Listenable {
      *      undefined stands for both 'audio' and 'video' together
      * @returns {Promise<boolean>}
      */
-    isDevicePermissionGranted(type) {
+    isDevicePermissionGranted(type?: MediaType): Promise<boolean> {
         return new Promise(resolve => {
             // Shortcut: first check if we already know the permission was
             // granted.
@@ -192,7 +193,7 @@ class JitsiMediaDevices extends Listenable {
                     return;
                 }
 
-                const promises = [];
+                const promises: Promise<PermissionStatus>[] = [];
 
                 switch (type) {
                 case MediaType.VIDEO:
@@ -237,9 +238,9 @@ class JitsiMediaDevices extends Listenable {
      *
      * @returns {boolean}
      */
-    isMultipleAudioInputSupported() {
+    isMultipleAudioInputSupported(): boolean {
         return !(
-            (browser.isFirefox() && browser.isVersionLessThan('101'))
+            (browser.isFirefox() && browser.isVersionLessThan(101))
             || browser.isIosBrowser()
         );
     }
@@ -249,7 +250,7 @@ class JitsiMediaDevices extends Listenable {
      * for default device
      * @returns {string}
      */
-    getAudioOutputDevice() {
+    getAudioOutputDevice(): string {
         return RTC.getAudioOutputDevice();
     }
 
@@ -261,7 +262,7 @@ class JitsiMediaDevices extends Listenable {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    setAudioOutputDevice(deviceId) {
+    setAudioOutputDevice(deviceId: string): Promise<void> {
         return RTC.setAudioOutputDevice(deviceId);
     }
 }
