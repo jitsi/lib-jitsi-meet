@@ -542,15 +542,13 @@ export default class JitsiConference extends Listenable{
         const { config } = this.options;
 
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
-        this.xmpp.createRoom(
+        this.room = this.xmpp.createRoom(
             this.options.name, {
                 ...config,
                 statsId: this._statsCurrentId
             },
             JitsiConference.resourceCreator
-        ).then(room => {
-            this.room = room;
-        });
+        )
 
         this._signalingLayer.setChatRoom(this.room);
         this._signalingLayer.on(
