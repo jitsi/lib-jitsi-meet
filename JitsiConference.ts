@@ -764,7 +764,7 @@ export default class JitsiConference extends Listenable{
    * authenticating and upgrading the role of the local participant/user finishes
    * and (2) has a cancel method that allows the caller to interrupt the process.
    */
-    authenticateAndUpgradeRole(options) {
+    authenticateAndUpgradeRole(options){ // TODO: fix types after migration of authenticateAndUpgradeRole.js
         return authenticateAndUpgradeRole.call(this, {
             ...options,
             onCreateResource: JitsiConference.resourceCreator
@@ -1080,18 +1080,6 @@ export default class JitsiConference extends Listenable{
         return this.rtc ? this.rtc.getLocalVideoTracks() : null;
     }
 
-//     /**
-//    * Attaches a handler for events (e.g., "participant joined") in the conference.
-//    * All possible events are defined in JitsiConferenceEvents.
-//    * @param {string} eventId - The event ID.
-//    * @param {Function} handler - Handler for the event.
-//    */
-//     on(eventId: string, handler: EventListener): void {
-//         if (this.eventEmitter) {
-//             this.eventEmitter.on(eventId, handler);
-//         }
-//     }
-
     /**
    * Adds a one-time listener function for the event.
    * @param {string} eventId - The event ID.
@@ -1102,35 +1090,6 @@ export default class JitsiConference extends Listenable{
             this.eventEmitter.once(eventId, handler);
         }
     }
-
-//     /**
-//    * Removes event listener.
-//    * @param {string} eventId - The event ID.
-//    * @param {Function} [handler] - Optional, the specific handler to unbind.
-//    */
-//     off(eventId: string, handler?: EventListener): void {
-//         if (this.eventEmitter) {
-//             this.eventEmitter.removeListener(eventId, handler);
-//         }
-//     }
-
-//     /**
-//    * Alias for on method.
-//    * @param {string} eventId - The event ID.
-//    * @param {Function} handler - Handler for the event.
-//    */
-//     addEventListener(eventId: string, handler: EventListener): void {
-//         this.on(eventId, handler);
-//     }
-
-//     /**
-//    * Alias for off method.
-//    * @param {string} eventId - The event ID.
-//    * @param {Function} [handler] - Optional, the specific handler to unbind.
-//    */
-//     removeEventListener(eventId: string, handler?: EventListener): void {
-//         this.off(eventId, handler);
-//     }
 
     /**
    * Receives notifications from other participants about commands / custom events
@@ -2724,7 +2683,7 @@ export default class JitsiConference extends Listenable{
     /**
      * Starts recording the current conference.
      *
-     * @param {Object} options - Configuration for the recording. See
+     * @param {IRecordingOptions} options - Configuration for the recording. See
      * {@link Chatroom#startRecording} for more info.
      * @returns {Promise} Resolves when recording starts successfully, rejects otherwise.
      */
@@ -3992,7 +3951,7 @@ export default class JitsiConference extends Listenable{
 
     /**
      * Get a summary of how long current participants have been the dominant speaker
-     * @returns {object} The speaker statistics.
+     * @returns {{[userId: string]: SpeakerStats}} The speaker statistics.
      */
     getSpeakerStats(): { [userId: string]: SpeakerStats; } {
         return this.speakerStatsCollector.getStats();
@@ -4000,7 +3959,7 @@ export default class JitsiConference extends Listenable{
 
     /**
      * Sends a face landmarks object to the xmpp server.
-     * @param {Object} payload - The face landmarks data to send.
+     * @param {{ faceExpression?: unknown; }} payload - The face landmarks data to send.
      * @returns {void}
      */
     sendFaceLandmarks(payload: { faceExpression?: unknown; }): void {
@@ -4360,9 +4319,9 @@ export default class JitsiConference extends Listenable{
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    addLobbyMessageListener(listener: (message: object) => void): Optional<((...args: unknown[]) => unknown)> {
+    addLobbyMessageListener(listener: (message: object) => void): Optional<EventListener> {
         if (this.room) {
-            return this.room.getLobby().addMessageListener(listener) as Optional<((...args: unknown[]) => unknown)>;
+            return this.room.getLobby().addMessageListener(listener) as Optional<EventListener>;
         }
     }
 
@@ -4495,7 +4454,7 @@ export default class JitsiConference extends Listenable{
     /**
      * Returns the breakout rooms manager object.
      *
-     * @returns {Object} the breakout rooms manager.
+     * @returns {Optional<BreakoutRooms>} the breakout rooms manager.
      */
     getBreakoutRooms(): Optional<BreakoutRooms> {
         return this.room?.getBreakoutRooms();
@@ -4504,7 +4463,7 @@ export default class JitsiConference extends Listenable{
     /**
      * Returns the file sharing manager object.
      *
-     * @returns {Object} the file sharing manager.
+     * @returns {Optional<FileSharing>} the file sharing manager.
      */
     getFileSharing(): Optional<FileSharing> {
         return this.room?.getFileSharing();
@@ -4513,7 +4472,7 @@ export default class JitsiConference extends Listenable{
     /**
      * Returns the metadata handler object.
      *
-     * @returns {Object} the room metadata handler.
+     * @returns {Optional<RoomMetadata>} the room metadata handler.
      */
     getMetadataHandler(): Optional<RoomMetadata> {
         return this.room?.getMetadataHandler();
