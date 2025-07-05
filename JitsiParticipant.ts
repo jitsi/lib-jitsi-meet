@@ -32,9 +32,18 @@ export default class JitsiParticipant {
     private _sources: Map<MediaType, Map<string, ISourceInfo>>;
     private _botType?: string;
     private _connectionJid?: string;
-    public _displayName: string;
-    public _supportsDTMF: boolean;
-    public _tracks: JitsiRemoteTrack[];
+    /**
+     * @internal
+     */
+    _displayName: string;
+    /**
+     * @internal
+     */
+    _supportsDTMF: boolean;
+    /**
+     * @internal
+     */
+    _tracks: JitsiRemoteTrack[];
 
     /* eslint-disable max-params */
 
