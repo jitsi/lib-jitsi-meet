@@ -206,7 +206,7 @@ export class CodecSelection {
         // Include the visitor codecs.
         this.visitorCodecs.length && remoteCodecsPerParticipant.push(this.visitorCodecs);
 
-        const selectedCodecOrder = localPreferredCodecOrder.reduce<string[]>((acc, localCodec) => {
+        const selectedCodecOrder = localPreferredCodecOrder.reduce<CodecMimeType[]>((acc, localCodec) => {
             let codecNotSupportedByRemote = false;
 
             // Remove any codecs that are not supported by any of the remote endpoints. The order of the supported
@@ -218,9 +218,8 @@ export class CodecSelection {
                     || !remoteCodecs.find(participantCodec => participantCodec === localCodec);
                 }
             }
-
             if (!codecNotSupportedByRemote) {
-                acc.push(localCodec);
+                acc.push(localCodec as CodecMimeType);
             }
 
             return acc;
@@ -232,7 +231,7 @@ export class CodecSelection {
             return;
         }
 
-        session.setVideoCodecs(selectedCodecOrder, this.screenshareCodec?.jvb);
+        session.setVideoCodecs(selectedCodecOrder, this.screenshareCodec?.jvb as CodecMimeType);
     }
 
     /**

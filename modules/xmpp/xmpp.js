@@ -25,6 +25,7 @@ import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
+import ChatRoom from './ChatRoom';
 
 const logger = getLogger('modules/xmpp/xmpp');
 
@@ -735,7 +736,7 @@ export default class XMPP extends Listenable {
      * @param {Object} options - Configuration for how to join the muc.
      * @param {Function} [onCreateResource] - Callback to invoke when a resource
      * is to be added to the jid.
-     * @returns {Promise} Resolves with an instance of a strophe muc.
+     * @returns {ChatRoom} Resolves with an instance of a strophe muc.
      */
     createRoom(roomName, options, onCreateResource) {
         // Support passing the domain in a String object as part of the room name.
@@ -834,7 +835,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
-    disconnect(ev) {
+    disconnect(ev = undefined) {
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {
