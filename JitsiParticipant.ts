@@ -34,7 +34,7 @@ export default class JitsiParticipant {
     private _connectionJid?: string;
     public _displayName: string;
     public _supportsDTMF: boolean;
-    public _tracks: (JitsiTrack | JitsiRemoteTrack)[];
+    public _tracks: JitsiRemoteTrack[];
 
     /* eslint-disable max-params */
 
@@ -241,19 +241,19 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array.<JitsiTrack|JitsiRemoteTrack>} The list of media tracks for this
+     * @returns {Array.<JitsiRemoteTrack>} The list of media tracks for this
      * participant.
      */
-    getTracks(): (JitsiTrack | JitsiRemoteTrack)[] {
+    getTracks(): (JitsiRemoteTrack)[] {
         return this._tracks.slice();
     }
 
     /**
      * @param {MediaType} mediaType
-     * @returns {Array.<JitsiTrack|JitsiRemoteTrack>} an array of media tracks for this
+     * @returns {Array.<JitsiRemoteTrack>} an array of media tracks for this
      * participant, for given media type.
      */
-    getTracksByMediaType(mediaType: MediaType): (JitsiTrack | JitsiRemoteTrack)[] {
+    getTracksByMediaType(mediaType: MediaType): (JitsiRemoteTrack)[] {
         return this.getTracks().filter(track => track.getType() === mediaType);
     }
 

@@ -87,6 +87,7 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import Listenable from './modules/util/Listenable';
 
 export interface IConferenceOptions {
     config: {
@@ -239,7 +240,7 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  *       {@link JitsiConference.onMemberLeft}
  *       and so on...
  */
-export default class JitsiConference {
+export default class JitsiConference extends Listenable{
     private _transcribingEnabled?: boolean;
     private _visitorCodecs?: string[];
     private _hasVisitors?: boolean;
@@ -304,6 +305,7 @@ export default class JitsiConference {
      * @param {IConferenceOptions} options
      */
     constructor(options: IConferenceOptions) {
+        super()
         if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
             const errmsg
                 = 'Invalid conference name (no conference name passed or it '
@@ -534,19 +536,21 @@ export default class JitsiConference {
      * @param options {object}
      * @param options.connection {JitsiConnection} overrides this.connection
      */
-    async _init(options: IConferenceOptions): Promise<void> {
+    _init(options: IConferenceOptions): void {
         this.eventManager.setupXMPPListeners();
 
         const { config } = this.options;
 
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
-        this.room = await this.xmpp.createRoom(
+        this.xmpp.createRoom(
             this.options.name, {
                 ...config,
                 statsId: this._statsCurrentId
             },
             JitsiConference.resourceCreator
-        );
+        ).then(room => {
+            this.room = room;
+        });
 
         this._signalingLayer.setChatRoom(this.room);
         this._signalingLayer.on(
@@ -1076,17 +1080,17 @@ export default class JitsiConference {
         return this.rtc ? this.rtc.getLocalVideoTracks() : null;
     }
 
-    /**
-   * Attaches a handler for events (e.g., "participant joined") in the conference.
-   * All possible events are defined in JitsiConferenceEvents.
-   * @param {string} eventId - The event ID.
-   * @param {Function} handler - Handler for the event.
-   */
-    on(eventId: string, handler: EventListener): void {
-        if (this.eventEmitter) {
-            this.eventEmitter.on(eventId, handler);
-        }
-    }
+//     /**
+//    * Attaches a handler for events (e.g., "participant joined") in the conference.
+//    * All possible events are defined in JitsiConferenceEvents.
+//    * @param {string} eventId - The event ID.
+//    * @param {Function} handler - Handler for the event.
+//    */
+//     on(eventId: string, handler: EventListener): void {
+//         if (this.eventEmitter) {
+//             this.eventEmitter.on(eventId, handler);
+//         }
+//     }
 
     /**
    * Adds a one-time listener function for the event.
@@ -1099,34 +1103,34 @@ export default class JitsiConference {
         }
     }
 
-    /**
-   * Removes event listener.
-   * @param {string} eventId - The event ID.
-   * @param {Function} [handler] - Optional, the specific handler to unbind.
-   */
-    off(eventId: string, handler?: EventListener): void {
-        if (this.eventEmitter) {
-            this.eventEmitter.removeListener(eventId, handler);
-        }
-    }
+//     /**
+//    * Removes event listener.
+//    * @param {string} eventId - The event ID.
+//    * @param {Function} [handler] - Optional, the specific handler to unbind.
+//    */
+//     off(eventId: string, handler?: EventListener): void {
+//         if (this.eventEmitter) {
+//             this.eventEmitter.removeListener(eventId, handler);
+//         }
+//     }
 
-    /**
-   * Alias for on method.
-   * @param {string} eventId - The event ID.
-   * @param {Function} handler - Handler for the event.
-   */
-    addEventListener(eventId: string, handler: EventListener): void {
-        this.on(eventId, handler);
-    }
+//     /**
+//    * Alias for on method.
+//    * @param {string} eventId - The event ID.
+//    * @param {Function} handler - Handler for the event.
+//    */
+//     addEventListener(eventId: string, handler: EventListener): void {
+//         this.on(eventId, handler);
+//     }
 
-    /**
-   * Alias for off method.
-   * @param {string} eventId - The event ID.
-   * @param {Function} [handler] - Optional, the specific handler to unbind.
-   */
-    removeEventListener(eventId: string, handler?: EventListener): void {
-        this.off(eventId, handler);
-    }
+//     /**
+//    * Alias for off method.
+//    * @param {string} eventId - The event ID.
+//    * @param {Function} [handler] - Optional, the specific handler to unbind.
+//    */
+//     removeEventListener(eventId: string, handler?: EventListener): void {
+//         this.off(eventId, handler);
+//     }
 
     /**
    * Receives notifications from other participants about commands / custom events

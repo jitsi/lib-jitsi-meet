@@ -107,15 +107,15 @@ export default class JitsiConnection {
         RTCStats.startWithConnection(this);
 
         // if we get redirected, we set disableFocus to skip sending the conference request twice
-        if (this._xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
+        if (this.xmpp.moderator.targetUrl && !this.options.disableFocus && options.name) {
             // The domain (optional) will uses this.options.hosts.muc.toLowerCase() if not provided
-            this._xmpp.moderator.sendConferenceRequest(this._xmpp.getRoomJid(options.name, undefined))
+            this.xmpp.moderator.sendConferenceRequest(this.xmpp.getRoomJid(options.name, undefined))
                 .then(() => {
-                    this._xmpp.connect(options.id, options.password);
+                    this.xmpp.connect(options.id, options.password);
                 })
                 .catch(e => logger.trace('sendConferenceRequest rejected', e));
         } else {
-            this._xmpp.connect(options.id, options.password);
+            this.xmpp.connect(options.id, options.password);
         }
     }
 
@@ -127,7 +127,7 @@ export default class JitsiConnection {
      * @param options - Connecting options - rid, sid and jid.
      */
     attach(options: IAttachOptions): void {
-        this._xmpp.attach(options);
+        this.xmpp.attach(options);
     }
 
     /**
@@ -140,7 +140,7 @@ export default class JitsiConnection {
         // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
         // may optionally pass the event which triggered the disconnect in order to
         // provide the implementation with finer-grained context.
-        return this._xmpp.disconnect(...args);
+        return this.xmpp.disconnect(...args);
     }
 
     /**
@@ -149,7 +149,7 @@ export default class JitsiConnection {
      * @returns The jid of the participant.
      */
     getJid(): string {
-        return this._xmpp.getJid();
+        return this.xmpp.getJid();
     }
 
     /**
@@ -182,7 +182,7 @@ export default class JitsiConnection {
      * @param listener - The function that will receive the event
      */
     addEventListener(event: JitsiConnectionEvents, listener: (...args: any[]) => void): void {
-        this._xmpp.addListener(event, listener);
+        this.xmpp.addListener(event, listener);
     }
 
     /**
@@ -191,7 +191,7 @@ export default class JitsiConnection {
      * @param listener - The function that will receive the event
      */
     removeEventListener(event: JitsiConnectionEvents, listener: (...args: any[]) => void): void {
-        this._xmpp.removeListener(event, listener);
+        this.xmpp.removeListener(event, listener);
     }
 
     /**
@@ -199,7 +199,7 @@ export default class JitsiConnection {
      * @returns Object containing connection timing information
      */
     getConnectionTimes(): Record<string, any> {
-        return this._xmpp.connectionTimes;
+        return this.xmpp.connectionTimes;
     }
 
     /**
@@ -210,7 +210,7 @@ export default class JitsiConnection {
      * immediately submitted to the others.
      */
     addFeature(feature: string, submit: boolean = false): void {
-        this._xmpp.caps.addFeature(feature, submit, true);
+        this.xmpp.caps.addFeature(feature, submit, true);
     }
 
     /**
@@ -221,7 +221,7 @@ export default class JitsiConnection {
      * immediately submitted to the others.
      */
     removeFeature(feature: string, submit: boolean = false): void {
-        this._xmpp.caps.removeFeature(feature, submit, true);
+        this.xmpp.caps.removeFeature(feature, submit, true);
     }
 
     /**
@@ -229,7 +229,7 @@ export default class JitsiConnection {
      * @returns Object containing connection logs and metadata
      */
     getLogs(): Record<string, any> {
-        const data = this._xmpp.getJingleLog();
+        const data = this.xmpp.getJingleLog();
 
         const metadata: Record<string, any> = {};
 
@@ -237,7 +237,7 @@ export default class JitsiConnection {
         metadata.url = window.location.href;
         metadata.ua = navigator.userAgent;
 
-        const log = this._xmpp.getXmppLog();
+        const log = this.xmpp.getXmppLog();
 
         if (log) {
             metadata.xmpp = log;
