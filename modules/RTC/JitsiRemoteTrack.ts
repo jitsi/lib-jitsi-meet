@@ -369,7 +369,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * for the first element.
      * @param container the HTML container which can be 'video' or 'audio'
      * element.
-     * @public
+     * @internal
      */
     _attachTTFMTracker(container: HTMLElement): void {
         if ((ttfmTrackerAudioAttached && this.isAudioTrack())
@@ -391,6 +391,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
          * Updates track's streaming status.
          *
          * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+         * @internal
          */
     _setTrackStreamingStatus(status: TrackStreamingStatus): void {
         this._trackStreamingStatus = status;
@@ -398,6 +399,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     /**
      * Clears the timestamp of when the track entered forwarded sources.
+     * @internal
      */
     _clearEnteredForwardedSourcesTimestamp(): void {
         this._enteredForwardedSourcesTimestamp = null;
@@ -407,6 +409,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Updates the timestamp of when the track entered forwarded sources.
      *
      * @param {number} timestamp the time in millis
+     * @internal
      */
     _setEnteredForwardedSourcesTimestamp(timestamp: number): void {
         this._enteredForwardedSourcesTimestamp = timestamp;
@@ -416,6 +419,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Returns the timestamp of when the track entered forwarded sources.
      *
      * @returns {number} the time in millis
+     * @internal
      */
     _getEnteredForwardedSourcesTimestamp(): number | null {
         return this._enteredForwardedSourcesTimestamp;
