@@ -25,7 +25,6 @@ import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
-import ChatRoom from './ChatRoom';
 
 const logger = getLogger('modules/xmpp/xmpp');
 

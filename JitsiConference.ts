@@ -42,6 +42,7 @@ import SpeakerStats from './modules/statistics/SpeakerStats';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import EventEmitter, { EventListener } from './modules/util/EventEmitter';
+import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
@@ -87,7 +88,6 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
-import Listenable from './modules/util/Listenable';
 
 export interface IConferenceOptions {
     config: {
@@ -240,7 +240,7 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  *       {@link JitsiConference.onMemberLeft}
  *       and so on...
  */
-export default class JitsiConference extends Listenable{
+export default class JitsiConference extends Listenable {
     private _transcribingEnabled?: boolean;
     private _visitorCodecs?: string[];
     private _hasVisitors?: boolean;
@@ -305,7 +305,7 @@ export default class JitsiConference extends Listenable{
      * @param {IConferenceOptions} options
      */
     constructor(options: IConferenceOptions) {
-        super()
+        super();
         if (!options.name || options.name.toLowerCase() !== options.name.toString()) {
             const errmsg
                 = 'Invalid conference name (no conference name passed or it '
@@ -548,7 +548,7 @@ export default class JitsiConference extends Listenable{
                 statsId: this._statsCurrentId
             },
             JitsiConference.resourceCreator
-        )
+        );
 
         this._signalingLayer.setChatRoom(this.room);
         this._signalingLayer.on(
@@ -762,7 +762,7 @@ export default class JitsiConference extends Listenable{
    * authenticating and upgrading the role of the local participant/user finishes
    * and (2) has a cancel method that allows the caller to interrupt the process.
    */
-    authenticateAndUpgradeRole(options){ // TODO: fix types after migration of authenticateAndUpgradeRole.js
+    authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
         return authenticateAndUpgradeRole.call(this, {
             ...options,
             onCreateResource: JitsiConference.resourceCreator
