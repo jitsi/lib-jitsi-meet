@@ -70,6 +70,13 @@ export interface IStreamInfo {
     videoType?: VideoType;
 }
 
+export interface IAudioConstraints {
+    autoGainControl?: boolean;
+    channelCount?: number;
+    echoCancellation?: boolean;
+    noiseSuppression?: boolean;
+}
+
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
@@ -1048,27 +1055,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * @typedef {Object} AudioConstraints
-     * @property {boolean} [echoCancellation] - Whether to enable or disable echo cancellation.
-     * @property {boolean} [noiseSuppression] - Whether to enable or disable noise suppression.
-     * @property {boolean} [autoGainControl] - Whether to enable or disable automatic gain control.
-     * @property {number} [channelCount] - Number of audio channels (1 for mono, 2 for stereo).
-     */
-
-    /**
      * Applies media constraints to the current MediaStreamTrack.
      *
-     * @param {AudioConstraints} constraints - Media constraints to apply.
+     * @param {IAudioConstraints} constraints - Media constraints to apply.
      * @returns {Promise<void>}
      */
-    async applyConstraints(constraints) {
+    async applyConstraints(constraints: IAudioConstraints): Promise<void> {
         const mediaType = this.getType();
 
         if (!this.isAudioTrack()) {
             throw new Error(`Media ${mediaType} is not supported, track must be audio`);
         }
 
-        const hasAudioMixEffect = Boolean(this._streamEffect?._audioMixer);
+        const hasAudioMixEffect = Boolean(typeof this._streamEffect?.setMuted === 'function');
 
         if (this._streamEffect && !hasAudioMixEffect) {
             throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
@@ -1133,4 +1132,3 @@ export default class JitsiLocalTrack extends JitsiTrack {
         await this.conference._addLocalTrackToPc(this);
     }
 }
-
