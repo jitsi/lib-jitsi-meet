@@ -401,7 +401,7 @@ export default class Moderator extends Listenable {
         this.sipGatewayEnabled = conferenceRequest.properties.sipGatewayEnabled;
         logger.info(`Sip gateway enabled: ${this.sipGatewayEnabled}`);
 
-        if (conferenceRequest.properties.live === 'false' && this.options.preferVisitor) {
+        if (conferenceRequest.properties.live === 'false') {
             this.getNextTimeout(true);
 
             logger.info('Conference is not live.');

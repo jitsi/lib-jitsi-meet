@@ -28,11 +28,11 @@ const logger = getLogger('modules/RTCStats/RTCStats');
  * The initialization procedure must be called once after lib-jitsi-meet is loaded.
  */
 class RTCStats {
-    public events: EventEmitter = new EventEmitter();
-    public _startedWithNewConnection: boolean = true;
     private _defaultLogCollector: any = null;
     private _initialized: boolean = false;
+    private _startedWithNewConnection: boolean = true;
     private _trace: any = null;
+    public events: EventEmitter = new EventEmitter();
 
     isTraceAvailable() {
         return this._trace !== null;

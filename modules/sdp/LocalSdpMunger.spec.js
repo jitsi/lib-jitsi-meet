@@ -1,10 +1,9 @@
-
 import * as transform from 'sdp-transform';
 
 import { MockPeerConnection } from '../RTC/MockClasses';
 
 import LocalSdpMunger from './LocalSdpMunger';
-import { default as SampleSdpStrings } from './SampleSdpStrings.js';
+import { default as SampleSdpStrings } from './SampleSdpStrings';
 
 /**
  * Returns the associated ssrc lines for a given media type.

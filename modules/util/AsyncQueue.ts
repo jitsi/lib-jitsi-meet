@@ -37,20 +37,6 @@ export default class AsyncQueue {
     }
 
     /**
-     * Removes any pending tasks from the queue.
-     */
-    clear(): void {
-        for (const finishedCallback of this._taskCallbacks.values()) {
-            try {
-                finishedCallback?.(new ClearedQueueError('The queue has been cleared'));
-            } catch (error) {
-                logger.error('Error in callback while clearing the queue:', error);
-            }
-        }
-        this._queue.kill();
-    }
-
-    /**
      * Internal task processing implementation which makes things work.
      */
     private _processQueueTasks(task: Task, finishedCallback: TaskCallback): void {
@@ -62,6 +48,20 @@ export default class AsyncQueue {
         } finally {
             this._taskCallbacks.delete(task);
         }
+    }
+
+    /**
+     * Removes any pending tasks from the queue.
+     */
+    clear(): void {
+        for (const finishedCallback of this._taskCallbacks.values()) {
+            try {
+                finishedCallback?.(new ClearedQueueError('The queue has been cleared'));
+            } catch (error) {
+                logger.error('Error in callback while clearing the queue:', error);
+            }
+        }
+        this._queue.kill();
     }
 
     /**

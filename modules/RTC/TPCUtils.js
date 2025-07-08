@@ -410,8 +410,13 @@ export class TPCUtils {
      * @returns {Array<VideoEncoderScalabilityMode> | undefined}
      */
     calculateEncodingsScalabilityMode(localVideoTrack, codec, maxHeight) {
-        if (!this.pc.isSpatialScalabilityOn() || !this.codecSettings[codec].scalabilityModeEnabled) {
+        if (!this.codecSettings[codec].scalabilityModeEnabled) {
             return;
+        }
+
+        // Use LIT3 for P2P wherever its supported.
+        if (!this.pc.isSpatialScalabilityOn()) {
+            return [ VideoEncoderScalabilityMode.L1T3 ];
         }
 
         // Default modes for simulcast.
