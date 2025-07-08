@@ -29,7 +29,6 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
 /**
  * Represents a single media track (either audio or video).
  */
-// @ts-ignore - Base class incorrectly marks _attachTTFMTracker as private
 export default class JitsiRemoteTrack extends JitsiTrack {
     private _sourceName: string;
     private _trackStreamingStatus?: TrackStreamingStatus;
@@ -45,12 +44,13 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     private _containerHandlers: { [key: string]: (event: Event) => void; };
 
-    rtc: RTC;
-    ssrc: number;
-    ownerEndpointId: string;
-    muted: boolean;
-    isP2P: boolean;
-    hasBeenMuted: boolean;
+    private _rtc: RTC;
+    private _ownerEndpointId: string;
+    private _muted: boolean;
+    private _hasBeenMuted: boolean;
+    
+    public isP2P: boolean;
+    public ssrc: number;
 
     /**
      * Creates new JitsiRemoteTrack instance.
@@ -92,15 +92,15 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             },
             mediaType,
             videoType);
-        this.rtc = rtc;
+        this._rtc = rtc;
 
         // Prevent from mixing up type of SSRC which should be a number
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC ${ssrc} is not a number`);
         }
         this.ssrc = ssrc;
-        this.ownerEndpointId = ownerEndpointId;
-        this.muted = muted;
+        this._ownerEndpointId = ownerEndpointId;
+        this._muted = muted;
         this.isP2P = isP2P;
         this._sourceName = sourceName;
         this._trackStreamingStatus = null;
@@ -123,10 +123,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // we want to mark whether the track has been ever muted
         // to detect ttfm events for startmuted conferences, as it can
         // significantly increase ttfm values
-        this.hasBeenMuted = muted;
+        this._hasBeenMuted = muted;
 
         // Bind 'onmute' and 'onunmute' event handlers
-        if (this.rtc && this.track) {
+        if (this._rtc && this.track) {
             this._bindTrackHandlers();
         }
         this._containerHandlers = {};
@@ -204,7 +204,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             return;
         }
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
+        this._rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
     }
 
     /**
@@ -217,7 +217,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     private _onTrackUnmute(): void {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+        this._rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
     }
 
     /**
@@ -269,7 +269,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         Statistics.sendAnalytics(createTtfmEvent(
             {
                 'media_type': type,
-                muted: this.hasBeenMuted,
+                muted: this._hasBeenMuted,
                 value: ttfm
             }));
 
@@ -281,7 +281,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @private
      */
-    private _onTrackAttach(container: HTMLElement): void {
+    _onTrackAttach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.addEventListener(event, this._containerHandlers[event]);
         });
@@ -293,7 +293,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @private
      */
-    private _onTrackDetach(container: HTMLElement): void {
+    _onTrackDetach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.removeEventListener(event, this._containerHandlers[event]);
         });
@@ -328,7 +328,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
 
         this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
-            this.rtc,
+            this._rtc,
             this.conference,
             this,
             {
@@ -347,7 +347,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
         // track to prevent this from happening.
         !this._trackStreamingStatusImpl.isVideoTrackFrozen()
-            && this.rtc.eventEmitter.emit(
+            && this._rtc.eventEmitter.emit(
                 JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
                 this,
                 this._trackStreamingStatus);
@@ -445,12 +445,12 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param value the muted status.
      */
     setMute(value: boolean): void {
-        if (this.muted === value) {
+        if (this._muted === value) {
             return;
         }
 
         if (value) {
-            this.hasBeenMuted = true;
+            this._hasBeenMuted = true;
         }
 
         // we can have a fake video stream
@@ -458,7 +458,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             (this.stream as any).muted = value;
         }
 
-        this.muted = value;
+        this._muted = value;
 
         logger.info(`Mute ${this}: ${value}`);
         this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
@@ -470,7 +470,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * muted and <tt>false</tt> otherwise.
      */
     isMuted(): boolean {
-        return this.muted;
+        return this._muted;
     }
 
     /**
@@ -480,7 +480,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
      */
     getParticipantId(): string {
-        return this.ownerEndpointId;
+        return this._ownerEndpointId;
     }
 
     /**
@@ -518,7 +518,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} owner The endpoint ID of the new owner.
      */
     setOwner(owner: string): void {
-        this.ownerEndpointId = owner;
+        this._ownerEndpointId = owner;
     }
 
     /**
