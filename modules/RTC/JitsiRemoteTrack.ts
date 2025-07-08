@@ -276,30 +276,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Called when the track has been attached to a new container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackAttach(container: HTMLElement): void {
-        containerEvents.forEach(event => {
-            container.addEventListener(event, this._containerHandlers[event]);
-        });
-    }
-
-    /**
-     * Called when the track has been detached from a container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackDetach(container: HTMLElement): void {
-        containerEvents.forEach(event => {
-            container.removeEventListener(event, this._containerHandlers[event]);
-        });
-    }
-
-    /**
      * An event handler for events triggered by the attached container.
      *
      * @param {string} type - The type of the event.
@@ -362,6 +338,30 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             this._trackStreamingStatusImpl = null;
             this._trackStreamingStatus = null;
         }
+    }
+
+    /**
+     * Called when the track has been attached to a new container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @internal
+     */
+    _onTrackAttach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.addEventListener(event, this._containerHandlers[event]);
+        });
+    }
+
+    /**
+     * Called when the track has been detached from a container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @internal
+     */
+    _onTrackDetach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.removeEventListener(event, this._containerHandlers[event]);
+        });
     }
 
     /**
