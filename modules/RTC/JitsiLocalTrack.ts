@@ -428,19 +428,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Sends mute status for a track to conference if any.
-     *
-     * @param {boolean} mute - If track is muted.
-     * @private
-     * @returns {void}
-     */
-    private _sendMuteStatus(mute: boolean): void {
-        if (this.conference) {
-            this.conference._setTrackMuteStatus(this.getType(), this, mute) && this.conference.room.sendPresence();
-        }
-    }
-
-    /**
      * Mutes / unmutes this track.
      *
      * @param {boolean} muted - If <tt>true</tt>, this track will be muted; otherwise, this track will be unmuted.
@@ -671,6 +658,19 @@ export default class JitsiLocalTrack extends JitsiTrack {
         super._setStream(stream);
     }
 
+
+    /**
+     * Sends mute status for a track to conference if any.
+     *
+     * @param {boolean} mute - If track is muted.
+     * @internal
+     * @returns {void}
+     */
+    _sendMuteStatus(mute: boolean): void {
+        if (this.conference) {
+            this.conference._setTrackMuteStatus(this.getType(), this, mute) && this.conference.room.sendPresence(false);
+        }
+    }
 
     /**
      * @inheritdoc

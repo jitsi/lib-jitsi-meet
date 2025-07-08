@@ -17,7 +17,8 @@ import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 import { CodecSelection } from './CodecSelection';
 import ReceiveVideoController from './ReceiveVideoController';
-import SendVideoController from './SendVideoController';
+import SendVideoController, { IVideoConstraint } from './SendVideoController';
+
 
 const logger = getLogger('modules/qualitycontrol/QualityController');
 
@@ -61,11 +62,6 @@ interface ITrackStats {
     encodeResolution: number;
     encodeTime: number;
     qualityLimitationReason: QualityLimitationReason;
-}
-
-interface IVideoConstraints {
-    maxHeight: number;
-    sourceName: string;
 }
 
 /* eslint-disable require-jsdoc */
@@ -162,7 +158,7 @@ export class QualityController {
         this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            (videoConstraints: IVideoConstraints) =>
+            (videoConstraints: IVideoConstraint) =>
                 this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
