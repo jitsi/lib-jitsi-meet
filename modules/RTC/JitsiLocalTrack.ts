@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import JitsiConference from '../../JitsiConference';
 import JitsiTrackError from '../../JitsiTrackError';
 import {
+    JitsiTrackErrors,
     TRACK_IS_DISPOSED,
     TRACK_NO_STREAM_FOUND
 } from '../../JitsiTrackErrors';
@@ -67,6 +68,13 @@ export interface IStreamInfo {
     stream: MediaStream;
     track: MediaStreamTrack;
     videoType?: VideoType;
+}
+
+export interface IAudioConstraints {
+    autoGainControl?: boolean;
+    channelCount?: number;
+    echoCancellation?: boolean;
+    noiseSuppression?: boolean;
 }
 
 /**
@@ -624,8 +632,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     private _switchCamera(): void {
         if (this.isVideoTrack()
-                && this.videoType === VideoType.CAMERA
-                && typeof this.track._switchCamera === 'function') {
+            && this.videoType === VideoType.CAMERA
+            && typeof this.track._switchCamera === 'function') {
             this.track._switchCamera();
 
             this._facingMode
@@ -867,7 +875,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         return stream.getTracks().some(track =>
             (!('readyState' in track) || track.readyState === 'live')
-                && (!('muted' in track) || track.muted !== true));
+            && (!('muted' in track) || track.muted !== true));
     }
 
     /**
@@ -1044,5 +1052,83 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     unmute(): Promise<void> {
         return this._queueSetMuted(false);
+    }
+
+    /**
+     * Applies media constraints to the current MediaStreamTrack.
+     *
+     * @param {IAudioConstraints} constraints - Media constraints to apply.
+     * @returns {Promise<void>}
+     */
+    async applyConstraints(constraints: IAudioConstraints): Promise<void> {
+        const mediaType = this.getType();
+
+        if (!this.isAudioTrack()) {
+            throw new Error(`Media ${mediaType} is not supported, track must be audio`);
+        }
+
+        const hasAudioMixEffect = Boolean(typeof this._streamEffect?.setMuted === 'function');
+
+        if (this._streamEffect && !hasAudioMixEffect) {
+            throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
+                this._streamEffect)} is active`
+            );
+        }
+
+        await this.conference._removeLocalTrackFromPc(this);
+
+        if (hasAudioMixEffect) {
+            this._stopStreamEffect();
+        }
+
+        this.stopStream();
+
+        const initialSettings = this.track.getSettings();
+        const constraintsToApply = {
+            ...initialSettings,
+            ...constraints
+        };
+
+        const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
+        let mediaStreamData;
+
+        try {
+            [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
+                devices: [ mediaType ],
+                [deviceIdKey]: constraintsToApply.deviceId,
+                constraints: { [mediaType]: constraintsToApply }
+            });
+
+            if (!mediaStreamData?.stream) {
+                throw new JitsiTrackError(JitsiTrackErrors.CONSTRAINT_FAILED);
+            }
+
+        } catch (error) {
+            logger.error(
+                `applyConstraints failed for track ${this} with constraints: ${JSON.stringify(
+                    constraints
+                )}: `,
+                error
+            );
+
+            [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
+                devices: [ mediaType ],
+                [deviceIdKey]: constraintsToApply.deviceId,
+                constraints: { [mediaType]: initialSettings }
+            });
+        }
+
+        if (!mediaStreamData?.stream) {
+            throw new JitsiTrackError(JitsiTrackErrors.GENERAL);
+        }
+
+        this._setStream(mediaStreamData.stream);
+        this.track = mediaStreamData.track;
+
+        if (hasAudioMixEffect) {
+            this._startStreamEffect(this._streamEffect);
+        }
+
+        await this.conference._addLocalTrackToPc(this);
     }
 }
