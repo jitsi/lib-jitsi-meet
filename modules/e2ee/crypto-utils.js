@@ -11,18 +11,18 @@ export async function deriveKeys(material) {
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
     // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
     const encryptionKey = await crypto.subtle.deriveKey({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameEncryptionKey'),
         hash: 'SHA-256',
-        info
+        info,
+        name: 'HKDF',
+        salt: textEncoder.encode('JFrameEncryptionKey')
     }, material, {
-        name: 'AES-GCM',
-        length: 128
+        length: 128,
+        name: 'AES-GCM'
     }, false, [ 'encrypt', 'decrypt' ]);
 
     return {
-        material,
-        encryptionKey
+        encryptionKey,
+        material
     };
 }
 
@@ -37,10 +37,10 @@ export async function ratchet(material) {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveBits
     return await crypto.subtle.deriveBits({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameRatchetKey'),
         hash: 'SHA-256',
-        info: new ArrayBuffer()
+        info: new ArrayBuffer(),
+        name: 'HKDF',
+        salt: textEncoder.encode('JFrameRatchetKey')
     }, material, 256);
 }
 

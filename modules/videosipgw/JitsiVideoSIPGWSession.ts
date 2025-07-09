@@ -58,10 +58,10 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      */
     private _sendJibriIQ(action: string): void {
         const attributes = {
-            'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
+            'displayname': this.displayName,
             'sipaddress': this.sipAddress,
-            'displayname': this.displayName
+            'xmlns': 'http://jitsi.org/protocol/jibri'
         };
 
         const iq = $iq({
@@ -133,10 +133,10 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         this.eventEmitter.emit(STATE_CHANGED,
             {
                 address: this.sipAddress,
+                displayName: this.displayName,
                 failureReason,
-                oldState,
                 newState: this.state,
-                displayName: this.displayName
+                oldState
             }
         );
     }

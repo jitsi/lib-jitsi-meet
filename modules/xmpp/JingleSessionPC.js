@@ -69,12 +69,11 @@ function getEndpointId(jidOrEndpointId) {
  * @param {String} msid The "msid" attribute.
  */
 function _addSourceElement(description, s, ssrc_, msid) {
-
     description.c('source', {
-        xmlns: XEP.SOURCE_ATTRIBUTES,
-        ssrc: ssrc_,
         name: s.source,
-        videoType: s.videoType?.toLowerCase()
+        ssrc: ssrc_,
+        videoType: s.videoType?.toLowerCase(),
+        xmlns: XEP.SOURCE_ATTRIBUTES
     })
         .c('parameter', {
             name: 'msid',
@@ -82,8 +81,8 @@ function _addSourceElement(description, s, ssrc_, msid) {
         })
         .up()
         .c('ssrc-info', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            owner: s.owner
+            owner: s.owner,
+            xmlns: 'http://jitsi.org/jitmeet'
         })
         .up()
         .up();
@@ -660,8 +659,8 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         const remoteDescription = {
-            type: 'offer',
-            sdp: remoteSdp
+            sdp: remoteSdp,
+            type: 'offer'
         };
 
         const oldLocalSDP = this.peerconnection.localDescription.sdp;
@@ -700,10 +699,10 @@ export default class JingleSessionPC extends JingleSession {
                 type: 'set'
             })
                 .c('jingle', {
-                    xmlns: 'urn:xmpp:jingle:1',
                     action: 'content-modify',
                     initiator: this.initiatorJid,
-                    sid: this.sid
+                    sid: this.sid,
+                    xmlns: 'urn:xmpp:jingle:1'
                 })
                 .c('content', {
                     name: MediaType.VIDEO,
@@ -715,8 +714,8 @@ export default class JingleSessionPC extends JingleSession {
                 sessionModify
                     .c('source-frame-height', { xmlns: 'http://jitsi.org/jitmeet/video' })
                     .attrs({
-                        sourceName,
-                        maxHeight
+                        maxHeight,
+                        sourceName
                     });
 
                 sessionModify.up();
@@ -792,10 +791,10 @@ export default class JingleSessionPC extends JingleSession {
         logger.debug(`${this} _sendIceCandidates count: ${candidates?.length}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
-            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
-                action: 'transport-info',
+            .c('jingle', { action: 'transport-info',
                 initiator: this.initiatorJid,
-                sid: this.sid });
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1' });
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
@@ -870,11 +869,13 @@ export default class JingleSessionPC extends JingleSession {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
         const accept = $iq({ to: this.remoteJid,
             type: 'set' })
-            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
+            .c('jingle', {
                 action: 'session-accept',
                 initiator: this.initiatorJid,
                 responder: this.responderJid,
-                sid: this.sid });
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
+            });
 
         if (this.webrtcIceTcpDisable) {
             localSDP.removeTcpCandidates = true;
@@ -942,10 +943,10 @@ export default class JingleSessionPC extends JingleSession {
             to: this.remoteJid,
             type: 'set'
         }).c('jingle', {
-            xmlns: 'urn:xmpp:jingle:1',
             action: 'session-initiate',
             initiator: this.initiatorJid,
-            sid: this.sid
+            sid: this.sid,
+            xmlns: 'urn:xmpp:jingle:1'
         });
 
         new SDP(offerSdp, this.isP2P).toJingle(
@@ -1032,6 +1033,7 @@ export default class JingleSessionPC extends JingleSession {
                 // FIXME this code does not care to handle
                 // non-bundle transport
                 const rtcCandidate = new RTCIceCandidate({
+                    candidate: line,
                     sdpMLineIndex: 0,
 
                     // FF comes up with more complex names like audio-23423,
@@ -1039,8 +1041,7 @@ export default class JingleSessionPC extends JingleSession {
                     // providing it, let's leave it like this for the time
                     // being...
                     // sdpMid: 'audio',
-                    sdpMid: '',
-                    candidate: line
+                    sdpMid: ''
                 });
 
                 iceCandidates.push(rtcCandidate);
@@ -1313,10 +1314,10 @@ export default class JingleSessionPC extends JingleSession {
                 Statistics.sendAnalytics(
                     ICE_DURATION,
                     {
-                        phase: 'gathering',
-                        value: now - this._gatheringStartedTimestamp,
+                        initiator: this.isInitiator,
                         p2p: this.isP2P,
-                        initiator: this.isInitiator
+                        phase: 'gathering',
+                        value: now - this._gatheringStartedTimestamp
                     });
                 this._gatheringReported = true;
             }
@@ -1362,9 +1363,9 @@ export default class JingleSessionPC extends JingleSession {
                 ICE_STATE_CHANGED,
                 {
                     p2p: this.isP2P,
-                    state: this.peerconnection.iceConnectionState,
-                    'signaling_state': this.peerconnection.signalingState,
                     reconnect: this.isReconnect,
+                    'signaling_state': this.peerconnection.signalingState,
+                    state: this.peerconnection.iceConnectionState,
                     value: now
                 });
 
@@ -1400,10 +1401,10 @@ export default class JingleSessionPC extends JingleSession {
                     Statistics.sendAnalytics(
                         ICE_DURATION,
                         {
-                            phase: 'checking',
-                            value: now - this._iceCheckingStartedTimestamp,
+                            initiator: this.isInitiator,
                             p2p: this.isP2P,
-                            initiator: this.isInitiator
+                            phase: 'checking',
+                            value: now - this._iceCheckingStartedTimestamp
                         });
 
                     // Switch between ICE gathering and ICE checking whichever
@@ -1419,10 +1420,10 @@ export default class JingleSessionPC extends JingleSession {
                     Statistics.sendAnalytics(
                         ICE_DURATION,
                         {
-                            phase: 'establishment',
-                            value: this.establishmentDuration,
+                            initiator: this.isInitiator,
                             p2p: this.isP2P,
-                            initiator: this.isInitiator
+                            phase: 'establishment',
+                            value: this.establishmentDuration
                         });
 
                     this.wasConnected = true;
@@ -1717,10 +1718,10 @@ export default class JingleSessionPC extends JingleSession {
         const remove = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-remove',
                 initiator: this.initiatorJid,
-                sid: this.sid
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
             }
             );
 
@@ -1751,10 +1752,10 @@ export default class JingleSessionPC extends JingleSession {
         const add = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-add',
                 initiator: this.initiatorJid,
-                sid: this.sid
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
             }
             );
 
@@ -1892,11 +1893,11 @@ export default class JingleSessionPC extends JingleSession {
         // Add the new SSRCs to the remote description by generating a source message.
         if (newSsrcs.length) {
             let node = $build('content', {
-                xmlns: 'urn:xmpp:jingle:1',
-                name: mediaType
+                name: mediaType,
+                xmlns: 'urn:xmpp:jingle:1'
             }).c('description', {
-                xmlns: XEP.RTP_MEDIA,
-                media: mediaType
+                media: mediaType,
+                xmlns: XEP.RTP_MEDIA
             });
 
             for (const src of newSsrcs) {
@@ -1911,17 +1912,17 @@ export default class JingleSessionPC extends JingleSession {
                     if (rtx !== '-1') {
                         _addSourceElement(node, src, rtx, msid);
                         node.c('ssrc-group', {
-                            xmlns: XEP.SOURCE_ATTRIBUTES,
-                            semantics: SSRC_GROUP_SEMANTICS.FID
+                            semantics: SSRC_GROUP_SEMANTICS.FID,
+                            xmlns: XEP.SOURCE_ATTRIBUTES
                         })
                             .c('source', {
-                                xmlns: XEP.SOURCE_ATTRIBUTES,
-                                ssrc
+                                ssrc,
+                                xmlns: XEP.SOURCE_ATTRIBUTES
                             })
                             .up()
                             .c('source', {
-                                xmlns: XEP.SOURCE_ATTRIBUTES,
-                                ssrc: rtx
+                                ssrc: rtx,
+                                xmlns: XEP.SOURCE_ATTRIBUTES
                             })
                             .up()
                             .up();
@@ -2071,8 +2072,8 @@ export default class JingleSessionPC extends JingleSession {
         const newRemoteSdp = this._processNewJingleOfferIq(jingleAnswer);
         const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
         const remoteDescription = {
-            type: 'answer',
-            sdp: newRemoteSdp.raw
+            sdp: newRemoteSdp.raw,
+            type: 'answer'
         };
 
         try {
@@ -2339,10 +2340,10 @@ export default class JingleSessionPC extends JingleSession {
                     type: 'set'
                 })
                     .c('jingle', {
-                        xmlns: 'urn:xmpp:jingle:1',
                         action: 'session-terminate',
                         initiator: this.initiatorJid,
-                        sid: this.sid
+                        sid: this.sid,
+                        xmlns: 'urn:xmpp:jingle:1'
                     })
                     .c('reason')
                     .c((options && options.reason) || 'success')
@@ -2361,9 +2362,9 @@ export default class JingleSessionPC extends JingleSession {
             this._bridgeSessionId
                 && sessionTerminate.c(
                     'bridge-session', {
-                        xmlns: 'http://jitsi.org/protocol/focus',
                         id: this._bridgeSessionId,
-                        restart: options && options.requestRestart === true
+                        restart: options && options.requestRestart === true,
+                        xmlns: 'http://jitsi.org/protocol/focus'
                     }).up();
 
             logger.info(`${this} Sending session-terminate`);

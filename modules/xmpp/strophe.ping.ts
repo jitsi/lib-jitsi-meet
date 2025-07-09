@@ -101,8 +101,8 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         this._addPingExecutionTimestamp();
 
         const iq = $iq({
-            type: 'get',
-            to: jid
+            to: jid,
+            type: 'get'
         });
 
         iq.c('ping', { xmlns: Strophe.NS.PING });

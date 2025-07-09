@@ -568,9 +568,9 @@ export default class JitsiConferenceEventManager {
                 const actorParticipant = conference.getParticipants().find(p => p.getJid() === actorJid);
 
                 conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_CHANGED, {
+                    actor: actorParticipant,
                     enabled: value,
-                    mediaType,
-                    actor: actorParticipant
+                    mediaType
                 });
             });
         this._addConferenceXMPPListener(XMPPEvents.AV_MODERATION_PARTICIPANT_APPROVED,
@@ -579,8 +579,8 @@ export default class JitsiConferenceEventManager {
 
                 if (participant) {
                     conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_APPROVED, {
-                        participant,
-                        mediaType
+                        mediaType,
+                        participant
                     });
                 }
             });
@@ -590,8 +590,8 @@ export default class JitsiConferenceEventManager {
 
                 if (participant) {
                     conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_PARTICIPANT_REJECTED, {
-                        participant,
-                        mediaType
+                        mediaType,
+                        participant
                     });
                 }
             });

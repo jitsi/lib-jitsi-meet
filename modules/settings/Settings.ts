@@ -28,16 +28,6 @@ const Settings: ISettings = {
     _storage: jitsiLocalStorage,
 
     /**
-     * Initializes the Settings class.
-     *
-     * @param {Storage|undefined} externalStorage - Object that implements the Storage interface. This object will be
-     * used for storing data instead of jitsiLocalStorage if specified.
-     */
-    init(externalStorage?: Storage): void {
-        this._storage = externalStorage || jitsiLocalStorage;
-    },
-
-    /**
      * Returns the ID to use for the purposes of stats, saved in localstorage as "callStatsUserName".
      * @returns {string} fake username for callstats
      */
@@ -51,6 +41,16 @@ const Settings: ISettings = {
         }
 
         return _callStatsUserName;
+    },
+
+    /**
+     * Initializes the Settings class.
+     *
+     * @param {Storage|undefined} externalStorage - Object that implements the Storage interface. This object will be
+     * used for storing data instead of jitsiLocalStorage if specified.
+     */
+    init(externalStorage?: Storage): void {
+        this._storage = externalStorage || jitsiLocalStorage;
     },
 
     /**

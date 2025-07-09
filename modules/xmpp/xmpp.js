@@ -65,10 +65,10 @@ function createConnection({
     return new XmppConnection({
         enableWebsocketResume,
         serviceUrl,
+        shard,
         websocketKeepAlive,
         websocketKeepAliveUrl,
-        xmppPing,
-        shard
+        xmppPing
     });
 }
 
@@ -178,11 +178,11 @@ export default class XMPP extends Listenable {
         this.connection = createConnection({
             enableWebsocketResume: options.enableWebsocketResume,
             serviceUrl: options.serviceUrl,
+            shard: options.deploymentInfo.shard,
             token,
             websocketKeepAlive: options.websocketKeepAlive,
             websocketKeepAliveUrl: options.websocketKeepAliveUrl,
-            xmppPing,
-            shard: options.deploymentInfo.shard
+            xmppPing
         });
 
         this.moderator = new Moderator(this);
@@ -993,10 +993,10 @@ export default class XMPP extends Listenable {
         const msg = $msg({ to: this.speakerStatsComponentAddress });
 
         msg.c('speakerstats', {
-            xmlns: 'http://jitsi.org/jitmeet',
             room: roomJid,
-            silence })
-            .up();
+            silence,
+            xmlns: 'http://jitsi.org/jitmeet'
+        }).up();
 
         this.connection.send(msg);
     }
@@ -1015,11 +1015,11 @@ export default class XMPP extends Listenable {
         const msg = $msg({ to: this.speakerStatsComponentAddress });
 
         msg.c('faceLandmarks', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            room: roomJid,
+            duration: payload.duration,
             faceExpression: payload.faceExpression,
+            room: roomJid,
             timestamp: payload.timestamp,
-            duration: payload.duration
+            xmlns: 'http://jitsi.org/jitmeet'
         }).up();
 
         this.connection.send(msg);

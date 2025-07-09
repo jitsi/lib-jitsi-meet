@@ -348,10 +348,10 @@ export class MockSignalingLayerImpl {
     setPeerMediaInfo(isJoin: boolean, endpointId: string, codecList: string[], codecType: string): void {
         if (isJoin) {
             this._remoteSourceState[endpointId] = {
+                codecList,
+                codecType,
                 muted: true, // muted by default
                 videoType: 'camera',
-                codecList,
-                codecType
             };
         } else {
             this._remoteSourceState[endpointId] = undefined;

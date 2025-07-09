@@ -110,9 +110,9 @@ export default class E2EEcontext {
 
             this._worker.postMessage({
                 operation: 'decode',
+                participantId,
                 readableStream: receiverStreams.readable,
-                writableStream: receiverStreams.writable,
-                participantId
+                writableStream: receiverStreams.writable
             }, [ receiverStreams.readable, receiverStreams.writable ]);
         }
     }
@@ -143,9 +143,9 @@ export default class E2EEcontext {
 
             this._worker.postMessage({
                 operation: 'encode',
+                participantId,
                 readableStream: senderStreams.readable,
-                writableStream: senderStreams.writable,
-                participantId
+                writableStream: senderStreams.writable
             }, [ senderStreams.readable, senderStreams.writable ]);
         }
     }
@@ -157,8 +157,8 @@ export default class E2EEcontext {
      */
     setEnabled(enabled) {
         this._worker.postMessage({
-            operation: 'setEnabled',
-            enabled
+            enabled,
+            operation: 'setEnabled'
         });
     }
 
@@ -171,9 +171,9 @@ export default class E2EEcontext {
      */
     setKey(participantId, key, keyIndex) {
         this._worker.postMessage({
-            operation: 'setKey',
             key,
             keyIndex,
+            operation: 'setKey',
             participantId
         });
     }

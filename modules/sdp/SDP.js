@@ -306,8 +306,8 @@ export default class SDP {
         if (groups.length) {
             // We regenerate the BUNDLE group (since we regenerated the mids)
             newSession.groups = [ {
-                type: 'BUNDLE',
-                mids: mids.join(' ')
+                mids: mids.join(' '),
+                type: 'BUNDLE'
             } ];
         }
 
@@ -343,11 +343,11 @@ export default class SDP {
             }
 
             const media = {
-                mediaindex,
                 mediaType: mline.media,
+                mediaindex,
                 mid,
-                ssrcs: {},
-                ssrcGroups: []
+                ssrcGroups: [],
+                ssrcs: {}
             };
 
             SDPUtil.findLines(mediaItem, 'a=ssrc:').forEach(line => {
@@ -356,8 +356,8 @@ export default class SDP {
                 // Allocate new ChannelSsrc.
                 if (!media.ssrcs[linessrc]) {
                     media.ssrcs[linessrc] = {
-                        ssrc: linessrc,
-                        lines: []
+                        lines: [],
+                        ssrc: linessrc
                     };
                 }
                 media.ssrcs[linessrc].lines.push(line);
@@ -613,14 +613,14 @@ export default class SDP {
 
             if (feedback.type === 'trr-int') {
                 elem.c('rtcp-fb-trr-int', {
-                    xmlns: XEP.RTP_FEEDBACK,
-                    value: feedback.params[0]
+                    value: feedback.params[0],
+                    xmlns: XEP.RTP_FEEDBACK
                 });
                 elem.up();
             } else {
                 elem.c('rtcp-fb', {
-                    xmlns: XEP.RTP_FEEDBACK,
-                    type: feedback.type
+                    type: feedback.type,
+                    xmlns: XEP.RTP_FEEDBACK
                 });
                 if (feedback.params.length > 0) {
                     elem.attrs({ 'subtype': feedback.params[0] });
@@ -643,8 +643,8 @@ export default class SDP {
             const semantics = parts.shift().substr(8);
 
             elem.c('group', {
-                xmlns: XEP.BUNDLE_MEDIA,
-                semantics
+                semantics,
+                xmlns: XEP.BUNDLE_MEDIA
             });
 
             // Bundle all the media types. Jicofo expects the 'application' media type to be signaled as 'data'.
@@ -690,8 +690,8 @@ export default class SDP {
                         const sourceName = SDPUtil.parseSourceNameLine(ssrcParameters);
                         const videoType = SDPUtil.parseVideoTypeLine(ssrcParameters);
                         const source = Strophe.xmlElement('source', {
-                            ssrc: availableSsrc,
                             name: sourceName,
+                            ssrc: availableSsrc,
                             videoType,
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         });
@@ -743,15 +743,15 @@ export default class SDP {
 
             if (mediaType === MediaType.VIDEO && typeof this.initialLastN === 'number') {
                 elem.c('initial-last-n', {
-                    xmlns: 'jitsi:colibri2',
-                    value: this.initialLastN
+                    value: this.initialLastN,
+                    xmlns: 'jitsi:colibri2'
                 }).up();
             }
 
             if ([ MediaType.AUDIO, MediaType.VIDEO ].includes(mediaType)) {
                 elem.c('description', {
-                    xmlns: XEP.RTP_MEDIA,
-                    media: mediaType
+                    media: mediaType,
+                    xmlns: XEP.RTP_MEDIA
                 });
 
                 mline.fmt.forEach(format => {
@@ -779,8 +779,8 @@ export default class SDP {
                         const videoType = SDPUtil.parseVideoTypeLine(ssrcParameters);
 
                         elem.c('source', {
-                            ssrc: availableSsrc,
                             name: sourceName,
+                            ssrc: availableSsrc,
                             videoType,
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         });
@@ -852,9 +852,9 @@ export default class SDP {
                     const extmap = SDPUtil.parseExtmap(extmapLine);
 
                     elem.c('rtp-hdrext', {
-                        xmlns: XEP.RTP_HEADER_EXTENSIONS,
+                        id: extmap.value,
                         uri: extmap.uri,
-                        id: extmap.value
+                        xmlns: XEP.RTP_HEADER_EXTENSIONS
                     });
 
                     if (extmap.hasOwnProperty('direction')) {
@@ -928,9 +928,9 @@ export default class SDP {
             const sctpAttrs = SDPUtil.parseSCTPPort(sctpport);
 
             elem.c('sctpmap', {
-                xmlns: XEP.SCTP_DATA_CHANNEL,
                 number: sctpAttrs, // SCTP port
-                protocol: 'webrtc-datachannel' // protocol
+                protocol: 'webrtc-datachannel', // protocol
+                xmlns: XEP.SCTP_DATA_CHANNEL
             });
 
             // The parser currently requires streams to be present.
@@ -940,9 +940,9 @@ export default class SDP {
             const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
 
             elem.c('sctpmap', {
-                xmlns: XEP.SCTP_DATA_CHANNEL,
                 number: sctpAttrs[0], // SCTP port
-                protocol: sctpAttrs[1] // protocol
+                protocol: sctpAttrs[1], // protocol
+                xmlns: XEP.SCTP_DATA_CHANNEL
             });
 
             // Optional stream count attribute.

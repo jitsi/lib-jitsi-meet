@@ -86,9 +86,9 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         const fromJid = iq.getAttribute('from');
 
         // send ack first
-        const ack = $iq({ type: 'result',
+        const ack = $iq({ id: iq.getAttribute('id'),
             to: fromJid,
-            id: iq.getAttribute('id')
+            type: 'result'
         });
 
         let sess = this.sessions[sid];
@@ -318,15 +318,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         // TODO: implement refresh via updateIce as described in
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
-            $iq({ type: 'get',
-                to: this.xmpp.options.hosts.domain })
+            $iq({ to: this.xmpp.options.hosts.domain,
+                type: 'get' })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
             v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
             () => {
                 logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1');
                 this.connection.sendIQ(
-                    $iq({ type: 'get',
-                        to: this.xmpp.options.hosts.domain })
+                    $iq({ to: this.xmpp.options.hosts.domain,
+                        type: 'get' })
                         .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
                     v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
                     () => {
@@ -462,8 +462,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
                 data[`jingle_${sid}`] = {
-                    updateLog: pc.updateLog,
                     stats: pc.stats,
+                    updateLog: pc.updateLog,
                     url: window.location.href
                 };
             }

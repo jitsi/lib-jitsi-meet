@@ -38,6 +38,24 @@ const EMOJI_REGEX = emojiRegex();
 const IQ_TIMEOUT = 10000;
 
 export const parser = {
+    json2packet(nodes, packet) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+
+            if (node) {
+                packet.c(node.tagName, node.attributes);
+                if (node.value) {
+                    packet.t(node.value);
+                }
+                if (node.children) {
+                    this.json2packet(node.children, packet);
+                }
+                packet.up();
+            }
+        }
+
+        // packet.up();
+    },
     packet2JSON(xmlElement, nodes) {
         for (const child of Array.from(xmlElement.children)) {
             const node = {
@@ -60,24 +78,6 @@ export const parser = {
             nodes.push(node);
             this.packet2JSON(child, node.children);
         }
-    },
-    json2packet(nodes, packet) {
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-
-            if (node) {
-                packet.c(node.tagName, node.attributes);
-                if (node.value) {
-                    packet.t(node.value);
-                }
-                if (node.children) {
-                    this.json2packet(node.children, packet);
-                }
-                packet.up();
-            }
-        }
-
-        // packet.up();
     }
 };
 
@@ -361,8 +361,8 @@ export default class ChatRoom extends Listenable {
 
         const getInfo
             = $iq({
-                type: 'get',
-                to: this.roomjid
+                to: this.roomjid,
+                type: 'get'
             })
                 .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
@@ -465,11 +465,11 @@ export default class ChatRoom extends Listenable {
             return;
         }
 
-        const getForm = $iq({ type: 'get',
-            to: this.roomjid })
+        const getForm = $iq({ to: this.roomjid,
+            type: 'get' })
             .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
-            .c('x', { xmlns: 'jabber:x:data',
-                type: 'submit' });
+            .c('x', { type: 'submit',
+                xmlns: 'jabber:x:data' });
 
         this.connection.sendIQ(getForm, form => {
             if (!$(form).find(
@@ -484,8 +484,8 @@ export default class ChatRoom extends Listenable {
                 type: 'set' })
                 .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
-            formSubmit.c('x', { xmlns: 'jabber:x:data',
-                type: 'submit' });
+            formSubmit.c('x', { type: 'submit',
+                xmlns: 'jabber:x:data' });
 
             formSubmit.c('field', { 'var': 'FORM_TYPE' })
                 .c('value')
@@ -966,8 +966,10 @@ export default class ChatRoom extends Listenable {
      * @param elementName
      */
     sendMessage(message, elementName) {
-        const msg = $msg({ to: this.roomjid,
-            type: 'groupchat' });
+        const msg = $msg({
+            to: this.roomjid,
+            type: 'groupchat'
+        });
 
         // We are adding the message in a packet extension. If this element
         // is different from 'body', we add a custom namespace.
@@ -1508,8 +1510,8 @@ export default class ChatRoom extends Listenable {
                             });
 
                     formsubmit.c('x', {
-                        xmlns: 'jabber:x:data',
-                        type: 'submit'
+                        type: 'submit',
+                        xmlns: 'jabber:x:data'
                     });
                     formsubmit
                         .c('field', { 'var': 'FORM_TYPE' })
@@ -1615,8 +1617,8 @@ export default class ChatRoom extends Listenable {
                         }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
                     formToSubmit.c('x', {
-                        xmlns: 'jabber:x:data',
-                        type: 'submit'
+                        type: 'submit',
+                        xmlns: 'jabber:x:data'
                     });
                     formToSubmit
                         .c('field', { 'var': 'FORM_TYPE' })
@@ -1932,8 +1934,8 @@ export default class ChatRoom extends Listenable {
             { to: this.focusMucJid,
                 type: 'set' })
             .c('mute', {
-                xmlns: `http://jitsi.org/jitmeet/${mediaType}`,
-                jid
+                jid,
+                xmlns: `http://jitsi.org/jitmeet/${mediaType}`
             })
             .t(mute.toString())
             .up();
@@ -2102,13 +2104,13 @@ export default class ChatRoom extends Listenable {
 
             this.connection.sendIQ(
                 $iq({
-                    type: 'get',
-                    to: this.xmpp.options.hosts.domain
+                    to: this.xmpp.options.hosts.domain,
+                    type: 'get'
                 })
                     .c('credentials', { xmlns: 'urn:xmpp:extdisco:2' })
                     .c('service', {
-                        type: 'short-lived-token',
-                        host: service
+                        host: service,
+                        type: 'short-lived-token'
                     }),
                 res => {
                     const resultServiceEl = $(res).find('>credentials[xmlns="urn:xmpp:extdisco:2"]>service');

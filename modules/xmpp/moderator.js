@@ -181,8 +181,8 @@ export default class Moderator extends Listenable {
         }
 
         const conferenceRequest = {
-            properties,
             machineUid: Settings.machineId,
+            properties,
             room: roomJid
         };
 
@@ -216,10 +216,10 @@ export default class Moderator extends Listenable {
         });
 
         elem.c('conference', {
-            xmlns: 'http://jitsi.org/protocol/focus',
-            room: roomJid,
             'machine-uid': conferenceRequest.machineUid,
-            token: this.xmpp.token
+            room: roomJid,
+            token: this.xmpp.token,
+            xmlns: 'http://jitsi.org/protocol/focus'
         });
 
         if (conferenceRequest.sessionId) {
@@ -322,12 +322,12 @@ export default class Moderator extends Listenable {
             } else {
                 logger.info(`Sending conference request over HTTP to ${this.targetUrl}`);
                 fetch(this.targetUrl, {
-                    method: 'POST',
                     body: JSON.stringify(this._createConferenceRequest(roomJid)),
                     headers: {
                         'Content-Type': 'application/json',
                         ...this.xmpp.token ? { 'Authorization': `Bearer ${this.xmpp.token}` } : {}
-                    }
+                    },
+                    method: 'POST'
                 })
                     .then(response => {
                         if (!response.ok) {
@@ -608,8 +608,8 @@ export default class Moderator extends Listenable {
             return;
         }
         iq.c('logout', {
-            xmlns: 'http://jitsi.org/protocol/focus',
-            'session-id': sessionId
+            'session-id': sessionId,
+            xmlns: 'http://jitsi.org/protocol/focus'
         });
         this.connection.sendIQ(
             iq,

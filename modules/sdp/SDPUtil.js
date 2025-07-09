@@ -8,217 +8,12 @@ import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
 const SDPUtil = {
-    filterSpecialChars(text) {
-        // XXX Neither one of the falsy values (e.g. null, undefined, false,
-        // "", etc.) "contain" special chars.
-        // eslint-disable-next-line no-useless-escape
-        return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
-    },
-    iceparams(mediadesc, sessiondesc) {
-        let data = null;
-        let pwd, ufrag;
-
-        if ((ufrag = SDPUtil.findLine(mediadesc, 'a=ice-ufrag:', sessiondesc))
-                && (pwd
-                    = SDPUtil.findLine(
-                        mediadesc,
-                        'a=ice-pwd:',
-                        sessiondesc))) {
-            data = {
-                ufrag: SDPUtil.parseICEUfrag(ufrag),
-                pwd: SDPUtil.parseICEPwd(pwd)
-            };
-        }
-
-        return data;
-    },
-    parseICEUfrag(line) {
-        return line.substring(12);
-    },
-    buildICEUfrag(frag) {
-        return `a=ice-ufrag:${frag}`;
-    },
-    parseICEPwd(line) {
-        return line.substring(10);
-    },
-    buildICEPwd(pwd) {
-        return `a=ice-pwd:${pwd}`;
-    },
-    parseMID(line) {
-        return line.substring(6);
-    },
-
     /**
-     * Finds the MSID attribute in the given array of SSRC attribute lines and returns the value.
+     * Builds an ICE candidate line for SDP.
      *
-     * @param {string[]} ssrcLines - an array of lines similar to 'a:213123 msid:stream-id track-id'.
-     * @returns {undefined|string}
+     * @param {*} cand - The ICE candidate object.
+     * @returns {string} - The SDP line for the ICE candidate.
      */
-    parseMSIDAttribute(ssrcLines) {
-        const msidLine = ssrcLines.find(line => line.indexOf(' msid:') > 0);
-
-        if (!msidLine) {
-            return undefined;
-        }
-
-        const v = msidLine.substring(msidLine.indexOf(' msid:') + 6 /* the length of ' msid:' */);
-
-        return SDPUtil.filterSpecialChars(v);
-    },
-    parseMLine(line) {
-        const data = {};
-        const parts = line.substring(2).split(' ');
-
-        data.media = parts.shift();
-        data.port = parts.shift();
-        data.proto = parts.shift();
-        if (parts[parts.length - 1] === '') { // trailing whitespace
-            parts.pop();
-        }
-        data.fmt = parts;
-
-        return data;
-    },
-    buildMLine(mline) {
-        return (
-            `m=${mline.media} ${mline.port} ${mline.proto} ${
-                mline.fmt.join(' ')}`);
-    },
-    parseRTPMap(line) {
-        const data = {};
-        let parts = line.substring(9).split(' ');
-
-        data.id = parts.shift();
-        parts = parts[0].split('/');
-        data.name = parts.shift();
-        data.clockrate = parts.shift();
-        data.channels = parts.length ? parts.shift() : '1';
-
-        return data;
-    },
-
-    /**
-     * Parses SDP line "a=sctpmap:..." and extracts SCTP port from it.
-     * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
-     * @returns [SCTP port number, protocol, streams]
-     */
-    parseSCTPMap(line) {
-        const parts = line.substring(10).split(' ');
-        const sctpPort = parts[0];
-        const protocol = parts[1];
-
-        // Stream count is optional
-        const streamCount = parts.length > 2 ? parts[2] : null;
-
-
-        return [ sctpPort, protocol, streamCount ];// SCTP port
-    },
-    parseSCTPPort(line) {
-        return line.substring(12);
-    },
-    buildRTPMap(el) {
-        let line
-            = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
-                el.getAttribute('clockrate')}`;
-
-        if (el.getAttribute('channels')
-            && el.getAttribute('channels') !== '1') {
-            line += `/${el.getAttribute('channels')}`;
-        }
-
-        return line;
-    },
-    parseCrypto(line) {
-        const data = {};
-        const parts = line.substring(9).split(' ');
-
-        data.tag = parts.shift();
-        data['crypto-suite'] = parts.shift();
-        data['key-params'] = parts.shift();
-        if (parts.length) {
-            data['session-params'] = parts.join(' ');
-        }
-
-        return data;
-    },
-    parseFingerprint(line) { // RFC 4572
-        const data = {};
-        const parts = line.substring(14).split(' ');
-
-        data.hash = parts.shift();
-        data.fingerprint = parts.shift();
-
-        // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
-        return data;
-    },
-    parseFmtp(line) {
-        const data = [];
-        let parts = line.split(' ');
-
-        parts.shift();
-        parts = parts.join(' ').split(';');
-        for (let i = 0; i < parts.length; i++) {
-            let key = parts[i].split('=')[0];
-
-            while (key.length && key[0] === ' ') {
-                key = key.substring(1);
-            }
-            const value = parts[i].split('=')[1];
-
-            if (key && value) {
-                data.push({ name: key,
-                    value });
-            } else if (key) {
-                // rfc 4733 (DTMF) style stuff
-                data.push({ name: '',
-                    value: key });
-            }
-        }
-
-        return data;
-    },
-    parseICECandidate(line) {
-        const candidate = {};
-        const elems = line.split(' ');
-
-        candidate.foundation = elems[0].substring(12);
-        candidate.component = elems[1];
-        candidate.protocol = elems[2].toLowerCase();
-        candidate.priority = elems[3];
-        candidate.ip = elems[4];
-        candidate.port = elems[5];
-
-        // elems[6] => "typ"
-        candidate.type = elems[7];
-        candidate.generation = 0; // default value, may be overwritten below
-        for (let i = 8; i < elems.length; i += 2) {
-            switch (elems[i]) {
-            case 'raddr':
-                candidate['rel-addr'] = elems[i + 1];
-                break;
-            case 'rport':
-                candidate['rel-port'] = elems[i + 1];
-                break;
-            case 'generation':
-                candidate.generation = elems[i + 1];
-                break;
-            case 'tcptype':
-                candidate.tcptype = elems[i + 1];
-                break;
-            default: // TODO
-                logger.debug(
-                    `parseICECandidate not translating "${
-                        elems[i]}" = "${elems[i + 1]}"`);
-            }
-        }
-        candidate.network = '1';
-
-        // not applicable to SDP -- FIXME: should be unique, not just random
-        // eslint-disable-next-line newline-per-chained-call
-        candidate.id = Math.random().toString(36).substr(2, 10);
-
-        return candidate;
-    },
     buildICECandidate(cand) {
         let line = [
             `a=candidate:${cand.foundation}`,
@@ -261,141 +56,127 @@ const SDPUtil = {
 
         return line;
     },
-    parseSSRC(desc) {
-        // proprietary mapping of a=ssrc lines
-        // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
-        // on google docs and parse according to that
-        const data = new Map();
-        const lines = desc.split('\r\n');
 
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, 7) === 'a=ssrc:') {
-                // FIXME: Use regex to smartly find the ssrc.
-                const ssrc = lines[i].split('a=ssrc:')[1].split(' ')[0];
-
-                if (!data.get(ssrc)) {
-                    data.set(ssrc, []);
-                }
-
-                data.get(ssrc).push(lines[i]);
-            }
-        }
-
-        return data;
+    /**
+     * Builds an ICE password line for SDP.
+     *
+     * @param {string} pwd - The ICE password.
+     * @returns {string} - The SDP line for the ICE password.
+     */
+    buildICEPwd(pwd) {
+        return `a=ice-pwd:${pwd}`;
     },
 
     /**
-     * Parses the 'a=ssrc-group' line.
+     * Builds an ICE ufrag line for SDP.
      *
-     * @param {string} line - The media line to parse.
-     * @returns {object}
+     * @param {string} frag - The ICE ufrag.
+     * @returns {string} - The SDP line for the ICE ufrag.
      */
-    parseSSRCGroupLine(line) {
-        const parts = line.substr(13).split(' ');
-
-        return {
-            semantics: parts.shift(),
-            ssrcs: parts
-        };
+    buildICEUfrag(frag) {
+        return `a=ice-ufrag:${frag}`;
     },
 
     /**
-     * Gets the source name out of the name attribute "a=ssrc:254321 name:name1".
+     * Builds an SDP media line.
      *
-     * @param {string[]} ssrcLines
-     * @returns {string | undefined}
+     * @param {*} mline - The media line object.
+     * @returns {string} - The SDP media line.
      */
-    parseSourceNameLine(ssrcLines) {
-        const sourceNameLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(' name:') > 0);
-
-        // Everything past the "name:" part
-        return sourceNameLine?.substring(sourceNameLine.indexOf(' name:') + 6);
+    buildMLine(mline) {
+        return (
+            `m=${mline.media} ${mline.port} ${mline.proto} ${
+                mline.fmt.join(' ')}`);
     },
 
     /**
-     * Parse the "videoType" attribute encoded in a set of SSRC attributes (e.g.
-     * "a=ssrc:1234 videoType:desktop")
+     * Builds an RTP map line for SDP.
      *
-     * @param {string[]} ssrcLines
-     * @returns {string | undefined}
+     * @param {*} el - The RTP map element.
+     * @returns {string} - The SDP line for the RTP map.
      */
-    parseVideoTypeLine(ssrcLines) {
-        const s = ' videoType:';
-        const videoTypeLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(s) > 0);
+    buildRTPMap(el) {
+        let line
+            = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
+                el.getAttribute('clockrate')}`;
 
-        return videoTypeLine?.substring(videoTypeLine.indexOf(s) + s.length);
-    },
-    parseRTCPFB(line) {
-        const parts = line.substr(10).split(' ');
-        const data = {};
-
-        data.pt = parts.shift();
-        data.type = parts.shift();
-        data.params = parts;
-
-        return data;
-    },
-    parseExtmap(line) {
-        const parts = line.substr(9).split(' ');
-        const data = {};
-
-        data.value = parts.shift();
-        if (data.value.indexOf('/') === -1) {
-            data.direction = 'both';
-        } else {
-            data.direction = data.value.substr(data.value.indexOf('/') + 1);
-            data.value = data.value.substr(0, data.value.indexOf('/'));
+        if (el.getAttribute('channels')
+            && el.getAttribute('channels') !== '1') {
+            line += `/${el.getAttribute('channels')}`;
         }
-        data.uri = parts.shift();
-        data.params = parts;
 
-        return data;
+        return line;
     },
-    findLine(haystack, needle, sessionpart) {
-        let lines = haystack.split('\r\n');
 
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) === needle) {
-                return lines[i];
+    /**
+     * Builds an ICE candidate line for SDP.
+     *
+     * @param {*} cand - The ICE candidate object.
+     * @returns {string} - The SDP line for the ICE candidate.
+     */
+    candidateFromJingle(cand) {
+        let line = 'a=candidate:';
+
+        line += cand.getAttribute('foundation');
+        line += ' ';
+        line += cand.getAttribute('component');
+        line += ' ';
+
+        let protocol = cand.getAttribute('protocol');
+
+        // use tcp candidates for FF
+
+        if (browser.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
+            protocol = 'tcp';
+        }
+
+        line += protocol; // .toUpperCase(); // chrome M23 doesn't like this
+        line += ' ';
+        line += cand.getAttribute('priority');
+        line += ' ';
+        line += cand.getAttribute('ip');
+        line += ' ';
+        line += cand.getAttribute('port');
+        line += ' ';
+        line += 'typ';
+        line += ` ${cand.getAttribute('type')}`;
+        line += ' ';
+        switch (cand.getAttribute('type')) {
+        case 'srflx':
+        case 'prflx':
+        case 'relay':
+            if (cand.getAttribute('rel-addr')
+                    && cand.getAttribute('rel-port')) {
+                line += 'raddr';
+                line += ' ';
+                line += cand.getAttribute('rel-addr');
+                line += ' ';
+                line += 'rport';
+                line += ' ';
+                line += cand.getAttribute('rel-port');
+                line += ' ';
             }
+            break;
         }
-        if (!sessionpart) {
-            return false;
+        if (protocol.toLowerCase() === 'tcp') {
+            line += 'tcptype';
+            line += ' ';
+            line += cand.getAttribute('tcptype');
+            line += ' ';
         }
+        line += 'generation';
+        line += ' ';
+        line += cand.getAttribute('generation') || '0';
 
-        // search session part
-        lines = sessionpart.split('\r\n');
-        for (let j = 0; j < lines.length; j++) {
-            if (lines[j].substring(0, needle.length) === needle) {
-                return lines[j];
-            }
-        }
-
-        return false;
+        return `${line}\r\n`;
     },
-    findLines(haystack, needle, sessionpart) {
-        let lines = haystack.split('\r\n');
-        const needles = [];
 
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) === needle) {
-                needles.push(lines[i]);
-            }
-        }
-        if (needles.length || !sessionpart) {
-            return needles;
-        }
-
-        // search session part
-        lines = sessionpart.split('\r\n');
-        for (let j = 0; j < lines.length; j++) {
-            if (lines[j].substring(0, needle.length) === needle) {
-                needles.push(lines[j]);
-            }
-        }
-
-        return needles;
-    },
+    /**
+     * Builds an ICE candidate from SDP.
+     *
+     * @param {*} line - The SDP line for the ICE candidate.
+     * @returns {Object} - The Jingle XML representation of the ICE candidate.
+     */
     candidateToJingle(line) {
         // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host
         // generation 0
@@ -462,61 +243,379 @@ const SDPUtil = {
 
         return candidate;
     },
-    candidateFromJingle(cand) {
-        let line = 'a=candidate:';
 
-        line += cand.getAttribute('foundation');
-        line += ' ';
-        line += cand.getAttribute('component');
-        line += ' ';
+    filterSpecialChars(text) {
+        // XXX Neither one of the falsy values (e.g. null, undefined, false,
+        // "", etc.) "contain" special chars.
+        // eslint-disable-next-line no-useless-escape
+        return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
+    },
 
-        let protocol = cand.getAttribute('protocol');
+    /**
+     * Finds a line in the SDP that starts with the given search pattern.
+     *
+     * @param {string} haystack - The SDP string to search.
+     * @param {string} needle - The line prefix to find.
+     * @param {string} sessionpart - The session part to search within.
+     * @returns {string|boolean} - The found line or false if not found.
+     */
+    findLine(haystack, needle, sessionpart) {
+        let lines = haystack.split('\r\n');
 
-        // use tcp candidates for FF
-
-        if (browser.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
-            protocol = 'tcp';
-        }
-
-        line += protocol; // .toUpperCase(); // chrome M23 doesn't like this
-        line += ' ';
-        line += cand.getAttribute('priority');
-        line += ' ';
-        line += cand.getAttribute('ip');
-        line += ' ';
-        line += cand.getAttribute('port');
-        line += ' ';
-        line += 'typ';
-        line += ` ${cand.getAttribute('type')}`;
-        line += ' ';
-        switch (cand.getAttribute('type')) {
-        case 'srflx':
-        case 'prflx':
-        case 'relay':
-            if (cand.getAttribute('rel-addr')
-                    && cand.getAttribute('rel-port')) {
-                line += 'raddr';
-                line += ' ';
-                line += cand.getAttribute('rel-addr');
-                line += ' ';
-                line += 'rport';
-                line += ' ';
-                line += cand.getAttribute('rel-port');
-                line += ' ';
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].substring(0, needle.length) === needle) {
+                return lines[i];
             }
-            break;
         }
-        if (protocol.toLowerCase() === 'tcp') {
-            line += 'tcptype';
-            line += ' ';
-            line += cand.getAttribute('tcptype');
-            line += ' ';
+        if (!sessionpart) {
+            return false;
         }
-        line += 'generation';
-        line += ' ';
-        line += cand.getAttribute('generation') || '0';
 
-        return `${line}\r\n`;
+        // search session part
+        lines = sessionpart.split('\r\n');
+        for (let j = 0; j < lines.length; j++) {
+            if (lines[j].substring(0, needle.length) === needle) {
+                return lines[j];
+            }
+        }
+
+        return false;
+    },
+
+    /**
+     * Finds all lines in the SDP that start with the given search pattern.
+     *
+     * @param {string} haystack - The SDP string to search.
+     * @param {string} needle - The line prefix to find.
+     * @param {string} sessionpart - The session part to search within.
+     * @returns {Array<string>} - An array of found lines.
+     */
+    findLines(haystack, needle, sessionpart) {
+        let lines = haystack.split('\r\n');
+        const needles = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].substring(0, needle.length) === needle) {
+                needles.push(lines[i]);
+            }
+        }
+        if (needles.length || !sessionpart) {
+            return needles;
+        }
+
+        // search session part
+        lines = sessionpart.split('\r\n');
+        for (let j = 0; j < lines.length; j++) {
+            if (lines[j].substring(0, needle.length) === needle) {
+                needles.push(lines[j]);
+            }
+        }
+
+        return needles;
+    },
+
+    /**
+     * Generates a random SSRC value.
+     *
+     * @returns {number} - A random SSRC value.
+     */
+    generateSsrc() {
+        return RandomUtil.randomInt(1, 0xffffffff);
+    },
+
+    /**
+     * Gets the media description for a specific media type from the SDP.
+     *
+     * @param {Object} sdp - The SDP object.
+     * @param {string} type - The media type to search for (e.g., "audio", "video").
+     * @returns {Object|null} - The media description object or null if not found.
+     */
+    getMedia(sdp, type) {
+        return sdp.media.find(m => m.type === type);
+    },
+
+    /**
+     * Gets the SSRC attribute value from the media line.
+     *
+     * @param {Object} mLine - The media line object.
+     * @param {number} ssrc - The SSRC value to search for.
+     * @param {string} attributeName - The attribute name to search for.
+     * @returns {string|null} - The attribute value or null if not found.
+     */
+    getSsrcAttribute(mLine, ssrc, attributeName) {
+        for (let i = 0; i < mLine.ssrcs.length; ++i) {
+            const ssrcLine = mLine.ssrcs[i];
+
+            if (ssrcLine.id === ssrc
+                && ssrcLine.attribute === attributeName) {
+                return ssrcLine.value;
+            }
+        }
+    },
+
+    /**
+     * Gets the ICE ufrag from the SDP.
+     *
+     * @param {string} sdp - The SDP string to search.
+     * @returns {string|null} - The ICE ufrag value or null if not found.
+     */
+    getUfrag(sdp) {
+        const ufragLines
+            = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
+
+        if (ufragLines.length > 0) {
+            return ufragLines[0].substr('a=ice-ufrag:'.length);
+        }
+    },
+
+    /**
+     * Gets the ICE parameters from the media description and session description.
+     *
+     * @param {Object} mediadesc - The media description object.
+     * @param {Object} sessiondesc - The session description object.
+     * @returns {Object|null} - The ICE parameters object or null if not found.
+     */
+    iceparams(mediadesc, sessiondesc) {
+        let data = null;
+        let pwd, ufrag;
+
+        if ((ufrag = SDPUtil.findLine(mediadesc, 'a=ice-ufrag:', sessiondesc))
+                && (pwd
+                    = SDPUtil.findLine(
+                        mediadesc,
+                        'a=ice-pwd:',
+                        sessiondesc))) {
+            data = {
+                pwd: SDPUtil.parseICEPwd(pwd),
+                ufrag: SDPUtil.parseICEUfrag(ufrag)
+            };
+        }
+
+        return data;
+    },
+
+    /**
+     * Parses a crypto line from the SDP.
+     *
+     * @param {string} line - The crypto line to parse.
+     * @returns {Object} - The parsed crypto parameters.
+     */
+    parseCrypto(line) {
+        const data = {};
+        const parts = line.substring(9).split(' ');
+
+        data.tag = parts.shift();
+        data['crypto-suite'] = parts.shift();
+        data['key-params'] = parts.shift();
+        if (parts.length) {
+            data['session-params'] = parts.join(' ');
+        }
+
+        return data;
+    },
+
+    /**
+     * Parses an extmap line from the SDP.
+     *
+     * @param {string} line - The extmap line to parse.
+     * @returns {Object} - The parsed extmap parameters.
+     */
+    parseExtmap(line) {
+        const parts = line.substr(9).split(' ');
+        const data = {};
+
+        data.value = parts.shift();
+        if (data.value.indexOf('/') === -1) {
+            data.direction = 'both';
+        } else {
+            data.direction = data.value.substr(data.value.indexOf('/') + 1);
+            data.value = data.value.substr(0, data.value.indexOf('/'));
+        }
+        data.uri = parts.shift();
+        data.params = parts;
+
+        return data;
+    },
+
+    /**
+     * Parses a fingerprint line from the SDP.
+     *
+     * @param {string} line - The fingerprint line to parse.
+     * @returns {Object} - The parsed fingerprint parameters.
+     */
+    parseFingerprint(line) { // RFC 4572
+        const data = {};
+        const parts = line.substring(14).split(' ');
+
+        data.hash = parts.shift();
+        data.fingerprint = parts.shift();
+
+        // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
+        return data;
+    },
+
+    /**
+     * Parses a fmtp line from the SDP.
+     *
+     * @param {string} line - The fmtp line to parse.
+     * @returns {Array} - The parsed fmtp parameters.
+     */
+    parseFmtp(line) {
+        const data = [];
+        let parts = line.split(' ');
+
+        parts.shift();
+        parts = parts.join(' ').split(';');
+        for (let i = 0; i < parts.length; i++) {
+            let key = parts[i].split('=')[0];
+
+            while (key.length && key[0] === ' ') {
+                key = key.substring(1);
+            }
+            const value = parts[i].split('=')[1];
+
+            if (key && value) {
+                data.push({ name: key,
+                    value });
+            } else if (key) {
+                // rfc 4733 (DTMF) style stuff
+                data.push({ name: '',
+                    value: key });
+            }
+        }
+
+        return data;
+    },
+
+    /**
+     * Parses the SSRCs from a group description.
+     *
+     * @param {Object} ssrcGroup - The SSRC group object.
+     * @returns {Array} - The list of SSRCs in the group.
+     */
+    parseGroupSsrcs(ssrcGroup) {
+        return ssrcGroup
+            .ssrcs
+            .split(' ')
+            .map(ssrcStr => parseInt(ssrcStr, 10));
+    },
+
+    /**
+     * Parses an ICE candidate line from the SDP.
+     *
+     * @param {string} line - The ICE candidate line to parse.
+     * @returns {Object} - The parsed ICE candidate parameters.
+     */
+    parseICECandidate(line) {
+        const candidate = {};
+        const elems = line.split(' ');
+
+        candidate.foundation = elems[0].substring(12);
+        candidate.component = elems[1];
+        candidate.protocol = elems[2].toLowerCase();
+        candidate.priority = elems[3];
+        candidate.ip = elems[4];
+        candidate.port = elems[5];
+
+        // elems[6] => "typ"
+        candidate.type = elems[7];
+        candidate.generation = 0; // default value, may be overwritten below
+        for (let i = 8; i < elems.length; i += 2) {
+            switch (elems[i]) {
+            case 'raddr':
+                candidate['rel-addr'] = elems[i + 1];
+                break;
+            case 'rport':
+                candidate['rel-port'] = elems[i + 1];
+                break;
+            case 'generation':
+                candidate.generation = elems[i + 1];
+                break;
+            case 'tcptype':
+                candidate.tcptype = elems[i + 1];
+                break;
+            default: // TODO
+                logger.debug(
+                    `parseICECandidate not translating "${
+                        elems[i]}" = "${elems[i + 1]}"`);
+            }
+        }
+        candidate.network = '1';
+
+        // not applicable to SDP -- FIXME: should be unique, not just random
+        // eslint-disable-next-line newline-per-chained-call
+        candidate.id = Math.random().toString(36).substr(2, 10);
+
+        return candidate;
+    },
+
+    /**
+     * Parses an ICE password line from the SDP.
+     *
+     * @param {string} line - The ICE password line to parse.
+     * @returns {string} - The parsed ICE password.
+     */
+    parseICEPwd(line) {
+        return line.substring(10);
+    },
+
+    /**
+     * Parses an ICE ufrag line from the SDP.
+     *
+     * @param {string} line - The ICE ufrag line to parse.
+     * @returns {string} - The parsed ICE ufrag.
+     */
+    parseICEUfrag(line) {
+        return line.substring(12);
+    },
+
+    /**
+     * Parses a media ID line from the SDP.
+     *
+     * @param {string} line - The media ID line to parse.
+     * @returns {string} - The parsed media ID.
+     */
+    parseMID(line) {
+        return line.substring(6);
+    },
+
+    /**
+     * Parses a media line from the SDP.
+     *
+     * @param {string} line - The media line to parse.
+     * @returns {Object} - The parsed media line data.
+     */
+    parseMLine(line) {
+        const data = {};
+        const parts = line.substring(2).split(' ');
+
+        data.media = parts.shift();
+        data.port = parts.shift();
+        data.proto = parts.shift();
+        if (parts[parts.length - 1] === '') { // trailing whitespace
+            parts.pop();
+        }
+        data.fmt = parts;
+
+        return data;
+    },
+
+    /**
+     * Parses the MSID attribute from the given SSRC lines.
+     *
+     * @param {Array<string>} ssrcLines - The SSRC lines to search.
+     * @returns {string|undefined} - The parsed MSID or undefined if not found.
+     */
+    parseMSIDAttribute(ssrcLines) {
+        const msidLine = ssrcLines.find(line => line.indexOf(' msid:') > 0);
+
+        if (!msidLine) {
+            return undefined;
+        }
+
+        const v = msidLine.substring(msidLine.indexOf(' msid:') + 6 /* the length of ' msid:' */);
+
+        return SDPUtil.filterSpecialChars(v);
     },
 
     /**
@@ -564,69 +663,138 @@ const SDPUtil = {
     },
 
     /**
-     * Generate an ssrc
-     * @returns {number} an ssrc
+     * Parses an RTCP feedback line from the SDP.
+     *
+     * @param {string} line - The RTCP feedback line to parse.
+     * @returns {Object} - The parsed RTCP feedback data.
      */
-    generateSsrc() {
-        return RandomUtil.randomInt(1, 0xffffffff);
+    parseRTCPFB(line) {
+        const parts = line.substr(10).split(' ');
+        const data = {};
+
+        data.pt = parts.shift();
+        data.type = parts.shift();
+        data.params = parts;
+
+        return data;
     },
 
     /**
-     * Get an attribute for the given ssrc with the given attributeName
-     *  from the given mline
-     * @param {object} mLine an mLine object as parsed from transform.parse
-     * @param {number} ssrc the ssrc for which an attribute is desired
-     * @param {string} attributeName the name of the desired attribute
-     * @returns {string} the value corresponding to the given ssrc
-     *  and attributeName
+     * Parses an RTP map line from the SDP.
+     *
+     * @param {string} line - The RTP map line to parse.
+     * @returns {Object} - The parsed RTP map data.
      */
-    getSsrcAttribute(mLine, ssrc, attributeName) {
-        for (let i = 0; i < mLine.ssrcs.length; ++i) {
-            const ssrcLine = mLine.ssrcs[i];
+    parseRTPMap(line) {
+        const data = {};
+        let parts = line.substring(9).split(' ');
 
-            if (ssrcLine.id === ssrc
-                && ssrcLine.attribute === attributeName) {
-                return ssrcLine.value;
+        data.id = parts.shift();
+        parts = parts[0].split('/');
+        data.name = parts.shift();
+        data.clockrate = parts.shift();
+        data.channels = parts.length ? parts.shift() : '1';
+
+        return data;
+    },
+
+    /**
+     * Parses SDP line "a=sctpmap:..." and extracts SCTP port from it.
+     *
+     * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
+     * @returns [SCTP port number, protocol, streams]
+     */
+    parseSCTPMap(line) {
+        const parts = line.substring(10).split(' ');
+        const sctpPort = parts[0];
+        const protocol = parts[1];
+
+        // Stream count is optional
+        const streamCount = parts.length > 2 ? parts[2] : null;
+
+
+        return [ sctpPort, protocol, streamCount ];// SCTP port
+    },
+
+    /**
+     * Parses the SCTP port line from the SDP.
+     *
+     * @param {string} line - The SCTP port line to parse.
+     * @returns {string} - The parsed SCTP port.
+     */
+    parseSCTPPort(line) {
+        return line.substring(12);
+    },
+
+    /**
+     * Parses the SSRC lines from the SDP.
+     *
+     * @param {string} desc - The SDP description to parse.
+     * @returns {Map<string, Array<string>>} - A map of SSRCs to their corresponding lines.
+     */
+    parseSSRC(desc) {
+        // proprietary mapping of a=ssrc lines
+        // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
+        // on google docs and parse according to that
+        const data = new Map();
+        const lines = desc.split('\r\n');
+
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].substring(0, 7) === 'a=ssrc:') {
+                // FIXME: Use regex to smartly find the ssrc.
+                const ssrc = lines[i].split('a=ssrc:')[1].split(' ')[0];
+
+                if (!data.get(ssrc)) {
+                    data.set(ssrc, []);
+                }
+
+                data.get(ssrc).push(lines[i]);
             }
         }
+
+        return data;
     },
 
     /**
-     * Parses the ssrcs from the group sdp line and
-     *  returns them as a list of numbers
-     * @param {object} the ssrcGroup object as parsed from
-     *  sdp-transform
-     * @returns {list<number>} a list of the ssrcs in the group
-     *  parsed as numbers
+     * Parses the 'a=ssrc-group' line.
+     *
+     * @param {string} line - The media line to parse.
+     * @returns {object}
      */
-    parseGroupSsrcs(ssrcGroup) {
-        return ssrcGroup
-            .ssrcs
-            .split(' ')
-            .map(ssrcStr => parseInt(ssrcStr, 10));
+    parseSSRCGroupLine(line) {
+        const parts = line.substr(13).split(' ');
+
+        return {
+            semantics: parts.shift(),
+            ssrcs: parts
+        };
     },
 
     /**
-     * Get the mline of the given type from the given sdp
-     * @param {object} sdp sdp as parsed from transform.parse
-     * @param {string} type the type of the desired mline (e.g. "video")
-     * @returns {object} a media object
+     * Gets the source name out of the name attribute "a=ssrc:254321 name:name1".
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
      */
-    getMedia(sdp, type) {
-        return sdp.media.find(m => m.type === type);
+    parseSourceNameLine(ssrcLines) {
+        const sourceNameLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(' name:') > 0);
+
+        // Everything past the "name:" part
+        return sourceNameLine?.substring(sourceNameLine.indexOf(' name:') + 6);
     },
 
     /**
-     * Extracts the ICE username fragment from an SDP string.
-     * @param {string} sdp the SDP in raw text format
+     * Parse the "videoType" attribute encoded in a set of SSRC attributes (e.g.
+     * "a=ssrc:1234 videoType:desktop")
+     *
+     * @param {string[]} ssrcLines
+     * @returns {string | undefined}
      */
-    getUfrag(sdp) {
-        const ufragLines
-            = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
+    parseVideoTypeLine(ssrcLines) {
+        const s = ' videoType:';
+        const videoTypeLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(s) > 0);
 
-        if (ufragLines.length > 0) {
-            return ufragLines[0].substr('a=ice-ufrag:'.length);
-        }
+        return videoTypeLine?.substring(videoTypeLine.indexOf(s) + s.length);
     },
 
     /**

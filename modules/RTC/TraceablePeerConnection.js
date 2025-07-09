@@ -453,10 +453,10 @@ export default class TraceablePeerConnection {
 
         if (!s) {
             this.stats[id] = s = {
-                startTime: now,
                 endTime: now,
-                values: [],
-                times: []
+                startTime: now,
+                times: [],
+                values: []
             };
         }
         s.values.push(statValue);
@@ -947,9 +947,9 @@ export default class TraceablePeerConnection {
         const trackDetails = {
             mediaType,
             muted: peerMediaInfo?.muted ?? true,
+            ssrc: trackSsrc,
             stream,
             track,
-            ssrc: trackSsrc,
             videoType: peerMediaInfo?.videoType
         };
 
@@ -1141,9 +1141,9 @@ export default class TraceablePeerConnection {
 
                 const msid = `${this.rtc.getLocalEndpointId()}-${mediaType}-${trackIndex}`;
                 const ssrcInfo = {
-                    ssrcs: [],
                     groups: [],
-                    msid
+                    msid,
+                    ssrcs: []
                 };
 
                 ssrcs.forEach(ssrc => ssrcInfo.ssrcs.push(ssrc.id));
@@ -1315,8 +1315,8 @@ export default class TraceablePeerConnection {
             // to the peerconnection before a session-initiate is sent over to the peer.
             const transceiverInit = {
                 direction: MediaDirection.SENDRECV,
-                streams,
-                sendEncodings: []
+                sendEncodings: [],
+                streams
             };
 
             if (!browser.isFirefox()) {
@@ -1782,8 +1782,8 @@ export default class TraceablePeerConnection {
         });
 
         return {
-            type: remoteDescription.type,
-            sdp: transformer.toRawSDP()
+            sdp: transformer.toRawSDP(),
+            type: remoteDescription.type
         };
     }
 
@@ -1994,8 +1994,8 @@ export default class TraceablePeerConnection {
         mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
         mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
         const mungedDescription = {
-            type: description.type,
-            sdp: transform.write(mungedSdp)
+            sdp: transform.write(mungedSdp),
+            type: description.type
         };
 
         this.trace('RTCSessionDescription::postTransform', TraceablePeerConnection.dumpSDP(mungedDescription));
@@ -2352,9 +2352,9 @@ export default class TraceablePeerConnection {
         if (this._dtmfSender) {
             if (this._dtmfSender.toneBuffer) {
                 this._dtmfTonesQueue.push({
-                    tones,
                     duration,
-                    interToneGap
+                    interToneGap,
+                    tones
                 });
 
                 return;
@@ -2468,8 +2468,8 @@ export default class TraceablePeerConnection {
                 if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
                     // eslint-disable-next-line no-param-reassign
                     resultSdp = {
-                        type: resultSdp.type,
-                        sdp: this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp)
+                        sdp: this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp),
+                        type: resultSdp.type
                     };
 
                     this.trace(
@@ -2579,8 +2579,8 @@ export default class TraceablePeerConnection {
     addIceCandidate(candidate) {
         this.trace('addIceCandidate', JSON.stringify({
             candidate: candidate.candidate,
-            sdpMid: candidate.sdpMid,
             sdpMLineIndex: candidate.sdpMLineIndex,
+            sdpMid: candidate.sdpMid,
             usernameFragment: candidate.usernameFragment
         }, null, ' '));
 

@@ -571,16 +571,44 @@ const sdpFirefoxStr = baseSessionSdp + baseAudioMLineSdp + videoMlineFF;
 const sdpFirefoxP2pStr = baseSessionSdp + baseAudioMLineSdp + videoLineP2pFF;
 
 export default {
-    get simulcastSdpStr(): string {
-        return simulcastSdpStr;
+    get firefoxP2pSdp(): transform.SessionDescription {
+        return transform.parse(sdpFirefoxP2pStr);
+    },
+
+    get firefoxSdp(): transform.SessionDescription {
+        return transform.parse(sdpFirefoxStr);
+    },
+
+    get flexFecSdp(): transform.SessionDescription {
+        return transform.parse(flexFecSdpStr);
+    },
+
+    get multiCodecVideoSdp(): transform.SessionDescription {
+        return transform.parse(multiCodecVideoSdpStr);
+    },
+
+    get plainVideoSdp(): transform.SessionDescription {
+        return transform.parse(plainVideoSdpStr);
+    },
+
+    get recvOnlySdp(): transform.SessionDescription {
+        return transform.parse(recvOnlySdpStr);
+    },
+
+    get recvOnlySdpStr(): string {
+        return recvOnlySdpStr;
+    },
+
+    get recvOnlySdpStrChrome(): string {
+        return recvOnlySdpStrChrome;
+    },
+
+    get rtxVideoSdp(): transform.SessionDescription {
+        return transform.parse(rtxVideoSdpStr);
     },
 
     get simulcastDifferentSsrcSdpStr(): string {
         return simulcastDifferentSsrcSdpStr;
-    },
-
-    get simulcastSdp(): transform.SessionDescription {
-        return transform.parse(simulcastSdpStr);
     },
 
     get simulcastNoRtxSdp(): transform.SessionDescription {
@@ -595,42 +623,13 @@ export default {
         return transform.parse(simulcastRtxSdpTrackReplaced);
     },
 
-    get plainVideoSdp(): transform.SessionDescription {
-        return transform.parse(plainVideoSdpStr);
+    get simulcastSdp(): transform.SessionDescription {
+        return transform.parse(simulcastSdpStr);
     },
 
-    get rtxVideoSdp(): transform.SessionDescription {
-        return transform.parse(rtxVideoSdpStr);
-    },
-
-    get multiCodecVideoSdp(): transform.SessionDescription {
-        return transform.parse(multiCodecVideoSdpStr);
-    },
-
-    get flexFecSdp(): transform.SessionDescription {
-        return transform.parse(flexFecSdpStr);
-    },
-
-    get recvOnlySdpStr(): string {
-        return recvOnlySdpStr;
-    },
-
-    get recvOnlySdpStrChrome(): string {
-        return recvOnlySdpStrChrome;
-    },
-
-    get recvOnlySdp(): transform.SessionDescription {
-        return transform.parse(recvOnlySdpStr);
-    },
-
-    get firefoxSdp(): transform.SessionDescription {
-        return transform.parse(sdpFirefoxStr);
-    },
-
-    get firefoxP2pSdp(): transform.SessionDescription {
-        return transform.parse(sdpFirefoxP2pStr);
+    get simulcastSdpStr(): string {
+        return simulcastSdpStr;
     }
-
 };
 
 /* eslint-enable max-len */

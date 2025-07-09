@@ -424,9 +424,9 @@ export class TrackStreamingStatusImpl {
 
             this.streamingStatusMap = {
                 ...oldStreamingStatus,
-                streamingStatus: newState,
                 p2p: inP2PMode,
-                startedMs: nowMs
+                startedMs: nowMs,
+                streamingStatus: newState
             };
 
             // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the video type is not in
@@ -624,8 +624,8 @@ export class TrackStreamingStatusImpl {
 
         this.streamingStatusMap = {
             ...this.streamingStatusMap || {},
-            videoType: type,
-            startedMs: nowMs
+            startedMs: nowMs,
+            videoType: type
         };
     }
 }

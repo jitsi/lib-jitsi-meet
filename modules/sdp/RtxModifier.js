@@ -39,13 +39,13 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
         mLine.removeGroupsWithSSRC(previousRtxSSRC);
     }
     mLine.addSSRCAttribute({
-        id: rtxSsrc,
         attribute: 'cname',
+        id: rtxSsrc,
         value: primarySsrcCname
     });
     primarySsrcMsid && mLine.addSSRCAttribute({
-        id: rtxSsrc,
         attribute: 'msid',
+        id: rtxSsrc,
         value: primarySsrcMsid
     });
     mLine.addSSRCGroup({
@@ -157,8 +157,8 @@ export default class RtxModifier {
             updateAssociatedRtxStream(
                 videoMLine,
                 {
-                    id: ssrc,
                     cname,
+                    id: ssrc,
                     msid
                 },
                 correspondingRtxSsrc);

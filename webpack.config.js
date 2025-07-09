@@ -23,12 +23,12 @@ module.exports = (_env, argv) => {
                 worker: './modules/e2ee/Worker.js'
             },
             mode,
+            optimization: {
+                minimize: false
+            },
             output: {
                 filename: 'lib-jitsi-meet.e2ee-worker.js',
                 path: path.join(process.cwd(), 'dist', 'umd')
-            },
-            optimization: {
-                minimize: false
             }
         }
     ];

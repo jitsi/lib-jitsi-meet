@@ -22,8 +22,8 @@ export default class XmppConnection extends Listenable {
      */
     static get Events() {
         return {
-            CONN_STATUS_CHANGED: 'CONN_STATUS_CHANGED',
-            CONN_SHARD_CHANGED: 'CONN_SHARD_CHANGED'
+            CONN_SHARD_CHANGED: 'CONN_SHARD_CHANGED',
+            CONN_STATUS_CHANGED: 'CONN_STATUS_CHANGED'
         };
     }
 
@@ -557,8 +557,8 @@ export default class XmppConnection extends Listenable {
             } else {
                 const deferred = {
                     iq,
-                    resolve,
                     reject,
+                    resolve,
                     start: Date.now(),
                     timeout: setTimeout(() => {
                         // clears the IQ on timeout and invalidates the deferred task
@@ -624,8 +624,8 @@ export default class XmppConnection extends Listenable {
                 type: 'terminate'
             });
         const pres = $pres({
-            xmlns: Strophe.NS.CLIENT,
-            type: 'unavailable'
+            type: 'unavailable',
+            xmlns: Strophe.NS.CLIENT
         });
 
         body.cnode(pres.tree());

@@ -70,9 +70,9 @@ export default class JitsiTrackError extends Error {
              * @type {IGum}
              */
             this.gum = {
-                error,
                 constraints: options,
-                devices: devices && Array.isArray(devices) ? devices.slice(0) : undefined
+                devices: devices && Array.isArray(devices) ? devices.slice(0) : undefined,
+                error
             };
 
             switch (error.name) {

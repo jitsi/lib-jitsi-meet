@@ -262,13 +262,13 @@ export const createBridgeDownEvent = () => {
  */
 export const createConnectionFailedEvent = (errorType: unknown, errorMessage: unknown, details: object) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'connection.failed',
         attributes: {
-            'error_type': errorType,
             'error_message': errorMessage,
+            'error_type': errorType,
             ...details
-        }
+        },
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -347,10 +347,10 @@ export const createFocusLeftEvent = () => {
  */
 export const createGetUserMediaEvent = (action: 'error' | 'success' | 'warning' | string, attributes: object = {}) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
-        source: 'get.user.media',
         action,
-        attributes
+        attributes,
+        source: 'get.user.media',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -365,7 +365,7 @@ export const createJvbIceFailedEvent = (action: unknown, attributes: object = {}
     return {
         action,
         attributes,
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -376,10 +376,10 @@ export const createJvbIceFailedEvent = (action: unknown, attributes: object = {}
  */
 export const createParticipantConnectionStatusEvent = (attributes: object = {}) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
-        source: 'peer.conn.status',
         action: 'duration',
-        attributes
+        attributes,
+        source: 'peer.conn.status',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -390,10 +390,10 @@ export const createParticipantConnectionStatusEvent = (attributes: object = {}) 
  */
 export const createTrackStreamingStatusEvent = (attributes: object = {}) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
-        source: 'track.streaming.status',
         action: 'duration',
-        attributes
+        attributes,
+        source: 'track.streaming.status',
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -404,10 +404,10 @@ export const createTrackStreamingStatusEvent = (attributes: object = {}) => {
  */
 export const createJingleEvent = (action: unknown, attributes: object = {}) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action,
+        attributes,
         source: 'jingle',
-        attributes
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -420,11 +420,11 @@ export const createJingleEvent = (action: unknown, attributes: object = {}) => {
  */
 export const createNoDataFromSourceEvent = (mediaType: 'audio' | 'video' | string, value: unknown) => {
     return {
+        action: 'track.no.data.from.source',
         attributes: {
             'media_type': mediaType,
             value
         },
-        action: 'track.no.data.from.source',
         type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
@@ -436,10 +436,10 @@ export const createNoDataFromSourceEvent = (mediaType: 'audio' | 'video' | strin
  */
 export const createP2PEvent = (action: unknown, attributes: object = {}) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action,
+        attributes,
         source: 'p2p',
-        attributes
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -448,9 +448,9 @@ export const createP2PEvent = (action: unknown, attributes: object = {}) => {
  */
 export const createRemotelyMutedEvent = (mediaType: unknown) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'remotely.muted',
-        mediaType
+        mediaType,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -499,9 +499,9 @@ export const createRemotelyMutedEvent = (mediaType: unknown) => {
  */
 export const createRtpStatsEvent = (attributes: object) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'rtp.stats',
-        attributes
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -513,9 +513,9 @@ export const createRtpStatsEvent = (attributes: object) => {
  */
 export const createRttByRegionEvent = (attributes: object) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'rtt.by.region',
-        attributes
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -527,9 +527,9 @@ export const createRttByRegionEvent = (attributes: object) => {
  */
 export const createTransportStatsEvent = (attributes: object) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'transport.stats',
-        attributes
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 
@@ -544,13 +544,13 @@ export const createTransportStatsEvent = (attributes: object) => {
 export const createAudioOutputProblemEvent
     = (userID: string, localAudioLevels: unknown, remoteAudioLevels: unknown) => {
         return {
-            type: AnalyticsEvents.TYPE_OPERATIONAL,
             action: 'audio.output.problem',
             attributes: {
-                userID,
                 localAudioLevels,
-                remoteAudioLevels
-            }
+                remoteAudioLevels,
+                userID
+            },
+            type: AnalyticsEvents.TYPE_OPERATIONAL
         };
     };
 
@@ -562,12 +562,12 @@ export const createAudioOutputProblemEvent
  */
 export const createBridgeChannelClosedEvent = (code: string, reason: string) => {
     return {
-        type: AnalyticsEvents.TYPE_OPERATIONAL,
         action: 'bridge-channel.error',
         attributes: {
             code,
             reason
-        }
+        },
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 

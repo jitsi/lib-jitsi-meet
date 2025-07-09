@@ -42,10 +42,10 @@ function _createSourceExtension(owner: string, sourceCompactJson: ISourceCompact
     }
 
     const node = $build('source', {
-        xmlns: XEP.SOURCE_ATTRIBUTES,
-        ssrc: sourceCompactJson.s,
         name: sourceCompactJson.n,
-        videoType
+        ssrc: sourceCompactJson.s,
+        videoType,
+        xmlns: XEP.SOURCE_ATTRIBUTES
     });
 
     if (sourceCompactJson.m) {
@@ -55,8 +55,8 @@ function _createSourceExtension(owner: string, sourceCompactJson: ISourceCompact
         }).up();
     }
     node.c('ssrc-info', {
-        xmlns: 'http://jitsi.org/jitmeet',
-        owner
+        owner,
+        xmlns: 'http://jitsi.org/jitmeet'
     }).up();
 
     return node.node;
@@ -69,14 +69,14 @@ function _createSourceExtension(owner: string, sourceCompactJson: ISourceCompact
  */
 function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Node {
     const node = $build('ssrc-group', {
-        xmlns: XEP.SOURCE_ATTRIBUTES,
-        semantics: _getSemantics(ssrcGroupCompactJson[0])
+        semantics: _getSemantics(ssrcGroupCompactJson[0]),
+        xmlns: XEP.SOURCE_ATTRIBUTES
     });
 
     for (let i = 1; i < ssrcGroupCompactJson.length; i++) {
         node.c('source', {
-            xmlns: XEP.SOURCE_ATTRIBUTES,
-            ssrc: ssrcGroupCompactJson[i]
+            ssrc: ssrcGroupCompactJson[i],
+            xmlns: XEP.SOURCE_ATTRIBUTES
         }).up();
     }
 
@@ -111,8 +111,8 @@ function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
         description = descriptionElements[0];
     } else {
         description = $build('description', {
-            xmlns: XEP.RTP_MEDIA,
-            media: mediaType
+            media: mediaType,
+            xmlns: XEP.RTP_MEDIA
         }).node;
         content.appendChild(description);
     }

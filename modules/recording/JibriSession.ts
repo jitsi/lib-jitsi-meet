@@ -229,8 +229,8 @@ export default class JibriSession {
                 this._createIQ({
                     action: 'start',
                     appData,
-                    focusMucJid,
                     broadcastId,
+                    focusMucJid,
                     streamId
                 }),
                 (result: any) => {
@@ -294,11 +294,11 @@ export default class JibriSession {
             type: 'set'
         })
         .c('jibri', {
-            'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
             'app_data': appData,
             'recording_mode': this._mode,
             'streamid': streamId,
+            'xmlns': 'http://jitsi.org/protocol/jibri',
             'you_tube_broadcast_id': broadcastId
         })
         .up();

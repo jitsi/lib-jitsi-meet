@@ -1094,9 +1094,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         try {
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
-                devices: [ mediaType ],
+                constraints: { [mediaType]: constraintsToApply },
                 [deviceIdKey]: constraintsToApply.deviceId,
-                constraints: { [mediaType]: constraintsToApply }
+                devices: [ mediaType ]
             });
 
             if (!mediaStreamData?.stream) {
@@ -1112,9 +1112,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
             );
 
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
-                devices: [ mediaType ],
+                constraints: { [mediaType]: initialSettings },
                 [deviceIdKey]: constraintsToApply.deviceId,
-                constraints: { [mediaType]: initialSettings }
+                devices: [ mediaType ]
             });
         }
 

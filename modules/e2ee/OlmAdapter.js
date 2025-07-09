@@ -22,12 +22,12 @@ const OLM_MESSAGE_TYPES = {
     ERROR: 'error',
     KEY_INFO: 'key-info',
     KEY_INFO_ACK: 'key-info-ack',
-    SESSION_ACK: 'session-ack',
-    SESSION_INIT: 'session-init',
-    SAS_START: 'sas-start',
     SAS_ACCEPT: 'sas-accept',
     SAS_KEY: 'sas-key',
-    SAS_MAC: 'sas-mac'
+    SAS_MAC: 'sas-mac',
+    SAS_START: 'sas-start',
+    SESSION_ACK: 'session-ack',
+    SESSION_INIT: 'session-init'
 };
 
 const OLM_SAS_NUM_BYTES = 6;
@@ -38,9 +38,9 @@ const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
+    PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_SAS_AVAILABLE: 'olm.participant_sas_available',
     PARTICIPANT_SAS_READY: 'olm.participant_sas_ready',
-    PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_VERIFICATION_COMPLETED: 'olm.participant_verification_completed'
 };
 
@@ -169,11 +169,11 @@ export class OlmAdapter extends Listenable {
             const data = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
-                    type: OLM_MESSAGE_TYPES.KEY_INFO,
                     data: {
                         ciphertext: this._encryptKeyInfo(olmData.session),
                         uuid
-                    }
+                    },
+                    type: OLM_MESSAGE_TYPES.KEY_INFO
                 }
             };
             const d = new Deferred();
@@ -356,8 +356,8 @@ export class OlmAdapter extends Listenable {
         const startMessage = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
-                type: OLM_MESSAGE_TYPES.SAS_START,
-                data: startContent
+                data: startContent,
+                type: OLM_MESSAGE_TYPES.SAS_START
             }
         };
 
@@ -481,11 +481,12 @@ export class OlmAdapter extends Listenable {
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
-                        type: OLM_MESSAGE_TYPES.SESSION_ACK,
                         data: {
                             ciphertext: this._encryptKeyInfo(session),
                             uuid: msg.data.uuid
-                        }
+                        },
+                        type: OLM_MESSAGE_TYPES.SESSION_ACK
+
                     }
                 };
 
@@ -560,11 +561,11 @@ export class OlmAdapter extends Listenable {
                     const ack = {
                         [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                         olm: {
-                            type: OLM_MESSAGE_TYPES.KEY_INFO_ACK,
                             data: {
                                 ciphertext: this._encryptKeyInfo(olmData.session),
                                 uuid: msg.data.uuid
-                            }
+                            },
+                            type: OLM_MESSAGE_TYPES.KEY_INFO_ACK
                         }
                     };
 
@@ -629,9 +630,9 @@ export class OlmAdapter extends Listenable {
             const sas = new Olm.SAS();
 
             olmData.sasVerification = {
+                isInitiator: false,
                 sas,
-                transactionId,
-                isInitiator: false
+                transactionId
             };
 
             const pubKey = olmData.sasVerification.sas.get_pubkey();
@@ -643,11 +644,12 @@ export class OlmAdapter extends Listenable {
             const acceptMessage = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
-                    type: OLM_MESSAGE_TYPES.SAS_ACCEPT,
                     data: {
-                        transactionId,
-                        commitment
-                    }
+                        commitment,
+                        transactionId
+                    },
+                    type: OLM_MESSAGE_TYPES.SAS_ACCEPT
+
                 }
             };
 
@@ -693,11 +695,11 @@ export class OlmAdapter extends Listenable {
             const keyMessage = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
-                    type: OLM_MESSAGE_TYPES.SAS_KEY,
                     data: {
                         key: pubKey,
                         transactionId
-                    }
+                    },
+                    type: OLM_MESSAGE_TYPES.SAS_KEY
                 }
             };
 
@@ -773,11 +775,11 @@ export class OlmAdapter extends Listenable {
             const keyMessage = {
                 [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                 olm: {
-                    type: OLM_MESSAGE_TYPES.SAS_KEY,
                     data: {
                         key: pubKey,
                         transactionId
-                    }
+                    },
+                    type: OLM_MESSAGE_TYPES.SAS_KEY
                 }
             };
 
@@ -917,11 +919,11 @@ export class OlmAdapter extends Listenable {
                     const data = {
                         [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                         olm: {
-                            type: OLM_MESSAGE_TYPES.KEY_INFO,
                             data: {
                                 ciphertext: this._encryptKeyInfo(olmData.session),
                                 uuid
-                            }
+                            },
+                            type: OLM_MESSAGE_TYPES.KEY_INFO
                         }
                     };
 
@@ -948,10 +950,10 @@ export class OlmAdapter extends Listenable {
         const err = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
-                type: OLM_MESSAGE_TYPES.ERROR,
                 data: {
                     error
-                }
+                },
+                type: OLM_MESSAGE_TYPES.ERROR
             }
         };
 
@@ -1010,12 +1012,12 @@ export class OlmAdapter extends Listenable {
         const init = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
-                type: OLM_MESSAGE_TYPES.SESSION_INIT,
                 data: {
                     idKey: this._idKeys.curve25519,
                     otKey,
                     uuid
-                }
+                },
+                type: OLM_MESSAGE_TYPES.SESSION_INIT
             }
         };
 
@@ -1066,12 +1068,12 @@ export class OlmAdapter extends Listenable {
         const macMessage = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
-                type: OLM_MESSAGE_TYPES.SAS_MAC,
                 data: {
                     keys,
                     mac,
                     transactionId
-                }
+                },
+                type: OLM_MESSAGE_TYPES.SAS_MAC
             }
         };
 

@@ -67,16 +67,16 @@ export default class LocalSdpMunger {
                         existingMsid.value = generatedMsid;
                     } else {
                         mediaSection.ssrcs.push({
-                            id: source,
                             attribute: 'msid',
+                            id: source,
                             value: generatedMsid
                         });
                     }
 
                     // Inject source names as a=ssrc:3124985624 name:endpointA-v0
                     mediaSection.ssrcs.push({
-                        id: source,
                         attribute: 'name',
+                        id: source,
                         value: sourceName
                     });
 
@@ -87,8 +87,8 @@ export default class LocalSdpMunger {
                     if (mediaType === MediaType.VIDEO && videoType) {
                         // Inject videoType as a=ssrc:1234 videoType:desktop.
                         mediaSection.ssrcs.push({
-                            id: source,
                             attribute: 'videoType',
+                            id: source,
                             value: videoType
                         });
                     }
@@ -156,8 +156,8 @@ export default class LocalSdpMunger {
         }
 
         return {
-            type: sessionDesc.type,
-            sdp: transformer.toRawSDP()
+            sdp: transformer.toRawSDP(),
+            type: sessionDesc.type
         };
     }
 }

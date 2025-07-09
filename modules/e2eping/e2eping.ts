@@ -137,8 +137,8 @@ class ParticipantWrapper {
     sendRequest(): void {
         const requestId = this.lastRequestId++;
         const requestMessage = {
-            type: E2E_PING_REQUEST,
-            id: requestId
+            id: requestId,
+            type: E2E_PING_REQUEST
         };
 
         this.e2eping.sendMessage(requestMessage, this.id);
@@ -360,8 +360,8 @@ export default class E2ePing {
         // If it's a valid request, just send a response.
         if (request?.id) {
             const response = {
-                type: E2E_PING_RESPONSE,
-                id: request.id
+                id: request.id,
+                type: E2E_PING_RESPONSE
             };
 
             this.sendMessage(response, participantId);

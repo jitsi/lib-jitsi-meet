@@ -380,27 +380,27 @@ export default class StatsCollector {
         }
 
         this.conferenceStats.bitrate = {
-            upload: bitrateUpload,
-            download: bitrateDownload
+            download: bitrateDownload,
+            upload: bitrateUpload
         };
 
         this.conferenceStats.bitrate.audio = {
-            upload: audioBitrateUpload,
-            download: audioBitrateDownload
+            download: audioBitrateDownload,
+            upload: audioBitrateUpload
         };
 
         this.conferenceStats.bitrate.video = {
-            upload: videoBitrateUpload,
-            download: videoBitrateDownload
+            download: videoBitrateDownload,
+            upload: videoBitrateUpload
         };
 
         this.conferenceStats.packetLoss = {
+            download:
+                calculatePacketLoss(lostPackets.download, totalPackets.download),
             total:
                 calculatePacketLoss(
                     lostPackets.download + lostPackets.upload,
                     totalPackets.download + totalPackets.upload),
-            download:
-                calculatePacketLoss(lostPackets.download, totalPackets.download),
             upload:
                 calculatePacketLoss(lostPackets.upload, totalPackets.upload)
         };
@@ -411,10 +411,10 @@ export default class StatsCollector {
             {
                 bandwidth: this.conferenceStats.bandwidth,
                 bitrate: this.conferenceStats.bitrate,
+                codec: codecs,
+                framerate: framerates,
                 packetLoss: this.conferenceStats.packetLoss,
                 resolution: resolutions,
-                framerate: framerates,
-                codec: codecs,
                 transport: this.conferenceStats.transport
             });
         this.conferenceStats.transport = [];
@@ -537,13 +537,13 @@ export default class StatsCollector {
                         && t.localip === localip)) {
                         conferenceStatsTransport.push({
                             ip,
-                            type,
-                            localip,
-                            p2p: this.peerconnection.isP2P,
                             localCandidateType: localUsedCandidate.candidateType,
-                            remoteCandidateType: remoteUsedCandidate.candidateType,
+                            localip,
                             networkType: localUsedCandidate.networkType,
-                            rtt: now.currentRoundTripTime * 1000
+                            p2p: this.peerconnection.isP2P,
+                            remoteCandidateType: remoteUsedCandidate.candidateType,
+                            rtt: now.currentRoundTripTime * 1000,
+                            type
                         });
                     }
                 }
@@ -589,9 +589,9 @@ export default class StatsCollector {
                     const packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
                     ssrcStats.setLoss({
-                        packetsTotal: packetsDiff + packetsLostDiff,
+                        isDownloadStream,
                         packetsLost: packetsLostDiff,
-                        isDownloadStream
+                        packetsTotal: packetsDiff + packetsLostDiff
                     });
                 }
 

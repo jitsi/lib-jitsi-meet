@@ -443,8 +443,8 @@ export class QualityController {
                 avgEncodeTime,
                 codec,
                 encodeResolution,
-                qualityLimitationReason,
                 localTrack,
+                qualityLimitationReason,
                 timestamp,
                 tpc
             };

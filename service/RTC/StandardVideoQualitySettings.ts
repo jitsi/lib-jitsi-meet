@@ -48,55 +48,55 @@ export enum SSRC_GROUP_SEMANTICS {
 export const STANDARD_CODEC_SETTINGS = {
     av1: {
         maxBitratesVideo: {
-            low: 100000,
-            standard: 300000,
-            high: 1000000,
             fullHd: 2000000,
-            ultraHd: 4000000,
+            high: 1000000,
+            low: 100000,
+            none: 0,
             ssHigh: 2500000,
-            none: 0
+            standard: 300000,
+            ultraHd: 4000000
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
+        useKSVC: browser.supportsSVC(),
         useSimulcast: !browser.supportsSVC(),
-        useKSVC: browser.supportsSVC()
     },
     h264: {
         maxBitratesVideo: {
-            low: 400000,
-            standard: 800000,
-            high: 2000000,
             fullHd: 4000000,
-            ultraHd: 8000000,
+            high: 2000000,
+            low: 400000,
+            none: 0,
             ssHigh: 2500000,
-            none: 0
+            standard: 800000,
+            ultraHd: 8000000,
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
     },
     vp8: {
         maxBitratesVideo: {
-            low: 200000,
-            standard: 500000,
-            high: 1500000,
             fullHd: 3000000,
-            ultraHd: 6000000,
+            high: 1500000,
+            low: 200000,
+            none: 0,
             ssHigh: 2500000,
-            none: 0
+            standard: 500000,
+            ultraHd: 6000000,
         },
         scalabilityModeEnabled: false
     },
     vp9: {
         maxBitratesVideo: {
-            low: 100000,
-            standard: 300000,
-            high: 1200000,
             fullHd: 2500000,
-            ultraHd: 5000000,
+            high: 1200000,
+            low: 100000,
+            none: 0,
             ssHigh: 2500000,
-            none: 0
+            standard: 300000,
+            ultraHd: 5000000
         },
         scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
+        useKSVC: browser.supportsSVC(),
         useSimulcast: !browser.supportsSVC(),
-        useKSVC: browser.supportsSVC()
     }
 };
 

@@ -116,9 +116,9 @@ export default class VADReportingService extends EventEmitter {
                 emitter.start();
 
                 return {
-                    vadEmitter: emitter,
                     deviceInfo: micDevice,
-                    scoreArray: []
+                    scoreArray: [],
+                    vadEmitter: emitter
                 };
             });
 
@@ -207,9 +207,9 @@ export default class VADReportingService extends EventEmitter {
             vadContext.scoreArray = [];
 
             vadComputeScoreArray.push({
-                timestamp: computeTimestamp,
+                deviceId,
                 score: avgVAD,
-                deviceId
+                timestamp: computeTimestamp
             });
         }
 

@@ -163,9 +163,9 @@ export default class JitsiConnection {
      */
     initJitsiConference(name: string | null, options: Record<string, any>): JitsiConference {
         return new JitsiConference({
-            name,
             config: options,
-            connection: this
+            connection: this,
+            name
         });
     }
 
