@@ -369,11 +369,11 @@ export default class ConnectionQuality {
         // Send only the data that remote participants care about.
         const data = {
             bitrate: this._localStats.bitrate,
-            packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
-            serverRegion: this._localStats.serverRegion,
-            maxEnabledResolution: this._localStats.maxEnabledResolution
+            maxEnabledResolution: this._localStats.maxEnabledResolution,
+            packetLoss: this._localStats.packetLoss,
+            serverRegion: this._localStats.serverRegion
         };
 
         try {
@@ -456,11 +456,11 @@ export default class ConnectionQuality {
         // Use only the fields we need
         this._remoteStats[id] = {
             bitrate: data.bitrate,
-            packetLoss: data.packetLoss,
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
-            serverRegion: data.serverRegion,
-            maxEnabledResolution: data.maxEnabledResolution
+            maxEnabledResolution: data.maxEnabledResolution,
+            packetLoss: data.packetLoss,
+            serverRegion: data.serverRegion
         };
 
         this.eventEmitter.emit(

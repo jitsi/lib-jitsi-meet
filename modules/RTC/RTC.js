@@ -66,6 +66,7 @@ function _createLocalTracks(mediaStreamMetaData = []) {
         return new JitsiLocalTrack({
             constraints,
             deviceId,
+            effects,
             facingMode,
             mediaType: track.kind,
             rtcId: rtcTrackIdCounter,
@@ -73,8 +74,7 @@ function _createLocalTracks(mediaStreamMetaData = []) {
             sourceType,
             stream,
             track,
-            videoType: videoType || null,
-            effects
+            videoType: videoType || null
         });
     });
 }

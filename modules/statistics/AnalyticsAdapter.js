@@ -103,8 +103,8 @@ class AnalyticsAdapter {
         this.conferenceName = '';
 
         this.addPermanentProperties({
-            'user_agent': navigator.userAgent,
-            'browser_name': browser.getName()
+            'browser_name': browser.getName(),
+            'user_agent': navigator.userAgent
         });
     }
 
@@ -216,11 +216,11 @@ class AnalyticsAdapter {
 
         if (typeof eventName === 'string') {
             event = {
-                type: TYPE_OPERATIONAL,
                 action: eventName,
                 actionSubject: eventName,
+                attributes: properties,
                 source: eventName,
-                attributes: properties
+                type: TYPE_OPERATIONAL
             };
         } else if (typeof eventName === 'object') {
             event = eventName;

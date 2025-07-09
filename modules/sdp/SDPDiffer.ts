@@ -99,8 +99,8 @@ export class SDPDiffer {
             modify.c('content', { name: this.isP2P ? media.mid : media.mediaType });
 
             modify.c('description', {
-                xmlns: XEP.RTP_MEDIA,
-                media: media.mediaType
+                media: media.mediaType,
+                xmlns: XEP.RTP_MEDIA
             });
 
             Object.keys(media.ssrcs).forEach(ssrcNum => {
@@ -112,8 +112,8 @@ export class SDPDiffer {
                 modify.c('source', { xmlns: XEP.SOURCE_ATTRIBUTES });
                 modify.attrs({
                     name: sourceName,
-                    videoType,
-                    ssrc: mediaSsrc.ssrc
+                    ssrc: mediaSsrc.ssrc,
+                    videoType
                 });
 
                 // Only MSID attribute is sent

@@ -50,8 +50,8 @@ export default class RoomMetadata {
         }
 
         const message = {
-            key,
-            data
+            data,
+            key
         };
 
         this._sendMessage(message);

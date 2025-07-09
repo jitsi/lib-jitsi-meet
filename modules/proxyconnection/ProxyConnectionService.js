@@ -198,10 +198,10 @@ export default class ProxyConnectionService {
         }
 
         const pcOptions = {
-            pcConfig: this._options.pcConfig,
             onError: this._onFatalError,
             onRemoteStream: this._onRemoteStream,
             onSendMessage: this._onSendMessage,
+            pcConfig: this._options.pcConfig,
             peerJid,
             ...options
         };
@@ -232,8 +232,8 @@ export default class ProxyConnectionService {
             type: 'set'
         })
             .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: errorType
+                action: errorType,
+                xmlns: 'urn:xmpp:jingle:1'
             })
             .c('details')
             .t(details)

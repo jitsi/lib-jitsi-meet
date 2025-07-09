@@ -27,6 +27,10 @@ const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
  */
 const DEFAULT_CONSTRAINTS = {
     video: {
+        frameRate: {
+            max: 30,
+            min: 15
+        },
         height: {
             ideal: 720,
             max: 720,
@@ -36,10 +40,6 @@ const DEFAULT_CONSTRAINTS = {
             ideal: 1280,
             max: 1280,
             min: 320
-        },
-        frameRate: {
-            min: 15,
-            max: 30
         }
     }
 };
@@ -150,10 +150,10 @@ function getConstraints(um = [], options = {}) {
             }
         } else {
             const allowedAudioProps = {
-                echoCancellation: 'boolean',
-                noiseSuppression: 'boolean',
                 autoGainControl: 'boolean',
-                channelCount: 'number'
+                channelCount: 'number',
+                echoCancellation: 'boolean',
+                noiseSuppression: 'boolean'
             };
 
             const validConstraints = {};
@@ -207,11 +207,11 @@ function compareAvailableMediaDevices(newDevices) {
      */
     function mediaDeviceInfoToJSON(info) {
         return JSON.stringify({
-            kind: info.kind,
             deviceId: info.deviceId,
+            facing: info.facing,
             groupId: info.groupId,
-            label: info.label,
-            facing: info.facing
+            kind: info.kind,
+            label: info.label
         });
     }
 }
@@ -237,12 +237,12 @@ function sendDeviceListToAnalytics(deviceList) {
         const attributes = {
             'audio_input_device_count': audioInputDeviceCount,
             'audio_output_device_count': audioOutputDeviceCount,
-            'video_input_device_count': videoInputDeviceCount,
-            'video_output_device_count': videoOutputDeviceCount,
-            'device_id': device.deviceId,
             'device_group_id': device.groupId,
+            'device_id': device.deviceId,
             'device_kind': device.kind,
-            'device_label': device.label
+            'device_label': device.label,
+            'video_input_device_count': videoInputDeviceCount,
+            'video_output_device_count': videoOutputDeviceCount
         };
 
         Statistics.sendAnalytics(AVAILABLE_DEVICE, attributes);
@@ -673,9 +673,9 @@ class RTCUtils extends Listenable {
                 const desktopAudioStream = new MediaStream(desktopAudioTracks);
 
                 mediaStreamsMetaData.push({
-                    stream: desktopAudioStream,
                     sourceId,
                     sourceType,
+                    stream: desktopAudioStream,
                     track: desktopAudioStream.getAudioTracks()[0]
                 });
             }
@@ -686,9 +686,9 @@ class RTCUtils extends Listenable {
                 const desktopVideoStream = new MediaStream(desktopVideoTracks);
 
                 mediaStreamsMetaData.push({
-                    stream: desktopVideoStream,
                     sourceId,
                     sourceType,
+                    stream: desktopVideoStream,
                     track: desktopVideoStream.getVideoTracks()[0],
                     videoType: VideoType.DESKTOP
                 });
@@ -738,9 +738,9 @@ class RTCUtils extends Listenable {
 
                 mediaStreamsMetaData.push({
                     constraints: constraints.audio,
+                    effects: otherOptions.effects,
                     stream: audioStream,
-                    track: audioStream.getAudioTracks()[0],
-                    effects: otherOptions.effects
+                    track: audioStream.getAudioTracks()[0]
                 });
             }
 
@@ -751,10 +751,10 @@ class RTCUtils extends Listenable {
 
                 mediaStreamsMetaData.push({
                     constraints: constraints.video,
+                    effects: otherOptions.effects,
                     stream: videoStream,
                     track: videoStream.getVideoTracks()[0],
-                    videoType: VideoType.CAMERA,
-                    effects: otherOptions.effects
+                    videoType: VideoType.CAMERA
                 });
             }
         };
@@ -887,9 +887,9 @@ class RTCUtils extends Listenable {
         const deviceList = [];
         const deviceData = {
             deviceId: device.deviceId,
+            groupId: device.groupId,
             kind: device.kind,
-            label: device.label,
-            groupId: device.groupId
+            label: device.label
         };
 
         deviceList.push(deviceData);

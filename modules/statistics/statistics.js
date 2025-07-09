@@ -459,8 +459,8 @@ export default class Statistics {
         Statistics.analytics.sendEvent(
             FEEDBACK,
             {
-                rating: overall,
-                comment
+                comment,
+                rating: overall
             });
 
         return Promise.resolve();

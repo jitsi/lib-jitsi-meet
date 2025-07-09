@@ -18,8 +18,8 @@ const KEYRING_SIZE = 16;
 // For audio (where frame.type is not set) we do not encrypt the opus TOC byte:
 //   https://tools.ietf.org/html/rfc6716#section-3.1
 const UNENCRYPTED_BYTES = {
-    key: 10,
     delta: 3,
+    key: 10,
     undefined: 1 // frame.type is not set on audio
 };
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
@@ -148,9 +148,9 @@ export class Context {
             // ---------+-------------------------+-+---------+----
 
             return crypto.subtle.encrypt({
-                name: ENCRYPTION_ALGORITHM,
+                additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength),
                 iv,
-                additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
+                name: ENCRYPTION_ALGORITHM
             }, currentKey.encryptionKey, new Uint8Array(encodedFrame.data,
                 UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
@@ -246,9 +246,9 @@ export class Context {
                     - (frameHeader.byteLength + ivLength + frameTrailer.byteLength);
 
             const plainText = await crypto.subtle.decrypt({
-                name: 'AES-GCM',
+                additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength),
                 iv,
-                additionalData: new Uint8Array(encodedFrame.data, 0, frameHeader.byteLength)
+                name: 'AES-GCM'
             },
                 encryptionKey,
                 new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength));

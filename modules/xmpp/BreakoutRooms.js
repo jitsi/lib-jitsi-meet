@@ -57,8 +57,8 @@ export default class BreakoutRooms {
         }
 
         const message = {
-            type: BREAKOUT_ROOM_ACTIONS.ADD,
-            subject
+            subject,
+            type: BREAKOUT_ROOM_ACTIONS.ADD
         };
 
         this._sendMessage(message);
@@ -78,8 +78,8 @@ export default class BreakoutRooms {
         }
 
         const message = {
-            type: BREAKOUT_ROOM_ACTIONS.REMOVE,
-            breakoutRoomJid
+            breakoutRoomJid,
+            type: BREAKOUT_ROOM_ACTIONS.REMOVE
         };
 
         this._sendMessage(message);
@@ -100,9 +100,10 @@ export default class BreakoutRooms {
         }
 
         const message = {
-            type: BREAKOUT_ROOM_ACTIONS.RENAME,
             breakoutRoomJid,
-            subject
+            subject,
+            type: BREAKOUT_ROOM_ACTIONS.RENAME
+
         };
 
         this._sendMessage(message);
@@ -123,9 +124,9 @@ export default class BreakoutRooms {
         }
 
         const message = {
-            type: BREAKOUT_ROOM_ACTIONS.MOVE_TO_ROOM,
             participantJid,
-            roomJid
+            roomJid,
+            type: BREAKOUT_ROOM_ACTIONS.MOVE_TO_ROOM
         };
 
         this._sendMessage(message);

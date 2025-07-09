@@ -40,11 +40,11 @@ export default class SpeakerStatsCollector {
      */
     constructor(conference: JitsiConference) {
         this.stats = {
+            dominantSpeakerId: null,
             users: {
 
                 // userId: SpeakerStats
-            },
-            dominantSpeakerId: null
+            }
         };
 
         const userId = conference.myUserId();

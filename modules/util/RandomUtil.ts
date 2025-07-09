@@ -52,6 +52,8 @@ const RandomUtil = {
      * Returns a random hex digit.
      * @returns {*}
      */
+    randomAlphanumStr,
+    randomElement,
     randomHexDigit(): string {
         return randomElement(HEX_DIGITS) as string;
     },
@@ -69,8 +71,6 @@ const RandomUtil = {
 
         return ret;
     },
-    randomElement,
-    randomAlphanumStr,
     randomInt
 };
 

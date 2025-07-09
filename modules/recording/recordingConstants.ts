@@ -24,8 +24,8 @@ const recordingConstants: IRecordingConstants = {
         ERROR: 'error',
         POLICY_VIOLATION: 'policy-violation',
         RESOURCE_CONSTRAINT: 'resource-constraint',
-        UNEXPECTED_REQUEST: 'unexpected-request',
-        SERVICE_UNAVAILABLE: 'service-unavailable'
+        SERVICE_UNAVAILABLE: 'service-unavailable',
+        UNEXPECTED_REQUEST: 'unexpected-request'
     },
     mode: {
         FILE: 'file',

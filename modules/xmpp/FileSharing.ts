@@ -121,8 +121,8 @@ export default class FileSharing {
      */
     removeFile(fileId: string) {
         const message = {
-            type: 'remove',
             fileId,
+            type: 'remove',
             xmlns: 'http://jitsi.org/jitmeet'
         };
 

@@ -433,9 +433,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             {
                 // These options are not public API, leaving it here only as an entry point through config for
                 // tuning up purposes. Default values should be adjusted as soon as optimal values are discovered.
+                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout,
                 p2pRtcMuteTimeout: config._p2pConnStatusRtcMuteTimeout,
-                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                outOfForwardedSourcesTimeout: config._peerConnStatusOutOfLastNTimeout
+                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout
             });
 
         this._trackStreamingStatusImpl.init();

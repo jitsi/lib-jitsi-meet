@@ -152,12 +152,12 @@ class ScreenObtainer {
                                 mandatory: {
                                     chromeMediaSource: 'desktop',
                                     chromeMediaSourceId: streamId,
-                                    minFrameRate: desktopSharingFrameRate?.min ?? SS_DEFAULT_FRAME_RATE,
                                     maxFrameRate: desktopSharingFrameRate?.max ?? SS_DEFAULT_FRAME_RATE,
-                                    minWidth: desktopSharingResolution?.width?.min,
-                                    minHeight: desktopSharingResolution?.height?.min,
+                                    maxHeight: desktopSharingResolution?.height?.max ?? window.screen.height,
                                     maxWidth: desktopSharingResolution?.width?.max ?? window.screen.width,
-                                    maxHeight: desktopSharingResolution?.height?.max ?? window.screen.height
+                                    minFrameRate: desktopSharingFrameRate?.min ?? SS_DEFAULT_FRAME_RATE,
+                                    minHeight: desktopSharingResolution?.height?.min,
+                                    minWidth: desktopSharingResolution?.width?.min
                                 }
                             }
                         };
@@ -167,9 +167,9 @@ class ScreenObtainer {
                             .then(stream => {
                                 this.setContentHint(stream);
                                 onSuccess({
-                                    stream,
                                     sourceId: streamId,
-                                    sourceType: streamType
+                                    sourceType: streamType,
+                                    stream
                                 });
                             })
                             .catch(err => onFailure(err));
@@ -266,8 +266,8 @@ class ScreenObtainer {
         }
 
         const constraints = {
-            video,
             audio,
+            video,
             ...constraintOpts,
             cursor: 'always'
         };
@@ -315,17 +315,16 @@ class ScreenObtainer {
                 const { deviceId } = track?.getSettings() ?? {};
 
                 callback({
-                    stream,
-
                     // Used by remote-control to identify the display that is currently shared.
-                    sourceId: deviceId ?? stream.id
+                    sourceId: deviceId ?? stream.id,
+                    stream
                 });
             })
             .catch(error => {
                 const errorDetails = {
                     errorCode: error.code,
-                    errorName: error.name,
                     errorMsg: error.message,
+                    errorName: error.name,
                     errorStack: error.stack
                 };
 
@@ -362,8 +361,9 @@ class ScreenObtainer {
             .then(stream => {
                 this.setContentHint(stream);
                 callback({
-                    stream,
-                    sourceId: stream.id });
+                    sourceId: stream.id,
+                    stream
+                });
             })
             .catch(() => {
                 errorCallback(new JitsiTrackError(JitsiTrackErrors
@@ -399,8 +399,8 @@ class ScreenObtainer {
         logger.info(`Setting the desktop capture rate to ${maxFps}`);
 
         this.options.desktopSharingFrameRate = {
-            min: SS_DEFAULT_FRAME_RATE,
-            max: maxFps
+            max: maxFps,
+            min: SS_DEFAULT_FRAME_RATE
         };
     }
 }

@@ -445,28 +445,28 @@ export default class JitsiConference {
         // Get the codec preference settings from config.js.
         const qualityOptions = {
             enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
-            lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
             jvb: {
+                disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
+                enableAV1ForFF: config.testing?.enableAV1ForFF,
                 preferenceOrder: browser.isMobileDevice()
                     ? config.videoQuality?.mobileCodecPreferenceOrder
                     : config.videoQuality?.codecPreferenceOrder,
-                disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
                 preferredCodec: _getCodecMimeType(config.videoQuality?.preferredCodec),
                 screenshareCodec: browser.isMobileDevice()
                     ? _getCodecMimeType(config.videoQuality?.mobileScreenshareCodec)
-                    : _getCodecMimeType(config.videoQuality?.screenshareCodec),
-                enableAV1ForFF: config.testing?.enableAV1ForFF
+                    : _getCodecMimeType(config.videoQuality?.screenshareCodec)
             },
+            lastNRampupTime: config.testing?.lastNRampupTime ?? 60000,
             p2p: {
+                disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
+                enableAV1ForFF: true, // For P2P no simulcast is needed, therefore AV1 can be used.
                 preferenceOrder: browser.isMobileDevice()
                     ? config.p2p?.mobileCodecPreferenceOrder
                     : config.p2p?.codecPreferenceOrder,
-                disabledCodec: _getCodecMimeType(config.p2p?.disabledCodec),
                 preferredCodec: _getCodecMimeType(config.p2p?.preferredCodec),
                 screenshareCodec: browser.isMobileDevice()
                     ? _getCodecMimeType(config.p2p?.mobileScreenshareCodec)
-                    : _getCodecMimeType(config.p2p?.screenshareCodec),
-                enableAV1ForFF: true // For P2P no simulcast is needed, therefore AV1 can be used.
+                    : _getCodecMimeType(config.p2p?.screenshareCodec)
             }
         };
 
@@ -475,10 +475,10 @@ export default class JitsiConference {
         if (!this.statistics) {
             this.statistics = new Statistics(this, {
                 aliasName: this._statsCurrentId,
-                userName: config.statisticsDisplayName ?? this.myUserId(),
+                applicationName: config.applicationName,
                 confID: config.confID ?? `${this.connection.options.hosts.domain}/${this.options.name}`,
                 roomName: this.options.name,
-                applicationName: config.applicationName
+                userName: config.statisticsDisplayName ?? this.myUserId()
             });
             Statistics.analytics.addPermanentProperties({
                 'callstats_name': this._statsCurrentId
@@ -2179,29 +2179,29 @@ export default class JitsiConference {
         // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
         if (!peerUsesUnifiedPlan) {
             rejectReason = {
+                errorMsg: 'P2P across two endpoints in different SDP modes is disabled',
                 reason: 'decline',
-                reasonDescription: 'P2P disabled',
-                errorMsg: 'P2P across two endpoints in different SDP modes is disabled'
+                reasonDescription: 'P2P disabled'
             };
         } else if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled())
             || (browser.isFirefox() && !this._firefoxP2pEnabled)) {
             rejectReason = {
+                errorMsg: 'P2P mode disabled in the configuration or browser unsupported',
                 reason: 'decline',
-                reasonDescription: 'P2P disabled',
-                errorMsg: 'P2P mode disabled in the configuration or browser unsupported'
+                reasonDescription: 'P2P disabled'
             };
         } else if (this.p2pJingleSession) {
             // Reject incoming P2P call (already in progress)
             rejectReason = {
+                errorMsg: 'Duplicated P2P "session-initiate"',
                 reason: 'busy',
-                reasonDescription: 'P2P already in progress',
-                errorMsg: 'Duplicated P2P "session-initiate"'
+                reasonDescription: 'P2P already in progress'
             };
         } else if (!this._shouldBeInP2PMode()) {
             rejectReason = {
+                errorMsg: 'Received P2P "session-initiate" when should not be in P2P mode',
                 reason: 'decline',
-                reasonDescription: 'P2P requirements not met',
-                errorMsg: 'Received P2P "session-initiate" when should not be in P2P mode'
+                reasonDescription: 'P2P requirements not met'
             };
             Statistics.sendAnalytics(createJingleEvent(ACTION_P2P_DECLINED));
         }
@@ -2229,9 +2229,9 @@ export default class JitsiConference {
 
                 this._rejectIncomingCall(
                     jingleSession, {
+                        errorMsg: description,
                         reason: 'security-error',
-                        reasonDescription: description,
-                        errorMsg: description
+                        reasonDescription: description
                     });
 
                 return;
@@ -2280,8 +2280,8 @@ export default class JitsiConference {
                 {
                     ...this.options.config,
                     codecSettings: {
-                        mediaType: MediaType.VIDEO,
                         codecList: this.qualityController.codecController.getCodecPreferenceList('jvb'),
+                        mediaType: MediaType.VIDEO,
                         screenshareCodec: this.qualityController.codecController.getScreenshareCodec('jvb')
                     },
                     enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
@@ -3050,8 +3050,8 @@ export default class JitsiConference {
             {
                 ...this.options.config,
                 codecSettings: {
-                    mediaType: MediaType.VIDEO,
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
+                    mediaType: MediaType.VIDEO,
                     screenshareCodec: this.qualityController.codecController.getScreenshareCodec('p2p')
                 },
                 enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
@@ -3412,8 +3412,8 @@ export default class JitsiConference {
             {
                 ...this.options.config,
                 codecSettings: {
-                    mediaType: MediaType.VIDEO,
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
+                    mediaType: MediaType.VIDEO,
                     screenshareCodec: this.qualityController.codecController.getScreenshareCodec('p2p')
                 },
                 enableInsertableStreams: this.isE2EEEnabled() || FeatureFlags.isRunInLiteModeEnabled()
@@ -3922,13 +3922,13 @@ export default class JitsiConference {
             ...conferenceConnectionTimes,
             ...xmppConnectionTimes,
             ...globalNSConnectionTimes,
-            gumDuration: safeSubtract(gumEnd, gumStart),
-            xmppConnectingTime: safeSubtract(xmppConnectionTimes.connected, xmppConnectionTimes.connecting),
             connectedToMUCJoinedTime: safeSubtract(
                 conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connected),
             connectingToMUCJoinedTime: safeSubtract(
                 conferenceConnectionTimes['muc.joined'], xmppConnectionTimes.connecting),
-            numberOfParticipantsOnJoin: this._numberOfParticipantsOnJoin
+            gumDuration: safeSubtract(gumEnd, gumStart),
+            numberOfParticipantsOnJoin: this._numberOfParticipantsOnJoin,
+            xmppConnectingTime: safeSubtract(xmppConnectionTimes.connected, xmppConnectionTimes.connecting)
         };
 
         Statistics.sendAnalytics(createConferenceEvent('joined', {

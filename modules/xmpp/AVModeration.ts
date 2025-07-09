@@ -114,8 +114,9 @@ export default class AVModeration {
         const msg = $msg({ to: this._xmpp.avModerationComponentAddress });
 
         msg.c('av_moderation', {
-            mediaType,
-            jidToWhitelist: jid }).up();
+            jidToWhitelist: jid,
+            mediaType
+        }).up();
 
         this._xmpp.connection.send(msg);
     }
@@ -135,8 +136,8 @@ export default class AVModeration {
         const msg = $msg({ to: this._xmpp.avModerationComponentAddress });
 
         msg.c('av_moderation', {
-            mediaType,
-            jidToBlacklist: jid
+            jidToBlacklist: jid,
+            mediaType
         }).up();
 
         this._xmpp.connection.send(msg);

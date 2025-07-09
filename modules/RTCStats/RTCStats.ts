@@ -69,18 +69,18 @@ class RTCStats {
         if (!this._initialized) {
             rtcstatsInit(
                 { statsEntry: this.sendStatsEntry.bind(this) },
-                { pollInterval,
-                    useLegacy: false,
+                { eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event),
+                    pollInterval,
                     sendSdp,
-                    eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event) }
+                    useLegacy: false }
             );
             this._initialized = true;
         }
 
         const traceOptions: ITraceOptions = {
             endpoint,
-            meetingFqn: name,
-            isBreakoutRoom: false
+            isBreakoutRoom: false,
+            meetingFqn: name
         };
 
         // Can't be a breakout room.
@@ -166,8 +166,8 @@ class RTCStats {
             if (!this._startedWithNewConnection) {
                 const traceOptions = {
                     endpoint,
-                    meetingFqn: confName,
-                    isBreakoutRoom
+                    isBreakoutRoom,
+                    meetingFqn: confName
                 };
 
                 this._connectTrace(traceOptions);
@@ -180,12 +180,12 @@ class RTCStats {
 
             const identityData = {
                 ...confConfig,
-                endpointId,
                 confName,
                 displayName,
-                meetingUniqueId,
+                endpointId,
                 isBreakoutRoom,
-                localId
+                localId,
+                meetingUniqueId
             };
 
             this.sendIdentity(identityData);
@@ -222,8 +222,8 @@ class RTCStats {
 
         const traceOptionsComplete = {
             ...traceOptions,
-            useLegacy: false,
-            onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event)
+            onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
+            useLegacy: false
         };
 
         const { isBreakoutRoom } = traceOptionsComplete;

@@ -1,8 +1,8 @@
 module.exports = {
-    parser: '@typescript-eslint/parser',
     extends: [
         '@jitsi/eslint-config'
     ],
+    parser: '@typescript-eslint/parser',
     plugins: [
         '@typescript-eslint'
     ],
@@ -24,6 +24,10 @@ module.exports = {
                     'public-instance-method'
                 ]
             }
+        ],
+        'sort-keys': [
+            'error',
+            'asc' // Sort in ascending order
         ]
     }
 };

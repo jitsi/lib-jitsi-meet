@@ -137,10 +137,10 @@ export default class TrackVADEmitter extends EventEmitter {
             const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample.slice());
 
             this.emit(VAD_SCORE_PUBLISHED, {
-                timestamp: sampleTimestamp,
-                score: vadScore,
+                deviceId: this._localTrack.getDeviceId(),
                 pcmData: pcmSample,
-                deviceId: this._localTrack.getDeviceId()
+                score: vadScore,
+                timestamp: sampleTimestamp
             });
         }
 

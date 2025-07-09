@@ -50,13 +50,13 @@ export default class SdpSimulcast {
 
         for (const ssrc of cachedSsrcs) {
             mLine.ssrcs.push({
-                id: ssrc,
                 attribute: 'msid',
+                id: ssrc,
                 value: newMsid
             });
             mLine.ssrcs.push({
-                id: ssrc,
                 attribute: 'cname',
+                id: ssrc,
                 value: newCname
             });
         }
@@ -90,8 +90,8 @@ export default class SdpSimulcast {
 
             primarySsrcs.forEach(ssrc => {
                 mLine.ssrcs.push({
-                    id: ssrc.id,
                     attribute: 'msid',
+                    id: ssrc.id,
                     value: msid
                 });
             });
@@ -104,13 +104,13 @@ export default class SdpSimulcast {
             const simSsrc = this._generateSsrc();
 
             mLine.ssrcs.push({
-                id: simSsrc,
                 attribute: 'cname',
+                id: simSsrc,
                 value: cname
             });
             mLine.ssrcs.push({
-                id: simSsrc,
                 attribute: 'msid',
+                id: simSsrc,
                 value: msid
             });
 
@@ -227,8 +227,8 @@ export default class SdpSimulcast {
         }
 
         return {
-            type: description.type,
-            sdp: transform.write(session)
+            sdp: transform.write(session),
+            type: description.type
         };
     }
 }

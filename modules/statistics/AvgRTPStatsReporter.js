@@ -202,8 +202,8 @@ class ConnectionAvgStats {
                 const conference = this._avgRtpStatsReporter._conference;
 
                 const batchReport = {
-                    p2p: this.isP2P,
-                    'conference_size': conference.getParticipantCount()
+                    'conference_size': conference.getParticipantCount(),
+                    p2p: this.isP2P
                 };
 
                 if (data.transport && data.transport.length) {
@@ -687,8 +687,8 @@ export default class AvgRTPStatsReporter {
         if (this._sampleIdx >= this._n) {
 
             const batchReport = {
-                p2p: isP2P,
-                'conference_size': confSize
+                'conference_size': confSize,
+                p2p: isP2P
             };
 
             if (data.transport && data.transport.length) {
@@ -945,8 +945,8 @@ export default class AvgRTPStatsReporter {
             return;
         }
         const transportStats = {
-            p2p: data.transport[0].p2p,
             'local_candidate_type': data.transport[0].localCandidateType,
+            'p2p': data.transport[0].p2p,
             'remote_candidate_type': data.transport[0].remoteCandidateType,
             'transport_type': data.transport[0].type
         };
