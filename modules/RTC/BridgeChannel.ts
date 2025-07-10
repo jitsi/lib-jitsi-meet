@@ -9,6 +9,7 @@ import { SourceName } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
 import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
+import { ReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
 
 
 const logger = getLogger('modules/RTC/BridgeChannel');
@@ -290,16 +291,14 @@ export default class BridgeChannel {
     /**
      * Sends a 'ReceiverAudioSubscriptionMessage' message via the bridge channel.
      *
-     * @param {SourceName[]} include - the source names of the audio tracks to include. '*' means all included.
-     * @param {SourceName[]} exclude - the source names of the audio tracks to exclude. '*' means all excluded.
+     * @param {ReceiverAudioSubscriptionMessage} message - the audio subscription message.
      * @returns {void}
      */
-    sendReceiverAudioSubscriptionMessage(include: SourceName[], exclude: SourceName[]): void {
-        logger.info(`Sending ReceiverAudioSubscriptionMessage with include: ${include}, exclude: ${exclude}`);
+    sendReceiverAudioSubscriptionMessage(message: ReceiverAudioSubscriptionMessage): void {
+        logger.info(`Sending ReceiverAudioSubscriptionMessage with mode: ${message.mode}`);
         this._send({
             colibriClass: 'ReceiverAudioSubscription',
-            include,
-            exclude
+            ...message
         });
     }
 

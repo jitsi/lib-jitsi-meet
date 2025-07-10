@@ -832,24 +832,27 @@ JitsiConference.prototype._sendBridgeVideoTypeMessage = function(localtrack) {
     localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
 };
 
+/**
+ * Set deafened state of the local participant.
+ * 
+ * @param {bool} deafened - whether the local participant is deafened or not.
+ */
 JitsiConference.prototype.setIsDeafened = function(deafened) {
     this._sendReceiverAudioSubscriptionMessage(
-        deafened ? [] : ['*'],
-        deafened ? ['*'] : []
+        deafened ? { mode: 'None' } : { mode: 'All' },
     );
 };
 
 /**
  * Sends the "ReceiverAudioSubscriptionMessage" to the bridge on the bridge channel
  *
- * @param {string[]} include - The source names to include in the subscription.
- * @param {string[]} exclude - The source names to exclude from the subscription.
+ * @param {ReceiverAudioSubscriptionMessage} message - The audio subscription message to send.
  * @returns {void}
  * @private
  */
-JitsiConference.prototype._sendReceiverAudioSubscriptionMessage = function(include, exclude) {
+JitsiConference.prototype._sendReceiverAudioSubscriptionMessage = function(message) {
     if (this.rtc) {
-        this.rtc.sendReceiverAudioSubscription(include, exclude);
+        this.rtc.sendReceiverAudioSubscription(message);
     }
 };
 
