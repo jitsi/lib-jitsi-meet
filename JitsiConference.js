@@ -1446,13 +1446,12 @@ export default class JitsiConference {
 
     /**
    * Sets mute status.
-   * @param {MediaType} mediaType - The media type.
    * @param {JitsiLocalTrack} localTrack - The local track.
    * @param {boolean} isMuted - Whether the track is muted.
    * @return {boolean} <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
    * @public
    */
-    _setTrackMuteStatus(mediaType, localTrack, isMuted) {
+    _setTrackMuteStatus(localTrack, isMuted) {
         let presenceChanged = false;
 
         if (localTrack) {
@@ -3728,7 +3727,7 @@ export default class JitsiConference {
         for (const track of localTracks) {
             const muted = track.isMuted();
 
-            muteStatusChanged = this._setTrackMuteStatus(track.getType(), track, muted);
+            muteStatusChanged = this._setTrackMuteStatus(track, muted);
             muteStatusChanged && logger.debug(`Updating mute state of ${track} in presence to muted=${muted}`);
             if (track.getType() === MediaType.VIDEO) {
                 videoTypeChanged = this._setNewVideoType(track);
