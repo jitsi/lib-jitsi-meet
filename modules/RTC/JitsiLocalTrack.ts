@@ -504,13 +504,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
         } else {
             logMuteInfo();
 
-            // This path is only for camera.
-            const streamOptions = {
-                cameraDeviceId: this.getDeviceId(),
-                devices: [ MediaType.VIDEO ],
-                effects: this._streamEffect ? [ this._streamEffect ] : [],
-                facingMode: this.getCameraFacingMode()
-            };
+            let streamOptions;
+
+            if (this.videoType === VideoType.CAMERA) {
+                streamOptions = {
+                    cameraDeviceId: this.getDeviceId(),
+                    devices: [ MediaType.VIDEO ],
+                    effects: this._streamEffect ? [ this._streamEffect ] : [],
+                    facingMode: this.getCameraFacingMode()
+                };
+            } else {
+                streamOptions = {
+                    devices: [ MediaType.DESKTOP ],
+                };
+            }
 
             promise
                 = RTCUtils.obtainAudioAndVideoPermissions({
