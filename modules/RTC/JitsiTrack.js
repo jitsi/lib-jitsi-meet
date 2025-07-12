@@ -6,6 +6,7 @@ import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
 
 import RTCUtils from './RTCUtils';
+import Listenable from '../util/Listenable';
 
 const logger = getLogger('modules/RTC/JitsiTrack');
 
@@ -21,7 +22,7 @@ const trackHandler2Prop = {
 /**
  * Represents a single media track (either audio or video).
  */
-export default class JitsiTrack extends EventEmitter {
+export default class JitsiTrack extends Listenable {
     /* eslint-disable max-params */
     /**
      * Represents a single media track (either audio or video).

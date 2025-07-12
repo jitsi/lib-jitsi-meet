@@ -3,7 +3,12 @@ export {};
 declare global {
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
-        connectionTimes: any;
+                JitsiMeetJS?: {
+            app?: {
+                connectionTimes?: Record<string, any>;
+            };
+        };
+        connectionTimes?: Record<string, any>;
     }
     interface RTCRtpReceiver {
         createEncodedStreams?: () => {

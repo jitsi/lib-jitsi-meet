@@ -269,7 +269,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param fromJoin - Whether this is initial presence to join the room.
      */
-    sendPresence(fromJoin) {
+    sendPresence(fromJoin = false) {
         const to = this.presMap.to;
 
         if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
