@@ -28,7 +28,7 @@ export default class Listenable {
         }
     }
 
-        /**
+    /**
    * Removes event listener.
    * @param {string} eventId - The event ID.
    * @param {Function} [handler] - Optional, the specific handler to unbind.
