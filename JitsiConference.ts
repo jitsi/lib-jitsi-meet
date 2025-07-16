@@ -1242,11 +1242,11 @@ export default class JitsiConference extends Listenable {
     /**
    * Adds JitsiLocalTrack object to the conference.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
-   * @returns {Promise<undefined | JitsiLocalTrack>}
+   * @returns {Promise<JitsiLocalTrack>}
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
-    addTrack(track: JitsiLocalTrack): Promise<void | JitsiLocalTrack> {
+    addTrack(track: JitsiLocalTrack): Promise<JitsiLocalTrack> {
         if (!track) {
             throw new Error('addTrack - a track is required');
         }
@@ -1288,6 +1288,8 @@ export default class JitsiConference extends Listenable {
                         if (this.isMutedByFocus || this.isVideoMutedByFocus || this.isDesktopMutedByFocus) {
                             this._fireMuteChangeEvent(track);
                         }
+
+                        return track;
                     });
             }
 
@@ -1302,6 +1304,8 @@ export default class JitsiConference extends Listenable {
                 if (track.getVideoType() === VideoType.DESKTOP) {
                     this._updateRoomPresence(this.getActiveMediaSession());
                 }
+
+                return track;
             });
     }
 
