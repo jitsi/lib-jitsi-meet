@@ -1242,11 +1242,11 @@ export default class JitsiConference extends Listenable {
     /**
    * Adds JitsiLocalTrack object to the conference.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
-   * @returns {Promise<JitsiLocalTrack>}
+   * @returns {Promise<void>}
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
-    addTrack(track: JitsiLocalTrack): Promise<JitsiLocalTrack> {
+    addTrack(track: JitsiLocalTrack): Promise<void> {
         if (!track) {
             throw new Error('addTrack - a track is required');
         }
@@ -1259,7 +1259,7 @@ export default class JitsiConference extends Listenable {
             // Don't be excessively harsh and severe if the API
             // client happens to attempt to add the same local track twice.
             if (track === localTracks[0]) {
-                return Promise.resolve(track);
+                return Promise.resolve();
             }
 
             // Currently, only adding multiple video streams of different video types is supported.
@@ -1288,8 +1288,6 @@ export default class JitsiConference extends Listenable {
                         if (this.isMutedByFocus || this.isVideoMutedByFocus || this.isDesktopMutedByFocus) {
                             this._fireMuteChangeEvent(track);
                         }
-
-                        return track;
                     });
             }
 
@@ -1304,8 +1302,6 @@ export default class JitsiConference extends Listenable {
                 if (track.getVideoType() === VideoType.DESKTOP) {
                     this._updateRoomPresence(this.getActiveMediaSession());
                 }
-
-                return track;
             });
     }
 
