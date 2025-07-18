@@ -562,17 +562,17 @@ class RTCUtils extends Listenable {
      * @param {Object} [options.desktopSharingFrameRate]
      * @param {Object} [options.desktopSharingFrameRate.min] - Minimum fps
      * @param {Object} [options.desktopSharingFrameRate.max] - Maximum fps
-     * @param {string} [options.desktopSharingSourceDevice] The device id or
+     * @param {string} [options.desktopSharingSourceDevice] - The device id or
      * label for a video input source that should be used for screensharing.
-     * @param {Array<string>} [options.desktopSharingSources] - The types of sources ("screen", "window", etc)
+     * @param {string[]} [options.desktopSharingSources] - The types of sources ("screen", "window", etc)
      * from which the user can select what to share.
-     * @param {string} [options.cameraDeviceId] -  camera device id
-     * @param {string} [options.micDeviceId] - microphone device id
-     * @param {string} [options.resolution] - resolution constraints
-     * @param {Array} [options.effects] - optional effects array for the track
+     * @param {string} [options.cameraDeviceId] - Camera device id
+     * @param {string} [options.micDeviceId] - Microphone device id
+     * @param {string} [options.resolution] - Resolution constraints
+     * @param {IStreamEffect[]} [options.effects] - Optional effects array for the track
      * @param {ITrackConstraints} [options.constraints] - The constraints to use for
      * the audio and video tracks.
-     * @returns {Promise} The promise, when successful, will return an array of
+     * @returns {Promise<IStreamInfo[]>} The promise, when successful, will return an array of
      * meta data for the requested device type, which includes the stream and
      * track. If an error occurs, it will be deferred to the caller for
      * handling.
