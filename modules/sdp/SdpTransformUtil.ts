@@ -154,7 +154,7 @@ class MLineWrap {
             ssrcObj => ssrcObj.id === ssrcNumber
             && ssrcObj.attribute === attrName);
 
-        return attribute && attribute.value;
+        return attribute?.value;
     }
 
     /**
