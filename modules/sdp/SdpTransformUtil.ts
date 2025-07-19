@@ -2,10 +2,21 @@ import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
+export interface ISsrcGroups {
+    semantics: string;
+    ssrcs: string;
+}
+
+export interface ISsrcs {
+    attribute: string;
+    id: number;
+    value: string;
+}
+
 export interface IMLine {
     direction?: string;
-    ssrcGroups?: Array<{ semantics: string; ssrcs: string; }>;
-    ssrcs?: Array<{ attribute: string; id: number; value: string; }>;
+    ssrcGroups?: Array<ISsrcGroups>;
+    ssrcs?: Array<ISsrcs>;
     type?: string;
 }
 
@@ -57,8 +68,8 @@ class MLineWrap {
      */
     constructor(mLine: {
         direction?: string;
-        ssrcGroups?: Array<{ semantics: string; ssrcs: string; }>;
-        ssrcs?: Array<{ attribute: string; id: number; value: string; }>;
+        ssrcGroups?: Array<ISsrcGroups>;
+        ssrcs?: Array<ISsrcs>;
         type?: string;
     }) {
         if (!mLine) {
@@ -75,7 +86,7 @@ class MLineWrap {
      * @return {Array<Object>} an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    get ssrcs(): Array<{ attribute: string; id: number; value: string; }> {
+    get ssrcs(): Array<ISsrcs> {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];
         }
@@ -89,7 +100,7 @@ class MLineWrap {
      * @param {Array<Object>} ssrcs an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    set ssrcs(ssrcs: Array<{ attribute: string; id: number; value: string; }>) {
+    set ssrcs(ssrcs: Array<ISsrcs>) {
         this.mLine.ssrcs = ssrcs;
     }
 
@@ -113,7 +124,7 @@ class MLineWrap {
      * Exposes the SSRC group array of the underlying media description object.
      * @return {Array.<Object>}
      */
-    get ssrcGroups(): Array<{ semantics: string; ssrcs: string; }> {
+    get ssrcGroups(): Array<ISsrcGroups> {
         if (!this.mLine.ssrcGroups) {
             this.mLine.ssrcGroups = [];
         }
@@ -126,7 +137,7 @@ class MLineWrap {
      * object.
      * @param {Array.<Object>} ssrcGroups
      */
-    set ssrcGroups(ssrcGroups: Array<{ semantics: string; ssrcs: string; }>) {
+    set ssrcGroups(ssrcGroups: Array<ISsrcGroups>) {
         this.mLine.ssrcGroups = ssrcGroups;
     }
 
@@ -165,7 +176,7 @@ class MLineWrap {
      * @param {object} ssrcObj the SSRC attribute object as defined in
      * the 'sdp-transform' lib.
      */
-    addSSRCAttribute(ssrcObj: { attribute: string; id: number; value: string; }): void {
+    addSSRCAttribute(ssrcObj: ISsrcs): void {
         this.ssrcs.push(ssrcObj);
     }
 
@@ -177,7 +188,7 @@ class MLineWrap {
      * @return {object|undefined} the SSRC group object or <tt>undefined</tt> if
      * not found.
      */
-    findGroup(semantics: string, ssrcs?: string): { semantics: string; ssrcs: string; } | undefined {
+    findGroup(semantics: string, ssrcs?: string): ISsrcGroups | undefined {
         return this.ssrcGroups.find(
             group =>
                 group.semantics === semantics
@@ -190,7 +201,7 @@ class MLineWrap {
      * @return {Array.<object>} an array of SSRC group objects as defined by
      * the 'sdp-transform' lib.
      */
-    findGroups(semantics: string): Array<{ semantics: string; ssrcs: string; }> {
+    findGroups(semantics: string): Array<ISsrcGroups> {
         return this.ssrcGroups.filter(
             group => group.semantics === semantics);
     }
@@ -201,7 +212,7 @@ class MLineWrap {
      * @param {number} primarySSRC the primary SSRC number to be matched
      * @return {Object} SSRC group object as defined by the 'sdp-transform' lib.
      */
-    findGroupByPrimarySSRC(semantics: string, primarySSRC: number): { semantics: string; ssrcs: string; } | undefined {
+    findGroupByPrimarySSRC(semantics: string, primarySSRC: number): ISsrcGroups | undefined {
         return this.ssrcGroups.find(
             group => group.semantics === semantics
                 && parsePrimarySSRC(group) === primarySSRC);
@@ -353,7 +364,7 @@ class MLineWrap {
      * @param {object} group the SSRC group object as defined by
      * the 'sdp-transform' lib.
      */
-    addSSRCGroup(group: { semantics: string; ssrcs: string; }): void {
+    addSSRCGroup(group: ISsrcGroups): void {
         this.ssrcGroups.push(group);
     }
 }
