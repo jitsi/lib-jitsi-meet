@@ -1,20 +1,20 @@
+import JitsiConference from '../../JitsiConference';
+import JitsiParticipant from '../../JitsiParticipant';
 import browser from '../browser';
 
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
-import JitsiConference from '../../JitsiConference';
-import JitsiParticipant from '../../JitsiParticipant';
 
-export interface E2EConfig {
+export interface IE2EConfig {
     e2ee?: {
-        externallyManagedKey?: boolean;
         disabled?: boolean;
+        externallyManagedKey?: boolean;
     };
+    enableEncodedTransformSupport?: boolean;
     testing?: {
         disableE2EE?: boolean;
     };
-    enableEncodedTransformSupport?: boolean;
 }
 
 /**
@@ -46,7 +46,7 @@ export class E2EEncryption {
      * @param {object} config - Global configuration.
      * @returns {boolean}
      */
-    static isSupported(config: E2EConfig): boolean {
+    static isSupported(config: IE2EConfig): boolean {
         const { e2ee = {} } = config;
 
         if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {
@@ -87,7 +87,7 @@ export class E2EEncryption {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    setEncryptionKey(keyInfo: { encryptionKey?: CryptoKey; index?: number }): void {
+    setEncryptionKey(keyInfo: { encryptionKey?: CryptoKey; index?: number; }): void {
         (this._keyHandler as ExternallyManagedKeyHandler).setKey(keyInfo);
     }
 
