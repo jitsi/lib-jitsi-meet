@@ -2,15 +2,15 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { MediaType } from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import { MediaType } from '../../service/RTC/MediaType';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 import E2EEContext from './E2EEContext';
 
@@ -167,7 +167,7 @@ export class KeyHandler extends Listenable {
         }
 
         const pc = session.peerconnection;
-        const sender = pc && pc.findSenderForTrack(track.track);
+        const sender = pc?.findSenderForTrack(track.track);
 
         if (sender) {
             this.e2eeCtx.handleSender(sender, track.getType(), track.getParticipantId());
