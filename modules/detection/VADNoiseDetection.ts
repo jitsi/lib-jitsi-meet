@@ -122,17 +122,6 @@ export default class VADNoiseDetection extends EventEmitter {
     }
 
     /**
-     * Record the vad score and average volume in the appropriate buffers.
-     *
-     * @param {number} vadScore
-     * @param {number} avgAudioLvl - average audio level of the PCM sample associated with the VAD score.s
-     */
-    private _recordValues(vadScore: number, avgAudioLvl: number): void {
-        this._scoreArray.push(vadScore);
-        this._audioLvlArray.push(avgAudioLvl);
-    }
-
-    /**
      * Set the active state of the detection service and notify any listeners.
      *
      * @param {boolean} active
@@ -141,6 +130,17 @@ export default class VADNoiseDetection extends EventEmitter {
     private _setActiveState(active: boolean): void {
         this._active = active;
         this.emit(DetectionEvents.DETECTOR_STATE_CHANGE, this._active);
+    }
+
+    /**
+     * Record the vad score and average volume in the appropriate buffers.
+     *
+     * @param {number} vadScore
+     * @param {number} avgAudioLvl - average audio level of the PCM sample associated with the VAD score.s
+     */
+    private _recordValues(vadScore: number, avgAudioLvl: number): void {
+        this._scoreArray.push(vadScore);
+        this._audioLvlArray.push(avgAudioLvl);
     }
 
     /**
@@ -164,21 +164,6 @@ export default class VADNoiseDetection extends EventEmitter {
     }
 
     /**
-     * Reset the processing context, clear buffers, cancel the timeout trigger.
-     *
-     * @returns {void}
-     */
-    reset(): void {
-        this._processing = false;
-        this._scoreArray = [];
-        this._audioLvlArray = [];
-        if (this._processTimeout) {
-            clearTimeout(this._processTimeout);
-            this._processTimeout = null;
-        }
-    }
-
-    /**
      * Listens for {@link TrackVADEmitter} events and processes them.
      *
      * @param {Object} vadScore -VAD score emitted by {@link TrackVADEmitter}
@@ -195,7 +180,7 @@ export default class VADNoiseDetection extends EventEmitter {
 
         // There is a processing phase on going, add score to buffer array.
         if (this._processing) {
-            // Filter and calculate sample average so we don't have to process one large array at a time.
+        // Filter and calculate sample average so we don't have to process one large array at a time.
             const pcmDataArray = Array.isArray(vadScore.pcmData) ? new Float32Array(vadScore.pcmData) : vadScore.pcmData;
             const posAudioLevels = filterPositiveValues(pcmDataArray);
 
@@ -218,6 +203,21 @@ export default class VADNoiseDetection extends EventEmitter {
                 // Once the preset timeout executes the final score will be calculated.
                 this._processTimeout = setTimeout(this._calculateNoisyScore, PROCESS_TIME_FRAME_SPAN_MS);
             }
+        }
+    }
+
+    /**
+     * Reset the processing context, clear buffers, cancel the timeout trigger.
+     *
+     * @returns {void}
+     */
+    reset(): void {
+        this._processing = false;
+        this._scoreArray = [];
+        this._audioLvlArray = [];
+        if (this._processTimeout) {
+            clearTimeout(this._processTimeout);
+            this._processTimeout = null;
         }
     }
 }
