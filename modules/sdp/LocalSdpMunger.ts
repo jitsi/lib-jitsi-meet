@@ -2,16 +2,16 @@ import { isEqual } from 'lodash-es';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 
 import { SdpTransformWrap } from './SdpTransformUtil';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 
 export interface ITPCSSRCInfo {
-    ssrcs: number[];
     groups: ITPCGroupInfo[];
     msid: string;
+    ssrcs: number[];
 }
 
 export interface ITPCGroupInfo {
@@ -20,20 +20,20 @@ export interface ITPCGroupInfo {
 }
 
 export interface ISSRCAttribute {
-    id: number;
     attribute: string;
+    id: number;
     value: string;
 }
 
 export interface IMLineWrap {
     mLine: {
-        type: string;
         direction: string;
-        ssrcs?: ISSRCAttribute[];
         msid?: string;
+        ssrcs?: ISSRCAttribute[];
+        type: string;
     };
-    ssrcs: ISSRCAttribute[];
     ssrcGroups?: any[];
+    ssrcs: ISSRCAttribute[];
 }
 
 /**
@@ -170,7 +170,7 @@ export default class LocalSdpMunger {
      * (a modified copy of the one given as the input).
      */
     transformStreamIdentifiers(sessionDesc: RTCSessionDescription | null, ssrcMap: Map<string, ITPCSSRCInfo>): RTCSessionDescription | null {
-        if (!sessionDesc || !sessionDesc.sdp || !sessionDesc.type) {
+        if (!sessionDesc?.sdp || !sessionDesc.type) {
             return sessionDesc;
         }
 
