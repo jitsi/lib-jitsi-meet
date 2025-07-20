@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
+import { JitsiConnectionErrors } from './JitsiConnectionErrors';
 import {
     CONNECTION_DISCONNECTED,
     CONNECTION_ESTABLISHED,
@@ -29,6 +30,47 @@ const logger = getLogger('authenticateAndUpgradeRole');
  * NOTE If neither one of the errors is present, then the operation has been
  * canceled.
  */
+
+export interface IUpgradeRoleError {
+    authenticationError?: string;
+    connectionError?: JitsiConnectionErrors;
+    credentials?: {
+        jid?: string;
+        password?: string;
+    };
+    message?: string;
+}
+
+export interface IAuthenticateAndUpgradeRoleOptions {
+    id: string;
+    onCreateResource?: () => string;
+    onLoginSuccessful?: () => void;
+    password: string;
+}
+
+export interface IAuthenticateAndUpgradeRoleContext {
+    connection: {
+        options: any;
+    };
+    options: {
+        config: any;
+        name: string;
+    };
+    room: {
+        roomjid: string;
+        xmpp: {
+            moderator: {
+                authenticate: (roomJid: string) => Promise<void>;
+                conferenceRequestSent: boolean;
+                sendConferenceRequest: (roomJid: string) => Promise<void>;
+            };
+        };
+    };
+}
+
+export interface IProcessWithCancel extends Promise<void> {
+    cancel: () => void;
+}
 
 /* eslint-disable no-invalid-this */
 
@@ -61,21 +103,24 @@ const logger = getLogger('authenticateAndUpgradeRole');
  * thenable will be rejected with an empty object (i.e. no error property will
  * be set on the rejection reason).
  */
-export default function authenticateAndUpgradeRole({
-    // 1. Log the specified XMPP user in.
-    id,
-    password,
-    onCreateResource,
+export default function authenticateAndUpgradeRole(
+        this: IAuthenticateAndUpgradeRoleContext,
+        {
+        // 1. Log the specified XMPP user in.
+            id,
+            password,
+            onCreateResource,
 
-    // 2. Let the API client/consumer know as soon as the XMPP user has been
-    //    successfully logged in.
-    onLoginSuccessful
-}) {
+            // 2. Let the API client/consumer know as soon as the XMPP user has been
+            //    successfully logged in.
+            onLoginSuccessful
+        }: IAuthenticateAndUpgradeRoleOptions
+): IProcessWithCancel {
     let canceled = false;
-    let rejectPromise;
-    let xmpp = new XMPP(this.connection.options);
+    let rejectPromise: (reason: IUpgradeRoleError | {}) => void;
+    let xmpp = new XMPP(this.connection.options, undefined);
 
-    const process = new Promise((resolve, reject) => {
+    const process = new Promise<void>((resolve, reject) => {
         // The process is represented by a Thenable with a cancel method. The
         // Thenable is implemented using Promise and the cancel using the
         // Promise's reject function.
@@ -89,7 +134,7 @@ export default function authenticateAndUpgradeRole({
             });
         xmpp.addListener(
             CONNECTION_ESTABLISHED,
-            () => {
+            async () => {
                 if (canceled) {
                     return;
                 }
@@ -98,7 +143,7 @@ export default function authenticateAndUpgradeRole({
                 onLoginSuccessful && onLoginSuccessful();
 
                 // Now authenticate with Jicofo and get a new session ID.
-                const room = xmpp.createRoom(
+                const room = await xmpp.createRoom(
                     this.options.name,
                     this.options.config,
                     onCreateResource
@@ -106,7 +151,7 @@ export default function authenticateAndUpgradeRole({
 
                 room.xmpp.moderator.authenticate(room.roomjid)
                     .then(() => {
-                        xmpp && xmpp.disconnect();
+                        xmpp?.disconnect(undefined);
 
                         if (canceled) {
                             return;
@@ -125,8 +170,8 @@ export default function authenticateAndUpgradeRole({
                                 resolve();
                             });
                     })
-                    .catch(({ error, message }) => {
-                        xmpp.disconnect();
+                    .catch(({ error, message }: { error: string; message: string; }) => {
+                        xmpp.disconnect(undefined);
 
                         reject({
                             authenticationError: error,
@@ -136,7 +181,7 @@ export default function authenticateAndUpgradeRole({
             });
         xmpp.addListener(
             CONNECTION_FAILED,
-            (connectionError, message, credentials) => {
+            (connectionError: JitsiConnectionErrors, message: string, credentials: IUpgradeRoleError['credentials']) => {
                 reject({
                     connectionError,
                     credentials,
@@ -155,13 +200,13 @@ export default function authenticateAndUpgradeRole({
      * @public
      * @returns {void}
      */
-    process.cancel = () => {
+    (process as IProcessWithCancel).cancel = () => {
         canceled = true;
         rejectPromise({});
-        xmpp && xmpp.disconnect();
+        xmpp?.disconnect(undefined);
     };
 
-    return process;
+    return process as IProcessWithCancel;
 }
 
 /* eslint-enable no-invalid-this */
