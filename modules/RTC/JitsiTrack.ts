@@ -2,17 +2,20 @@ import { getLogger } from '@jitsi/logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
 
 import RTCUtils from './RTCUtils';
+import JitsiConference from '../../JitsiConference';
+import TraceablePeerConnection from './TraceablePeerConnection';
 
 const logger = getLogger('modules/RTC/JitsiTrack');
 
 /**
  * Maps our handler types to MediaStreamTrack properties.
  */
-const trackHandler2Prop = {
+const trackHandler2Prop: Record<string, string> = {
     'track_ended': 'onended',
     'track_mute': 'onmute', // Not supported on FF
     'track_unmute': 'onunmute'
@@ -22,6 +25,21 @@ const trackHandler2Prop = {
  * Represents a single media track (either audio or video).
  */
 export default class JitsiTrack extends EventEmitter {
+    /**
+     * Array with the HTML elements that are displaying the streams.
+     * @type {Array}
+     */
+    protected containers: HTMLElement[];
+    protected conference: JitsiConference;
+    protected audioLevel: number;
+    protected type: MediaType;
+    protected track: MediaStreamTrack;
+    protected videoType?: VideoType;
+    protected handlers: Map<string, Function>;
+    protected disposed: boolean;
+    protected _streamInactiveHandler?: Function;
+    protected stream?: MediaStream;
+
     /* eslint-disable max-params */
     /**
      * Represents a single media track (either audio or video).
@@ -36,12 +54,12 @@ export default class JitsiTrack extends EventEmitter {
      * @param videoType the VideoType for this track if any
      */
     constructor(
-            conference,
-            stream,
-            track,
-            streamInactiveHandler,
-            trackMediaType,
-            videoType) {
+            conference: JitsiConference,
+            stream: MediaStream,
+            track: MediaStreamTrack,
+            streamInactiveHandler: Function,
+            trackMediaType: MediaType,
+            videoType?: VideoType) {
         super();
 
         /**
@@ -83,11 +101,13 @@ export default class JitsiTrack extends EventEmitter {
      * a onended event on the MediaStreamTrack.
      * @param {Function} handler the handler
      */
-    _addMediaStreamInactiveHandler(handler) {
+    _addMediaStreamInactiveHandler(handler?: Function): void {
         if (browser.isFirefox() || browser.isWebKitBased()) {
-            this.track.onended = handler;
+            this.track.onended = handler as any;
         } else {
-            this.stream.oninactive = handler;
+            if (this.stream) {
+                (this.stream as any).oninactive = handler;
+            }
         }
     }
 
@@ -99,7 +119,7 @@ export default class JitsiTrack extends EventEmitter {
      * 'audio' element.
      * @private
      */
-    _attachTTFMTracker(container) { // eslint-disable-line no-unused-vars
+    _attachTTFMTracker(container: HTMLElement): void { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -110,7 +130,7 @@ export default class JitsiTrack extends EventEmitter {
      * 'audio' element.
      * @private
      */
-    _onTrackAttach(container) { // eslint-disable-line no-unused-vars
+    _onTrackAttach(container: HTMLElement): void { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -121,7 +141,7 @@ export default class JitsiTrack extends EventEmitter {
      * 'audio' element.
      * @private
      */
-    _onTrackDetach(container) { // eslint-disable-line no-unused-vars
+    _onTrackDetach(container: HTMLElement): void { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -131,7 +151,7 @@ export default class JitsiTrack extends EventEmitter {
      * @param {string} type the type of the handler that is going to be set
      * @param {Function} handler the handler.
      */
-    _setHandler(type, handler) {
+    _setHandler(type: string, handler?: Function): void {
         if (!trackHandler2Prop.hasOwnProperty(type)) {
             logger.error(`Invalid handler type ${type}`);
 
@@ -157,7 +177,7 @@ export default class JitsiTrack extends EventEmitter {
      * @param {MediaStream} stream the new stream.
      * @protected
      */
-    _setStream(stream) {
+    _setStream(stream: MediaStream): void {
         if (this.stream === stream) {
             return;
         }
@@ -182,7 +202,7 @@ export default class JitsiTrack extends EventEmitter {
      * Unregisters all event handlers bound to the underlying media stream/track
      * @public
      */
-    _unregisterHandlers() {
+    _unregisterHandlers(): void {
         if (!this.stream) {
             logger.warn(
                 `${this}: unable to unregister handlers - no stream object`);
@@ -211,7 +231,7 @@ export default class JitsiTrack extends EventEmitter {
      *
      * @returns {void}
      */
-    attach(container) {
+    attach(container: HTMLElement): Promise<void> {
         let result = Promise.resolve();
 
         if (this.stream) {
@@ -232,7 +252,7 @@ export default class JitsiTrack extends EventEmitter {
      * container can be a 'video', 'audio' or 'object' HTML element instance to
      * which this JitsiTrack is currently attached.
      */
-    detach(container) {
+    detach(container?: HTMLElement): void {
         for (let cs = this.containers, i = cs.length - 1; i >= 0; --i) {
             const c = cs[i];
 
@@ -260,7 +280,7 @@ export default class JitsiTrack extends EventEmitter {
      *
      * @returns {Promise}
      */
-    dispose() {
+    dispose(): Promise<void> {
         const p = Promise.resolve();
 
         if (this.disposed) {
@@ -279,14 +299,14 @@ export default class JitsiTrack extends EventEmitter {
      * Returns id of the track.
      * @returns {string|null} id of the track or null if this is fake track.
      */
-    getId() {
+    getId(): string | null {
         return this.getStreamId();
     }
 
     /**
      * Returns the WebRTC MediaStream instance.
      */
-    getOriginalStream() {
+    getOriginalStream(): MediaStream | undefined {
         return this.stream;
     }
 
@@ -310,7 +330,7 @@ export default class JitsiTrack extends EventEmitter {
      * Returns the ID of the underlying WebRTC Media Stream(if any)
      * @returns {String|null}
      */
-    getStreamId() {
+    getStreamId(): string | null {
         return this.stream ? this.stream.id : null;
     }
 
@@ -318,7 +338,7 @@ export default class JitsiTrack extends EventEmitter {
      * Return the underlying WebRTC MediaStreamTrack
      * @returns {MediaStreamTrack}
      */
-    getTrack() {
+    getTrack(): MediaStreamTrack {
         return this.track;
     }
 
@@ -326,7 +346,7 @@ export default class JitsiTrack extends EventEmitter {
      * Return the underlying WebRTC MediaStreamTrack label
      * @returns {string}
      */
-    getTrackLabel() {
+    getTrackLabel(): string {
         return this.track.label;
     }
 
@@ -334,14 +354,14 @@ export default class JitsiTrack extends EventEmitter {
      * Returns the ID of the underlying WebRTC MediaStreamTrack(if any)
      * @returns {String|null}
      */
-    getTrackId() {
+    getTrackId(): string | null {
         return this.track ? this.track.id : null;
     }
 
     /**
      * Returns the type (audio or video) of this track.
      */
-    getType() {
+    getType(): MediaType {
         return this.type;
     }
 
@@ -350,7 +370,7 @@ export default class JitsiTrack extends EventEmitter {
      * eventual video type.
      * @returns {string}
      */
-    getUsageLabel() {
+    getUsageLabel(): string {
         if (this.isAudioTrack()) {
             return 'mic';
         }
@@ -361,21 +381,21 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Returns the video type (camera or desktop) of this track.
      */
-    getVideoType() {
+    getVideoType(): VideoType | undefined {
         return this.videoType;
     }
 
     /**
      * Returns the height of the track in normalized landscape format.
      */
-    getHeight() {
+    getHeight(): number {
         return Math.min(this.track.getSettings().height, this.track.getSettings().width);
     }
 
     /**
      * Returns the width of the track in normalized landscape format.
      */
-    getWidth() {
+    getWidth(): number {
         return Math.max(this.track.getSettings().height, this.track.getSettings().width);
     }
 
@@ -385,8 +405,8 @@ export default class JitsiTrack extends EventEmitter {
      * will return that stream is active (in case of FF).
      * @returns {boolean} whether MediaStream is active.
      */
-    isActive() {
-        if (typeof this.stream.active !== 'undefined') {
+    isActive(): boolean {
+        if (typeof this.stream?.active !== 'undefined') {
             return this.stream.active;
         }
 
@@ -396,7 +416,7 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Check if this is an audio track.
      */
-    isAudioTrack() {
+    isAudioTrack(): boolean {
         return this.getType() === MediaType.AUDIO;
     }
 
@@ -405,7 +425,7 @@ export default class JitsiTrack extends EventEmitter {
      * @abstract
      * @return {boolean} 'true' if it's a local track or 'false' otherwise.
      */
-    isLocal() {
+    isLocal(): boolean {
         throw new Error('Not implemented by subclass');
     }
 
@@ -414,14 +434,14 @@ export default class JitsiTrack extends EventEmitter {
      *
      * @return {boolean} -  true if track represents a local audio track, false otherwise.
      */
-    isLocalAudioTrack() {
+    isLocalAudioTrack(): boolean {
         return this.isAudioTrack() && this.isLocal();
     }
 
     /**
      * Check if this is a video track.
      */
-    isVideoTrack() {
+    isVideoTrack(): boolean {
         return this.getType() === MediaType.VIDEO;
     }
 
@@ -431,7 +451,7 @@ export default class JitsiTrack extends EventEmitter {
      * @return {boolean} <tt>true</tt> if the underlying
      * <tt>MediaStreamTrack</tt> is muted or <tt>false</tt> otherwise.
      */
-    isWebRTCTrackMuted() {
+    isWebRTCTrackMuted(): boolean {
         return this.track && this.track.muted;
     }
 
@@ -443,7 +463,7 @@ export default class JitsiTrack extends EventEmitter {
      * a local track if the audio level was measured outside of the
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).
      */
-    setAudioLevel(audioLevel, tpc) {
+    setAudioLevel(audioLevel: number, tpc?: TraceablePeerConnection): void {
         let newAudioLevel = audioLevel;
 
         // When using getSynchornizationSources on the audio receiver to gather audio levels for
@@ -481,7 +501,7 @@ export default class JitsiTrack extends EventEmitter {
      * @emits JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED
      * @returns {Promise}
      */
-    setAudioOutput(audioOutputDeviceId) {
+    setAudioOutput(audioOutputDeviceId: string): Promise<void> {
         if (!RTCUtils.isDeviceChangeAvailable('output')) {
             return Promise.reject(
                 new Error('Audio output device change is not supported'));
@@ -496,9 +516,9 @@ export default class JitsiTrack extends EventEmitter {
         return (
             Promise.all(
                 this.containers.map(
-                    element =>
+                    (element: HTMLMediaElement) =>
                         element.setSinkId(audioOutputDeviceId)
-                            .catch(error => {
+                            .catch((error: Error) => {
                                 logger.warn(
                                     'Failed to change audio output device on'
                                         + ' element. Default or previously set'
@@ -520,7 +540,16 @@ export default class JitsiTrack extends EventEmitter {
      * @param {String} name - The name to be assigned to the track.
      * @returns {void}
      */
-    setSourceName(name) { // eslint-disable-line no-unused-vars
+    setSourceName(name: string): void { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
+    }
+
+    /**
+     * Check if this track is muted.
+     * @abstract
+     * @return {boolean} 'true' if it's muted or 'false' otherwise.
+     */
+    isMuted(): boolean {
+        throw new Error('Not implemented by subclass');
     }
 }
