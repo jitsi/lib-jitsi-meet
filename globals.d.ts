@@ -11,4 +11,10 @@ declare global {
             writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
         }
     }
+    interface RTCRtpSender {
+        createEncodedStreams?: () => {
+            readable: ReadableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
+            writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
+        }
+    }
 }
