@@ -3,4 +3,4 @@
  * RTCRtpReceiver#getSynchronizationSources. Limit the number of endpoints to save cpu on the client as this API call
  * is known to take longer to execute when there are many audio receivers.
  */
-export const SPEAKERS_AUDIO_LEVELS = 5;
+export const SPEAKERS_AUDIO_LEVELS: number = 5;

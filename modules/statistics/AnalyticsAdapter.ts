@@ -56,6 +56,40 @@ const logger = getLogger('modules/statistics/AnalyticsAdapter');
  */
 class AnalyticsAdapter {
     /**
+     * Whether this AnalyticsAdapter has been disposed of or not. Once this
+     * is set to true, the AnalyticsAdapter is disabled and does not accept
+     * any more events, and it can not be re-enabled.
+     * @type {boolean}
+     */
+    private disposed: boolean;
+
+    /**
+     * The set of handlers to which events will be sent.
+     * @type {Set<any>}
+     */
+    private analyticsHandlers: Set<any>;
+
+    /**
+     * The cache of events which are not sent yet. The cache is enabled
+     * while this field is truthy, and disabled otherwise.
+     * @type {Array}
+     */
+    private cache: any[] | null;
+
+    /**
+     * Map of properties that will be added to every event. Note that the
+     * keys will be prefixed with "permanent.".
+     */
+    private permanentProperties: Record<string, any>;
+
+    /**
+     * The name of the conference that this AnalyticsAdapter is associated
+     * with.
+     * @type {null}
+     */
+    private conferenceName: string;
+
+    /**
      * Creates new AnalyticsAdapter instance.
      */
     constructor() {
@@ -67,7 +101,7 @@ class AnalyticsAdapter {
      *
      * @returns {void}
      */
-    reset() {
+    reset(): void {
         /**
          * Whether this AnalyticsAdapter has been disposed of or not. Once this
          * is set to true, the AnalyticsAdapter is disabled and does not accept
@@ -111,7 +145,7 @@ class AnalyticsAdapter {
     /**
      * Dispose analytics. Clears all handlers.
      */
-    dispose() {
+    dispose(): void {
         logger.debug('Disposing of analytics adapter.');
 
         if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
@@ -131,7 +165,7 @@ class AnalyticsAdapter {
      * cached events.
      * @param {Array} handlers the handlers
      */
-    setAnalyticsHandlers(handlers) {
+    setAnalyticsHandlers(handlers: any[]): void {
         if (this.disposed) {
             return;
         }
@@ -154,7 +188,7 @@ class AnalyticsAdapter {
      *
      * @returns {void}
      */
-    _setUserProperties() {
+    _setUserProperties(): void {
         this.analyticsHandlers.forEach(handler => {
             try {
                 handler.setUserProperties(this.permanentProperties);
@@ -175,7 +209,7 @@ class AnalyticsAdapter {
      *
      * @param {Object} properties the properties to add
      */
-    addPermanentProperties(properties) {
+    addPermanentProperties(properties: Record<string, any>): void {
         this.permanentProperties = {
             ...this.permanentProperties,
             ...properties
@@ -189,7 +223,7 @@ class AnalyticsAdapter {
      * with.
      * @param name the name to set.
      */
-    setConferenceName(name) {
+    setConferenceName(name: string): void {
         this.conferenceName = name;
         this.addPermanentProperties({ 'conference_name': name });
     }
@@ -207,12 +241,12 @@ class AnalyticsAdapter {
      * @param {Object} properties the properties/attributes to attach to the
      * event, if eventName is a string.
      */
-    sendEvent(eventName, properties = {}) {
+    sendEvent(eventName: string | Record<string, any>, properties: Record<string, any> = {}): void {
         if (this.disposed) {
             return;
         }
 
-        let event = null;
+        let event: Record<string, any> | null = null;
 
         if (typeof eventName === 'string') {
             event = {
@@ -248,7 +282,7 @@ class AnalyticsAdapter {
      * contains all of the required fields, and false otherwise.
      * @private
      */
-    _verifyRequiredFields(event) {
+    _verifyRequiredFields(event: Record<string, any> | null): boolean {
         if (!event) {
             return false;
         }
@@ -313,7 +347,7 @@ class AnalyticsAdapter {
      * if the cache was disabled).
      * @private
      */
-    _maybeCacheEvent(event) {
+    _maybeCacheEvent(event: Record<string, any>): boolean {
         if (this.cache) {
             this.cache.push(event);
 
@@ -335,7 +369,7 @@ class AnalyticsAdapter {
      * @param event
      * @private
      */
-    _sendEvent(event) {
+    _sendEvent(event: Record<string, any>): void {
         if (this._maybeCacheEvent(event)) {
             // The event was consumed by the cache.
         } else {
