@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
@@ -19,7 +18,7 @@ const logger = getLogger('modules/e2ee/KeyHandler');
 /**
  * Options for the KeyHandler constructor.
  */
-interface KeyHandlerOptions {
+export interface IKeyHandlerOptions {
     sharedKey?: boolean;
 }
 
@@ -40,7 +39,7 @@ export class KeyHandler extends Listenable {
      * @param {JitsiConference} conference - the current conference.
      * @param {object} options - the options passed to {E2EEContext}, see implemention.
      */
-    constructor(conference: JitsiConference, options: KeyHandlerOptions = {}) {
+    constructor(conference: JitsiConference, options: IKeyHandlerOptions = {}) {
         super();
 
         this.conference = conference;
@@ -67,48 +66,6 @@ export class KeyHandler extends Listenable {
         this.conference.on(
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
             this._trackMuteChanged.bind(this));
-    }
-
-    /**
-     * Indicates whether E2EE is currently enabled or not.
-     *
-     * @returns {boolean}
-     */
-    isEnabled(): boolean {
-        return this.enabled;
-    }
-
-    /**
-     * Enables / disables End-To-End encryption.
-     *
-     * @param {boolean} enabled - whether E2EE should be enabled or not.
-     * @returns {void}
-     */
-    async setEnabled(enabled: boolean): Promise<void> {
-        this._enabling && await this._enabling;
-
-        if (enabled === this.enabled) {
-            return;
-        }
-
-        this._enabling = new Deferred<void>();
-
-        this.enabled = enabled;
-
-        this._setEnabled && await this._setEnabled(enabled);
-
-        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled.toString());
-
-        // Only restart media sessions if E2EE is enabled. If it's later disabled
-        // we'll continue to use the existing media sessions with an empty transform.
-        if (!this._firstEnable && enabled) {
-            this._firstEnable = true;
-            this.conference._restartMediaSessions();
-        }
-
-        this.e2eeCtx.setEnabled(enabled);
-
-        this._enabling.resolve();
     }
 
     /**
@@ -188,4 +145,47 @@ export class KeyHandler extends Listenable {
             }
         }
     }
+
+    /**
+     * Indicates whether E2EE is currently enabled or not.
+     *
+     * @returns {boolean}
+     */
+    isEnabled(): boolean {
+        return this.enabled;
+    }
+
+    /**
+         * Enables / disables End-To-End encryption.
+         *
+         * @param {boolean} enabled - whether E2EE should be enabled or not.
+         * @returns {void}
+         */
+    async setEnabled(enabled: boolean): Promise<void> {
+        this._enabling && await this._enabling;
+
+        if (enabled === this.enabled) {
+            return;
+        }
+
+        this._enabling = new Deferred<void>();
+
+        this.enabled = enabled;
+
+        this._setEnabled && await this._setEnabled(enabled);
+
+        this.conference.setLocalParticipantProperty('e2ee.enabled', enabled.toString());
+
+        // Only restart media sessions if E2EE is enabled. If it's later disabled
+        // we'll continue to use the existing media sessions with an empty transform.
+        if (!this._firstEnable && enabled) {
+            this._firstEnable = true;
+            this.conference._restartMediaSessions();
+        }
+
+        this.e2eeCtx.setEnabled(enabled);
+
+        this._enabling.resolve();
+    }
+
 }

@@ -73,39 +73,6 @@ export class ManagedKeyHandler extends KeyHandler {
     }
 
     /**
-     * Returns the sasVerficiation object.
-     *
-     * @returns {Object}
-     */
-    get sasVerification(): OlmAdapter {
-        return this._olmAdapter;
-    }
-
-    /**
-     * When E2EE is enabled it initializes sessions and sets the key.
-     * Cleans up the sessions when disabled.
-     *
-     * @param {boolean} enabled - whether E2EE should be enabled or not.
-     * @returns {void}
-     */
-    protected _setEnabled = async (enabled: boolean): Promise<void> => {
-        if (enabled) {
-            await this._olmAdapter.initSessions();
-        } else {
-            this._olmAdapter.clearAllParticipantsSessions();
-        }
-
-        // Generate a random key in case we are enabling.
-        this._key = enabled ? this._generateKey() : false;
-
-        // Send it to others using the E2EE olm channel.
-        const index = await this._olmAdapter.updateKey(this._key);
-
-        // Set our key so we begin encrypting.
-        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
-    };
-
-    /**
      * Handles an update in a participant's presence property.
      *
      * @param {JitsiParticipant} participant - The participant.
@@ -236,5 +203,39 @@ export class ManagedKeyHandler extends KeyHandler {
      */
     private _generateKey(): Uint8Array {
         return window.crypto.getRandomValues(new Uint8Array(32));
+    }
+
+    /**
+     * When E2EE is enabled it initializes sessions and sets the key.
+     * Cleans up the sessions when disabled.
+     *
+     * @param {boolean} enabled - whether E2EE should be enabled or not.
+     * @returns {void}
+     */
+    protected _setEnabled = async (enabled: boolean): Promise<void> => {
+        if (enabled) {
+            await this._olmAdapter.initSessions();
+        } else {
+            this._olmAdapter.clearAllParticipantsSessions();
+        }
+
+        // Generate a random key in case we are enabling.
+        this._key = enabled ? this._generateKey() : false;
+
+        // Send it to others using the E2EE olm channel.
+        const index = await this._olmAdapter.updateKey(this._key);
+
+        // Set our key so we begin encrypting.
+        this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+    };
+
+
+    /**
+     * Returns the sasVerficiation object.
+     *
+     * @returns {Object}
+     */
+    get sasVerification(): OlmAdapter {
+        return this._olmAdapter;
     }
 }
