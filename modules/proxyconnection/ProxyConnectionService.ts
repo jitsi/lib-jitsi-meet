@@ -1,11 +1,14 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
-import $ from '../../modules/util/XMLParser';
+import JitsiConnection from '../../JitsiConnection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RTC from '../RTC/RTC';
+import $ from '../util/XMLParser';
 
 import ProxyConnectionPC from './ProxyConnectionPC';
 import { ACTIONS } from './constants';
@@ -13,11 +16,47 @@ import { ACTIONS } from './constants';
 const logger = getLogger('modules/proxyconnection/ProxyConnectionService');
 
 /**
+ * Options for initializing a ProxyConnectionService instance.
+ */
+interface IProxyConnectionServiceOptions {
+    convertVideoToDesktop?: boolean;
+    jitsiConnection?: JitsiConnection;
+    onConnectionClosed?: () => void;
+    onRemoteStream?: (jitsiLocalTrack: JitsiLocalTrack) => void;
+    onSendMessage?: (peerJid: string, message: { iq: string; }) => void;
+    pcConfig?: RTCConfiguration;
+}
+
+/**
+ * Message object for proxy connection communication.
+ */
+interface IProxyConnectionMessage {
+    data: {
+        iq: string;
+    };
+    from: string;
+}
+
+/**
  * Instantiates a new ProxyConnectionPC and ensures only one exists at a given
  * time. Currently it assumes ProxyConnectionPC is used only for screensharing
  * and assumes IQs to be used for communication.
  */
 export default class ProxyConnectionService {
+    /**
+     * Holds a reference to the collection of all callbacks.
+     *
+     * @type {Object}
+     */
+    private _options: IProxyConnectionServiceOptions;
+
+    /**
+     * The active instance of {@code ProxyConnectionService}.
+     *
+     * @type {ProxyConnectionPC|null}
+     */
+    private _peerConnection?: ProxyConnectionPC;
+
     /**
      * Initializes a new {@code ProxyConnectionService} instance.
      *
@@ -32,7 +71,7 @@ export default class ProxyConnectionService {
      * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out. The
      * arguments passed in are the jid to send the message to and the message.
      */
-    constructor(options = {}) {
+    constructor(options: IProxyConnectionServiceOptions = {}) {
         const {
             jitsiConnection,
             ...otherOptions
@@ -44,7 +83,8 @@ export default class ProxyConnectionService {
          * @type {Object}
          */
         this._options = {
-            pcConfig: jitsiConnection && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
+            // @ts-ignore -- jitsiconf needed
+            pcConfig: jitsiConnection?.xmpp.connection.jingle.p2pIceConfig,
             ...otherOptions
         };
 
@@ -75,7 +115,7 @@ export default class ProxyConnectionService {
      * sending replies.
      * @returns {void}
      */
-    processMessage(message) {
+    processMessage(message: IProxyConnectionMessage): void {
         const peerJid = message.from;
 
         if (!peerJid) {
@@ -97,8 +137,8 @@ export default class ProxyConnectionService {
         }
 
         const iq = this._convertStringToXML(message.data.iq);
-        const $jingle = iq && iq.find('jingle');
-        const action = $jingle && $jingle.attr('action');
+        const $jingle = iq?.find('jingle');
+        const action = $jingle?.attr('action');
 
         if (action === ACTIONS.INITIATE) {
             this._peerConnection = this._createPeerConnection(peerJid, {
@@ -133,7 +173,7 @@ export default class ProxyConnectionService {
      * send through to the peer.
      * @returns {void}
      */
-    start(peerJid, localTracks = []) {
+    start(peerJid: string, localTracks: JitsiLocalTrack[] = []): void {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
@@ -153,7 +193,7 @@ export default class ProxyConnectionService {
      *
      * @returns {void}
      */
-    stop() {
+    stop(): void {
         if (this._peerConnection) {
             this._peerConnection.stop();
         }
@@ -169,7 +209,7 @@ export default class ProxyConnectionService {
      * @returns {Object|null} An element version of the xml. Null will be returned
      * if an error is encountered during transformation.
      */
-    _convertStringToXML(xml) {
+    private _convertStringToXML(xml: string): any {
         try {
             const xmlDom = new DOMParser().parseFromString(xml, 'text/xml');
 
@@ -192,7 +232,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {ProxyConnectionPC}
      */
-    _createPeerConnection(peerJid, options = {}) {
+    private _createPeerConnection(peerJid: string, options: any = {}): ProxyConnectionPC { // todo
         if (!peerJid) {
             throw new Error('Cannot create ProxyConnectionPC without a peer.');
         }
@@ -223,7 +263,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onFatalError(peerJid, errorType, details = '') {
+    private _onFatalError(peerJid: string, errorType: string, details: string = ''): void {
         logger.error(
             'Received a proxy connection error', peerJid, errorType, details);
 
@@ -258,7 +298,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onRemoteStream(jitsiRemoteTrack) {
+    private _onRemoteStream(jitsiRemoteTrack: JitsiRemoteTrack): void {
         if (!this._options.onRemoteStream) {
             logger.error('Remote track received without callback.');
             jitsiRemoteTrack.dispose();
@@ -301,7 +341,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onSendMessage(peerJid, iq) {
+    private _onSendMessage(peerJid: string, iq: any): void { // todo
         if (!this._options.onSendMessage) {
             return;
         }
@@ -322,7 +362,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _selfCloseConnection() {
+    private _selfCloseConnection(): void {
         this.stop();
 
         this._options.onConnectionClosed
