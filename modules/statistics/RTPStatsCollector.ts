@@ -2,11 +2,11 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
-import { isValidNumber } from '../util/MathUtil';
 import EventEmitter from '../util/EventEmitter';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import { isValidNumber } from '../util/MathUtil';
 
 const logger = getLogger('modules/statistics/RTPStatsCollector');
 
@@ -28,7 +28,7 @@ function calculatePacketLoss(lostPackets: number, totalPackets: number): number 
 /**
  * Interface for bitrate object.
  */
-interface Bitrate {
+export interface IBitrate {
     download: number;
     upload: number;
 }
@@ -36,7 +36,7 @@ interface Bitrate {
 /**
  * Interface for loss object.
  */
-interface Loss {
+export interface ILoss {
     isDownloadStream: boolean;
     packetsLost: number;
     packetsTotal: number;
@@ -45,7 +45,7 @@ interface Loss {
 /**
  * Interface for resolution object.
  */
-interface Resolution {
+export interface IResolution {
     height: number;
     width: number;
 }
@@ -53,11 +53,11 @@ interface Resolution {
 /**
  * Interface for encode stats object.
  */
-interface EncodeStats {
+export interface IEncodeStats {
     codec: string;
     encodeTime: number;
     qualityLimitationReason: string;
-    resolution: Resolution;
+    resolution: IResolution;
     timestamp: number;
 }
 
@@ -65,12 +65,12 @@ interface EncodeStats {
  * Holds "statistics" for a single SSRC.
  */
 class SsrcStats {
-    public loss: Loss;
-    public bitrate: Bitrate;
-    public resolution: Resolution;
+    public loss: ILoss;
+    public bitrate: IBitrate;
+    public resolution: IResolution;
     public framerate: number;
     public codec: string;
-    public encodeStats?: Map<number, EncodeStats>;
+    public encodeStats?: Map<number, IEncodeStats>;
 
     /**
      * Constructor.
@@ -93,7 +93,7 @@ class SsrcStats {
      * Sets the "loss" object.
      * @param loss the value to set.
      */
-    setLoss(loss: Loss | undefined): void {
+    setLoss(loss: ILoss | undefined): void {
         this.loss = loss || { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
     }
 
@@ -101,7 +101,7 @@ class SsrcStats {
      * Sets resolution that belong to the ssrc represented by this instance.
      * @param resolution new resolution value to be set.
      */
-    setResolution(resolution?: Resolution): void {
+    setResolution(resolution?: IResolution): void {
         this.resolution = resolution || {
             height: 0,
             width: 0
@@ -113,7 +113,7 @@ class SsrcStats {
      * the respective fields of the "bitrate" field of this object.
      * @param bitrate an object holding the values to add.
      */
-    addBitrate(bitrate: Bitrate): void {
+    addBitrate(bitrate: IBitrate): void {
         this.bitrate.download += bitrate.download;
         this.bitrate.upload += bitrate.upload;
     }
@@ -147,7 +147,7 @@ class SsrcStats {
      * Sets the encode stats.
      * @param encodeStats the value to set.
      */
-    setEncodeStats(encodeStats?: Map<number, EncodeStats>): void {
+    setEncodeStats(encodeStats?: Map<number, IEncodeStats>): void {
         this.encodeStats = encodeStats || undefined;
     }
 }
@@ -156,19 +156,21 @@ class SsrcStats {
  * Conference statistics.
  */
 class ConferenceStats {
-    public bandwidth?: Bitrate;
+    public bandwidth?: IBitrate;
     public bitrate?: {
-        audio?: Bitrate;
-        video?: Bitrate;
-        total?: Bitrate;
+        audio?: IBitrate;
         download?: number;
+        total?: IBitrate;
         upload?: number;
+        video?: IBitrate;
     };
+
     public packetLoss?: {
         download?: number;
         total: number;
         upload: number;
     };
+
     public transport?: Array<Record<string, any>>;
 
     /**
@@ -193,16 +195,16 @@ class ConferenceStats {
                 download: 0,
                 upload: 0
             },
-            video: {
-                download: 0,
-                upload: 0
-            },
+            download: 0,
             total: {
                 download: 0,
                 upload: 0
             },
-            download: 0,
-            upload: 0
+            upload: 0,
+            video: {
+                download: 0,
+                upload: 0
+            }
         };
 
         /**
@@ -258,10 +260,10 @@ export default class StatsCollector {
      * @constructor
      */
     constructor(
-        peerconnection: TraceablePeerConnection,
-        audioLevelsInterval: number,
-        statsInterval: number,
-        eventEmitter: EventEmitter
+            peerconnection: TraceablePeerConnection,
+            audioLevelsInterval: number,
+            statsInterval: number,
+            eventEmitter: EventEmitter
     ) {
         this.peerconnection = peerconnection;
         this.currentStatsReport = null;
@@ -281,87 +283,80 @@ export default class StatsCollector {
         this.ssrc2stats = new Map<number, SsrcStats>();
     }
 
+
     /**
-     * Set the list of the remote speakers for which audio levels are to be calculated.
-     *
-     * @param {Array<string>} speakerList - Endpoint ids.
-     * @returns {void}
+     * Calculates bitrate between before and now using a supplied field name and its
+     * value in the stats.
+     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
+     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} before the
+     * previous stats.
+     * @param fieldName the field to use for calculations.
+     * @return {number} the calculated bitrate between now and before.
+     * @private
      */
-    setSpeakerList(speakerList: Array<string>): void {
-        this.speakerList = speakerList;
+    private _calculateBitrate(
+            now: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+            before: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+            fieldName: string
+    ): number {
+        const bytesNow = this.getNonNegativeValue(now[fieldName]);
+        const bytesBefore = this.getNonNegativeValue(before[fieldName]);
+        const bytesProcessed = Math.max(0, bytesNow - bytesBefore);
+
+        const timeMs = now.timestamp - before.timestamp;
+        let bitrateKbps = 0;
+
+        if (timeMs > 0) {
+        // TODO is there any reason to round here?
+            bitrateKbps = Math.round((bytesProcessed * 8) / timeMs);
+        }
+
+        return bitrateKbps;
     }
 
     /**
-     * Stops stats updates.
-     */
-    stop(): void {
-        if (this.audioLevelsIntervalId) {
-            clearInterval(this.audioLevelsIntervalId);
-            this.audioLevelsIntervalId = null;
+ * Calculates the frames per second rate between before and now using a supplied field name and its value in stats.
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} before the previous stats
+ * @param {string} fieldName the field to use for calculations.
+ * @returns {number} the calculated frame rate between now and before.
+ */
+    private _calculateFps(
+            now: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+            before: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+            fieldName: string
+    ): number {
+        const timeMs = now.timestamp - before.timestamp;
+        let frameRate = 0;
+
+        if (timeMs > 0 && now[fieldName]) {
+            const numberOfFramesSinceBefore = now[fieldName] - before[fieldName];
+
+            frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
         }
 
-        if (this.statsIntervalId) {
-            clearInterval(this.statsIntervalId);
-            this.statsIntervalId = null;
-        }
+        return frameRate;
     }
 
     /**
-     * Callback passed to <tt>getStats</tt> method.
-     * @param error an error that occurred on <tt>getStats</tt> call.
+     * Converts the value to a non-negative number.
+     * If the value is either invalid or negative then 0 will be returned.
+     * @param {*} v
+     * @return {number}
+     * @private
      */
-    errorCallback(error: Error): void {
-        logger.error('Get stats error', error);
-        this.stop();
-    }
+    private getNonNegativeValue(v: unknown): number {
+        let value = v;
 
-    /**
-     * Starts stats updates.
-     */
-    start(startAudioLevelStats: boolean): void {
-        if (startAudioLevelStats && browser.supportsReceiverStats()) {
-            this.audioLevelsIntervalId = setInterval(
-                () => {
-                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
-
-                    for (const ssrc in audioLevels) {
-                        if (audioLevels.hasOwnProperty(ssrc)) {
-                            // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
-                            const audioLevel = audioLevels[ssrc] * 2.5;
-
-                            this.eventEmitter.emit(
-                                StatisticsEvents.AUDIO_LEVEL,
-                                this.peerconnection,
-                                Number.parseInt(ssrc, 10),
-                                audioLevel,
-                                false /* isLocal */);
-                        }
-                    }
-                },
-                this.audioLevelsIntervalMilis
-            );
+        if (typeof value !== 'number') {
+            value = Number(value);
         }
 
-        const processStats = () => {
-            // Interval updates
-            this.peerconnection.getStats()
-                .then(report => {
-                    this.currentStatsReport = typeof report?.result === 'function'
-                        ? report.result()
-                        : report;
+        if (!isValidNumber(value)) {
+            return 0;
+        }
 
-                    try {
-                        this.processStatsReport();
-                    } catch (error) {
-                        logger.error('Processing of RTP stats failed:', error);
-                    }
-                    this.previousStatsReport = this.currentStatsReport;
-                })
-                .catch((error: Error) => this.errorCallback(error));
-        };
-
-        processStats();
-        this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
+        return Math.max(0, value as number);
     }
 
     /**
@@ -388,7 +383,7 @@ export default class StatsCollector {
         let videoBitrateDownload = 0;
         let videoBitrateUpload = 0;
 
-        for (const [ssrc, ssrcStats] of this.ssrc2stats) {
+        for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
             // process packet loss stats
             const loss = ssrcStats.loss;
             const type = loss.isDownloadStream ? 'download' : 'upload';
@@ -526,79 +521,14 @@ export default class StatsCollector {
         this.conferenceStats.transport = [];
     }
 
-    /**
-     * Converts the value to a non-negative number.
-     * If the value is either invalid or negative then 0 will be returned.
-     * @param {*} v
-     * @return {number}
-     * @private
-     */
-    private getNonNegativeValue(v: unknown): number {
-        let value = v;
-
-        if (typeof value !== 'number') {
-            value = Number(value);
-        }
-
-        if (!isValidNumber(value)) {
-            return 0;
-        }
-
-        return Math.max(0, value as number);
-    }
 
     /**
-     * Calculates bitrate between before and now using a supplied field name and its
-     * value in the stats.
-     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
-     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} before the
-     * previous stats.
-     * @param fieldName the field to use for calculations.
-     * @return {number} the calculated bitrate between now and before.
-     * @private
+     * Callback passed to <tt>getStats</tt> method.
+     * @param error an error that occurred on <tt>getStats</tt> call.
      */
-    private _calculateBitrate(
-        now: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
-        before: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
-        fieldName: string
-    ): number {
-        const bytesNow = this.getNonNegativeValue(now[fieldName]);
-        const bytesBefore = this.getNonNegativeValue(before[fieldName]);
-        const bytesProcessed = Math.max(0, bytesNow - bytesBefore);
-
-        const timeMs = now.timestamp - before.timestamp;
-        let bitrateKbps = 0;
-
-        if (timeMs > 0) {
-            // TODO is there any reason to round here?
-            bitrateKbps = Math.round((bytesProcessed * 8) / timeMs);
-        }
-
-        return bitrateKbps;
-    }
-
-    /**
-     * Calculates the frames per second rate between before and now using a supplied field name and its value in stats.
-     * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
-     * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} before the previous stats
-     * @param {string} fieldName the field to use for calculations.
-     * @returns {number} the calculated frame rate between now and before.
-     */
-    private _calculateFps(
-        now: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
-        before: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
-        fieldName: string
-    ): number {
-        const timeMs = now.timestamp - before.timestamp;
-        let frameRate = 0;
-
-        if (timeMs > 0 && now[fieldName]) {
-            const numberOfFramesSinceBefore = now[fieldName] - before[fieldName];
-
-            frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
-        }
-
-        return frameRate;
+    errorCallback(error: Error): void {
+        logger.error('Get stats error', error);
+        this.stop();
     }
 
     /**
@@ -606,9 +536,9 @@ export default class StatsCollector {
      */
     processStatsReport(): void {
         const byteSentStats: Record<number, number> = {};
-        const encodedTimeStatsPerSsrc: Map<number, EncodeStats> = new Map();
+        const encodedTimeStatsPerSsrc: Map<number, IEncodeStats> = new Map();
 
-        this.currentStatsReport?.forEach((now) => {
+        this.currentStatsReport?.forEach(now => {
             const before = this.previousStatsReport ? this.previousStatsReport[now.id] : null;
 
             // RTCIceCandidatePairStats - https://w3c.github.io/webrtc-stats/#candidatepair-dict*
@@ -709,7 +639,7 @@ export default class StatsCollector {
                     });
                 }
 
-                let resolution: Resolution | undefined;
+                let resolution: IResolution | undefined;
 
                 // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
                 // Chromium based and version 112 and later since 'track' based stats are no longer available there
@@ -772,7 +702,7 @@ export default class StatsCollector {
                         const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
                         const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
                         const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;
-                        const encodeTimeStats: EncodeStats = {
+                        const encodeTimeStats: IEncodeStats = {
                             codec: codecShortType,
                             encodeTime: encodeTimePerFrameInMs,
                             qualityLimitationReason: now.qualityLimitationReason,
@@ -790,7 +720,7 @@ export default class StatsCollector {
                 && now.type === 'track'
                 && now.kind === MediaType.VIDEO
                 && !now.remoteSource) {
-                const resolution: Resolution = {
+                const resolution: IResolution = {
                     height: now.frameHeight,
                     width: now.frameWidth
                 };
@@ -835,5 +765,80 @@ export default class StatsCollector {
         }
 
         this._processAndEmitReport();
+    }
+
+
+    /**
+     * Set the list of the remote speakers for which audio levels are to be calculated.
+     *
+     * @param {Array<string>} speakerList - Endpoint ids.
+     * @returns {void}
+     */
+    setSpeakerList(speakerList: Array<string>): void {
+        this.speakerList = speakerList;
+    }
+
+    /**
+     * Stops stats updates.
+     */
+    stop(): void {
+        if (this.audioLevelsIntervalId) {
+            clearInterval(this.audioLevelsIntervalId);
+            this.audioLevelsIntervalId = null;
+        }
+
+        if (this.statsIntervalId) {
+            clearInterval(this.statsIntervalId);
+            this.statsIntervalId = null;
+        }
+    }
+
+    /**
+     * Starts stats updates.
+     */
+    start(startAudioLevelStats: boolean): void {
+        if (startAudioLevelStats && browser.supportsReceiverStats()) {
+            this.audioLevelsIntervalId = setInterval(
+                () => {
+                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
+
+                    for (const ssrc in audioLevels) {
+                        if (audioLevels.hasOwnProperty(ssrc)) {
+                            // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
+                            const audioLevel = audioLevels[ssrc] * 2.5;
+
+                            this.eventEmitter.emit(
+                                StatisticsEvents.AUDIO_LEVEL,
+                                this.peerconnection,
+                                Number.parseInt(ssrc, 10),
+                                audioLevel,
+                                false /* isLocal */);
+                        }
+                    }
+                },
+                this.audioLevelsIntervalMilis
+            );
+        }
+
+        const processStats = () => {
+            // Interval updates
+            this.peerconnection.getStats()
+                .then(report => {
+                    this.currentStatsReport = typeof report?.result === 'function'
+                        ? report.result()
+                        : report;
+
+                    try {
+                        this.processStatsReport();
+                    } catch (error) {
+                        logger.error('Processing of RTP stats failed:', error);
+                    }
+                    this.previousStatsReport = this.currentStatsReport;
+                })
+                .catch((error: Error) => this.errorCallback(error));
+        };
+
+        processStats();
+        this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
     }
 }
