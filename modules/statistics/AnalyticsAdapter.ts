@@ -13,6 +13,34 @@ const MAX_CACHE_SIZE = 100;
 const logger = getLogger('modules/statistics/AnalyticsAdapter');
 
 /**
+ * Type for analytics event objects.
+ */
+export interface IAnalyticsEvent {
+    action?: string;
+    actionSubject?: string;
+    actionSubjectId?: string;
+    attributes?: Record<string, unknown>;
+    categories?: string[];
+    containerId?: string;
+    containerType?: string;
+    name?: string;
+    objectId?: string;
+    objectType?: string;
+    source?: string;
+    tags?: string[];
+    type: string;
+}
+
+/**
+ * Type for analytics handler objects.
+ */
+export interface IAnalyticsHandler {
+    dispose?: () => void;
+    sendEvent: (event: IAnalyticsEvent) => void;
+    setUserProperties: (properties: Record<string, unknown>) => void;
+}
+
+/**
  * This class provides an API to lib-jitsi-meet and its users for sending
  * analytics events. It serves as a bridge to different backend implementations
  * ("analytics handlers") and a cache for events attempted to be sent before
@@ -65,27 +93,27 @@ class AnalyticsAdapter {
 
     /**
      * The set of handlers to which events will be sent.
-     * @type {Set<any>}
+     * @type {Set<AnalyticsHandler>}
      */
-    private analyticsHandlers: Set<any>;
+    private analyticsHandlers: Set<IAnalyticsHandler>;
 
     /**
      * The cache of events which are not sent yet. The cache is enabled
      * while this field is truthy, and disabled otherwise.
-     * @type {Array}
+     * @type {AnalyticsEvent[] | null}
      */
-    private cache: any[] | null;
+    private cache: IAnalyticsEvent[] | null;
 
     /**
      * Map of properties that will be added to every event. Note that the
      * keys will be prefixed with "permanent.".
      */
-    private permanentProperties: Record<string, any>;
+    private permanentProperties: Record<string, unknown>;
 
     /**
      * The name of the conference that this AnalyticsAdapter is associated
      * with.
-     * @type {null}
+     * @type {string}
      */
     private conferenceName: string;
 
@@ -163,9 +191,9 @@ class AnalyticsAdapter {
     /**
      * Sets the handlers that are going to be used to send analytics. Sends any
      * cached events.
-     * @param {Array} handlers the handlers
+     * @param {IAnalyticsHandler[]} handlers the handlers
      */
-    setAnalyticsHandlers(handlers: any[]): void {
+    setAnalyticsHandlers(handlers: IAnalyticsHandler[]): void {
         if (this.disposed) {
             return;
         }
@@ -207,9 +235,9 @@ class AnalyticsAdapter {
      * result in {"permanent_key": "value"} object to be added to the
      * "attributes" field of events.
      *
-     * @param {Object} properties the properties to add
+     * @param {Record<string, unknown>} properties the properties to add
      */
-    addPermanentProperties(properties: Record<string, any>): void {
+    addPermanentProperties(properties: Record<string, unknown>): void {
         this.permanentProperties = {
             ...this.permanentProperties,
             ...properties
@@ -235,18 +263,18 @@ class AnalyticsAdapter {
      * attach to the event. If it is an object, it represents the whole event,
      * including any desired attributes, and the second parameter is ignored.
      *
-     * @param {String|Object} eventName either a string to be used as the name
+     * @param {String|IAnalyticsEvent} eventName either a string to be used as the name
      * of the event, or an event object. If an event object is passed, the
      * properties parameters is ignored.
-     * @param {Object} properties the properties/attributes to attach to the
+     * @param {Record<string, unknown>} properties the properties/attributes to attach to the
      * event, if eventName is a string.
      */
-    sendEvent(eventName: string | Record<string, any>, properties: Record<string, any> = {}): void {
+    sendEvent(eventName: string | IAnalyticsEvent, properties: Record<string, unknown> = {}): void {
         if (this.disposed) {
             return;
         }
 
-        let event: Record<string, any> | null = null;
+        let event: IAnalyticsEvent | null = null;
 
         if (typeof eventName === 'string') {
             event = {
@@ -282,7 +310,7 @@ class AnalyticsAdapter {
      * contains all of the required fields, and false otherwise.
      * @private
      */
-    _verifyRequiredFields(event: Record<string, any> | null): boolean {
+    _verifyRequiredFields(event: IAnalyticsEvent | null): boolean {
         if (!event) {
             return false;
         }
@@ -347,7 +375,7 @@ class AnalyticsAdapter {
      * if the cache was disabled).
      * @private
      */
-    _maybeCacheEvent(event: Record<string, any>): boolean {
+    _maybeCacheEvent(event: IAnalyticsEvent): boolean {
         if (this.cache) {
             this.cache.push(event);
 
@@ -369,7 +397,7 @@ class AnalyticsAdapter {
      * @param event
      * @private
      */
-    _sendEvent(event: Record<string, any>): void {
+    _sendEvent(event: IAnalyticsEvent): void {
         if (this._maybeCacheEvent(event)) {
             // The event was consumed by the cache.
         } else {
