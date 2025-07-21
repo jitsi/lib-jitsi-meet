@@ -5,6 +5,8 @@ import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import { isValidNumber } from '../util/MathUtil';
+import EventEmitter from '../util/EventEmitter';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 const logger = getLogger('modules/statistics/RTPStatsCollector');
 
@@ -15,7 +17,7 @@ const logger = getLogger('modules/statistics/RTPStatsCollector');
  * @param totalPackets the number of all packets.
  * @returns {number} packet loss percent
  */
-function calculatePacketLoss(lostPackets, totalPackets) {
+function calculatePacketLoss(lostPackets: number, totalPackets: number): number {
     if (lostPackets > 0 && totalPackets > 0) {
         return Math.round(lostPackets / totalPackets * 100);
     }
@@ -24,19 +26,65 @@ function calculatePacketLoss(lostPackets, totalPackets) {
 }
 
 /**
+ * Interface for bitrate object.
+ */
+interface Bitrate {
+    download: number;
+    upload: number;
+}
+
+/**
+ * Interface for loss object.
+ */
+interface Loss {
+    isDownloadStream: boolean;
+    packetsLost: number;
+    packetsTotal: number;
+}
+
+/**
+ * Interface for resolution object.
+ */
+interface Resolution {
+    height: number;
+    width: number;
+}
+
+/**
+ * Interface for encode stats object.
+ */
+interface EncodeStats {
+    codec: string;
+    encodeTime: number;
+    qualityLimitationReason: string;
+    resolution: Resolution;
+    timestamp: number;
+}
+
+/**
  * Holds "statistics" for a single SSRC.
  */
 class SsrcStats {
+    public loss: Loss;
+    public bitrate: Bitrate;
+    public resolution: Resolution;
+    public framerate: number;
+    public codec: string;
+    public encodeStats?: Map<number, EncodeStats>;
+
     /**
      * Constructor.
      */
     constructor() {
-        this.loss = {};
+        this.loss = { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
         this.bitrate = {
             download: 0,
             upload: 0
         };
-        this.resolution = {};
+        this.resolution = {
+            height: 0,
+            width: 0
+        };
         this.framerate = 0;
         this.codec = '';
     }
@@ -45,16 +93,19 @@ class SsrcStats {
      * Sets the "loss" object.
      * @param loss the value to set.
      */
-    setLoss(loss) {
-        this.loss = loss || {};
+    setLoss(loss: Loss | undefined): void {
+        this.loss = loss || { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
     }
 
     /**
      * Sets resolution that belong to the ssrc represented by this instance.
      * @param resolution new resolution value to be set.
      */
-    setResolution(resolution) {
-        this.resolution = resolution || {};
+    setResolution(resolution?: Resolution): void {
+        this.resolution = resolution || {
+            height: 0,
+            width: 0
+        };
     }
 
     /**
@@ -62,7 +113,7 @@ class SsrcStats {
      * the respective fields of the "bitrate" field of this object.
      * @param bitrate an object holding the values to add.
      */
-    addBitrate(bitrate) {
+    addBitrate(bitrate: Bitrate): void {
         this.bitrate.download += bitrate.download;
         this.bitrate.upload += bitrate.upload;
     }
@@ -71,7 +122,7 @@ class SsrcStats {
      * Resets the bit rate for given <tt>ssrc</tt> that belong to the peer
      * represented by this instance.
      */
-    resetBitrate() {
+    resetBitrate(): void {
         this.bitrate.download = 0;
         this.bitrate.upload = 0;
     }
@@ -80,7 +131,7 @@ class SsrcStats {
      * Sets the "framerate".
      * @param framerate the value to set.
      */
-    setFramerate(framerate) {
+    setFramerate(framerate?: number): void {
         this.framerate = framerate || 0;
     }
 
@@ -88,7 +139,7 @@ class SsrcStats {
      * Sets the codec.
      * @param codec the value to set.
      */
-    setCodec(codec) {
+    setCodec(codec?: string): void {
         this.codec = codec || '';
     }
 
@@ -96,8 +147,8 @@ class SsrcStats {
      * Sets the encode stats.
      * @param encodeStats the value to set.
      */
-    setEncodeStats(encodeStats) {
-        this.encodeStats = encodeStats || {};
+    setEncodeStats(encodeStats?: Map<number, EncodeStats>): void {
+        this.encodeStats = encodeStats || undefined;
     }
 }
 
@@ -105,6 +156,21 @@ class SsrcStats {
  * Conference statistics.
  */
 class ConferenceStats {
+    public bandwidth?: Bitrate;
+    public bitrate?: {
+        audio?: Bitrate;
+        video?: Bitrate;
+        total?: Bitrate;
+        download?: number;
+        upload?: number;
+    };
+    public packetLoss?: {
+        download?: number;
+        total: number;
+        upload: number;
+    };
+    public transport?: Array<Record<string, any>>;
+
     /**
      * Constructor.
      */
@@ -113,19 +179,41 @@ class ConferenceStats {
          * The bandwidth
          * @type {{}}
          */
-        this.bandwidth = {};
+        this.bandwidth = {
+            download: 0,
+            upload: 0
+        };
 
         /**
          * The bit rate
          * @type {{}}
          */
-        this.bitrate = {};
+        this.bitrate = {
+            audio: {
+                download: 0,
+                upload: 0
+            },
+            video: {
+                download: 0,
+                upload: 0
+            },
+            total: {
+                download: 0,
+                upload: 0
+            },
+            download: 0,
+            upload: 0
+        };
 
         /**
          * The packet loss rate
          * @type {{}}
          */
-        this.packetLoss = null;
+        this.packetLoss = {
+            download: 0,
+            total: 0,
+            upload: 0
+        };
 
         /**
          * Array with the transport information.
@@ -145,6 +233,22 @@ class ConferenceStats {
  * instance as an event source.
  */
 export default class StatsCollector {
+    private peerconnection: TraceablePeerConnection;
+    private currentStatsReport?: RTCStatsReport;
+    private previousStatsReport?: RTCStatsReport;
+    private audioLevelsIntervalId?: NodeJS.Timeout;
+    private eventEmitter: EventEmitter;
+    private conferenceStats: ConferenceStats;
+    private audioLevelsIntervalMilis: number;
+    private speakerList: Array<string>;
+    private statsIntervalId?: NodeJS.Timeout;
+    private statsIntervalMilis: number;
+    /**
+     * Maps SSRC numbers to {@link SsrcStats}.
+     * @type {Map<number,SsrcStats>}
+     */
+    private ssrc2stats: Map<number, SsrcStats>;
+
     /**
      * Creates new <tt>StatsCollector</tt> instance.
      * @param peerconnection WebRTC PeerConnection object.
@@ -153,26 +257,28 @@ export default class StatsCollector {
      * @param eventEmitter
      * @constructor
      */
-    constructor(peerconnection, audioLevelsInterval, statsInterval, eventEmitter) {
+    constructor(
+        peerconnection: TraceablePeerConnection,
+        audioLevelsInterval: number,
+        statsInterval: number,
+        eventEmitter: EventEmitter
+    ) {
         this.peerconnection = peerconnection;
         this.currentStatsReport = null;
         this.previousStatsReport = null;
         this.audioLevelsIntervalId = null;
         this.eventEmitter = eventEmitter;
         this.conferenceStats = new ConferenceStats();
-
         // Updates stats interval
         this.audioLevelsIntervalMilis = audioLevelsInterval;
-
         this.speakerList = [];
         this.statsIntervalId = null;
         this.statsIntervalMilis = statsInterval;
-
         /**
          * Maps SSRC numbers to {@link SsrcStats}.
-         * @type {Map<number,SsrcStats}
+         * @type {Map<number,SsrcStats>}
          */
-        this.ssrc2stats = new Map();
+        this.ssrc2stats = new Map<number, SsrcStats>();
     }
 
     /**
@@ -181,14 +287,14 @@ export default class StatsCollector {
      * @param {Array<string>} speakerList - Endpoint ids.
      * @returns {void}
      */
-    setSpeakerList(speakerList) {
+    setSpeakerList(speakerList: Array<string>): void {
         this.speakerList = speakerList;
     }
 
     /**
      * Stops stats updates.
      */
-    stop() {
+    stop(): void {
         if (this.audioLevelsIntervalId) {
             clearInterval(this.audioLevelsIntervalId);
             this.audioLevelsIntervalId = null;
@@ -204,7 +310,7 @@ export default class StatsCollector {
      * Callback passed to <tt>getStats</tt> method.
      * @param error an error that occurred on <tt>getStats</tt> call.
      */
-    errorCallback(error) {
+    errorCallback(error: Error): void {
         logger.error('Get stats error', error);
         this.stop();
     }
@@ -212,7 +318,7 @@ export default class StatsCollector {
     /**
      * Starts stats updates.
      */
-    start(startAudioLevelStats) {
+    start(startAudioLevelStats: boolean): void {
         if (startAudioLevelStats && browser.supportsReceiverStats()) {
             this.audioLevelsIntervalId = setInterval(
                 () => {
@@ -251,7 +357,7 @@ export default class StatsCollector {
                     }
                     this.previousStatsReport = this.currentStatsReport;
                 })
-                .catch(error => this.errorCallback(error));
+                .catch((error: Error) => this.errorCallback(error));
         };
 
         processStats();
@@ -262,7 +368,7 @@ export default class StatsCollector {
      * Process and emit statistics report.
      * @private
      */
-    _processAndEmitReport() {
+    private _processAndEmitReport(): void {
         // process stats
         const totalPackets = {
             download: 0,
@@ -282,7 +388,7 @@ export default class StatsCollector {
         let videoBitrateDownload = 0;
         let videoBitrateUpload = 0;
 
-        for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
+        for (const [ssrc, ssrcStats] of this.ssrc2stats) {
             // process packet loss stats
             const loss = ssrcStats.loss;
             const type = loss.isDownloadStream ? 'download' : 'upload';
@@ -306,8 +412,8 @@ export default class StatsCollector {
                 continue; // eslint-disable-line no-continue
             }
 
-            let audioCodec;
-            let videoCodec;
+            let audioCodec: string | undefined;
+            let videoCodec: string | undefined;
 
             if (track.isAudioTrack()) {
                 audioBitrateDownload += ssrcBitrateDownload;
@@ -427,7 +533,7 @@ export default class StatsCollector {
      * @return {number}
      * @private
      */
-    getNonNegativeValue(v) {
+    private getNonNegativeValue(v: unknown): number {
         let value = v;
 
         if (typeof value !== 'number') {
@@ -438,7 +544,7 @@ export default class StatsCollector {
             return 0;
         }
 
-        return Math.max(0, value);
+        return Math.max(0, value as number);
     }
 
     /**
@@ -451,7 +557,11 @@ export default class StatsCollector {
      * @return {number} the calculated bitrate between now and before.
      * @private
      */
-    _calculateBitrate(now, before, fieldName) {
+    private _calculateBitrate(
+        now: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+        before: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+        fieldName: string
+    ): number {
         const bytesNow = this.getNonNegativeValue(now[fieldName]);
         const bytesBefore = this.getNonNegativeValue(before[fieldName]);
         const bytesProcessed = Math.max(0, bytesNow - bytesBefore);
@@ -474,7 +584,11 @@ export default class StatsCollector {
      * @param {string} fieldName the field to use for calculations.
      * @returns {number} the calculated frame rate between now and before.
      */
-    _calculateFps(now, before, fieldName) {
+    private _calculateFps(
+        now: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+        before: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+        fieldName: string
+    ): number {
         const timeMs = now.timestamp - before.timestamp;
         let frameRate = 0;
 
@@ -490,12 +604,12 @@ export default class StatsCollector {
     /**
      * Stats processing for spec-compliant RTCPeerConnection#getStats.
      */
-    processStatsReport() {
-        const byteSentStats = {};
-        const encodedTimeStatsPerSsrc = new Map();
+    processStatsReport(): void {
+        const byteSentStats: Record<number, number> = {};
+        const encodedTimeStatsPerSsrc: Map<number, EncodeStats> = new Map();
 
-        this.currentStatsReport.forEach(now => {
-            const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
+        this.currentStatsReport?.forEach((now) => {
+            const before = this.previousStatsReport ? this.previousStatsReport[now.id] : null;
 
             // RTCIceCandidatePairStats - https://w3c.github.io/webrtc-stats/#candidatepair-dict*
             if (now.type === 'candidate-pair' && now.nominated && now.state === 'succeeded') {
@@ -509,8 +623,8 @@ export default class StatsCollector {
                     };
                 }
 
-                const remoteUsedCandidate = this.currentStatsReport.get(now.remoteCandidateId);
-                const localUsedCandidate = this.currentStatsReport.get(now.localCandidateId);
+                const remoteUsedCandidate = this.currentStatsReport?.[now.remoteCandidateId];
+                const localUsedCandidate = this.currentStatsReport?.[now.localCandidateId];
 
                 // RTCIceCandidateStats
                 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
@@ -595,7 +709,7 @@ export default class StatsCollector {
                     });
                 }
 
-                let resolution;
+                let resolution: Resolution | undefined;
 
                 // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
                 // Chromium based and version 112 and later since 'track' based stats are no longer available there
@@ -634,7 +748,7 @@ export default class StatsCollector {
                     });
                 }
 
-                const codec = this.currentStatsReport.get(now.codecId);
+                const codec = this.currentStatsReport?.[now.codecId];
 
                 if (codec) {
                     /**
@@ -658,7 +772,7 @@ export default class StatsCollector {
                         const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
                         const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
                         const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;
-                        const encodeTimeStats = {
+                        const encodeTimeStats: EncodeStats = {
                             codec: codecShortType,
                             encodeTime: encodeTimePerFrameInMs,
                             qualityLimitationReason: now.qualityLimitationReason,
@@ -676,7 +790,7 @@ export default class StatsCollector {
                 && now.type === 'track'
                 && now.kind === MediaType.VIDEO
                 && !now.remoteSource) {
-                const resolution = {
+                const resolution: Resolution = {
                     height: now.frameHeight,
                     width: now.frameWidth
                 };
