@@ -125,98 +125,55 @@ class AnalyticsAdapter {
     }
 
     /**
-     * Reset the state to the initial one.
-     *
-     * @returns {void}
+     * Saves an event to the cache, if the cache is enabled.
+     * @param event the event to save.
+     * @returns {boolean} true if the event was saved, and false otherwise (i.e.
+     * if the cache was disabled).
+     * @private
      */
-    reset(): void {
-        /**
-         * Whether this AnalyticsAdapter has been disposed of or not. Once this
-         * is set to true, the AnalyticsAdapter is disabled and does not accept
-         * any more events, and it can not be re-enabled.
-         * @type {boolean}
-         */
-        this.disposed = false;
+    private _maybeCacheEvent(event: IAnalyticsEvent): boolean {
+        if (this.cache) {
+            this.cache.push(event);
 
-        /**
-         * The set of handlers to which events will be sent.
-         * @type {Set<any>}
-         */
-        this.analyticsHandlers = new Set();
+            // We limit the size of the cache, in case the user fails to ever
+            // set the analytics handlers.
+            if (this.cache.length > MAX_CACHE_SIZE) {
+                this.cache.splice(0, 1);
+            }
 
-        /**
-         * The cache of events which are not sent yet. The cache is enabled
-         * while this field is truthy, and disabled otherwise.
-         * @type {Array}
-         */
-        this.cache = [];
+            return true;
+        }
 
-        /**
-         * Map of properties that will be added to every event. Note that the
-         * keys will be prefixed with "permanent.".
-         */
-        this.permanentProperties = {};
+        return false;
 
-        /**
-         * The name of the conference that this AnalyticsAdapter is associated
-         * with.
-         * @type {null}
-         */
-        this.conferenceName = '';
-
-        this.addPermanentProperties({
-            'browser_name': browser.getName(),
-            'user_agent': navigator.userAgent
-        });
     }
 
     /**
-     * Dispose analytics. Clears all handlers.
+     *
+     * @param event
+     * @private
      */
-    dispose(): void {
-        logger.debug('Disposing of analytics adapter.');
-
-        if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
+    private _sendEvent(event: IAnalyticsEvent): void {
+        if (this._maybeCacheEvent(event)) {
+            // The event was consumed by the cache.
+        } else {
             this.analyticsHandlers.forEach(handler => {
-                if (typeof handler.dispose === 'function') {
-                    handler.dispose();
+                try {
+                    handler.sendEvent(event);
+                } catch (e) {
+                    logger.warn(`Error sending analytics event: ${e}`);
                 }
             });
         }
-
-        this.setAnalyticsHandlers([]);
-        this.disposed = true;
     }
 
-    /**
-     * Sets the handlers that are going to be used to send analytics. Sends any
-     * cached events.
-     * @param {IAnalyticsHandler[]} handlers the handlers
-     */
-    setAnalyticsHandlers(handlers: IAnalyticsHandler[]): void {
-        if (this.disposed) {
-            return;
-        }
-
-        this.analyticsHandlers = new Set(handlers);
-
-        this._setUserProperties();
-
-        // Note that we disable the cache even if the set of handlers is empty.
-        const cache = this.cache;
-
-        this.cache = null;
-        if (cache) {
-            cache.forEach(event => this._sendEvent(event));
-        }
-    }
 
     /**
      * Set the user properties to the analytics handlers.
      *
      * @returns {void}
      */
-    _setUserProperties(): void {
+    private _setUserProperties(): void {
         this.analyticsHandlers.forEach(handler => {
             try {
                 handler.setUserProperties(this.permanentProperties);
@@ -225,77 +182,6 @@ class AnalyticsAdapter {
                     + `analytics handlers: ${error}`);
             }
         });
-    }
-
-    /**
-     * Adds a set of permanent properties to this this AnalyticsAdapter.
-     * Permanent properties will be added as "attributes" to events sent to
-     * the underlying "analytics handlers", and their keys will be prefixed
-     * by "permanent_", i.e. adding a permanent property {key: "value"} will
-     * result in {"permanent_key": "value"} object to be added to the
-     * "attributes" field of events.
-     *
-     * @param {Record<string, unknown>} properties the properties to add
-     */
-    addPermanentProperties(properties: Record<string, unknown>): void {
-        this.permanentProperties = {
-            ...this.permanentProperties,
-            ...properties
-        };
-
-        this._setUserProperties();
-    }
-
-    /**
-     * Sets the name of the conference that this AnalyticsAdapter is associated
-     * with.
-     * @param name the name to set.
-     */
-    setConferenceName(name: string): void {
-        this.conferenceName = name;
-        this.addPermanentProperties({ 'conference_name': name });
-    }
-
-    /**
-     * Sends an event with a given name and given properties. The first
-     * parameter is either a string or an object. If it is a string, it is used
-     * as the event name and the second parameter is used at the attributes to
-     * attach to the event. If it is an object, it represents the whole event,
-     * including any desired attributes, and the second parameter is ignored.
-     *
-     * @param {String|IAnalyticsEvent} eventName either a string to be used as the name
-     * of the event, or an event object. If an event object is passed, the
-     * properties parameters is ignored.
-     * @param {Record<string, unknown>} properties the properties/attributes to attach to the
-     * event, if eventName is a string.
-     */
-    sendEvent(eventName: string | IAnalyticsEvent, properties: Record<string, unknown> = {}): void {
-        if (this.disposed) {
-            return;
-        }
-
-        let event: IAnalyticsEvent | null = null;
-
-        if (typeof eventName === 'string') {
-            event = {
-                action: eventName,
-                actionSubject: eventName,
-                attributes: properties,
-                source: eventName,
-                type: TYPE_OPERATIONAL
-            };
-        } else if (typeof eventName === 'object') {
-            event = eventName;
-        }
-
-        if (!this._verifyRequiredFields(event)) {
-            logger.error(
-                `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
-
-            return;
-        }
-
-        this._sendEvent(event);
     }
 
     /**
@@ -310,7 +196,7 @@ class AnalyticsAdapter {
      * contains all of the required fields, and false otherwise.
      * @private
      */
-    _verifyRequiredFields(event: IAnalyticsEvent | null): boolean {
+    private _verifyRequiredFields(event: IAnalyticsEvent | null): boolean {
         if (!event) {
             return false;
         }
@@ -368,48 +254,166 @@ class AnalyticsAdapter {
         return true;
     }
 
+
     /**
-     * Saves an event to the cache, if the cache is enabled.
-     * @param event the event to save.
-     * @returns {boolean} true if the event was saved, and false otherwise (i.e.
-     * if the cache was disabled).
-     * @private
+     * Adds a set of permanent properties to this this AnalyticsAdapter.
+     * Permanent properties will be added as "attributes" to events sent to
+     * the underlying "analytics handlers", and their keys will be prefixed
+     * by "permanent_", i.e. adding a permanent property {key: "value"} will
+     * result in {"permanent_key": "value"} object to be added to the
+     * "attributes" field of events.
+     *
+     * @param {Record<string, unknown>} properties the properties to add
      */
-    _maybeCacheEvent(event: IAnalyticsEvent): boolean {
-        if (this.cache) {
-            this.cache.push(event);
+    public addPermanentProperties(properties: Record<string, unknown>): void {
+        this.permanentProperties = {
+            ...this.permanentProperties,
+            ...properties
+        };
 
-            // We limit the size of the cache, in case the user fails to ever
-            // set the analytics handlers.
-            if (this.cache.length > MAX_CACHE_SIZE) {
-                this.cache.splice(0, 1);
-            }
-
-            return true;
-        }
-
-        return false;
-
+        this._setUserProperties();
     }
 
     /**
-     *
-     * @param event
-     * @private
-     */
-    _sendEvent(event: IAnalyticsEvent): void {
-        if (this._maybeCacheEvent(event)) {
-            // The event was consumed by the cache.
-        } else {
+         * Dispose analytics. Clears all handlers.
+         */
+    public dispose(): void {
+        logger.debug('Disposing of analytics adapter.');
+
+        if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
             this.analyticsHandlers.forEach(handler => {
-                try {
-                    handler.sendEvent(event);
-                } catch (e) {
-                    logger.warn(`Error sending analytics event: ${e}`);
+                if (typeof handler.dispose === 'function') {
+                    handler.dispose();
                 }
             });
         }
+
+        this.setAnalyticsHandlers([]);
+        this.disposed = true;
     }
+
+    /**
+     * Reset the state to the initial one.
+     *
+     * @returns {void}
+     */
+    public reset(): void {
+        /**
+             * Whether this AnalyticsAdapter has been disposed of or not. Once this
+             * is set to true, the AnalyticsAdapter is disabled and does not accept
+             * any more events, and it can not be re-enabled.
+             * @type {boolean}
+             */
+        this.disposed = false;
+
+        /**
+             * The set of handlers to which events will be sent.
+             * @type {Set<any>}
+             */
+        this.analyticsHandlers = new Set();
+
+        /**
+             * The cache of events which are not sent yet. The cache is enabled
+             * while this field is truthy, and disabled otherwise.
+             * @type {Array}
+             */
+        this.cache = [];
+
+        /**
+             * Map of properties that will be added to every event. Note that the
+             * keys will be prefixed with "permanent.".
+             */
+        this.permanentProperties = {};
+
+        /**
+             * The name of the conference that this AnalyticsAdapter is associated
+             * with.
+             * @type {null}
+             */
+        this.conferenceName = '';
+
+        this.addPermanentProperties({
+            'browser_name': browser.getName(),
+            'user_agent': navigator.userAgent
+        });
+    }
+
+    /**
+     * Sends an event with a given name and given properties. The first
+     * parameter is either a string or an object. If it is a string, it is used
+     * as the event name and the second parameter is used at the attributes to
+     * attach to the event. If it is an object, it represents the whole event,
+     * including any desired attributes, and the second parameter is ignored.
+     *
+     * @param {String|IAnalyticsEvent} eventName either a string to be used as the name
+     * of the event, or an event object. If an event object is passed, the
+     * properties parameters is ignored.
+     * @param {Record<string, unknown>} properties the properties/attributes to attach to the
+     * event, if eventName is a string.
+     */
+    public sendEvent(eventName: string | IAnalyticsEvent, properties: Record<string, unknown> = {}): void {
+        if (this.disposed) {
+            return;
+        }
+
+        let event: IAnalyticsEvent | null = null;
+
+        if (typeof eventName === 'string') {
+            event = {
+                action: eventName,
+                actionSubject: eventName,
+                attributes: properties,
+                source: eventName,
+                type: TYPE_OPERATIONAL
+            };
+        } else if (typeof eventName === 'object') {
+            event = eventName;
+        }
+
+        if (!this._verifyRequiredFields(event)) {
+            logger.error(
+                `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
+
+            return;
+        }
+
+        this._sendEvent(event);
+    }
+
+    /**
+         * Sets the handlers that are going to be used to send analytics. Sends any
+         * cached events.
+         * @param {IAnalyticsHandler[]} handlers the handlers
+         */
+    public setAnalyticsHandlers(handlers: IAnalyticsHandler[]): void {
+        if (this.disposed) {
+            return;
+        }
+
+        this.analyticsHandlers = new Set(handlers);
+
+        this._setUserProperties();
+
+        // Note that we disable the cache even if the set of handlers is empty.
+        const cache = this.cache;
+
+        this.cache = null;
+        if (cache) {
+            cache.forEach(event => this._sendEvent(event));
+        }
+    }
+
+
+    /**
+     * Sets the name of the conference that this AnalyticsAdapter is associated
+     * with.
+     * @param name the name to set.
+     */
+    public setConferenceName(name: string): void {
+        this.conferenceName = name;
+        this.addPermanentProperties({ 'conference_name': name });
+    }
+
 }
 
 export default new AnalyticsAdapter();
