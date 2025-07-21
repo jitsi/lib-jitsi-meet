@@ -198,7 +198,7 @@ class ConnectionAvgStats {
      * @param {go figure} data
      * @private
      */
-    _calculateAvgStats(data: any): void {
+    private _calculateAvgStats(data: any): void {
         if (!data) {
             logger.error('No stats');
 
@@ -270,7 +270,7 @@ class ConnectionAvgStats {
      * @return {number|NaN} NaN if not available (not enough data)
      * @private
      */
-    _calculateAvgRemoteRTT(): number {
+    private _calculateAvgRemoteRTT(): number {
         let count = 0, sum = 0;
 
         // FIXME should we ignore RTT for participant
@@ -295,7 +295,7 @@ class ConnectionAvgStats {
      * @param {go figure in ConnectionQuality.js} data
      * @private
      */
-    _processRemoteStats(id: string, data: any): void {
+    private _processRemoteStats(id: string, data: any): void {
         const validData = typeof data.jvbRTT === 'number';
         let rttAvg = this._avgRemoteRTTMap.get(id);
 
@@ -313,7 +313,7 @@ class ConnectionAvgStats {
 
     /**
      * Reset cache of all averages and {@link _sampleIdx}.
-     * @private
+     * @internal
      */
     _resetAvgStats(): void {
         this._avgRTT.reset();
@@ -326,7 +326,7 @@ class ConnectionAvgStats {
     /**
      *
      */
-    dispose(): void {
+    public dispose(): void {
         const conference = this._avgRtpStatsReporter._conference;
 
         conference.statistics.removeConnectionStatsListener(
@@ -619,7 +619,7 @@ export default class AvgRTPStatsReporter {
      * @param {*} data
      * @private
      */
-    _calculateAvgStats(data: any): void {
+    private _calculateAvgStats(data: any): void {
 
         if (!data) {
             logger.error('No stats');
@@ -793,7 +793,7 @@ export default class AvgRTPStatsReporter {
      * are no samples.
      * @private
      */
-    _calculateAvgVideoPixels(peerResolutions: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
+    private _calculateAvgVideoPixels(peerResolutions: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
         let peerPixelsSum = 0;
         let peerCount = 0;
         const myID = this._conference.myUserId();
@@ -833,7 +833,7 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
+    private _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
         let videoTracks: any[] | null = null;// JitsiLocalTrack[] | JitsiRemoteTrack[]
 
@@ -889,7 +889,7 @@ export default class AvgRTPStatsReporter {
      * @return {number|NaN} average FPS or <tt>NaN</tt> if there are no samples.
      * @private
      */
-    _calculateAvgVideoFps(frameRate: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
+    private _calculateAvgVideoFps(frameRate: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
         let peerFpsSum = 0;
         let peerCount = 0;
         const myID = this._conference.myUserId();
@@ -929,7 +929,7 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
+    private _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
         let videoTracks: any[] | null = null; // JitsiLocalTrack[] | JitsiRemoteTrack[]
 
@@ -980,7 +980,7 @@ export default class AvgRTPStatsReporter {
      * @param {*} data
      * @private
      */
-    _maybeSendTransportAnalyticsEvent(data: any): void {
+    private _maybeSendTransportAnalyticsEvent(data: any): void {
         if (!data?.transport?.length) {
             return;
         }
@@ -1004,7 +1004,7 @@ export default class AvgRTPStatsReporter {
      * is wrong with the P2P and JVB121 events.
      * @private
      */
-    _resetAvgJvbStats(): void {
+    private _resetAvgJvbStats(): void {
         this._resetAvgStats();
         this.jvbStatsMonitor._resetAvgStats();
     }
@@ -1013,7 +1013,7 @@ export default class AvgRTPStatsReporter {
      * Reset cache of all averages and {@link _sampleIdx}.
      * @private
      */
-    _resetAvgStats(): void {
+    private _resetAvgStats(): void {
         this._avgAudioBitrateUp.reset();
         this._avgAudioBitrateDown.reset();
 
@@ -1045,7 +1045,7 @@ export default class AvgRTPStatsReporter {
     /**
      * Unregisters all event listeners and stops working.
      */
-    dispose(): void {
+    public dispose(): void {
         this._conference.off(
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);
