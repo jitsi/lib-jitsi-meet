@@ -286,11 +286,9 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): ISourceInfo | undefined {
         const mediaType = getMediaTypeFromSourceName(sourceName);
-        const mediaInfo: ISourceInfo = {
-            muted: true, // muted by default
-            sourceName,
-            videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
-        };
+        const mediaInfo: ISourceInfo = mediaType === MediaType.VIDEO
+            ? { muted: true, sourceName, videoType: VideoType.CAMERA }
+            : { muted: true, sourceName };
 
         return this._remoteSourceState[owner]
             ? { ...mediaInfo, ...this._remoteSourceState[owner][sourceName], sourceName }
