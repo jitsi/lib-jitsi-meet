@@ -14,6 +14,8 @@ export interface ISourceInfo {
 }
 
 export interface IPeerMediaInfo {
+    codecList?: string[];
+    codecType?: string;
     muted?: boolean;
     videoType?: string;
 }
