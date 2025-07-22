@@ -383,12 +383,12 @@ export default class JitsiConferenceEventManager {
             XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
 
             // eslint-disable-next-line max-params
-            (jid, txt, myJid, ts, messageId) => {
-                const participantId = Strophe.getResourceFromJid(jid);
+            (jid, txt, myJid, ts, messageId, displayName, isVisitor, ofrom) => {
+                const participantId = isVisitor ? ofrom : Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                    participantId, txt, ts, messageId);
+                    participantId, txt, ts, messageId, displayName, isVisitor);
             });
 
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,

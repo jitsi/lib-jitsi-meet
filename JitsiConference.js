@@ -1010,15 +1010,16 @@ export default class JitsiConference {
     }
 
     /**
-   * Sends private text message to another participant of the conference.
-   * @param {string} id - The ID of the participant to send a private message.
-   * @param {string} message - The text message.
-   * @param {string} [elementName='body'] - The element name to encapsulate the message.
-   * @deprecated Use 'sendMessage' instead. TODO: this should be private.
-   */
-    sendPrivateTextMessage(id, message, elementName = 'body') {
+     * Sends private text message to another participant of the conference.
+     * @param {string} id - The ID of the participant to send a private message.
+     * @param {string} message - The text message.
+     * @param {string} [elementName='body'] - The element name to encapsulate the message.
+     * @param {boolean} [useFullJid=false] - Whether to use the full JID (Jabber ID) or just the resource part.
+     * @deprecated Use 'sendMessage' instead. TODO: this should be private.
+     */
+    sendPrivateTextMessage(id, message, elementName = 'body', useFullJid = false) {
         if (this.room) {
-            this.room.sendPrivateMessage(id, message, elementName);
+            this.room.sendPrivateMessage(id, message, elementName, useFullJid);
         }
     }
 
