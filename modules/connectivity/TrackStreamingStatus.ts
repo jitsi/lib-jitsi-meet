@@ -402,12 +402,10 @@ export class TrackStreamingStatusImpl {
         }
 
         logger.debug(
-            `Figure out conn status for ${sourceName}, is video muted: ${
-                isVideoMuted} video track frozen: ${
-                isVideoTrackFrozen} p2p mode: ${
-                inP2PMode} is in forwarded sources: ${
-                isInForwardedSources} currentStatus => newStatus: ${
-                this.track.getTrackStreamingStatus()} => ${newState}`);
+            `Update: sourceName=${sourceName}, isVideoMuted=${isVideoMuted}, ` +
+                `isVideoTrackFrozen=${isVideoTrackFrozen}, isP2PMode=${inP2PMode}, ` +
+                `isInForwardedSources=${isInForwardedSources}, ` +
+                `currentState=${this.track.getTrackStreamingStatus()}, newState=${newState}`);
 
         const oldStreamingStatus = this.streamingStatusMap || {};
 
