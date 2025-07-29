@@ -3766,7 +3766,7 @@ export default class JitsiConference extends Listenable {
      * media will not be resumed on the JVB.
      * @private
      */
-    _stopP2PSession(options?: { reason?: string; reasonDescription?: string; requestRestart?: boolean; }): void {
+    _stopP2PSession(options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; } = {}): void {
         const {
             reason = 'success',
             reasonDescription = 'Turning off P2P session',
