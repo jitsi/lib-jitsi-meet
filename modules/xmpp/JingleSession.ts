@@ -4,7 +4,7 @@ import RTC from '../RTC/RTC';
 import Listenable from '../util/Listenable';
 
 import ChatRoom from './ChatRoom';
-import {JingleSessionState} from './JingleSessionState';
+import { JingleSessionState } from './JingleSessionState';
 import SignalingLayerImpl from './SignalingLayerImpl';
 import XmppConnection from './XmppConnection';
 
