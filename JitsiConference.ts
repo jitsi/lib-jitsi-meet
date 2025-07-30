@@ -1717,6 +1717,26 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sets the audio subscription mode for the local user.
+     *
+     * @param {ReceiverAudioSubscription} mode - The audio subscription mode to set.
+     * @returns {void}
+     */
+    setAudioSubscriptionMode(mode) {
+        this.qualityController.audioController.setAudioSubscription(mode);
+    }
+
+    /**
+     * Sets deafened status for the local user.
+     *
+     * @param {boolean} isDeafened - Whether the user should stop receiving remote audio.
+     * @returns {void}
+     */
+    setIsDeafened(isDeafened) {
+        this.qualityController.audioController.setIsDeafened(isDeafened);
+    }
+
+    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.

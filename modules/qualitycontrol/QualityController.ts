@@ -16,6 +16,7 @@ import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 import { CodecSelection } from './CodecSelection';
+import { ReceiverAudioController } from './ReceiveAudioController';
 import ReceiveVideoController from './ReceiveVideoController';
 import SendVideoController, { IVideoConstraint } from './SendVideoController';
 
@@ -101,6 +102,7 @@ export class FixedSizeArray {
  * adjustments based on the outbound and inbound rtp stream stats reported by the underlying peer connection.
  */
 export class QualityController {
+    private _audioController: ReceiverAudioController;
     private _codecController: CodecSelection;
     private _conference: JitsiConference;
     private _enableAdaptiveMode: boolean;
@@ -123,6 +125,7 @@ export class QualityController {
         lastNRampupTime: number;
         p2p: object;
     }) {
+        this._audioController = new ReceiverAudioController(conference);
         this._conference = conference;
         const { jvb, p2p } = options;
 
@@ -460,6 +463,13 @@ export class QualityController {
 
             this._performQualityOptimizations(sourceStats);
         }
+    }
+
+    /**
+     * Gets the audio controller instance.
+     */
+    get audioController() {
+        return this._audioController;
     }
 
     /**
