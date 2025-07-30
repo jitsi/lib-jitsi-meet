@@ -4,7 +4,7 @@ import RTC from '../RTC/RTC';
 import Listenable from '../util/Listenable';
 
 import ChatRoom from './ChatRoom';
-import * as JingleSessionState from './JingleSessionState';
+import {JingleSessionState} from './JingleSessionState';
 import SignalingLayerImpl from './SignalingLayerImpl';
 import XmppConnection from './XmppConnection';
 
@@ -81,7 +81,7 @@ export default class JingleSession extends Listenable {
      * Jingle session state - uninitialized until {@link initialize} is
      * called
      */
-    public state: typeof JingleSessionState[keyof typeof JingleSessionState] | null;
+    public state: JingleSessionState | null;
 
     /**
      * The RTC service instance
@@ -236,7 +236,7 @@ export default class JingleSession extends Listenable {
      * Returns current state of this <tt>JingleSession</tt> instance.
      * @returns {JingleSessionState} the current state of this session instance.
      */
-    getState(): typeof JingleSessionState[keyof typeof JingleSessionState] | null {
+    getState(): JingleSessionState | null {
         return this.state;
     }
 
