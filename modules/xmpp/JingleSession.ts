@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-empty-function */
+
 import { getLogger } from '@jitsi/logger';
 
 import RTC from '../RTC/RTC';
@@ -16,8 +19,11 @@ const logger = getLogger('modules/xmpp/JingleSession');
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
  */
 export default class JingleSession extends Listenable {
-
-    /* eslint-disable max-params */
+    /**
+     * The signaling layer.
+     * @private
+     */
+    private _signalingLayer: SignalingLayerImpl | null;
 
     /**
      * The Jingle session identifier.
@@ -70,12 +76,6 @@ export default class JingleSession extends Listenable {
      * The chat room instance associated with the session.
      */
     public room: ChatRoom | null;
-
-    /**
-     * The signaling layer.
-     * @private
-     */
-    private _signalingLayer: SignalingLayerImpl | null;
 
     /**
      * Jingle session state - uninitialized until {@link initialize} is
@@ -175,7 +175,13 @@ export default class JingleSession extends Listenable {
         return this.isInitiator ? this.remoteJid : this.localJid;
     }
 
-    /* eslint-enable max-params */
+    /**
+     * The implementing class finishes initialization here. Called at the end of
+     * {@link initialize}.
+     * @param {Object} options - The options specific to the implementing class.
+     * @protected
+     */
+    protected doInitialize(options: object): void { }
 
     /**
      * Prepares this object to initiate a session.
@@ -186,7 +192,7 @@ export default class JingleSession extends Listenable {
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.
      */
-    initialize(
+    public initialize(
             room: ChatRoom,
             rtc: RTC,
             signalingLayer: SignalingLayerImpl,
@@ -210,53 +216,35 @@ export default class JingleSession extends Listenable {
     }
 
     /**
-     * The implementing class finishes initialization here. Called at the end of
-     * {@link initialize}.
-     * @param {Object} options - The options specific to the implementing class.
-     * @protected
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected doInitialize(options: object): void { } // eslint-disable-line  @typescript-eslint/no-unused-vars,  @typescript-eslint/no-empty-function,
-
-    /* eslint-disable no-unused-vars, no-empty-function */
-
-    /**
      * Adds the ICE candidates found in the 'contents' array as remote
      * candidates?
      * Note: currently only used on transport-info
      *
      * @param contents
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    addIceCandidates(contents: unknown): void {} // eslint-disable-line  @typescript-eslint/no-empty-function
-
-    /* eslint-enable no-unused-vars, no-empty-function */
+    public addIceCandidates(contents: unknown): void {}
 
     /**
      * Returns current state of this <tt>JingleSession</tt> instance.
      * @returns {JingleSessionState} the current state of this session instance.
      */
-    getState(): JingleSessionState | null {
+    public getState(): JingleSessionState | null {
         return this.state;
     }
-
-    /* eslint-disable no-unused-vars, no-empty-function */
 
     /**
      * Handles an 'add-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    addSources(contents: unknown): void {} // eslint-disable-line  @typescript-eslint/no-empty-function
+    public addSources(contents: unknown): void {}
 
     /**
      * Handles a 'remove-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    removeSources(contents: unknown): void {} // eslint-disable-line  @typescript-eslint/no-empty-function
+    public removeSources(contents: unknown): void {}
 
     /**
      * Terminates this Jingle session by sending session-terminate
@@ -273,17 +261,16 @@ export default class JingleSession extends Listenable {
      * sending session-terminate. It may not make sense to send it if the XMPP
      * connection has been closed already or if the remote peer has disconnected
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    terminate(
-            success: (() => void) | undefined, // eslint-disable-line @typescript-eslint/no-unused-vars
-            failure: (() => void) | undefined, // eslint-disable-line @typescript-eslint/no-unused-vars
-            options: { // eslint-disable-line  @typescript-eslint/no-unused-vars
+    public terminate(
+            success: (() => void) | undefined,
+            failure: (() => void) | undefined,
+            options: {
                 reason?: string;
                 reasonDescription?: string;
                 requestRestart?: boolean;
                 sendSessionTerminate?: boolean;
             }
-    ): void {} // eslint-disable-line  @typescript-eslint/no-empty-function
+    ): void {}
 
     /**
      * Handles an offer from the remote peer (prepares to accept a session).
@@ -294,12 +281,10 @@ export default class JingleSession extends Listenable {
      * error object with details(which is meant more to be printed to the logger
      * than analysed in the code, as the error is unrecoverable anyway)
      */
-    acceptOffer(
-            jingle: unknown, // eslint-disable-line   @typescript-eslint/no-unused-vars
-            success: (() => void) | undefined, // eslint-disable-line   @typescript-eslint/no-unused-vars
-            failure: ((error: unknown) => void) | undefined // eslint-disable-line   @typescript-eslint/no-unused-vars
-    ): void {} // eslint-disable-line  @typescript-eslint/no-empty-function
-
-    /* eslint-enable no-unused-vars, no-empty-function */
+    public acceptOffer(
+            jingle: unknown,
+            success: (() => void) | undefined,
+            failure: ((error: unknown) => void) | undefined
+    ): void {}
 }
 
