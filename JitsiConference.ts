@@ -2295,7 +2295,7 @@ export default class JitsiConference extends Listenable {
 
             for (let i = 0; i < tracks.length; i++) {
                 // Compare by a unique property to avoid type incompatibility
-                if (tracks[i] === removedTrack){
+                if (tracks[i] === removedTrack) {
                     // Since the tracks have been compared and are
                     // considered equal the result of splice can be ignored.
                     participant._tracks.splice(i, 1);
