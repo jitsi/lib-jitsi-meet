@@ -1865,11 +1865,9 @@ export default class JitsiConference extends Listenable {
      * Mutes a participant.
      * @param {string} id The id of the participant to mute.
      */
-    muteParticipant(id: string, mediaType: MediaType): void {
-        const muteMediaType = mediaType ? mediaType : MediaType.AUDIO;
-
-        if (muteMediaType !== MediaType.AUDIO && muteMediaType !== MediaType.VIDEO) {
-            logger.error(`Unsupported media type: ${muteMediaType}`);
+    muteParticipant(id: string, mediaType: MediaType = MediaType.AUDIO): void {
+        if (!mediaType) {
+            logger.error(`Unsupported media type: ${mediaType}`);
 
             return;
         }
@@ -1882,6 +1880,7 @@ export default class JitsiConference extends Listenable {
 
         this.room.muteParticipant(participant.getJid(), true, mediaType);
     }
+
 
     /* eslint-disable max-params */
 
@@ -2296,11 +2295,7 @@ export default class JitsiConference extends Listenable {
 
             for (let i = 0; i < tracks.length; i++) {
                 // Compare by a unique property to avoid type incompatibility
-                if (
-                    typeof tracks[i].getId === 'function'
-                    && typeof removedTrack.getId === 'function'
-                    && tracks[i].getId() === removedTrack.getId()
-                ) {
+                if (tracks[i] === removedTrack){
                     // Since the tracks have been compared and are
                     // considered equal the result of splice can be ignored.
                     participant._tracks.splice(i, 1);
@@ -3550,7 +3545,7 @@ export default class JitsiConference extends Listenable {
 
         this.isP2PConnectionInterrupted = false;
         this.p2pJingleSession
-        // @ts-ignore
+        // @ts-ignore - migrate xmppConnection
             = this.xmpp.connection.jingle.newP2PJingleSession(
                 this.room.myroomjid,
                 remoteJid);
