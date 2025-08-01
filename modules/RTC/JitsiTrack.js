@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import browser from '../browser';
-import EventEmitter from '../util/EventEmitter';
+import Listenable from '../util/Listenable';
 
 import RTCUtils from './RTCUtils';
 import Listenable from '../util/Listenable';

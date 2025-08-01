@@ -303,7 +303,6 @@ export default class JitsiConference extends Listenable {
     public isDesktopMutedByFocus: boolean;
     public mutedDesktopByFocusActor?: string;
 
-
     /**
      * @param {IConferenceOptions} options
      */
@@ -495,7 +494,6 @@ export default class JitsiConference extends Listenable {
          * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
          */
         this._iceRestarts = 0;
-        
         this._unsubscribers = [];
     }
 
@@ -2294,7 +2292,6 @@ export default class JitsiConference extends Listenable {
             const tracks = participant.getTracks();
 
             for (let i = 0; i < tracks.length; i++) {
-                // Compare by a unique property to avoid type incompatibility
                 if (tracks[i] === removedTrack) {
                     // Since the tracks have been compared and are
                     // considered equal the result of splice can be ignored.
