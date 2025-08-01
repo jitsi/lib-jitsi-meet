@@ -523,7 +523,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 = RTCUtils.obtainAudioAndVideoPermissions({
 
                     ...streamOptions,
-                    constraints: { video: this._constraints } } as any) as Promise<IStreamInfo[]>;
+                    constraints: { video: this._constraints } }) as Promise<IStreamInfo[]>;
 
             promise = promise.then((streamsInfo: IStreamInfo[]) => {
                 const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
@@ -640,8 +640,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _switchCamera(): void {
         if (this.isVideoTrack()
             && this.videoType === VideoType.CAMERA
-            && typeof this.track._switchCamera === 'function') {
-            this.track._switchCamera();
+            && typeof (this.track as any)._switchCamera === 'function') {
+            (this.track as any)._switchCamera();
 
             this._facingMode
                 = this._facingMode === CameraFacingMode.ENVIRONMENT
@@ -671,10 +671,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
      *
      * @param {MediaStream} stream - The new MediaStream.
-     * @private
+     * @internal
      * @returns {void}
      */
-    protected _setStream(stream: MediaStream | null): void {
+    _setStream(stream: MediaStream | null): void {
         super._setStream(stream);
     }
 
