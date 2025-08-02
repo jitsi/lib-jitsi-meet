@@ -104,6 +104,7 @@ export default class Listenable {
     removeAllListeners(): void {
         this.eventEmitter.removeAllListeners();
     }
+
     /**
      * Returns the number of listeners for the specified event.
      * @param {string} [eventName] - The name of the event.
