@@ -21,9 +21,9 @@ const logger = getLogger('modules/xmpp/JingleSession');
 export default class JingleSession extends Listenable {
     /**
      * The signaling layer.
-     * @private
+     * @internal
      */
-    private _signalingLayer: SignalingLayerImpl | null;
+    _signalingLayer: SignalingLayerImpl | null;
 
     /**
      * The Jingle session identifier.
@@ -142,7 +142,7 @@ export default class JingleSession extends Listenable {
         /**
          * The signaling layer.
          * @type {SignalingLayerImpl | null}
-         * @private
+         * @internal
          */
         this._signalingLayer = null;
 

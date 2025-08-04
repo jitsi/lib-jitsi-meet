@@ -14,6 +14,7 @@
       "ES2024.Promise"
     ],
     "outDir": "dist/esm/",
+    "stripInternal": true,
   },
   "exclude": [
     "dist",
