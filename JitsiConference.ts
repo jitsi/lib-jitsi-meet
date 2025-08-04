@@ -1719,11 +1719,13 @@ export default class JitsiConference extends Listenable {
     /**
      * Sets the audio subscription mode for the local user.
      *
-     * @param {ReceiverAudioSubscription} mode - The audio subscription mode to set.
+     * @param {ReceiverAudioSubscription} message - The audio subscription mode to set.
+     * @param {ReceiverAudioSubscription} message.mode - The subscription mode.
+     * @param {string[]} message.list - Optional list of sources to subscribe/unsubscribe to.
      * @returns {void}
      */
-    setAudioSubscriptionMode(mode) {
-        this.qualityController.audioController.setAudioSubscription(mode);
+    setAudioSubscriptionMode(message) {
+        this.qualityController.audioController.setAudioSubscriptionMode(message);
     }
 
     /**

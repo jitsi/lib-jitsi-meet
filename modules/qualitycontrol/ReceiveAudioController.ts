@@ -3,16 +3,15 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
-import { ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
+import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
 const logger = getLogger('modules/qualitycontrol/ReceiveAudioController');
 
-interface IReceiverAudioSubscriptionMessage {
-    list?: string[];
-    mode: ReceiverAudioSubscription;
-}
-
+/**
+ * Controller for managing audio subscriptions in a Jitsi conference. It allows subscribing to remote audio streams
+ * based on different modes such as ALL, EXCLUDE, INCLUDE, and NONE.
+ */
 export class ReceiverAudioController {
     private _rtc: RTC;
 
@@ -54,6 +53,8 @@ export class ReceiverAudioController {
     setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
         if ((message.mode == ReceiverAudioSubscription.NONE || message.mode == ReceiverAudioSubscription.ALL)
             && this._subscriptionMode == message.mode) {
+            logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode}, no change needed.`);
+
             return;
         }
         if (message.mode == ReceiverAudioSubscription.INCLUDE
@@ -64,6 +65,9 @@ export class ReceiverAudioController {
                 throw new Error('Source list cannot be empty for INCLUDE or EXCLUDE modes.');
             }
             if (this._subscriptionMode == message.mode && isEqual(this._sourceList, message.list)) {
+                logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode},`
+                    + ` sourceList: ${message.list.join(', ')}, no change needed.`);
+
                 return;
             }
             this._sourceList = message.list;
@@ -73,7 +77,6 @@ export class ReceiverAudioController {
         }
         this._subscriptionMode = message.mode;
 
-        logger.info(`Setting audio subscription mode to ${this._subscriptionMode} with sources: ${this._sourceList.join(', ')}`);
         this._rtc.sendReceiverAudioSubscriptionMessage({
             list: this._sourceList,
             mode: this._subscriptionMode

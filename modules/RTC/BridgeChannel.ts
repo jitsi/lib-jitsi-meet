@@ -266,7 +266,8 @@ export default class BridgeChannel {
      * @returns {void}
      */
     sendReceiverAudioSubscriptionMessage(message: IReceiverAudioSubscriptionMessage): void {
-        logger.info(`Sending ReceiverAudioSubscription with mode: ${message.mode}, sourceList: ${message.sourceList}`);
+        logger.info(`Sending ReceiverAudioSubscription with mode: ${message.mode}`
+            + ` and ${message.list?.length ? 'list=' + message.list.join(', ') : 'no list'}`);
         this._send({
             colibriClass: 'ReceiverAudioSubscription',
             ...message

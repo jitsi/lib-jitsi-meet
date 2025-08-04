@@ -31,6 +31,6 @@ export enum ReceiverAudioSubscription {
  * Interface representing a message for audio subscription updates.
  */
 export interface IReceiverAudioSubscriptionMessage {
+    list?: string[];
     mode: ReceiverAudioSubscription;
-    sourceList?: string[];
 }
