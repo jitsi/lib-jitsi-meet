@@ -1144,7 +1144,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    sendPrivateTextMessage(id: string, message: string, elementName: string = 'body',useFullJid=false): void {
+    sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false): void {
         if (this.room) {
             this.room.sendPrivateMessage(id, message, elementName, useFullJid);
         }

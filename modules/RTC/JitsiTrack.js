@@ -6,7 +6,6 @@ import browser from '../browser';
 import Listenable from '../util/Listenable';
 
 import RTCUtils from './RTCUtils';
-import Listenable from '../util/Listenable';
 
 const logger = getLogger('modules/RTC/JitsiTrack');
 
