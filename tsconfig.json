@@ -30,13 +30,13 @@
   ],
   "typedocOptions": {
     "entryPoints": [
-      "JitsiConference.js",
+      "JitsiConference.ts",
       "JitsiConferenceErrors.ts",
       "JitsiConferenceEvents.ts",
       "JitsiConnection.ts",
       "JitsiConnectionErrors.ts",
       "JitsiConnectionEvents.ts",
-      "JitsiMediaDevices.js",
+      "JitsiMediaDevices.ts",
       "JitsiMediaDevicesEvents.ts",
       "JitsiMeetJS.ts",
       "JitsiParticipant.ts",
