@@ -67,6 +67,7 @@ import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
+import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
@@ -1719,12 +1720,10 @@ export default class JitsiConference extends Listenable {
     /**
      * Sets the audio subscription mode for the local user.
      *
-     * @param {ReceiverAudioSubscription} message - The audio subscription mode to set.
-     * @param {ReceiverAudioSubscription} message.mode - The subscription mode.
-     * @param {string[]} message.list - Optional list of sources to subscribe/unsubscribe to.
+     * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription mode to set.
      * @returns {void}
      */
-    setAudioSubscriptionMode(message) {
+    setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
         this.qualityController.audioController.setAudioSubscriptionMode(message);
     }
 
@@ -1734,7 +1733,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} isDeafened - Whether the user should stop receiving remote audio.
      * @returns {void}
      */
-    setIsDeafened(isDeafened) {
+    setIsDeafened(isDeafened: boolean): void {
         this.qualityController.audioController.setIsDeafened(isDeafened);
     }
 
