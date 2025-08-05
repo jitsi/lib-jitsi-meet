@@ -56,10 +56,10 @@ export default class LocalSdpMunger {
      * @private
      */
     private _transformMediaIdentifiers(mediaSection: MLineWrap, ssrcMap: Map<string, ITPCSSRCInfo>): void {
-        const mediaType = mediaSection.mLine.type;
-        const mediaDirection = mediaSection.mLine.direction;
-        const sources = [ ...new Set(mediaSection.mLine.ssrcs?.map(s => s.id)) ];
-        let trackId = mediaSection.mLine.msid?.split(' ')[1];
+        const mediaType = mediaSection._mLine.type;
+        const mediaDirection = mediaSection._mLine.direction;
+        const sources = [ ...new Set(mediaSection._mLine.ssrcs?.map(s => s.id)) ];
+        let trackId = mediaSection._mLine.msid?.split(' ')[1];
         let sourceName: string | undefined;
 
         if (ssrcMap.size) {

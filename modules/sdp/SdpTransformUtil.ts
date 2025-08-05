@@ -60,24 +60,28 @@ function _getSSRCCount(mLine: IMLine): number {
  * utility methods for common SDP/SSRC related operations.
  */
 export class MLineWrap {
-    mLine: IMLine;
+    /*
+    * The underlying media line object as defined by 'sdp-transform'
+    * @internal
+    */
+    _mLine: IMLine;
 
     /**
      * Creates new <tt>MLineWrap</t>>
-     * @param {Object} mLine the media line object as defined by 'sdp-transform'
+     * @param {Object} _mLine the media line object as defined by 'sdp-transform'
      * lib.
      */
-    constructor(mLine: {
+    constructor(_mLine: {
         direction?: string;
         ssrcGroups?: Array<ISsrcGroups>;
         ssrcs?: Array<ISsrcs>;
         type?: string;
     }) {
-        if (!mLine) {
+        if (!_mLine) {
             throw new Error('mLine is undefined');
         }
 
-        this.mLine = mLine;
+        this._mLine = _mLine;
     }
 
     /**
@@ -88,11 +92,11 @@ export class MLineWrap {
      * objects.
      */
     get ssrcs(): Array<ISsrcs> {
-        if (!this.mLine.ssrcs) {
-            this.mLine.ssrcs = [];
+        if (!this._mLine.ssrcs) {
+            this._mLine.ssrcs = [];
         }
 
-        return this.mLine.ssrcs;
+        return this._mLine.ssrcs;
     }
 
     /**
@@ -102,7 +106,7 @@ export class MLineWrap {
      * objects.
      */
     set ssrcs(ssrcs: Array<ISsrcs>) {
-        this.mLine.ssrcs = ssrcs;
+        this._mLine.ssrcs = ssrcs;
     }
 
     /**
@@ -110,7 +114,7 @@ export class MLineWrap {
      * @return {string} the media direction name as defined in the SDP.
      */
     get direction(): string | undefined {
-        return this.mLine.direction;
+        return this._mLine.direction;
     }
 
     /**
@@ -118,7 +122,7 @@ export class MLineWrap {
      * @param {string} direction the new direction to be set
      */
     set direction(direction: string | undefined) {
-        this.mLine.direction = direction;
+        this._mLine.direction = direction;
     }
 
     /**
@@ -126,11 +130,11 @@ export class MLineWrap {
      * @return {Array.<Object>}
      */
     get ssrcGroups(): Array<ISsrcGroups> {
-        if (!this.mLine.ssrcGroups) {
-            this.mLine.ssrcGroups = [];
+        if (!this._mLine.ssrcGroups) {
+            this._mLine.ssrcGroups = [];
         }
 
-        return this.mLine.ssrcGroups;
+        return this._mLine.ssrcGroups;
     }
 
     /**
@@ -139,7 +143,7 @@ export class MLineWrap {
      * @param {Array.<Object>} ssrcGroups
      */
     set ssrcGroups(ssrcGroups: Array<ISsrcGroups>) {
-        this.mLine.ssrcGroups = ssrcGroups;
+        this._mLine.ssrcGroups = ssrcGroups;
     }
 
     /**
@@ -164,12 +168,12 @@ export class MLineWrap {
      * removed.
      */
     removeSSRC(ssrcNum: number): void {
-        if (!this.mLine.ssrcs?.length) {
+        if (!this._mLine.ssrcs?.length) {
             return;
         }
 
-        this.mLine.ssrcs
-            = this.mLine.ssrcs.filter(ssrcObj => ssrcObj.id !== ssrcNum);
+        this._mLine.ssrcs
+            = this._mLine.ssrcs.filter(ssrcObj => ssrcObj.id !== ssrcNum);
     }
 
     /**
@@ -224,7 +228,7 @@ export class MLineWrap {
      * @return {number}
      */
     getSSRCCount(): number {
-        return _getSSRCCount(this.mLine);
+        return _getSSRCCount(this._mLine);
     }
 
     /**
@@ -233,7 +237,7 @@ export class MLineWrap {
      * <tt>false</tt> otherwise.
      */
     containsAnySSRCGroups(): boolean {
-        return this.mLine.ssrcGroups !== undefined;
+        return this._mLine.ssrcGroups !== undefined;
     }
 
     /**
@@ -242,22 +246,22 @@ export class MLineWrap {
      * @throws Error if the underlying media description is not a video
      */
     getPrimaryVideoSsrc(): number | undefined {
-        const mediaType = this.mLine.type;
+        const mediaType = this._mLine.type;
 
         if (mediaType !== 'video') {
             throw new Error(
                 `getPrimarySsrc doesn't work with '${mediaType}'`);
         }
 
-        const numSsrcs = _getSSRCCount(this.mLine);
+        const numSsrcs = _getSSRCCount(this._mLine);
 
         if (numSsrcs === 1) {
             // Not using "ssrcs" getter on purpose here
-            return this.mLine.ssrcs![0].id;
+            return this._mLine.ssrcs![0].id;
         }
 
         // Look for a SIM, FID, or FEC-FR group
-        if (this.mLine.ssrcGroups) {
+        if (this._mLine.ssrcGroups) {
             const simGroup = this.findGroup(SSRC_GROUP_SEMANTICS.SIM);
 
             if (simGroup) {
@@ -306,7 +310,7 @@ export class MLineWrap {
      * @throws Error if the wrapped media description is not a video.
      */
     getPrimaryVideoSSRCs(): number[] {
-        const mediaType = this.mLine.type;
+        const mediaType = this._mLine.type;
 
         if (mediaType !== 'video') {
             throw new Error(
@@ -338,11 +342,11 @@ export class MLineWrap {
      * removed.
      */
     removeGroupsWithSSRC(ssrc: number): void {
-        if (!this.mLine.ssrcGroups) {
+        if (!this._mLine.ssrcGroups) {
             return;
         }
 
-        this.mLine.ssrcGroups = this.mLine.ssrcGroups
+        this._mLine.ssrcGroups = this._mLine.ssrcGroups
             .filter(groupInfo => groupInfo.ssrcs.indexOf(`${ssrc}`) === -1);
     }
 
@@ -351,12 +355,12 @@ export class MLineWrap {
      * @param {string} semantics e.g. "SIM" or "FID"
      */
     removeGroupsBySemantics(semantics: string): void {
-        if (!this.mLine.ssrcGroups) {
+        if (!this._mLine.ssrcGroups) {
             return;
         }
 
-        this.mLine.ssrcGroups
-            = this.mLine.ssrcGroups
+        this._mLine.ssrcGroups
+            = this._mLine.ssrcGroups
                 .filter(groupInfo => groupInfo.semantics !== semantics);
     }
 
