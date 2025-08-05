@@ -18,6 +18,7 @@ export interface IMLine {
     ssrcGroups?: Array<ISsrcGroups>;
     ssrcs?: Array<ISsrcs>;
     type?: string;
+    msid?: string;
 }
 
 /**
@@ -58,8 +59,8 @@ function _getSSRCCount(mLine: IMLine): number {
  * A wrapper around 'sdp-transform' media description object which provides
  * utility methods for common SDP/SSRC related operations.
  */
-class MLineWrap {
-    private mLine: IMLine;
+export class MLineWrap {
+    mLine: IMLine;
 
     /**
      * Creates new <tt>MLineWrap</t>>

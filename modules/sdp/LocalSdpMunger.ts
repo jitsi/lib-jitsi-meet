@@ -5,7 +5,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 
-import { SdpTransformWrap } from './SdpTransformUtil';
+import { MLineWrap, SdpTransformWrap } from './SdpTransformUtil';
 
 
 export interface ITPCSSRCInfo {
@@ -25,25 +25,14 @@ export interface ISSRCAttribute {
     value: string;
 }
 
-export interface IMLineWrap {
-    mLine: {
-        direction: string;
-        msid?: string;
-        ssrcs?: ISSRCAttribute[];
-        type: string;
-    };
-    ssrcGroups?: any[];
-    ssrcs: ISSRCAttribute[];
-}
-
 /**
  * Fakes local SDP exposed to {@link JingleSessionPC} through the local description getter. Modifies the SDP, so that
  * the stream identifiers are unique across all of the local PeerConnections and that the source names and video types
  * are injected so that Jicofo can use them to identify the sources.
  */
 export default class LocalSdpMunger {
-    private tpc: TraceablePeerConnection;
-    private localEndpointId: string;
+    private _tpc: TraceablePeerConnection;
+    private _localEndpointId: string;
 
     /**
      * Creates new <tt>LocalSdpMunger</tt> instance.
@@ -52,8 +41,8 @@ export default class LocalSdpMunger {
      * @param {string} localEndpointId - The endpoint id of the local user.
      */
     constructor(tpc: TraceablePeerConnection, localEndpointId: string) {
-        this.tpc = tpc;
-        this.localEndpointId = localEndpointId;
+        this._tpc = tpc;
+        this._localEndpointId = localEndpointId;
     }
 
     /**
@@ -66,7 +55,7 @@ export default class LocalSdpMunger {
      * @returns {void}
      * @private
      */
-    private _transformMediaIdentifiers(mediaSection: IMLineWrap, ssrcMap: Map<string, ITPCSSRCInfo>): void {
+    private _transformMediaIdentifiers(mediaSection: MLineWrap, ssrcMap: Map<string, ITPCSSRCInfo>): void {
         const mediaType = mediaSection.mLine.type;
         const mediaDirection = mediaSection.mLine.direction;
         const sources = [ ...new Set(mediaSection.mLine.ssrcs?.map(s => s.id)) ];
@@ -89,7 +78,7 @@ export default class LocalSdpMunger {
                     if (msid) {
                         trackId = msid.value.split(' ')[1];
                     }
-                    const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this.tpc.id} ${trackId}-${this.tpc.id}`;
+                    const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this._tpc.id} ${trackId}-${this._tpc.id}`;
                     const existingMsid = mediaSection.ssrcs
                         .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
@@ -112,7 +101,7 @@ export default class LocalSdpMunger {
                         value: sourceName
                     });
 
-                    const videoType = this.tpc.getLocalVideoTracks()
+                    const videoType = this._tpc.getLocalVideoTracks()
                         .find(track => track.getSourceName() === sourceName)
                         ?.getVideoType();
 
@@ -150,8 +139,8 @@ export default class LocalSdpMunger {
         if (browser.isFirefox()
             && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
             && (
-                (mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack)
-                || (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack)
+                (mediaType === MediaType.VIDEO && !this._tpc._hasHadVideoTrack)
+                || (mediaType === MediaType.AUDIO && !this._tpc._hasHadAudioTrack)
             )
         ) {
             mediaSection.ssrcs = undefined;
@@ -169,7 +158,7 @@ export default class LocalSdpMunger {
      * @return {RTCSessionDescription} - Transformed local session description
      * (a modified copy of the one given as the input).
      */
-    transformStreamIdentifiers(sessionDesc: RTCSessionDescription | null, ssrcMap: Map<string, ITPCSSRCInfo>): RTCSessionDescription | null {
+    transformStreamIdentifiers(sessionDesc: RTCSessionDescription, ssrcMap: Map<string, ITPCSSRCInfo>): RTCSessionDescription {
         if (!sessionDesc?.sdp || !sessionDesc.type) {
             return sessionDesc;
         }
