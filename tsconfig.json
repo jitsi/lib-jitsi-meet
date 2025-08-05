@@ -40,7 +40,6 @@
       "JitsiMediaDevicesEvents.ts",
       "JitsiMeetJS.ts",
       "JitsiParticipant.ts",
-      "JitsiParticipantEvents.js",
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",
