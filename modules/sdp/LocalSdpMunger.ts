@@ -31,8 +31,8 @@ export interface ISSRCAttribute {
  * are injected so that Jicofo can use them to identify the sources.
  */
 export default class LocalSdpMunger {
-    private _tpc: TraceablePeerConnection;
     private _localEndpointId: string;
+    private _tpc: TraceablePeerConnection;
 
     /**
      * Creates new <tt>LocalSdpMunger</tt> instance.
