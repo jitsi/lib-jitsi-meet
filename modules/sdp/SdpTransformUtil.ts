@@ -15,10 +15,10 @@ export interface ISsrcs {
 
 export interface IMLine {
     direction?: string;
+    msid?: string;
     ssrcGroups?: Array<ISsrcGroups>;
     ssrcs?: Array<ISsrcs>;
     type?: string;
-    msid?: string;
 }
 
 /**
