@@ -1081,7 +1081,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
             );
         }
 
-        await this.conference._removeLocalTrackFromPc(this);
+        const hasConference = Boolean(this.conference);
+        let audioAnalyser;
+
+        if (hasConference) {
+            audioAnalyser = this.conference.getAudioAnalyser();
+
+            if (audioAnalyser) {
+                logger.debug(`Removing track ${this} from audio analyser`);
+                audioAnalyser._trackRemoved(this);
+            }
+
+            logger.debug(`Removing track ${this} from conference`);
+            await this.conference._removeLocalTrackFromPc(this);
+        }
 
         if (hasAudioMixEffect) {
             this._stopStreamEffect();
@@ -1099,6 +1112,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         let mediaStreamData;
 
         try {
+            logger.debug(`applyConstraints for track ${this} with constraints: ${JSON.stringify(constraints)}`);
+
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
                 constraints: { [mediaType]: constraintsToApply },
                 [deviceIdKey]: constraintsToApply.deviceId,
@@ -1128,6 +1143,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new JitsiTrackError(JitsiTrackErrors.GENERAL);
         }
 
+        logger.debug('Setting updated stream and track');
+
         this._setStream(mediaStreamData.stream);
         this.track = mediaStreamData.track;
 
@@ -1135,6 +1152,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._startStreamEffect(this._streamEffect);
         }
 
-        await this.conference._addLocalTrackToPc(this);
+        if (hasConference) {
+            logger.debug('Adding track to conference');
+            await this.conference._addLocalTrackToPc(this);
+
+            if (audioAnalyser) {
+                logger.debug(`Removing track ${this} from audio analyser`);
+                audioAnalyser._trackRemoved(this);
+            }
+        }
     }
 }

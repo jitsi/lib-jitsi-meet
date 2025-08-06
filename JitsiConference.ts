@@ -4495,4 +4495,8 @@ export default class JitsiConference extends Listenable {
 
         return Promise.reject(new Error('The conference is not created yet!'));
     }
+
+    getAudioAnalyser(): Optional<VADAudioAnalyser> {
+        return this?._audioAnalyser;
+    }
 }
