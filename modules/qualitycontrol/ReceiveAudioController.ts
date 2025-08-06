@@ -45,6 +45,18 @@ export class ReceiverAudioController {
     }
 
     /**
+     * Mutes or unmutes the remote audio streams based on the provided parameter.
+     *
+     * @param {boolean} muted - Indicates whether the remote audio should be muted or not.
+     * @returns {void}
+     */
+    muteRemoteAudio(muted: boolean): void {
+        this.setAudioSubscriptionMode({
+            mode: muted ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL
+        });
+    }
+
+    /**
      * Sets the audio subscription options.
      *
      * @param message The audio subscription message containing the mode and optional source list.
@@ -57,41 +69,28 @@ export class ReceiverAudioController {
 
             return;
         }
+        this._subscriptionMode = message.mode;
         if (message.mode == ReceiverAudioSubscription.INCLUDE
             || message.mode == ReceiverAudioSubscription.EXCLUDE) {
 
-            // Ensure the source list is not empty when using INCLUDE or EXCLUDE modes.
             if (!message.list?.length) {
-                throw new Error('Source list cannot be empty for INCLUDE or EXCLUDE modes.');
-            }
-            if (this._subscriptionMode == message.mode && isEqual(this._sourceList, message.list)) {
+                this._subscriptionMode = message.mode == ReceiverAudioSubscription.INCLUDE
+                    ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL;
+            } else if (this._subscriptionMode == message.mode && isEqual(this._sourceList, message.list)) {
                 logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode},`
                     + ` sourceList: ${message.list.join(', ')}, no change needed.`);
 
                 return;
             }
-            this._sourceList = message.list;
+            this._sourceList = message.list || [];
         } else {
             // Clear the source list for ALL or NONE modes.
             this._sourceList = [];
         }
-        this._subscriptionMode = message.mode;
 
         this._rtc.sendReceiverAudioSubscriptionMessage({
             list: this._sourceList,
             mode: this._subscriptionMode
-        });
-    }
-
-    /**
-     * Sets the deafened state for the user. When the user is deafened, they will not receive any audio streams.
-     *
-     * @param {boolean} isDeafened - Indicates whether the user is deafened.
-     * @returns {void}
-     */
-    setIsDeafened(isDeafened: boolean): void {
-        this.setAudioSubscriptionMode({
-            mode: isDeafened ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL
         });
     }
 }

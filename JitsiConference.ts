@@ -1728,16 +1728,6 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sets deafened status for the local user.
-     *
-     * @param {boolean} isDeafened - Whether the user should stop receiving remote audio.
-     * @returns {void}
-     */
-    setIsDeafened(isDeafened: boolean): void {
-        this.qualityController.audioController.setIsDeafened(isDeafened);
-    }
-
-    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.
@@ -1878,6 +1868,16 @@ export default class JitsiConference extends Listenable {
                     }));
             }, JINGLE_SI_TIMEOUT);
         }
+    }
+
+    /**
+     * Mutes or unmutes the remote audio streams based on the provided parameter.
+     *
+     * @param {boolean} muted - Whether the user should stop receiving remote audio.
+     * @returns {void}
+     */
+    muteRemoteAudio(muted: boolean): void {
+        this.qualityController.audioController.muteRemoteAudio(muted);
     }
 
     /**
