@@ -1073,7 +1073,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new Error(`Media ${mediaType} is not supported, track must be audio`);
         }
 
-        const hasAudioMixEffect = Boolean(typeof this._streamEffect?.setMuted === 'function');
+        const hasAudioMixEffect = typeof this._streamEffect?.setMuted === 'function';
 
         if (this._streamEffect && !hasAudioMixEffect) {
             throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
