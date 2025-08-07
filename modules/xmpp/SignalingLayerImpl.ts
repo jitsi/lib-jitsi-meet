@@ -4,16 +4,23 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
-import { filterNodeFromPresenceJSON } from './ChatRoom';
+import ChatRoom, { filterNodeFromPresenceJSON } from './ChatRoom';
+
 
 const logger = getLogger('modules/xmpp/SignalingLayerImpl');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
+
+export interface IPresenceNode {
+    [key: string]: any;
+    tagName: string;
+    value?: string; // for other possible properties
+}
 
 /**
  * Default XMPP implementation of the {@link SignalingLayer} interface. Obtains
@@ -21,47 +28,57 @@ export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
  */
 export default class SignalingLayerImpl extends SignalingLayer {
     /**
+     * A map that stores SSRCs of remote streams and the corresponding jid and source name.
+     * @type {Map<number, { endpointId: string, sourceName: string }>}
+     */
+    private _ssrcOwners: Map<number, { endpointId: string; sourceName: string; }>;
+
+    /**
+     * @type {ChatRoom|null}
+     */
+    private _chatRoom?: ChatRoom;
+
+    /**
+     * @type {Record<SourceName, Partial<ISourceInfo>>}
+     * @private
+     */
+    private _localSourceState: Record<SourceName, Partial<ISourceInfo>>;
+
+    /**
+     * @type {Record<EndpointId, Record<SourceName, ISourceInfo>>}
+     * @private
+     */
+    private _remoteSourceState: Record<EndpointId, Record<SourceName, ISourceInfo>>;
+
+    // Event handler references for cleanup
+    private _audioMuteHandler?: (node: IPresenceNode, from: string) => void;
+    private _videoMuteHandler?: (node: IPresenceNode, from: string) => void;
+    private _videoTypeHandler?: (node: IPresenceNode, from: string) => void;
+    private _sourceInfoHandler?: (node: IPresenceNode, mucNick: string) => void;
+    private _memberLeftHandler?: (jid: string) => void;
+
+    /**
      * Creates new instance.
      */
     constructor() {
         super();
 
-        /**
-         * A map that stores SSRCs of remote streams and the corresponding jid and source name.
-         * FIXME: This map got filled and never cleaned and can grow during long
-         * conference
-         * @type {Map<number, { endpointId: string, sourceName: string }>} maps SSRC number to jid and source name.
-         */
-        this.ssrcOwners = new Map();
-
-        /**
-         *
-         * @type {ChatRoom|null}
-         */
-        this.chatRoom = null;
-
-        /**
-         * @type {Map<SourceName, SourceInfo>}
-         * @private
-         */
+        this._ssrcOwners = new Map();
+        this._chatRoom = null;
         this._localSourceState = { };
-
-        /**
-         * @type {Map<EndpointId, Map<SourceName, SourceInfo>>}
-         * @private
-         */
         this._remoteSourceState = { };
+
     }
 
     /**
      * Adds <SourceInfo> element to the local presence.
      *
-     * @returns {void}
+     * @returns {boolean}
      * @private
      */
-    _addLocalSourceInfoToPresence() {
-        if (this.chatRoom) {
-            return this.chatRoom.addOrReplaceInPresence(
+    private _addLocalSourceInfoToPresence(): boolean {
+        if (this._chatRoom) {
+            return this._chatRoom.addOrReplaceInPresence(
                 SOURCE_INFO_PRESENCE_ELEMENT,
                 { value: JSON.stringify(this._localSourceState) });
         }
@@ -75,10 +92,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @private
      * @returns {void}
      */
-    _bindChatRoomEventHandlers(room) {
+    private _bindChatRoomEventHandlers(room: ChatRoom): void {
         // Add handlers for 'audiomuted', 'videomuted' and 'videoType' fields in presence in order to support interop
         // with very old versions of mobile clients and jigasi that do not support source-name signaling.
-        const emitAudioMutedEvent = (endpointId, muted) => {
+        const emitAudioMutedEvent = (endpointId: string, muted: boolean) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
@@ -86,14 +103,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 muted);
         };
 
-        this._audioMuteHandler = (node, from) => {
+        this._audioMuteHandler = (node: IPresenceNode, from: string) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
                 emitAudioMutedEvent(from, node.value === 'true');
             }
         };
         room.addPresenceListener('audiomuted', this._audioMuteHandler);
 
-        const emitVideoMutedEvent = (endpointId, muted) => {
+        const emitVideoMutedEvent = (endpointId: string, muted: boolean) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_MUTED_CHANGED,
                 endpointId,
@@ -101,20 +118,20 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 muted);
         };
 
-        this._videoMuteHandler = (node, from) => {
+        this._videoMuteHandler = (node: IPresenceNode, from: string) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
                 emitVideoMutedEvent(from, node.value === 'true');
             }
         };
         room.addPresenceListener('videomuted', this._videoMuteHandler);
 
-        const emitVideoTypeEvent = (endpointId, videoType) => {
+        const emitVideoTypeEvent = (endpointId: string, videoType: string) => {
             this.eventEmitter.emit(
                 SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
                 endpointId, videoType);
         };
 
-        this._videoTypeHandler = (node, from) => {
+        this._videoTypeHandler = (node: IPresenceNode, from: string) => {
             if (!this._doesEndpointSendNewSourceInfo(from)) {
                 emitVideoTypeEvent(from, node.value);
             }
@@ -122,13 +139,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
         room.addPresenceListener('videoType', this._videoTypeHandler);
 
         // Add handlers for presence in the new format.
-        this._sourceInfoHandler = (node, mucNick) => {
+        this._sourceInfoHandler = (node: IPresenceNode, mucNick: string) => {
             const endpointId = mucNick;
             const { value } = node;
             const sourceInfoJSON = safeJsonParse(value);
             const emitEventsFromHere = this._doesEndpointSendNewSourceInfo(endpointId);
-            const endpointSourceState
-                = this._remoteSourceState[endpointId] || (this._remoteSourceState[endpointId] = {});
+            const endpointSourceState = this._remoteSourceState[endpointId] || (this._remoteSourceState[endpointId] = {});
 
             for (const sourceName of Object.keys(sourceInfoJSON)) {
                 let sourceChanged = false;
@@ -183,7 +199,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         room.addPresenceListener('SourceInfo', this._sourceInfoHandler);
 
         // Cleanup when participant leaves
-        this._memberLeftHandler = jid => {
+        this._memberLeftHandler = (jid: string) => {
             const endpointId = Strophe.getResourceFromJid(jid);
 
             delete this._remoteSourceState[endpointId];
@@ -198,10 +214,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @param {EndpointId} endpointId
      * @returns {boolean}
      */
-    _doesEndpointSendNewSourceInfo(endpointId) {
-        const presence = this.chatRoom?.getLastPresence(endpointId);
+    private _doesEndpointSendNewSourceInfo(endpointId: EndpointId): boolean {
+        const presence = this._chatRoom?.getLastPresence(endpointId);
 
-        return Boolean(presence && presence.find(node => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
+        return Boolean(presence?.find((node: IPresenceNode) => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
     }
 
     /**
@@ -211,7 +227,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @param {string} message - The message to be logged.
      * @returns {void}
      */
-    _logOwnerChangedMessage(message) {
+    private _logOwnerChangedMessage(message: string): void {
         if (FeatureFlags.isSsrcRewritingSupported()) {
             logger.debug(message);
         } else {
@@ -222,15 +238,15 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(owner, mediaType, sourceName) {
-        const legacyGetPeerMediaInfo = () => {
-            if (this.chatRoom) {
-                return this.chatRoom.getMediaPresenceInfo(owner, mediaType);
+    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): IPeerMediaInfo | undefined {
+        const legacyGetPeerMediaInfo = (): IPeerMediaInfo | undefined => {
+            if (this._chatRoom) {
+                return this._chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
             logger.warn('Requested peer media info, before room was set');
         };
 
-        const lastPresence = this.chatRoom?.getLastPresence(owner);
+        const lastPresence = this._chatRoom?.getLastPresence(owner);
 
         if (!lastPresence) {
             logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
@@ -245,7 +261,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
             return this.getPeerSourceInfo(owner, sourceName);
         }
 
-        const mediaInfo = {
+        const mediaInfo: IPeerMediaInfo = {
             muted: true
         };
 
@@ -267,12 +283,11 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerSourceInfo(owner, sourceName) {
+    public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): ISourceInfo | undefined {
         const mediaType = getMediaTypeFromSourceName(sourceName);
-        const mediaInfo = {
-            muted: true, // muted by default
-            videoType: mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined // 'camera' by default
-        };
+        const mediaInfo: ISourceInfo = mediaType === MediaType.VIDEO
+            ? { muted: true, sourceName, videoType: VideoType.CAMERA }
+            : { muted: true, sourceName };
 
         return this._remoteSourceState[owner]
             ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
@@ -282,27 +297,27 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getSSRCOwner(ssrc) {
-        return this.ssrcOwners.get(ssrc)?.endpointId;
+    public getSSRCOwner(ssrc: number): string | undefined {
+        return this._ssrcOwners.get(ssrc)?.endpointId;
     }
 
     /**
      * @inheritDoc
      */
-    getTrackSourceName(ssrc) {
-        return this.ssrcOwners.get(ssrc)?.sourceName;
+    public getTrackSourceName(ssrc: number): SourceName | undefined {
+        return this._ssrcOwners.get(ssrc)?.sourceName;
     }
 
     /**
      * @inheritDoc
      */
-    removeSSRCOwners(ssrcList) {
+    public removeSSRCOwners(ssrcList: number[]): void {
         if (!ssrcList?.length) {
             return;
         }
 
         for (const ssrc of ssrcList) {
-            this.ssrcOwners.delete(ssrc);
+            this._ssrcOwners.delete(ssrc);
         }
     }
 
@@ -310,10 +325,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * Sets the <tt>ChatRoom</tt> instance used and binds presence listeners.
      * @param {ChatRoom} room
      */
-    setChatRoom(room) {
-        const oldChatRoom = this.chatRoom;
+    public setChatRoom(room: ChatRoom): void {
+        const oldChatRoom = this._chatRoom;
 
-        this.chatRoom = room;
+        this._chatRoom = room;
         if (oldChatRoom) {
             oldChatRoom.removePresenceListener(
                 'audiomuted', this._audioMuteHandler);
@@ -335,14 +350,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setSSRCOwner(ssrc, newEndpointId, newSourceName) {
+    public setSSRCOwner(ssrc: number, newEndpointId: string, newSourceName: string): void {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
 
         // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
         // an SSRC conflict could potentially occur. Log a message to make debugging easier.
-        const existingOwner = this.ssrcOwners.get(ssrc);
+        const existingOwner = this._ssrcOwners.get(ssrc);
 
         if (existingOwner) {
             const { endpointId, sourceName } = existingOwner;
@@ -353,7 +368,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
                         newEndpointId}(source-name=${newSourceName})`);
             }
         }
-        this.ssrcOwners.set(ssrc, {
+        this._ssrcOwners.set(ssrc, {
             endpointId: newEndpointId,
             sourceName: newSourceName
         });
@@ -362,7 +377,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackMuteStatus(sourceName, muted) {
+    public setTrackMuteStatus(sourceName: SourceName, muted: boolean): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
@@ -370,7 +385,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         this._localSourceState[sourceName].muted = muted;
         logger.debug(`Mute state of ${sourceName} changed to muted=${muted}`);
 
-        if (this.chatRoom) {
+        if (this._chatRoom) {
             return this._addLocalSourceInfoToPresence();
         }
 
@@ -380,7 +395,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackVideoType(sourceName, videoType) {
+    public setTrackVideoType(sourceName: SourceName, videoType: VideoType): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
@@ -398,10 +413,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    updateSsrcOwnersOnLeave(id) {
-        const ssrcs = [];
+    public updateSsrcOwnersOnLeave(id: string): void {
+        const ssrcs: number[] = [];
 
-        this.ssrcOwners.forEach(({ endpointId }, ssrc) => {
+        this._ssrcOwners.forEach(({ endpointId }, ssrc) => {
             if (endpointId === id) {
                 ssrcs.push(ssrc);
             }
@@ -413,5 +428,4 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         this.removeSSRCOwners(ssrcs);
     }
-
 }
