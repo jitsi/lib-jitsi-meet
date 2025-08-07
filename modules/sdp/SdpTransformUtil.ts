@@ -71,17 +71,12 @@ export class MLineWrap {
      * @param {Object} _mLine the media line object as defined by 'sdp-transform'
      * lib.
      */
-    constructor(_mLine: {
-        direction?: string;
-        ssrcGroups?: Array<ISsrcGroups>;
-        ssrcs?: Array<ISsrcs>;
-        type?: string;
-    }) {
-        if (!_mLine) {
+    constructor(mLine: IMLine) {
+        if (!mLine) {
             throw new Error('mLine is undefined');
         }
 
-        this._mLine = _mLine;
+        this._mLine = mLine;
     }
 
     /**
