@@ -225,9 +225,9 @@ export default class XmppConnection extends Listenable {
     /**
      * A getter for the domain.
      *
-     * @returns {string|null}
+     * @returns {Nullable<string>}
      */
-    get domain(): string | null {
+    get domain(): Nullable<string> {
         return this._stropheConn.domain;
     }
 
