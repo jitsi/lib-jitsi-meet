@@ -11,11 +11,11 @@ import {
     createRtpStatsEvent,
     createTransportStatsEvent
 } from '../../service/statistics/AnalyticsEvents';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import { isValidNumber } from '../util/MathUtil';
 
 import Statistics from './statistics';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
 
