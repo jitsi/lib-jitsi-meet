@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import JitsiConference from '../../JitsiConference';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
 import { SourceName } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
 import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
@@ -255,6 +256,21 @@ export default class BridgeChannel {
         this._send({
             colibriClass: 'LastNChangedEvent',
             lastN: value
+        });
+    }
+
+    /**
+     * Sends a message for audio subscription updates.
+     *
+     * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription message.
+     * @returns {void}
+     */
+    sendReceiverAudioSubscriptionMessage(message: IReceiverAudioSubscriptionMessage): void {
+        logger.info(`Sending ReceiverAudioSubscription with mode: ${message.mode}`
+            + ` and ${message.list?.length ? 'list=' + message.list.join(', ') : 'no list'}`);
+        this._send({
+            colibriClass: 'ReceiverAudioSubscription',
+            ...message
         });
     }
 

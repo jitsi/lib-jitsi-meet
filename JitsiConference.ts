@@ -67,6 +67,7 @@ import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
+import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
@@ -1717,6 +1718,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sets the audio subscription mode for the local user.
+     *
+     * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription mode to set.
+     * @returns {void}
+     */
+    setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
+        this.qualityController.audioController.setAudioSubscriptionMode(message);
+    }
+
+    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.
@@ -1857,6 +1868,16 @@ export default class JitsiConference extends Listenable {
                     }));
             }, JINGLE_SI_TIMEOUT);
         }
+    }
+
+    /**
+     * Mutes or unmutes the remote audio streams based on the provided parameter.
+     *
+     * @param {boolean} muted - Whether the user should stop receiving remote audio.
+     * @returns {void}
+     */
+    muteRemoteAudio(muted: boolean): void {
+        this.qualityController.audioController.muteRemoteAudio(muted);
     }
 
     /**
