@@ -31,8 +31,8 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
  */
 export default class JitsiRemoteTrack extends JitsiTrack {
     private _sourceName: string;
-    private _trackStreamingStatus?: TrackStreamingStatus;
-    private _trackStreamingStatusImpl?: TrackStreamingStatusImpl;
+    private _trackStreamingStatus: Nullable<TrackStreamingStatus>;
+    private _trackStreamingStatusImpl: Nullable<TrackStreamingStatusImpl>;
 
     /**
      * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
@@ -40,7 +40,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * but if video is not received for certain time {@link DEFAULT_RESTORING_TIMEOUT} that track streaming status
      * will become interrupted.
      */
-    private _enteredForwardedSourcesTimestamp?: number;
+    private _enteredForwardedSourcesTimestamp: Nullable<number>;
 
     private _containerHandlers: { [key: string]: (event: Event) => void; };
 
@@ -534,7 +534,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * {@link TrackStreamingStatus}.
      */
-    getTrackStreamingStatus(): TrackStreamingStatus | null {
+    getTrackStreamingStatus(): Nullable<TrackStreamingStatus> {
         return this._trackStreamingStatus;
     }
 
