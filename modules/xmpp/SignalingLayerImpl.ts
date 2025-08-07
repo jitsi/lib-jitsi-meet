@@ -292,7 +292,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
             : { muted: true, sourceName };
 
         return this._remoteSourceState[owner]
-             ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
+            ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
             : undefined;
     }
 
