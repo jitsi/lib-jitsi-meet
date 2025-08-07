@@ -373,26 +373,6 @@ export default class Statistics {
     }
 
     /**
-     * Add a listener that would be notified on a LONG_TASKS_STATS event.
-     *
-     * @param {Function} listener a function that would be called when notified.
-     * @returns {void}
-     */
-    addLongTasksStatsListener(listener) {
-        this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
-    }
-
-    /**
-     * Removes the given listener for the LONG_TASKS_STATS event.
-     *
-     * @param {Function} listener the listener we want to remove.
-     * @returns {void}
-     */
-    removeLongTasksStatsListener(listener) {
-        this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
-    }
-
-    /**
      * Updates the list of speakers for which the audio levels are to be calculated. This is needed for the jvb pc only.
      *
      * @param {Array<string>} speakerList The list of remote endpoint ids.
