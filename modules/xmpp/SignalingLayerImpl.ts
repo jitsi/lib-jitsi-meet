@@ -47,10 +47,10 @@ export default class SignalingLayerImpl extends SignalingLayer {
     private _localSourceState: Record<SourceName, Partial<ISourceInfo>>;
 
     /**
-     * @type {Record<EndpointId, Record<SourceName, Partial<ISourceInfo>>>}
+     * @type {Record<EndpointId, Record<SourceName, ISourceInfo>>}
      * @private
      */
-    private _remoteSourceState: Record<EndpointId, Record<SourceName, Partial<ISourceInfo>>>;
+    private _remoteSourceState: Record<EndpointId, Record<SourceName, ISourceInfo>>;
 
     // Event handler references for cleanup
     private _audioMuteHandler?: (node: IPresenceNode, from: string) => void;
@@ -292,7 +292,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
             : { muted: true, sourceName };
 
         return this._remoteSourceState[owner]
-            ? { ...mediaInfo, ...this._remoteSourceState[owner][sourceName], sourceName }
+             ? this._remoteSourceState[owner][sourceName] ?? mediaInfo
             : undefined;
     }
 
