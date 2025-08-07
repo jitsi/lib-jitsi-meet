@@ -46,10 +46,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     private _rtc: RTC;
     private _ssrc: number;
-    private _ownerEndpointId: string;
     private _muted: boolean;
-    private _isP2P: boolean;
     private _hasBeenMuted: boolean;
+    /**
+     * @internal
+     */
+    _isP2P: boolean;
+    /**
+     * @internal
+     */
+    _ownerEndpointId: string;
 
     /**
      * Creates new JitsiRemoteTrack instance.

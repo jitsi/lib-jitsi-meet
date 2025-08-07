@@ -2225,11 +2225,11 @@ export default class JitsiConference extends Listenable {
      * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
      */
     onRemoteTrackAdded(track: JitsiRemoteTrack): void {
-        if (track.isP2P && !this.isP2PActive()) {
+        if (track._isP2P && !this.isP2PActive()) {
             logger.info('Trying to add remote P2P track, when not in P2P - IGNORED');
 
             return;
-        } else if (!track.isP2P && this.isP2PActive()) {
+        } else if (!track._isP2P && this.isP2PActive()) {
             logger.info('Trying to add remote JVB track, when in P2P - IGNORED');
 
             return;
@@ -3273,7 +3273,7 @@ export default class JitsiConference extends Listenable {
      */
     _addRemoteTracks(logName: string, remoteTracks: JitsiRemoteTrack[]): void {
         for (const track of remoteTracks) {
-            if (this.participants.has(track.ownerEndpointId)) {
+            if (this.participants.has(track._ownerEndpointId)) {
                 logger.info(`Adding remote ${logName} track: ${track}`);
                 this.onRemoteTrackAdded(track);
             }
