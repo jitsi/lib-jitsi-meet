@@ -22,6 +22,7 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import VADAudioAnalyser from '../detection/VADAudioAnalyser';
 import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
@@ -1082,7 +1083,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         const hasConference = Boolean(this.conference);
-        let audioAnalyser;
+        let audioAnalyser: VADAudioAnalyser | undefined;
 
         if (hasConference) {
             audioAnalyser = this.conference.getAudioAnalyser();
@@ -1109,7 +1110,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         };
 
         const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
-        let mediaStreamData;
+        let mediaStreamData: IStreamInfo | undefined;
 
         try {
             logger.debug(`applyConstraints for track ${this} with constraints: ${JSON.stringify(constraints)}`);
