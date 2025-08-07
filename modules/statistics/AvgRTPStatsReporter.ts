@@ -15,6 +15,7 @@ import browser from '../browser';
 import { isValidNumber } from '../util/MathUtil';
 
 import Statistics from './statistics';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 
 const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
 
@@ -23,10 +24,10 @@ const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
  * the analytics module when requested. It automatically counts the samples.
  */
 class AverageStatReport {
-    private name: string;
-    private count: number;
-    private sum: number;
-    private samples: number[];
+    private _name: string;
+    private _count: number;
+    private _sum: number;
+    private _samples: number[];
 
     /**
      * Creates new <tt>AverageStatReport</tt> for given name.
@@ -34,10 +35,10 @@ class AverageStatReport {
      * to the analytics module.
      */
     constructor(name: string) {
-        this.name = name;
-        this.count = 0;
-        this.sum = 0;
-        this.samples = [];
+        this._name = name;
+        this._count = 0;
+        this._sum = 0;
+        this._samples = [];
     }
 
     /**
@@ -51,11 +52,11 @@ class AverageStatReport {
         }
 
         if (typeof nextValue !== 'number') {
-            logger.error(`${this.name} - invalid value for idx: ${this.count}`, nextValue);
+            logger.error(`${this._name} - invalid value for idx: ${this._count}`, nextValue);
         } else if (isValidNumber(nextValue)) {
-            this.sum += nextValue;
-            this.samples.push(nextValue);
-            this.count += 1;
+            this._sum += nextValue;
+            this._samples.push(nextValue);
+            this._count += 1;
         }
     }
 
@@ -65,7 +66,7 @@ class AverageStatReport {
      * if no samples were collected.
      */
     calculate(): number {
-        return this.count === 0 ? NaN : this.sum / this.count;
+        return this._count === 0 ? NaN : this._sum / this._count;
     }
 
     /**
@@ -74,8 +75,8 @@ class AverageStatReport {
      * @param {Object} report the analytics "data" object
      */
     appendReport(report: Record<string, unknown>): void {
-        report[`${this.name}_avg`] = this.calculate();
-        report[`${this.name}_samples`] = JSON.stringify(this.samples);
+        report[`${this._name}_avg`] = this.calculate();
+        report[`${this._name}_samples`] = JSON.stringify(this._samples);
     }
 
     /**
@@ -83,9 +84,9 @@ class AverageStatReport {
      * calculated using this instance.
      */
     reset(): void {
-        this.samples = [];
-        this.sum = 0;
-        this.count = 0;
+        this._samples = [];
+        this._sum = 0;
+        this._count = 0;
     }
 }
 
@@ -101,7 +102,7 @@ class ConnectionAvgStats {
     private _avgRemoteRTTMap: Map<string, AverageStatReport>;
     private _avgRtpStatsReporter: AvgRTPStatsReporter;
     private _avgEnd2EndRTT: number | undefined;
-    private _onConnectionStats: (tpc: { isP2P: boolean; }, stats: any) => void;
+    private _onConnectionStats: (tpc: TraceablePeerConnection) => void;
     private _onUserLeft?: (id: string) => void;
     private _onRemoteStatsUpdated?: (id: string, data: any) => void;
     public isP2P: boolean;
@@ -170,9 +171,9 @@ class ConnectionAvgStats {
          */
         this._avgEnd2EndRTT = undefined;
 
-        this._onConnectionStats = (tpc: { isP2P: boolean; }, stats: any) => {
+        this._onConnectionStats = (tpc: TraceablePeerConnection) => {
             if (this.isP2P === tpc.isP2P) {
-                this._calculateAvgStats(stats);
+                this._calculateAvgStats(tpc.getStats());
             }
         };
 
@@ -240,7 +241,6 @@ class ConnectionAvgStats {
                         ._avgRtpStatsReporter.jvbStatsMonitor._avgEnd2EndRTT;
 
                     if (isValidNumber(jvbEnd2EndRTT)) {
-                        // eslint-disable-next-line dot-notation
                         batchReport.rtt_diff
                             = this._avgRTT.calculate() - jvbEnd2EndRTT;
                     }
@@ -252,7 +252,6 @@ class ConnectionAvgStats {
                     this._avgEnd2EndRTT = avgLocalRTT + avgRemoteRTT;
 
                     if (isValidNumber(avgLocalRTT) && isValidNumber(avgRemoteRTT)) {
-                        // eslint-disable-next-line dot-notation
                         batchReport.end2end_rtt_avg = this._avgEnd2EndRTT;
                     }
                 }
