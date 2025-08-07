@@ -29,8 +29,6 @@ export interface IPresenceNode {
 export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * A map that stores SSRCs of remote streams and the corresponding jid and source name.
-     * FIXME: This map got filled and never cleaned and can grow during long
-     * conference
      * @type {Map<number, { endpointId: string, sourceName: string }>}
      */
     private _ssrcOwners: Map<number, { endpointId: string; sourceName: string; }>;
