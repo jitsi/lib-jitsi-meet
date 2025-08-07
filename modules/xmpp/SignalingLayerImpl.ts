@@ -4,22 +4,22 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { getMediaTypeFromSourceName, EndpointId, SourceName, ISourceInfo, IPeerMediaInfo } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
-import { filterNodeFromPresenceJSON } from './ChatRoom';
-import ChatRoom from './ChatRoom';
+import ChatRoom, { filterNodeFromPresenceJSON } from './ChatRoom';
+
 
 const logger = getLogger('modules/xmpp/SignalingLayerImpl');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
 
 export interface IPresenceNode {
+    [key: string]: any;
     tagName: string;
-    value?: string;
-    [key: string]: any; // for other possible properties
+    value?: string; // for other possible properties
 }
 
 /**
@@ -33,12 +33,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * conference
      * @type {Map<number, { endpointId: string, sourceName: string }>}
      */
-    private ssrcOwners: Map<number, { endpointId: string; sourceName: string }>;
+    private _ssrcOwners: Map<number, { endpointId: string; sourceName: string; }>;
 
     /**
      * @type {ChatRoom|null}
      */
-    private chatRoom?: ChatRoom;
+    private _chatRoom?: ChatRoom;
 
     /**
      * @type {Record<SourceName, Partial<ISourceInfo>>}
@@ -65,22 +65,22 @@ export default class SignalingLayerImpl extends SignalingLayer {
     constructor() {
         super();
 
-        this.ssrcOwners = new Map();
-        this.chatRoom = null;
+        this._ssrcOwners = new Map();
+        this._chatRoom = null;
         this._localSourceState = { };
         this._remoteSourceState = { };
-        
+
     }
 
     /**
      * Adds <SourceInfo> element to the local presence.
      *
-     * @returns {void}
+     * @returns {boolean}
      * @private
      */
     private _addLocalSourceInfoToPresence(): boolean {
-        if (this.chatRoom) {
-            return this.chatRoom.addOrReplaceInPresence(
+        if (this._chatRoom) {
+            return this._chatRoom.addOrReplaceInPresence(
                 SOURCE_INFO_PRESENCE_ELEMENT,
                 { value: JSON.stringify(this._localSourceState) });
         }
@@ -217,7 +217,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @returns {boolean}
      */
     private _doesEndpointSendNewSourceInfo(endpointId: EndpointId): boolean {
-        const presence = this.chatRoom?.getLastPresence(endpointId);
+        const presence = this._chatRoom?.getLastPresence(endpointId);
 
         return Boolean(presence?.find((node: IPresenceNode) => node.tagName === SOURCE_INFO_PRESENCE_ELEMENT));
     }
@@ -242,16 +242,17 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): IPeerMediaInfo | undefined {
         const legacyGetPeerMediaInfo = (): IPeerMediaInfo | undefined => {
-            if (this.chatRoom) {
-                return this.chatRoom.getMediaPresenceInfo(owner, mediaType);
+            if (this._chatRoom) {
+                return this._chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
             logger.warn('Requested peer media info, before room was set');
         };
 
-        const lastPresence = this.chatRoom?.getLastPresence(owner);
+        const lastPresence = this._chatRoom?.getLastPresence(owner);
 
         if (!lastPresence) {
             logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+
             return;
         }
         if (!this._doesEndpointSendNewSourceInfo(owner)) {
@@ -299,14 +300,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     public getSSRCOwner(ssrc: number): string | undefined {
-        return this.ssrcOwners.get(ssrc)?.endpointId;
+        return this._ssrcOwners.get(ssrc)?.endpointId;
     }
 
     /**
      * @inheritDoc
      */
     public getTrackSourceName(ssrc: number): SourceName | undefined {
-        return this.ssrcOwners.get(ssrc)?.sourceName;
+        return this._ssrcOwners.get(ssrc)?.sourceName;
     }
 
     /**
@@ -318,7 +319,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         for (const ssrc of ssrcList) {
-            this.ssrcOwners.delete(ssrc);
+            this._ssrcOwners.delete(ssrc);
         }
     }
 
@@ -327,9 +328,9 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @param {ChatRoom} room
      */
     public setChatRoom(room: ChatRoom): void {
-        const oldChatRoom = this.chatRoom;
+        const oldChatRoom = this._chatRoom;
 
-        this.chatRoom = room;
+        this._chatRoom = room;
         if (oldChatRoom) {
             oldChatRoom.removePresenceListener(
                 'audiomuted', this._audioMuteHandler);
@@ -358,7 +359,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         // Now signaling layer instance is shared between different JingleSessionPC instances, so although very unlikely
         // an SSRC conflict could potentially occur. Log a message to make debugging easier.
-        const existingOwner = this.ssrcOwners.get(ssrc);
+        const existingOwner = this._ssrcOwners.get(ssrc);
 
         if (existingOwner) {
             const { endpointId, sourceName } = existingOwner;
@@ -369,7 +370,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
                         newEndpointId}(source-name=${newSourceName})`);
             }
         }
-        this.ssrcOwners.set(ssrc, {
+        this._ssrcOwners.set(ssrc, {
             endpointId: newEndpointId,
             sourceName: newSourceName
         });
@@ -386,7 +387,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
         this._localSourceState[sourceName].muted = muted;
         logger.debug(`Mute state of ${sourceName} changed to muted=${muted}`);
 
-        if (this.chatRoom) {
+        if (this._chatRoom) {
             return this._addLocalSourceInfoToPresence();
         }
 
@@ -417,7 +418,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     public updateSsrcOwnersOnLeave(id: string): void {
         const ssrcs: number[] = [];
 
-        this.ssrcOwners.forEach(({ endpointId }, ssrc) => {
+        this._ssrcOwners.forEach(({ endpointId }, ssrc) => {
             if (endpointId === id) {
                 ssrcs.push(ssrc);
             }
