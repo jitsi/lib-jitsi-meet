@@ -23,8 +23,8 @@ export interface INetworkInfoEvent {
 export default class ResumeTask {
     private _stropheConn: Strophe.Connection;
     private _resumeRetryN: number;
-    private _retryDelay: number | undefined;
-    private _resumeTimeout: NodeJS.Timeout | undefined;
+    private _retryDelay: Optional<number>;
+    private _resumeTimeout: Optional<NodeJS.Timeout>;
     private _networkOnlineListener: (() => void) | null;
 
     /**
@@ -50,7 +50,7 @@ export default class ResumeTask {
      * @returns {number|undefined} - How much the app will wait before trying to resume the XMPP connection. When
      * 'undefined' it means that no resume task was not scheduled.
      */
-    get retryDelay(): number | undefined {
+    get retryDelay(): Optional<number> {
         return this._retryDelay;
     }
 

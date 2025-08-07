@@ -719,9 +719,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Returns facing mode for video track from camera. For other cases (e.g. audio track or 'desktop' video track)
      * returns undefined.
      *
-     * @returns {CameraFacingMode|undefined}
+     * @returns {Optional<CameraFacingMode>}
      */
-    getCameraFacingMode(): CameraFacingMode | undefined {
+    getCameraFacingMode(): Optional<CameraFacingMode> {
         if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
             // MediaStreamTrack#getSettings() is not implemented in many
             // browsers, so we need feature checking here. Progress on the

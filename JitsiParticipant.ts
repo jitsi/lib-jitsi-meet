@@ -150,9 +150,9 @@ export default class JitsiParticipant {
     /**
      * Returns the bot type for the participant.
      *
-     * @returns {string|undefined} - The bot type of the participant.
+     * @returns {Optional<string>} - The bot type of the participant.
      */
-    getBotType(): string | undefined {
+    getBotType(): Optional<string> {
         return this._botType;
     }
 
@@ -167,9 +167,9 @@ export default class JitsiParticipant {
     /**
      * Returns the connection jid for the participant.
      *
-     * @returns {string|undefined} - The connection jid of the participant.
+     * @returns {Optional<string>} - The connection jid of the participant.
      */
-    getConnectionJid(): string | undefined {
+    getConnectionJid(): Optional<string> {
         return this._connectionJid;
     }
 
@@ -199,9 +199,9 @@ export default class JitsiParticipant {
      * Returns the XMPP identity. This is defined by your application in the
      * JWT `context` claims section.
      *
-     * @returns {object|undefined} - XMPP user identity.
+     * @returns {Optional<object>} - XMPP user identity.
      */
-    getIdentity(): object | undefined {
+    getIdentity(): Optional<object> {
         return this._identity;
     }
 

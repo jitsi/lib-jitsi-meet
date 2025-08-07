@@ -44,9 +44,9 @@ class AverageStatReport {
     /**
      * Adds the next value that will be included in the average when
      * {@link calculate} is called.
-     * @param {number} nextValue
+     * @param {Optional<number>} nextValue
      */
-    addNext(nextValue: number | undefined): void {
+    addNext(nextValue: Optional<number>): void {
         if (typeof nextValue === 'undefined') {
             return;
         }
@@ -101,7 +101,7 @@ class ConnectionAvgStats {
     private _avgRTT: AverageStatReport;
     private _avgRemoteRTTMap: Map<string, AverageStatReport>;
     private _avgRtpStatsReporter: AvgRTPStatsReporter;
-    private _avgEnd2EndRTT: number | undefined;
+    private _avgEnd2EndRTT: Optional<number>;
     private _onConnectionStats: (tpc: TraceablePeerConnection) => void;
     private _onUserLeft?: (id: string) => void;
     private _onRemoteStatsUpdated?: (id: string, data: any) => void;
@@ -371,7 +371,7 @@ export default class AvgRTPStatsReporter {
     _avgLocalCameraPixels: AverageStatReport;
     _avgLocalScreenPixels: AverageStatReport;
     _avgCQ: AverageStatReport;
-    _cachedTransportStats: Record<string, unknown> | undefined;
+    _cachedTransportStats: Optional<Record<string, unknown>>;
     _onLocalStatsUpdated: (data: any) => void;
     _onP2PStatusChanged: () => void;
     _onJvb121StatusChanged: (oldStatus: boolean, newStatus: boolean) => void;

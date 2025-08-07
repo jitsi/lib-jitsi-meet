@@ -22,7 +22,7 @@ export default class BridgeChannel {
 
     private _channel: RTCDataChannel | WebSocket | null = null;
     private _conference: JitsiConference;
-    private _connected: boolean | undefined = undefined;
+    private _connected: Optional<boolean> = undefined;
     private _eventEmitter: EventEmitter;
     private _mode: 'datachannel' | 'websocket' | null = null;
     private _areRetriesEnabled: boolean = false;

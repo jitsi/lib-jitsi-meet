@@ -262,8 +262,8 @@ export default class JingleSession extends Listenable {
      * connection has been closed already or if the remote peer has disconnected
      */
     public terminate(
-            success: (() => void) | undefined,
-            failure: (() => void) | undefined,
+            success: Optional<(() => void)>,
+            failure: Optional<(() => void)>,
             options: {
                 reason?: string;
                 reasonDescription?: string;
@@ -283,8 +283,8 @@ export default class JingleSession extends Listenable {
      */
     public acceptOffer(
             jingle: unknown,
-            success: (() => void) | undefined,
-            failure: ((error: unknown) => void) | undefined
+            success: Optional<(() => void)>,
+            failure: Optional<((error: unknown) => void)>
     ): void {}
 }
 

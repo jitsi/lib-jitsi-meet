@@ -25,7 +25,7 @@ export type TaskCallback = (err?: Error) => void;
 export default class AsyncQueue {
     private _queue: AsyncQueueType<Task>;
     private _stopped: boolean;
-    private _taskCallbacks: Map<Task, TaskCallback | undefined>;
+    private _taskCallbacks: Map<Task, Optional<TaskCallback>>;
 
     /**
      * Creates new instance.

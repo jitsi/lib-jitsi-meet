@@ -49,14 +49,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getSSRCOwner(ssrc: number): string | undefined {
+    getSSRCOwner(ssrc: number): Optional<string> {
         return this.ssrcOwners.get(ssrc);
     }
 
     /**
      * @inheritDoc
      */
-    getTrackSourceName(_ssrc: number): string | undefined {
+    getTrackSourceName(_ssrc: number): Optional<string> {
         return undefined;
     }
 

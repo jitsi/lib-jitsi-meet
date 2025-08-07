@@ -65,18 +65,18 @@ export default class JibriSession {
     /**
      * Returns the error related to the session instance, if any.
      *
-     * @returns {string|undefined}
+     * @returns {Optional<string>}
      */
-    getError(): string | undefined {
+    getError(): Optional<string> {
         return this._error;
     }
 
     /**
      * Returns the session ID of the session instance.
      *
-     * @returns {string|undefined}
+     * @returns {Optional<string>}
      */
-    getID(): string | undefined {
+    getID(): Optional<string> {
         return this._sessionID;
     }
 
@@ -92,18 +92,18 @@ export default class JibriSession {
     /**
      * Returns the streaming URL of the session.
      *
-     * @returns {string|undefined}
+     * @returns {Optional<string>}
      */
-    getLiveStreamViewURL(): string | undefined {
+    getLiveStreamViewURL(): Optional<string> {
         return this._liveStreamViewURL;
     }
 
     /**
      * Returns the current status of the session.
      *
-     * @returns {string|undefined}
+     * @returns {Optional<string>}
      */
-    getStatus(): string | undefined {
+    getStatus(): Optional<string> {
         // If _status is not set fallback to the status reported by jicofo.
         if (this._status) {
             return this._status;
@@ -113,9 +113,9 @@ export default class JibriSession {
     }
 
     /**
-     * @returns {string|undefined} the JID of jibri associated with this session.
+     * @returns {Optional<string>}
      */
-    getJibriJid(): string | undefined {
+    getJibriJid(): Optional<string> {
         return this._jibriJid;
     }
 

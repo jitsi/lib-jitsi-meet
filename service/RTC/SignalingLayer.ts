@@ -118,11 +118,11 @@ export default class SignalingLayer extends Listenable {
      * Obtains the info about a source for given name and endpoint ID.
      * @param {EndpointId} owner - The owner's endpoint ID.
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
-     * @returns {ISourceInfo | undefined}
+     * @returns {Optional<ISourceInfo>}
      */
     getPeerSourceInfo(
             owner: EndpointId, sourceName: SourceName
-    ): ISourceInfo | undefined {
+    ): Optional<ISourceInfo> {
         throw new Error('not implemented');
     }
 
@@ -138,9 +138,9 @@ export default class SignalingLayer extends Listenable {
     /**
      * Obtains the source name for given SSRC.
      * @param {number} ssrc the track's SSRC identifier.
-     * @returns {SourceName | undefined} the track's source name.
+     * @returns {Optional<SourceName>} the track's source name.
      */
-    getTrackSourceName(ssrc: number): SourceName | undefined {
+    getTrackSourceName(ssrc: number): Optional<SourceName> {
         throw new Error('not implemented');
     }
 

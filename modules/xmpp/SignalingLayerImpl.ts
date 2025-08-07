@@ -238,8 +238,8 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): IPeerMediaInfo | undefined {
-        const legacyGetPeerMediaInfo = (): IPeerMediaInfo | undefined => {
+    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): Optional<IPeerMediaInfo> {
+        const legacyGetPeerMediaInfo = (): Optional<IPeerMediaInfo> => {
             if (this._chatRoom) {
                 return this._chatRoom.getMediaPresenceInfo(owner, mediaType);
             }
@@ -283,7 +283,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): ISourceInfo | undefined {
+    public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): Optional<ISourceInfo> {
         const mediaType = getMediaTypeFromSourceName(sourceName);
         const mediaInfo: ISourceInfo = mediaType === MediaType.VIDEO
             ? { muted: true, sourceName, videoType: VideoType.CAMERA }
@@ -297,14 +297,14 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getSSRCOwner(ssrc: number): string | undefined {
+    public getSSRCOwner(ssrc: number): Optional<string> {
         return this._ssrcOwners.get(ssrc)?.endpointId;
     }
 
     /**
      * @inheritDoc
      */
-    public getTrackSourceName(ssrc: number): SourceName | undefined {
+    public getTrackSourceName(ssrc: number): Optional<SourceName> {
         return this._ssrcOwners.get(ssrc)?.sourceName;
     }
 

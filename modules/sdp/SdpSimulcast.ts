@@ -145,7 +145,7 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string | undefined {
+    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): Optional<string> {
         return mLine.ssrcs?.find(
             ssrcInfo => Number(ssrcInfo.id) === ssrc
             && ssrcInfo.attribute === attributeName)?.value;
