@@ -98,7 +98,7 @@ export interface ILocalStats {
     bridgeCount?: number;
     connectionQuality: number;
     jvbRTT?: number;
-    maxEnabledResolution?: any;
+    maxEnabledResolution?: { height: number; width: number; };
     packetLoss?: {
         upload?: number;
     };
@@ -110,18 +110,13 @@ export interface IConnectionQualityOptions {
         disableLocalStats: boolean;
         disableLocalStatsBroadcast: boolean;
         pcStatsInterval: number;
-        startBitrate: number;
     };
 }
 
-export interface IRemoteStatsData {
-    bitrate: { upload: number; };
-    connectionQuality: number;
-    jvbRTT: number;
-    maxEnabledResolution: { height: number; width: number; };
-    packetLoss: { upload: number; };
-    serverRegion: string;
-}
+export type IRemoteStats = Pick<
+    ILocalStats,
+    'bitrate' | 'connectionQuality' | 'jvbRTT' | 'maxEnabledResolution' | 'packetLoss' | 'serverRegion'
+>;
 
 /**
  * A class which monitors the local statistics coming from the RTC modules, and
@@ -189,11 +184,6 @@ export default class ConnectionQuality {
          */
         this._timeVideoUnmuted = -1;
 
-        // We assume a global startBitrate value for the sake of simplicity.
-        if (this._options.config?.startBitrate > 0) {
-            startBitrate = this._options.config.startBitrate;
-        }
-
         conference.on(
             ConferenceEvents.BRIDGE_BWE_STATS_RECEIVED,
             bwe => {
@@ -234,7 +224,7 @@ export default class ConnectionQuality {
 
         conference.on(
             ConferenceEvents.ENDPOINT_STATS_RECEIVED,
-            (participant: JitsiParticipant, payload: IRemoteStatsData) => {
+            (participant: JitsiParticipant, payload: IRemoteStats) => {
                 this._updateRemoteStats(participant.getId(), payload);
             });
 
@@ -371,10 +361,10 @@ export default class ConnectionQuality {
 
                 // Expected sending bitrate in perfect conditions.
                 let target = getTarget(
-                    activeTPC.doesTrueSimulcast(),
+                    activeTPC.doesTrueSimulcast(undefined),
                     resolution,
                     millisSinceStart,
-                    activeTPC.getTargetVideoBitrates());
+                    activeTPC.getTargetVideoBitrates(undefined));
 
                 target = Math.min(target, MAX_TARGET_BITRATE);
 
@@ -499,7 +489,7 @@ export default class ConnectionQuality {
      * @param id the id of the remote participant
      * @param data the statistics received
      */
-    private _updateRemoteStats(id: string, data: IRemoteStatsData): void {
+    private _updateRemoteStats(id: string, data: IRemoteStats): void {
         // Use only the fields we need
         this._remoteStats[id] = {
             bitrate: data.bitrate,
