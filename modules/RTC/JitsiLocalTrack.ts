@@ -22,6 +22,7 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import VADAudioAnalyser from '../detection/VADAudioAnalyser';
 import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
@@ -1073,7 +1074,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new Error(`Media ${mediaType} is not supported, track must be audio`);
         }
 
-        const hasAudioMixEffect = Boolean(typeof this._streamEffect?.setMuted === 'function');
+        const hasAudioMixEffect = typeof this._streamEffect?.setMuted === 'function';
 
         if (this._streamEffect && !hasAudioMixEffect) {
             throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
@@ -1081,7 +1082,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
             );
         }
 
-        await this.conference._removeLocalTrackFromPc(this);
+        const hasConference = Boolean(this.conference);
+        let audioAnalyser: VADAudioAnalyser | undefined;
+
+        if (hasConference) {
+            audioAnalyser = this.conference.getAudioAnalyser();
+
+            if (audioAnalyser) {
+                logger.debug(`Removing track ${this} from audio analyser`);
+                audioAnalyser._trackRemoved(this);
+            }
+
+            logger.debug(`Removing track ${this} from conference`);
+            await this.conference._removeLocalTrackFromPc(this);
+        }
 
         if (hasAudioMixEffect) {
             this._stopStreamEffect();
@@ -1096,9 +1110,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         };
 
         const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
-        let mediaStreamData;
+        let mediaStreamData: IStreamInfo | undefined;
 
         try {
+            logger.debug(`applyConstraints for track ${this} with constraints: ${JSON.stringify(constraints)}`);
+
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
                 constraints: { [mediaType]: constraintsToApply },
                 [deviceIdKey]: constraintsToApply.deviceId,
@@ -1128,6 +1144,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new JitsiTrackError(JitsiTrackErrors.GENERAL);
         }
 
+        logger.debug('Setting updated stream and track');
+
         this._setStream(mediaStreamData.stream);
         this.track = mediaStreamData.track;
 
@@ -1135,6 +1153,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._startStreamEffect(this._streamEffect);
         }
 
-        await this.conference._addLocalTrackToPc(this);
+        if (hasConference) {
+            logger.debug(`Adding track ${this} to conference`);
+            await this.conference._addLocalTrackToPc(this);
+
+            if (audioAnalyser) {
+                logger.debug(`Adding track ${this} to audio analyser`);
+                audioAnalyser._trackAdded(this);
+            }
+        }
     }
 }
