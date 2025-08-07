@@ -298,40 +298,11 @@ class AnalyticsAdapter {
      * @returns {void}
      */
     public reset(): void {
-        /**
-             * Whether this AnalyticsAdapter has been disposed of or not. Once this
-             * is set to true, the AnalyticsAdapter is disabled and does not accept
-             * any more events, and it can not be re-enabled.
-             * @type {boolean}
-             */
         this.disposed = false;
-
-        /**
-             * The set of handlers to which events will be sent.
-             * @type {Set<any>}
-             */
         this.analyticsHandlers = new Set();
-
-        /**
-             * The cache of events which are not sent yet. The cache is enabled
-             * while this field is truthy, and disabled otherwise.
-             * @type {Array}
-             */
         this.cache = [];
-
-        /**
-             * Map of properties that will be added to every event. Note that the
-             * keys will be prefixed with "permanent.".
-             */
         this.permanentProperties = {};
-
-        /**
-             * The name of the conference that this AnalyticsAdapter is associated
-             * with.
-             * @type {null}
-             */
         this.conferenceName = '';
-
         this.addPermanentProperties({
             'browser_name': browser.getName(),
             'user_agent': navigator.userAgent
