@@ -1154,12 +1154,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         if (hasConference) {
-            logger.debug('Adding track to conference');
+            logger.debug(`Adding track ${this} to conference`);
             await this.conference._addLocalTrackToPc(this);
 
             if (audioAnalyser) {
-                logger.debug(`Removing track ${this} from audio analyser`);
-                audioAnalyser._trackRemoved(this);
+                logger.debug(`Adding track ${this} to audio analyser`);
+                audioAnalyser._trackAdded(this);
             }
         }
     }
