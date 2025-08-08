@@ -10,7 +10,7 @@ function getConnectionPluginDefinition<T extends new (...args: any[]) => {}>(bas
      * Base class for strophe connection plugins.
      */
     return class extends base {
-        connection: any | null;
+        connection: Nullable<any>;
         /**
          *
          */

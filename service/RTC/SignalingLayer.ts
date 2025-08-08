@@ -102,7 +102,7 @@ export default class SignalingLayer extends Listenable {
      * @param {MediaType} mediaType the type of the media for which presence
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
      * info will be obtained.
-     * @return {IPeerMediaInfo|null} presenceInfo an object with media presence
+     * @return {Nullable<IPeerMediaInfo>} presenceInfo an object with media presence
      * info or <tt>null</tt> either if there is no presence available for given
      * JID or if the media type given is invalid.
      *
@@ -110,7 +110,7 @@ export default class SignalingLayer extends Listenable {
      */
     getPeerMediaInfo(
             owner: string, mediaType: MediaType, sourceName: SourceName
-    ): IPeerMediaInfo | null {
+    ): Nullable<IPeerMediaInfo> {
         throw new Error('not implemented');
     }
 
@@ -118,29 +118,29 @@ export default class SignalingLayer extends Listenable {
      * Obtains the info about a source for given name and endpoint ID.
      * @param {EndpointId} owner - The owner's endpoint ID.
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
-     * @returns {ISourceInfo | undefined}
+     * @returns {Optional<ISourceInfo>}
      */
     getPeerSourceInfo(
             owner: EndpointId, sourceName: SourceName
-    ): ISourceInfo | undefined {
+    ): Optional<ISourceInfo> {
         throw new Error('not implemented');
     }
 
     /**
      * Obtains the endpoint ID for given SSRC.
      * @param {number} ssrc the SSRC number.
-     * @return {string|null} the endpoint ID for given media SSRC.
+     * @return {Nullable<string>} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner(ssrc: number): string | null {
+    getSSRCOwner(ssrc: number): Nullable<string> {
         throw new Error('not implemented');
     }
 
     /**
      * Obtains the source name for given SSRC.
      * @param {number} ssrc the track's SSRC identifier.
-     * @returns {SourceName | undefined} the track's source name.
+     * @returns {Optional<SourceName>} the track's source name.
      */
-    getTrackSourceName(ssrc: number): SourceName | undefined {
+    getTrackSourceName(ssrc: number): Optional<SourceName> {
         throw new Error('not implemented');
     }
 

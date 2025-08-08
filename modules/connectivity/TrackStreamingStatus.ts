@@ -77,7 +77,7 @@ export class TrackStreamingStatusImpl {
     track: JitsiRemoteTrack;
 
     /**  This holds the timeout callback ID scheduled using window.setTimeout. */
-    trackTimer: number | null;
+    trackTimer: Nullable<number>;
 
     /**
      * If video track frozen detection through RTC mute event is supported, we wait some time until video track is
@@ -113,10 +113,10 @@ export class TrackStreamingStatusImpl {
      * FIXME merge this logic with NO_DATA_FROM_SOURCE event implemented in JitsiLocalTrack by extending the event
      * to the remote track and allowing to set different timeout for local and remote tracks.
      */
-    rtcMutedTimestamp: number | null;
+    rtcMutedTimestamp: Nullable<number>;
 
     /** This holds the restoring timeout callback ID scheduled using window.setTimeout. */
-    restoringTimer: ReturnType<typeof setTimeout> | null;
+    restoringTimer: Nullable<ReturnType<typeof setTimeout>>;
 
     /**
      * This holds the current streaming status (along with all the internal events that happen while in that

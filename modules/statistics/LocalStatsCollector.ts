@@ -17,7 +17,7 @@ const WEBAUDIO_ANALYZER_SMOOTING_TIME: number = 0.8;
  * The audio context.
  * @type {AudioContext}
  */
-let context: AudioContext | null = null;
+let context: Nullable<AudioContext> = null;
 
 /**
  * Converts time domain data array to audio level.
@@ -63,12 +63,12 @@ function animateLevel(newLevel: number, lastLevel: number): number {
  */
 export default class LocalStatsCollector {
     stream: MediaStream;
-    intervalId: Timeout | null;
+    intervalId: Nullable<Timeout>;
     intervalMilis: number;
     audioLevel: number;
     callback: (audioLevel: number) => void;
-    source: MediaStreamAudioSourceNode | null;
-    analyser: AnalyserNode | null;
+    source: Nullable<MediaStreamAudioSourceNode>;
+    analyser: Nullable<AnalyserNode>;
 
     /**
      * Creates a new instance of LocalStatsCollector.

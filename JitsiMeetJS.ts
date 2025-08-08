@@ -443,7 +443,7 @@ export default {
     async joinConference(
             roomName: string,
             appId: string = '',
-            token: string | null = null,
+            token: Nullable<string> = null,
             options: IJoinConferenceOptions = {}): Promise<JitsiConference> {
         const d = new Deferred();
         let connectionOptions = options.connectionOptions ?? {};

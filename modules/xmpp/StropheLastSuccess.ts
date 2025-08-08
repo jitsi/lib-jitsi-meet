@@ -8,8 +8,8 @@ import XmppConnection from './XmppConnection';
 
 
 export default class LastRequestTracker {
-    private _lastSuccess: number | null;
-    private _lastFailedMessage: string | null;
+    private _lastSuccess: Nullable<number>;
+    private _lastFailedMessage: Nullable<string>;
 
     /**
      * Initializes new instance.
@@ -47,18 +47,18 @@ export default class LastRequestTracker {
     /**
      * Returns the last raw failed incoming message on the xmpp connection.
      *
-     * @returns {string|null}
+     * @returns {Nullable<string>}
      */
-    getLastFailedMessage(): string | null {
+    getLastFailedMessage(): Nullable<string> {
         return this._lastFailedMessage;
     }
 
     /**
      * Returns how many milliseconds have passed since the last successful BOSH request.
      *
-     * @returns {number|null}
+     * @returns {Nullable<number>}
      */
-    getTimeSinceLastSuccess(): number | null {
+    getTimeSinceLastSuccess(): Nullable<number> {
         return this._lastSuccess
             ? Date.now() - this._lastSuccess
             : null;

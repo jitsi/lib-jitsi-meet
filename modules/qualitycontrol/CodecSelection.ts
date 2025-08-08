@@ -163,10 +163,10 @@ export class CodecSelection {
     /**
      * Returns the preferred screenshare codec for the given connection type.
      *
-     * @param {String} connectionType The media connection type, 'p2p' or 'jvb'.
+     * @param {Optional} connectionType The media connection type, 'p2p' or 'jvb'.
      * @returns CodecMimeType
      */
-    getScreenshareCodec(connectionType: string): string | undefined {
+    getScreenshareCodec(connectionType: string): Optional<string> {
         return this.screenshareCodec[connectionType];
     }
 

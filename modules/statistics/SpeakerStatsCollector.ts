@@ -12,7 +12,7 @@ import { type IFaceLandmarks, default as SpeakerStats } from './SpeakerStats';
 const FACE_LANDMARK_MESSAGE_TYPE = 'face-landmarks';
 
 export interface ISpeakerStatsState {
-    dominantSpeakerId: string | null;
+    dominantSpeakerId: Nullable<string>;
     users: {
         [userId: string]: SpeakerStats;
     };
