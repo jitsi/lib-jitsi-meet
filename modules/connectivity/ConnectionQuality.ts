@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import JitsiConference from '../../JitsiConference';
+import JitsiConference, { IConferenceOptions } from '../../JitsiConference';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
 import * as RTCEvents from '../../service/RTC/RTCEvents';
@@ -30,7 +30,7 @@ const MAX_TARGET_BITRATE = 2500;
 /**
  * The initial bitrate for video in kbps.
  */
-let startBitrate = 800;
+const startBitrate = 800;
 
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.
@@ -140,7 +140,7 @@ export default class ConnectionQuality {
      * @param eventEmitter
      * @param options
      */
-    constructor(conference: JitsiConference, eventEmitter: EventEmitter, options: IConnectionQualityOptions) {
+    constructor(conference: JitsiConference, eventEmitter: EventEmitter, options: IConferenceOptions | IConnectionQualityOptions) {
         this.eventEmitter = eventEmitter;
 
         /**
