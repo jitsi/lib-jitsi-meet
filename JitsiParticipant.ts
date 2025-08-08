@@ -19,7 +19,6 @@ export default class JitsiParticipant {
     private _id: string;
     private _conference: JitsiConference;
     private _role: string;
-    private _status?: string;
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
@@ -31,6 +30,10 @@ export default class JitsiParticipant {
     private _sources: Map<MediaType, Map<string, ISourceInfo>>;
     private _botType?: string;
     private _connectionJid?: string;
+    /**
+     * @internal
+     */
+    _status?: string;
     /**
      * @internal
      */
