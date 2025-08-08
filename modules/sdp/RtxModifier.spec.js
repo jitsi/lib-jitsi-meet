@@ -1,7 +1,7 @@
 /* eslint-disable max-len*/
 import * as transform from 'sdp-transform';
 
-import RtxModifier from './RtxModifier.js';
+import RtxModifier from './RtxModifier.ts';
 import SDPUtil from './SDPUtil';
 import { default as SampleSdpStrings } from './SampleSdpStrings';
 
