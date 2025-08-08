@@ -13,7 +13,7 @@ const RAYO_XMLNS = 'urn:xmpp:rayo:1';
  *
  */
 export default class RayoConnectionPlugin extends ConnectionPlugin {
-    private callResource: string | null = null;
+    private callResource: Nullable<string> = null;
 
     /**
      *

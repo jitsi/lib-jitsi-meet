@@ -102,7 +102,7 @@ export default class SignalingLayer extends Listenable {
      * @param {MediaType} mediaType the type of the media for which presence
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
      * info will be obtained.
-     * @return {IPeerMediaInfo|null} presenceInfo an object with media presence
+     * @return {Nullable<IPeerMediaInfo>} presenceInfo an object with media presence
      * info or <tt>null</tt> either if there is no presence available for given
      * JID or if the media type given is invalid.
      *
@@ -110,7 +110,7 @@ export default class SignalingLayer extends Listenable {
      */
     getPeerMediaInfo(
             owner: string, mediaType: MediaType, sourceName: SourceName
-    ): IPeerMediaInfo | null {
+    ): Nullable<IPeerMediaInfo> {
         throw new Error('not implemented');
     }
 
@@ -129,9 +129,9 @@ export default class SignalingLayer extends Listenable {
     /**
      * Obtains the endpoint ID for given SSRC.
      * @param {number} ssrc the SSRC number.
-     * @return {string|null} the endpoint ID for given media SSRC.
+     * @return {Nullable<string>} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner(ssrc: number): string | null {
+    getSSRCOwner(ssrc: number): Nullable<string> {
         throw new Error('not implemented');
     }
 

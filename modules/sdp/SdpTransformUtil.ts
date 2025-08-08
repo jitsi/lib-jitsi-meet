@@ -405,7 +405,7 @@ export class SdpTransformWrap {
      * object returned references the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance (it's not a
      * copy).
      */
-    selectMedia(mediaType: string): MLineWrap[] | null {
+    selectMedia(mediaType: string): Nullable<MLineWrap[]> {
         const selectedMLines = this.parsedSDP.media
             .filter(mLine => mLine.type === mediaType)
             .map(mLine => new MLineWrap(mLine as IMLine));

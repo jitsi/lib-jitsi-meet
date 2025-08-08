@@ -65,7 +65,7 @@ export function getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
  * @param {Element} response - The response from the IQ.
  * @returns {string} The session ID of the recording session.
  */
-export function getSessionIdFromIq(response: Element): string | null {
+export function getSessionIdFromIq(response: Element): Nullable<string> {
     return response?.getElementsByTagName('jibri')[0]?.getAttribute('session_id') ?? null;
 }
 
@@ -75,7 +75,7 @@ export function getSessionIdFromIq(response: Element): string | null {
  * @param {Element} presence - An XMPP presence update.
  * @returns {string|null|undefined} The session ID of the recording session.
  */
-export function getSessionId(presence: Element): string | null | undefined {
+export function getSessionId(presence: Element): Optional<Nullable<string>> {
     return presence.getElementsByTagName('session_id')[0]?.textContent;
 }
 

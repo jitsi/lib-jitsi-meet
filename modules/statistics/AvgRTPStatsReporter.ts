@@ -832,9 +832,9 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    private _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
+    private _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks: any[] | null = null;// JitsiLocalTrack[] | JitsiRemoteTrack[]
+        let videoTracks: Nullable<any[]> = null;// JitsiLocalTrack[] | JitsiRemoteTrack[]
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.
@@ -928,9 +928,9 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    private _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: JitsiParticipant | null, videoType: VideoType): number {
+    private _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks: any[] | null = null; // JitsiLocalTrack[] | JitsiRemoteTrack[]
+        let videoTracks: Nullable<any[]> = null; // JitsiLocalTrack[] | JitsiRemoteTrack[]
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.

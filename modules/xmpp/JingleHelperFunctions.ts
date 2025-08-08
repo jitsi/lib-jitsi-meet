@@ -126,7 +126,7 @@ function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
  * @param {*} str the compact JSON format representation of an SSRC group's semantics.
  * @returns the SSRC group semantics corresponding to [str].
  */
-function _getSemantics(str: string): string | null {
+function _getSemantics(str: string): Nullable<string> {
     if (str === 'f') {
         return SSRC_GROUP_SEMANTICS.FID;
     } else if (str === 's') {
@@ -148,7 +148,7 @@ function _getSemantics(str: string): string | null {
  * @returns {Map<string, Array<string>} The audio and video ssrcs extracted from the JSON-encoded message with remote
  * endpoint id as the key.
  */
-export function expandSourcesFromJson(iq: Element, jsonMessageXml: Element): Map<string, string[]> | null {
+export function expandSourcesFromJson(iq: Element, jsonMessageXml: Element): Nullable<Map<string, string[]>> {
     let json: any;
 
     try {

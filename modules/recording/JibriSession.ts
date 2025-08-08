@@ -37,7 +37,7 @@ export interface IQOptions {
 export default class JibriSession {
     private _connection?: any;
     private _mode?: string;
-    private _jibriJid: string | null = null;
+    private _jibriJid: Nullable<string> = null;
     private _statusFromJicofo: string = '';
     private _sessionID?: string;
     private _status?: string;
@@ -184,7 +184,7 @@ export default class JibriSession {
      *
      * @param {*} jibriJid
      */
-    setJibriJid(jibriJid: string | null): void {
+    setJibriJid(jibriJid: Nullable<string>): void {
         this._jibriJid = jibriJid;
     }
 

@@ -41,10 +41,10 @@ export default class AudioMixer {
      * At this point a WebAudio ChannelMergerNode is created and and the two associated MediaStreams are connected to
      * it; the resulting mixed MediaStream is returned.
      *
-     * @returns {MediaStream | null} - MediaStream containing added streams mixed together, or null if no MediaStream
+     * @returns {Nullable<MediaStream>} - MediaStream containing added streams mixed together, or null if no MediaStream
      * is added.
      */
-    start(): MediaStream | null {
+    start(): Nullable<MediaStream> {
         // If the mixer was already started just return the existing mixed stream.
         if (this._started && this._mixedMSD) {
             return this._mixedMSD.stream;

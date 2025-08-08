@@ -43,7 +43,7 @@ export interface IVADScore {
  */
 export default class VADAudioAnalyser extends EventEmitter {
     private _createVADProcessor: () => IVADProcessor;
-    private _vadEmitter: TrackVADEmitter | null;
+    private _vadEmitter: Nullable<TrackVADEmitter>;
     private _isVADEmitterRunning: boolean;
     private _detectionServices: IVADDetectionService[];
     private _vadInitTracker: Promise<void>;

@@ -20,7 +20,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      *
      * @type {ChatRoom|null}
      */
-    public chatRoom: ChatRoom | null;
+    public chatRoom: Nullable<ChatRoom>;
 
     /**
      * Creates new instance.

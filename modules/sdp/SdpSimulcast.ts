@@ -157,7 +157,7 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription): Array<number> | null {
+    _parseSimLayers(mLine: transform.MediaDescription): Nullable<Array<number>> {
         const simGroup = mLine.ssrcGroups?.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
         if (simGroup) {

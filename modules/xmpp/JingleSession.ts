@@ -23,7 +23,7 @@ export default class JingleSession extends Listenable {
      * The signaling layer.
      * @internal
      */
-    _signalingLayer: SignalingLayerImpl | null;
+    _signalingLayer: Nullable<SignalingLayerImpl>;
 
     /**
      * The Jingle session identifier.
@@ -75,18 +75,18 @@ export default class JingleSession extends Listenable {
     /**
      * The chat room instance associated with the session.
      */
-    public room: ChatRoom | null;
+    public room: Nullable<ChatRoom>;
 
     /**
      * Jingle session state - uninitialized until {@link initialize} is
      * called
      */
-    public state: JingleSessionState | null;
+    public state: Nullable<JingleSessionState>;
 
     /**
      * The RTC service instance
      */
-    public rtc: RTC | null;
+    public rtc: Nullable<RTC>;
 
     /**
      * Creates new <tt>JingleSession</tt>.
@@ -141,7 +141,7 @@ export default class JingleSession extends Listenable {
 
         /**
          * The signaling layer.
-         * @type {SignalingLayerImpl | null}
+         * @type {Nullable<SignalingLayerImpl>}
          * @internal
          */
         this._signalingLayer = null;
@@ -226,9 +226,9 @@ export default class JingleSession extends Listenable {
 
     /**
      * Returns current state of this <tt>JingleSession</tt> instance.
-     * @returns {JingleSessionState} the current state of this session instance.
+     * @returns {Nullable<JingleSessionState>} the current state of this session instance.
      */
-    public getState(): JingleSessionState | null {
+    public getState(): Nullable<JingleSessionState> {
         return this.state;
     }
 

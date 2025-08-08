@@ -25,7 +25,7 @@ export default class ResumeTask {
     private _resumeRetryN: number;
     private _retryDelay: Optional<number>;
     private _resumeTimeout: Optional<NodeJS.Timeout>;
-    private _networkOnlineListener: (() => void) | null;
+    private _networkOnlineListener: Nullable<() => void>;
 
     /**
      * Initializes new {@code RetryTask}.
