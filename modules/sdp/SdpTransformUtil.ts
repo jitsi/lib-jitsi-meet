@@ -109,7 +109,7 @@ export class MLineWrap {
      * @return {Optional<string>} the media direction name as defined in the SDP.
      */
     get direction(): Optional<string> {
-        return this.mLine.direction;
+        return this._mLine.direction;
     }
 
     /**
@@ -117,7 +117,7 @@ export class MLineWrap {
      * @param {Optional<string>} direction the new direction to be set
      */
     set direction(direction: Optional<string>) {
-        this.mLine.direction = direction;
+        this._mLine.direction = direction;
     }
 
     /**
@@ -241,7 +241,7 @@ export class MLineWrap {
      * @throws Error if the underlying media description is not a video
      */
     getPrimaryVideoSsrc(): Optional<number> {
-        const mediaType = this.mLine.type;
+        const mediaType = this._mLine.type;
 
         if (mediaType !== 'video') {
             throw new Error(
