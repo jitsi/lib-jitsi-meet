@@ -1,4 +1,9 @@
+import { getLogger } from '@jitsi/logger';
+
+import JitsiConference from '../../JitsiConference';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
 import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import TrackStreamingStatusImpl, { TrackStreamingStatus } from '../connectivity/TrackStreamingStatus';
@@ -6,10 +11,9 @@ import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
 import JitsiTrack from './JitsiTrack';
+import RTC from './RTC';
 
-const logger = require('@jitsi/logger').getLogger('modules/RTC/JitsiRemoteTrack');
-
-const RTCEvents = require('../../service/RTC/RTCEvents');
+const logger = getLogger('modules/RTC/JitsiRemoteTrack');
 
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;
@@ -26,6 +30,33 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
  * Represents a single media track (either audio or video).
  */
 export default class JitsiRemoteTrack extends JitsiTrack {
+    private _sourceName: string;
+    private _trackStreamingStatus: Nullable<TrackStreamingStatus>;
+    private _trackStreamingStatusImpl: Nullable<TrackStreamingStatusImpl>;
+
+    /**
+     * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
+     * forwardedSources will have streaming status restoring and when we start receiving video will become active,
+     * but if video is not received for certain time {@link DEFAULT_RESTORING_TIMEOUT} that track streaming status
+     * will become interrupted.
+     */
+    private _enteredForwardedSourcesTimestamp: Nullable<number>;
+
+    private _containerHandlers: { [key: string]: (event: Event) => void; };
+
+    private _rtc: RTC;
+    private _ssrc: number;
+    private _muted: boolean;
+    private _hasBeenMuted: boolean;
+    /**
+     * @internal
+     */
+    _isP2P: boolean;
+    /**
+     * @internal
+     */
+    _ownerEndpointId: string;
+
     /**
      * Creates new JitsiRemoteTrack instance.
      * @param {RTC} rtc the RTC service instance.
@@ -46,17 +77,17 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @constructor
      */
     constructor(
-            rtc,
-            conference,
-            ownerEndpointId,
-            stream,
-            track,
-            mediaType,
-            videoType,
-            ssrc,
-            muted,
-            isP2P,
-            sourceName) {
+            rtc: RTC,
+            conference: JitsiConference,
+            ownerEndpointId: string,
+            stream: MediaStream,
+            track: MediaStreamTrack,
+            mediaType: MediaType,
+            videoType: VideoType,
+            ssrc: number,
+            muted: boolean,
+            isP2P: boolean,
+            sourceName: string) {
         super(
             conference,
             stream,
@@ -66,16 +97,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             },
             mediaType,
             videoType);
-        this.rtc = rtc;
+        this._rtc = rtc;
 
         // Prevent from mixing up type of SSRC which should be a number
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC ${ssrc} is not a number`);
         }
-        this.ssrc = ssrc;
-        this.ownerEndpointId = ownerEndpointId;
-        this.muted = muted;
-        this.isP2P = isP2P;
+        this._ssrc = ssrc;
+        this._ownerEndpointId = ownerEndpointId;
+        this._muted = muted;
+        this._isP2P = isP2P;
         this._sourceName = sourceName;
         this._trackStreamingStatus = null;
         this._trackStreamingStatusImpl = null;
@@ -96,10 +127,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // we want to mark whether the track has been ever muted
         // to detect ttfm events for startmuted conferences, as it can
         // significantly increase ttfm values
-        this.hasBeenMuted = muted;
+        this._hasBeenMuted = muted;
 
         // Bind 'onmute' and 'onunmute' event handlers
-        if (this.rtc && this.track) {
+        if (this._rtc && this.track) {
             this._bindTrackHandlers();
         }
         this._containerHandlers = {};
@@ -114,7 +145,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @returns {void}
      */
-    _bindTrackHandlers() {
+    private _bindTrackHandlers(): void {
         this.track.addEventListener('mute', () => this._onTrackMute());
         this.track.addEventListener('unmute', () => this._onTrackUnmute());
         this.track.addEventListener('ended', () => {
@@ -129,7 +160,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    _addEventListener(event, handler) {
+    private _addEventListener(event: string, handler: (...args: any[]) => void): void {
         super.addListener(event, handler);
 
         if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
@@ -147,7 +178,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    _removeEventListener(event, handler) {
+    private _removeEventListener(event: string, handler: (...args: any[]) => void): void {
         super.removeListener(event, handler);
 
         if (event === JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED
@@ -165,7 +196,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      * @returns {void}
      */
-    _onTrackMute() {
+    private _onTrackMute(): void {
         logger.debug(`"onmute" event(${Date.now()}): ${this}`);
 
         // Ignore mute events that get fired on desktop tracks because of 0Hz screensharing introduced in Chromium.
@@ -177,7 +208,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             return;
         }
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
+        this._rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
     }
 
     /**
@@ -187,113 +218,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @private
      * @returns {void}
      */
-    _onTrackUnmute() {
+    private _onTrackUnmute(): void {
         logger.debug(`"onunmute" event(${Date.now()}): ${this}`);
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
-    }
-
-    /**
-     * Removes attached event listeners and dispose TrackStreamingStatus .
-     *
-     * @returns {Promise}
-     */
-    dispose() {
-        if (this.disposed) {
-            return;
-        }
-
-        this._disposeTrackStreamingStatus();
-
-        return super.dispose();
-    }
-
-    /**
-     * Sets current muted status and fires an events for the change.
-     * @param value the muted status.
-     */
-    setMute(value) {
-        if (this.muted === value) {
-            return;
-        }
-
-        if (value) {
-            this.hasBeenMuted = true;
-        }
-
-        // we can have a fake video stream
-        if (this.stream) {
-            this.stream.muted = value;
-        }
-
-        this.muted = value;
-
-        logger.info(`Mute ${this}: ${value}`);
-        this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
-    }
-
-    /**
-     * Returns the current muted status of the track.
-     * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
-     * muted and <tt>false</tt> otherwise.
-     */
-    isMuted() {
-        return this.muted;
-    }
-
-    /**
-     * Returns the participant id which owns the track.
-     *
-     * @returns {string} the id of the participants. It corresponds to the
-     * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
-     */
-    getParticipantId() {
-        return this.ownerEndpointId;
-    }
-
-    /**
-     * Return false;
-     */
-    isLocal() {
-        return false;
-    }
-
-    /**
-     * Returns the synchronization source identifier (SSRC) of this remote
-     * track.
-     *
-     * @returns {number} the SSRC of this remote track.
-     */
-    getSSRC() {
-        return this.ssrc;
-    }
-
-
-    /**
-     * Returns the tracks source name
-     *
-     * @returns {string} the track's source name
-     */
-    getSourceName() {
-        return this._sourceName;
-    }
-
-    /**
-     * Update the properties when the track is remapped to another source.
-     *
-     * @param {string} owner The endpoint ID of the new owner.
-     */
-    setOwner(owner) {
-        this.ownerEndpointId = owner;
-    }
-
-    /**
-     * Sets the name of the source associated with the remtoe track.
-     *
-     * @param {string} name - The source name to be associated with the track.
-     */
-    setSourceName(name) {
-        this._sourceName = name;
+        this._rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
     }
 
     /**
@@ -301,7 +229,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {string} type - The new video type("camera", "desktop").
      */
-    _setVideoType(type) {
+    private _setVideoType(type: VideoType): void {
         if (this.videoType === type) {
             return;
         }
@@ -312,7 +240,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Handles track play events.
      */
-    _playCallback() {
+    private _playCallback(): void {
         if (!this.conference.room) {
             return;
         }
@@ -345,57 +273,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         Statistics.sendAnalytics(createTtfmEvent(
             {
                 'media_type': type,
-                muted: this.hasBeenMuted,
+                muted: this._hasBeenMuted,
                 value: ttfm
             }));
 
-    }
-
-    /**
-     * Attach time to first media tracker only if there is conference and only
-     * for the first element.
-     * @param container the HTML container which can be 'video' or 'audio'
-     * element.
-     * @private
-     */
-    _attachTTFMTracker(container) {
-        if ((ttfmTrackerAudioAttached && this.isAudioTrack())
-            || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
-            return;
-        }
-
-        if (this.isAudioTrack()) {
-            ttfmTrackerAudioAttached = true;
-        }
-        if (this.isVideoTrack()) {
-            ttfmTrackerVideoAttached = true;
-        }
-
-        container.addEventListener('canplay', this._playCallback.bind(this));
-    }
-
-    /**
-     * Called when the track has been attached to a new container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackAttach(container) {
-        containerEvents.forEach(event => {
-            container.addEventListener(event, this._containerHandlers[event]);
-        });
-    }
-
-    /**
-     * Called when the track has been detached from a container.
-     *
-     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
-     * @private
-     */
-    _onTrackDetach(container) {
-        containerEvents.forEach(event => {
-            container.removeEventListener(event, this._containerHandlers[event]);
-        });
     }
 
     /**
@@ -403,7 +284,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {string} type - The type of the event.
      */
-    _containerEventHandler(type) {
+    private _containerEventHandler(type: string): void {
         logger.debug(`${type} handler was called for a container with attached ${this}`);
     }
 
@@ -412,7 +293,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @returns {string}
      */
-    _getStatus() {
+    private _getStatus(): string {
         const { enabled, muted, readyState } = this.track;
 
         return `readyState: ${readyState}, muted: ${muted}, enabled: ${enabled}`;
@@ -421,13 +302,13 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Initializes trackStreamingStatusImpl.
      */
-    _initTrackStreamingStatus() {
+    private _initTrackStreamingStatus(): void {
         const config = this.conference.options.config;
 
         this._trackStreamingStatus = TrackStreamingStatus.ACTIVE;
 
         this._trackStreamingStatusImpl = new TrackStreamingStatusImpl(
-            this.rtc,
+            this._rtc,
             this.conference,
             this,
             {
@@ -446,7 +327,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         // stage. Fire a TRACK_STREAMING_STATUS_CHANGED event if the media is already being received for the remote
         // track to prevent this from happening.
         !this._trackStreamingStatusImpl.isVideoTrackFrozen()
-            && this.rtc.eventEmitter.emit(
+            && this._rtc.eventEmitter.emit(
                 JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED,
                 this,
                 this._trackStreamingStatus);
@@ -455,7 +336,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Disposes trackStreamingStatusImpl and clears trackStreamingStatus.
      */
-    _disposeTrackStreamingStatus() {
+    private _disposeTrackStreamingStatus(): void {
         if (this._trackStreamingStatusImpl) {
             this._trackStreamingStatusImpl.dispose();
             this._trackStreamingStatusImpl = null;
@@ -464,12 +345,191 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Updates track's streaming status.
+     * Called when the track has been attached to a new container.
      *
-     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @internal
      */
-    _setTrackStreamingStatus(status) {
+    _onTrackAttach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.addEventListener(event, this._containerHandlers[event]);
+        });
+    }
+
+    /**
+     * Called when the track has been detached from a container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
+     * @internal
+     */
+    _onTrackDetach(container: HTMLElement): void {
+        containerEvents.forEach(event => {
+            container.removeEventListener(event, this._containerHandlers[event]);
+        });
+    }
+
+    /**
+     * Attach time to first media tracker only if there is conference and only
+     * for the first element.
+     * @param container the HTML container which can be 'video' or 'audio'
+     * element.
+     * @internal
+     */
+    _attachTTFMTracker(container: HTMLElement): void {
+        if ((ttfmTrackerAudioAttached && this.isAudioTrack())
+                || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
+            return;
+        }
+
+        if (this.isAudioTrack()) {
+            ttfmTrackerAudioAttached = true;
+        }
+        if (this.isVideoTrack()) {
+            ttfmTrackerVideoAttached = true;
+        }
+
+        container.addEventListener('canplay', this._playCallback.bind(this));
+    }
+
+    /**
+         * Updates track's streaming status.
+         *
+         * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+         * @internal
+         */
+    _setTrackStreamingStatus(status: TrackStreamingStatus): void {
         this._trackStreamingStatus = status;
+    }
+
+    /**
+     * Clears the timestamp of when the track entered forwarded sources.
+     * @internal
+     */
+    _clearEnteredForwardedSourcesTimestamp(): void {
+        this._enteredForwardedSourcesTimestamp = null;
+    }
+
+    /**
+     * Updates the timestamp of when the track entered forwarded sources.
+     *
+     * @param {number} timestamp the time in millis
+     * @internal
+     */
+    _setEnteredForwardedSourcesTimestamp(timestamp: number): void {
+        this._enteredForwardedSourcesTimestamp = timestamp;
+    }
+
+    /**
+     * Returns the timestamp of when the track entered forwarded sources.
+     *
+     * @returns {number} the time in millis
+     * @internal
+     */
+    _getEnteredForwardedSourcesTimestamp(): number | null {
+        return this._enteredForwardedSourcesTimestamp;
+    }
+
+    /**
+     * Removes attached event listeners and dispose TrackStreamingStatus .
+     *
+     * @returns {Promise}
+     */
+    dispose(): Promise<void> {
+        if (this.disposed) {
+            return Promise.resolve();
+        }
+
+        this._disposeTrackStreamingStatus();
+
+        return super.dispose();
+    }
+
+    /**
+     * Sets current muted status and fires an events for the change.
+     * @param value the muted status.
+     */
+    setMute(value: boolean): void {
+        if (this._muted === value) {
+            return;
+        }
+
+        if (value) {
+            this._hasBeenMuted = true;
+        }
+
+        // we can have a fake video stream
+        if (this.stream) {
+            (this.stream as any).muted = value;
+        }
+
+        this._muted = value;
+
+        logger.info(`Mute ${this}: ${value}`);
+        this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
+    }
+
+    /**
+     * Returns the current muted status of the track.
+     * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
+     * muted and <tt>false</tt> otherwise.
+     */
+    isMuted(): boolean {
+        return this._muted;
+    }
+
+    /**
+     * Returns the participant id which owns the track.
+     *
+     * @returns {string} the id of the participants. It corresponds to the
+     * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
+     */
+    getParticipantId(): string {
+        return this._ownerEndpointId;
+    }
+
+    /**
+     * Return false;
+     */
+    isLocal(): false {
+        return false;
+    }
+
+    /**
+     * Returns the synchronization source identifier (SSRC) of this remote
+     * track.
+     *
+     * @returns {number} the SSRC of this remote track.
+     */
+    getSSRC(): number {
+        return this._ssrc;
+    }
+
+
+    /**
+     * Returns the tracks source name
+     *
+     * @returns {string} the track's source name
+     */
+    getSourceName(): string {
+        return this._sourceName;
+    }
+
+    /**
+     * Update the properties when the track is remapped to another source.
+     *
+     * @param {string} owner The endpoint ID of the new owner.
+     */
+    setOwner(owner: string): void {
+        this._ownerEndpointId = owner;
+    }
+
+    /**
+     * Sets the name of the source associated with the remtoe track.
+     *
+     * @param {string} name - The source name to be associated with the track.
+     */
+    setSourceName(name: string): void {
+        this._sourceName = name;
     }
 
     /**
@@ -480,41 +540,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * {@link TrackStreamingStatus}.
      */
-    getTrackStreamingStatus() {
+    getTrackStreamingStatus(): Nullable<TrackStreamingStatus> {
         return this._trackStreamingStatus;
-    }
-
-    /**
-     * Clears the timestamp of when the track entered forwarded sources.
-     */
-    _clearEnteredForwardedSourcesTimestamp() {
-        this._enteredForwardedSourcesTimestamp = null;
-    }
-
-    /**
-     * Updates the timestamp of when the track entered forwarded sources.
-     *
-     * @param {number} timestamp the time in millis
-     */
-    _setEnteredForwardedSourcesTimestamp(timestamp) {
-        this._enteredForwardedSourcesTimestamp = timestamp;
-    }
-
-    /**
-     * Returns the timestamp of when the track entered forwarded sources.
-     *
-     * @returns {number} the time in millis
-     */
-    _getEnteredForwardedSourcesTimestamp() {
-        return this._enteredForwardedSourcesTimestamp;
     }
 
     /**
      * Creates a text representation of this remote track instance.
      * @return {string}
      */
-    toString() {
+    toString(): string {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
+            this.getSSRC()}, p2p: ${this._isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }
 }
