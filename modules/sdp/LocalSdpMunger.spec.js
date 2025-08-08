@@ -99,7 +99,7 @@ describe('TransformSdpsForUnifiedPlan', () => {
 
         it('should add missing msid', () => {
             // P2P case only.
-            localSdpMunger.tpc.isP2P = true;
+            localSdpMunger._tpc.isP2P = true;
 
             const sdpStr = transform.write(SampleSdpStrings.firefoxP2pSdp);
             const desc = new RTCSessionDescription({
