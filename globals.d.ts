@@ -19,6 +19,9 @@ declare global {
         interface RTCRtpEncodingParameters {
         scalabilityMode?: string;
         degradationPreference?: string;
-        codec?: any;
+        codec?: RTCRtpCodecParameters;
+    }
+        interface RTCPeerConnection {
+        createDTMFSender?(track: MediaStreamTrack): RTCDTMFSender;
     }
 }

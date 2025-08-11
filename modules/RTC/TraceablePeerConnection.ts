@@ -28,6 +28,36 @@ import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
+
+/**
+ * Interface for legacy WebRTC stats report (pre-standard)
+ */
+interface LegacyStatsReport {
+    id: string;
+    names(): string[];
+    stat(name: string): string | number;
+}
+
+/**
+ * Interface for legacy stats response with result() method
+ */
+interface LegacyStatsResponse {
+    result(): LegacyStatsReport[];
+}
+
+/**
+ * Union type for getStats() return value (legacy vs modern)
+ */
+type StatsResponse = RTCStatsReport | LegacyStatsResponse;
+
+/**
+ * Extend RTCPeerConnection interface for legacy methods
+ */
+declare global {
+    interface RTCPeerConnection {
+        createDTMFSender?(track: MediaStreamTrack): RTCDTMFSender;
+    }
+}
 import { TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
@@ -63,16 +93,50 @@ export interface ITouchToneRequest {
 }
 
 export interface ITPCOptions {
-    audioQuality: object;
+    audioQuality: IAudioQuality;
     capScreenshareBitrate: boolean;
-    codecSettings: Array<CodecMimeType>;
+    codecSettings: ICodecSettings;
     disableRtx: boolean;
     disableSimulcast: boolean;
     enableInsertableStreams: boolean;
     forceTurnRelay: boolean;
     maxstats: number;
     startSilent: boolean;
-    videoQuality: object;
+    usesCodecSelectionAPI: boolean;
+    videoQuality: IVideoQuality;
+}
+
+export interface IAudioQuality {
+    stereo?: boolean;
+    opusMaxAverageBitrate?: number;
+}
+
+export interface IVideoQuality {
+    maxBitratesVideo?: Record<string, number>;
+    preferredCodec?: CodecMimeType;
+}
+
+export interface ICodecSettings {
+    codecList: CodecMimeType[];
+    screenshareCodec?: CodecMimeType;
+    mediaType?: MediaType;
+}
+
+export interface IUpdateLogEntry {
+    time: Date;
+    type: string;
+    value: string;
+}
+
+export interface IStatsEntry {
+    startTime: Date;
+    endTime: Date;
+    values: any[];
+    times: number[];
+}
+
+export interface ITraceFunction {
+    (what: string, info?: string, opts?: any): void;
 }
 
 
@@ -90,7 +154,7 @@ export default class TraceablePeerConnection {
     private _senderMaxHeights: Map<string, number>;
     private _localSsrcMap?: Map<string, ITPCSSRCInfo>;
     private _remoteSsrcMap: Map<string, ITPCSourceInfo>;
-    private _lastVideoSenderUpdatePromise: Promise<any>;
+    private _lastVideoSenderUpdatePromise: Promise<void>;
     /**
      * @internal
      */
@@ -100,7 +164,7 @@ export default class TraceablePeerConnection {
      */
     _hasHadVideoTrack: boolean;
 
-    // Class property declarations
+    // public property declarations
     audioTransferActive: boolean;
     videoTransferActive: boolean;
     id: number;
@@ -114,21 +178,21 @@ export default class TraceablePeerConnection {
     localUfrag: string;
     remoteUfrag: string;
     signalingLayer: SignalingLayer;
-    options: any;
+    options: ITPCOptions;
     peerconnection: RTCPeerConnection;
     tpcUtils: TPCUtils;
-    updateLog: Array<any>; // TODO:
-    stats: any; // TODO:
+    updateLog: Array<IUpdateLogEntry>;
+    stats: Record<string, IStatsEntry>;
     statsinterval?: number;
     simulcast: SdpSimulcast;
     localSdpMunger: LocalSdpMunger;
     eventEmitter: EventEmitter;
     rtxModifier: RtxModifier;
     localTrackTransceiverMids: Map<number, string>;
-    codecSettings: any; // TODO:
+    codecSettings: ICodecSettings;
     maxstats: number;
     rtc: RTC;
-    trace: (what: string, info?: string, opts?: any) => void; // TODO:
+    trace: ITraceFunction;
     onicecandidate?: ((event: RTCPeerConnectionIceEvent) => void);
     onTrack: (evt: RTCTrackEvent) => void;
     onsignalingstatechange?: ((event: Event) => void);
@@ -500,9 +564,9 @@ export default class TraceablePeerConnection {
 
         if (this.maxstats) {
             this.statsinterval = window.setInterval(() => {
-                this.getStats().then(stats => {
-                    if (typeof (stats as any)?.result === 'function') {
-                        const results = (stats as any).result();
+                this.getStats().then((stats: StatsResponse) => {
+                    if (typeof (stats as LegacyStatsResponse)?.result === 'function') {
+                        const results = (stats as LegacyStatsResponse).result();
 
                         for (let i = 0; i < results.length; ++i) {
                             const res = results[i];
@@ -512,7 +576,7 @@ export default class TraceablePeerConnection {
                             });
                         }
                     } else {
-                        stats.forEach(r => this._processStat(r, '', r));
+                        (stats as RTCStatsReport).forEach(r => this._processStat(r, '', r));
                     }
                 });
             }, 1000);
@@ -532,7 +596,7 @@ export default class TraceablePeerConnection {
      * @param statValue the value to add.
      * @private
      */
-    _processStat(report: any, name: string, statValue: any): void {
+    _processStat(report: RTCStats | LegacyStatsReport, name: string, statValue: string | number | RTCStats): void {
         const id = `${report.id}-${name}`;
         let s = this.stats[id];
         const now = new Date();
@@ -557,7 +621,7 @@ export default class TraceablePeerConnection {
     /**
      * Returns a string representation of a SessionDescription object.
      */
-    static dumpSDP = function(description: any): string {
+    static dumpSDP = function(description: RTCSessionDescription): string {
         if (typeof description === 'undefined' || description === null) {
             return '';
         }
@@ -1236,9 +1300,11 @@ export default class TraceablePeerConnection {
 
                 if (ssrcGroups?.length) {
                     for (const group of ssrcGroups) {
-                        // @ts-ignore TODO
-                        group.ssrcs = group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10));
-                        ssrcInfo.groups.push(group);
+                        const parsedGroup: ITPCGroupInfo = {
+                            semantics: group.semantics,
+                            ssrcs: group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10))
+                        };
+                        ssrcInfo.groups.push(parsedGroup);
                     }
 
                     const simGroup = ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
@@ -1504,7 +1570,7 @@ export default class TraceablePeerConnection {
      * @param {RTCSessionDescription} - The local description to be used.
      * @returns {Array}
      */
-    getConfiguredVideoCodecs(description: any): CodecMimeType[] {
+    getConfiguredVideoCodecs(description: RTCSessionDescription): CodecMimeType[] {
         return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
     }
 
@@ -1973,7 +2039,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTrack} localAudioTrack - The local audio track.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    configureAudioSenderEncodings(localAudioTrack: JitsiLocalTrack | null = null): Promise<PromiseSettledResult<any>[]> | Promise<void> {
+    configureAudioSenderEncodings(localAudioTrack: JitsiLocalTrack | null = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
         if (localAudioTrack) {
             return this._setEncodings(localAudioTrack);
         }
@@ -2038,7 +2104,7 @@ export default class TraceablePeerConnection {
      * @param {CodecMimeType} - The preferred codec for the video track.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    configureVideoSenderEncodings(localVideoTrack: JitsiLocalTrack | null = null, codec: CodecMimeType | null = null): Promise<PromiseSettledResult<any>[]> | Promise<void> {
+    configureVideoSenderEncodings(localVideoTrack: JitsiLocalTrack | null = null, codec: CodecMimeType | null = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
         const preferredCodec = codec ?? this.codecSettings.codecList[0];
 
         if (localVideoTrack) {
@@ -2431,8 +2497,8 @@ export default class TraceablePeerConnection {
             if (!this._dtmfSender) {
                 const localAudioTrack = Array.from(this.localTracks.values()).find(t => t.isAudioTrack());
 
-                if ((this.peerconnection as any).createDTMFSender && localAudioTrack) {
-                    this._dtmfSender = (this.peerconnection as any).createDTMFSender(localAudioTrack.getTrack());
+                if (this.peerconnection.createDTMFSender && localAudioTrack) {
+                    this._dtmfSender = this.peerconnection.createDTMFSender(localAudioTrack.getTrack());
                 }
                 this._dtmfSender && logger.info(`${this} initialized DTMFSender using deprecated createDTMFSender`);
             }
@@ -2545,7 +2611,7 @@ export default class TraceablePeerConnection {
 
         this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
 
-        const handleSuccess = (resultSdp: RTCSessionDescription, resolveFn: (result: RTCSessionDescription) => void, rejectFn: (error: any) => void): void => {
+        const handleSuccess = (resultSdp: RTCSessionDescription, resolveFn: (result: RTCSessionDescription) => void, rejectFn: (error: string) => void): void => {
             try {
                 this.trace(
                     `create${logName}OnSuccess::preTransform`, TraceablePeerConnection.dumpSDP(resultSdp));
@@ -2583,7 +2649,7 @@ export default class TraceablePeerConnection {
             }
         };
 
-        const handleFailure = (err: any, rejectFn: (error: any) => void): void => {
+        const handleFailure = (err: string, rejectFn: (error: string) => void): void => {
             this.trace(`create${logName}OnFailure`, err);
             rejectFn(err);
         };
