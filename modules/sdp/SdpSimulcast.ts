@@ -5,7 +5,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
 
-interface IDescription {
+export interface IDescription extends RTCSessionDescription {
     sdp: string;
     type: RTCSdpType;
 }
@@ -227,8 +227,9 @@ export default class SdpSimulcast {
         }
 
         return {
+            ...description,
             sdp: transform.write(session),
-            type: description.type
+            type: description.type,
         };
     }
 }

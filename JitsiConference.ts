@@ -13,7 +13,6 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import type JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import type JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
-import type JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import type TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
@@ -2988,10 +2987,10 @@ export default class JitsiConference extends Listenable {
 
     /**
      * Finds the SSRC of a given track.
-     * @param {JitsiTrack} track - The track to find the SSRC for.
+     * @param {JitsiLocalTrack} track - The track to find the SSRC for.
      * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
      */
-    getSsrcByTrack(track: JitsiTrack): Optional<number> {
+    getSsrcByTrack(track: JitsiLocalTrack): Optional<number> {
         return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
     }
 
