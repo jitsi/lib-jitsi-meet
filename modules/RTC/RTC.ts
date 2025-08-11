@@ -1,9 +1,13 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep, isEqual } from 'lodash-es';
 
+import type JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import SignalingLayer, { SourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import Listenable from '../util/Listenable';
@@ -11,6 +15,7 @@ import { safeCounterIncrement } from '../util/MathUtil';
 
 import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack from './JitsiLocalTrack';
+import type JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
@@ -45,7 +50,7 @@ let rtcTrackIdCounter = 0;
  *     effects: Array of effect types
  * }}
  */
-function _createLocalTracks(mediaStreamMetaData = []) {
+function _createLocalTracks(mediaStreamMetaData: any[] = []): JitsiLocalTrack[] {
     return mediaStreamMetaData.map(metaData => {
         const {
             constraints,
@@ -81,15 +86,110 @@ function _createLocalTracks(mediaStreamMetaData = []) {
 }
 
 /**
+ * Interface for RTC options
+ */
+interface IRTCOptions {
+    [key: string]: any;
+}
+
+/**
+ * Interface for createPeerConnection options
+ */
+interface ICreatePeerConnectionOptions {
+    audioQuality?: object;
+    capScreenshareBitrate?: boolean;
+    codecSettings?: CodecMimeType[];
+    disableSimulcast?: boolean;
+    disableRtx?: boolean;
+    enableInsertableStreams?: boolean;
+    forceTurnRelay?: boolean;
+    startSilent?: boolean;
+    videoQuality?: object;
+    [key: string]: any;
+}
+
+/**
  *
  */
 export default class RTC extends Listenable {
+    /**
+     * Conference instance
+     */
+    public conference: JitsiConference;
+
+    /**
+     * A map of active <tt>TraceablePeerConnection</tt>.
+     * @type {Map.<number, TraceablePeerConnection>}
+     */
+    public peerConnections: Map<number, TraceablePeerConnection>;
+
+    /**
+     * Array of local tracks
+     */
+    public localTracks: JitsiLocalTrack[];
+
+    /**
+     * Configuration options
+     */
+    public options: IRTCOptions;
+
+    /**
+     * BridgeChannel instance.
+     * @private
+     * @type {BridgeChannel}
+     */
+    private _channel: BridgeChannel | null;
+
+    /**
+     * The value specified to the last invocation of setLastN before the
+     * channel completed opening. If non-null, the value will be sent
+     * through a channel (once) as soon as it opens and will then be
+     * discarded.
+     * @private
+     * @type {number}
+     */
+    private _lastN: number | undefined;
+
+    /**
+     * Defines the forwarded sources list. It can be null or an array once initialised with a channel forwarded
+     * sources event.
+     *
+     * @type {Array<string>|null}
+     * @private
+     */
+    private _forwardedSources: string[] | null;
+
+    /**
+     * The forwarded sources change listener.
+     */
+    private _forwardedSourcesChangeListener: (forwardedSources?: string[]) => void;
+
+    /**
+     * Device list changed listener
+     */
+    private _onDeviceListChanged: () => void;
+
+    /**
+     * Update audio output for audio tracks listener
+     */
+    private _updateAudioOutputForAudioTracks: (deviceId: string) => void;
+
+    /**
+     * Channel open listener
+     */
+    private _channelOpenListener?: () => void;
+
+    /**
+     * Receiver video constraints
+     */
+    private _receiverVideoConstraints?: any;
+
     /**
      *
      * @param conference
      * @param options
      */
-    constructor(conference, options = {}) {
+    constructor(conference: JitsiConference, options: IRTCOptions = {}) {
         super();
         this.conference = conference;
 
@@ -234,7 +334,7 @@ export default class RTC extends Listenable {
      * @private
      * @returns {void}
      */
-    _onDeviceListChanged() {
+    _onDeviceListChanged(): void {
         this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
     }
 
@@ -244,10 +344,10 @@ export default class RTC extends Listenable {
      * @param {array} forwardedSources The new forwarded sources.
      * @private
      */
-    _onForwardedSourcesChanged(forwardedSources = []) {
+    _onForwardedSourcesChanged(forwardedSources: string[] = []): void {
         const oldForwardedSources = this._forwardedSources || [];
-        let leavingForwardedSources = [];
-        let enteringForwardedSources = [];
+        let leavingForwardedSources: string[] = [];
+        let enteringForwardedSources: string[] = [];
         const timestamp = Date.now();
 
         this._forwardedSources = forwardedSources;
@@ -270,7 +370,7 @@ export default class RTC extends Listenable {
      * Should be called when current media session ends and after the
      * PeerConnection has been closed using PeerConnection.close() method.
      */
-    onCallEnded() {
+    onCallEnded(): void {
         if (this._channel) {
             // The BridgeChannel is not explicitly closed as the PeerConnection
             // is closed on call ended which triggers datachannel onclose
@@ -291,7 +391,7 @@ export default class RTC extends Listenable {
      *
      * @param {number} maxFps framerate to be used for desktop track capture.
      */
-    setDesktopSharingFrameRate(maxFps) {
+    setDesktopSharingFrameRate(maxFps: number): void {
         RTCUtils.setDesktopSharingFrameRate(maxFps);
     }
 
@@ -301,7 +401,7 @@ export default class RTC extends Listenable {
      * is established.
      * @param {*} constraints
      */
-    setReceiverVideoConstraints(constraints) {
+    setReceiverVideoConstraints(constraints: any): void {
         if (isEqual(this._receiverVideoConstraints, constraints)) {
             return;
         }
@@ -318,7 +418,7 @@ export default class RTC extends Listenable {
      * @param {SourceName} sourceName - the track's source name.
      * @param {BridgeVideoType} videoType - the track's video type.
      */
-    sendSourceVideoType(sourceName, videoType) {
+    sendSourceVideoType(sourceName: SourceName, videoType: BridgeVideoType): void {
         if (this._channel && this._channel.isOpen()) {
             this._channel.sendSourceVideoTypeMessage(sourceName, videoType);
         }
@@ -329,7 +429,7 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static addListener(eventType, listener) {
+    static addListener(eventType: string, listener: (...args: any[]) => void): void {
         RTCUtils.addListener(eventType, listener);
     }
 
@@ -338,15 +438,20 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static removeListener(eventType, listener) {
+    static removeListener(eventType: string, listener: (...args: any[]) => void): void {
         RTCUtils.removeListener(eventType, listener);
     }
+
+    /**
+     * Static options for the RTC class
+     */
+    static options: IRTCOptions;
 
     /**
      *
      * @param options
      */
-    static init(options = {}) {
+    static init(options: IRTCOptions = {}): any {
         this.options = options;
 
         return RTCUtils.init(this.options);
@@ -373,7 +478,7 @@ export default class RTC extends Listenable {
      * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling, pcConfig, isP2P, options) {
+    createPeerConnection(signaling: SignalingLayer, pcConfig: RTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
         const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
