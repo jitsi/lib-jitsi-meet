@@ -124,6 +124,7 @@ export interface IConferenceOptions {
         };
         startAudioMuted?: number;
         startLastN?: number;
+        startSilent?: boolean;
         startVideoMuted?: number;
         statisticsDisplayName?: string;
         statisticsId?: string;
@@ -303,6 +304,8 @@ export default class JitsiConference extends Listenable {
     public jvbEstablishmentDuration?: number;
     public isDesktopMutedByFocus: boolean;
     public mutedDesktopByFocusActor?: string;
+    public dominantSpeakerIsSilent?: boolean;
+
 
     /**
      * @param {IConferenceOptions} options
