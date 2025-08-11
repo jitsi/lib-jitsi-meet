@@ -4,9 +4,9 @@
 
 import { Context } from './Context';
 
-const contexts = new Map(); // Map participant id => context
+const contexts: Map<string, Context> = new Map(); // Map participant id => context
 
-let sharedContext;
+let sharedContext: Context | undefined;
 
 let enabled = false;
 
@@ -16,7 +16,7 @@ let enabled = false;
  * @param {string} participantId - The participant whose context we need.
  * @returns {Object} The context.
  */
-function getParticipantContext(participantId) {
+function getParticipantContext(participantId: string): Context {
     if (sharedContext) {
         return sharedContext;
     }
@@ -28,7 +28,7 @@ function getParticipantContext(participantId) {
         contexts.set(participantId, context);
     }
 
-    return contexts.get(participantId);
+    return contexts.get(participantId)!;
 }
 
 /**
@@ -39,7 +39,12 @@ function getParticipantContext(participantId) {
  * @param {Object} readableStream - Readable stream part.
  * @param {Object} writableStream - Writable stream part.
  */
-function handleTransform(context, operation, readableStream, writableStream) {
+function handleTransform(
+    context: Context,
+    operation: string,
+    readableStream: ReadableStream,
+    writableStream: WritableStream
+): void {
     if (operation === 'encode' || operation === 'decode') {
         const transformFn = operation === 'encode' ? context.encodeFunction : context.decodeFunction;
         const transformStream = new TransformStream({
@@ -54,7 +59,36 @@ function handleTransform(context, operation, readableStream, writableStream) {
     }
 }
 
-onmessage = event => {
+interface WorkerMessageEvent {
+    operation: string;
+    participantId?: string;
+    readableStream?: ReadableStream;
+    writableStream?: WritableStream;
+    enabled?: boolean;
+    key?: ArrayBuffer | false;
+    keyIndex?: number;
+    sharedKey?: ArrayBuffer;
+}
+
+interface RTCTransformerEvent extends Event {
+    transformer: {
+        options: {
+            operation: string;
+            participantId: string;
+        };
+        readable: ReadableStream;
+        writable: WritableStream;
+    };
+}
+
+// Declare worker scope types
+declare const self: {
+    onmessage: (event: MessageEvent<WorkerMessageEvent>) => void;
+    RTCTransformEvent?: any;
+    onrtctransform?: (event: RTCTransformerEvent) => void;
+};
+
+onmessage = (event: MessageEvent<WorkerMessageEvent>) => {
     const { operation } = event.data;
 
     if (operation === 'initialize') {
@@ -65,25 +99,30 @@ onmessage = event => {
         }
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
-        const context = getParticipantContext(participantId);
-
-        handleTransform(context, operation, readableStream, writableStream);
+        if (readableStream && writableStream && participantId) {
+            const context = getParticipantContext(participantId);
+            handleTransform(context, operation, readableStream, writableStream);
+        }
     } else if (operation === 'setEnabled') {
-        enabled = event.data.enabled;
+        enabled = event.data.enabled ?? false;
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
-        const context = getParticipantContext(participantId);
+        if (participantId && keyIndex !== undefined) {
+            const context = getParticipantContext(participantId);
 
-        if (key) {
-            context.setKey(key, keyIndex);
-        } else {
-            context.setKey(false, keyIndex);
+            if (key) {
+                context.setKey(new Uint8Array(key), keyIndex);
+            } else {
+                context.setKey(false, keyIndex);
+            }
         }
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 
-        contexts.delete(participantId);
+        if (participantId) {
+            contexts.delete(participantId);
+        }
     } else if (operation === 'cleanupAll') {
         contexts.clear();
     } else {
@@ -93,7 +132,7 @@ onmessage = event => {
 
 // Operations using RTCRtpScriptTransform.
 if (self.RTCTransformEvent) {
-    self.onrtctransform = event => {
+    self.onrtctransform = (event: RTCTransformerEvent) => {
         const transformer = event.transformer;
         const { operation, participantId } = transformer.options;
         const context = getParticipantContext(participantId);
