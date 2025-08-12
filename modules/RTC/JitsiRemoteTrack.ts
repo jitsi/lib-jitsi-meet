@@ -41,14 +41,12 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * will become interrupted.
      */
     private _enteredForwardedSourcesTimestamp: Nullable<number>;
-
     private _containerHandlers: { [key: string]: (event: Event) => void; };
-
     private _rtc: RTC;
-    private _ownerEndpointId: string;
     private _muted: boolean;
     private _hasBeenMuted: boolean;
     
+    public ownerEndpointId: string;
     public isP2P: boolean;
     public ssrc: number;
 
@@ -99,7 +97,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             throw new TypeError(`SSRC ${ssrc} is not a number`);
         }
         this.ssrc = ssrc;
-        this._ownerEndpointId = ownerEndpointId;
+        this.ownerEndpointId = ownerEndpointId;
         this._muted = muted;
         this.isP2P = isP2P;
         this._sourceName = sourceName;
@@ -223,8 +221,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Changes the video type of the track.
      *
      * @param {string} type - The new video type("camera", "desktop").
+     * @internal
      */
-    private _setVideoType(type: VideoType): void {
+    _setVideoType(type: VideoType): void {
         if (this.videoType === type) {
             return;
         }
@@ -479,7 +478,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
      */
     getParticipantId(): string {
-        return this._ownerEndpointId;
+        return this.ownerEndpointId;
     }
 
     /**
@@ -517,7 +516,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} owner The endpoint ID of the new owner.
      */
     setOwner(owner: string): void {
-        this._ownerEndpointId = owner;
+        this.ownerEndpointId = owner;
     }
 
     /**
