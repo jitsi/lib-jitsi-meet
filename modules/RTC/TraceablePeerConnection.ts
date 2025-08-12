@@ -949,7 +949,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTrack} - The local video track.
      * @returns {Object}
      */
-    getTargetVideoBitrates(localTrack: JitsiLocalTrack): Record<string, number> {
+    getTargetVideoBitrates(localTrack: JitsiLocalTrack): { download: number; upload: number; } {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
         return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
