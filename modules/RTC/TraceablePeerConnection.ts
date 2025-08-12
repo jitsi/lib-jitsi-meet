@@ -28,37 +28,29 @@ import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
+import { TPCUtils } from './TPCUtils';
 
 /**
  * Interface for legacy WebRTC stats report (pre-standard)
  */
-interface LegacyStatsReport {
+interface ILegacyStatsReport {
     id: string;
-    names(): string[];
-    stat(name: string): string | number;
+    names: () => string[];
+    stat: (name: string) => string | number;
 }
 
 /**
  * Interface for legacy stats response with result() method
  */
-interface LegacyStatsResponse {
-    result(): LegacyStatsReport[];
+interface ILegacyStatsResponse {
+    result: () => ILegacyStatsReport[];
 }
 
 /**
  * Union type for getStats() return value (legacy vs modern)
  */
-type StatsResponse = RTCStatsReport | LegacyStatsResponse;
+type StatsResponse = RTCStatsReport | ILegacyStatsResponse;
 
-/**
- * Extend RTCPeerConnection interface for legacy methods
- */
-declare global {
-    interface RTCPeerConnection {
-        createDTMFSender?(track: MediaStreamTrack): RTCDTMFSender;
-    }
-}
-import { TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
 
@@ -107,8 +99,8 @@ export interface ITPCOptions {
 }
 
 export interface IAudioQuality {
-    stereo?: boolean;
     opusMaxAverageBitrate?: number;
+    stereo?: boolean;
 }
 
 export interface IVideoQuality {
@@ -118,8 +110,8 @@ export interface IVideoQuality {
 
 export interface ICodecSettings {
     codecList: CodecMimeType[];
-    screenshareCodec?: CodecMimeType;
     mediaType?: MediaType;
+    screenshareCodec?: CodecMimeType;
 }
 
 export interface IUpdateLogEntry {
@@ -129,10 +121,10 @@ export interface IUpdateLogEntry {
 }
 
 export interface IStatsEntry {
-    startTime: Date;
     endTime: Date;
-    values: any[];
+    startTime: Date;
     times: number[];
+    values: any[];
 }
 
 export interface ITraceFunction {
@@ -565,8 +557,8 @@ export default class TraceablePeerConnection {
         if (this.maxstats) {
             this.statsinterval = window.setInterval(() => {
                 this.getStats().then((stats: StatsResponse) => {
-                    if (typeof (stats as LegacyStatsResponse)?.result === 'function') {
-                        const results = (stats as LegacyStatsResponse).result();
+                    if (typeof (stats as ILegacyStatsResponse)?.result === 'function') {
+                        const results = (stats as ILegacyStatsResponse).result();
 
                         for (let i = 0; i < results.length; ++i) {
                             const res = results[i];
@@ -596,7 +588,7 @@ export default class TraceablePeerConnection {
      * @param statValue the value to add.
      * @private
      */
-    _processStat(report: RTCStats | LegacyStatsReport, name: string, statValue: string | number | RTCStats): void {
+    _processStat(report: RTCStats | ILegacyStatsReport, name: string, statValue: string | number | RTCStats): void {
         const id = `${report.id}-${name}`;
         let s = this.stats[id];
         const now = new Date();
@@ -1304,6 +1296,7 @@ export default class TraceablePeerConnection {
                             semantics: group.semantics,
                             ssrcs: group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10))
                         };
+
                         ssrcInfo.groups.push(parsedGroup);
                     }
 
