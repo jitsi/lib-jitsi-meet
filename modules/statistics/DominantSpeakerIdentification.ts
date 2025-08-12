@@ -31,7 +31,6 @@ class Speaker {
     private _ssrc: number;
     private _timeProvider: () => number;
 
-    energyScore: number;
     immediateActivity: number;
     longActivity: number;
     mediumActivity: number;
@@ -49,7 +48,6 @@ class Speaker {
         this._lastActivity = timeProvider();
         this._ssrc = ssrc;
         this._timeProvider = timeProvider;
-        this.energyScore = 0;
         this.immediateActivity = 0;
         this.longActivity = 0;
         this.mediumActivity = 0;
@@ -72,7 +70,7 @@ class Speaker {
      * @param level - The audio level (0-127)
      * @returns {void}
      */
-    addAudioLevel(level: number) {
+    addAudioLevel(level: number): void {
         this._audioLevels.push(level);
         this._lastActivity = this._timeProvider();
 
@@ -83,11 +81,6 @@ class Speaker {
         if (this.audioLevels.length > IMMEDIATE_FRAMES) {
             this.audioLevels.shift();
         }
-
-        // Update energy score with exponential smoothing
-        const alpha = 0.1;
-
-        this.energyScore = alpha * level + (1 - alpha) * this.energyScore;
     }
 
     /**
@@ -255,7 +248,7 @@ export default class DominantSpeakerIdentification {
     /**
      * Calculates speech activity score for long interval.
      *
-     * @param {Speakerspeaker - The speaker object.
+     * @param {Speaker} speaker - The speaker object.
      * @returns {number} - The long activity score.
      */
     calculateLongActivity(speaker: Speaker): number {
@@ -367,7 +360,6 @@ export default class DominantSpeakerIdentification {
         for (const [ ssrc, speaker ] of this._speakers) {
             stats[ssrc] = {
                 combinedActivity: this.getCombinedActivity(speaker),
-                energyScore: speaker.energyScore,
                 immediateActivity: speaker.immediateActivity,
                 longActivity: speaker.longActivity,
                 mediumActivity: speaker.mediumActivity,
