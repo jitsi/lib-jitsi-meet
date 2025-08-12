@@ -4,10 +4,11 @@ import * as exported from "./AuthenticationEvents";
 
 describe( "/service/authentication/AuthenticationEvents members", () => {
     const {
-        IDENTITY_UPDATED,
-        AuthenticationEvents,
+        default: AuthenticationEvents,
         ...others
     } = exported as any; // TODO: remove cast after typescript conversion
+    
+    const IDENTITY_UPDATED = AuthenticationEvents.IDENTITY_UPDATED;
 
     it( "known members", () => {
         expect( IDENTITY_UPDATED ).toBe( 'authentication.identity_updated' );
