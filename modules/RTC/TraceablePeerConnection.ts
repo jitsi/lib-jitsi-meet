@@ -386,7 +386,8 @@ export default class TraceablePeerConnection {
 
         // Note: The constraints parameter is deprecated in modern WebRTC
         // RTCPeerConnection constructor only accepts RTCConfiguration
-        this.peerconnection = new RTCPeerConnection(pcConfig);
+        //@ts-ignore
+        this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
 
         this.tpcUtils = new TPCUtils(this, {
             audioQuality: options.audioQuality,
@@ -1639,13 +1640,8 @@ export default class TraceablePeerConnection {
         this.localSSRCs.delete(localTrack.rtcId);
 
         if (webRtcStream) {
-            // Use removeTrack instead of deprecated removeStream
-            const track = localTrack.getTrack();
-            const sender = this.peerconnection.getSenders().find(s => s.track === track);
-
-            if (sender) {
-                this.peerconnection.removeTrack(sender);
-            }
+            //@ts-ignore
+            this.peerconnection.removeStream(webRtcStream);
         }
     }
 
