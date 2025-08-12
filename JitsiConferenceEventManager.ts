@@ -14,6 +14,7 @@ import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaType } from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
+import { ReceiverAudioSubscription } from './service/RTC/ReceiverAudioSubscription';
 import { VideoType } from './service/RTC/VideoType';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -487,8 +488,27 @@ export default class JitsiConferenceEventManager {
             RTCEvents.REMOTE_TRACK_REMOVED,
             conference.onRemoteTrackRemoved.bind(conference));
 
+        rtc.addListener(
+            RTCEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED,
+            (mode, list) => {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED, mode, list);
+
+                // We need to update the speaker list if audio subscription mode changes such that it triggers a
+                // dominant speaker change based on the remote audio levels.
+                if (conference.statistics && mode !== ReceiverAudioSubscription.ALL) {
+                    const remoteSpeakerIds = Array.isArray(list) ? list.map(source => source.split('-')[0]) : [];
+
+                    conference.statistics.setSpeakerList(remoteSpeakerIds);
+                }
+            }
+        );
+
         rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
             (dominant: string, previous: string[], silence: boolean) => {
+                if (conference.statistics.dominantSpeakerEnabled) {
+                    return;
+                }
                 if ((conference.lastDominantSpeaker !== dominant || conference.dominantSpeakerIsSilent !== silence)
                         && conference.room) {
                     conference.lastDominantSpeaker = dominant;
@@ -596,6 +616,10 @@ export default class JitsiConferenceEventManager {
         conference.statistics.addBeforeDisposedListener(() => {
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
+        });
+
+        conference.statistics.addDominantSpeakerListener((tpc, dominant, previous) => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous);
         });
 
         conference.statistics.addEncodeTimeStatsListener((tpc: TraceablePeerConnection, stats: RTCEncodedAudioFrameMetadata) => {

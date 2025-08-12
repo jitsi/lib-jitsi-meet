@@ -4,6 +4,7 @@ import * as exported from "./RTCEvents";
 
 describe( "/service/RTC/RTCEvents members", () => {
     const {
+        AUDIO_SUBSCRIPTION_MODE_CHANGED,
         BRIDGE_BWE_STATS_RECEIVED,
         DATA_CHANNEL_OPEN,
         DATA_CHANNEL_CLOSED,
@@ -34,6 +35,7 @@ describe( "/service/RTC/RTCEvents members", () => {
     } = exported;
 
     it( "known members", () => {
+        expect( AUDIO_SUBSCRIPTION_MODE_CHANGED ).toBe( 'rtc.audio_subscription_mode_changed' );
         expect( BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
         expect( DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
         expect( DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
@@ -60,6 +62,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( AUDIO_SSRCS_REMAPPED ).toBe( 'rtc.audio_ssrcs_remapped' );
 
         if ( RTCEvents ) {
+            expect( RTCEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED ).toBe( 'rtc.audio_subscription_mode_changed' );
             expect( RTCEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
             expect( RTCEvents.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
             expect( RTCEvents.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
@@ -86,6 +89,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         }
 
         if ( RTCEventsDefault ) {
+            expect( RTCEventsDefault.AUDIO_SUBSCRIPTION_MODE_CHANGED ).toBe( 'rtc.audio_subscription_mode_changed' );
             expect( RTCEventsDefault.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'rtc.bridge_bwe_stats_received' );
             expect( RTCEventsDefault.DATA_CHANNEL_OPEN ).toBe( 'rtc.data_channel_open' );
             expect( RTCEventsDefault.DATA_CHANNEL_CLOSED ).toBe( 'rtc.data_channel_closed' );
