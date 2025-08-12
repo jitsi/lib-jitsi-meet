@@ -218,20 +218,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Changes the video type of the track.
-     *
-     * @param {string} type - The new video type("camera", "desktop").
-     * @internal
-     */
-    _setVideoType(type: VideoType): void {
-        if (this.videoType === type) {
-            return;
-        }
-        this.videoType = type;
-        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
-    }
-
-    /**
      * Handles track play events.
      */
     private _playCallback(): void {
@@ -336,6 +322,21 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             this._trackStreamingStatusImpl = null;
             this._trackStreamingStatus = null;
         }
+    }
+
+
+    /**
+     * Changes the video type of the track.
+     *
+     * @param {string} type - The new video type("camera", "desktop").
+     * @internal
+     */
+    _setVideoType(type: VideoType): void {
+        if (this.videoType === type) {
+            return;
+        }
+        this.videoType = type;
+        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
     }
 
     /**
