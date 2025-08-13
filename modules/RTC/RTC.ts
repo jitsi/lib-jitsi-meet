@@ -1,20 +1,22 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep, isEqual } from 'lodash-es';
 
-import type JitsiConference from '../../JitsiConference';
+import JitsiConference, { IConferenceOptions } from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
+import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import SignalingLayer, { SourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
+import { IReceiverVideoConstraints } from '../qualitycontrol/ReceiveVideoController';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
 
 import BridgeChannel from './BridgeChannel';
-import JitsiLocalTrack from './JitsiLocalTrack';
+import JitsiLocalTrack, { IStreamEffect, ITrackConstraints } from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
@@ -23,27 +25,39 @@ interface IExtendedRTCConfiguration extends RTCConfiguration {
     encodedInsertableStreams?: boolean;
 }
 
-
 const logger = getLogger('modules/RTC/RTC');
 
 /**
  * The counter used to generated id numbers assigned to peer connections
  * @type {number}
  */
-let peerConnectionIdCounter = 0;
+let peerConnectionIdCounter: number = 0;
 
 /**
  * The counter used to generate id number for the local
  * <code>MediaStreamTrack</code>s.
  * @type {number}
  */
-let rtcTrackIdCounter = 0;
+let rtcTrackIdCounter: number = 0;
+
+/**
+ * Interface for media stream metadata used in track creation
+ */
+export interface IMediaStreamMetaData {
+    constraints?: ITrackConstraints;
+    effects?: IStreamEffect[];
+    sourceId?: string;
+    sourceType?: string;
+    stream: MediaStream;
+    track: MediaStreamTrack;
+    videoType?: VideoType;
+}
 
 /**
  * Creates {@code JitsiLocalTrack} instances from the passed in meta information
  * about MedieaTracks.
  *
- * @param {Object[]} mediaStreamMetaData - An array of meta information with
+ * @param {IMediaStreamMetaData[]} mediaStreamMetaData - An array of meta information with
  * MediaTrack instances. Each can look like:
  * {{
  *     stream: MediaStream instance that holds a track with audio or video,
@@ -54,7 +68,7 @@ let rtcTrackIdCounter = 0;
  *     effects: Array of effect types
  * }}
  */
-function _createLocalTracks(mediaStreamMetaData: any[] = []): JitsiLocalTrack[] {
+function _createLocalTracks(mediaStreamMetaData: IMediaStreamMetaData[] = []): JitsiLocalTrack[] {
     return mediaStreamMetaData.map(metaData => {
         const {
             constraints,
@@ -74,11 +88,11 @@ function _createLocalTracks(mediaStreamMetaData: any[] = []): JitsiLocalTrack[] 
         rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
 
         return new JitsiLocalTrack({
-            constraints,
-            deviceId,
-            effects,
-            facingMode,
-            mediaType: track.kind,
+            constraints: constraints || {},
+            deviceId: deviceId || '',
+            effects: effects || [],
+            facingMode: facingMode as CameraFacingMode,
+            mediaType: track.kind as MediaType,
             rtcId: rtcTrackIdCounter,
             sourceId,
             sourceType,
@@ -92,14 +106,34 @@ function _createLocalTracks(mediaStreamMetaData: any[] = []): JitsiLocalTrack[] 
 /**
  * Interface for RTC options
  */
-interface IRTCOptions {
-    [key: string]: any;
+export interface IRTCOptions {
+    audioQuality?: {
+        stereo?: boolean;
+    };
+    desktopSharingFrameRate?: {
+        max?: number;
+        min?: number;
+    };
+    disableAEC?: boolean;
+    disableAGC?: boolean;
+    disableAP?: boolean;
+    disableNS?: boolean;
+    enableAnalyticsLogging?: boolean;
+    mediaDevices?: {
+        audio?: MediaTrackConstraints | boolean;
+        video?: MediaTrackConstraints | boolean;
+    };
+    videoQuality?: {
+        disabledCodec?: string;
+        enableAdaptiveMode?: boolean;
+        maxbitratesvideo?: Record<string, any>;
+    };
 }
 
 /**
  * Interface for createPeerConnection options
  */
-interface ICreatePeerConnectionOptions {
+export interface ICreatePeerConnectionOptions {
     audioQuality: object;
     capScreenshareBitrate: boolean;
     codecSettings: CodecMimeType[];
@@ -161,7 +195,7 @@ export default class RTC extends Listenable {
     /**
      * Receiver video constraints
      */
-    private _receiverVideoConstraints?: any;
+    private _receiverVideoConstraints?: IReceiverVideoConstraints;
 
     /**
      * Conference instance
@@ -182,14 +216,14 @@ export default class RTC extends Listenable {
     /**
      * Configuration options
      */
-    public options: IRTCOptions;
+    public options: IRTCOptions | IConferenceOptions;
 
     /**
      *
      * @param conference
      * @param options
      */
-    constructor(conference: JitsiConference, options: IRTCOptions = {}) {
+    constructor(conference: JitsiConference, options: IRTCOptions | IConferenceOptions = {}) {
         super();
         this.conference = conference;
 
@@ -253,7 +287,7 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static addListener(eventType: string, listener: (...args: any[]) => void): void {
+    static addListener(eventType: string, listener: EventListener): void {
         RTCUtils.addListener(eventType, listener);
     }
 
@@ -262,7 +296,7 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static removeListener(eventType: string, listener: (...args: any[]) => void): void {
+    static removeListener(eventType: string, listener: EventListener): void {
         RTCUtils.removeListener(eventType, listener);
     }
 
@@ -270,7 +304,7 @@ export default class RTC extends Listenable {
      *
      * @param options
      */
-    static init(options: IRTCOptions = {}): any {
+    static init(options: IRTCOptions = {}): void {
         this.options = options;
 
         return RTCUtils.init(this.options);
@@ -429,9 +463,9 @@ export default class RTC extends Listenable {
      * Sets the receiver video constraints that determine how bitrate is allocated to each of the video streams
      * requested from the bridge. The constraints are cached and sent through the bridge channel once the channel
      * is established.
-     * @param {*} constraints
+     * @param {IReceiverVideoConstraints} constraints
      */
-    setReceiverVideoConstraints(constraints: any): void {
+    setReceiverVideoConstraints(constraints: IReceiverVideoConstraints): void {
         if (isEqual(this._receiverVideoConstraints, constraints)) {
             return;
         }
