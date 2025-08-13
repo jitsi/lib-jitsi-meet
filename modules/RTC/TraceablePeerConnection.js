@@ -782,7 +782,7 @@ export default class TraceablePeerConnection {
         if (!remoteTracks?.length) {
             return removeSsrcInfo;
         }
-        const primarySsrcs = remoteTracks.map(track => track.getSSRC());
+        const primarySsrcs = remoteTracks.map(track => track.getSsrc());
 
         for (const [ sourceName, sourceInfo ] of this._remoteSsrcMap) {
             if (sourceInfo.ssrcList?.some(ssrc => primarySsrcs.includes(Number(ssrc)))) {
@@ -828,7 +828,7 @@ export default class TraceablePeerConnection {
         }
 
         for (const remoteTrack of this.getRemoteTracks()) {
-            if (remoteTrack.getSSRC() === ssrc) {
+            if (remoteTrack.getSsrc() === ssrc) {
                 return remoteTrack;
             }
         }
@@ -854,7 +854,7 @@ export default class TraceablePeerConnection {
         const remoteTrack = this.getRemoteTracks().find(findTrackById);
 
         if (remoteTrack) {
-            return remoteTrack.getSSRC();
+            return remoteTrack.getSsrc();
         }
 
         return null;

@@ -848,7 +848,7 @@ export default class AvgRTPStatsReporter {
                         ssrc => videoTracks.find(
                             track =>
                                 !track.isMuted()
-                                    && track.getSSRC() === ssrc
+                                    && track.getSsrc() === ssrc
                                     && track.videoType === videoType));
             }
         } else {
@@ -943,7 +943,7 @@ export default class AvgRTPStatsReporter {
                     = ssrcs.filter(
                         ssrc => videoTracks.find(
                             track => !track.isMuted()
-                                && track.getSSRC() === ssrc
+                                && track.getSsrc() === ssrc
                                 && track.videoType === videoType));
             }
         } else {
