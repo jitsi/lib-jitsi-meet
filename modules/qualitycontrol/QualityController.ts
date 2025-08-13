@@ -49,7 +49,7 @@ interface IOutboundRtpStats {
     timestamp: number;
 }
 
-interface ISourceStats {
+export interface ISourceStats {
     avgEncodeTime: number;
     codec: CodecMimeType;
     encodeResolution: number;
