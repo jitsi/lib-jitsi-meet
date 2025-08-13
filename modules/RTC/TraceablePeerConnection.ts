@@ -386,7 +386,7 @@ export default class TraceablePeerConnection {
 
         // Note: The constraints parameter is deprecated in modern WebRTC
         // RTCPeerConnection constructor only accepts RTCConfiguration
-        //@ts-ignore
+        // @ts-ignore
         this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
 
         this.tpcUtils = new TPCUtils(this, {
@@ -1640,7 +1640,7 @@ export default class TraceablePeerConnection {
         this.localSSRCs.delete(localTrack.rtcId);
 
         if (webRtcStream) {
-            //@ts-ignore
+            // @ts-ignore
             this.peerconnection.removeStream(webRtcStream);
         }
     }
