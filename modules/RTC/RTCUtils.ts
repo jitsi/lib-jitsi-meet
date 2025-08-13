@@ -48,8 +48,8 @@ interface IObtainAudioAndVideoOptions {
     cameraDeviceId?: string;
     constraints?: MediaStreamConstraints;
     desktopSharingFrameRate?: {
-        min?: number;
         max?: number;
+        min?: number;
     };
     desktopSharingSourceDevice?: string;
     desktopSharingSources?: string[];
@@ -674,7 +674,7 @@ class RTCUtils extends Listenable {
             // the option is defined.
             if (desktopSharingSourceDevice) {
                 const matchingDevice: MediaDeviceInfo | undefined
-                    = availableDevices && availableDevices.find((device: MediaDeviceInfo) =>
+                    = availableDevices?.find((device: MediaDeviceInfo) =>
                         device.kind === 'videoinput'
                             && (device.deviceId === desktopSharingSourceDevice
                             || device.label === desktopSharingSourceDevice));
@@ -942,7 +942,7 @@ class RTCUtils extends Listenable {
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */
-    getEventDataForActiveDevice(device: MediaDeviceInfo): { deviceList: MediaDeviceInfo[] } {
+    getEventDataForActiveDevice(device: MediaDeviceInfo): { deviceList: MediaDeviceInfo[]; } {
         const deviceList: MediaDeviceInfo[] = [];
         const deviceData = {
             deviceId: device.deviceId,
