@@ -262,9 +262,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Returns the synchronization source identifier (SSRC) of this remote
      * track.
      *
+     * @override
      * @returns {number} the SSRC of this remote track.
      */
-    getSSRC() {
+    getSsrc() {
         return this.ssrc;
     }
 
@@ -272,6 +273,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Returns the tracks source name
      *
+     * @override
      * @returns {string} the track's source name
      */
     getSourceName() {
@@ -288,8 +290,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Sets the name of the source associated with the remtoe track.
+     * Sets the name of the source associated with the remote track.
      *
+     * @override
      * @param {string} name - The source name to be associated with the track.
      */
     setSourceName(name) {
@@ -357,6 +360,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param container the HTML container which can be 'video' or 'audio'
      * element.
      * @private
+     * @override
      */
     _attachTTFMTracker(container) {
         if ((ttfmTrackerAudioAttached && this.isAudioTrack())
@@ -379,6 +383,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @private
+     * @override
      */
     _onTrackAttach(container) {
         containerEvents.forEach(event => {
@@ -391,6 +396,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @private
+     * @override
      */
     _onTrackDetach(container) {
         containerEvents.forEach(event => {
@@ -515,6 +521,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     toString() {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
-            this.getSSRC()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
+            this.getSsrc()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }
 }
