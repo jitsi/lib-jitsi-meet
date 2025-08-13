@@ -259,7 +259,7 @@ const SDPUtil = {
      * @param {string} sessionpart - The session part to search within.
      * @returns {Optional<string>} - The found line or false if not found.
      */
-    findLine(haystack, needle, sessionpart) {
+    findLine(haystack, needle, sessionpart = '') {
         let lines = haystack.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
@@ -290,7 +290,7 @@ const SDPUtil = {
      * @param {string} sessionpart - The session part to search within.
      * @returns {Array<string>} - An array of found lines.
      */
-    findLines(haystack, needle, sessionpart) {
+    findLines(haystack, needle, sessionpart = '') {
         let lines = haystack.split('\r\n');
         const needles = [];
 

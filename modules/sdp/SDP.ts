@@ -13,11 +13,82 @@ import $ from '../util/XMLParser';
 import SDPUtil from './SDPUtil';
 
 /**
+ * Interface for source information
+ */
+interface ISourceInfo {
+    groups?: Array<{
+        semantics: string;
+        ssrcs: string[];
+    }>;
+    mediaType: MediaType;
+    msid: string;
+    ssrcList: string[];
+}
+
+/**
+ * Interface for media info
+ */
+interface IMediaInfo {
+    mediaType: MediaType;
+    mediaindex: number;
+    mid: string;
+    ssrcGroups: Array<{
+        semantics: string;
+        ssrcs: string[];
+    }>;
+    ssrcs: { [ssrc: string]: {
+        lines: string[];
+        ssrc: string;
+    }; };
+}
+
+/**
  * A class that translates the Jingle messages received from the signaling server into SDP format that the
  * browser understands and vice versa. This is needed for media session establishment and for signaling local and
  * remote sources across peers.
  */
 export default class SDP {
+    /**
+     * The raw SDP string
+     */
+    raw: string;
+
+    /**
+     * The session part of the SDP
+     */
+    session: string;
+
+    /**
+     * The media sections of the SDP
+     */
+    media: string[];
+
+    /**
+     * Whether this SDP belongs to a p2p peerconnection
+     */
+    isP2P: boolean;
+
+    /**
+     * This flag will make {@link transportToJingle} and {@link jingle2media} replace ICE candidates IPs with
+     * invalid value of '1.1.1.1' which will cause ICE failure. The flag is used in the automated testing.
+     */
+    failICE: boolean;
+
+    /**
+     * Whether or not to remove TCP ice candidates when translating from/to jingle.
+     */
+    removeTcpCandidates: boolean;
+
+    /**
+     * Whether or not to remove UDP ice candidates when translating from/to jingle.
+     */
+    removeUdpCandidates: boolean;
+
+    /**
+     * The initial last N value that is passed to Jicofo on join.
+     */
+    initialLastN?: number;
+
     /**
      * Constructor.
      *
@@ -25,7 +96,7 @@ export default class SDP {
      * when Jingle->SDP conversion is needed.
      * @param {boolean} isP2P - Whether this SDP belongs to a p2p peerconnection.
      */
-    constructor(sdp, isP2P = false) {
+    constructor(sdp: string, isP2P: boolean = false) {
         this._updateSessionAndMediaSections(sdp);
         this.isP2P = isP2P;
         this.raw = this.session + this.media.join('');
@@ -46,10 +117,11 @@ export default class SDP {
      * This is needed for browsers that need both the streamId and trackId to be reported in the msid attribute.
      *
      * @param {String} msid - The msid attribute value.
+     * @param {MediaType} mediaType - The media type.
      * @param {Number} idx - The index of the m-line in the SDP.
      * @returns {String} - The adjusted msid semantic.
      */
-    _adjustMsidSemantic(msid, mediaType, idx) {
+    _adjustMsidSemantic(msid: string, mediaType: MediaType, idx: number): string {
         if (mediaType === MediaType.AUDIO || !browser.isChromiumBased() || browser.isEngineVersionGreaterThan(116)) {
             return msid;
         }
@@ -70,7 +142,7 @@ export default class SDP {
      * @returns {void}
      * @private
      */
-    _updateSessionAndMediaSections(sdp) {
+    _updateSessionAndMediaSections(sdp?: string): void {
         const media = typeof sdp === 'string' ? sdp.split('\r\nm=') : this.raw.split('\r\nm=');
 
         for (let i = 1, length = media.length; i < length; i++) {
@@ -88,11 +160,11 @@ export default class SDP {
     /**
      * Adds or removes the sources from the SDP.
      *
-     * @param {Object} sourceMap - The map of the sources that are being added/removed.
+     * @param {Map<string, ISourceInfo>} sourceMap - The map of the sources that are being added/removed.
      * @param {boolean} isAdd - Whether the sources are being added or removed.
      * @returns {Array<number>} - The indices of the new m-lines that were added/modifed in the SDP.
      */
-    updateRemoteSources(sourceMap, isAdd = true) {
+    updateRemoteSources(sourceMap: Map<string, ISourceInfo>, isAdd: boolean = true): number[] {
         const updatedMidIndices = [];
 
         for (const source of sourceMap.values()) {
@@ -156,15 +228,16 @@ export default class SDP {
      * Adds a new m-line to the description so that a new local or remote source can be added to the conference.
      *
      * @param {MediaType} mediaType media type of the new source that is being added.
+     * @param {boolean} isRemote - Whether this is for a remote source.
      * @returns {void}
      */
-    addMlineForNewSource(mediaType, isRemote = false) {
+    addMlineForNewSource(mediaType: MediaType, isRemote: boolean = false): void {
         const mid = this.media.length;
         const sdp = transform.parse(this.raw);
         const mline = cloneDeep(sdp.media.find(m => m.type === mediaType));
 
         // Edit media direction, mid and remove the existing ssrc lines in the m-line.
-        mline.mid = mid;
+        mline.mid = mid.toString();
         mline.direction = isRemote ? MediaDirection.SENDONLY : MediaDirection.RECVONLY;
         mline.msid = undefined;
         mline.ssrcs = undefined;
@@ -189,7 +262,7 @@ export default class SDP {
      * @param {*} jingle - The Jingle message element.
      * @returns {void}
      */
-    fromJingle(jingle) {
+    fromJingle(jingle: any): void {
         const sessionId = Date.now();
 
         // Use a unique session id for every TPC.
@@ -266,7 +339,7 @@ export default class SDP {
                 newMline.ssrcs = [];
                 newMline.ssrcGroups = [];
                 newMline.mid = newMedia.length.toString();
-                newMline.bundleOnly = undefined;
+                (newMline as any).bundleOnly = undefined;
                 newMline.direction = idx ? 'sendonly' : 'sendrecv';
 
                 // Add the sources and the related FID source group to the new m-line.
@@ -275,7 +348,7 @@ export default class SDP {
 
                 if (group) {
                     if (ssrc.attribute === 'msid') {
-                        ssrc.value = this._adjustMsidSemantic(ssrc.value, type, newMline.mid);
+                        ssrc.value = this._adjustMsidSemantic(ssrc.value, type as MediaType, parseInt(newMline.mid, 10));
                     }
                     newMline.ssrcs.push(ssrc);
                     const otherSsrc = group.ssrcs.split(' ').find(s => s !== ssrcId);
@@ -284,7 +357,7 @@ export default class SDP {
                         const otherSource = mLine.ssrcs.find(source => source.id.toString() === otherSsrc);
 
                         if (otherSource.attribute === 'msid') {
-                            otherSource.value = this._adjustMsidSemantic(otherSource.value, type, newMline.mid);
+                            otherSource.value = this._adjustMsidSemantic(otherSource.value, type as MediaType, parseInt(newMline.mid, 10));
                         }
                         newMline.ssrcs.push(otherSource);
                     }
@@ -327,13 +400,14 @@ export default class SDP {
     /**
      * Returns an SSRC Map by extracting SSRCs and SSRC groups from all the m-lines in the SDP.
      *
-     * @returns {*}
+     * @returns {Map<number, IMediaInfo>}
      */
-    getMediaSsrcMap() {
+    getMediaSsrcMap(): Map<number, IMediaInfo> {
         const sourceInfo = new Map();
 
         this.media.forEach((mediaItem, mediaindex) => {
-            const mid = SDPUtil.parseMID(SDPUtil.findLine(mediaItem, 'a=mid:'));
+            const midLine = SDPUtil.findLine(mediaItem, 'a=mid:');
+            const mid = typeof midLine === 'string' ? SDPUtil.parseMID(midLine) : '';
             const mline = SDPUtil.parseMLine(mediaItem.split('\r\n')[0]);
             const isRecvOnly = SDPUtil.findLine(mediaItem, `a=${MediaDirection.RECVONLY}`);
 
@@ -350,7 +424,7 @@ export default class SDP {
                 ssrcs: {}
             };
 
-            SDPUtil.findLines(mediaItem, 'a=ssrc:').forEach(line => {
+            SDPUtil.findLines(mediaItem, 'a=ssrc:').forEach((line: string) => {
                 const linessrc = line.substring(7).split(' ')[0];
 
                 // Allocate new ChannelSsrc.
@@ -363,7 +437,7 @@ export default class SDP {
                 media.ssrcs[linessrc].lines.push(line);
             });
 
-            SDPUtil.findLines(mediaItem, 'a=ssrc-group:').forEach(line => {
+            SDPUtil.findLines(mediaItem, 'a=ssrc-group:').forEach((line: string) => {
                 const idx = line.indexOf(' ');
                 const semantics = line.substr(0, idx).substr(13);
                 const ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -386,14 +460,14 @@ export default class SDP {
      * Converts the content section from Jingle to a media section that can be appended to the SDP.
      *
      * @param {*} content - The content section from the Jingle message element.
-     * @returns {*} - The constructed media sections.
+     * @returns {string} - The constructed media sections.
      */
-    jingle2media(content) {
+    jingle2media(content: any): string {
         const desc = content.find('>description');
         const transport = content.find(`>transport[xmlns='${XEP.ICE_UDP_TRANSPORT}']`);
         let sdp = '';
         const sctp = transport.find(`>sctpmap[xmlns='${XEP.SCTP_DATA_CHANNEL}']`);
-        const media = { media: desc.attr('media') };
+        const media: any = { media: desc.attr('media') };
         const mid = content.attr('name');
 
         media.port = '9';
@@ -541,7 +615,7 @@ export default class SDP {
                         if (name === 'msid') {
                             value = this._adjustMsidSemantic(value, media.media, mid);
                         }
-                        if (value && value.length) {
+                        if (value?.length) {
                             sourceStr += `:${value}`;
                         }
 
@@ -601,14 +675,14 @@ export default class SDP {
      * Converts the RTCP attributes for the session from SDP to XMPP format.
      * https://xmpp.org/extensions/xep-0293.html
      *
-     * @param {*} mediaIndex - The index of the media section in the SDP.
+     * @param {number} mediaIndex - The index of the media section in the SDP.
      * @param {*} elem - The Jingle message element.
-     * @param {*} payloadtype - payload type for the codec.
+     * @param {string} payloadtype - payload type for the codec.
      */
-    rtcpFbToJingle(mediaIndex, elem, payloadtype) {
-        const lines = SDPUtil.findLines(this.media[mediaIndex], `a=rtcp-fb:${payloadtype}`);
+    rtcpFbToJingle(mediaIndex: number, elem: any, payloadtype: string): void {
+        const lines = SDPUtil.findLines(this.media[mediaIndex], `a=rtcp-fb:${payloadtype}`, '');
 
-        lines.forEach(line => {
+        lines.forEach((line: string) => {
             const feedback = SDPUtil.parseRTCPFB(line);
 
             if (feedback.type === 'trr-int') {
@@ -638,7 +712,7 @@ export default class SDP {
      * @returns - The updated Jingle message element.
      */
     toJingle(elem, thecreator) {
-        SDPUtil.findLines(this.session, 'a=group:').forEach(line => {
+        SDPUtil.findLines(this.session, 'a=group:', '').forEach((line: string) => {
             const parts = line.split(' ');
             const semantics = parts.shift().substr(8);
 
@@ -652,7 +726,11 @@ export default class SDP {
 
             // For p2p connection, 'mid' will be used in the bundle group.
             if (this.isP2P) {
-                mediaTypes = this.media.map(mediaItem => SDPUtil.parseMID(SDPUtil.findLine(mediaItem, 'a=mid:')));
+                mediaTypes = this.media.map(mediaItem => {
+                    const midLine = SDPUtil.findLine(mediaItem, 'a=mid:');
+
+                    return typeof midLine === 'string' ? SDPUtil.parseMID(midLine) : '';
+                });
             }
             mediaTypes.forEach(type => elem.c('content', { name: type }).up());
             elem.up();
@@ -662,11 +740,11 @@ export default class SDP {
             const mline = SDPUtil.parseMLine(mediaItem.split('\r\n')[0]);
             const mediaType = mline.media === MediaType.APPLICATION ? 'data' : mline.media;
 
-            let ssrc = false;
-            const assrcline = SDPUtil.findLine(mediaItem, 'a=ssrc:');
-            const isRecvOnly = SDPUtil.findLine(mediaItem, `a=${MediaDirection.RECVONLY}`);
+            let ssrc: string | false = false;
+            const assrcline = SDPUtil.findLine(mediaItem, 'a=ssrc:', '');
+            const isRecvOnly = SDPUtil.findLine(mediaItem, `a=${MediaDirection.RECVONLY}`, '');
 
-            if (assrcline) {
+            if (assrcline && typeof assrcline === 'string') {
                 ssrc = assrcline.substring(7).split(' ')[0];
             }
 
@@ -709,9 +787,9 @@ export default class SDP {
                         description.append(source);
                     }
 
-                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
+                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:', '');
 
-                    ssrcGroupLines.forEach(line => {
+                    ssrcGroupLines.forEach((line: string) => {
                         const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
 
                         if (ssrcs.length) {
@@ -734,7 +812,8 @@ export default class SDP {
 
                 return;
             }
-            const mid = SDPUtil.parseMID(SDPUtil.findLine(mediaItem, 'a=mid:'));
+            const midLine = SDPUtil.findLine(mediaItem, 'a=mid:', '');
+            const mid = typeof midLine === 'string' ? SDPUtil.parseMID(midLine) : '';
 
             elem.c('content', {
                 creator: thecreator,
@@ -754,21 +833,23 @@ export default class SDP {
                     xmlns: XEP.RTP_MEDIA
                 });
 
-                mline.fmt.forEach(format => {
-                    const rtpmap = SDPUtil.findLine(mediaItem, `a=rtpmap:${format}`);
+                mline.fmt.forEach((format: string) => {
+                    const rtpmap = SDPUtil.findLine(mediaItem, `a=rtpmap:${format}`, '');
 
-                    elem.c('payload-type', SDPUtil.parseRTPMap(rtpmap));
+                    if (typeof rtpmap === 'string') {
+                        elem.c('payload-type', SDPUtil.parseRTPMap(rtpmap));
 
-                    const afmtpline = SDPUtil.findLine(mediaItem, `a=fmtp:${format}`);
+                        const afmtpline = SDPUtil.findLine(mediaItem, `a=fmtp:${format}`, '');
 
-                    if (afmtpline) {
-                        const fmtpParameters = SDPUtil.parseFmtp(afmtpline);
+                        if (afmtpline && typeof afmtpline === 'string') {
+                            const fmtpParameters = SDPUtil.parseFmtp(afmtpline);
 
-                        fmtpParameters.forEach(param => elem.c('parameter', param).up());
+                            fmtpParameters.forEach((param: any) => elem.c('parameter', param).up());
+                        }
+
+                        this.rtcpFbToJingle(i, elem, format);
+                        elem.up();
                     }
-
-                    this.rtcpFbToJingle(i, elem, format);
-                    elem.up();
                 });
 
                 if (ssrc && !(isRecvOnly && browser.isFirefox())) {
@@ -798,9 +879,9 @@ export default class SDP {
                         elem.up();
                     }
 
-                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
+                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:', '');
 
-                    ssrcGroupLines.forEach(line => {
+                    ssrcGroupLines.forEach((line: string) => {
                         const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
 
                         if (ssrcs.length) {
@@ -814,7 +895,7 @@ export default class SDP {
                     });
                 }
 
-                const ridLines = SDPUtil.findLines(mediaItem, 'a=rid:');
+                const ridLines = SDPUtil.findLines(mediaItem, 'a=rid:', '');
 
                 if (ridLines.length && browser.usesRidsForSimulcast()) {
                     // Map a line which looks like "a=rid:2 send" to just the rid ("2").
@@ -924,7 +1005,7 @@ export default class SDP {
         const sctpport = SDPUtil.findLine(this.media[mediaIndex], 'a=sctp-port:', this.session);
         const sctpmap = SDPUtil.findLine(this.media[mediaIndex], 'a=sctpmap:', this.session);
 
-        if (sctpport) {
+        if (sctpport && typeof sctpport === 'string') {
             const sctpAttrs = SDPUtil.parseSCTPPort(sctpport);
 
             elem.c('sctpmap', {
@@ -962,7 +1043,7 @@ export default class SDP {
 
             const setupLine = SDPUtil.findLine(this.media[mediaIndex], 'a=setup:', this.session);
 
-            if (setupLine) {
+            if (setupLine && typeof setupLine === 'string') {
                 fingerprint.setup = setupLine.substr(8);
             }
             elem.attrs(fingerprint);
