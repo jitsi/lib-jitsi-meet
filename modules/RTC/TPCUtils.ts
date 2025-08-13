@@ -17,14 +17,66 @@ import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
+import TraceablePeerConnection from './TraceablePeerConnection';
+
 const logger = getLogger('modules/RTC/TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
+
+// Audio quality configuration interface
+interface IAudioQuality {
+    enableOpusDtx?: boolean;
+    opusMaxAverageBitrate?: number;
+    stereo?: boolean;
+}
+
+// Codec configuration interface (reusable for all video codecs)
+interface ICodecConfig {
+    maxBitratesVideo?: {
+        [key: string]: number;
+    };
+    scalabilityModeEnabled?: boolean;
+    useKSVC?: boolean;
+    useSimulcast?: boolean;
+}
+
+// Video quality configuration interface
+interface IVideoQuality {
+    desktopbitrate?: number;
+    [CodecMimeType.AV1]?: ICodecConfig;
+    [CodecMimeType.H264]?: ICodecConfig;
+    [CodecMimeType.VP8]?: ICodecConfig;
+    [CodecMimeType.VP9]?: ICodecConfig;
+    maxbitratesvideo?: {
+        [codec: string]: {
+            [quality: string]: number;
+        };
+    };
+}
+
+export interface ITPCUtilsOptions {
+    audioQuality?: IAudioQuality;
+    isP2P?: boolean;
+    videoQuality?: IVideoQuality;
+}
+
+export interface IStreamEncoding {
+    active: boolean;
+    maxBitrate: number;
+    rid?: string;
+    scalabilityMode?: VideoEncoderScalabilityMode;
+    scaleResolutionDownBy: number;
+}
 
 /**
  * Handles all the utility functions for the TraceablePeerConnection class, like calculating the encoding parameters,
  * determining the media direction, calculating bitrates based on the current codec settings, etc.
  */
 export class TPCUtils {
+    pc: TraceablePeerConnection;
+    options: ITPCUtilsOptions;
+    codecSettings: Partial<Record<CodecMimeType, any>>;
+    supportsDDHeaderExt: boolean;
+
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
@@ -34,7 +86,7 @@ export class TPCUtils {
      * @param options.isP2P - whether the connection is a P2P connection.
      * @param options.videoQuality - the video quality settings that are used to calculate the encoding parameters.
      */
-    constructor(peerconnection, options = {}) {
+    constructor(peerconnection: TraceablePeerConnection, options: ITPCUtilsOptions = {}) {
         this.pc = peerconnection;
         this.options = options;
         this.codecSettings = cloneDeep(STANDARD_CODEC_SETTINGS);
@@ -57,8 +109,7 @@ export class TPCUtils {
                 const bitrateSettings = codecConfig?.maxBitratesVideo
 
                     // Read the deprecated settings for max bitrates.
-                    ?? (videoQualitySettings.maxbitratesvideo
-                        && videoQualitySettings.maxbitratesvideo[codec.toUpperCase()]);
+                    ?? (videoQualitySettings?.maxbitratesvideo[codec.toUpperCase()]);
 
                 if (bitrateSettings) {
                     const settings = Object.values(VIDEO_QUALITY_SETTINGS);
@@ -127,7 +178,7 @@ export class TPCUtils {
             }
         }
 
-        const config = {
+        const config: IStreamEncoding = {
             active: effectiveNewHeight > 0,
             maxBitrate,
             scalabilityMode,
@@ -226,7 +277,7 @@ export class TPCUtils {
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }
 
-        const standardSimulcastEncodings = [
+        const standardSimulcastEncodings: IStreamEncoding[] = [
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[0],
@@ -477,7 +528,7 @@ export class TPCUtils {
             if (mLine.type === MediaType.AUDIO) {
                 return;
             }
-            if (!mLine.ssrcGroups || !mLine.ssrcGroups.length) {
+            if (!mLine.ssrcGroups?.length) {
                 return;
             }
             let reorderedSsrcs = [];
@@ -516,10 +567,10 @@ export class TPCUtils {
         const rtpSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
 
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
-            const { encodings } = rtpSender.getParameters();
+            const params = rtpSender.getParameters();
 
-            if (encodings[0].codec) {
-                return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
+            if (params.codecs?.length > 0) {
+                return params.codecs[0].mimeType.split('/')[1].toLowerCase();
             }
         }
 
@@ -615,7 +666,7 @@ export class TPCUtils {
         if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
-            if (fidGroups && fidGroups.length) {
+            if (fidGroups?.length) {
                 fidGroups.forEach(group => {
                     ssrcs.push(group.ssrcs.split(' ')[0]);
                 });
@@ -718,7 +769,7 @@ export class TPCUtils {
      * @returns {boolean}
      */
     isRunningInSimulcastMode(videoCodec) {
-        if (!this.codecSettings || !this.codecSettings[videoCodec]) {
+        if (!this.codecSettings?.[videoCodec]) {
             // If codec settings are not available, assume no simulcast
             return false;
         }
@@ -756,7 +807,7 @@ export class TPCUtils {
 
         const mungedSdp = parsedSdp;
         const { isP2P } = this.options;
-        const mLines = mungedSdp.media.filter(m => m.type === codecSettings.mediaType);
+        const mLines = mungedSdp.media.filter(m => m.type === (codecSettings as any).mediaType);
 
         for (const mLine of mLines) {
             const currentCodecs = this._getConfiguredVideoCodecsImpl(mungedSdp);
@@ -782,7 +833,7 @@ export class TPCUtils {
 
             // Reorder the codecs based on the preferred settings.
             if (!this.pc.usesCodecSelectionAPI()) {
-                for (const codec of codecSettings.codecList.slice().reverse()) {
+                for (const codec of (codecSettings as any).codecList.slice().reverse()) {
                     SDPUtil.preferCodec(mLine, codec, isP2P);
                 }
             }
@@ -879,7 +930,7 @@ export class TPCUtils {
         const mungedSdp = parsedSdp;
         const direction = isLocalSdp ? MediaDirection.RECVONLY : MediaDirection.SENDONLY;
         const mLines = mungedSdp.media.filter(m => m.type === MediaType.VIDEO && m.direction !== direction);
-        const currentCodec = pcCodecSettings.codecList[0];
+        const currentCodec = (pcCodecSettings as any).codecList[0];
         const codecScalabilityModeSettings = this.codecSettings[currentCodec];
 
         for (const mLine of mLines) {
