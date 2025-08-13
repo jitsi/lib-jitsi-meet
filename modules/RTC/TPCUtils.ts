@@ -115,7 +115,7 @@ export class TPCUtils {
                 const bitrateSettings = codecConfig?.maxBitratesVideo
 
                     // Read the deprecated settings for max bitrates.
-                    ?? (videoQualitySettings?.maxbitratesvideo[codec.toUpperCase()]);
+                    ?? (videoQualitySettings?.maxbitratesvideo?.[codec.toUpperCase()]);
 
                 if (bitrateSettings) {
                     const settings = Object.values(VIDEO_QUALITY_SETTINGS);
