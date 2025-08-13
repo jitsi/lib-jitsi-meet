@@ -88,7 +88,7 @@ describe('JingleSessionPC', () => {
                 // FIXME content-modify is sent before session-accept
                 expect(sendIQSpy.calls.count()).toBe(2);
 
-                expect(sendIQSpy.calls.first().args[0].toString()).toBe(
+                expect((sendIQSpy.calls.first().args[0] as any).toString()).toBe(
                     '<iq to="peer2" type="set" xmlns="jabber:client">'
                     + '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
                     + '<content name="video" senders="both">'

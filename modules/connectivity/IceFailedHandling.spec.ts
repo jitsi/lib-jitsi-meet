@@ -1,3 +1,4 @@
+import { IMockConferenceOptions } from '../qualitycontrol/ReceiveVideoController.spec';
 import Listenable from '../util/Listenable';
 import { nextTick } from '../util/TestUtils';
 
@@ -7,6 +8,8 @@ import IceFailedHandling from './IceFailedHandling';
  * Mock conference for the purpose of this test.
  */
 class MockConference extends Listenable {
+    options: IMockConferenceOptions;
+    
     /**
      * A constructor...
      */

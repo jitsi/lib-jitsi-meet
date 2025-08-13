@@ -29,8 +29,8 @@ describe('XmppConnection', () => {
     beforeEach(() => {
         jasmine.clock().install();
 
-        spyOn(Strophe, 'Connection').and.callFake((...args) => {
-            mockStropheConnection = new MockStropheConnection(...args);
+        spyOn(Strophe, 'Connection').and.callFake((...args: any[]) => {
+            mockStropheConnection = new MockStropheConnection(...(args as []));
 
             return mockStropheConnection;
         });
@@ -118,7 +118,7 @@ describe('XmppConnection', () => {
         it('will reject the promise on explicit disconnect', () => {
             mockStropheConnection.simulateConnectionState(Strophe.Status.CONNECTING);
 
-            let rejected = false, resolved = false;
+            let rejected: boolean | Error = false, resolved = false;
 
             connection
                 .sendIQ2(testIQ(), { timeout: 15000 })
