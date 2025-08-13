@@ -48,7 +48,7 @@ describe('SDPDiffer', () => {
                 'a=ssrc:4005 name:a8f7g30-v0\r\n',
                 'a=ssrc-group:FID 4004 4005\r\n'
             ].join('');
-            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
+            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld), false);
             const sourceRemoveIq = $iq({})
                 .c('jingle', { action: 'source-remove' });
 
@@ -58,7 +58,7 @@ describe('SDPDiffer', () => {
 
             expect(removedAudioSources[0].getAttribute('name')).toBe('a8f7g30-a0');
 
-            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew));
+            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew), false);
             const sourceAddIq = $iq({})
                 .c('jingle', { action: 'source-add' });
 
@@ -118,7 +118,7 @@ describe('SDPDiffer', () => {
                 'a=ssrc:4005 name:a8f7g30-v0\r\n',
                 'a=ssrc-group:FID 4004 4005\r\n'
             ].join('');
-            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
+            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld), false);
             const sourceRemoveIq = $iq({})
                 .c('jingle', { action: 'source-remove' });
 
@@ -132,7 +132,7 @@ describe('SDPDiffer', () => {
             expect(removedAudioSources[0].getAttribute('ssrc')).toBe('2002');
             expect(removedVideoSources.length).toBe(0);
 
-            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew));
+            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew), false);
             const sourceAddIq = $iq({})
                 .c('jingle', { action: 'source-add' });
 
@@ -192,7 +192,7 @@ describe('SDPDiffer', () => {
                 'a=ssrc:4005 name:a8f7g30-v0\r\n',
                 'a=ssrc-group:FID 4004 4005\r\n'
             ].join('');
-            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
+            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld), false);
             const sourceRemoveIq = $iq({})
                 .c('jingle', { action: 'source-remove' });
 
@@ -204,7 +204,7 @@ describe('SDPDiffer', () => {
             expect(removedAudioSources.length).toBe(0);
             expect(removedVideoSources.length).toBe(0);
 
-            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew));
+            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew), false);
             const sourceAddIq = $iq({})
                 .c('jingle', { action: 'source-add' });
 
@@ -252,7 +252,7 @@ describe('SDPDiffer', () => {
                 'a=ssrc:4005 name:a8f7g30-v0\r\n',
                 'a=ssrc-group:FID 4004 4005\r\n'
             ].join('');
-            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld));
+            const newToOldDiff = new SDPDiffer(new SDP(testSdpNew), new SDP(testSdpOld), false);
             const sourceRemoveIq = $iq({})
                 .c('jingle', { action: 'source-remove' });
 
@@ -264,7 +264,7 @@ describe('SDPDiffer', () => {
             expect(removedAudioSources.length).toBe(0);
             expect(removedVideoSources.length).toBe(0);
 
-            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew));
+            const oldToNewDiff = new SDPDiffer(new SDP(testSdpOld), new SDP(testSdpNew), false);
             const sourceAddIq = $iq({})
                 .c('jingle', { action: 'source-add' });
 
