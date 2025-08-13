@@ -2,8 +2,10 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
+import EventEmitter from '../util/EventEmitter';
 import { isValidNumber } from '../util/MathUtil';
 
 const logger = getLogger('modules/statistics/RTPStatsCollector');
@@ -15,7 +17,7 @@ const logger = getLogger('modules/statistics/RTPStatsCollector');
  * @param totalPackets the number of all packets.
  * @returns {number} packet loss percent
  */
-function calculatePacketLoss(lostPackets, totalPackets) {
+function calculatePacketLoss(lostPackets: number, totalPackets: number): number {
     if (lostPackets > 0 && totalPackets > 0) {
         return Math.round(lostPackets / totalPackets * 100);
     }
@@ -24,19 +26,65 @@ function calculatePacketLoss(lostPackets, totalPackets) {
 }
 
 /**
+ * Interface for bitrate object.
+ */
+export interface IBitrate {
+    download: number;
+    upload: number;
+}
+
+/**
+ * Interface for loss object.
+ */
+export interface ILoss {
+    isDownloadStream: boolean;
+    packetsLost: number;
+    packetsTotal: number;
+}
+
+/**
+ * Interface for resolution object.
+ */
+export interface IResolution {
+    height: number;
+    width: number;
+}
+
+/**
+ * Interface for encode stats object.
+ */
+export interface IEncodeStats {
+    codec: string;
+    encodeTime: number;
+    qualityLimitationReason: string;
+    resolution: IResolution;
+    timestamp: number;
+}
+
+/**
  * Holds "statistics" for a single SSRC.
  */
 class SsrcStats {
+    public loss: ILoss;
+    public bitrate: IBitrate;
+    public resolution: IResolution;
+    public framerate: number;
+    public codec: string;
+    public encodeStats?: Map<number, IEncodeStats>;
+
     /**
      * Constructor.
      */
     constructor() {
-        this.loss = {};
+        this.loss = { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
         this.bitrate = {
             download: 0,
             upload: 0
         };
-        this.resolution = {};
+        this.resolution = {
+            height: 0,
+            width: 0
+        };
         this.framerate = 0;
         this.codec = '';
     }
@@ -45,16 +93,19 @@ class SsrcStats {
      * Sets the "loss" object.
      * @param loss the value to set.
      */
-    setLoss(loss) {
-        this.loss = loss || {};
+    setLoss(loss: ILoss | undefined): void {
+        this.loss = loss || { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
     }
 
     /**
      * Sets resolution that belong to the ssrc represented by this instance.
      * @param resolution new resolution value to be set.
      */
-    setResolution(resolution) {
-        this.resolution = resolution || {};
+    setResolution(resolution?: IResolution): void {
+        this.resolution = resolution || {
+            height: 0,
+            width: 0
+        };
     }
 
     /**
@@ -62,7 +113,7 @@ class SsrcStats {
      * the respective fields of the "bitrate" field of this object.
      * @param bitrate an object holding the values to add.
      */
-    addBitrate(bitrate) {
+    addBitrate(bitrate: IBitrate): void {
         this.bitrate.download += bitrate.download;
         this.bitrate.upload += bitrate.upload;
     }
@@ -71,7 +122,7 @@ class SsrcStats {
      * Resets the bit rate for given <tt>ssrc</tt> that belong to the peer
      * represented by this instance.
      */
-    resetBitrate() {
+    resetBitrate(): void {
         this.bitrate.download = 0;
         this.bitrate.upload = 0;
     }
@@ -80,7 +131,7 @@ class SsrcStats {
      * Sets the "framerate".
      * @param framerate the value to set.
      */
-    setFramerate(framerate) {
+    setFramerate(framerate?: number): void {
         this.framerate = framerate || 0;
     }
 
@@ -88,7 +139,7 @@ class SsrcStats {
      * Sets the codec.
      * @param codec the value to set.
      */
-    setCodec(codec) {
+    setCodec(codec?: string): void {
         this.codec = codec || '';
     }
 
@@ -96,8 +147,8 @@ class SsrcStats {
      * Sets the encode stats.
      * @param encodeStats the value to set.
      */
-    setEncodeStats(encodeStats) {
-        this.encodeStats = encodeStats || {};
+    setEncodeStats(encodeStats?: Map<number, IEncodeStats>): void {
+        this.encodeStats = encodeStats || undefined;
     }
 }
 
@@ -105,6 +156,23 @@ class SsrcStats {
  * Conference statistics.
  */
 class ConferenceStats {
+    public bandwidth?: IBitrate;
+    public bitrate?: {
+        audio?: IBitrate;
+        download?: number;
+        total?: IBitrate;
+        upload?: number;
+        video?: IBitrate;
+    };
+
+    public packetLoss?: {
+        download?: number;
+        total: number;
+        upload: number;
+    };
+
+    public transport?: Array<Record<string, any>>;
+
     /**
      * Constructor.
      */
@@ -113,19 +181,41 @@ class ConferenceStats {
          * The bandwidth
          * @type {{}}
          */
-        this.bandwidth = {};
+        this.bandwidth = {
+            download: 0,
+            upload: 0
+        };
 
         /**
          * The bit rate
          * @type {{}}
          */
-        this.bitrate = {};
+        this.bitrate = {
+            audio: {
+                download: 0,
+                upload: 0
+            },
+            download: 0,
+            total: {
+                download: 0,
+                upload: 0
+            },
+            upload: 0,
+            video: {
+                download: 0,
+                upload: 0
+            }
+        };
 
         /**
          * The packet loss rate
          * @type {{}}
          */
-        this.packetLoss = null;
+        this.packetLoss = {
+            download: 0,
+            total: 0,
+            upload: 0
+        };
 
         /**
          * Array with the transport information.
@@ -145,6 +235,22 @@ class ConferenceStats {
  * instance as an event source.
  */
 export default class StatsCollector {
+    private peerconnection: TraceablePeerConnection;
+    private currentStatsReport?: RTCStatsReport;
+    private previousStatsReport?: RTCStatsReport;
+    private audioLevelsIntervalId?: NodeJS.Timeout;
+    private eventEmitter: EventEmitter;
+    private conferenceStats: ConferenceStats;
+    private audioLevelsIntervalMilis: number;
+    private speakerList: Array<string>;
+    private statsIntervalId?: NodeJS.Timeout;
+    private statsIntervalMilis: number;
+    /**
+     * Maps SSRC numbers to {@link SsrcStats}.
+     * @type {Map<number,SsrcStats>}
+     */
+    private ssrc2stats: Map<number, SsrcStats>;
+
     /**
      * Creates new <tt>StatsCollector</tt> instance.
      * @param peerconnection WebRTC PeerConnection object.
@@ -153,116 +259,111 @@ export default class StatsCollector {
      * @param eventEmitter
      * @constructor
      */
-    constructor(peerconnection, audioLevelsInterval, statsInterval, eventEmitter) {
+    constructor(
+            peerconnection: TraceablePeerConnection,
+            audioLevelsInterval: number,
+            statsInterval: number,
+            eventEmitter: EventEmitter
+    ) {
         this.peerconnection = peerconnection;
         this.currentStatsReport = null;
         this.previousStatsReport = null;
         this.audioLevelsIntervalId = null;
         this.eventEmitter = eventEmitter;
         this.conferenceStats = new ConferenceStats();
-
         // Updates stats interval
         this.audioLevelsIntervalMilis = audioLevelsInterval;
-
         this.speakerList = [];
         this.statsIntervalId = null;
         this.statsIntervalMilis = statsInterval;
-
         /**
          * Maps SSRC numbers to {@link SsrcStats}.
-         * @type {Map<number,SsrcStats}
+         * @type {Map<number,SsrcStats>}
          */
-        this.ssrc2stats = new Map();
+        this.ssrc2stats = new Map<number, SsrcStats>();
     }
 
-    /**
-     * Set the list of the remote speakers for which audio levels are to be calculated.
-     *
-     * @param {Array<string>} speakerList - Endpoint ids.
-     * @returns {void}
-     */
-    setSpeakerList(speakerList) {
-        this.speakerList = speakerList;
-    }
 
     /**
-     * Stops stats updates.
+     * Calculates bitrate between before and now using a supplied field name and its
+     * value in the stats.
+     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
+     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} before the
+     * previous stats.
+     * @param fieldName the field to use for calculations.
+     * @return {number} the calculated bitrate between now and before.
+     * @private
      */
-    stop() {
-        if (this.audioLevelsIntervalId) {
-            clearInterval(this.audioLevelsIntervalId);
-            this.audioLevelsIntervalId = null;
+    private _calculateBitrate(
+            now: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+            before: RTCInboundRtpStreamStats | RTCSentRtpStreamStats,
+            fieldName: string
+    ): number {
+        const bytesNow = this.getNonNegativeValue(now[fieldName]);
+        const bytesBefore = this.getNonNegativeValue(before[fieldName]);
+        const bytesProcessed = Math.max(0, bytesNow - bytesBefore);
+
+        const timeMs = now.timestamp - before.timestamp;
+        let bitrateKbps = 0;
+
+        if (timeMs > 0) {
+        // TODO is there any reason to round here?
+            bitrateKbps = Math.round((bytesProcessed * 8) / timeMs);
         }
 
-        if (this.statsIntervalId) {
-            clearInterval(this.statsIntervalId);
-            this.statsIntervalId = null;
-        }
+        return bitrateKbps;
     }
 
     /**
-     * Callback passed to <tt>getStats</tt> method.
-     * @param error an error that occurred on <tt>getStats</tt> call.
-     */
-    errorCallback(error) {
-        logger.error('Get stats error', error);
-        this.stop();
+ * Calculates the frames per second rate between before and now using a supplied field name and its value in stats.
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
+ * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} before the previous stats
+ * @param {string} fieldName the field to use for calculations.
+ * @returns {number} the calculated frame rate between now and before.
+ */
+    private _calculateFps(
+            now: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+            before: RTCOutboundRtpStreamStats | RTCSentRtpStreamStats,
+            fieldName: string
+    ): number {
+        const timeMs = now.timestamp - before.timestamp;
+        let frameRate = 0;
+
+        if (timeMs > 0 && now[fieldName]) {
+            const numberOfFramesSinceBefore = now[fieldName] - before[fieldName];
+
+            frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
+        }
+
+        return frameRate;
     }
 
     /**
-     * Starts stats updates.
+     * Converts the value to a non-negative number.
+     * If the value is either invalid or negative then 0 will be returned.
+     * @param {*} v
+     * @return {number}
+     * @private
      */
-    start(startAudioLevelStats) {
-        if (startAudioLevelStats && browser.supportsReceiverStats()) {
-            this.audioLevelsIntervalId = setInterval(
-                () => {
-                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
+    private getNonNegativeValue(v: unknown): number {
+        let value = v;
 
-                    for (const ssrc in audioLevels) {
-                        if (audioLevels.hasOwnProperty(ssrc)) {
-                            // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
-                            const audioLevel = audioLevels[ssrc] * 2.5;
-
-                            this.eventEmitter.emit(
-                                StatisticsEvents.AUDIO_LEVEL,
-                                this.peerconnection,
-                                Number.parseInt(ssrc, 10),
-                                audioLevel,
-                                false /* isLocal */);
-                        }
-                    }
-                },
-                this.audioLevelsIntervalMilis
-            );
+        if (typeof value !== 'number') {
+            value = Number(value);
         }
 
-        const processStats = () => {
-            // Interval updates
-            this.peerconnection.getStats()
-                .then(report => {
-                    this.currentStatsReport = typeof report?.result === 'function'
-                        ? report.result()
-                        : report;
+        if (!isValidNumber(value)) {
+            return 0;
+        }
 
-                    try {
-                        this.processStatsReport();
-                    } catch (error) {
-                        logger.error('Processing of RTP stats failed:', error);
-                    }
-                    this.previousStatsReport = this.currentStatsReport;
-                })
-                .catch(error => this.errorCallback(error));
-        };
-
-        processStats();
-        this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
+        return Math.max(0, value as number);
     }
 
     /**
      * Process and emit statistics report.
      * @private
      */
-    _processAndEmitReport() {
+    private _processAndEmitReport(): void {
         // process stats
         const totalPackets = {
             download: 0,
@@ -306,8 +407,8 @@ export default class StatsCollector {
                 continue; // eslint-disable-line no-continue
             }
 
-            let audioCodec;
-            let videoCodec;
+            let audioCodec: string | undefined;
+            let videoCodec: string | undefined;
 
             if (track.isAudioTrack()) {
                 audioBitrateDownload += ssrcBitrateDownload;
@@ -420,82 +521,25 @@ export default class StatsCollector {
         this.conferenceStats.transport = [];
     }
 
-    /**
-     * Converts the value to a non-negative number.
-     * If the value is either invalid or negative then 0 will be returned.
-     * @param {*} v
-     * @return {number}
-     * @private
-     */
-    getNonNegativeValue(v) {
-        let value = v;
-
-        if (typeof value !== 'number') {
-            value = Number(value);
-        }
-
-        if (!isValidNumber(value)) {
-            return 0;
-        }
-
-        return Math.max(0, value);
-    }
 
     /**
-     * Calculates bitrate between before and now using a supplied field name and its
-     * value in the stats.
-     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
-     * @param {RTCInboundRtpStreamStats|RTCSentRtpStreamStats} before the
-     * previous stats.
-     * @param fieldName the field to use for calculations.
-     * @return {number} the calculated bitrate between now and before.
-     * @private
+     * Callback passed to <tt>getStats</tt> method.
+     * @param error an error that occurred on <tt>getStats</tt> call.
      */
-    _calculateBitrate(now, before, fieldName) {
-        const bytesNow = this.getNonNegativeValue(now[fieldName]);
-        const bytesBefore = this.getNonNegativeValue(before[fieldName]);
-        const bytesProcessed = Math.max(0, bytesNow - bytesBefore);
-
-        const timeMs = now.timestamp - before.timestamp;
-        let bitrateKbps = 0;
-
-        if (timeMs > 0) {
-            // TODO is there any reason to round here?
-            bitrateKbps = Math.round((bytesProcessed * 8) / timeMs);
-        }
-
-        return bitrateKbps;
-    }
-
-    /**
-     * Calculates the frames per second rate between before and now using a supplied field name and its value in stats.
-     * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} now the current stats
-     * @param {RTCOutboundRtpStreamStats|RTCSentRtpStreamStats} before the previous stats
-     * @param {string} fieldName the field to use for calculations.
-     * @returns {number} the calculated frame rate between now and before.
-     */
-    _calculateFps(now, before, fieldName) {
-        const timeMs = now.timestamp - before.timestamp;
-        let frameRate = 0;
-
-        if (timeMs > 0 && now[fieldName]) {
-            const numberOfFramesSinceBefore = now[fieldName] - before[fieldName];
-
-            frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
-        }
-
-        return frameRate;
+    errorCallback(error: Error): void {
+        logger.error('Get stats error', error);
+        this.stop();
     }
 
     /**
      * Stats processing for spec-compliant RTCPeerConnection#getStats.
      */
-    processStatsReport() {
-        const byteSentStats = {};
-        const encodedTimeStatsPerSsrc = new Map();
+    processStatsReport(): void {
+        const byteSentStats: Record<number, number> = {};
+        const encodedTimeStatsPerSsrc: Map<number, IEncodeStats> = new Map();
 
-        this.currentStatsReport.forEach(now => {
-            const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
+        this.currentStatsReport?.forEach(now => {
+            const before = this.previousStatsReport ? this.previousStatsReport[now.id] : null;
 
             // RTCIceCandidatePairStats - https://w3c.github.io/webrtc-stats/#candidatepair-dict*
             if (now.type === 'candidate-pair' && now.nominated && now.state === 'succeeded') {
@@ -509,8 +553,8 @@ export default class StatsCollector {
                     };
                 }
 
-                const remoteUsedCandidate = this.currentStatsReport.get(now.remoteCandidateId);
-                const localUsedCandidate = this.currentStatsReport.get(now.localCandidateId);
+                const remoteUsedCandidate = this.currentStatsReport?.[now.remoteCandidateId];
+                const localUsedCandidate = this.currentStatsReport?.[now.localCandidateId];
 
                 // RTCIceCandidateStats
                 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
@@ -595,7 +639,7 @@ export default class StatsCollector {
                     });
                 }
 
-                let resolution;
+                let resolution: IResolution | undefined;
 
                 // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
                 // Chromium based and version 112 and later since 'track' based stats are no longer available there
@@ -634,7 +678,7 @@ export default class StatsCollector {
                     });
                 }
 
-                const codec = this.currentStatsReport.get(now.codecId);
+                const codec = this.currentStatsReport?.[now.codecId];
 
                 if (codec) {
                     /**
@@ -658,7 +702,7 @@ export default class StatsCollector {
                         const encodeTimeDelta = now.totalEncodeTime - before.totalEncodeTime;
                         const framesEncodedDelta = now.framesEncoded - before.framesEncoded;
                         const encodeTimePerFrameInMs = 1000 * encodeTimeDelta / framesEncodedDelta;
-                        const encodeTimeStats = {
+                        const encodeTimeStats: IEncodeStats = {
                             codec: codecShortType,
                             encodeTime: encodeTimePerFrameInMs,
                             qualityLimitationReason: now.qualityLimitationReason,
@@ -676,7 +720,7 @@ export default class StatsCollector {
                 && now.type === 'track'
                 && now.kind === MediaType.VIDEO
                 && !now.remoteSource) {
-                const resolution = {
+                const resolution: IResolution = {
                     height: now.frameHeight,
                     width: now.frameWidth
                 };
@@ -721,5 +765,80 @@ export default class StatsCollector {
         }
 
         this._processAndEmitReport();
+    }
+
+
+    /**
+     * Set the list of the remote speakers for which audio levels are to be calculated.
+     *
+     * @param {Array<string>} speakerList - Endpoint ids.
+     * @returns {void}
+     */
+    setSpeakerList(speakerList: Array<string>): void {
+        this.speakerList = speakerList;
+    }
+
+    /**
+     * Stops stats updates.
+     */
+    stop(): void {
+        if (this.audioLevelsIntervalId) {
+            clearInterval(this.audioLevelsIntervalId);
+            this.audioLevelsIntervalId = null;
+        }
+
+        if (this.statsIntervalId) {
+            clearInterval(this.statsIntervalId);
+            this.statsIntervalId = null;
+        }
+    }
+
+    /**
+     * Starts stats updates.
+     */
+    start(startAudioLevelStats: boolean): void {
+        if (startAudioLevelStats && browser.supportsReceiverStats()) {
+            this.audioLevelsIntervalId = setInterval(
+                () => {
+                    const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
+
+                    for (const ssrc in audioLevels) {
+                        if (audioLevels.hasOwnProperty(ssrc)) {
+                            // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
+                            const audioLevel = audioLevels[ssrc] * 2.5;
+
+                            this.eventEmitter.emit(
+                                StatisticsEvents.AUDIO_LEVEL,
+                                this.peerconnection,
+                                Number.parseInt(ssrc, 10),
+                                audioLevel,
+                                false /* isLocal */);
+                        }
+                    }
+                },
+                this.audioLevelsIntervalMilis
+            );
+        }
+
+        const processStats = () => {
+            // Interval updates
+            this.peerconnection.getStats()
+                .then(report => {
+                    this.currentStatsReport = typeof report?.result === 'function'
+                        ? report.result()
+                        : report;
+
+                    try {
+                        this.processStatsReport();
+                    } catch (error) {
+                        logger.error('Processing of RTP stats failed:', error);
+                    }
+                    this.previousStatsReport = this.currentStatsReport;
+                })
+                .catch((error: Error) => this.errorCallback(error));
+        };
+
+        processStats();
+        this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
     }
 }
