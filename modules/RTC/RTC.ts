@@ -15,9 +15,13 @@ import { safeCounterIncrement } from '../util/MathUtil';
 
 import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack from './JitsiLocalTrack';
-import type JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
+
+// Extend RTCConfiguration to include the encodedInsertableStreams property
+interface IExtendedRTCConfiguration extends RTCConfiguration {
+    encodedInsertableStreams?: boolean;
+}
 
 
 const logger = getLogger('modules/RTC/RTC');
@@ -96,42 +100,27 @@ interface IRTCOptions {
  * Interface for createPeerConnection options
  */
 interface ICreatePeerConnectionOptions {
-    audioQuality?: object;
-    capScreenshareBitrate?: boolean;
-    codecSettings?: CodecMimeType[];
-    disableSimulcast?: boolean;
-    disableRtx?: boolean;
-    enableInsertableStreams?: boolean;
-    forceTurnRelay?: boolean;
-    startSilent?: boolean;
-    videoQuality?: object;
-    [key: string]: any;
+    audioQuality: object;
+    capScreenshareBitrate: boolean;
+    codecSettings: CodecMimeType[];
+    disableRtx: boolean;
+    disableSimulcast: boolean;
+    enableInsertableStreams: boolean;
+    forceTurnRelay: boolean;
+    startSilent: boolean;
+    videoQuality: object;
 }
 
 /**
  *
  */
 export default class RTC extends Listenable {
-    /**
-     * Conference instance
-     */
-    public conference: JitsiConference;
+
 
     /**
-     * A map of active <tt>TraceablePeerConnection</tt>.
-     * @type {Map.<number, TraceablePeerConnection>}
+     * Static options for the RTC class
      */
-    public peerConnections: Map<number, TraceablePeerConnection>;
-
-    /**
-     * Array of local tracks
-     */
-    public localTracks: JitsiLocalTrack[];
-
-    /**
-     * Configuration options
-     */
-    public options: IRTCOptions;
+    static options: IRTCOptions;
 
     /**
      * BridgeChannel instance.
@@ -165,16 +154,6 @@ export default class RTC extends Listenable {
     private _forwardedSourcesChangeListener: (forwardedSources?: string[]) => void;
 
     /**
-     * Device list changed listener
-     */
-    private _onDeviceListChanged: () => void;
-
-    /**
-     * Update audio output for audio tracks listener
-     */
-    private _updateAudioOutputForAudioTracks: (deviceId: string) => void;
-
-    /**
      * Channel open listener
      */
     private _channelOpenListener?: () => void;
@@ -183,6 +162,27 @@ export default class RTC extends Listenable {
      * Receiver video constraints
      */
     private _receiverVideoConstraints?: any;
+
+    /**
+     * Conference instance
+     */
+    public conference: JitsiConference;
+
+    /**
+     * A map of active <tt>TraceablePeerConnection</tt>.
+     * @type {Map.<number, TraceablePeerConnection>}
+     */
+    public peerConnections: Map<number, TraceablePeerConnection>;
+
+    /**
+     * Array of local tracks
+     */
+    public localTracks: JitsiLocalTrack[];
+
+    /**
+     * Configuration options
+     */
+    public options: IRTCOptions;
 
     /**
      *
@@ -249,6 +249,47 @@ export default class RTC extends Listenable {
     }
 
     /**
+     *
+     * @param eventType
+     * @param listener
+     */
+    static addListener(eventType: string, listener: (...args: any[]) => void): void {
+        RTCUtils.addListener(eventType, listener);
+    }
+
+    /**
+     *
+     * @param eventType
+     * @param listener
+     */
+    static removeListener(eventType: string, listener: (...args: any[]) => void): void {
+        RTCUtils.removeListener(eventType, listener);
+    }
+
+    /**
+     *
+     * @param options
+     */
+    static init(options: IRTCOptions = {}): any {
+        this.options = options;
+
+        return RTCUtils.init(this.options);
+    }
+
+
+    /**
+     * Exposes the private helper for converting a WebRTC MediaStream to a
+     * JitsiLocalTrack.
+     *
+     * @param {Array<Object>} tracksInfo
+     * @returns {Array<JitsiLocalTrack>}
+     */
+    static createLocalTracks(tracksInfo) {
+        return _createLocalTracks(tracksInfo);
+    }
+
+
+    /**
      * Removes any listeners and stored state from this {@code RTC} instance.
      *
      * @returns {void}
@@ -260,17 +301,6 @@ export default class RTC extends Listenable {
         if (this._channelOpenListener) {
             this.removeListener(RTCEvents.DATA_CHANNEL_OPEN, this._channelOpenListener);
         }
-    }
-
-    /**
-     * Exposes the private helper for converting a WebRTC MediaStream to a
-     * JitsiLocalTrack.
-     *
-     * @param {Array<Object>} tracksInfo
-     * @returns {Array<JitsiLocalTrack>}
-     */
-    static createLocalTracks(tracksInfo) {
-        return _createLocalTracks(tracksInfo);
     }
 
     /**
@@ -408,7 +438,7 @@ export default class RTC extends Listenable {
 
         this._receiverVideoConstraints = cloneDeep(constraints);
 
-        if (this._channel && this._channel.isOpen()) {
+        if (this?._channel.isOpen()) {
             this._channel.sendReceiverVideoConstraintsMessage(constraints);
         }
     }
@@ -419,42 +449,9 @@ export default class RTC extends Listenable {
      * @param {BridgeVideoType} videoType - the track's video type.
      */
     sendSourceVideoType(sourceName: SourceName, videoType: BridgeVideoType): void {
-        if (this._channel && this._channel.isOpen()) {
+        if (this?._channel.isOpen()) {
             this._channel.sendSourceVideoTypeMessage(sourceName, videoType);
         }
-    }
-
-    /**
-     *
-     * @param eventType
-     * @param listener
-     */
-    static addListener(eventType: string, listener: (...args: any[]) => void): void {
-        RTCUtils.addListener(eventType, listener);
-    }
-
-    /**
-     *
-     * @param eventType
-     * @param listener
-     */
-    static removeListener(eventType: string, listener: (...args: any[]) => void): void {
-        RTCUtils.removeListener(eventType, listener);
-    }
-
-    /**
-     * Static options for the RTC class
-     */
-    static options: IRTCOptions;
-
-    /**
-     *
-     * @param options
-     */
-    static init(options: IRTCOptions = {}): any {
-        this.options = options;
-
-        return RTCUtils.init(this.options);
     }
 
     /* eslint-disable max-params */
@@ -478,7 +475,7 @@ export default class RTC extends Listenable {
      * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling: SignalingLayer, pcConfig: RTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
+    createPeerConnection(signaling: SignalingLayer, pcConfig: IExtendedRTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
         const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
@@ -836,7 +833,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
     sendEndpointStatsMessage(payload) {
-        if (this._channel && this._channel.isOpen()) {
+        if (this?._channel.isOpen()) {
             this._channel.sendEndpointStatsMessage(payload);
         }
     }
@@ -845,8 +842,8 @@ export default class RTC extends Listenable {
      * Sends a receiver audio subscription message.
      * @param {*} message
      */
-    sendReceiverAudioSubscriptionMessage(message) {
-        if (this._channel && this._channel.isOpen()) {
+    sendReceiverAudioSubscriptionMessage(message: any): void {
+        if (this?._channel.isOpen()) {
             this._channel.sendReceiverAudioSubscriptionMessage(message);
         }
     }
@@ -860,7 +857,7 @@ export default class RTC extends Listenable {
     setLastN(value) {
         if (this._lastN !== value) {
             this._lastN = value;
-            if (this._channel && this._channel.isOpen()) {
+            if (this?._channel.isOpen()) {
                 this._channel.sendSetLastNMessage(value);
             }
             this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
@@ -887,7 +884,7 @@ export default class RTC extends Listenable {
      * @private
      * @returns {void}
      */
-    _updateAudioOutputForAudioTracks(deviceId) {
+    _updateAudioOutputForAudioTracks(deviceId: string): void {
         const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
 
         for (const track of remoteAudioTracks) {
