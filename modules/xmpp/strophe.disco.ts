@@ -2,19 +2,47 @@
 
 import { $iq, Strophe } from 'strophe.js';
 
+interface IIdentity {
+    category: string;
+    type: string;
+    name: string;
+    lang: string;
+}
+
+interface IItem {
+    jid: string;
+    name: string;
+    node: string;
+    call_back: Function;
+}
+
+interface IQueryAttrs {
+    xmlns?: string;
+    node?: string;
+    name?: string;
+    category?: string;
+    type?: string;
+}
+
+interface IItemAttrs {
+    jid: string;
+    name?: string;
+    node?: string;
+}
+
 Strophe.addConnectionPlugin('disco',
 {
-    _connection: null,
-    _identities : [],
-    _features : [],
-    _items : [],
+    _connection: null as Nullable<Strophe.Connection>,
+    _identities : [] as IIdentity[],
+    _features : [] as string[],
+    _items : [] as IItem[],
     /** Function: init
      * Plugin init
      *
      * Parameters:
      *   (Strophe.Connection) conn - Strophe connection
      */
-    init: function(conn)
+    init: function(conn: Strophe.Connection)
     {
     this._connection = conn;
         this._identities = [];
@@ -36,7 +64,7 @@ Strophe.addConnectionPlugin('disco',
      * Returns:
      *   Boolean
      */
-    addIdentity: function(category, type, name, lang)
+    addIdentity: function(category: string, type: string, name: string, lang: string): boolean
     {
         if (typeof name === 'undefined') {
            name = '';
@@ -65,7 +93,7 @@ Strophe.addConnectionPlugin('disco',
      * Returns:
      *   boolean
      */
-    addFeature: function(var_name)
+    addFeature: function(var_name: string): boolean
     {
         for (var i=0; i<this._features.length; i++)
         {
@@ -83,7 +111,7 @@ Strophe.addConnectionPlugin('disco',
      * Returns:
      *   boolean
      */
-    removeFeature: function(var_name)
+    removeFeature: function(var_name: string): boolean
     {
         for (var i=0; i<this._features.length; i++)
         {
@@ -105,7 +133,7 @@ Strophe.addConnectionPlugin('disco',
      * Returns:
      *   boolean
      */
-    addItem: function(jid, name, node, call_back)
+    addItem: function(jid: string, name: string, node: string, call_back: Function): boolean
     {
         if (node && !call_back)
             return false;
@@ -120,9 +148,9 @@ Strophe.addConnectionPlugin('disco',
      *   (String) jid
      *   (String) node
      */
-    info: function(jid, node, success, error, timeout)
+    info: function(jid: string, node: string, success: Function, error: Function, timeout: number): void
     {
-        var attrs = {xmlns: Strophe.NS.DISCO_INFO};
+        var attrs: IQueryAttrs = {xmlns: Strophe.NS.DISCO_INFO};
         if (node)
             attrs.node = node;
 
@@ -138,9 +166,9 @@ Strophe.addConnectionPlugin('disco',
      *   (String) jid
      *   (String) node
      */
-    items: function(jid, node, success, error, timeout)
+    items: function(jid: string, node: string, success: Function, error: Function, timeout: number): void
     {
-        var attrs = {xmlns: Strophe.NS.DISCO_ITEMS};
+        var attrs: IQueryAttrs = {xmlns: Strophe.NS.DISCO_ITEMS};
         if (node)
             attrs.node = node;
 
@@ -151,7 +179,7 @@ Strophe.addConnectionPlugin('disco',
 
     /** PrivateFunction: _buildIQResult
      */
-    _buildIQResult: function(stanza, query_attrs)
+    _buildIQResult(stanza: Element, query_attrs: IQueryAttrs): Strophe.Builder
     {
         var id   =  stanza.getAttribute('id');
         var from = stanza.getAttribute('from');
@@ -167,10 +195,10 @@ Strophe.addConnectionPlugin('disco',
     /** PrivateFunction: _onDiscoInfo
      * Called when receive info request
      */
-    _onDiscoInfo: function(stanza)
+    _onDiscoInfo: function(stanza: Element): boolean
     {
         var node = stanza.getElementsByTagName('query')[0].getAttribute('node');
-        var attrs = {xmlns: Strophe.NS.DISCO_INFO};
+        var attrs: IQueryAttrs = {xmlns: Strophe.NS.DISCO_INFO};
         var i;
         if (node)
         {
@@ -197,11 +225,11 @@ Strophe.addConnectionPlugin('disco',
     /** PrivateFunction: _onDiscoItems
      * Called when receive items request
      */
-    _onDiscoItems: function(stanza)
+    _onDiscoItems: function(stanza: Element): boolean
     {
-        var query_attrs = {xmlns: Strophe.NS.DISCO_ITEMS};
+        var query_attrs: IQueryAttrs = {xmlns: Strophe.NS.DISCO_ITEMS};
         var node = stanza.getElementsByTagName('query')[0].getAttribute('node');
-        var items, i;
+        var items: IItem[], i;
         if (node)
         {
             query_attrs.node = node;
@@ -222,7 +250,7 @@ Strophe.addConnectionPlugin('disco',
         var iqresult = this._buildIQResult(stanza, query_attrs);
         for (i = 0; i < items.length; i++)
         {
-            var attrs = {jid:  items[i].jid};
+            var attrs: IItemAttrs = {jid:  items[i].jid};
             if (items[i].name)
                 attrs.name = items[i].name;
             if (items[i].node)
