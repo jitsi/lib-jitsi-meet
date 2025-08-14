@@ -161,7 +161,7 @@ export default class RTC extends Listenable {
      * @private
      * @type {BridgeChannel}
      */
-    private _channel: BridgeChannel | null;
+    private _channel: BridgeChannel;
 
     /**
      * The value specified to the last invocation of setLastN before the
@@ -169,9 +169,9 @@ export default class RTC extends Listenable {
      * through a channel (once) as soon as it opens and will then be
      * discarded.
      * @private
-     * @type {number}
+     * @type {Optional<number>}
      */
-    private _lastN: number | undefined;
+    private _lastN: Optional<number>;
 
     /**
      * Defines the forwarded sources list. It can be null or an array once initialised with a channel forwarded
@@ -180,7 +180,7 @@ export default class RTC extends Listenable {
      * @type {Array<string>|null}
      * @private
      */
-    private _forwardedSources: string[] | null;
+    private _forwardedSources: Nullable<string[]>;
 
     /**
      * The forwarded sources change listener.
