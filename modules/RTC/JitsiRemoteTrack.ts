@@ -45,7 +45,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     private _rtc: RTC;
     private _muted: boolean;
     private _hasBeenMuted: boolean;
-    
+
     public ownerEndpointId: string;
     public isP2P: boolean;
     public ssrc: number;
