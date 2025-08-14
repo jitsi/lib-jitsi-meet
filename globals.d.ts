@@ -9,6 +9,7 @@ declare global {
             };
         };
         connectionTimes?: Record<string, any>;
+        Olm: any;
     }
     interface RTCRtpReceiver {
         createEncodedStreams?: () => {
@@ -16,4 +17,12 @@ declare global {
             writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
         }
     }
+        const Olm: {
+        init(): Promise<void>;
+        get_library_version(): number[];
+        Account: new () => OlmAccount;
+        Session: new () => OlmSession;
+        SAS: new () => OlmSAS;
+        Utility: new () => OlmUtility;
+    };
 }

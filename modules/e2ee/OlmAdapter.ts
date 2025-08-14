@@ -1,18 +1,73 @@
-/* global Olm */
-
 import { safeJsonParse as _safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
 import base64js from 'base64-js';
 import { isEqual } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
 
+import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import JitsiParticipant from '../../JitsiParticipant';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
 import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
+
+interface IOlmAccount {
+    create: () => void;
+    free: () => void;
+    generate_one_time_keys: (count: number) => void;
+    identity_keys: () => string;
+    mark_keys_as_published: () => void;
+    one_time_keys: () => string;
+    remove_one_time_keys: (session: IOlmSession) => void;
+}
+
+interface IOlmSession {
+    create_inbound: (account: IOlmAccount, ciphertext: string) => void;
+    create_outbound: (account: IOlmAccount, idKey: string, otKey: string) => void;
+    decrypt: (type: number, ciphertext: string) => string;
+    encrypt: (plaintext: string) => { body: string; type: number; };
+    free: () => void;
+}
+
+interface IOlmSAS {
+    calculate_mac: (message: string, info: string) => string;
+    free: () => void;
+    generate_bytes: (info: string, length: number) => Uint8Array;
+    get_pubkey: () => string;
+    is_their_key_set: () => boolean;
+    set_their_key: (key: string) => void;
+}
+
+interface IOlmIdKeys {
+    curve25519: string;
+    ed25519: string;
+}
+
+interface IDSasVerificationData {
+    isInitiator?: boolean;
+    keySent?: boolean;
+    sas: IOlmSAS;
+    sasCommitment?: string;
+    sasMacSent?: boolean;
+    startContent?: any;
+    transactionId: string;
+}
+
+interface IOlmData {
+    ed25519?: string;
+    lastKey?: Uint8Array | boolean;
+    pendingSessionUuid?: string;
+    sasVerification?: IDSasVerificationData;
+    session?: IOlmSession;
+}
+
+interface IKeyInfo {
+    key?: string | boolean;
+    keyIndex?: number;
+}
 
 const logger = getLogger('modules/e2ee/OlmAdapter');
 
@@ -65,10 +120,23 @@ const OlmAdapterEvents = {
  * MUC private messages.
  */
 export class OlmAdapter extends Listenable {
+
+    static events: typeof OlmAdapterEvents;
+
+    private _conf: JitsiConference;
+    private _init: Deferred<void>;
+    private _mediaKey: Optional<Uint8Array | boolean>;
+    private _mediaKeyIndex: number;
+    private _reqs: Map<string, Deferred<void>>;
+    private _sessionInitialization: Optional<Deferred<void>>;
+    private _olmAccount: Optional<IOlmAccount>;
+    private _idKeys: Optional<IOlmIdKeys>;
+
+
     /**
      * Creates an adapter instance for the given conference.
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         super();
 
         this._conf = conference;
@@ -103,7 +171,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Starts new olm sessions with every other participant that has the participantId "smaller" the localParticipantId.
      */
-    async initSessions() {
+    async initSessions(): Promise<void> {
         if (this._sessionInitialization) {
             throw new Error('OlmAdapter initSessions called multiple times');
         } else {
@@ -134,7 +202,7 @@ export class OlmAdapter extends Listenable {
      *
      * @returns {boolean}
      */
-    static isSupported() {
+    static isSupported(): boolean {
         return typeof window.Olm !== 'undefined';
     }
 
@@ -143,9 +211,9 @@ export class OlmAdapter extends Listenable {
      * by sending a key-info message.
      *
      * @param {Uint8Array|boolean} key - The new key.
-     * @retrns {Promise<Number>}
+     * @returns {Promise<Number>}
      */
-    async updateKey(key) {
+    async updateKey(key: Optional<Uint8Array | boolean>): Promise<number> {
         // Store it locally for new sessions.
         this._mediaKey = key;
         this._mediaKeyIndex++;
@@ -200,7 +268,7 @@ export class OlmAdapter extends Listenable {
      * @param {Uint8Array|boolean} key - The new key.
      * @returns {number}
     */
-    updateCurrentMediaKey(key) {
+    updateCurrentMediaKey(key: Uint8Array | boolean): number {
         this._mediaKey = key;
 
         return this._mediaKeyIndex;
@@ -210,7 +278,7 @@ export class OlmAdapter extends Listenable {
      * Frees the olmData session for the given participant.
      *
      */
-    clearParticipantSession(participant) {
+    clearParticipantSession(participant: JitsiParticipant): void {
         const olmData = this._getParticipantOlmData(participant);
 
         if (olmData.session) {
@@ -223,7 +291,7 @@ export class OlmAdapter extends Listenable {
      * Frees the olmData sessions for all participants.
      *
      */
-    clearAllParticipantsSessions() {
+    clearAllParticipantsSessions(): void {
         for (const participant of this._conf.getParticipants()) {
             this.clearParticipantSession(participant);
         }
@@ -233,7 +301,7 @@ export class OlmAdapter extends Listenable {
      * Sends sacMac if channel verification waas successful.
      *
      */
-    markParticipantVerified(participant, isVerified) {
+    markParticipantVerified(participant: JitsiParticipant, isVerified: boolean): void {
         const olmData = this._getParticipantOlmData(participant);
 
         const pId = participant.getId();
@@ -277,7 +345,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Promise<void>}
      * @private
      */
-    async _bootstrapOlm() {
+    async _bootstrapOlm(): Promise<void> {
         logger.debug('Initializing Olm...');
 
         try {
@@ -325,7 +393,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Promise<void>}
      * @private
      */
-    startVerification(participant) {
+    startVerification(participant: JitsiParticipant): void {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
@@ -368,7 +436,7 @@ export class OlmAdapter extends Listenable {
      * Publishes our own Olmn id key in presence.
      * @private
      */
-    _onIdKeysReady(idKeys) {
+    _onIdKeysReady(idKeys: IOlmIdKeys): void {
         logger.debug(`Olm id key ready: ${idKeys}`);
 
         // Publish it in presence.
@@ -385,7 +453,7 @@ export class OlmAdapter extends Listenable {
      * Event posted when the E2EE signalling channel has been established with the given participant.
      * @private
      */
-    _onParticipantE2EEChannelReady(id) {
+    _onParticipantE2EEChannelReady(id: string): void {
         logger.debug(`E2EE channel with participant ${id} is ready`);
     }
 
@@ -396,11 +464,11 @@ export class OlmAdapter extends Listenable {
      * @returns {string} - The encrypted text with the key information.
      * @private
      */
-    _encryptKeyInfo(session) {
-        const keyInfo = {};
+    _encryptKeyInfo(session: IOlmSession): { body: string; type: number; } {
+        const keyInfo: IKeyInfo = {};
 
         if (this._mediaKey !== undefined) {
-            keyInfo.key = this._mediaKey ? base64js.fromByteArray(this._mediaKey) : false;
+            keyInfo.key = (typeof this._mediaKey === 'boolean') ? this._mediaKey : base64js.fromByteArray(this._mediaKey);
             keyInfo.keyIndex = this._mediaKeyIndex;
         }
 
@@ -414,7 +482,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Object}
      * @private
      */
-    _getParticipantOlmData(participant) {
+    _getParticipantOlmData(participant: JitsiParticipant): IOlmData {
         participant[kOlmData] = participant[kOlmData] || {};
 
         return participant[kOlmData];
@@ -425,7 +493,7 @@ export class OlmAdapter extends Listenable {
      *
      * @private
      */
-    async _onConferenceLeft() {
+    async _onConferenceLeft(): Promise<void> {
         logger.debug('Conference left');
 
         await this._init;
@@ -446,7 +514,7 @@ export class OlmAdapter extends Listenable {
      *
      * @private
      */
-    async _onEndpointMessageReceived(participant, payload) {
+    async _onEndpointMessageReceived(participant: JitsiParticipant, payload: any): Promise<void> {
         if (payload[JITSI_MEET_MUC_TYPE] !== OLM_MESSAGE_TYPE) {
             return;
         }
@@ -524,7 +592,7 @@ export class OlmAdapter extends Listenable {
                 const json = safeJsonParse(data);
 
                 if (json.key) {
-                    const key = base64js.toByteArray(json.key);
+                    const key = typeof json.key === 'string' ? base64js.toByteArray(json.key) : json.key;
                     const keyIndex = json.keyIndex;
 
                     olmData.lastKey = key;
@@ -549,11 +617,11 @@ export class OlmAdapter extends Listenable {
                 const json = safeJsonParse(data);
 
                 if (json.key !== undefined && json.keyIndex !== undefined) {
-                    const key = json.key ? base64js.toByteArray(json.key) : false;
+                    const key = json.key && typeof json.key === 'string' ? base64js.toByteArray(json.key) : json.key;
                     const keyIndex = json.keyIndex;
 
                     if (!isEqual(olmData.lastKey, key)) {
-                        olmData.lastKey = key;
+                        olmData.lastKey = key as boolean | Uint8Array;
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
@@ -585,11 +653,11 @@ export class OlmAdapter extends Listenable {
                 const json = safeJsonParse(data);
 
                 if (json.key !== undefined && json.keyIndex !== undefined) {
-                    const key = json.key ? base64js.toByteArray(json.key) : false;
+                    const key = json.key && typeof json.key === 'string' ? base64js.toByteArray(json.key) : json.key;
                     const keyIndex = json.keyIndex;
 
                     if (!isEqual(olmData.lastKey, key)) {
-                        olmData.lastKey = key;
+                        olmData.lastKey = key as boolean | Uint8Array;
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
                 }
@@ -748,7 +816,7 @@ export class OlmAdapter extends Listenable {
                         pId,
                         false,
                         E2EEErrors.E2EE_SAS_COMMITMENT_MISMATCHED);
-                    olmData.sasVerification.free();
+                    olmData.sasVerification.sas.free();
 
                     return;
                 }
@@ -874,7 +942,7 @@ export class OlmAdapter extends Listenable {
      *
      * @private
      */
-    _onParticipantLeft(id, participant) {
+    _onParticipantLeft(id: string, participant: JitsiParticipant): void {
         logger.debug(`Participant ${id} left`);
 
         this.clearParticipantSession(participant);
@@ -889,7 +957,7 @@ export class OlmAdapter extends Listenable {
     * @param {*} newValue - The property's new value.
     * @private
     */
-    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+    async _onParticipantPropertyChanged(participant: JitsiParticipant, name: string, oldValue: any, newValue: any): Promise<void> {
         const participantId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
@@ -945,7 +1013,7 @@ export class OlmAdapter extends Listenable {
      * @param {string} error - The error message.
      * @returns {void}
      */
-    _sendError(participant, error) {
+    _sendError(participant: JitsiParticipant, error: string): void {
         const pId = participant.getId();
         const err = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
@@ -968,7 +1036,7 @@ export class OlmAdapter extends Listenable {
      * @param {object} data - The data that will be sent to the target participant.
      * @param {string} participantId - ID of the target participant.
      */
-    _sendMessage(data, participantId) {
+    _sendMessage(data: any, participantId: string): void {
         this._conf.sendMessage(data, participantId);
     }
 
@@ -979,7 +1047,7 @@ export class OlmAdapter extends Listenable {
      * @returns {Promise} - The promise will be resolved when the session-ack is received.
      * @private
      */
-    _sendSessionInit(participant) {
+    _sendSessionInit(participant: JitsiParticipant): Deferred<any> | Promise<void> {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
@@ -1043,7 +1111,7 @@ export class OlmAdapter extends Listenable {
      * The second phase of the verification process, the Key verification phase
         https://spec.matrix.org/latest/client-server-api/#short-authentication-string-sas-verification
      */
-    _sendSasMac(participant) {
+    _sendSasMac(participant: JitsiParticipant): void {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
         const { sas, transactionId } = olmData.sasVerification;
@@ -1083,7 +1151,7 @@ export class OlmAdapter extends Listenable {
     /**
      * Computes the commitment.
      */
-    _computeCommitment(pubKey, data) {
+    _computeCommitment(pubKey: string, data: any): string {
         const olmUtil = new Olm.Utility();
         const commitment = olmUtil.sha256(pubKey + JSON.stringify(data));
 
@@ -1099,7 +1167,7 @@ export class OlmAdapter extends Listenable {
  * @param {string} data - The data that needs to be parsed.
  * @returns {object} - Parsed data or empty object in case of failure.
  */
-function safeJsonParse(data) {
+function safeJsonParse(data: string): IKeyInfo {
     try {
         return _safeJsonParse(data);
     } catch (e) {
