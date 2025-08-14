@@ -118,14 +118,14 @@ let disableNS: boolean = false;
 let disableAGC: boolean = false;
 
 // Enables stereo.
-let stereo: boolean | null = null;
+let stereo: Nullable<boolean> = null;
 
 const featureDetectionAudioEl: HTMLAudioElement = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable: boolean
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
 let availableDevices: MediaDeviceInfo[] = [];
-let availableDevicesPollTimer: number | undefined;
+let availableDevicesPollTimer: Optional<number>;
 
 /**
  * An empty function.
@@ -395,7 +395,7 @@ class RTCUtils extends Listenable {
      * @param {*} stream MediaStream.
      * @returns Promise<void>
      */
-    attachMediaStream(element: HTMLMediaElement | null, stream: MediaStream | null): Promise<void> {
+    attachMediaStream(element: Nullable<HTMLMediaElement>, stream: Nullable<MediaStream>): Promise<void> {
         if (element) {
             element.srcObject = stream;
         }
@@ -452,7 +452,7 @@ class RTCUtils extends Listenable {
      */
     _getUserMedia(umDevices: string[], constraints: MediaStreamConstraints = {}, timeout: number = 0): Promise<MediaStream> {
         return new Promise((resolve, reject) => {
-            let gumTimeout: ReturnType<typeof setTimeout> | undefined, timeoutExpired: boolean = false;
+            let gumTimeout: ReturnType<typeof setTimeout>, timeoutExpired: boolean = false;
 
             if (isValidNumber(timeout) && timeout > 0) {
                 gumTimeout = setTimeout(() => {
@@ -529,7 +529,7 @@ class RTCUtils extends Listenable {
      * @returns {string[]} An array of string with the missing track types. The
      * array will be empty if all requestedDevices are found in the stream.
      */
-    _getMissingTracks(requestedDevices: string[] = [], stream: MediaStream | null): string[] {
+    _getMissingTracks(requestedDevices: string[] = [], stream: MediaStream): string[] {
         const missingDevices: string[] = [];
 
         const audioDeviceRequested = requestedDevices.includes('audio');
@@ -593,7 +593,7 @@ class RTCUtils extends Listenable {
      * @param um the options we requested to getUserMedia.
      * @param stream the stream we received from calling getUserMedia.
      */
-    _updateGrantedPermissions(um: string[], stream: MediaStream | undefined): void {
+    _updateGrantedPermissions(um: string[], stream: MediaStream): void {
         const audioTracksReceived: boolean
             = Boolean(stream) && stream!.getAudioTracks().length > 0;
         const videoTracksReceived: boolean
@@ -673,7 +673,7 @@ class RTCUtils extends Listenable {
             // Attempt to use a video input device as a screenshare source if
             // the option is defined.
             if (desktopSharingSourceDevice) {
-                const matchingDevice: MediaDeviceInfo | undefined
+                const matchingDevice: MediaDeviceInfo
                     = availableDevices?.find((device: MediaDeviceInfo) =>
                         device.kind === 'videoinput'
                             && (device.deviceId === desktopSharingSourceDevice
@@ -852,7 +852,7 @@ class RTCUtils extends Listenable {
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
      */
-    stopMediaStream(mediaStream: MediaStream | null): void {
+    stopMediaStream(mediaStream: MediaStream): void {
         if (!mediaStream) {
             return;
         }
@@ -968,7 +968,7 @@ class RTCUtils extends Listenable {
      * @param {string} streamId The id of WebRTC MediaStream.
      * @returns {boolean}
      */
-    isUserStreamById(streamId: string | null): boolean {
+    isUserStreamById(streamId: string): boolean {
         return Boolean(streamId) && streamId !== 'mixedmslabel' && streamId !== 'default';
     }
 }
