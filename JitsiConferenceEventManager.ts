@@ -604,7 +604,7 @@ export default class JitsiConferenceEventManager {
         });
 
         // if we are in startSilent mode we will not be sending/receiving so nothing to detect
-        if (!conference._options.config.startSilent) {
+        if (!conference.options.config.startSilent) {
             conference.statistics.addByteSentStatsListener((tpc: TraceablePeerConnection, stats: RTCEncodedAudioFrameMetadata) => {
                 conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
                     const ssrc = tpc.getLocalSSRC(track);

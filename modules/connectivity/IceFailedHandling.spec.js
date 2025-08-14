@@ -37,7 +37,7 @@ describe('IceFailedHandling', () => {
             emit: () => { }
         };
         mockConference.room = {};
-        mockConference.xmpp = {
+        mockConference._xmpp = {
             ping: () => Promise.resolve()
         };
         emitEventSpy = spyOn(mockConference.eventEmitter, 'emit');

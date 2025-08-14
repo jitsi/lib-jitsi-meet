@@ -269,10 +269,8 @@ export default class JitsiConference extends Listenable {
      * @internal
      */
     _statsCurrentId: string;
-    /**
-     * @internal
-     */
-    _options: IConferenceOptions;
+
+    public options: IConferenceOptions;
     public connection: JitsiConnection;
     public eventEmitter: EventEmitter;
     public eventManager: JitsiConferenceEventManager;
@@ -345,7 +343,7 @@ export default class JitsiConference extends Listenable {
             throw new Error(errmsg);
         }
 
-        this._options = options;
+        this.options = options;
         this.eventManager = new JitsiConferenceEventManager(this);
 
         /**
@@ -501,7 +499,7 @@ export default class JitsiConference extends Listenable {
         this._videoSenderLimitReached = undefined;
 
         this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
-            && (this._options.config.testing?.enableFirefoxP2p ?? true);
+            && (this.options.config.testing?.enableFirefoxP2p ?? true);
 
         /**
          * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
@@ -553,11 +551,11 @@ export default class JitsiConference extends Listenable {
     private _init(options: IConferenceOptions): void {
         this.eventManager.setupXMPPListeners();
 
-        const { config } = this._options;
+        const { config } = this.options;
 
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
         this.room = this._xmpp.createRoom(
-            this._options.name, {
+            this.options.name, {
                 ...config,
                 statsId: this._statsCurrentId
             },
@@ -657,8 +655,8 @@ export default class JitsiConference extends Listenable {
                 // @ts-ignore
                 aliasName: this._statsCurrentId,
                 applicationName: config.applicationName,
-                confID: config.confID ?? `${this.connection.options.hosts.domain}/${this._options.name}`,
-                roomName: this._options.name,
+                confID: config.confID ?? `${this.connection.options.hosts.domain}/${this.options.name}`,
+                roomName: this.options.name,
                 userName: config.statisticsDisplayName ?? this.myUserId()
             });
             Statistics.analytics.addPermanentProperties({
@@ -1207,7 +1205,7 @@ export default class JitsiConference extends Listenable {
             this.rtc,
             this._signalingLayer,
             {
-                ...this._options.config,
+                ...this.options.config,
                 codecSettings: {
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
                     mediaType: MediaType.VIDEO,
@@ -1284,10 +1282,10 @@ export default class JitsiConference extends Listenable {
             const jid = peer.getJid();
 
             // Force initiator or responder mode for testing if option is passed to config.
-            if (this._options.config.testing?.forceInitiator) {
+            if (this.options.config.testing?.forceInitiator) {
                 logger.debug(`Forcing P2P initiator, will start P2P with: ${jid}`);
                 this._startP2PSession(jid);
-            } else if (this._options.config.testing?.forceResponder) {
+            } else if (this.options.config.testing?.forceResponder) {
                 logger.debug(`Forcing P2P responder, will wait for the other peer ${jid} to start P2P`);
             } else {
                 if (myId > peersId) {
@@ -1535,7 +1533,7 @@ export default class JitsiConference extends Listenable {
                 this.rtc,
                 this._signalingLayer,
                 {
-                    ...this._options.config,
+                    ...this.options.config,
                     codecSettings: {
                         codecList: this.qualityController.codecController.getCodecPreferenceList('jvb'),
                         mediaType: MediaType.VIDEO,
@@ -1785,7 +1783,7 @@ export default class JitsiConference extends Listenable {
                     ACTION_JVB_ICE_FAILED,
                     {
                         participantId: this.myUserId(),
-                        userRegion: this._options.config.deploymentInfo?.userRegion
+                        userRegion: this.options.config.deploymentInfo?.userRegion
                     }));
             this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.ICE_FAILED);
         }
@@ -1827,7 +1825,7 @@ export default class JitsiConference extends Listenable {
             this.rtc,
             this._signalingLayer,
             {
-                ...this._options.config,
+                ...this.options.config,
                 codecSettings: {
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
                     mediaType: MediaType.VIDEO,
@@ -2340,10 +2338,10 @@ export default class JitsiConference extends Listenable {
    */
     public isP2PEnabled(): boolean {
         return (
-            Boolean(this._options.config.p2p?.enabled)
+            Boolean(this.options.config.p2p?.enabled)
 
       // FIXME: remove once we have a default config template. -saghul
-      || typeof this._options.config.p2p === 'undefined'
+      || typeof this.options.config.p2p === 'undefined'
         );
     }
 
@@ -2354,7 +2352,7 @@ export default class JitsiConference extends Listenable {
    */
     public isP2PTestModeEnabled(): boolean {
         return Boolean(
-      this._options.config.testing?.p2pTestMode
+      this.options.config.testing?.p2pTestMode
         );
     }
 
@@ -2528,7 +2526,7 @@ export default class JitsiConference extends Listenable {
    * @returns {string}
    */
     public getName(): string {
-        return this._options.name.toString();
+        return this.options.name.toString();
     }
 
     /**
@@ -2787,7 +2785,7 @@ export default class JitsiConference extends Listenable {
             // Currently, only adding multiple video streams of different video types is supported.
             // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
             if (
-                this._options.config.testing?.allowMultipleTracks
+                this.options.config.testing?.allowMultipleTracks
                 || (mediaType === MediaType.VIDEO && !localTracks.find(t =>
                     t.getVideoType() === track.getVideoType()))) {
                 const sourceName = getSourceNameForJitsiTrack(
@@ -2940,7 +2938,7 @@ export default class JitsiConference extends Listenable {
         }
 
         return Strophe.getDomainFromJid(this.connection.getJid())
-             === this._options.config.hiddenDomain;
+             === this.options.config.hiddenDomain;
     }
 
     /**
@@ -3205,7 +3203,7 @@ export default class JitsiConference extends Listenable {
         }
 
         this._maybeSetSITimeout();
-        const { startAudioMuted, startVideoMuted } = this._options.config;
+        const { startAudioMuted, startVideoMuted } = this.options.config;
 
         // Ignore startAudio/startVideoMuted settings if the media session has already been established.
         // Apply the policy if the number of participants exceeds the startMuted thresholds.
@@ -3219,11 +3217,11 @@ export default class JitsiConference extends Listenable {
         let videoMuted = false;
         const numberOfParticipants = this.getParticipantCount();
 
-        if (numberOfParticipants > this._options.config.startAudioMuted) {
+        if (numberOfParticipants > this.options.config.startAudioMuted) {
             audioMuted = true;
         }
 
-        if (numberOfParticipants > this._options.config.startVideoMuted) {
+        if (numberOfParticipants > this.options.config.startVideoMuted) {
             videoMuted = true;
         }
 
@@ -4200,7 +4198,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean}
      */
     public isE2EESupported(): boolean {
-        return E2EEncryption.isSupported(this._options.config);
+        return E2EEncryption.isSupported(this.options.config);
     }
 
     /**

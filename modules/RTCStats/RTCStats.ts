@@ -117,7 +117,7 @@ class RTCStats {
      */
     attachToConference(conference: JitsiConference) {
         const {
-            _options: {
+            options: {
                 config: confConfig = {},
                 name: confName = ''
             } = {},
