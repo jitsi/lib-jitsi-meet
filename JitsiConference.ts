@@ -261,11 +261,20 @@ export default class JitsiConference extends Listenable {
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
     private _unsubscribers: Array<() => void>;
-    public _statsCurrentId: string;
+    /**
+     * @internal
+     */
+    _xmpp: XMPP;
+    /**
+     * @internal
+     */
+    _statsCurrentId: string;
+    /**
+     * @internal
+     */
+    _options: IConferenceOptions;
     public connection: JitsiConnection;
-    public xmpp: XMPP;
     public eventEmitter: EventEmitter;
-    public options: IConferenceOptions;
     public eventManager: JitsiConferenceEventManager;
     public participants: Map<string, JitsiParticipant>;
     public componentsVersions: ComponentsVersions;
@@ -325,18 +334,18 @@ export default class JitsiConference extends Listenable {
         }
 
         this.connection = options.connection;
-        this.xmpp = this.connection?.xmpp;
+        this._xmpp = this.connection?.xmpp;
 
-        if (this.xmpp.isRoomCreated(options.name, options.customDomain)) {
+        if (this._xmpp.isRoomCreated(options.name, options.customDomain)) {
             const errmsg = 'A conference with the same name has already been created!';
 
             delete this.connection;
-            delete this.xmpp;
+            delete this._xmpp;
             logger.error(errmsg);
             throw new Error(errmsg);
         }
 
-        this.options = options;
+        this._options = options;
         this.eventManager = new JitsiConferenceEventManager(this);
 
         /**
@@ -492,7 +501,7 @@ export default class JitsiConference extends Listenable {
         this._videoSenderLimitReached = undefined;
 
         this._firefoxP2pEnabled = browser.isVersionGreaterThan(109)
-            && (this.options.config.testing?.enableFirefoxP2p ?? true);
+            && (this._options.config.testing?.enableFirefoxP2p ?? true);
 
         /**
          * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
@@ -541,14 +550,14 @@ export default class JitsiConference extends Listenable {
      * @param options {object}
      * @param options.connection {JitsiConnection} overrides this.connection
      */
-    _init(options: IConferenceOptions): void {
+    private _init(options: IConferenceOptions): void {
         this.eventManager.setupXMPPListeners();
 
-        const { config } = this.options;
+        const { config } = this._options;
 
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
-        this.room = this.xmpp.createRoom(
-            this.options.name, {
+        this.room = this._xmpp.createRoom(
+            this._options.name, {
                 ...config,
                 statsId: this._statsCurrentId
             },
@@ -648,8 +657,8 @@ export default class JitsiConference extends Listenable {
                 // @ts-ignore
                 aliasName: this._statsCurrentId,
                 applicationName: config.applicationName,
-                confID: config.confID ?? `${this.connection.options.hosts.domain}/${this.options.name}`,
-                roomName: this.options.name,
+                confID: config.confID ?? `${this.connection.options.hosts.domain}/${this._options.name}`,
+                roomName: this._options.name,
                 userName: config.statisticsDisplayName ?? this.myUserId()
             });
             Statistics.analytics.addPermanentProperties({
@@ -753,7 +762,7 @@ export default class JitsiConference extends Listenable {
      * @param replaceParticipant {boolean} whether the current join replaces
      * an existing participant with same jwt from the meeting.
      */
-    join(password: string = '', replaceParticipant: boolean = false) {
+    public join(password: string = '', replaceParticipant: boolean = false) {
         if (this.room) {
             this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
         }
@@ -767,7 +776,7 @@ export default class JitsiConference extends Listenable {
    * authenticating and upgrading the role of the local participant/user finishes
    * and (2) has a cancel method that allows the caller to interrupt the process.
    */
-    authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
+    public authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
         return authenticateAndUpgradeRole.call(this, {
             ...options,
             onCreateResource: JitsiConference.resourceCreator
@@ -778,7 +787,7 @@ export default class JitsiConference extends Listenable {
    * Check if joined to the conference.
    * @returns {boolean} True if joined, false otherwise.
    */
-    isJoined(): boolean {
+    public isJoined(): boolean {
         return this.room?.joined;
     }
 
@@ -786,12 +795,12 @@ export default class JitsiConference extends Listenable {
    * Tells whether or not the P2P mode is enabled in the configuration.
    * @returns {boolean} True if P2P is enabled, false otherwise.
    */
-    isP2PEnabled(): boolean {
+    public isP2PEnabled(): boolean {
         return (
-            Boolean(this.options.config.p2p?.enabled)
+            Boolean(this._options.config.p2p?.enabled)
 
       // FIXME: remove once we have a default config template. -saghul
-      || typeof this.options.config.p2p === 'undefined'
+      || typeof this._options.config.p2p === 'undefined'
         );
     }
 
@@ -800,9 +809,9 @@ export default class JitsiConference extends Listenable {
    * when there are 2 participants.
    * @returns {boolean} True if P2P test mode is enabled, false otherwise.
    */
-    isP2PTestModeEnabled(): boolean {
+    public isP2PTestModeEnabled(): boolean {
         return Boolean(
-      this.options.config.testing?.p2pTestMode
+      this._options.config.testing?.p2pTestMode
         );
     }
 
@@ -811,7 +820,7 @@ export default class JitsiConference extends Listenable {
    * @param {string|undefined} reason - The reason for leaving the conference.
    * @returns {Promise}
    */
-    async leave(reason?: string): Promise<void> {
+    public async leave(reason?: string): Promise<void> {
         if (this.avgRtpStatsReporter) {
             this.avgRtpStatsReporter.dispose();
             this.avgRtpStatsReporter = null;
@@ -921,7 +930,7 @@ export default class JitsiConference extends Listenable {
    * the conference and disconnecting the connection.
    * @returns {Promise}
    */
-    async dispose(): Promise<void> {
+    public async dispose(): Promise<void> {
         await this.leave();
         await this.connection?.disconnect();
     }
@@ -930,14 +939,14 @@ export default class JitsiConference extends Listenable {
    * Returns true if end conference support is enabled in the backend.
    * @returns {boolean} whether end conference is supported in the backend.
    */
-    isEndConferenceSupported(): boolean {
+    public isEndConferenceSupported(): boolean {
         return Boolean(this.room?.xmpp.endConferenceComponentAddress);
     }
 
     /**
    * Ends the conference.
    */
-    end(): void {
+    public end(): void {
         if (!this.isEndConferenceSupported()) {
             logger.warn('Cannot end conference: is not supported.');
 
@@ -954,7 +963,7 @@ export default class JitsiConference extends Listenable {
    * Returns the currently active media session if any.
    * @returns {Optional<JingleSessionPC>}
    */
-    getActiveMediaSession(): Optional<JingleSessionPC> {
+    public getActiveMediaSession(): Optional<JingleSessionPC> {
         return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
     }
 
@@ -962,7 +971,7 @@ export default class JitsiConference extends Listenable {
    * Returns an array containing all media sessions existing in this conference.
    * @returns {Array<JingleSessionPC>}
    */
-    getMediaSessions(): JingleSessionPC[] {
+    public getMediaSessions(): JingleSessionPC[] {
         const sessions = [];
 
         this.jvbJingleSession && sessions.push(this.jvbJingleSession);
@@ -977,7 +986,7 @@ export default class JitsiConference extends Listenable {
    * @private
    * @returns {void}
    */
-    _registerRtcListeners(rtc: RTC): void {
+    private _registerRtcListeners(rtc: RTC): void {
         rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
             for (const localTrack of this.rtc.localTracks) {
                 localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
@@ -991,7 +1000,7 @@ export default class JitsiConference extends Listenable {
    *
    * @param {JitsiLocalTrack} localtrack - The track associated with the local source signaled to the bridge.
    * @returns {void}
-   * @public
+   * @internal
    */
     _sendBridgeVideoTypeMessage(localtrack: JitsiLocalTrack): void {
         let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
@@ -1007,15 +1016,15 @@ export default class JitsiConference extends Listenable {
    * Returns name of this conference.
    * @returns {string}
    */
-    getName(): string {
-        return this.options.name.toString();
+    public getName(): string {
+        return this._options.name.toString();
     }
 
     /**
    * Returns the {@link JitsiConnection} used by this conference.
    * @returns {JitsiConnection}
    */
-    getConnection(): JitsiConnection {
+    public getConnection(): JitsiConnection {
         return this.connection;
     }
 
@@ -1023,7 +1032,7 @@ export default class JitsiConference extends Listenable {
    * Check if authentication is enabled for this conference.
    * @returns {boolean}
    */
-    isAuthEnabled(): boolean {
+    public isAuthEnabled(): boolean {
         return this.authEnabled;
     }
 
@@ -1031,7 +1040,7 @@ export default class JitsiConference extends Listenable {
    * Check if user is logged in.
    * @returns {boolean}
    */
-    isLoggedIn(): boolean {
+    public isLoggedIn(): boolean {
         return Boolean(this.authIdentity);
     }
 
@@ -1039,7 +1048,7 @@ export default class JitsiConference extends Listenable {
    * Get authorized login.
    * @returns {string|null}
    */
-    getAuthLogin(): Nullable<string> {
+    public getAuthLogin(): Nullable<string> {
         return this.authIdentity;
     }
 
@@ -1049,7 +1058,7 @@ export default class JitsiConference extends Listenable {
    * @param {MediaType} [mediaType] Optional media type (audio or video).
    * @returns {Array<JitsiLocalTrack>}
    */
-    getLocalTracks(mediaType?: MediaType): JitsiLocalTrack[] {
+    public getLocalTracks(mediaType?: MediaType): JitsiLocalTrack[] {
         let tracks = [];
 
         if (this.rtc) {
@@ -1063,7 +1072,7 @@ export default class JitsiConference extends Listenable {
    * Obtains local audio track.
    * @returns {JitsiLocalTrack|null}
    */
-    getLocalAudioTrack(): Nullable<JitsiLocalTrack> {
+    public getLocalAudioTrack(): Nullable<JitsiLocalTrack> {
         return this.rtc ? this.rtc.getLocalAudioTrack() : null;
     }
 
@@ -1071,7 +1080,7 @@ export default class JitsiConference extends Listenable {
    * Obtains local video track.
    * @returns {JitsiLocalTrack|null}
    */
-    getLocalVideoTrack(): Nullable<JitsiLocalTrack> {
+    public getLocalVideoTrack(): Nullable<JitsiLocalTrack> {
         return this.rtc ? this.rtc.getLocalVideoTrack() : null;
     }
 
@@ -1079,7 +1088,7 @@ export default class JitsiConference extends Listenable {
    * Returns all the local video tracks.
    * @returns {Array<JitsiLocalTrack>|null}
    */
-    getLocalVideoTracks(): Nullable<JitsiLocalTrack[]> {
+    public getLocalVideoTracks(): Nullable<JitsiLocalTrack[]> {
         return this.rtc ? this.rtc.getLocalVideoTracks() : null;
     }
 
@@ -1088,7 +1097,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} eventId - The event ID.
    * @param {Function} handler - Handler for the event.
    */
-    once(eventId: string, handler: EventListener): void {
+    public once(eventId: string, handler: EventListener): void {
         if (this.eventEmitter) {
             this.eventEmitter.once(eventId, handler);
         }
@@ -1100,7 +1109,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler for the command.
    */
-    addCommandListener(command: string, handler: EventListener): void {
+    public addCommandListener(command: string, handler: EventListener): void {
         if (this.room) {
             this.room.addPresenceListener(command, handler);
         }
@@ -1111,7 +1120,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler to remove for the command.
    */
-    removeCommandListener(command: string, handler: EventListener): void {
+    public removeCommandListener(command: string, handler: EventListener): void {
         if (this.room) {
             this.room.removePresenceListener(command, handler);
         }
@@ -1123,7 +1132,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    sendTextMessage(message: string, elementName: string = 'body'): void {
+    public sendTextMessage(message: string, elementName: string = 'body'): void {
         if (this.room) {
             this.room.sendMessage(message, elementName);
         }
@@ -1135,7 +1144,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} messageId - The ID of the message to attach the reaction to.
    * @param {string} receiverId - The intended recipient, if the message is private.
    */
-    sendReaction(reaction: string, messageId: string, receiverId: string): void {
+    public sendReaction(reaction: string, messageId: string, receiverId: string): void {
         if (this.room) {
             this.room.sendReaction(reaction, messageId, receiverId);
         }
@@ -1148,7 +1157,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false): void {
+    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false): void {
         if (this.room) {
             this.room.sendPrivateMessage(id, message, elementName, useFullJid);
         }
@@ -1159,7 +1168,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} name - The name of the command.
    * @param {Record<string, unknown>} values - With keys and values that will be sent.
    */
-    sendCommand(name: string, values: Record<string, unknown>): void {
+    public sendCommand(name: string, values: Record<string, unknown>): void {
         if (this.room) {
             this.room.addOrReplaceInPresence(name, values) && this.room.sendPresence();
         } else {
@@ -1172,7 +1181,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} name - The name of the command.
    * @param {Record<string, unknown>} values - With keys and values that will be sent.
    */
-    sendCommandOnce(name: string, values: Record<string, unknown>): void {
+    public sendCommandOnce(name: string, values: Record<string, unknown>): void {
         this.sendCommand(name, values);
         this.removeCommand(name);
     }
@@ -1181,7 +1190,7 @@ export default class JitsiConference extends Listenable {
    * Removes presence command.
    * @param {string} name - The name of the command.
    */
-    removeCommand(name: string): void {
+    public removeCommand(name: string): void {
         if (this.room) {
             this.room.removeFromPresence(name);
         }
@@ -1191,7 +1200,7 @@ export default class JitsiConference extends Listenable {
    * Sets the display name for this conference.
    * @param {string} name - The display name to set.
    */
-    setDisplayName(name: string): void {
+    public setDisplayName(name: string): void {
         if (this.room) {
             const nickKey = 'nick';
 
@@ -1211,7 +1220,7 @@ export default class JitsiConference extends Listenable {
    * Set join without audio.
    * @param {boolean} silent - Whether user joined without audio.
    */
-    setIsSilent(silent: boolean): void {
+    public setIsSilent(silent: boolean): void {
         if (this.room) {
             this.room.addOrReplaceInPresence('silent', {
                 attributes: { xmlns: 'http://jitsi.org/protocol/silent' },
@@ -1224,7 +1233,7 @@ export default class JitsiConference extends Listenable {
    * Set new subject for this conference. (Available only for moderator)
    * @param {string} subject - New subject.
    */
-    setSubject(subject: string): void {
+    public setSubject(subject: string): void {
         if (this.room && this.isModerator()) {
             this.room.setSubject(subject);
         } else {
@@ -1237,7 +1246,7 @@ export default class JitsiConference extends Listenable {
    * Returns the transcription status.
    * @returns {string} "on" or "off".
    */
-    getTranscriptionStatus(): string {
+    public getTranscriptionStatus(): string {
         return this.room.transcriptionStatus;
     }
 
@@ -1248,7 +1257,7 @@ export default class JitsiConference extends Listenable {
    * @throws {Error} If the specified track is a video track and there is already
    * another video track in the conference.
    */
-    addTrack(track: JitsiLocalTrack): Promise<void> {
+    public addTrack(track: JitsiLocalTrack): Promise<void> {
         if (!track) {
             throw new Error('addTrack - a track is required');
         }
@@ -1267,7 +1276,7 @@ export default class JitsiConference extends Listenable {
             // Currently, only adding multiple video streams of different video types is supported.
             // TODO - remove this limitation once issues with jitsi-meet trying to add multiple camera streams is fixed.
             if (
-                this.options.config.testing?.allowMultipleTracks
+                this._options.config.testing?.allowMultipleTracks
                 || (mediaType === MediaType.VIDEO && !localTracks.find(t =>
                     t.getVideoType() === track.getVideoType()))) {
                 const sourceName = getSourceNameForJitsiTrack(
@@ -1311,8 +1320,9 @@ export default class JitsiConference extends Listenable {
    * Fires TRACK_AUDIO_LEVEL_CHANGED change conference event (for local tracks).
    * @param {number} audioLevel - The audio level.
    * @param {TraceablePeerConnection} [tpc] - The peer connection.
+   * @private
    */
-    _fireAudioLevelChangeEvent(audioLevel: number, tpc: TraceablePeerConnection): void {
+    private _fireAudioLevelChangeEvent(audioLevel: number, tpc: TraceablePeerConnection): void {
         const activeTpc = this.getActivePeerConnection();
 
         // There will be no TraceablePeerConnection if audio levels do not come from
@@ -1331,7 +1341,7 @@ export default class JitsiConference extends Listenable {
    * Fires TRACK_MUTE_CHANGED change conference event.
    * @param {JitsiLocalTrack} track - The JitsiTrack object related to the event.
    */
-    _fireMuteChangeEvent(track: JitsiLocalTrack): void {
+    private _fireMuteChangeEvent(track: JitsiLocalTrack): void {
         // check if track was muted by focus and now is unmuted by user
         if (this.isMutedByFocus && track.isAudioTrack() && !track.isMuted()) {
             this.isMutedByFocus = false;
@@ -1388,7 +1398,7 @@ export default class JitsiConference extends Listenable {
    * Clear JitsiLocalTrack properties and listeners.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
    */
-    onLocalTrackRemoved(track: JitsiLocalTrack): void {
+    public onLocalTrackRemoved(track: JitsiLocalTrack): void {
         track.setConference(null);
         this.rtc.removeLocalTrack(track);
         this._unsubscribers.forEach(remove => remove());
@@ -1403,7 +1413,7 @@ export default class JitsiConference extends Listenable {
    * @param {JitsiLocalTrack} track - The track to remove.
    * @returns {Promise}
    */
-    removeTrack(track: JitsiLocalTrack): Promise<void> {
+    public removeTrack(track: JitsiLocalTrack): Promise<void> {
         return this.replaceTrack(track, null);
     }
 
@@ -1416,7 +1426,7 @@ export default class JitsiConference extends Listenable {
    * @param {JitsiLocalTrack} newTrack - The new stream to use.
    * @returns {Promise} Resolves when the replacement is finished.
    */
-    replaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
+    public replaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
         const oldVideoType = oldTrack?.getVideoType();
         const mediaType = oldTrack?.getType() || newTrack?.getType();
         const newVideoType = newTrack?.getVideoType();
@@ -1491,7 +1501,7 @@ export default class JitsiConference extends Listenable {
    * which describes the error.
    * @private
    */
-    async _doReplaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
+    private async _doReplaceTrack(oldTrack?: JitsiLocalTrack, newTrack?: JitsiLocalTrack): Promise<void> {
         const replaceTrackPromises = [];
 
         if (this.jvbJingleSession) {
@@ -1516,7 +1526,7 @@ export default class JitsiConference extends Listenable {
    * @param {MediaType} mediaType - The media type of the track associated with the source that was rejected.
    * @returns {void}
    */
-    _removeLocalSourceOnReject(jingleSession: JingleSessionPC, error: Error, mediaType: MediaType): void {
+    private _removeLocalSourceOnReject(jingleSession: JingleSessionPC, error: Error, mediaType: MediaType): void {
         if (!jingleSession) {
             return;
         }
@@ -1532,7 +1542,7 @@ export default class JitsiConference extends Listenable {
    * Operations related to creating a new track.
    * @param {JitsiLocalTrack} newTrack - The new track being created.
    */
-    _setupNewTrack(newTrack: JitsiLocalTrack): void {
+    private _setupNewTrack(newTrack: JitsiLocalTrack): void {
         const mediaType = newTrack.getType();
 
         if (!newTrack.getSourceName()) {
@@ -1564,7 +1574,7 @@ export default class JitsiConference extends Listenable {
    * @return {boolean} <tt>true</tt> if video type was changed in presence.
    * @private
    */
-    _setNewVideoType(track: JitsiLocalTrack): boolean {
+    private _setNewVideoType(track: JitsiLocalTrack): boolean {
         let videoTypeChanged = false;
 
         if (track) {
@@ -1579,7 +1589,7 @@ export default class JitsiConference extends Listenable {
    * @param {JitsiLocalTrack} localTrack - The local track.
    * @param {boolean} isMuted - Whether the track is muted.
    * @return {boolean} <tt>true</tt> when presence was changed, <tt>false</tt> otherwise.
-   * @public
+   * @internal
    */
     _setTrackMuteStatus(localTrack: JitsiLocalTrack, isMuted: boolean): boolean {
         let presenceChanged = false;
@@ -1596,6 +1606,7 @@ export default class JitsiConference extends Listenable {
    * Method called by the {@link JitsiLocalTrack} in order to add the underlying MediaStream to the RTCPeerConnection.
    * @param {JitsiLocalTrack} track - The local track that will be added to the pc.
    * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
+   * @internal
    */
     async _addLocalTrackToPc(track: JitsiLocalTrack): Promise<void> {
         const addPromises = [];
@@ -1626,6 +1637,7 @@ export default class JitsiConference extends Listenable {
      * RTCPeerConnection.
      * @param {JitsiLocalTrack} track - The local track that will be removed.
      * @return {Promise} Resolved when the process is done or rejected with a string which describes the error.
+     * @internal
      */
     _removeLocalTrackFromPc(track: JitsiLocalTrack): Promise<PromiseSettledResult<void>[]> {
         const removePromises = [];
@@ -1650,7 +1662,7 @@ export default class JitsiConference extends Listenable {
    * Get role of the local user.
    * @returns {string} User role: 'moderator' or 'none'.
    */
-    getRole(): string {
+    public getRole(): string {
         return this.room.role;
     }
 
@@ -1658,13 +1670,13 @@ export default class JitsiConference extends Listenable {
      * Returns whether or not the current conference has been joined as a hidden user.
      * @returns {boolean} True if hidden, false otherwise. Will return false if no connection is active.
      */
-    isHidden(): boolean {
+    public isHidden(): boolean {
         if (!this.connection) {
             return false;
         }
 
         return Strophe.getDomainFromJid(this.connection.getJid())
-             === this.options.config.hiddenDomain;
+             === this._options.config.hiddenDomain;
     }
 
     /**
@@ -1672,7 +1684,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean} true if local user is moderator, false otherwise. If
      * we're no longer in the conference room then <tt>false</tt> is returned.
      */
-    isModerator(): boolean {
+    public isModerator(): boolean {
         return this.room ? this.room.isModerator() : false;
     }
 
@@ -1681,7 +1693,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} password new password for the room.
      * @returns {Promise}
      */
-    lock(password: string): Promise<void> {
+    public lock(password: string): Promise<void> {
         if (!this.isModerator()) {
             return Promise.reject(new Error('You are not moderator.'));
         }
@@ -1700,7 +1712,7 @@ export default class JitsiConference extends Listenable {
      * Remove password from the room.
      * @returns {Promise}
      */
-    unlock(): Promise<void> {
+    public unlock(): Promise<void> {
         return this.lock('');
     }
 
@@ -1708,7 +1720,7 @@ export default class JitsiConference extends Listenable {
      * Obtains the current value for "lastN". See {@link setLastN} for more info.
      * @returns {number}
      */
-    getLastN(): number {
+    public getLastN(): number {
         return this.qualityController.receiveVideoController.getLastN();
     }
 
@@ -1716,7 +1728,7 @@ export default class JitsiConference extends Listenable {
      * Obtains the forwarded sources list in this conference.
      * @return {Array<string>}
      */
-    getForwardedSources(): string[] {
+    public getForwardedSources(): string[] {
         return this.rtc.getForwardedSources();
     }
 
@@ -1726,7 +1738,7 @@ export default class JitsiConference extends Listenable {
      * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription mode to set.
      * @returns {void}
      */
-    setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
+    public setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
         this.qualityController.audioController.setAudioSubscriptionMode(message);
     }
 
@@ -1738,7 +1750,7 @@ export default class JitsiConference extends Listenable {
      * @throws Error or RangeError if the given value is not a number or is smaller
      * than -1.
      */
-    setLastN(lastN: number): void {
+    public setLastN(lastN: number): void {
         if (!Number.isInteger(lastN)) {
             throw new Error(`Invalid value for lastN: ${lastN}`);
         }
@@ -1764,7 +1776,7 @@ export default class JitsiConference extends Listenable {
     /**
      * @return Array<JitsiParticipant> an array of all participants in this conference.
      */
-    getParticipants(): JitsiParticipant[] {
+    public getParticipants(): JitsiParticipant[] {
         return Array.from(this.participants.values());
     }
 
@@ -1774,7 +1786,7 @@ export default class JitsiConference extends Listenable {
      * @param countHidden {boolean} Whether or not to include hidden participants
      * in the count. Default: false.
      **/
-    getParticipantCount(countHidden = false): number {
+    public getParticipantCount(countHidden = false): number {
         let participants = this.getParticipants();
 
         if (!countHidden) {
@@ -1790,7 +1802,7 @@ export default class JitsiConference extends Listenable {
      * specified id (or undefined if there isn't one).
      * @param id the id of the participant.
      */
-    getParticipantById(id: string): Optional<JitsiParticipant> {
+    public getParticipantById(id: string): Optional<JitsiParticipant> {
         return this.participants.get(id);
     }
 
@@ -1798,7 +1810,7 @@ export default class JitsiConference extends Listenable {
      * Grant owner rights to the participant.
      * @param {string} id id of the participant to grant owner rights to.
      */
-    grantOwner(id: string): void {
+    public grantOwner(id: string): void {
         const participant = this.getParticipantById(id);
 
         if (!participant) {
@@ -1812,7 +1824,7 @@ export default class JitsiConference extends Listenable {
      * the user might want to refuse to be a moderator.
      * @param {string} id id of the participant to revoke owner rights to.
      */
-    revokeOwner(id: string): void {
+    public revokeOwner(id: string): void {
         const participant = this.getParticipantById(id);
         const isMyself = this.myUserId() === id;
         const role = this.isMembersOnly() ? 'member' : 'none';
@@ -1829,7 +1841,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} id id of the participant to kick
      * @param {string} reason reason of the participant to kick
      */
-    kickParticipant(id: string, reason: string): void {
+    public kickParticipant(id: string, reason: string): void {
         const participant = this.getParticipantById(id);
 
         if (!participant) {
@@ -1843,7 +1855,7 @@ export default class JitsiConference extends Listenable {
      * analytics event.
      * @private
      */
-    _maybeClearSITimeout(): void {
+    private _maybeClearSITimeout(): void {
         if (this._sessionInitiateTimeout
                 && (this.jvbJingleSession || this.getParticipantCount() < 2)) {
             window.clearTimeout(this._sessionInitiateTimeout);
@@ -1856,7 +1868,7 @@ export default class JitsiConference extends Listenable {
      * event.
      * @private
      */
-    _maybeSetSITimeout(): void {
+    private _maybeSetSITimeout(): void {
         // Jicofo is supposed to invite if there are at least 2 participants
         if (!this.jvbJingleSession
                 && this.getParticipantCount() >= 2
@@ -1879,7 +1891,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} muted - Whether the user should stop receiving remote audio.
      * @returns {void}
      */
-    muteRemoteAudio(muted: boolean): void {
+    public muteRemoteAudio(muted: boolean): void {
         this.qualityController.audioController.muteRemoteAudio(muted);
     }
 
@@ -1887,7 +1899,7 @@ export default class JitsiConference extends Listenable {
      * Mutes a participant.
      * @param {string} id The id of the participant to mute.
      */
-    muteParticipant(id: string, mediaType: MediaType = MediaType.AUDIO): void {
+    public muteParticipant(id: string, mediaType: MediaType = MediaType.AUDIO): void {
         if (!mediaType) {
             logger.error(`Unsupported media type: ${mediaType}`);
 
@@ -1925,7 +1937,7 @@ export default class JitsiConference extends Listenable {
      * @param isReplaceParticipant whether this join replaces a participant with
      * the same jwt.
      */
-    onMemberJoined(
+    public onMemberJoined(
             jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
     ): void {
         const id = Strophe.getResourceFromJid(jid);
@@ -1964,7 +1976,7 @@ export default class JitsiConference extends Listenable {
         }
 
         this._maybeSetSITimeout();
-        const { startAudioMuted, startVideoMuted } = this.options.config;
+        const { startAudioMuted, startVideoMuted } = this._options.config;
 
         // Ignore startAudio/startVideoMuted settings if the media session has already been established.
         // Apply the policy if the number of participants exceeds the startMuted thresholds.
@@ -1978,11 +1990,11 @@ export default class JitsiConference extends Listenable {
         let videoMuted = false;
         const numberOfParticipants = this.getParticipantCount();
 
-        if (numberOfParticipants > this.options.config.startAudioMuted) {
+        if (numberOfParticipants > this._options.config.startAudioMuted) {
             audioMuted = true;
         }
 
-        if (numberOfParticipants > this.options.config.startVideoMuted) {
+        if (numberOfParticipants > this._options.config.startVideoMuted) {
             videoMuted = true;
         }
 
@@ -1996,7 +2008,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Get notified when we joined the room.
      *
-     * @private
+     * @internal
      */
     _onMucJoined(): void {
         this._numberOfParticipantsOnJoin = this.getParticipantCount();
@@ -2009,7 +2021,7 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      * @private
      */
-    _updateFeatures(participant: JitsiParticipant): void {
+    private _updateFeatures(participant: JitsiParticipant): void {
         participant.getFeatures()
             .then(features => {
                 participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
@@ -2030,7 +2042,7 @@ export default class JitsiConference extends Listenable {
      * Get notified when member bot type had changed.
      * @param jid the member jid
      * @param botType the new botType value
-     * @private
+     * @internal
      */
     _onMemberBotTypeChanged(jid: string, botType: string): void {
 
@@ -2063,7 +2075,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} jid - The Jabber ID (JID) of the participant who left.
      * @param {string} [reason] - Optional reason provided for the participant leaving.
      */
-    onMemberLeft(jid: string, reason?: string): void {
+    public onMemberLeft(jid: string, reason?: string): void {
         const id = Strophe.getResourceFromJid(jid);
 
         if (id === 'focus' || this.myUserId() === id) {
@@ -2123,7 +2135,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean?} isReplaceParticipant - whether this is a server initiated kick in order
      * to replace it with a participant with same jwt.
      */
-    onMemberKicked(isSelfPresence: boolean, actorId: string, kickedParticipantId: string, reason: string, isReplaceParticipant: boolean): void {
+    public onMemberKicked(isSelfPresence: boolean, actorId: string, kickedParticipantId: string, reason: string, isReplaceParticipant: boolean): void {
         let actorParticipant;
 
         if (actorId === this.myUserId()) {
@@ -2137,7 +2149,7 @@ export default class JitsiConference extends Listenable {
         }
 
         if (isSelfPresence) {
-            this.leave().finally(() => this.xmpp.disconnect());
+            this.leave().finally(() => this._xmpp.disconnect());
             this.eventEmitter.emit(
                 JitsiConferenceEvents.KICKED, actorParticipant, reason, isReplaceParticipant);
 
@@ -2156,7 +2168,7 @@ export default class JitsiConference extends Listenable {
      * Method called on local MUC role change.
      * @param {string} role the name of new user's role as defined by XMPP MUC.
      */
-    onLocalRoleChanged(role: string): void {
+    public onLocalRoleChanged(role: string): void {
         // Emit role changed for local JID
         this.eventEmitter.emit(
             JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
@@ -2167,7 +2179,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} jid - The Jabber ID (JID) of the user whose role has changed.
      * @param {string} role - The new role assigned to the user (e.g., 'moderator', 'participant').
      */
-    onUserRoleChanged(jid: string, role: string): void {
+    public onUserRoleChanged(jid: string, role: string): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -2183,7 +2195,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} jid - The Jabber ID (JID) of the participant whose display name changed.
      * @param {string} displayName - The new display name for the participant.
      */
-    onDisplayNameChanged(jid: string, displayName: string): void {
+    public onDisplayNameChanged(jid: string, displayName: string): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -2207,7 +2219,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} jid - The Jabber ID (JID) of the participant whose silent status has changed.
      * @param {boolean} isSilent - The new silent status of the participant (true if silent, false otherwise).
      */
-    onSilentStatusChanged(jid: string, isSilent: boolean): void {
+    public onSilentStatusChanged(jid: string, isSilent: boolean): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -2227,7 +2239,7 @@ export default class JitsiConference extends Listenable {
      *
      * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
      */
-    onRemoteTrackAdded(track: JitsiRemoteTrack): void {
+    public onRemoteTrackAdded(track: JitsiRemoteTrack): void {
         if (track.isP2P && !this.isP2PActive()) {
             logger.info('Trying to add remote P2P track, when not in P2P - IGNORED');
 
@@ -2274,7 +2286,7 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} session - The Jingle session for which an answer was received.
      * @param {Element} answer - An element pointing to 'jingle' IQ element.
      */
-    onCallAccepted(session: JingleSessionPC, answer: Element): void {
+    public onCallAccepted(session: JingleSessionPC, answer: Element): void {
         if (this.p2pJingleSession === session) {
             logger.info('P2P setAnswer');
 
@@ -2299,7 +2311,7 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} session - The Jingle session for which the IQ was received.
      * @param {Object} transportInfo - An element pointing to 'jingle' IQ element.
      */
-    onTransportInfo(session: JingleSessionPC, transportInfo: object): void {
+    public onTransportInfo(session: JingleSessionPC, transportInfo: object): void {
         if (this.p2pJingleSession === session) {
             logger.info('P2P addIceCandidates');
             this.p2pJingleSession.addIceCandidates(transportInfo);
@@ -2311,7 +2323,7 @@ export default class JitsiConference extends Listenable {
      *
      * @param {JitsiRemoteTrack} removedTrack - The track that was removed.
      */
-    onRemoteTrackRemoved(removedTrack: JitsiRemoteTrack): void {
+    public onRemoteTrackRemoved(removedTrack: JitsiRemoteTrack): void {
         this.getParticipants().forEach(participant => {
             const tracks = participant.getTracks();
 
@@ -2335,7 +2347,7 @@ export default class JitsiConference extends Listenable {
      * @param {Element} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @private
      */
-    _onIncomingCallP2P(jingleSession: JingleSessionPC, jingleOffer: Element): void {
+    private _onIncomingCallP2P(jingleSession: JingleSessionPC, jingleOffer: Element): void {
         let rejectReason;
         const contentName = $(jingleOffer).find('>content').attr('name');
         const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
@@ -2383,7 +2395,7 @@ export default class JitsiConference extends Listenable {
      * @param {Element} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @param {number} now - The timestamp when the call was received.
      */
-    onIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
+    public onIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
         // Handle incoming P2P call
         if (jingleSession.isP2P) {
             this._onIncomingCallP2P(jingleSession, jingleOffer);
@@ -2411,7 +2423,7 @@ export default class JitsiConference extends Listenable {
      * @param {number} now - The timestamp when the call was received.
      * @private
      */
-    _acceptJvbIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
+    private _acceptJvbIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
         // Accept incoming call
         this.jvbJingleSession = jingleSession;
         this.room.connectionTimes['session.initiate'] = now;
@@ -2442,7 +2454,7 @@ export default class JitsiConference extends Listenable {
                 this.rtc,
                 this._signalingLayer,
                 {
-                    ...this.options.config,
+                    ...this._options.config,
                     codecSettings: {
                         codecList: this.qualityController.codecController.getCodecPreferenceList('jvb'),
                         mediaType: MediaType.VIDEO,
@@ -2509,7 +2521,7 @@ export default class JitsiConference extends Listenable {
      * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
      * @private
      */
-    _setBridgeChannel(offerIq: object, pc: TraceablePeerConnection): void {
+    private _setBridgeChannel(offerIq: object, pc: TraceablePeerConnection): void {
         const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
         const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? true;
         const sctpOffered = $(offerIq).find('>content[name="data"]')
@@ -2563,7 +2575,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} options.errorMsg - An error message to be logged on global error handler.
      * @private
      */
-    _rejectIncomingCall(jingleSession: JingleSessionPC, options: {
+    private _rejectIncomingCall(jingleSession: JingleSessionPC, options: {
         errorMsg?: string;
         reason?: string;
         reasonDescription?: string;
@@ -2595,7 +2607,7 @@ export default class JitsiConference extends Listenable {
      * @param {String|null} reasonText - Human readable reason text which may provide
      *  more details about why the call has been terminated.
      */
-    onCallEnded(jingleSession: JingleSessionPC, reasonCondition: string, reasonText: string): void {
+    public onCallEnded(jingleSession: JingleSessionPC, reasonCondition: string, reasonText: string): void {
         logger.info(
             `Call ended: ${reasonCondition} - ${reasonText} P2P ?${
                 jingleSession.isP2P}`);
@@ -2641,7 +2653,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Handles the suspend detected event. Leaves the room and fires suspended.
      * @param {JingleSessionPC} jingleSession - The Jingle session.
-     * @private
+     * @internal
      */
     onSuspendDetected(jingleSession: JingleSessionPC): void {
         if (!jingleSession.isP2P) {
@@ -2654,7 +2666,7 @@ export default class JitsiConference extends Listenable {
      * Updates DTMF support based on participants' capabilities.
      * @returns {void}
      */
-    updateDTMFSupport(): void {
+    public updateDTMFSupport(): void {
         let somebodySupportsDTMF = false;
         const participants = this.getParticipants();
 
@@ -2677,7 +2689,7 @@ export default class JitsiConference extends Listenable {
      * Allows to check if there is at least one user in the conference that supports DTMF.
      * @returns {boolean} True if somebody supports DTMF, false otherwise.
      */
-    isDTMFSupported(): boolean {
+    public isDTMFSupported(): boolean {
         return this.somebodySupportsDTMF;
     }
 
@@ -2685,7 +2697,7 @@ export default class JitsiConference extends Listenable {
      * Returns the local user's ID.
      * @returns {string|null} Local user's ID or null if not available.
      */
-    myUserId(): Nullable<string> {
+    public myUserId(): Nullable<string> {
         return (
             this.room?.myroomjid
                 ? Strophe.getResourceFromJid(this.room.myroomjid)
@@ -2699,7 +2711,7 @@ export default class JitsiConference extends Listenable {
      * @param {number} pause - The pause duration between tones in milliseconds.
      * @returns {void}
      */
-    sendTones(tones: string, duration: number, pause: number): void {
+    public sendTones(tones: string, duration: number, pause: number): void {
         const peerConnection = this.getActivePeerConnection();
 
         if (peerConnection) {
@@ -2716,7 +2728,7 @@ export default class JitsiConference extends Listenable {
      * {@link Chatroom#startRecording} for more info.
      * @returns {Promise} Resolves when recording starts successfully, rejects otherwise.
      */
-    startRecording(options: IRecordingOptions): Promise<JibriSession> {
+    public startRecording(options: IRecordingOptions): Promise<JibriSession> {
         if (this.room) {
             return this.recordingManager.startRecording(options);
         }
@@ -2730,7 +2742,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} sessionID - The ID of the recording session to stop.
      * @returns {Promise} Resolves when recording stops successfully, rejects otherwise.
      */
-    stopRecording(sessionID: string): Promise<void> {
+    public stopRecording(sessionID: string): Promise<void> {
         if (this.room) {
             return this.recordingManager.stopRecording(sessionID);
         }
@@ -2742,7 +2754,7 @@ export default class JitsiConference extends Listenable {
      * Returns true if SIP calls are supported, false otherwise.
      * @returns {boolean} True if SIP calling is supported, false otherwise.
      */
-    isSIPCallingSupported(): boolean {
+    public isSIPCallingSupported(): boolean {
         return this.room?.xmpp?.moderator?.isSipGatewayEnabled() ?? false;
     }
 
@@ -2751,7 +2763,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} number - The phone number to dial.
      * @returns {Promise} Resolves when the dial is successful, rejects otherwise.
      */
-    dial(number: string): Promise<void> {
+    public dial(number: string): Promise<void> {
         if (this.room) {
             return this.room.dial(number);
         }
@@ -2763,7 +2775,7 @@ export default class JitsiConference extends Listenable {
      * Hangs up an existing call.
      * @returns {Promise} Resolves when the hangup is successful.
      */
-    hangup(): Promise<void> {
+    public hangup(): Promise<void> {
         if (this.room) {
             return this.room.hangup();
         }
@@ -2775,7 +2787,7 @@ export default class JitsiConference extends Listenable {
      * Returns the phone number for joining the conference.
      * @returns {string|null} The phone number or null if not available.
      */
-    getPhoneNumber(): Nullable<string> {
+    public getPhoneNumber(): Nullable<string> {
         if (this.room) {
             return this.room.getPhoneNumber();
         }
@@ -2787,7 +2799,7 @@ export default class JitsiConference extends Listenable {
      * Returns the PIN for joining the conference via phone.
      * @returns {string|null} The phone PIN or null if not available.
      */
-    getPhonePin(): Nullable<string> {
+    public getPhonePin(): Nullable<string> {
         if (this.room) {
             return this.room.getPhonePin();
         }
@@ -2799,7 +2811,7 @@ export default class JitsiConference extends Listenable {
      * Returns the meeting unique ID if any.
      * @returns {string|undefined} The meeting ID or undefined if not available.
      */
-    getMeetingUniqueId(): Optional<string> {
+    public getMeetingUniqueId(): Optional<string> {
         if (this.room) {
             return this.room.getMeetingId();
         }
@@ -2810,7 +2822,7 @@ export default class JitsiConference extends Listenable {
      * @returns {TraceablePeerConnection|null} The active peer connection or null if none is available.
      * @public
      */
-    getActivePeerConnection(): Nullable<TraceablePeerConnection> {
+    public getActivePeerConnection(): Nullable<TraceablePeerConnection> {
         const session = this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
 
         return session ? session.peerconnection : null;
@@ -2822,7 +2834,7 @@ export default class JitsiConference extends Listenable {
      * be converted to "connected".
      * @returns {string|null} The ICE connection state or null if no active peer connection exists.
      */
-    getConnectionState(): Nullable<string> {
+    public getConnectionState(): Nullable<string> {
         const peerConnection = this.getActivePeerConnection();
 
         return peerConnection ? peerConnection.getConnectionState() : null;
@@ -2835,7 +2847,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} policy.video - Whether video should be muted for new participants.
      * @returns {void}
      */
-    setStartMutedPolicy(policy: { audio: boolean; video: boolean; }): void {
+    public setStartMutedPolicy(policy: { audio: boolean; video: boolean; }): void {
         if (!this.isModerator()) {
             logger.warn(`Failed to set start muted policy, ${this.room ? '' : 'not in a room, '}${
                 this.isModerator() ? '' : 'participant is not a moderator'}`);
@@ -2865,7 +2877,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} audio - Whether audio should be muted.
      * @param {boolean} video - Whether video should be muted.
      * @returns {void}
-     * @private
+     * @internal
      */
     _updateStartMutedPolicy(audio: boolean, video: boolean): void {
         // Update the start muted policy for the conference only if the meta data is received before conference join.
@@ -2895,6 +2907,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Set the transcribingEnabled flag. When transcribing is enabled, p2p is disabled.
      * @param {boolean} enabled - Whether transcribing should be enabled.
+     * @internal
      */
     _setTranscribingEnabled(enabled: boolean): void {
         if (this._transcribingEnabled !== enabled) {
@@ -2907,7 +2920,7 @@ export default class JitsiConference extends Listenable {
      * Returns the current start muted policy.
      * @returns {Object} Object with audio and video properties indicating the start muted policy.
      */
-    getStartMutedPolicy(): { audio: boolean; video: boolean; } {
+    public getStartMutedPolicy(): { audio: boolean; video: boolean; } {
         return this.startMutedPolicy;
     }
 
@@ -2915,7 +2928,7 @@ export default class JitsiConference extends Listenable {
      * Returns measured connection times.
      * @returns {Object} The connection times for the room.
      */
-    getConnectionTimes(): object {
+    public getConnectionTimes(): object {
         return this.room.connectionTimes;
     }
 
@@ -2925,7 +2938,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} value - The value of the property.
      * @returns {void}
      */
-    setLocalParticipantProperty(name: string, value: string | string[]): void {
+    public setLocalParticipantProperty(name: string, value: string | string[]): void {
         this.sendCommand(`jitsi_participant_${name}`, { value });
     }
 
@@ -2934,7 +2947,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} name - The name of the property to remove.
      * @returns {void}
      */
-    removeLocalParticipantProperty(name: string): void {
+    public removeLocalParticipantProperty(name: string): void {
         this.removeCommand(`jitsi_participant_${name}`);
         if (this.room) {
             this.room.sendPresence();
@@ -2948,7 +2961,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} lang - The new transcription language to be used.
      * @returns {void}
      */
-    setTranscriptionLanguage(lang: string): void {
+    public setTranscriptionLanguage(lang: string): void {
         this.setLocalParticipantProperty('transcription_language', lang);
     }
 
@@ -2957,7 +2970,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} name - The name of the property to retrieve.
      * @returns {string|undefined} The value of the property if it exists, otherwise undefined.
      */
-    getLocalParticipantProperty(name: string): Optional<string> {
+    public getLocalParticipantProperty(name: string): Optional<string> {
         const property = this.room.presMap.nodes.find(prop =>
             prop.tagName === `jitsi_participant_${name}`
         );
@@ -2971,7 +2984,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} detailedFeedback - Detailed feedback from the user (not yet used).
      * @returns {Promise} Resolves if feedback is submitted successfully.
      */
-    sendFeedback(overallFeedback: number, detailedFeedback: string): Promise<void> {
+    public sendFeedback(overallFeedback: number, detailedFeedback: string): Promise<void> {
         return this.statistics.sendFeedback(overallFeedback, detailedFeedback);
     }
 
@@ -2980,7 +2993,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean} Always returns false since callstats is no longer supported.
      * @deprecated
      */
-    isCallstatsEnabled(): boolean {
+    public isCallstatsEnabled(): boolean {
         logger.warn('Callstats is no longer supported');
 
         return false;
@@ -2991,7 +3004,7 @@ export default class JitsiConference extends Listenable {
      * @param {JitsiTrack} track - The track to find the SSRC for.
      * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
      */
-    getSsrcByTrack(track: JitsiTrack): Optional<number> {
+    public getSsrcByTrack(track: JitsiTrack): Optional<number> {
         return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
     }
 
@@ -3000,7 +3013,7 @@ export default class JitsiConference extends Listenable {
      * Sends an application log (no-op since callstats is no longer supported).
      * @returns {void}
      */
-    sendApplicationLog(): void {
+    public sendApplicationLog(): void {
         // eslint-disable-next-line no-empty-function
     }
 
@@ -3010,7 +3023,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean|null} True if the user is the conference focus,
      * false if not, null if not in MUC or invalid JID.
      */
-    isFocus(mucJid: string): Nullable<boolean> {
+    public isFocus(mucJid: string): Nullable<boolean> {
         return this.room ? this.room.isFocus(mucJid) : null;
     }
 
@@ -3019,7 +3032,7 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      * @private
      */
-    _fireIncompatibleVersionsEvent(): void {
+    private _fireIncompatibleVersionsEvent(): void {
         this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
             JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS);
     }
@@ -3031,7 +3044,7 @@ export default class JitsiConference extends Listenable {
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails.
      * @deprecated Use 'sendMessage' instead. TODO: this should be private.
      */
-    sendEndpointMessage(to: string, payload: object): void {
+    public sendEndpointMessage(to: string, payload: object): void {
         this.rtc.sendChannelMessage(to, payload);
     }
 
@@ -3040,7 +3053,7 @@ export default class JitsiConference extends Listenable {
      * @param {Object} payload - The payload of the message.
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails or no data channel exists.
      */
-    sendEndpointStatsMessage(payload: object): void {
+    public sendEndpointStatsMessage(payload: object): void {
         this.rtc.sendEndpointStatsMessage(payload);
     }
 
@@ -3050,7 +3063,7 @@ export default class JitsiConference extends Listenable {
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails.
      * @deprecated Use 'sendMessage' instead. TODO: this should be private.
      */
-    broadcastEndpointMessage(payload: object): void {
+    public broadcastEndpointMessage(payload: object): void {
         this.sendEndpointMessage('', payload);
     }
 
@@ -3060,7 +3073,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} [to=''] - The ID of the recipient endpoint, or empty string to broadcast.
      * @param {boolean} [sendThroughVideobridge=false] - Whether to send through jitsi-videobridge.
      */
-    sendMessage(message: any, to = '', sendThroughVideobridge = false): void {
+    public sendMessage(message: any, to = '', sendThroughVideobridge = false): void {
         const messageType = typeof message;
 
         // Through videobridge we support only objects. Through XMPP we support
@@ -3112,7 +3125,7 @@ export default class JitsiConference extends Listenable {
      * Checks if the connection is interrupted.
      * @returns {boolean} True if the connection is interrupted, false otherwise.
      */
-    isConnectionInterrupted(): boolean {
+    public isConnectionInterrupted(): boolean {
         return this.isP2PActive()
             ? this.isP2PConnectionInterrupted : this.isJvbConnectionInterrupted;
     }
@@ -3122,7 +3135,7 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} session - The Jingle session.
      * @private
      */
-    _onIceConnectionInterrupted(session: JingleSessionPC): void {
+    private _onIceConnectionInterrupted(session: JingleSessionPC): void {
         if (session.isP2P) {
             this.isP2PConnectionInterrupted = true;
         } else {
@@ -3138,7 +3151,7 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} session - The Jingle session.
      * @private
      */
-    _onIceConnectionFailed(session: JingleSessionPC): void {
+    private _onIceConnectionFailed(session: JingleSessionPC): void {
         if (session.isP2P) {
             // Add p2pFailed property to analytics to distinguish, between "good"
             // and "bad" connection
@@ -3174,7 +3187,7 @@ export default class JitsiConference extends Listenable {
                     ACTION_JVB_ICE_FAILED,
                     {
                         participantId: this.myUserId(),
-                        userRegion: this.options.config.deploymentInfo?.userRegion
+                        userRegion: this._options.config.deploymentInfo?.userRegion
                     }));
             this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.ICE_FAILED);
         }
@@ -3185,7 +3198,7 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} session - The Jingle session.
      * @private
      */
-    _onIceConnectionRestored(session: JingleSessionPC): void {
+    private _onIceConnectionRestored(session: JingleSessionPC): void {
         if (session.isP2P) {
             this.isP2PConnectionInterrupted = false;
         } else {
@@ -3204,7 +3217,7 @@ export default class JitsiConference extends Listenable {
      * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @private
      */
-    _acceptP2PIncomingCall(jingleSession: JingleSessionPC, jingleOffer: object): void {
+    private _acceptP2PIncomingCall(jingleSession: JingleSessionPC, jingleOffer: object): void {
         this.isP2PConnectionInterrupted = false;
 
         // Accept the offer
@@ -3216,7 +3229,7 @@ export default class JitsiConference extends Listenable {
             this.rtc,
             this._signalingLayer,
             {
-                ...this.options.config,
+                ...this._options.config,
                 codecSettings: {
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
                     mediaType: MediaType.VIDEO,
@@ -3255,7 +3268,7 @@ export default class JitsiConference extends Listenable {
      * @private
      * @returns {void}
      */
-    _addRemoteJVBTracks(): void {
+    private _addRemoteJVBTracks(): void {
         this._addRemoteTracks('JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
     }
 
@@ -3264,7 +3277,7 @@ export default class JitsiConference extends Listenable {
      * @private
      * @returns {void}
      */
-    _addRemoteP2PTracks(): void {
+    private _addRemoteP2PTracks(): void {
         this._addRemoteTracks('P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
     }
 
@@ -3274,7 +3287,7 @@ export default class JitsiConference extends Listenable {
      * @param {Array<JitsiRemoteTrack>} remoteTracks - The tracks that will be added.
      * @private
      */
-    _addRemoteTracks(logName: string, remoteTracks: JitsiRemoteTrack[]): void {
+    private _addRemoteTracks(logName: string, remoteTracks: JitsiRemoteTrack[]): void {
         for (const track of remoteTracks) {
             if (this.participants.has(track.ownerEndpointId)) {
                 logger.info(`Adding remote ${logName} track: ${track}`);
@@ -3288,7 +3301,7 @@ export default class JitsiConference extends Listenable {
      * @private
      * @param {JingleSessionPC} jingleSession - The Jingle session for which ICE connection was established.
      */
-    _onIceConnectionEstablished(jingleSession: JingleSessionPC): void {
+    private _onIceConnectionEstablished(jingleSession: JingleSessionPC): void {
         if (this.p2pJingleSession !== null) {
             // store the establishment time of the p2p session as a field of the
             // JitsiConference because the p2pJingleSession might get disposed (thus
@@ -3368,7 +3381,7 @@ export default class JitsiConference extends Listenable {
      * ('key').
      * @private
      */
-    _updateProperties(properties: IConferenceProperties = {}): void {
+    private _updateProperties(properties: IConferenceProperties = {}): void {
         const changed = !isEqual(properties, this.properties);
 
         this.properties = properties;
@@ -3434,7 +3447,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} key - The key.
      * @returns {*} The value
      */
-    getProperty(key: string): any {
+    public getProperty(key: string): any {
         return this.properties[key];
     }
 
@@ -3442,7 +3455,7 @@ export default class JitsiConference extends Listenable {
      * Clears the deferred start P2P task if it has been scheduled.
      * @private
      */
-    _maybeClearDeferredStartP2P(): void {
+    private _maybeClearDeferredStartP2P(): void {
         if (this.deferredStartP2PTask) {
             logger.info('Cleared deferred start P2P task');
             clearTimeout(this.deferredStartP2PTask);
@@ -3451,11 +3464,11 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Removes from the conference remote tracks associated with the JVB
+         * Removes from the conference remote tracks associated with the JVB
      * connection.
      * @private
      */
-    _removeRemoteJVBTracks(): void {
+    private _removeRemoteJVBTracks(): void {
         this._removeRemoteTracks(
             'JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
     }
@@ -3465,7 +3478,7 @@ export default class JitsiConference extends Listenable {
      * connection.
      * @private
      */
-    _removeRemoteP2PTracks(): void {
+    private _removeRemoteP2PTracks(): void {
         this._removeRemoteTracks(
             'P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
     }
@@ -3477,7 +3490,7 @@ export default class JitsiConference extends Listenable {
      * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be removed
      * @private
      */
-    _removeRemoteTracks(sessionNickname: string, remoteTracks: JitsiRemoteTrack[]): void {
+    private _removeRemoteTracks(sessionNickname: string, remoteTracks: JitsiRemoteTrack[]): void {
         for (const track of remoteTracks) {
             logger.info(`Removing remote ${sessionNickname} track: ${track}`);
             this.onRemoteTrackRemoved(track);
@@ -3488,7 +3501,7 @@ export default class JitsiConference extends Listenable {
      * Resumes media transfer over the JVB connection.
      * @private
      */
-    _resumeMediaTransferForJvbConnection(): void {
+    private _resumeMediaTransferForJvbConnection(): void {
         logger.info('Resuming media transfer over the JVB connection...');
         this.jvbJingleSession.setMediaTransferActive(true)
             .then(() => {
@@ -3502,11 +3515,11 @@ export default class JitsiConference extends Listenable {
     /**
      * Sets new P2P status and updates some events/states hijacked from
      * the <tt>JitsiConference</tt>.
-     * @param {boolean} newStatus the new P2P status value, <tt>true</tt> means that
+         * @param {boolean} newStatus the new P2P status value, <tt>true</tt> means that
      * P2P is now in use, <tt>false</tt> means that the JVB connection is now in use
      * @private
      */
-    _setP2PStatus(newStatus: boolean): void {
+    private _setP2PStatus(newStatus: boolean): void {
         if (this.p2p === newStatus) {
             logger.debug(`Called _setP2PStatus with the same status: ${newStatus}`);
 
@@ -3556,7 +3569,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} remoteJid the JID of the remote participant
      * @private
      */
-    _startP2PSession(remoteJid: string): void {
+    private _startP2PSession(remoteJid: string): void {
         this._maybeClearDeferredStartP2P();
         if (this.p2pJingleSession) {
             logger.error('P2P session already started!');
@@ -3579,7 +3592,7 @@ export default class JitsiConference extends Listenable {
             this.rtc,
             this._signalingLayer,
             {
-                ...this.options.config,
+                ...this._options.config,
                 codecSettings: {
                     codecList: this.qualityController.codecController.getCodecPreferenceList('p2p'),
                     mediaType: MediaType.VIDEO,
@@ -3610,7 +3623,7 @@ export default class JitsiConference extends Listenable {
      * Suspends media transfer over the JVB connection.
      * @private
      */
-    _suspendMediaTransferForJvbConnection(): void {
+    private _suspendMediaTransferForJvbConnection(): void {
         logger.info('Suspending media transfer over the JVB connection...');
         this.jvbJingleSession.setMediaTransferActive(false)
             .then(() => {
@@ -3628,7 +3641,7 @@ export default class JitsiConference extends Listenable {
      * originates from the user left event.
      * @private
      */
-    _maybeStartOrStopP2P(userLeftEvent: boolean = false): void {
+    private _maybeStartOrStopP2P(userLeftEvent: boolean = false): void {
         if (!this.isP2PEnabled()
                 || this.isP2PTestModeEnabled()
                 || (browser.isFirefox() && !this._firefoxP2pEnabled)
@@ -3656,10 +3669,10 @@ export default class JitsiConference extends Listenable {
             const jid = peer.getJid();
 
             // Force initiator or responder mode for testing if option is passed to config.
-            if (this.options.config.testing?.forceInitiator) {
+            if (this._options.config.testing?.forceInitiator) {
                 logger.debug(`Forcing P2P initiator, will start P2P with: ${jid}`);
                 this._startP2PSession(jid);
-            } else if (this.options.config.testing?.forceResponder) {
+            } else if (this._options.config.testing?.forceResponder) {
                 logger.debug(`Forcing P2P responder, will wait for the other peer ${jid} to start P2P`);
             } else {
                 if (myId > peersId) {
@@ -3705,7 +3718,7 @@ export default class JitsiConference extends Listenable {
      * @private
      * @returns {boolean}
      */
-    _shouldBeInP2PMode(): boolean {
+    private _shouldBeInP2PMode(): boolean {
         const peers = this.getParticipants();
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
@@ -3730,6 +3743,7 @@ export default class JitsiConference extends Listenable {
      * a session restart, in which case, session will be
      * set to null.
      * @param {boolean} options.sendSessionTerminate - Whether session-terminate needs to be sent to Jicofo.
+     * @internal
      */
     _stopJvbSession(options?: { reason?: string; reasonDescription?: string; requestRestart?: boolean; sendSessionTerminate?: boolean; }): void {
         const {
@@ -3782,7 +3796,7 @@ export default class JitsiConference extends Listenable {
      * media will not be resumed on the JVB.
      * @private
      */
-    _stopP2PSession(options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; } = {}): void {
+    private _stopP2PSession(options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; } = {}): void {
         const {
             reason = 'success',
             reasonDescription = 'Turning off P2P session',
@@ -3863,7 +3877,7 @@ export default class JitsiConference extends Listenable {
      * tracks we will check.
      * @param {Object|null} ctx a context object we can distinguish multiple calls of the same pass of updating tracks.
      */
-    _updateRoomPresence(jingleSession: JingleSessionPC, ctx: { skip?: boolean; } = {}): void {
+    private _updateRoomPresence(jingleSession: JingleSessionPC, ctx: { skip?: boolean; } = {}): void {
         if (!jingleSession) {
             return;
         }
@@ -3903,7 +3917,7 @@ export default class JitsiConference extends Listenable {
      * established and the P2P connection is being used for media transmission.
      * @return {boolean} <tt>true</tt> if in P2P mode or <tt>false</tt> otherwise.
      */
-    isP2PActive(): boolean {
+    public isP2PActive(): boolean {
         return this.p2p;
     }
 
@@ -3913,7 +3927,7 @@ export default class JitsiConference extends Listenable {
      * @return {string|null} an ICE state or <tt>null</tt> if there's currently
      * no P2P connection.
      */
-    getP2PConnectionState(): Nullable<string> {
+    public getP2PConnectionState(): Nullable<string> {
         if (this.isP2PActive()) {
             return this.p2pJingleSession.peerconnection.getConnectionState();
         }
@@ -3927,7 +3941,7 @@ export default class JitsiConference extends Listenable {
      * @param {number} maxFps The capture framerate to be used for desktop tracks.
      * @returns {boolean} true if the operation is successful, false otherwise.
      */
-    setDesktopSharingFrameRate(maxFps: number): boolean {
+    public setDesktopSharingFrameRate(maxFps: number): boolean {
         if (!isValidNumber(maxFps)) {
             logger.error(`Invalid value ${maxFps} specified for desktop capture frame rate`);
 
@@ -3951,7 +3965,7 @@ export default class JitsiConference extends Listenable {
      * Manually starts new P2P session (should be used only in the tests).
      * @returns {void}
      */
-    startP2PSession(): void {
+    public startP2PSession(): void {
         const peers = this.getParticipants();
 
         // Start peer to peer session
@@ -3970,7 +3984,7 @@ export default class JitsiConference extends Listenable {
      * @param {Object} options - Options for stopping P2P.
      * @returns {void}
      */
-    stopP2PSession(options: {
+    public stopP2PSession(options: {
         reason: string;
         reasonDescription: string;
         requestRestart: boolean;
@@ -3982,7 +3996,7 @@ export default class JitsiConference extends Listenable {
      * Get a summary of how long current participants have been the dominant speaker
      * @returns {{[userId: string]: SpeakerStats}} The speaker statistics.
      */
-    getSpeakerStats(): { [userId: string]: SpeakerStats; } {
+    public getSpeakerStats(): { [userId: string]: SpeakerStats; } {
         return this.speakerStatsCollector.getStats();
     }
 
@@ -3991,9 +4005,9 @@ export default class JitsiConference extends Listenable {
      * @param {{ faceExpression?: unknown; }} payload - The face landmarks data to send.
      * @returns {void}
      */
-    sendFaceLandmarks(payload: { faceExpression?: unknown; }): void {
+    public sendFaceLandmarks(payload: { faceExpression?: unknown; }): void {
         if (payload.faceExpression) {
-            this.xmpp.sendFaceLandmarksEvent(this.room.roomjid, payload);
+            this._xmpp.sendFaceLandmarksEvent(this.room.roomjid, payload);
         }
     }
 
@@ -4016,7 +4030,7 @@ export default class JitsiConference extends Listenable {
      * Where A, B and C are source-names of the remote tracks that are being requested from the bridge.
      * @returns {void}
      */
-    setReceiverConstraints(videoConstraints: IReceiverVideoConstraints): void {
+    public setReceiverConstraints(videoConstraints: IReceiverVideoConstraints): void {
         this.qualityController.receiveVideoController.setReceiverConstraints(videoConstraints);
     }
 
@@ -4026,7 +4040,7 @@ export default class JitsiConference extends Listenable {
      * @param {Number} assumedBandwidthBps - The bandwidth value expressed in bits per second.
      * @returns {void}
      */
-    setAssumedBandwidthBps(assumedBandwidthBps: number): void {
+    public setAssumedBandwidthBps(assumedBandwidthBps: number): void {
         this.qualityController.receiveVideoController.setAssumedBandwidthBps(assumedBandwidthBps);
     }
 
@@ -4038,7 +4052,7 @@ export default class JitsiConference extends Listenable {
      * this receiver is willing to receive.
      * @returns {void}
      */
-    setReceiverVideoConstraint(maxFrameHeight: number): void {
+    public setReceiverVideoConstraint(maxFrameHeight: number): void {
         this.qualityController.receiveVideoController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
     }
 
@@ -4049,7 +4063,7 @@ export default class JitsiConference extends Listenable {
      * @returns {Promise} promise that will be resolved when the operation is
      * successful and rejected otherwise.
      */
-    setSenderVideoConstraint(maxFrameHeight: number): Promise<void> {
+    public setSenderVideoConstraint(maxFrameHeight: number): Promise<void> {
         return this.qualityController.sendVideoController.setPreferredSendMaxFrameHeight(maxFrameHeight);
     }
 
@@ -4066,7 +4080,7 @@ export default class JitsiConference extends Listenable {
      * @returns {JitsiVideoSIPGWSession|Error} Returns null if conference is not
      * initialised and there is no room.
      */
-    createVideoSIPGWSession(sipAddress: string, displayName: string): JitsiVideoSIPGWSession | Error {
+    public createVideoSIPGWSession(sipAddress: string, displayName: string): JitsiVideoSIPGWSession | Error {
         if (!this.room) {
             return new Error(VideoSIPGWConstants.ERROR_NO_CONNECTION);
         }
@@ -4080,7 +4094,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {void}
      */
-    _sendConferenceJoinAnalyticsEvent(): void {
+    private _sendConferenceJoinAnalyticsEvent(): void {
         const meetingId = this.getMeetingUniqueId();
 
         if (this._conferenceJoinAnalyticsEventSent || !meetingId || this.getActivePeerConnection() === null) {
@@ -4117,7 +4131,7 @@ export default class JitsiConference extends Listenable {
      * Sends conference.left analytics event.
      * @private
      */
-    _sendConferenceLeftAnalyticsEvent(): void {
+    private _sendConferenceLeftAnalyticsEvent(): void {
         const meetingId = this.getMeetingUniqueId();
 
         if (!meetingId || !this._conferenceJoinAnalyticsEventSent) {
@@ -4139,7 +4153,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {void}
      */
-    _restartMediaSessions(): void {
+    private _restartMediaSessions(): void {
         if (this.p2pJingleSession) {
             this._stopP2PSession({
                 reasonDescription: 'restart',
@@ -4164,7 +4178,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean}
      */
-    isE2EEEnabled(): boolean {
+    public isE2EEEnabled(): boolean {
         return Boolean(this._e2eEncryption?.isEnabled());
     }
 
@@ -4174,8 +4188,8 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean}
      */
-    isE2EESupported(): boolean {
-        return E2EEncryption.isSupported(this.options.config);
+    public isE2EESupported(): boolean {
+        return E2EEncryption.isSupported(this._options.config);
     }
 
     /**
@@ -4184,7 +4198,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} enabled whether to enable E2EE or not.
      * @returns {void}
      */
-    toggleE2EE(enabled: boolean): void {
+    public toggleE2EE(enabled: boolean): void {
         if (!this.isE2EESupported()) {
             logger.warn('Cannot enable / disable E2EE: platform is not supported.');
 
@@ -4201,7 +4215,7 @@ export default class JitsiConference extends Listenable {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    setMediaEncryptionKey(keyInfo: CryptoKey): void {
+    public setMediaEncryptionKey(keyInfo: CryptoKey): void {
         this._e2eEncryption.setEncryptionKey(keyInfo);
     }
 
@@ -4211,7 +4225,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} participantId The participant which will be marked as verified.
      * @returns {void}
      */
-    startVerification(participantId: string): void {
+    public startVerification(participantId: string): void {
         const participant = this.getParticipantById(participantId);
 
         if (!participant) {
@@ -4229,7 +4243,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} isVerified - whether the verification was succesfull.
      * @returns {void}
      */
-    markParticipantVerified(participantId: string, isVerified: boolean): void {
+    public markParticipantVerified(participantId: string, isVerified: boolean): void {
         const participant = this.getParticipantById(participantId);
 
         if (!participant) {
@@ -4244,7 +4258,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean} whether lobby is supported in the backend.
      */
-    isLobbySupported(): boolean {
+    public isLobbySupported(): boolean {
         return Boolean(this.room?.getLobby().isSupported());
     }
 
@@ -4253,7 +4267,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean} whether conference room is members only.
      */
-    isMembersOnly(): boolean {
+    public isMembersOnly(): boolean {
         return Boolean(this.room?.membersOnlyEnabled);
     }
 
@@ -4262,7 +4276,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean} whether conference room has visitors support.
      */
-    isVisitorsSupported(): boolean {
+    public isVisitorsSupported(): boolean {
         return Boolean(this.room?.visitorsSupported);
     }
 
@@ -4271,7 +4285,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Promise} resolves when lobby room is joined or rejects with the error.
      */
-    enableLobby(): Promise<void> {
+    public enableLobby(): Promise<void> {
         if (this.room && this.isModerator()) {
             return this.room.getLobby().enable();
         }
@@ -4285,7 +4299,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {void}
      */
-    disableLobby(): void {
+    public disableLobby(): void {
         if (this.room && this.isModerator()) {
             this.room.getLobby().disable();
         } else {
@@ -4301,7 +4315,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} email Optional email is used to present avatar to the moderator.
      * @returns {Promise<never>}
      */
-    joinLobby(displayName: string, email: string): Promise<void> {
+    public joinLobby(displayName: string, email: string): Promise<void> {
         if (this.room) {
             return this.room.getLobby().join(displayName, email);
         }
@@ -4316,7 +4330,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {string}
      */
-    myLobbyUserId(): Optional<string> {
+    public myLobbyUserId(): Optional<string> {
         if (this.room) {
             return this.room.getLobby().getLocalId();
         }
@@ -4331,7 +4345,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {void}
      */
-    sendLobbyMessage(message: object, id: string): void {
+    public sendLobbyMessage(message: object, id: string): void {
         if (this.room) {
             if (id) {
                 return this.room.getLobby().sendPrivateMessage(id, message);
@@ -4348,7 +4362,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    addLobbyMessageListener(listener: (message: object) => void): Optional<EventListener> {
+    public addLobbyMessageListener(listener: (message: object) => void): Optional<EventListener> {
         if (this.room) {
             return this.room.getLobby().addMessageListener(listener) as Optional<EventListener>;
         }
@@ -4360,7 +4374,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {void}
      */
-    removeLobbyMessageHandler(handler: (message: object) => void): void {
+    public removeLobbyMessageHandler(handler: (message: object) => void): void {
         if (this.room) {
             return this.room.getLobby().removeMessageHandler(handler);
         }
@@ -4371,7 +4385,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} id The participant id.
      * @returns {void}
      */
-    lobbyDenyAccess(id: string): void {
+    public lobbyDenyAccess(id: string): void {
         if (this.room) {
             this.room.getLobby().denyAccess(id);
         }
@@ -4383,7 +4397,7 @@ export default class JitsiConference extends Listenable {
      * @param {string|Array<string>} param The participant id or an array of ids.
      * @returns {void}
      */
-    lobbyApproveAccess(param: string | string[]): void {
+    public lobbyApproveAccess(param: string | string[]): void {
         if (this.room) {
             this.room.getLobby().approveAccess(param);
         }
@@ -4394,7 +4408,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {boolean} whether AV Moderation is supported in the backend.
      */
-    isAVModerationSupported(): boolean {
+    public isAVModerationSupported(): boolean {
         return Boolean(this.room?.getAVModeration().isSupported());
     }
 
@@ -4403,7 +4417,7 @@ export default class JitsiConference extends Listenable {
      * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @returns {void}
      */
-    enableAVModeration(mediaType: MediaType): void {
+    public enableAVModeration(mediaType: MediaType): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
             this.room.getAVModeration().enable(true, mediaType);
@@ -4419,7 +4433,7 @@ export default class JitsiConference extends Listenable {
      * @param {MediaType} mediaType "audio", "desktop" or "video"
      * @returns {void}
      */
-    disableAVModeration(mediaType: MediaType): void {
+    public disableAVModeration(mediaType: MediaType): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
             this.room.getAVModeration().enable(false, mediaType);
@@ -4437,7 +4451,7 @@ export default class JitsiConference extends Listenable {
      * @param id the id of the participant.
      * @returns {void}
      */
-    avModerationApprove(mediaType: MediaType, id: string): void {
+    public avModerationApprove(mediaType: MediaType, id: string): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
 
@@ -4462,7 +4476,7 @@ export default class JitsiConference extends Listenable {
      * @param id the id of the participant.
      * @returns {void}
      */
-    avModerationReject(mediaType: MediaType, id: string): void {
+    public avModerationReject(mediaType: MediaType, id: string): void {
         if (this.room && this.isModerator()
             && (mediaType === MediaType.AUDIO || mediaType === MediaType.DESKTOP || mediaType === MediaType.VIDEO)) {
 
@@ -4485,7 +4499,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Optional<BreakoutRooms>} the breakout rooms manager.
      */
-    getBreakoutRooms(): Optional<BreakoutRooms> {
+    public getBreakoutRooms(): Optional<BreakoutRooms> {
         return this.room?.getBreakoutRooms();
     }
 
@@ -4494,7 +4508,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Optional<FileSharing>} the file sharing manager.
      */
-    getFileSharing(): Optional<FileSharing> {
+    public getFileSharing(): Optional<FileSharing> {
         return this.room?.getFileSharing();
     }
 
@@ -4503,7 +4517,7 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Optional<RoomMetadata>} the room metadata handler.
      */
-    getMetadataHandler(): Optional<RoomMetadata> {
+    public getMetadataHandler(): Optional<RoomMetadata> {
         return this.room?.getMetadataHandler();
     }
 
@@ -4512,7 +4526,7 @@ export default class JitsiConference extends Listenable {
      * @param {string} service - The service for which to request the credentials.
      * @returns {Promise} A promise that resolves with the credentials or rejects with an error.
      */
-    getShortTermCredentials(service: string): Promise<string> {
+    public getShortTermCredentials(service: string): Promise<string> {
         if (this.room) {
             return this.room.getShortTermCredentials(service);
         }
@@ -4520,7 +4534,7 @@ export default class JitsiConference extends Listenable {
         return Promise.reject(new Error('The conference is not created yet!'));
     }
 
-    getAudioAnalyser(): Optional<VADAudioAnalyser> {
+    public getAudioAnalyser(): Optional<VADAudioAnalyser> {
         return this?._audioAnalyser;
     }
 }

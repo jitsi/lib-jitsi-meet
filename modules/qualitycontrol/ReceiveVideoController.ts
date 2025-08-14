@@ -54,7 +54,7 @@ export default class ReceiveVideoController {
     constructor(conference: JitsiConference) {
         this._conference = conference;
         this._rtc = conference.rtc;
-        const { config } = conference.options;
+        const { config } = conference._options;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
         this._lastN = config?.startLastN ?? config?.channelLastN ?? LAST_N_UNLIMITED;

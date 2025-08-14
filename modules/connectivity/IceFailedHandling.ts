@@ -67,7 +67,7 @@ export default class IceFailedHandling {
         //  The 65 second timeout is given on purpose as there's no chance for XMPP to recover after 65 seconds of no
         // communication with the server. Such resume attempt will result in unrecoverable conference failed event due
         // to 'item-not-found' error returned by the server.
-        this._conference.xmpp.ping(65000).then(
+        this._conference._xmpp.ping(65000).then(
             () => {
                 if (!this._canceled) {
                     this._iceFailedTimeout = window.setTimeout(() => {

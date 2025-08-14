@@ -208,7 +208,7 @@ export class QualityController {
         }
 
         // If channelLastN is not set or set to -1 in config.js, the client will ramp up lastN to only up to 25.
-        let { channelLastN = DEFAULT_LAST_N } = this._conference.options.config;
+        let { channelLastN = DEFAULT_LAST_N } = this._conference._options.config;
 
         channelLastN = channelLastN === LAST_N_UNLIMITED ? DEFAULT_LAST_N : channelLastN;
         if (cpuLimited) {
