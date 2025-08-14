@@ -466,7 +466,7 @@ export class TPCUtils {
      * @param {number} maxHeight The resolution requested for the video track.
      * @returns {Optional<Array<VideoEncoderScalabilityMode>>}
      */
-    calculateEncodingsScalabilityMode(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, maxHeight: number): (VideoEncoderScalabilityMode | undefined)[] | undefined {
+    calculateEncodingsScalabilityMode(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, maxHeight: number): Optional<Optional<VideoEncoderScalabilityMode>[]>{
         if (!this.codecSettings[codec].scalabilityModeEnabled) {
             return;
         }
