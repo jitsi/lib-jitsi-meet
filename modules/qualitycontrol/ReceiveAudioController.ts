@@ -3,6 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
@@ -70,6 +71,7 @@ export class ReceiverAudioController {
             return;
         }
         this._subscriptionMode = message.mode;
+
         if (message.mode == ReceiverAudioSubscription.INCLUDE
             || message.mode == ReceiverAudioSubscription.EXCLUDE) {
 
@@ -88,9 +90,12 @@ export class ReceiverAudioController {
             this._sourceList = [];
         }
 
-        this._rtc.sendReceiverAudioSubscriptionMessage({
+        const payload = {
             list: this._sourceList,
             mode: this._subscriptionMode
-        });
+        };
+
+        this._rtc.sendReceiverAudioSubscriptionMessage(payload);
+        this._rtc.eventEmitter.emit(RTCEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED, payload);
     }
 }

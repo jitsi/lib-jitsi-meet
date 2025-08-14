@@ -10,6 +10,10 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
+     * Event indicates that the audio subscription mode changed.
+     */
+    AUDIO_SUBSCRIPTION_MODE_CHANGED = 'conference.audio_subscription_mode_changed',
+    /**
      * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
      * call and the audio sender limit configured in Jicofo.
      */
@@ -534,6 +538,7 @@ export enum JitsiConferenceEvents {
 export const _MEDIA_SESSION_STARTED = JitsiConferenceEvents._MEDIA_SESSION_STARTED;
 export const _MEDIA_SESSION_ACTIVE_CHANGED = JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED;
 export const AUDIO_INPUT_STATE_CHANGE = JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE;
+export const AUDIO_SUBSCRIPTION_MODE_CHANGED = JitsiConferenceEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED;
 export const AUDIO_UNMUTE_PERMISSIONS_CHANGED = JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED;
 export const AUTH_STATUS_CHANGED = JitsiConferenceEvents.AUTH_STATUS_CHANGED;
 export const AV_MODERATION_APPROVED = JitsiConferenceEvents.AV_MODERATION_APPROVED;

@@ -5,6 +5,7 @@ import * as exported from "./JitsiConferenceEvents";
 describe( "/JitsiConferenceEvents members", () => {
     const {
         AUDIO_INPUT_STATE_CHANGE,
+        AUDIO_SUBSCRIPTION_MODE_CHANGED,
         AUDIO_UNMUTE_PERMISSIONS_CHANGED,
         AUTH_STATUS_CHANGED,
         BEFORE_STATISTICS_DISPOSED,
@@ -98,6 +99,7 @@ describe( "/JitsiConferenceEvents members", () => {
 
     it( "known members", () => {
         expect( AUDIO_INPUT_STATE_CHANGE ).toBe( 'conference.audio_input_state_changed' );
+        expect( AUDIO_SUBSCRIPTION_MODE_CHANGED ).toBe( 'conference.audio_subscription_mode_changed' );
         expect( AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
@@ -185,6 +187,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents ).toBeDefined();
 
         expect( JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE ).toBe( 'conference.audio_input_state_changed' );
+        expect( JitsiConferenceEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED ).toBe( 'conference.audio_subscription_mode_changed' );
         expect( JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
