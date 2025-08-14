@@ -145,7 +145,7 @@ export default class SdpSimulcast {
      * @param attributeName
      * @returns
      */
-    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): string | undefined {
+    _getSsrcAttribute(mLine: transform.MediaDescription, ssrc: number, attributeName: string): Optional<string> {
         return mLine.ssrcs?.find(
             ssrcInfo => Number(ssrcInfo.id) === ssrc
             && ssrcInfo.attribute === attributeName)?.value;
@@ -157,7 +157,7 @@ export default class SdpSimulcast {
      * @param mLine
      * @returns
      */
-    _parseSimLayers(mLine: transform.MediaDescription): Array<number> | null {
+    _parseSimLayers(mLine: transform.MediaDescription): Nullable<Array<number>> {
         const simGroup = mLine.ssrcGroups?.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM);
 
         if (simGroup) {

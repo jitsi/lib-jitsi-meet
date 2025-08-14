@@ -332,9 +332,9 @@ export class MockSignalingLayerImpl {
     /**
      * Returns the muted state, videoType and codec info received in presence.
      * @param {string} endpointId
-     * @returns Object
+     * @returns Optional<Object>
      */
-    getPeerMediaInfo(endpointId: string): object | undefined {
+    getPeerMediaInfo(endpointId: string): Optional<object> {
         return this._remoteSourceState[endpointId];
     }
 

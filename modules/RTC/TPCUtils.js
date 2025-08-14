@@ -407,7 +407,7 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localVideoTrack The local video track.
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
-     * @returns {Array<VideoEncoderScalabilityMode> | undefined}
+     * @returns {Optional<Array<VideoEncoderScalabilityMode>>}
      */
     calculateEncodingsScalabilityMode(localVideoTrack, codec, maxHeight) {
         if (!this.codecSettings[codec].scalabilityModeEnabled) {

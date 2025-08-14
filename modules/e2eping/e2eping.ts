@@ -64,7 +64,7 @@ class ParticipantWrapper {
     id: string;
     requests: { [key: number]: IRequest; };
     lastRequestId: number;
-    timeout: number | null;
+    timeout: Nullable<number>;
 
     /**
      * Creates a ParticipantWrapper

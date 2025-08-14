@@ -952,7 +952,7 @@ export default class JitsiConference extends Listenable {
 
     /**
    * Returns the currently active media session if any.
-   * @returns {JingleSessionPC|undefined}
+   * @returns {Optional<JingleSessionPC>}
    */
     getActiveMediaSession(): Optional<JingleSessionPC> {
         return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;

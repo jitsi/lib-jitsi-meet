@@ -20,11 +20,11 @@ const logger = getLogger('modules/RTC/BridgeChannel');
  */
 export default class BridgeChannel {
 
-    private _channel: RTCDataChannel | WebSocket | null = null;
+    private _channel: Nullable<RTCDataChannel | WebSocket> = null;
     private _conference: JitsiConference;
-    private _connected: boolean | undefined = undefined;
+    private _connected: Optional<boolean> = undefined;
     private _eventEmitter: EventEmitter;
-    private _mode: 'datachannel' | 'websocket' | null = null;
+    private _mode: Nullable<'datachannel' | 'websocket'> = null;
     private _areRetriesEnabled: boolean = false;
     private _closedFromClient: boolean = false;
     private _wsUrl?: string;
@@ -35,15 +35,15 @@ export default class BridgeChannel {
      * instance, or creates a WebSocket connection with the videobridge.
      * At least one of both, peerconnection or wsUrl parameters, must be
      * given.
-     * @param {RTCPeerConnection} [peerconnection] WebRTC peer connection
+     * @param {Nullable<RTCPeerConnection>} [peerconnection] WebRTC peer connection
      * instance.
-     * @param {string} [wsUrl] WebSocket URL.
+     * @param {Nullable<string>} [wsUrl] WebSocket URL.
      * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
      * @param {JitsiConference} conference the conference instance.
      */
     constructor(
-            peerconnection: RTCPeerConnection | null,
-            wsUrl: string | null,
+            peerconnection: Nullable<RTCPeerConnection>,
+            wsUrl: Nullable<string>,
             emitter: EventEmitter,
             conference: JitsiConference
     ) {
@@ -309,7 +309,7 @@ export default class BridgeChannel {
     _handleChannel(channel: RTCDataChannel | WebSocket): void {
         const emitter = this._eventEmitter;
 
-        channel.onopen = (): void | null => {
+        channel.onopen = (): Nullable<void> => {
             logger.info(`${this._mode} channel opened`);
 
             this._connected = true;

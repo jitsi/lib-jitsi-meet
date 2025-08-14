@@ -107,7 +107,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     public deviceId: string;
     public resolution?: number;
     public maxEnabledResolution?: number;
-    public conference: JitsiConference | null;
+    public conference: Nullable<JitsiConference>;
 
     /**
      * Constructs a new JitsiLocalTrack instance.
@@ -658,11 +658,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
      *
-     * @param {MediaStream} stream - The new MediaStream.
+     * @param {Nullable<MediaStream>} stream - The new MediaStream.
      * @private
      * @returns {void}
      */
-    protected _setStream(stream: MediaStream | null): void {
+    protected _setStream(stream: Nullable<MediaStream>): void {
         super._setStream(stream);
     }
 
@@ -720,9 +720,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Returns facing mode for video track from camera. For other cases (e.g. audio track or 'desktop' video track)
      * returns undefined.
      *
-     * @returns {CameraFacingMode|undefined}
+     * @returns {Optional<CameraFacingMode>}
      */
-    getCameraFacingMode(): CameraFacingMode | undefined {
+    getCameraFacingMode(): Optional<CameraFacingMode> {
         if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
             // MediaStreamTrack#getSettings() is not implemented in many
             // browsers, so we need feature checking here. Progress on the
@@ -794,17 +794,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Returns the source name associated with the jitsi track.
      *
-     * @returns {string | null} source name
+     * @returns {Nullable<string>} source name
      */
-    getSourceName(): string | null {
+    getSourceName(): Nullable<string> {
         return this._sourceName;
     }
 
     /**
      * Returns the primary SSRC associated with the track.
-     * @returns {number}
+     * @returns {Nullable<number>}
      */
-    getSsrc(): number | null {
+    getSsrc(): Nullable<number> {
         return this._ssrc;
     }
 

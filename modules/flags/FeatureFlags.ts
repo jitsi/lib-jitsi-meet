@@ -11,10 +11,10 @@ class FeatureFlags {
      * Configures the module.
      *
      * @param {object} flags - The feature flags.
-     * @param {boolean=} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
-     * @param {boolean=} flags.ssrcRewritingEnabled - Use SSRC rewriting.
+     * @param {Optional<boolean>} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
+     * @param {Optional<boolean>} flags.ssrcRewritingEnabled - Use SSRC rewriting.
      */
-    init(flags: { runInLiteMode?: boolean | undefined; ssrcRewritingEnabled?: boolean | undefined; }) {
+    init(flags: { runInLiteMode?: Optional<boolean>; ssrcRewritingEnabled?: Optional<boolean>; }) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
     }

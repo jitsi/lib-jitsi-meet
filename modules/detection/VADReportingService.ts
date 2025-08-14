@@ -39,7 +39,7 @@ export default class VADReportingService extends EventEmitter {
     private _contextMap: Map<string, IVADDeviceContext>;
     private _destroyed: boolean;
     private _intervalDelay: number;
-    private _intervalId: ReturnType<typeof setInterval> | null;
+    private _intervalId: Nullable<ReturnType<typeof setInterval>>;
 
     /**
      *

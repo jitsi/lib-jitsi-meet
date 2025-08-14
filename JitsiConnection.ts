@@ -61,7 +61,7 @@ export default class JitsiConnection {
      * @param token - The JWT token used to authenticate with the server (optional).
      * @param options - Object with properties / settings related to connection with the server.
      */
-    constructor(appID: string, token: string | null, options: IConnectionOptions) {
+    constructor(appID: string, token: Nullable<string>, options: IConnectionOptions) {
         this.appID = appID;
         this.token = token;
         this.options = options;
@@ -168,7 +168,7 @@ export default class JitsiConnection {
      * that will be created.
      * @returns The new conference object.
      */
-    initJitsiConference(name: string | null, options: Record<string, any>): JitsiConference {
+    initJitsiConference(name: Nullable<string>, options: Record<string, any>): JitsiConference {
         return new JitsiConference({
             config: options,
             connection: this,

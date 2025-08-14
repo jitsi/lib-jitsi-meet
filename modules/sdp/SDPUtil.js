@@ -774,7 +774,7 @@ const SDPUtil = {
      * Gets the source name out of the name attribute "a=ssrc:254321 name:name1".
      *
      * @param {string[]} ssrcLines
-     * @returns {string | undefined}
+     * @returns {Optional<string>}
      */
     parseSourceNameLine(ssrcLines) {
         const sourceNameLine = ssrcLines.find(ssrcSdpLine => ssrcSdpLine.indexOf(' name:') > 0);
@@ -788,7 +788,7 @@ const SDPUtil = {
      * "a=ssrc:1234 videoType:desktop")
      *
      * @param {string[]} ssrcLines
-     * @returns {string | undefined}
+     * @returns {Optional<string>}
      */
     parseVideoTypeLine(ssrcLines) {
         const s = ' videoType:';

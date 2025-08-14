@@ -82,7 +82,7 @@ export class FixedSizeArray {
         this._data.push(item);
     }
 
-    get(index: number): ISourceStats | undefined {
+    get(index: number): Optional<ISourceStats> {
         if (index < 0 || index >= this._data.length) {
             throw new Error('Index out of bounds');
         }
@@ -109,8 +109,8 @@ export class QualityController {
     private _encodeTimeStats: Map<number, FixedSizeArray>;
     private _isLastNRampupBlocked: boolean;
     private _lastNRampupTime: number;
-    private _lastNRampupTimeout: number | undefined;
-    private _limitedByCpuTimeout: number | undefined;
+    private _lastNRampupTimeout: Optional<number>;
+    private _limitedByCpuTimeout: Optional<number>;
     private _receiveVideoController: ReceiveVideoController;
     private _sendVideoController: SendVideoController;
 
