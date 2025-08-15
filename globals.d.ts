@@ -16,4 +16,12 @@ declare global {
             writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
         }
     }
+        interface RTCRtpEncodingParameters {
+        scalabilityMode?: string;
+        degradationPreference?: string;
+        codec?: RTCRtpCodecParameters;
+    }
+        interface RTCPeerConnection {
+        createDTMFSender?(track: MediaStreamTrack): RTCDTMFSender;
+    }
 }
