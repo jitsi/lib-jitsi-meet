@@ -72,8 +72,8 @@ export default class SpeakerStatsCollector {
                         this._onFaceLandmarkAdd(participant.getId(), faceLandmarks);
                     }
                 });
-        if (conference._xmpp) {
-            conference._xmpp.addListener(
+        if (conference.xmpp) {
+            conference.xmpp.addListener(
                 XMPPEvents.SPEAKER_STATS_RECEIVED,
                 this._updateStats.bind(this));
         }

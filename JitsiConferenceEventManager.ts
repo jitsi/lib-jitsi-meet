@@ -54,7 +54,7 @@ export default class JitsiConferenceEventManager {
      */
     private _addConferenceXMPPListener(eventName: string, listener: (...args: any[]) => void): void { // Todo
         this.xmppListeners[eventName] = listener;
-        this.conference._xmpp.addListener(eventName, listener);
+        this.conference.xmpp.addListener(eventName, listener);
     }
 
     /**
@@ -497,7 +497,7 @@ export default class JitsiConferenceEventManager {
                         JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous, silence);
                     if (conference.statistics && conference.myUserId() === dominant) {
                         // We are the new dominant speaker.
-                        conference._xmpp.sendDominantSpeakerEvent(conference.room.roomjid, silence);
+                        conference.xmpp.sendDominantSpeakerEvent(conference.room.roomjid, silence);
                     }
                     if (conference.lastDominantSpeaker !== dominant) {
                         if (previous?.length) {
@@ -691,7 +691,7 @@ export default class JitsiConferenceEventManager {
         const conference = this.conference;
 
         Object.keys(this.xmppListeners).forEach(eventName => {
-            conference._xmpp.removeListener(
+            conference.xmpp.removeListener(
                 eventName,
                 this.xmppListeners[eventName]);
         });

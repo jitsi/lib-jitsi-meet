@@ -261,10 +261,8 @@ export default class JitsiConference extends Listenable {
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
     private _unsubscribers: Array<() => void>;
-    /**
-     * @internal
-     */
-    _xmpp: XMPP;
+    private _xmpp: XMPP;
+
     /**
      * @internal
      */
@@ -2316,8 +2314,9 @@ export default class JitsiConference extends Listenable {
    * @returns {Object} A thenable which (1) settles when the process of
    * authenticating and upgrading the role of the local participant/user finishes
    * and (2) has a cancel method that allows the caller to interrupt the process.
+   * @internal
    */
-    public authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
+    authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
         return authenticateAndUpgradeRole.call(this, {
             ...options,
             onCreateResource: JitsiConference.resourceCreator
@@ -2602,17 +2601,6 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-   * Adds a one-time listener function for the event.
-   * @param {string} eventId - The event ID.
-   * @param {Function} handler - Handler for the event.
-   */
-    public once(eventId: string, handler: EventListener): void {
-        if (this.eventEmitter) {
-            this.eventEmitter.once(eventId, handler);
-        }
-    }
-
-    /**
    * Receives notifications from other participants about commands / custom events
    * (sent by sendCommand or sendCommandOnce methods).
    * @param {string} command - The name of the command.
@@ -2828,8 +2816,9 @@ export default class JitsiConference extends Listenable {
     /**
    * Clear JitsiLocalTrack properties and listeners.
    * @param {JitsiLocalTrack} track - The JitsiLocalTrack object.
+   * @internal
    */
-    public onLocalTrackRemoved(track: JitsiLocalTrack): void {
+    onLocalTrackRemoved(track: JitsiLocalTrack): void {
         track.setConference(null);
         this.rtc.removeLocalTrack(track);
         this._unsubscribers.forEach(remove => remove());
@@ -2989,8 +2978,9 @@ export default class JitsiConference extends Listenable {
     /**
      * Obtains the forwarded sources list in this conference.
      * @return {Array<string>}
+     * @internal
      */
-    public getForwardedSources(): string[] {
+    getForwardedSources(): string[] {
         return this.rtc.getForwardedSources();
     }
 
@@ -3163,8 +3153,9 @@ export default class JitsiConference extends Listenable {
      * @param features the member botType, if any
      * @param isReplaceParticipant whether this join replaces a participant with
      * the same jwt.
+     * @internal
      */
-    public onMemberJoined(
+    onMemberJoined(
             jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
     ): void {
         const id = Strophe.getResourceFromJid(jid);
@@ -3234,8 +3225,9 @@ export default class JitsiConference extends Listenable {
      * Handles the logic when a remote participant leaves the conference.
      * @param {string} jid - The Jabber ID (JID) of the participant who left.
      * @param {string} [reason] - Optional reason provided for the participant leaving.
+     * @internal
      */
-    public onMemberLeft(jid: string, reason?: string): void {
+    onMemberLeft(jid: string, reason?: string): void {
         const id = Strophe.getResourceFromJid(jid);
 
         if (id === 'focus' || this.myUserId() === id) {
@@ -3294,8 +3286,9 @@ export default class JitsiConference extends Listenable {
      * @param {string} reason - reason of the participant to kick
      * @param {boolean?} isReplaceParticipant - whether this is a server initiated kick in order
      * to replace it with a participant with same jwt.
+     * @internal
      */
-    public onMemberKicked(isSelfPresence: boolean, actorId: string, kickedParticipantId: string, reason: string, isReplaceParticipant: boolean): void {
+    onMemberKicked(isSelfPresence: boolean, actorId: string, kickedParticipantId: string, reason: string, isReplaceParticipant: boolean): void {
         let actorParticipant;
 
         if (actorId === this.myUserId()) {
@@ -3327,8 +3320,9 @@ export default class JitsiConference extends Listenable {
     /**
      * Method called on local MUC role change.
      * @param {string} role the name of new user's role as defined by XMPP MUC.
+     * @internal
      */
-    public onLocalRoleChanged(role: string): void {
+    onLocalRoleChanged(role: string): void {
         // Emit role changed for local JID
         this.eventEmitter.emit(
             JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
@@ -3338,8 +3332,9 @@ export default class JitsiConference extends Listenable {
      * Handles changes to a user's role within the conference.
      * @param {string} jid - The Jabber ID (JID) of the user whose role has changed.
      * @param {string} role - The new role assigned to the user (e.g., 'moderator', 'participant').
+     * @internal
      */
-    public onUserRoleChanged(jid: string, role: string): void {
+    onUserRoleChanged(jid: string, role: string): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -3354,8 +3349,9 @@ export default class JitsiConference extends Listenable {
      * Handles updates to a participant's display name.
      * @param {string} jid - The Jabber ID (JID) of the participant whose display name changed.
      * @param {string} displayName - The new display name for the participant.
+     * @internal
      */
-    public onDisplayNameChanged(jid: string, displayName: string): void {
+    onDisplayNameChanged(jid: string, displayName: string): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -3378,8 +3374,9 @@ export default class JitsiConference extends Listenable {
      * Handles changes to a participant's silent status.
      * @param {string} jid - The Jabber ID (JID) of the participant whose silent status has changed.
      * @param {boolean} isSilent - The new silent status of the participant (true if silent, false otherwise).
+     * @internal
      */
-    public onSilentStatusChanged(jid: string, isSilent: boolean): void {
+    onSilentStatusChanged(jid: string, isSilent: boolean): void {
         const id = Strophe.getResourceFromJid(jid);
         const participant = this.getParticipantById(id);
 
@@ -3398,8 +3395,9 @@ export default class JitsiConference extends Listenable {
      * Notifies this JitsiConference that a JitsiRemoteTrack was added to the conference.
      *
      * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this JitsiConference.
+     * @internal
      */
-    public onRemoteTrackAdded(track: JitsiRemoteTrack): void {
+    onRemoteTrackAdded(track: JitsiRemoteTrack): void {
         if (track.isP2P && !this.isP2PActive()) {
             logger.info('Trying to add remote P2P track, when not in P2P - IGNORED');
 
@@ -3445,8 +3443,9 @@ export default class JitsiConference extends Listenable {
      * Callback called by the Jingle plugin when 'session-answer' is received.
      * @param {JingleSessionPC} session - The Jingle session for which an answer was received.
      * @param {Element} answer - An element pointing to 'jingle' IQ element.
+     * @internal
      */
-    public onCallAccepted(session: JingleSessionPC, answer: Element): void {
+    onCallAccepted(session: JingleSessionPC, answer: Element): void {
         if (this.p2pJingleSession === session) {
             logger.info('P2P setAnswer');
 
@@ -3470,8 +3469,9 @@ export default class JitsiConference extends Listenable {
      * Callback called by the Jingle plugin when 'transport-info' is received.
      * @param {JingleSessionPC} session - The Jingle session for which the IQ was received.
      * @param {Object} transportInfo - An element pointing to 'jingle' IQ element.
+     * @internal
      */
-    public onTransportInfo(session: JingleSessionPC, transportInfo: object): void {
+    onTransportInfo(session: JingleSessionPC, transportInfo: object): void {
         if (this.p2pJingleSession === session) {
             logger.info('P2P addIceCandidates');
             this.p2pJingleSession.addIceCandidates(transportInfo);
@@ -3482,8 +3482,9 @@ export default class JitsiConference extends Listenable {
      * Notifies this JitsiConference that a JitsiRemoteTrack was removed from the conference.
      *
      * @param {JitsiRemoteTrack} removedTrack - The track that was removed.
+     * @internal
      */
-    public onRemoteTrackRemoved(removedTrack: JitsiRemoteTrack): void {
+    onRemoteTrackRemoved(removedTrack: JitsiRemoteTrack): void {
         this.getParticipants().forEach(participant => {
             const tracks = participant.getTracks();
 
@@ -3536,8 +3537,9 @@ export default class JitsiConference extends Listenable {
      * @param {String} reasonCondition - The Jingle reason condition.
      * @param {String|null} reasonText - Human readable reason text which may provide
      *  more details about why the call has been terminated.
+     * @internal
      */
-    public onCallEnded(jingleSession: JingleSessionPC, reasonCondition: string, reasonText: string): void {
+    onCallEnded(jingleSession: JingleSessionPC, reasonCondition: string, reasonText: string): void {
         logger.info(
             `Call ended: ${reasonCondition} - ${reasonText} P2P ?${
                 jingleSession.isP2P}`);
@@ -3793,8 +3795,9 @@ export default class JitsiConference extends Listenable {
     /**
      * Returns the current start muted policy.
      * @returns {Object} Object with audio and video properties indicating the start muted policy.
+     * @internal
      */
-    public getStartMutedPolicy(): { audio: boolean; video: boolean; } {
+    getStartMutedPolicy(): { audio: boolean; video: boolean; } {
         return this.startMutedPolicy;
     }
 
@@ -3862,16 +3865,6 @@ export default class JitsiConference extends Listenable {
         return this.statistics.sendFeedback(overallFeedback, detailedFeedback);
     }
 
-    /**
-     * Checks if callstats is enabled.
-     * @returns {boolean} Always returns false since callstats is no longer supported.
-     * @deprecated
-     */
-    public isCallstatsEnabled(): boolean {
-        logger.warn('Callstats is no longer supported');
-
-        return false;
-    }
 
     /**
      * Finds the SSRC of a given track.
@@ -3896,8 +3889,9 @@ export default class JitsiConference extends Listenable {
      * @param {string} mucJid - The full MUC address of the user to check.
      * @returns {boolean|null} True if the user is the conference focus,
      * false if not, null if not in MUC or invalid JID.
+     * @internal
      */
-    public isFocus(mucJid: string): Nullable<boolean> {
+    isFocus(mucJid: string): Nullable<boolean> {
         return this.room ? this.room.isFocus(mucJid) : null;
     }
 
@@ -3916,6 +3910,7 @@ export default class JitsiConference extends Listenable {
      * Sends local stats via the bridge channel to other endpoints selectively.
      * @param {Object} payload - The payload of the message.
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails or no data channel exists.
+     * @internal
      */
     public sendEndpointStatsMessage(payload: object): void {
         this.rtc.sendEndpointStatsMessage(payload);
@@ -4057,8 +4052,9 @@ export default class JitsiConference extends Listenable {
     /**
      * Manually starts new P2P session (should be used only in the tests).
      * @returns {void}
+     * @internal
      */
-    public startP2PSession(): void {
+    startP2PSession(): void {
         const peers = this.getParticipants();
 
         // Start peer to peer session
@@ -4076,8 +4072,9 @@ export default class JitsiConference extends Listenable {
      * Manually stops the current P2P session (should be used only in the tests).
      * @param {Object} options - Options for stopping P2P.
      * @returns {void}
+     * @internal
      */
-    public stopP2PSession(options: {
+    stopP2PSession(options: {
         reason: string;
         reasonDescription: string;
         requestRestart: boolean;
@@ -4545,5 +4542,13 @@ export default class JitsiConference extends Listenable {
 
     public getAudioAnalyser(): Optional<VADAudioAnalyser> {
         return this?._audioAnalyser;
+    }
+
+    /**
+     * @internal
+     * @returns {XMPP} the XMPP connection object.
+     */
+    get xmpp(): XMPP {
+        return this._xmpp;
     }
 }
