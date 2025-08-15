@@ -2344,7 +2344,7 @@ export default class TraceablePeerConnection {
                     scaleResolutionDownBy = undefined
                 } = parameters.encodings[idx];
                 const scalabilityMode = parameters.encodings[idx].scalabilityMode;
-                const currentCodec = undefined;
+                const currentCodec = parameters.encodings[idx].codec;
 
                 if (active !== activeState[idx]) {
                     parameters.encodings[idx].active = activeState[idx];
