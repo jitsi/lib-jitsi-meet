@@ -6,16 +6,12 @@ import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 
 import { MLineWrap, SdpTransformWrap } from './SdpTransformUtil';
+import { ITPCGroupInfo } from './constansts';
 
 
 export interface ITPCSSRCInfo {
     groups: ITPCGroupInfo[];
     msid: string;
-    ssrcs: number[];
-}
-
-export interface ITPCGroupInfo {
-    semantics: string;
     ssrcs: number[];
 }
 

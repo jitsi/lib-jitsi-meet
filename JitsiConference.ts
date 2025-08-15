@@ -88,6 +88,7 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import JitsiTrack from './modules/RTC/JitsiTrack';
 
 export interface IConferenceOptions {
     config: {
@@ -2987,11 +2988,11 @@ export default class JitsiConference extends Listenable {
 
     /**
      * Finds the SSRC of a given track.
-     * @param {JitsiLocalTrack} track - The track to find the SSRC for.
-     * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
+     * @param {JitsiTrack} track - The track to find the SSRC for.
+     * @returns {Optional<number>} The SSRC of the specified track, or undefined if not found.
      */
-    getSsrcByTrack(track: JitsiLocalTrack): Optional<number> {
-        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
+    getSsrcByTrack(track: JitsiTrack): Optional<number> {
+        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track as JitsiLocalTrack) : track.getSsrc();
     }
 
 

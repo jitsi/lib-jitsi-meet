@@ -29,6 +29,14 @@ import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import { TPCUtils } from './TPCUtils';
+import JitsiTrack from './JitsiTrack';
+import { ITPCGroupInfo } from '../sdp/constansts';
+import { ITPCSourceInfo } from './SourceInfo';
+
+
+const logger = getLogger('modules/RTC/TraceablePeerConnection');
+const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
+const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
 /**
  * Interface for legacy WebRTC stats report (pre-standard)
@@ -51,34 +59,13 @@ interface ILegacyStatsResponse {
  */
 type StatsResponse = RTCStatsReport | ILegacyStatsResponse;
 
-
-// FIXME SDP tools should end up in some kind of util module
-
-const logger = getLogger('modules/RTC/TraceablePeerConnection');
-const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
-const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
-
-export interface ITPCGroupInfo {
-    semantics: string;
-    ssrcs: Array<number>;
-}
-
 export interface ITPCSSRCInfo {
     groups: Array<ITPCGroupInfo>;
     msid: string;
     ssrcs: Array<number>;
 }
 
-export interface ITPCSourceInfo {
-    groups: Array<ITPCGroupInfo>;
-    mediaType?: MediaType;
-    msid: string;
-    ssrcList?: Array<string>;
-    ssrcs?: Array<string>;
-    videoType?: VideoType;
-}
-
-export interface ITouchToneRequest {
+interface ITouchToneRequest {
     duration: number;
     interToneGap: number;
     tones: string;
@@ -114,20 +101,20 @@ export interface ICodecSettings {
     screenshareCodec?: CodecMimeType;
 }
 
-export interface IUpdateLogEntry {
+interface IUpdateLogEntry {
     time: Date;
     type: string;
     value: string;
 }
 
-export interface IStatsEntry {
+interface IStatsEntry {
     endTime: Date;
     startTime: Date;
     times: number[];
     values: any[];
 }
 
-export interface ITraceFunction {
+interface ITraceFunction {
     (what: string, info?: string, opts?: any): void;
 }
 
@@ -224,7 +211,7 @@ export default class TraceablePeerConnection {
             id: number,
             signalingLayer: SignalingLayer,
             pcConfig: RTCConfiguration,
-            constraints: object,
+            constraints: {optional?: any[]},
             isP2P: boolean,
             options: ITPCOptions
     ) {
@@ -384,7 +371,20 @@ export default class TraceablePeerConnection {
         this.signalingLayer.on(SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED,
             (sourceName, videoType) => this._sourceVideoTypeChanged(sourceName, videoType));
 
-        // Note: The constraints parameter is deprecated in modern WebRTC
+        // Make sure constraints is properly formatted in order to provide information about whether or not this
+        // connection is P2P to rtcstats.
+        const safeConstraints = constraints || {};
+
+        safeConstraints.optional = safeConstraints.optional || [];
+
+        // The `optional` parameter needs to be of type array, otherwise chrome will throw an error.
+        // Firefox and Safari just ignore it.
+        if (Array.isArray(safeConstraints.optional)) {
+            safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
+        } else {
+            logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
+        }
+
         // RTCPeerConnection constructor only accepts RTCConfiguration
         // @ts-ignore
         this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
@@ -629,9 +629,9 @@ export default class TraceablePeerConnection {
      * succeeded and is up and running. We never see "completed" state for
      * the JVB connection, but it started appearing for the P2P one. This method
      * allows to adapt old logic to this new situation.
-     * @return {string}
+     * @return {RTCIceConnectionState}
      */
-    getConnectionState(): string {
+    getConnectionState(): RTCIceConnectionState {
         const state = this.peerconnection.iceConnectionState;
 
         if (state === 'completed') {
@@ -652,7 +652,7 @@ export default class TraceablePeerConnection {
      * local description on the peerconnection.
      * @private
      */
-    getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): string {
+    getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): MediaDirection {
         return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
     }
 
@@ -663,7 +663,7 @@ export default class TraceablePeerConnection {
      * @param {string} mediaType 'audio' or 'video'
      * @returns {Array<RTCRtpReceiver>} list of receivers created by the peerconnection.
      */
-    _getReceiversByEndpointIds(endpoints: string[], mediaType: MediaType): RTCRtpReceiver[] {
+    private _getReceiversByEndpointIds(endpoints: string[], mediaType: MediaType): RTCRtpReceiver[] {
         let remoteTracks = [];
         let receivers = [];
 
@@ -701,7 +701,7 @@ export default class TraceablePeerConnection {
      * @param {VideoType} videoType the new value
      * @private
      */
-    _peerVideoTypeChanged(endpointId: string, videoType: VideoType): void {
+    private _peerVideoTypeChanged(endpointId: string, videoType: VideoType): void {
         // Check if endpointId has a value to avoid action on random track
         if (!endpointId) {
             logger.error(`${this} No endpointID on peerVideoTypeChanged`);
@@ -723,7 +723,7 @@ export default class TraceablePeerConnection {
      * @param {boolean} isMuted the new mute state
      * @private
      */
-    _peerMutedChanged(endpointId: string, mediaType: MediaType, isMuted: boolean): void {
+    private _peerMutedChanged(endpointId: string, mediaType: MediaType, isMuted: boolean): void {
         // Check if endpointId is a value to avoid doing action on all remote tracks
         if (!endpointId) {
             logger.error(`${this} On peerMuteChanged - no endpoint ID`);
@@ -744,7 +744,7 @@ export default class TraceablePeerConnection {
      * @param {string} sourceName - The name of the remote source.
      * @param {boolean} isMuted - The new mute state.
      */
-    _sourceMutedChanged(sourceName: string, isMuted: boolean): void {
+    private _sourceMutedChanged(sourceName: string, isMuted: boolean): void {
         const track = this.getRemoteTracks().slice().reverse().find(t => t.getSourceName() === sourceName);
 
         if (!track) {
@@ -762,7 +762,7 @@ export default class TraceablePeerConnection {
      * @param {string} sourceName - The name of the remote source.
      * @param {boolean} isMuted - The new value.
      */
-    _sourceVideoTypeChanged(sourceName: string, videoType: VideoType): void {
+    private _sourceVideoTypeChanged(sourceName: string, videoType: VideoType): void {
         const track = this.getRemoteTracks().slice().reverse().find(t => t.getSourceName() === sourceName);
 
         if (!track) {
@@ -840,7 +840,7 @@ export default class TraceablePeerConnection {
      * @param {MediaType} [mediaType]
      * @return {Array<JitsiLocalTrack>}
      */
-    getLocalTracks(mediaType: MediaType | undefined = undefined): JitsiLocalTrack[] {
+    getLocalTracks(mediaType: Optional<MediaType> = undefined): JitsiLocalTrack[] {
         let tracks = Array.from(this.localTracks.values());
 
         if (mediaType !== undefined) {
@@ -862,12 +862,12 @@ export default class TraceablePeerConnection {
     /**
      * Obtains all remote tracks currently known to this PeerConnection instance.
      *
-     * @param {string} [endpointId] - The track owner's identifier (MUC nickname)
-     * @param {MediaType} [mediaType] - The remote tracks will be filtered by their media type if this argument is
+     * @param {optional<string>} [endpointId] - The track owner's identifier (MUC nickname)
+     * @param {optional<MediaType>} [mediaType] - The remote tracks will be filtered by their media type if this argument is
      * specified.
      * @return {Array<JitsiRemoteTrack>}
      */
-    getRemoteTracks(endpointId: string = '', mediaType: MediaType = MediaType.AUDIO): JitsiRemoteTrack[] {
+    getRemoteTracks(endpointId: Optional<string> = undefined, mediaType: Optional<MediaType> = undefined): JitsiRemoteTrack[] {
         let remoteTracks = [];
 
         if (FeatureFlags.isSsrcRewritingSupported()) {
@@ -942,7 +942,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTrack} - The local video track.
      * @returns {Object}
      */
-    getTargetVideoBitrates(localTrack: JitsiLocalTrack): { download: number; upload: number; } {
+    getTargetVideoBitrates(localTrack: JitsiLocalTrack): any {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
         return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
@@ -952,9 +952,9 @@ export default class TraceablePeerConnection {
      * Tries to find {@link JitsiTrack} for given SSRC number. It will search both local and remote tracks bound to this
      * instance.
      * @param {number} ssrc
-     * @return {JitsiTrack|null}
+     * @return {Nullable<JitsiRemoteTrack | JitsiLocalTrack>}
      */
-    getTrackBySSRC(ssrc: number): JitsiRemoteTrack | JitsiLocalTrack | null {
+    getTrackBySSRC(ssrc: number): Nullable<JitsiRemoteTrack | JitsiLocalTrack>{
         if (typeof ssrc !== 'number') {
             throw new Error(`SSRC ${ssrc} is not a number`);
         }
@@ -983,9 +983,9 @@ export default class TraceablePeerConnection {
      * Tries to find SSRC number for given {@link JitsiTrack} id. It will search
      * both local and remote tracks bound to this instance.
      * @param {string} id
-     * @return {number|null}
+     * @return {Nullable<number>}
      */
-    getSsrcByTrackId(id: string): number | null {
+    getSsrcByTrackId(id: string): Nullable<number>{
 
         const findTrackById = track => track.getTrack().id === id;
         const localTrack = this.getLocalTracks().find(findTrackById);
@@ -1014,7 +1014,7 @@ export default class TraceablePeerConnection {
      * @param {RTCRtpTransceiver} transceiver the WebRTC transceiver that is created
      * for the remote participant in unified plan.
      */
-    _remoteTrackAdded(stream: MediaStream, track: MediaStreamTrack, transceiver: RTCRtpTransceiver | null = null): void {
+    _remoteTrackAdded(stream: MediaStream, track: MediaStreamTrack, transceiver: Nullable<RTCRtpTransceiver> = null): void {
         const streamId = stream.id;
         const mediaType = track.kind as MediaType;
 
@@ -1037,11 +1037,12 @@ export default class TraceablePeerConnection {
         // Find the matching mline using 'mid' or the 'msid' attr of the stream.
         if (transceiver?.mid) {
             const mid = transceiver.mid;
-
-            mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`, remoteSDP.session));
+            // @ts-ignore
+            mediaLine = remoteSDP.media.find(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
         } else {
             mediaLine = remoteSDP.media.find(mls => {
-                const msid = SDPUtil.findLine(mls, 'a=msid:', remoteSDP.session);
+                // @ts-ignore
+                const msid = SDPUtil.findLine(mls, 'a=msid:');
 
                 return typeof msid === 'string' && streamId === msid.substring(7).split(' ')[0];
             });
@@ -1054,8 +1055,8 @@ export default class TraceablePeerConnection {
 
             return;
         }
-
-        let ssrcLines = SDPUtil.findLines(mediaLine, 'a=ssrc:', remoteSDP.session);
+        // @ts-ignore
+        let ssrcLines = SDPUtil.findLines(mediaLine, 'a=ssrc:');
 
         ssrcLines = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
         if (!ssrcLines.length) {
@@ -1331,10 +1332,10 @@ export default class TraceablePeerConnection {
     }
 
     /**
-     *
      * @param {JitsiLocalTrack} localTrack
+     * @returns {Nullable<number>}
      */
-    getLocalSSRC(localTrack: JitsiLocalTrack): number | null {
+    getLocalSSRC(localTrack: JitsiLocalTrack): Nullable<number> {
         const ssrcInfo = this._getSSRC(localTrack.rtcId.toString());
 
         return ssrcInfo?.ssrcs[0];
@@ -1365,7 +1366,7 @@ export default class TraceablePeerConnection {
      * Gets the local description of the peer connection, with optional transformations for
      * simulcast and stream identifiers.
      */
-    get localDescription(): RTCSessionDescription | null {
+    get localDescription(): Nullable<RTCSessionDescription> {
         let desc = this.peerconnection.localDescription;
 
         if (!desc) {
@@ -1389,7 +1390,7 @@ export default class TraceablePeerConnection {
     /**
      * Gets the remote description of the peer connection, with optional adjustments for media direction in P2P mode.
      */
-    get remoteDescription(): RTCSessionDescription | null {
+    get remoteDescription(): Nullable<RTCSessionDescription> {
         let desc = this.peerconnection.remoteDescription;
 
         if (!desc) {
@@ -1410,7 +1411,7 @@ export default class TraceablePeerConnection {
      * Retrieves the SSRC (Synchronization Source) identifier associated with the given RTC ID.
      * @private
      */
-    _getSSRC(rtcId: string): ITPCSSRCInfo | null {
+    _getSSRC(rtcId: string): Nullable<ITPCSSRCInfo> {
         return this.localSSRCs.get(Number(rtcId));
     }
 
@@ -1649,10 +1650,10 @@ export default class TraceablePeerConnection {
      * Returns the receiver corresponding to the given MediaStreamTrack.
      *
      * @param {MediaSreamTrack} track - The media stream track used for the search.
-     * @returns {RTCRtpReceiver|undefined} - The found receiver or undefined if no receiver
+     * @returns {Optional<RTCRtpReceiver>} - The found receiver or undefined if no receiver
      * was found.
      */
-    findReceiverForTrack(track: MediaStreamTrack): RTCRtpReceiver | undefined {
+    findReceiverForTrack(track: MediaStreamTrack): Optional<RTCRtpReceiver> {
         return this.peerconnection.getReceivers().find(r => r.track === track);
     }
 
@@ -1660,10 +1661,10 @@ export default class TraceablePeerConnection {
      * Returns the sender corresponding to the given MediaStreamTrack.
      *
      * @param {MediaSreamTrack} track - The media stream track used for the search.
-     * @returns {RTCRtpSender|undefined} - The found sender or undefined if no sender
+     * @returns {Optional<RTCRtpSender>} - The found sender or undefined if no sender
      * was found.
      */
-    findSenderForTrack(track: MediaStreamTrack): RTCRtpSender | undefined {
+    findSenderForTrack(track: MediaStreamTrack): Optional<RTCRtpSender> {
         return this.peerconnection.getSenders().find(s => s.track === track);
     }
 
@@ -1699,17 +1700,17 @@ export default class TraceablePeerConnection {
      * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
      * <tt>oldTrack</tt>
      *
-     * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be replaced on the pc.
-     * @param {JitsiLocalTrack|null} newTrack - The new track to be used.
+     * @param {Nullable<JitsiLocalTrack>} oldTrack - The current track in use to be replaced on the pc.
+     * @param {Nullable<JitsiLocalTrack>} newTrack - The new track to be used.
      * @param {boolean} isMuteOperation - Whether the operation is a mute/unmute operation.
      * @returns {Promise<boolean>} - If the promise resolves with true, renegotiation will be needed.
      * Otherwise no renegotiation is needed.
      */
-    replaceTrack(oldTrack: JitsiLocalTrack | null, newTrack: JitsiLocalTrack | null, isMuteOperation = false): Promise<boolean | void> {
+    replaceTrack(oldTrack: Nullable<JitsiLocalTrack>, newTrack: Nullable<JitsiLocalTrack>, isMuteOperation = false): Promise<boolean> {
         if (!(oldTrack || newTrack)) {
             logger.info(`${this} replaceTrack called with no new track and no old track`);
 
-            return Promise.resolve();
+            return Promise.resolve(false);
         }
 
         logger.info(`${this} TPC.replaceTrack old=${oldTrack}, new=${newTrack}`);
@@ -1737,7 +1738,8 @@ export default class TraceablePeerConnection {
 
                 // Re-use any existing recvonly transceiver (if available) for p2p case.
                 && ((this.isP2P && t.currentDirection === MediaDirection.RECVONLY)
-                    || t.currentDirection === MediaDirection.INACTIVE));
+                // @ts-ignore
+                    || (t.currentDirection === MediaDirection.INACTIVE && !t.stopped)));
 
         // For mute/unmute operations, find the transceiver based on the track index in the source name if present,
         // otherwise it is assumed to be the first local track that was added to the peerconnection.
@@ -1896,7 +1898,7 @@ export default class TraceablePeerConnection {
      * @returns the transformed remoteDescription.
      * @private
      */
-    _adjustRemoteMediaDirection(remoteDescription: RTCSessionDescription): RTCSessionDescription {
+    private _adjustRemoteMediaDirection(remoteDescription: RTCSessionDescription): RTCSessionDescription {
         const transformer = new SdpTransformWrap(remoteDescription.sdp);
 
         [ MediaType.AUDIO, MediaType.VIDEO ].forEach(mediaType => {
@@ -1942,7 +1944,7 @@ export default class TraceablePeerConnection {
      * @param {CodecMimeType} defaultCodec - the preferred codec for video tracks.
      * @returns {CodecMimeType}
      */
-    _getPreferredCodecForScreenshare(defaultCodec: CodecMimeType): CodecMimeType {
+    private _getPreferredCodecForScreenshare(defaultCodec: CodecMimeType): CodecMimeType {
         // Use the same codec for both camera and screenshare if the client doesn't support the codec selection API.
         if (!this.usesCodecSelectionAPI()) {
             return defaultCodec;
@@ -1965,7 +1967,7 @@ export default class TraceablePeerConnection {
     /**
      * Sets up the _dtlsTransport object and initializes callbacks for it.
      */
-    _initializeDtlsTransport(): void {
+    private _initializeDtlsTransport(): void {
         // We are assuming here that we only have one bundled transport here
         if (!this.peerconnection.getSenders || this._dtlsTransport) {
             return;
@@ -2025,10 +2027,10 @@ export default class TraceablePeerConnection {
     /**
      * Configures the stream encodings for the audio tracks that are added to the peerconnection.
      *
-     * @param {JitsiLocalTrack} localAudioTrack - The local audio track.
+     * @param {Nullable<JitsiLocalTrack>} localAudioTrack - The local audio track.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    configureAudioSenderEncodings(localAudioTrack: JitsiLocalTrack | null = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
+    configureAudioSenderEncodings(localAudioTrack: Nullable<JitsiLocalTrack> = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
         if (localAudioTrack) {
             return this._setEncodings(localAudioTrack);
         }
@@ -2047,7 +2049,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTracj} localTrack - The local track whose outbound stream needs to be configured.
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
-    _configureSenderEncodings = async (localTrack: JitsiLocalTrack): Promise<void> => {
+    private _configureSenderEncodings = async (localTrack: JitsiLocalTrack): Promise<void> => {
         const mediaType = localTrack.getType();
         const transceiver = localTrack?.track && localTrack.getOriginalStream()
             ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
@@ -2072,7 +2074,7 @@ export default class TraceablePeerConnection {
      * @param {boolean} enable - whether the streams needs to be enabled or disabled.
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
-    _enableSenderEncodings = async (sender: RTCRtpSender, enable: boolean): Promise<void> => {
+    private _enableSenderEncodings = async (sender: RTCRtpSender, enable: boolean): Promise<void> => {
         const parameters = sender.getParameters();
 
         if (parameters?.encodings?.length) {
@@ -2089,11 +2091,11 @@ export default class TraceablePeerConnection {
      * scalability mode and the bitrate settings for the codec
      * that is currently selected.
      *
-     * @param {JitsiLocalTrack} - The local track for which the sender encodings have to configured.
+     * @param {Nullable<JitsiLocalTrack>} - The local track for which the sender encodings have to configured.
      * @param {CodecMimeType} - The preferred codec for the video track.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    configureVideoSenderEncodings(localVideoTrack: JitsiLocalTrack | null = null, codec: CodecMimeType | null = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
+    configureVideoSenderEncodings(localVideoTrack: Nullable<JitsiLocalTrack> = null, codec: CodecMimeType | null = null): Promise<PromiseSettledResult<void>[]> | Promise<void> {
         const preferredCodec = codec ?? this.codecSettings.codecList[0];
 
         if (localVideoTrack) {
@@ -2119,7 +2121,7 @@ export default class TraceablePeerConnection {
      * @param {JitsiLocalTrack} localTrack - the current track in use for which the encodings are to be set.
      * @returns {Promise<void>} - resolved when done.
      */
-    _setEncodings(localTrack: JitsiLocalTrack): Promise<void> {
+    private _setEncodings(localTrack: JitsiLocalTrack): Promise<void> {
         if (localTrack.getType() === MediaType.VIDEO) {
             return this._updateVideoSenderParameters(() => this._configureSenderEncodings(localTrack));
         }
@@ -2134,7 +2136,7 @@ export default class TraceablePeerConnection {
      * @param {RTCSessionDescription} description - The description to be munged.
      * @returns {RTCSessionDescription} - The munged description.
      */
-    _mungeDescription(description: RTCSessionDescription): RTCSessionDescription {
+    private _mungeDescription(description: RTCSessionDescription): RTCSessionDescription {
         this.trace('RTCSessionDescription::preTransform', TraceablePeerConnection.dumpSDP(description));
         let mungedSdp = transform.parse(description.sdp);
 
@@ -2271,7 +2273,7 @@ export default class TraceablePeerConnection {
      * @param {Function} nextFunction - The function to be called when the last video sender update promise is settled.
      * @returns {Promise}
      */
-    _updateVideoSenderParameters(nextFunction: () => void): Promise<void> {
+    private _updateVideoSenderParameters(nextFunction: () => void): Promise<void> {
         const nextPromise = this._lastVideoSenderUpdatePromise
             .finally(nextFunction);
 
@@ -2289,7 +2291,7 @@ export default class TraceablePeerConnection {
      * the sender associated with the video source.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    _updateVideoSenderEncodings(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec: CodecMimeType): Promise<void> {
+    private _updateVideoSenderEncodings(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec: CodecMimeType): Promise<void> {
         const videoSender = this.findSenderForTrack(localVideoTrack.getTrack());
         const videoType = localVideoTrack.getVideoType();
         const isScreensharingTrack = videoType === VideoType.DESKTOP;
@@ -2523,7 +2525,7 @@ export default class TraceablePeerConnection {
      * @private
      * @returns {void}
      */
-    _onToneChange(event: { tone: string; }): void {
+    private _onToneChange(event: { tone: string; }): void {
         // An empty event.tone indicates the current tones have finished playing.
         // Automatically start playing any queued tones on finish.
         if (this._dtmfSender && event.tone === '' && this._dtmfTonesQueue.length) {
@@ -2579,14 +2581,14 @@ export default class TraceablePeerConnection {
     /**
      * Creates an SDP answer for the peer connection based on the provided constraints.
      */
-    createAnswer(constraints: RTCOfferOptions): Promise<RTCSessionDescription> {
+    createAnswer(constraints: Optional<RTCOfferOptions>): Promise<RTCSessionDescription> {
         return this._createOfferOrAnswer(false /* answer */, constraints);
     }
 
     /**
      * Creates an SDP offer for the peer connection based on the provided constraints.
      */
-    createOffer(constraints: RTCOfferOptions): Promise<RTCSessionDescription> {
+    createOffer(constraints: Optional<RTCOfferOptions>): Promise<RTCSessionDescription> {
         return this._createOfferOrAnswer(true /* offer */, constraints);
     }
 
@@ -2595,7 +2597,7 @@ export default class TraceablePeerConnection {
      * Handles codec preferences, SDP munging for simulcast and RTX, and source information extraction.
      * @private
      */
-    _createOfferOrAnswer(isOffer: boolean, constraints: RTCOfferOptions): Promise<RTCSessionDescription> {
+    private _createOfferOrAnswer(isOffer: boolean, constraints: Optional<RTCOfferOptions>): Promise<RTCSessionDescription> {
         const logName = isOffer ? 'Offer' : 'Answer';
 
         this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
@@ -2696,7 +2698,7 @@ export default class TraceablePeerConnection {
      * @param {ITPCSSRCInfo} ssrcObj
      * @return {Nullable<number>} the primary SSRC or <tt>null</tt>
      */
-    _extractPrimarySSRC(ssrcObj: ITPCSSRCInfo): Nullable<number> {
+    private _extractPrimarySSRC(ssrcObj: ITPCSSRCInfo): Nullable<number> {
         if (ssrcObj?.groups?.length) {
             return ssrcObj.groups[0].ssrcs[0];
         } else if (ssrcObj?.ssrcs?.length) {
