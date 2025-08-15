@@ -13,6 +13,7 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import type JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import type JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
+import JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import type TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
@@ -88,7 +89,6 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
-import JitsiTrack from './modules/RTC/JitsiTrack';
 
 export interface IConferenceOptions {
     config: {

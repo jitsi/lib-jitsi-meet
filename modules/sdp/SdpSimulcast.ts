@@ -174,7 +174,7 @@ export default class SdpSimulcast {
      * @param description
      * @returns
      */
-    mungeLocalDescription(description:  RTCSessionDescription):  RTCSessionDescription {
+    mungeLocalDescription(description: RTCSessionDescription): RTCSessionDescription {
         if (!description?.sdp) {
             return description;
         }

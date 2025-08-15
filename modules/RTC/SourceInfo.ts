@@ -1,6 +1,6 @@
-import { MediaType } from "../../service/RTC/MediaType";
-import { VideoType } from "../../service/RTC/VideoType";
-import { ITPCGroupInfo } from "../sdp/constansts";
+import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
+import { ITPCGroupInfo } from '../sdp/constansts';
 
 export interface ITPCSourceInfo {
     groups: Array<ITPCGroupInfo>;
