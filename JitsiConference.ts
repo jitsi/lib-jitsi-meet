@@ -3507,8 +3507,9 @@ export default class JitsiConference extends Listenable {
      * @param {JingleSessionPC} jingleSession - The Jingle session for the incoming call.
      * @param {Element} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @param {number} now - The timestamp when the call was received.
+     * @internal
      */
-    public onIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
+    onIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element, now: number): void {
         // Handle incoming P2P call
         if (jingleSession.isP2P) {
             this._onIncomingCallP2P(jingleSession, jingleOffer);
@@ -3912,7 +3913,7 @@ export default class JitsiConference extends Listenable {
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails or no data channel exists.
      * @internal
      */
-    public sendEndpointStatsMessage(payload: object): void {
+    sendEndpointStatsMessage(payload: object): void {
         this.rtc.sendEndpointStatsMessage(payload);
     }
 
@@ -4540,7 +4541,11 @@ export default class JitsiConference extends Listenable {
         return Promise.reject(new Error('The conference is not created yet!'));
     }
 
-    public getAudioAnalyser(): Optional<VADAudioAnalyser> {
+    /**
+     * @internal
+     * @returns {Optional<VADAudioAnalyser>} the audio analyser.
+     */
+    getAudioAnalyser(): Optional<VADAudioAnalyser> {
         return this?._audioAnalyser;
     }
 
