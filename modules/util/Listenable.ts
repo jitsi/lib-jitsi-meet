@@ -45,7 +45,7 @@ export default class Listenable {
    * @param {Function} handler - Handler for the event.
    */
     once(eventId: string, handler: EventListener): void {
-            this.eventEmitter.once(eventId, handler);
+        this.eventEmitter.once(eventId, handler);
     }
 
     /**
