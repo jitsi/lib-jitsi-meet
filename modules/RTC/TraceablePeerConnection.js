@@ -486,7 +486,7 @@ export default class TraceablePeerConnection {
      * succeeded and is up and running. We never see "completed" state for
      * the JVB connection, but it started appearing for the P2P one. This method
      * allows to adapt old logic to this new situation.
-     * @return {string}
+     * @return {RTCIceConnectionState}
      */
     getConnectionState() {
         const state = this.peerconnection.iceConnectionState;
