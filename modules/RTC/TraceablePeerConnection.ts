@@ -230,7 +230,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.audioTransferActive = !(options.startSilent === true);
 
@@ -266,7 +266,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.videoTransferActive = true;
 
@@ -1232,7 +1232,7 @@ export default class TraceablePeerConnection {
      * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.)
      * which should be used when setting
      * local description on the peerconnection.
-     * @private
+     * @internal
      */
     getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): MediaDirection {
         return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
