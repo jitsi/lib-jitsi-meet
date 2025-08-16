@@ -269,7 +269,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param fromJoin - Whether this is initial presence to join the room.
      */
-    sendPresence(fromJoin) {
+    sendPresence(fromJoin = false) {
         const to = this.presMap.to;
 
         if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
@@ -1017,8 +1017,9 @@ export default class ChatRoom extends Listenable {
      * @param message
      * @param elementName
      */
-    sendPrivateMessage(id, message, elementName) {
-        const msg = $msg({ to: `${this.roomjid}/${id}`,
+    sendPrivateMessage(id, message, elementName, useDirectJid = false) {
+        const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
+        const msg = $msg({ to: targetJid,
             type: 'chat' });
 
         // We are adding the message in packet. If this element is different
@@ -1304,8 +1305,28 @@ export default class ChatRoom extends Listenable {
             const messageId = $(msg).attr('id') || uuidv4();
 
             if (type === 'chat') {
+                // Check if this is a visitor message (has nick element like group messages)
+                const nickEl = $(msg).find('>nick');
+                let nick;
+
+                if (nickEl.length > 0) {
+                    nick = nickEl.text();
+                }
+
+                // Check for original visitor JID in addresses element (XEP-0033)
+                let originalFrom = null;
+                const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
+
+                if (addressesEl.length > 0) {
+                    const ofromEl = addressesEl.find('address[type="ofrom"]');
+
+                    if (ofromEl.length > 0) {
+                        originalFrom = ofromEl.attr('jid');
+                    }
+                }
+
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp, messageId);
+                        from, txt, this.myroomjid, stamp, messageId, nick, Boolean(nick), originalFrom);
             } else if (type === 'groupchat') {
                 const nickEl = $(msg).find('>nick');
                 let nick;

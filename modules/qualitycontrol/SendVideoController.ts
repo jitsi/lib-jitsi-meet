@@ -74,10 +74,10 @@ export default class SendVideoController {
      * the active media session's receive preference set by the remote party.
      *
      * @param {string} sourceName - The source for which sender constraints have changed.
-     * @returns {number|undefined}
+     * @returns {Optional<number>}
      * @private
      */
-    _selectSendMaxFrameHeight(sourceName: string): number | undefined {
+    _selectSendMaxFrameHeight(sourceName: string): Optional<number> {
         if (!sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }

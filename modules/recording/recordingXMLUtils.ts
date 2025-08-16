@@ -22,9 +22,9 @@ export interface IHiddenDomainUpdate {
  * statuses related to recording.
  *
  * @param {Element} presence - An XMPP presence update.
- * @returns {Object} The current presence values related to recording.
+ * @returns {Optional<Object>} The current presence values related to recording.
  */
-export function getFocusRecordingUpdate(presence: Element): IFocusRecordingUpdate | undefined {
+export function getFocusRecordingUpdate(presence: Element): Optional<IFocusRecordingUpdate> {
     const jibriStatus = presence?.getElementsByTagName('jibri-recording-status')[0];
 
     if (!jibriStatus) {
@@ -65,7 +65,7 @@ export function getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
  * @param {Element} response - The response from the IQ.
  * @returns {string} The session ID of the recording session.
  */
-export function getSessionIdFromIq(response: Element): string | null {
+export function getSessionIdFromIq(response: Element): Nullable<string> {
     return response?.getElementsByTagName('jibri')[0]?.getAttribute('session_id') ?? null;
 }
 
@@ -73,9 +73,9 @@ export function getSessionIdFromIq(response: Element): string | null {
  * Returns the recording session ID from a presence, if it exists.
  *
  * @param {Element} presence - An XMPP presence update.
- * @returns {string|undefined} The session ID of the recording session.
+ * @returns {string|null|undefined} The session ID of the recording session.
  */
-export function getSessionId(presence: Element): string | null | undefined {
+export function getSessionId(presence: Element): Optional<Nullable<string>> {
     return presence.getElementsByTagName('session_id')[0]?.textContent;
 }
 

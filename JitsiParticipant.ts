@@ -2,7 +2,7 @@ import { Strophe } from 'strophe.js';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import JitsiTrack from './modules/RTC/JitsiTrack';
+import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { MediaType } from './service/RTC/MediaType';
 
 export interface ISourceInfo {
@@ -18,11 +18,7 @@ export default class JitsiParticipant {
     private _jid: string;
     private _id: string;
     private _conference: JitsiConference;
-    private _displayName: string;
-    private _supportsDTMF: boolean;
-    private _tracks: JitsiTrack[];
     private _role: string;
-    private _status?: string;
     private _hidden: boolean;
     private _statsID?: string;
     private _properties: Map<string, any>;
@@ -34,6 +30,22 @@ export default class JitsiParticipant {
     private _sources: Map<MediaType, Map<string, ISourceInfo>>;
     private _botType?: string;
     private _connectionJid?: string;
+    /**
+     * @internal
+     */
+    _status?: string;
+    /**
+     * @internal
+     */
+    _displayName: string;
+    /**
+     * @internal
+     */
+    _supportsDTMF: boolean;
+    /**
+     * @internal
+     */
+    _tracks: JitsiRemoteTrack[];
 
     /* eslint-disable max-params */
 
@@ -141,9 +153,9 @@ export default class JitsiParticipant {
     /**
      * Returns the bot type for the participant.
      *
-     * @returns {string|undefined} - The bot type of the participant.
+     * @returns {Optional<string>} - The bot type of the participant.
      */
-    getBotType(): string | undefined {
+    getBotType(): Optional<string> {
         return this._botType;
     }
 
@@ -158,9 +170,9 @@ export default class JitsiParticipant {
     /**
      * Returns the connection jid for the participant.
      *
-     * @returns {string|undefined} - The connection jid of the participant.
+     * @returns {Optional<string>} - The connection jid of the participant.
      */
-    getConnectionJid(): string | undefined {
+    getConnectionJid(): Optional<string> {
         return this._connectionJid;
     }
 
@@ -190,9 +202,9 @@ export default class JitsiParticipant {
      * Returns the XMPP identity. This is defined by your application in the
      * JWT `context` claims section.
      *
-     * @returns {object|undefined} - XMPP user identity.
+     * @returns {Optional<object>} - XMPP user identity.
      */
-    getIdentity(): object | undefined {
+    getIdentity(): Optional<object> {
         return this._identity;
     }
 
@@ -240,19 +252,19 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Array.<JitsiTrack>} The list of media tracks for this
+     * @returns {Array.<JitsiRemoteTrack>} The list of media tracks for this
      * participant.
      */
-    getTracks(): JitsiTrack[] {
+    getTracks(): (JitsiRemoteTrack)[] {
         return this._tracks.slice();
     }
 
     /**
      * @param {MediaType} mediaType
-     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * @returns {Array.<JitsiRemoteTrack>} an array of media tracks for this
      * participant, for given media type.
      */
-    getTracksByMediaType(mediaType: MediaType): JitsiTrack[] {
+    getTracksByMediaType(mediaType: MediaType): (JitsiRemoteTrack)[] {
         return this.getTracks().filter(track => track.getType() === mediaType);
     }
 

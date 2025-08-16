@@ -6,7 +6,7 @@ const MAX_TIMESTAMP = 0x100000000;
 export class RFC2198Encoder {
     targetRedundancy: number;
     frameBuffer: any[];
-    payloadType: number | undefined;
+    payloadType: Optional<number>;
 
     /**
      * @param {number} targetRedundancy the desired amount of redundancy.

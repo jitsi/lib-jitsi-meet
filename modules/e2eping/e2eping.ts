@@ -42,6 +42,7 @@ export interface IPingMessage {
 
 export interface IE2ePingOptions {
     e2eping?: {
+        enabled?: boolean;
         maxConferenceSize?: number;
         maxMessagesPerSecond?: number;
         numRequests?: number;
@@ -63,7 +64,7 @@ class ParticipantWrapper {
     id: string;
     requests: { [key: number]: IRequest; };
     lastRequestId: number;
-    timeout: number | null;
+    timeout: Nullable<number>;
 
     /**
      * Creates a ParticipantWrapper

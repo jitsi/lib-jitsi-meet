@@ -6,15 +6,94 @@ import Listenable from '../util/Listenable';
 
 import ResumeTask from './ResumeTask';
 import LastSuccessTracker from './StropheLastSuccess';
-import PingConnectionPlugin from './strophe.ping';
+import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
 import './strophe.stream-management';
 
 const logger = getLogger('modules/xmpp/XmppConnection');
 
 /**
+ * Extended ping options interface that includes domain property
+ */
+interface IXmppPingOptions extends IPingOptions {
+    domain?: string;
+}
+
+/**
+ * Interface for connection plugins
+ */
+interface IConnectionPlugin {
+    init: (connection: XmppConnection) => void;
+}
+
+/**
+ * IQ result callback type - result is typically an XML Element
+ */
+type IQResultCallback = (result: Element) => void;
+
+/**
+ * IQ error callback type - error can be a string, Element, Error object, or undefined (timeout)
+ */
+type IQErrorCallback = (error: string | Element | Error | undefined) => void;
+
+/**
+ * Connection status callback type
+ */
+type IConnectionStatusCallback = (status: Strophe.Status, condition?: string, element?: Element) => void;
+
+/**
+ * @typedef DeferredSendIQ Object
+ * @property {Element} iq - The IQ to send.
+ * @property {function} resolve - The resolve method of the deferred Promise.
+ * @property {function} reject - The reject method of the deferred Promise.
+ * @property {number} timeout - The ID of the timeout task that needs to be cleared, before sending the IQ.
+ * @property {number} start - The timestamp when the deferred IQ was created.
+ */
+interface IDeferredSendIQ {
+    iq: Element | undefined;
+    reject: (error: string | Element | Error | undefined) => void;
+    resolve: (result: Element) => void;
+    start: number;
+    timeout: ReturnType<typeof setTimeout>;
+}
+
+/**
+ * Constructor options interface for XmppConnection
+ */
+interface IXmppConnectionOptions {
+    enableWebsocketResume?: boolean;
+    serviceUrl: string;
+    shard?: string;
+    websocketKeepAlive?: number;
+    websocketKeepAliveUrl?: string;
+    xmppPing?: IXmppPingOptions;
+}
+
+/**
+ * Internal options interface
+ */
+interface IInternalOptions {
+    enableWebsocketResume: boolean;
+    pingOptions?: IXmppPingOptions;
+    shard?: string;
+    websocketKeepAlive: number;
+    websocketKeepAliveUrl?: string;
+}
+
+/**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
  */
 export default class XmppConnection extends Listenable {
+    private _options: IInternalOptions;
+    private _stropheConn: Strophe.Connection;
+    private _usesWebsocket: boolean;
+    private _rawInputTracker: LastSuccessTracker;
+    private _resumeTask: ResumeTask;
+    private _deferredIQs: IDeferredSendIQ[];
+    private _oneSuccessfulConnect: boolean;
+    private _status: Strophe.Status;
+    private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
+    public ping: PingConnectionPlugin;
+
     /**
      * The list of {@link XmppConnection} events.
      *
@@ -52,7 +131,7 @@ export default class XmppConnection extends Listenable {
      * if missing the serviceUrl url will be used.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
-    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }) {
+    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }: IXmppConnectionOptions) {
         super();
         this._options = {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
@@ -118,8 +197,8 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {boolean}
      */
-    get connected() {
-        const websocket = this._stropheConn && this._stropheConn._proto && this._stropheConn._proto.socket;
+    get connected(): boolean {
+        const websocket = this._stropheConn?._proto?.socket;
 
         return (this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED)
             && (!this.isUsingWebSocket || (websocket && websocket.readyState === WebSocket.OPEN));
@@ -139,16 +218,16 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {boolean}
      */
-    get disconnecting() {
+    get disconnecting(): boolean {
         return this._stropheConn.disconnecting === true;
     }
 
     /**
      * A getter for the domain.
      *
-     * @returns {string|null}
+     * @returns {Nullable<string>}
      */
-    get domain() {
+    get domain(): Nullable<string> {
         return this._stropheConn.domain;
     }
 
@@ -157,7 +236,7 @@ export default class XmppConnection extends Listenable {
      * for BOSH.
      * @returns {boolean}
      */
-    get isUsingWebSocket() {
+    get isUsingWebSocket(): boolean {
         return this._usesWebsocket;
     }
 
@@ -166,7 +245,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {string|null}
      */
-    get jid() {
+    get jid(): string | null {
         return this._stropheConn.jid;
     }
 
@@ -175,8 +254,8 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {string}
      */
-    get lastResponseHeaders() {
-        return this._stropheConn._proto && this._stropheConn._proto.lastResponseHeaders;
+    get lastResponseHeaders(): string {
+        return this._stropheConn._proto?.lastResponseHeaders;
     }
 
     /**
@@ -200,7 +279,7 @@ export default class XmppConnection extends Listenable {
     /**
      * A getter for the domain to be used for ping.
      */
-    get pingDomain() {
+    get pingDomain(): string | null {
         return this._options.pingOptions?.domain || this.domain;
     }
 
@@ -209,7 +288,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {string}
      */
-    get service() {
+    get service(): string {
         return this._stropheConn.service;
     }
 
@@ -217,7 +296,7 @@ export default class XmppConnection extends Listenable {
      * Sets new value for shard.
      * @param value the new shard value.
      */
-    set shard(value) {
+    set shard(value: string) {
         this._options.shard = value;
 
         // shard setting changed so let's schedule a new keep-alive check if connected
@@ -231,7 +310,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {Strophe.Status}
      */
-    get status() {
+    get status(): Strophe.Status {
         return this._status;
     }
 
@@ -240,10 +319,10 @@ export default class XmppConnection extends Listenable {
      *
      * @param {string} name - The name of the plugin or rather a key under which it will be stored on this connection
      * instance.
-     * @param {ConnectionPluginListenable} plugin - The plugin to add.
+     * @param {IConnectionPlugin} plugin - The plugin to add.
      */
-    addConnectionPlugin(name, plugin) {
-        this[name] = plugin;
+    addConnectionPlugin(name: string, plugin: IConnectionPlugin): void {
+        (this as unknown as Record<string, IConnectionPlugin>)[name] = plugin;
         plugin.init(this);
     }
 
@@ -252,7 +331,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {Object} - handler for the connection.
      */
-    addHandler(...args) {
+    addHandler(...args: Parameters<Strophe.Connection['addHandler']>): ReturnType<Strophe.Connection['addHandler']> {
         return this._stropheConn.addHandler(...args);
     }
 
@@ -261,7 +340,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    deleteHandler(...args) {
+    deleteHandler(...args: Parameters<Strophe.Connection['deleteHandler']>): ReturnType<Strophe.Connection['deleteHandler']> {
         this._stropheConn.deleteHandler(...args);
     }
 
@@ -272,7 +351,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    attach(jid, sid, rid, callback, ...args) {
+    attach(jid: string, sid: string, rid: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['attach']>): void {
         this._stropheConn.attach(jid, sid, rid, this._stropheConnectionCb.bind(this, callback), ...args);
     }
 
@@ -282,7 +361,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    connect(jid, pass, callback, ...args) {
+    connect(jid: string, pass: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['connect']>): void {
         this._stropheConn.connect(jid, pass, this._stropheConnectionCb.bind(this, callback), ...args);
     }
 
@@ -296,8 +375,8 @@ export default class XmppConnection extends Listenable {
      * @param {Strophe.Status} status - The new connection status.
      * @param {*} args - The rest of the arguments passed by Strophe.
      * @private
-     */
-    _stropheConnectionCb(targetCallback, status, ...args) {
+    */
+    _stropheConnectionCb(targetCallback: IConnectionStatusCallback, status: Strophe.Status, condition?: string, element?: Element): void {
         this._status = status;
 
         let blockCallback = false;
@@ -327,7 +406,7 @@ export default class XmppConnection extends Listenable {
         }
 
         if (!blockCallback) {
-            targetCallback(status, ...args);
+            targetCallback(status, condition, element);
             this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
         }
     }
@@ -337,7 +416,7 @@ export default class XmppConnection extends Listenable {
      *
      * @private
      */
-    _clearDeferredIQs() {
+    _clearDeferredIQs(): void {
         for (const deferred of this._deferredIQs) {
             deferred.reject(new Error('disconnect'));
         }
@@ -349,8 +428,8 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    closeWebsocket() {
-        if (this._stropheConn && this._stropheConn._proto) {
+    closeWebsocket(): void {
+        if (this._stropheConn?._proto) {
             this._stropheConn._proto._closeSocket();
             this._stropheConn._proto._onClose(null);
         }
@@ -361,7 +440,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    disconnect(...args) {
+    disconnect(...args: Parameters<Strophe.Connection['disconnect']>): void {
         this._resumeTask.cancel();
         clearTimeout(this._wsKeepAlive);
         this._clearDeferredIQs();
@@ -373,7 +452,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    flush(...args) {
+    flush(...args: Parameters<Strophe.Connection['flush']>): void {
         this._stropheConn.flush(...args);
     }
 
@@ -382,7 +461,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {number|null}
      */
-    getTimeSinceLastSuccess() {
+    getTimeSinceLastSuccess(): number | null {
         return this._rawInputTracker.getTimeSinceLastSuccess();
     }
 
@@ -391,7 +470,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {string|null}
      */
-    getLastFailedMessage() {
+    getLastFailedMessage(): string | null {
         return this._rawInputTracker.getLastFailedMessage();
     }
 
@@ -400,7 +479,7 @@ export default class XmppConnection extends Listenable {
      *
      * @private
      */
-    _maybeEnableStreamResume() {
+    _maybeEnableStreamResume(): void {
         if (!this._options.enableWebsocketResume) {
 
             return;
@@ -426,7 +505,7 @@ export default class XmppConnection extends Listenable {
      * @private
      * @returns {void}
      */
-    _maybeStartWSKeepAlive() {
+    _maybeStartWSKeepAlive(): void {
         const { websocketKeepAlive } = this._options;
 
         if (this._usesWebsocket && websocketKeepAlive > 0) {
@@ -450,7 +529,7 @@ export default class XmppConnection extends Listenable {
      * @private
      * @returns {Promise}
      */
-    _keepAliveAndCheckShard() {
+    _keepAliveAndCheckShard(): Promise<void> {
         const { shard, websocketKeepAliveUrl } = this._options;
         const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
             : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
@@ -482,7 +561,7 @@ export default class XmppConnection extends Listenable {
      * @private
      * @returns {void}
      */
-    _processDeferredIQs() {
+    _processDeferredIQs(): void {
         for (const deferred of this._deferredIQs) {
             if (deferred.iq) {
                 clearTimeout(deferred.timeout);
@@ -506,7 +585,7 @@ export default class XmppConnection extends Listenable {
      * @param {Element|Strophe.Builder} stanza - The stanza to send.
      * @returns {void}
      */
-    send(stanza) {
+    send(stanza: Element | Strophe.Builder): void {
         if (!this.connected) {
             logger.error(`Trying to send stanza while not connected. Status:${this._status} Proto:${
                 this.isUsingWebSocket ? this._stropheConn?._proto?.socket?.readyState : 'bosh'
@@ -526,7 +605,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the IQ.
      */
-    sendIQ(elem, callback, errback, timeout) {
+    sendIQ(elem: Element, callback: IQResultCallback, errback: IQErrorCallback, timeout: number): number | undefined {
         if (!this.connected) {
             errback('Not connected');
 
@@ -546,7 +625,7 @@ export default class XmppConnection extends Listenable {
      * The time when the connection is reconnecting is included, which means that
      * the IQ may never be sent and still fail with a timeout.
      */
-    sendIQ2(iq, { timeout }) {
+    sendIQ2(iq: Element, { timeout }: { timeout: number; }): Promise<Element> {
         return new Promise((resolve, reject) => {
             if (this.connected) {
                 this.sendIQ(
@@ -555,7 +634,7 @@ export default class XmppConnection extends Listenable {
                     error => reject(error),
                     timeout);
             } else {
-                const deferred = {
+                const deferred: IDeferredSendIQ = {
                     iq,
                     reject,
                     resolve,
@@ -579,7 +658,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {void}
      */
-    _onPingErrorThresholdExceeded() {
+    _onPingErrorThresholdExceeded(): void {
         if (this.isUsingWebSocket) {
             logger.warn('Ping error threshold exceeded - killing the WebSocket');
             this.closeWebsocket();
@@ -597,7 +676,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the presence.
      */
-    sendPresence(elem, callback, errback, timeout) {
+    sendPresence(elem: Element, callback: IQResultCallback, errback: IQErrorCallback, timeout: number): void {
         if (!this.connected) {
             errback('Not connected');
 
@@ -611,7 +690,7 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {boolean} - true if the beacon was sent.
      */
-    sendUnavailableBeacon() {
+    sendUnavailableBeacon(): boolean {
         if (!navigator.sendBeacon || this._stropheConn.disconnecting || !this._stropheConn.connected) {
             return false;
         }
@@ -650,9 +729,9 @@ export default class XmppConnection extends Listenable {
      * @private
      * @returns {boolean}
      */
-    _tryResumingConnection() {
+    _tryResumingConnection(): boolean {
         const { streamManagement } = this._stropheConn;
-        const resumeToken = streamManagement && streamManagement.getResumeToken();
+        const resumeToken = streamManagement?.getResumeToken();
 
         if (resumeToken) {
             this._resumeTask.schedule();

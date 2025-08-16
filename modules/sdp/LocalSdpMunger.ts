@@ -2,9 +2,28 @@ import { isEqual } from 'lodash-es';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 
-import { SdpTransformWrap } from './SdpTransformUtil';
+import { MLineWrap, SdpTransformWrap } from './SdpTransformUtil';
+
+
+export interface ITPCSSRCInfo {
+    groups: ITPCGroupInfo[];
+    msid: string;
+    ssrcs: number[];
+}
+
+export interface ITPCGroupInfo {
+    semantics: string;
+    ssrcs: number[];
+}
+
+export interface ISSRCAttribute {
+    attribute: string;
+    id: number;
+    value: string;
+}
 
 /**
  * Fakes local SDP exposed to {@link JingleSessionPC} through the local description getter. Modifies the SDP, so that
@@ -12,6 +31,8 @@ import { SdpTransformWrap } from './SdpTransformUtil';
  * are injected so that Jicofo can use them to identify the sources.
  */
 export default class LocalSdpMunger {
+    private _localEndpointId: string;
+    private _tpc: TraceablePeerConnection;
 
     /**
      * Creates new <tt>LocalSdpMunger</tt> instance.
@@ -19,9 +40,9 @@ export default class LocalSdpMunger {
      * @param {TraceablePeerConnection} tpc
      * @param {string} localEndpointId - The endpoint id of the local user.
      */
-    constructor(tpc, localEndpointId) {
-        this.tpc = tpc;
-        this.localEndpointId = localEndpointId;
+    constructor(tpc: TraceablePeerConnection, localEndpointId: string) {
+        this._tpc = tpc;
+        this._localEndpointId = localEndpointId;
     }
 
     /**
@@ -34,12 +55,12 @@ export default class LocalSdpMunger {
      * @returns {void}
      * @private
      */
-    _transformMediaIdentifiers(mediaSection, ssrcMap) {
-        const mediaType = mediaSection.mLine.type;
-        const mediaDirection = mediaSection.mLine.direction;
-        const sources = [ ...new Set(mediaSection.mLine.ssrcs?.map(s => s.id)) ];
-        let trackId = mediaSection.mLine.msid?.split(' ')[1];
-        let sourceName;
+    private _transformMediaIdentifiers(mediaSection: MLineWrap, ssrcMap: Map<string, ITPCSSRCInfo>): void {
+        const mediaType = mediaSection._mLine.type;
+        const mediaDirection = mediaSection._mLine.direction;
+        const sources = [ ...new Set(mediaSection._mLine.ssrcs?.map(s => s.id)) ];
+        let trackId = mediaSection._mLine.msid?.split(' ')[1];
+        let sourceName: string | undefined;
 
         if (ssrcMap.size) {
             const sortedSources = sources.slice().sort();
@@ -57,7 +78,7 @@ export default class LocalSdpMunger {
                     if (msid) {
                         trackId = msid.value.split(' ')[1];
                     }
-                    const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this.tpc.id} ${trackId}-${this.tpc.id}`;
+                    const generatedMsid = `${ssrcMap.get(sourceName).msid}-${this._tpc.id} ${trackId}-${this._tpc.id}`;
                     const existingMsid = mediaSection.ssrcs
                         .find(ssrc => ssrc.id === source && ssrc.attribute === 'msid');
 
@@ -80,7 +101,7 @@ export default class LocalSdpMunger {
                         value: sourceName
                     });
 
-                    const videoType = this.tpc.getLocalVideoTracks()
+                    const videoType = this._tpc.getLocalVideoTracks()
                         .find(track => track.getSourceName() === sourceName)
                         ?.getVideoType();
 
@@ -118,8 +139,8 @@ export default class LocalSdpMunger {
         if (browser.isFirefox()
             && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
             && (
-                (mediaType === MediaType.VIDEO && !this.tpc._hasHadVideoTrack)
-                || (mediaType === MediaType.AUDIO && !this.tpc._hasHadAudioTrack)
+                (mediaType === MediaType.VIDEO && !this._tpc._hasHadVideoTrack)
+                || (mediaType === MediaType.AUDIO && !this._tpc._hasHadAudioTrack)
             )
         ) {
             mediaSection.ssrcs = undefined;
@@ -137,8 +158,8 @@ export default class LocalSdpMunger {
      * @return {RTCSessionDescription} - Transformed local session description
      * (a modified copy of the one given as the input).
      */
-    transformStreamIdentifiers(sessionDesc, ssrcMap) {
-        if (!sessionDesc || !sessionDesc.sdp || !sessionDesc.type) {
+    transformStreamIdentifiers(sessionDesc: RTCSessionDescription, ssrcMap: Map<string, ITPCSSRCInfo>): RTCSessionDescription {
+        if (!sessionDesc?.sdp || !sessionDesc.type) {
             return sessionDesc;
         }
 
@@ -151,13 +172,15 @@ export default class LocalSdpMunger {
 
         const videoMlines = transformer.selectMedia(MediaType.VIDEO);
 
-        for (const videoMLine of videoMlines) {
-            this._transformMediaIdentifiers(videoMLine, ssrcMap);
+        if (videoMlines && Array.isArray(videoMlines)) {
+            for (const videoMLine of videoMlines) {
+                this._transformMediaIdentifiers(videoMLine, ssrcMap);
+            }
         }
 
         return {
             sdp: transformer.toRawSDP(),
             type: sessionDesc.type
-        };
+        } as RTCSessionDescription;
     }
 }

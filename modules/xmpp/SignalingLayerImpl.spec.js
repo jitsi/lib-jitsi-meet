@@ -12,14 +12,17 @@ const INITIAL_SOURCE_INFO = { value: JSON.stringify({}) };
 
 // eslint-disable-next-line require-jsdoc
 function createMockChatRoom() {
+    const listenable = new Listenable();
     const chatRoom = {
-        ...new Listenable(),
+        ...listenable,
         ...jasmine.createSpyObj('', [
             'addOrReplaceInPresence',
             'setAudioMute',
             'setVideoMute'
         ])
-    };
+    };  
+    
+    chatRoom.addEventListener = listenable.addEventListener.bind(listenable);
 
     const listeners = {};
 

@@ -1,8 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-empty-function */
+
 import { getLogger } from '@jitsi/logger';
 
+import RTC from '../RTC/RTC';
 import Listenable from '../util/Listenable';
 
-import * as JingleSessionState from './JingleSessionState';
+import ChatRoom from './ChatRoom';
+import { JingleSessionState } from './JingleSessionState';
+import SignalingLayerImpl from './SignalingLayerImpl';
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger('modules/xmpp/JingleSession');
 
@@ -12,8 +19,74 @@ const logger = getLogger('modules/xmpp/JingleSession');
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
  */
 export default class JingleSession extends Listenable {
+    /**
+     * The signaling layer.
+     * @internal
+     */
+    _signalingLayer: Nullable<SignalingLayerImpl>;
 
-    /* eslint-disable max-params */
+    /**
+     * The Jingle session identifier.
+     */
+    public sid: string;
+
+    /**
+     * Our JID.
+     */
+    public localJid: string;
+
+    /**
+     * The JID of the remote peer.
+     */
+    public remoteJid: string;
+
+    /**
+     * The XMPP connection.
+     */
+    public connection: XmppConnection;
+
+    /**
+     * The media constraints object passed to the PeerConnection onCreateAnswer/Offer.
+     */
+    public mediaConstraints: object;
+
+    /**
+     * The {@code RTCConfiguration} object passed to the PeerConnection's constructor.
+     */
+    public pcConfig: object;
+
+    /**
+     * Indicates whether this instance is an initiator or an answerer of
+     * the Jingle session.
+     */
+    public isInitiator: boolean;
+
+    /**
+     * Whether to use dripping or not. Dripping is sending trickle
+     * candidates not one-by-one.
+     */
+    public usedrip: boolean;
+
+    /**
+     *  When dripping is used, stores ICE candidates which are to be sent.
+     */
+    public dripContainer: unknown[];
+
+    /**
+     * The chat room instance associated with the session.
+     */
+    public room: Nullable<ChatRoom>;
+
+    /**
+     * Jingle session state - uninitialized until {@link initialize} is
+     * called
+     */
+    public state: Nullable<JingleSessionState>;
+
+    /**
+     * The RTC service instance
+     */
+    public rtc: Nullable<RTC>;
 
     /**
      * Creates new <tt>JingleSession</tt>.
@@ -26,13 +99,14 @@ export default class JingleSession extends Listenable {
      * @param {boolean} isInitiator indicates if it will be the side which initiates the session.
      */
     constructor(
-            sid,
-            localJid,
-            remoteJid,
-            connection,
-            mediaConstraints,
-            pcConfig,
-            isInitiator) {
+            sid: string,
+            localJid: string,
+            remoteJid: string,
+            connection: XmppConnection,
+            mediaConstraints: object,
+            pcConfig: object,
+            isInitiator: boolean
+    ) {
         super();
         this.sid = sid;
         this.localJid = localJid;
@@ -67,8 +141,8 @@ export default class JingleSession extends Listenable {
 
         /**
          * The signaling layer.
-         * @type {SignalingLayerImpl | null}
-         * @private
+         * @type {Nullable<SignalingLayerImpl>}
+         * @internal
          */
         this._signalingLayer = null;
 
@@ -89,7 +163,7 @@ export default class JingleSession extends Listenable {
      * Returns XMPP address of this session's initiator.
      * @return {string}
      */
-    get initiatorJid() {
+    get initiatorJid(): string {
         return this.isInitiator ? this.localJid : this.remoteJid;
     }
 
@@ -97,11 +171,17 @@ export default class JingleSession extends Listenable {
      * Returns XMPP address of this session's responder.
      * @return {string}
      */
-    get responderJid() {
+    get responderJid(): string {
         return this.isInitiator ? this.remoteJid : this.localJid;
     }
 
-    /* eslint-enable max-params */
+    /**
+     * The implementing class finishes initialization here. Called at the end of
+     * {@link initialize}.
+     * @param {Object} options - The options specific to the implementing class.
+     * @protected
+     */
+    protected doInitialize(options: object): void { }
 
     /**
      * Prepares this object to initiate a session.
@@ -112,7 +192,12 @@ export default class JingleSession extends Listenable {
      * @param {object} options - the options, see implementing class's
      * {@link #doInitialize} description for more details.
      */
-    initialize(room, rtc, signalingLayer, options) {
+    public initialize(
+            room: ChatRoom,
+            rtc: RTC,
+            signalingLayer: SignalingLayerImpl,
+            options: object
+    ): void {
         if (this.state !== null) {
             const errmsg
                 = `attempt to initiate on session ${this.sid}
@@ -131,49 +216,35 @@ export default class JingleSession extends Listenable {
     }
 
     /**
-     * The implementing class finishes initialization here. Called at the end of
-     * {@link initialize}.
-     * @param {Object} options - The options specific to the implementing class.
-     * @protected
-     */
-    doInitialize(options) { } // eslint-disable-line no-unused-vars, no-empty-function, max-len
-
-    /* eslint-disable no-unused-vars, no-empty-function */
-
-    /**
      * Adds the ICE candidates found in the 'contents' array as remote
      * candidates?
      * Note: currently only used on transport-info
      *
      * @param contents
      */
-    addIceCandidates(contents) {}
-
-    /* eslint-enable no-unused-vars, no-empty-function */
+    public addIceCandidates(contents: unknown): void {}
 
     /**
      * Returns current state of this <tt>JingleSession</tt> instance.
-     * @returns {JingleSessionState} the current state of this session instance.
+     * @returns {Nullable<JingleSessionState>} the current state of this session instance.
      */
-    getState() {
+    public getState(): Nullable<JingleSessionState> {
         return this.state;
     }
-
-    /* eslint-disable no-unused-vars, no-empty-function */
 
     /**
      * Handles an 'add-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    addSources(contents) {}
+    public addSources(contents: unknown): void {}
 
     /**
      * Handles a 'remove-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    removeSources(contents) {}
+    public removeSources(contents: unknown): void {}
 
     /**
      * Terminates this Jingle session by sending session-terminate
@@ -190,7 +261,16 @@ export default class JingleSession extends Listenable {
      * sending session-terminate. It may not make sense to send it if the XMPP
      * connection has been closed already or if the remote peer has disconnected
      */
-    terminate(success, failure, options) {}
+    public terminate(
+            success: Optional<(() => void)>,
+            failure: Optional<(() => void)>,
+            options: {
+                reason?: string;
+                reasonDescription?: string;
+                requestRestart?: boolean;
+                sendSessionTerminate?: boolean;
+            }
+    ): void {}
 
     /**
      * Handles an offer from the remote peer (prepares to accept a session).
@@ -201,7 +281,10 @@ export default class JingleSession extends Listenable {
      * error object with details(which is meant more to be printed to the logger
      * than analysed in the code, as the error is unrecoverable anyway)
      */
-    acceptOffer(jingle, success, failure) {}
-
-    /* eslint-enable no-unused-vars, no-empty-function */
+    public acceptOffer(
+            jingle: unknown,
+            success: Optional<(() => void)>,
+            failure: Optional<((error: unknown) => void)>
+    ): void {}
 }
+

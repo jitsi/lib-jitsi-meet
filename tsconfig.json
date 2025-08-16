@@ -14,6 +14,7 @@
       "ES2024.Promise"
     ],
     "outDir": "dist/esm/",
+    "stripInternal": true,
   },
   "exclude": [
     "dist",
@@ -29,17 +30,16 @@
   ],
   "typedocOptions": {
     "entryPoints": [
-      "JitsiConference.js",
+      "JitsiConference.ts",
       "JitsiConferenceErrors.ts",
       "JitsiConferenceEvents.ts",
       "JitsiConnection.ts",
       "JitsiConnectionErrors.ts",
       "JitsiConnectionEvents.ts",
-      "JitsiMediaDevices.js",
+      "JitsiMediaDevices.ts",
       "JitsiMediaDevicesEvents.ts",
       "JitsiMeetJS.ts",
       "JitsiParticipant.ts",
-      "JitsiParticipantEvents.js",
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",

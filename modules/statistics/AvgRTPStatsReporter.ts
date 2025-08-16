@@ -1,20 +1,21 @@
 import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
+import JitsiConference from '../../JitsiConference';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import JitsiParticipant from '../../JitsiParticipant';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
-import * as ConnectionQualityEvents
-    from '../../service/connectivity/ConnectionQualityEvents';
+import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 import {
     createRtpStatsEvent,
     createTransportStatsEvent
 } from '../../service/statistics/AnalyticsEvents';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import { isValidNumber } from '../util/MathUtil';
 
 import Statistics from './statistics';
-
 
 const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
 
@@ -23,34 +24,39 @@ const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
  * the analytics module when requested. It automatically counts the samples.
  */
 class AverageStatReport {
+    private _name: string;
+    private _count: number;
+    private _sum: number;
+    private _samples: number[];
+
     /**
      * Creates new <tt>AverageStatReport</tt> for given name.
      * @param {string} name that's the name of the event that will be reported
      * to the analytics module.
      */
-    constructor(name) {
-        this.name = name;
-        this.count = 0;
-        this.sum = 0;
-        this.samples = [];
+    constructor(name: string) {
+        this._name = name;
+        this._count = 0;
+        this._sum = 0;
+        this._samples = [];
     }
 
     /**
      * Adds the next value that will be included in the average when
      * {@link calculate} is called.
-     * @param {number} nextValue
+     * @param {Optional<number>} nextValue
      */
-    addNext(nextValue) {
+    addNext(nextValue: Optional<number>): void {
         if (typeof nextValue === 'undefined') {
             return;
         }
 
         if (typeof nextValue !== 'number') {
-            logger.error(`${this.name} - invalid value for idx: ${this.count}`, nextValue);
+            logger.error(`${this._name} - invalid value for idx: ${this._count}`, nextValue);
         } else if (isValidNumber(nextValue)) {
-            this.sum += nextValue;
-            this.samples.push(nextValue);
-            this.count += 1;
+            this._sum += nextValue;
+            this._samples.push(nextValue);
+            this._count += 1;
         }
     }
 
@@ -59,8 +65,8 @@ class AverageStatReport {
      * @return {number|NaN} an average of all collected samples or <tt>NaN</tt>
      * if no samples were collected.
      */
-    calculate() {
-        return this.sum / this.count;
+    calculate(): number {
+        return this._count === 0 ? NaN : this._sum / this._count;
     }
 
     /**
@@ -68,19 +74,19 @@ class AverageStatReport {
      * set under <tt>prefix</tt> + {@link this.name} key.
      * @param {Object} report the analytics "data" object
      */
-    appendReport(report) {
-        report[`${this.name}_avg`] = this.calculate();
-        report[`${this.name}_samples`] = JSON.stringify(this.samples);
+    appendReport(report: Record<string, unknown>): void {
+        report[`${this._name}_avg`] = this.calculate();
+        report[`${this._name}_samples`] = JSON.stringify(this._samples);
     }
 
     /**
      * Clears all memory of any samples collected, so that new average can be
      * calculated using this instance.
      */
-    reset() {
-        this.samples = [];
-        this.sum = 0;
-        this.count = 0;
+    reset(): void {
+        this._samples = [];
+        this._sum = 0;
+        this._count = 0;
     }
 }
 
@@ -90,6 +96,17 @@ class AverageStatReport {
  * example we want to monitor RTT for the JVB connection while in P2P mode.
  */
 class ConnectionAvgStats {
+    private _n: number;
+    private _sampleIdx: number;
+    private _avgRTT: AverageStatReport;
+    private _avgRemoteRTTMap: Map<string, AverageStatReport>;
+    private _avgRtpStatsReporter: AvgRTPStatsReporter;
+    private _avgEnd2EndRTT: Optional<number>;
+    private _onConnectionStats: (tpc: TraceablePeerConnection) => void;
+    private _onUserLeft?: (id: string) => void;
+    private _onRemoteStatsUpdated?: (id: string, data: any) => void;
+    public isP2P: boolean;
+
     /**
      * Creates new <tt>ConnectionAvgStats</tt>
      * @param {AvgRTPStatsReporter} avgRtpStatsReporter
@@ -97,7 +114,7 @@ class ConnectionAvgStats {
      * @param {number} n the number of samples, before arithmetic mean is to be
      * calculated and values submitted to the analytics module.
      */
-    constructor(avgRtpStatsReporter, isP2P, n) {
+    constructor(avgRtpStatsReporter: AvgRTPStatsReporter, isP2P: boolean, n: number) {
         /**
          * Is this instance for JVB or P2P connection ?
          * @type {boolean}
@@ -154,9 +171,9 @@ class ConnectionAvgStats {
          */
         this._avgEnd2EndRTT = undefined;
 
-        this._onConnectionStats = (tpc, stats) => {
+        this._onConnectionStats = (tpc: TraceablePeerConnection) => {
             if (this.isP2P === tpc.isP2P) {
-                this._calculateAvgStats(stats);
+                this._calculateAvgStats(tpc.getStats());
             }
         };
 
@@ -166,11 +183,11 @@ class ConnectionAvgStats {
             this._onConnectionStats);
 
         if (!this.isP2P) {
-            this._onUserLeft = id => this._avgRemoteRTTMap.delete(id);
+            this._onUserLeft = (id: string) => this._avgRemoteRTTMap.delete(id);
             conference.on(ConferenceEvents.USER_LEFT, this._onUserLeft);
 
             this._onRemoteStatsUpdated
-                = (id, data) => this._processRemoteStats(id, data);
+                = (id: string, data: any) => this._processRemoteStats(id, data);
             conference.on(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
                 this._onRemoteStatsUpdated);
@@ -182,7 +199,7 @@ class ConnectionAvgStats {
      * @param {go figure} data
      * @private
      */
-    _calculateAvgStats(data) {
+    private _calculateAvgStats(data: any): void {
         if (!data) {
             logger.error('No stats');
 
@@ -190,7 +207,7 @@ class ConnectionAvgStats {
         }
 
         if (browser.supportsRTTStatistics()) {
-            if (data.transport && data.transport.length) {
+            if (data.transport?.length) {
                 this._avgRTT.addNext(data.transport[0].rtt);
             }
         }
@@ -201,12 +218,12 @@ class ConnectionAvgStats {
             if (browser.supportsRTTStatistics()) {
                 const conference = this._avgRtpStatsReporter._conference;
 
-                const batchReport = {
+                const batchReport: Record<string, unknown> = {
                     'conference_size': conference.getParticipantCount(),
                     p2p: this.isP2P
                 };
 
-                if (data.transport && data.transport.length) {
+                if (data.transport?.length) {
                     Object.assign(batchReport, {
                         'local_candidate_type':
                             data.transport[0].localCandidateType,
@@ -224,8 +241,7 @@ class ConnectionAvgStats {
                         ._avgRtpStatsReporter.jvbStatsMonitor._avgEnd2EndRTT;
 
                     if (isValidNumber(jvbEnd2EndRTT)) {
-                        // eslint-disable-next-line dot-notation
-                        batchReport['rtt_diff']
+                        batchReport.rtt_diff
                             = this._avgRTT.calculate() - jvbEnd2EndRTT;
                     }
                 } else {
@@ -236,8 +252,7 @@ class ConnectionAvgStats {
                     this._avgEnd2EndRTT = avgLocalRTT + avgRemoteRTT;
 
                     if (isValidNumber(avgLocalRTT) && isValidNumber(avgRemoteRTT)) {
-                        // eslint-disable-next-line dot-notation
-                        batchReport['end2end_rtt_avg'] = this._avgEnd2EndRTT;
+                        batchReport.end2end_rtt_avg = this._avgEnd2EndRTT;
                     }
                 }
 
@@ -254,7 +269,7 @@ class ConnectionAvgStats {
      * @return {number|NaN} NaN if not available (not enough data)
      * @private
      */
-    _calculateAvgRemoteRTT() {
+    private _calculateAvgRemoteRTT(): number {
         let count = 0, sum = 0;
 
         // FIXME should we ignore RTT for participant
@@ -269,7 +284,7 @@ class ConnectionAvgStats {
             }
         }
 
-        return sum / count;
+        return count === 0 ? NaN : sum / count;
     }
 
     /**
@@ -279,7 +294,7 @@ class ConnectionAvgStats {
      * @param {go figure in ConnectionQuality.js} data
      * @private
      */
-    _processRemoteStats(id, data) {
+    private _processRemoteStats(id: string, data: any): void {
         const validData = typeof data.jvbRTT === 'number';
         let rttAvg = this._avgRemoteRTTMap.get(id);
 
@@ -297,9 +312,9 @@ class ConnectionAvgStats {
 
     /**
      * Reset cache of all averages and {@link _sampleIdx}.
-     * @private
+     * @internal
      */
-    _resetAvgStats() {
+    _resetAvgStats(): void {
         this._avgRTT.reset();
         if (this._avgRemoteRTTMap) {
             this._avgRemoteRTTMap.clear();
@@ -310,8 +325,7 @@ class ConnectionAvgStats {
     /**
      *
      */
-    dispose() {
-
+    public dispose(): void {
         const conference = this._avgRtpStatsReporter._conference;
 
         conference.statistics.removeConnectionStatsListener(
@@ -336,13 +350,41 @@ class ConnectionAvgStats {
  * scratch.
  */
 export default class AvgRTPStatsReporter {
+    _n: number;
+    _sampleIdx: number;
+    _conference: JitsiConference;
+    _avgAudioBitrateUp: AverageStatReport;
+    _avgAudioBitrateDown: AverageStatReport;
+    _avgVideoBitrateUp: AverageStatReport;
+    _avgVideoBitrateDown: AverageStatReport;
+    _avgBandwidthUp: AverageStatReport;
+    _avgBandwidthDown: AverageStatReport;
+    _avgPacketLossTotal: AverageStatReport;
+    _avgPacketLossUp: AverageStatReport;
+    _avgPacketLossDown: AverageStatReport;
+    _avgRemoteFPS: AverageStatReport;
+    _avgRemoteScreenFPS: AverageStatReport;
+    _avgLocalFPS: AverageStatReport;
+    _avgLocalScreenFPS: AverageStatReport;
+    _avgRemoteCameraPixels: AverageStatReport;
+    _avgRemoteScreenPixels: AverageStatReport;
+    _avgLocalCameraPixels: AverageStatReport;
+    _avgLocalScreenPixels: AverageStatReport;
+    _avgCQ: AverageStatReport;
+    _cachedTransportStats: Optional<Record<string, unknown>>;
+    _onLocalStatsUpdated: (data: any) => void;
+    _onP2PStatusChanged: () => void;
+    _onJvb121StatusChanged: (oldStatus: boolean, newStatus: boolean) => void;
+    jvbStatsMonitor: ConnectionAvgStats;
+    p2pStatsMonitor: ConnectionAvgStats;
+
     /**
      * Creates new instance of <tt>AvgRTPStatsReporter</tt>
      * @param {JitsiConference} conference
      * @param {number} n the number of samples, before arithmetic mean is to be
      * calculated and values submitted to the analytics module.
      */
-    constructor(conference, n) {
+    constructor(conference: JitsiConference, n: number) {
         /**
          * How many {@link ConnectionQualityEvents.LOCAL_STATS_UPDATED} samples
          * are to be included in arithmetic mean calculation.
@@ -530,10 +572,9 @@ export default class AvgRTPStatsReporter {
          * @private
          */
         this._avgCQ = new AverageStatReport('connection_quality');
-
         this._cachedTransportStats = undefined;
 
-        this._onLocalStatsUpdated = data => {
+        this._onLocalStatsUpdated = (data: any) => {
             this._calculateAvgStats(data);
             this._maybeSendTransportAnalyticsEvent(data);
         };
@@ -551,7 +592,7 @@ export default class AvgRTPStatsReporter {
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);
 
-        this._onJvb121StatusChanged = (oldStatus, newStatus) => {
+        this._onJvb121StatusChanged = (oldStatus: boolean, newStatus: boolean) => {
             // We want to reset only on the transition from false => true,
             // because otherwise those stats are resetted on JVB <=> P2P
             // transition.
@@ -574,10 +615,10 @@ export default class AvgRTPStatsReporter {
     /**
      * Processes next batch of stats reported on
      * {@link ConnectionQualityEvents.LOCAL_STATS_UPDATED}.
-     * @param {go figure} data
+     * @param {*} data
      * @private
      */
-    _calculateAvgStats(data) {
+    private _calculateAvgStats(data: any): void {
 
         if (!data) {
             logger.error('No stats');
@@ -685,13 +726,12 @@ export default class AvgRTPStatsReporter {
         this._sampleIdx += 1;
 
         if (this._sampleIdx >= this._n) {
-
-            const batchReport = {
+            const batchReport: Record<string, unknown> = {
                 'conference_size': confSize,
                 p2p: isP2P
             };
 
-            if (data.transport && data.transport.length) {
+            if (data.transport?.length) {
                 Object.assign(batchReport, {
                     'local_candidate_type':
                         data.transport[0].localCandidateType,
@@ -752,7 +792,7 @@ export default class AvgRTPStatsReporter {
      * are no samples.
      * @private
      */
-    _calculateAvgVideoPixels(peerResolutions, isLocal, videoType) {
+    private _calculateAvgVideoPixels(peerResolutions: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
         let peerPixelsSum = 0;
         let peerCount = 0;
         const myID = this._conference.myUserId();
@@ -778,7 +818,7 @@ export default class AvgRTPStatsReporter {
             }
         }
 
-        return peerPixelsSum / peerCount;
+        return peerCount === 0 ? NaN : peerPixelsSum / peerCount;
     }
 
     /**
@@ -792,9 +832,9 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    _calculatePeerAvgVideoPixels(videos, participant, videoType) {
+    private _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks = null;
+        let videoTracks: Nullable<any[]> = null;// JitsiLocalTrack[] | JitsiRemoteTrack[]
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.
@@ -808,7 +848,7 @@ export default class AvgRTPStatsReporter {
                         ssrc => videoTracks.find(
                             track =>
                                 !track.isMuted()
-                                    && track.getSSRC() === ssrc
+                                    && track.getSsrc() === ssrc
                                     && track.videoType === videoType));
             }
         } else {
@@ -836,9 +876,8 @@ export default class AvgRTPStatsReporter {
             }
         }
 
-        return peerPixelsSum / peerSsrcCount;
+        return peerSsrcCount === 0 ? NaN : peerPixelsSum / peerSsrcCount;
     }
-
 
     /**
      * Calculates average FPS for the report
@@ -849,7 +888,7 @@ export default class AvgRTPStatsReporter {
      * @return {number|NaN} average FPS or <tt>NaN</tt> if there are no samples.
      * @private
      */
-    _calculateAvgVideoFps(frameRate, isLocal, videoType) {
+    private _calculateAvgVideoFps(frameRate: Record<string, any>, isLocal: boolean, videoType: VideoType): number {
         let peerFpsSum = 0;
         let peerCount = 0;
         const myID = this._conference.myUserId();
@@ -875,7 +914,7 @@ export default class AvgRTPStatsReporter {
             }
         }
 
-        return peerFpsSum / peerCount;
+        return peerCount === 0 ? NaN : peerFpsSum / peerCount;
     }
 
     /**
@@ -889,9 +928,9 @@ export default class AvgRTPStatsReporter {
      * <tt>NaN</tt> if currently not available
      * @private
      */
-    _calculatePeerAvgVideoFps(videos, participant, videoType) {
+    private _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks = null;
+        let videoTracks: Nullable<any[]> = null; // JitsiLocalTrack[] | JitsiRemoteTrack[]
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.
@@ -904,7 +943,7 @@ export default class AvgRTPStatsReporter {
                     = ssrcs.filter(
                         ssrc => videoTracks.find(
                             track => !track.isMuted()
-                                && track.getSSRC() === ssrc
+                                && track.getSsrc() === ssrc
                                 && track.videoType === videoType));
             }
         } else {
@@ -930,7 +969,7 @@ export default class AvgRTPStatsReporter {
             }
         }
 
-        return peerFpsSum / peerSsrcCount;
+        return peerSsrcCount === 0 ? NaN : peerFpsSum / peerSsrcCount;
     }
 
     /**
@@ -940,8 +979,8 @@ export default class AvgRTPStatsReporter {
      * @param {*} data
      * @private
      */
-    _maybeSendTransportAnalyticsEvent(data) {
-        if (!data || !data.transport || !data.transport.length) {
+    private _maybeSendTransportAnalyticsEvent(data: any): void {
+        if (!data?.transport?.length) {
             return;
         }
         const transportStats = {
@@ -964,7 +1003,7 @@ export default class AvgRTPStatsReporter {
      * is wrong with the P2P and JVB121 events.
      * @private
      */
-    _resetAvgJvbStats() {
+    private _resetAvgJvbStats(): void {
         this._resetAvgStats();
         this.jvbStatsMonitor._resetAvgStats();
     }
@@ -973,7 +1012,7 @@ export default class AvgRTPStatsReporter {
      * Reset cache of all averages and {@link _sampleIdx}.
      * @private
      */
-    _resetAvgStats() {
+    private _resetAvgStats(): void {
         this._avgAudioBitrateUp.reset();
         this._avgAudioBitrateDown.reset();
 
@@ -1005,7 +1044,7 @@ export default class AvgRTPStatsReporter {
     /**
      * Unregisters all event listeners and stops working.
      */
-    dispose() {
+    public dispose(): void {
         this._conference.off(
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);

@@ -737,6 +737,16 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Sends a receiver audio subscription message.
+     * @param {*} message
+     */
+    sendReceiverAudioSubscriptionMessage(message) {
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendReceiverAudioSubscriptionMessage(message);
+        }
+    }
+
+    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.

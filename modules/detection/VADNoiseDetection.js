@@ -147,7 +147,7 @@ export default class VADNoiseDetection extends EventEmitter {
      * Listens for {@link TrackVADEmitter} events and processes them.
      *
      * @param {Object} vadScore -VAD score emitted by {@link TrackVADEmitter}
-     * @param {Date}   vadScore.timestamp - Exact time at which processed PCM sample was generated.
+     * @param {number}   vadScore.timestamp - Exact time at which processed PCM sample was generated.
      * @param {number} vadScore.score - VAD score on a scale from 0 to 1 (i.e. 0.7)
      * @param {Float32Array} vadScore.pcmData - Raw PCM Data associated with the VAD score.
      * @param {string} vadScore.deviceId - Device id of the associated track.

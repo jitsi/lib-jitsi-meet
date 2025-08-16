@@ -22,6 +22,7 @@ import {
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
+import VADAudioAnalyser from '../detection/VADAudioAnalyser';
 import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
@@ -106,7 +107,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     public deviceId: string;
     public resolution?: number;
     public maxEnabledResolution?: number;
-    public conference: JitsiConference | null;
+    public conference: Nullable<JitsiConference>;
 
     /**
      * Constructs a new JitsiLocalTrack instance.
@@ -428,19 +429,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Sends mute status for a track to conference if any.
-     *
-     * @param {boolean} mute - If track is muted.
-     * @private
-     * @returns {void}
-     */
-    private _sendMuteStatus(mute: boolean): void {
-        if (this.conference) {
-            this.conference._setTrackMuteStatus(this, mute) && this.conference.room.sendPresence();
-        }
-    }
-
-    /**
      * Mutes / unmutes this track.
      *
      * @param {boolean} muted - If <tt>true</tt>, this track will be muted; otherwise, this track will be unmuted.
@@ -670,14 +658,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
      *
-     * @param {MediaStream} stream - The new MediaStream.
+     * @param {Nullable<MediaStream>} stream - The new MediaStream.
      * @private
      * @returns {void}
      */
-    protected _setStream(stream: MediaStream | null): void {
+    protected _setStream(stream: Nullable<MediaStream>): void {
         super._setStream(stream);
     }
-
 
     /**
      * @inheritdoc
@@ -717,12 +704,25 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Sends mute status for a track to conference if any.
+     *
+     * @param {boolean} mute - If track is muted.
+     * @internal
+     * @returns {void}
+     */
+    _sendMuteStatus(mute: boolean): void {
+        if (this.conference) {
+            this.conference._setTrackMuteStatus(this, mute) && this.conference.room.sendPresence();
+        }
+    }
+
+    /**
      * Returns facing mode for video track from camera. For other cases (e.g. audio track or 'desktop' video track)
      * returns undefined.
      *
-     * @returns {CameraFacingMode|undefined}
+     * @returns {Optional<CameraFacingMode>}
      */
-    getCameraFacingMode(): CameraFacingMode | undefined {
+    getCameraFacingMode(): Optional<CameraFacingMode> {
         if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
             // MediaStreamTrack#getSettings() is not implemented in many
             // browsers, so we need feature checking here. Progress on the
@@ -794,17 +794,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Returns the source name associated with the jitsi track.
      *
-     * @returns {string | null} source name
+     * @returns {Nullable<string>} source name
      */
-    getSourceName(): string | null {
+    getSourceName(): Nullable<string> {
         return this._sourceName;
     }
 
     /**
      * Returns the primary SSRC associated with the track.
-     * @returns {number}
+     * @returns {Nullable<number>}
      */
-    getSsrc(): number | null {
+    getSsrc(): Nullable<number> {
         return this._ssrc;
     }
 
@@ -1074,7 +1074,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new Error(`Media ${mediaType} is not supported, track must be audio`);
         }
 
-        const hasAudioMixEffect = Boolean(typeof this._streamEffect?.setMuted === 'function');
+        const hasAudioMixEffect = typeof this._streamEffect?.setMuted === 'function';
 
         if (this._streamEffect && !hasAudioMixEffect) {
             throw new Error(`Cannot apply constraints while the effect ${JSON.stringify(
@@ -1082,7 +1082,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
             );
         }
 
-        await this.conference._removeLocalTrackFromPc(this);
+        const hasConference = Boolean(this.conference);
+        let audioAnalyser: VADAudioAnalyser | undefined;
+
+        if (hasConference) {
+            audioAnalyser = this.conference.getAudioAnalyser();
+
+            if (audioAnalyser) {
+                logger.debug(`Removing track ${this} from audio analyser`);
+                audioAnalyser._trackRemoved(this);
+            }
+
+            logger.debug(`Removing track ${this} from conference`);
+            await this.conference._removeLocalTrackFromPc(this);
+        }
 
         if (hasAudioMixEffect) {
             this._stopStreamEffect();
@@ -1097,9 +1110,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         };
 
         const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
-        let mediaStreamData;
+        let mediaStreamData: IStreamInfo | undefined;
 
         try {
+            logger.debug(`applyConstraints for track ${this} with constraints: ${JSON.stringify(constraints)}`);
+
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
                 constraints: { [mediaType]: constraintsToApply },
                 [deviceIdKey]: constraintsToApply.deviceId,
@@ -1129,6 +1144,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             throw new JitsiTrackError(JitsiTrackErrors.GENERAL);
         }
 
+        logger.debug('Setting updated stream and track');
+
         this._setStream(mediaStreamData.stream);
         this.track = mediaStreamData.track;
 
@@ -1136,6 +1153,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._startStreamEffect(this._streamEffect);
         }
 
-        await this.conference._addLocalTrackToPc(this);
+        if (hasConference) {
+            logger.debug(`Adding track ${this} to conference`);
+            await this.conference._addLocalTrackToPc(this);
+
+            if (audioAnalyser) {
+                logger.debug(`Adding track ${this} to audio analyser`);
+                audioAnalyser._trackAdded(this);
+            }
+        }
     }
 }

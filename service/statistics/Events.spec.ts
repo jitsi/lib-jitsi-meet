@@ -9,7 +9,6 @@ describe( "/service/statistics/Events members", () => {
         BYTE_SENT_STATS,
         CONNECTION_STATS,
         ENCODE_TIME_STATS,
-        LONG_TASKS_STATS,
         Events,
         ...others
     } = exported;
@@ -20,7 +19,6 @@ describe( "/service/statistics/Events members", () => {
         expect( BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
         expect( CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
         expect( ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
-        expect( LONG_TASKS_STATS ).toBe( 'statistics.long_tasks_stats' );
 
         expect( Events ).toBeDefined();
 
@@ -29,7 +27,6 @@ describe( "/service/statistics/Events members", () => {
         expect( Events.BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
         expect( Events.CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
         expect( Events.ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
-        expect( Events.LONG_TASKS_STATS ).toBe( 'statistics.long_tasks_stats' );
     } );
 
     it( "unknown members", () => {

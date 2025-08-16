@@ -48,7 +48,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
     pingThreshold: number;
     pingTimestampsToKeep: number;
     pingExecIntervals: number[];
-    intervalId: number | null;
+    intervalId: Nullable<number>;
     _lastServerCheck: number;
 
     /**

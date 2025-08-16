@@ -15,9 +15,16 @@ const logger = getLogger('JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
+    bridgeChannel?: {
+        ignoreDomain?: string;
+        preferSctp?: boolean;
+    };
     disableFocus?: boolean;
     enableWebsocketResume: boolean;
     flags?: Record<string, any>;
+    hosts: {
+        domain: string;
+    };
     name?: string;
     p2pStunServers: any[];
     serviceUrl: string;
@@ -44,8 +51,8 @@ export interface IAttachOptions {
  */
 export default class JitsiConnection {
     private appID?: string;
-    private token: string | null;
-    private xmpp: XMPP;
+    private token?: string;
+    private _xmpp: XMPP;
     readonly options: IConnectionOptions;
 
     /**
@@ -54,7 +61,7 @@ export default class JitsiConnection {
      * @param token - The JWT token used to authenticate with the server (optional).
      * @param options - Object with properties / settings related to connection with the server.
      */
-    constructor(appID: string, token: string | null, options: IConnectionOptions) {
+    constructor(appID: string, token: Nullable<string>, options: IConnectionOptions) {
         this.appID = appID;
         this.token = token;
         this.options = options;
@@ -62,7 +69,7 @@ export default class JitsiConnection {
         // Initialize the feature flags so that they are advertised through the disco-info.
         FeatureFlags.init(options.flags || {});
 
-        this.xmpp = new XMPP(options, token);
+        this._xmpp = new XMPP(options, token);
 
         this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
             (errType: string, msg: string, credentials: any, details: any) => {
@@ -161,7 +168,7 @@ export default class JitsiConnection {
      * that will be created.
      * @returns The new conference object.
      */
-    initJitsiConference(name: string | null, options: Record<string, any>): JitsiConference {
+    initJitsiConference(name: Nullable<string>, options: Record<string, any>): JitsiConference {
         return new JitsiConference({
             config: options,
             connection: this,
@@ -239,5 +246,13 @@ export default class JitsiConnection {
         data.metadata = metadata;
 
         return data;
+    }
+
+    /**
+     * Get the XMPP instance.
+     * @internal
+     */
+    get xmpp(): XMPP {
+        return this._xmpp;
     }
 }

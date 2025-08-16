@@ -20,7 +20,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
      *
      * @type {ChatRoom|null}
      */
-    public chatRoom: ChatRoom | null;
+    public chatRoom: Nullable<ChatRoom>;
 
     /**
      * Creates new instance.
@@ -49,14 +49,14 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getSSRCOwner(ssrc: number): string | undefined {
+    getSSRCOwner(ssrc: number): Optional<string> {
         return this.ssrcOwners.get(ssrc);
     }
 
     /**
      * @inheritDoc
      */
-    getTrackSourceName(_ssrc: number): string | undefined {
+    getTrackSourceName(_ssrc: number): Optional<string> {
         return undefined;
     }
 

@@ -16,8 +16,10 @@ import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 import { CodecSelection } from './CodecSelection';
+import { ReceiverAudioController } from './ReceiveAudioController';
 import ReceiveVideoController from './ReceiveVideoController';
-import SendVideoController from './SendVideoController';
+import SendVideoController, { IVideoConstraint } from './SendVideoController';
+
 
 const logger = getLogger('modules/qualitycontrol/QualityController');
 
@@ -63,11 +65,6 @@ interface ITrackStats {
     qualityLimitationReason: QualityLimitationReason;
 }
 
-interface IVideoConstraints {
-    maxHeight: number;
-    sourceName: string;
-}
-
 /* eslint-disable require-jsdoc */
 export class FixedSizeArray {
     private _data: ISourceStats[];
@@ -85,7 +82,7 @@ export class FixedSizeArray {
         this._data.push(item);
     }
 
-    get(index: number): ISourceStats | undefined {
+    get(index: number): Optional<ISourceStats> {
         if (index < 0 || index >= this._data.length) {
             throw new Error('Index out of bounds');
         }
@@ -105,14 +102,15 @@ export class FixedSizeArray {
  * adjustments based on the outbound and inbound rtp stream stats reported by the underlying peer connection.
  */
 export class QualityController {
+    private _audioController: ReceiverAudioController;
     private _codecController: CodecSelection;
     private _conference: JitsiConference;
     private _enableAdaptiveMode: boolean;
     private _encodeTimeStats: Map<number, FixedSizeArray>;
     private _isLastNRampupBlocked: boolean;
     private _lastNRampupTime: number;
-    private _lastNRampupTimeout: number | undefined;
-    private _limitedByCpuTimeout: number | undefined;
+    private _lastNRampupTimeout: Optional<number>;
+    private _limitedByCpuTimeout: Optional<number>;
     private _receiveVideoController: ReceiveVideoController;
     private _sendVideoController: SendVideoController;
 
@@ -127,6 +125,7 @@ export class QualityController {
         lastNRampupTime: number;
         p2p: object;
     }) {
+        this._audioController = new ReceiverAudioController(conference);
         this._conference = conference;
         const { jvb, p2p } = options;
 
@@ -162,7 +161,7 @@ export class QualityController {
         this._conference.on(JitsiConferenceEvents.USER_LEFT, debouncedSelectCodec.bind(this));
         this._conference.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            (videoConstraints: IVideoConstraints) =>
+            (videoConstraints: IVideoConstraint) =>
                 this._sendVideoController.onSenderConstraintsReceived(videoConstraints));
         this._conference.on(
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
@@ -464,6 +463,13 @@ export class QualityController {
 
             this._performQualityOptimizations(sourceStats);
         }
+    }
+
+    /**
+     * Gets the audio controller instance.
+     */
+    get audioController() {
+        return this._audioController;
     }
 
     /**
