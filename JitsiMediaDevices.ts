@@ -47,6 +47,7 @@ class JitsiMediaDevices extends Listenable {
         // We would still want to update the permissions cache in case the permissions API is not supported.
         RTC.addListener(
             RTCEvents.PERMISSIONS_CHANGED,
+            // @ts-ignore
             permissions => this._handlePermissionsChange(permissions));
 
         // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are
