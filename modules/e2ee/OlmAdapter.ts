@@ -13,7 +13,55 @@ import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
 import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
-import type { IOlmAccount, IOlmIdKeys, IOlmSAS, IOlmSession } from './olm';
+
+/**
+ * Type definitions for the Olm cryptographic library
+ */
+export interface IOlmStatic {
+    Account: new () => IOlmAccount;
+    SAS: new () => IOlmSAS;
+    Session: new () => IOlmSession;
+    Utility: new () => IOlmUtility;
+    get_library_version: () => number[];
+    init: () => Promise<void>;
+}
+
+interface IOlmAccount {
+    create: () => void;
+    free: () => void;
+    generate_one_time_keys: (count: number) => void;
+    identity_keys: () => string;
+    mark_keys_as_published: () => void;
+    one_time_keys: () => string;
+    remove_one_time_keys: (session: IOlmSession) => void;
+}
+
+interface IOlmSession {
+    create_inbound: (account: IOlmAccount, ciphertext: string) => void;
+    create_outbound: (account: IOlmAccount, idKey: string, otKey: string) => void;
+    decrypt: (type: number, ciphertext: string) => string;
+    encrypt: (plaintext: string) => { body: string; type: number; };
+    free: () => void;
+}
+
+interface IOlmSAS {
+    calculate_mac: (message: string, info: string) => string;
+    free: () => void;
+    generate_bytes: (info: string, length: number) => Uint8Array;
+    get_pubkey: () => string;
+    is_their_key_set: () => boolean;
+    set_their_key: (key: string) => void;
+}
+
+interface IOlmUtility {
+    free: () => void;
+    sha256: (input: string) => string;
+}
+
+interface IOlmIdKeys {
+    curve25519: string;
+    ed25519: string;
+}
 
 interface IDSasVerificationData {
     isInitiator?: boolean;

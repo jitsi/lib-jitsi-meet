@@ -1,6 +1,6 @@
 export {};
 
-import type { IOlmStatic } from './modules/e2ee/olm';
+import { IOlmStatic } from './modules/e2ee/OlmAdapter';
 
 declare global {
     const Olm: IOlmStatic;
