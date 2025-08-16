@@ -7,13 +7,13 @@ import { v4 as uuidv4 } from 'uuid';
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
-import type { IOlmAccount, IOlmIdKeys, IOlmSAS, IOlmSession } from './olm';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
 import { E2EEErrors } from './E2EEErrors';
 import { generateSas } from './SAS';
+import type { IOlmAccount, IOlmIdKeys, IOlmSAS, IOlmSession } from './olm';
 
 interface IDSasVerificationData {
     isInitiator?: boolean;
@@ -138,6 +138,15 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
+     * Indicates if olm is supported on the current platform.
+     *
+     * @returns {boolean}
+     */
+    static isSupported(): boolean {
+        return typeof window.Olm !== 'undefined';
+    }
+
+    /**
      * Starts new olm sessions with every other participant that has the participantId "smaller" the localParticipantId.
      */
     private async initSessions(): Promise<void> {
@@ -163,106 +172,6 @@ export class OlmAdapter extends Listenable {
 
             this._sessionInitialization.resolve();
             this._sessionInitialization = undefined;
-        }
-    }
-
-    /**
-     * Indicates if olm is supported on the current platform.
-     *
-     * @returns {boolean}
-     */
-    static isSupported(): boolean {
-        return typeof window.Olm !== 'undefined';
-    }
-
-    /**
-     * Updates the current participant key and distributes it to all participants in the conference
-     * by sending a key-info message.
-     *
-     * @param {Uint8Array|boolean} key - The new key.
-     * @returns {Promise<Number>}
-     */
-    public async updateKey(key: Optional<Uint8Array | boolean>): Promise<number> {
-        // Store it locally for new sessions.
-        this._mediaKey = key;
-        this._mediaKeyIndex++;
-
-        // Broadcast it.
-        const promises = [];
-
-        for (const participant of this._conf.getParticipants()) {
-            const pId = participant.getId();
-            const olmData = this._getParticipantOlmData(participant);
-
-            // TODO: skip those who don't support E2EE.
-            if (!olmData.session) {
-                logger.warn(`Tried to send key to participant ${pId} but we have no session`);
-
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            const uuid = uuidv4();
-            const data = {
-                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                olm: {
-                    data: {
-                        ciphertext: this._encryptKeyInfo(olmData.session),
-                        uuid
-                    },
-                    type: OLM_MESSAGE_TYPES.KEY_INFO
-                }
-            };
-            const d = new Deferred();
-
-            d.setRejectTimeout(REQ_TIMEOUT);
-            d.catch(() => {
-                this._reqs.delete(uuid);
-            });
-            this._reqs.set(uuid, d);
-            promises.push(d);
-
-            this._sendMessage(data, pId);
-        }
-
-        await Promise.allSettled(promises);
-
-        // TODO: retry failed ones?
-
-        return this._mediaKeyIndex;
-    }
-
-    /**
-     * Updates the current participant key.
-     * @param {Uint8Array|boolean} key - The new key.
-     * @returns {number}
-    */
-    public updateCurrentMediaKey(key: Uint8Array | boolean): number {
-        this._mediaKey = key;
-
-        return this._mediaKeyIndex;
-    }
-
-    /**
-     * Frees the olmData session for the given participant.
-     *
-     */
-    public clearParticipantSession(participant: JitsiParticipant): void {
-        const olmData = this._getParticipantOlmData(participant);
-
-        if (olmData.session) {
-            olmData.session.free();
-            olmData.session = undefined;
-        }
-    }
-
-    /**
-     * Frees the olmData sessions for all participants.
-     *
-     */
-    public clearAllParticipantsSessions(): void {
-        for (const participant of this._conf.getParticipants()) {
-            this.clearParticipantSession(participant);
         }
     }
 
@@ -1128,6 +1037,99 @@ export class OlmAdapter extends Listenable {
 
         return commitment;
     }
+
+
+    /**
+     * Updates the current participant key and distributes it to all participants in the conference
+     * by sending a key-info message.
+     *
+     * @param {Uint8Array|boolean} key - The new key.
+     * @returns {Promise<Number>}
+     */
+    public async updateKey(key: Optional<Uint8Array | boolean>): Promise<number> {
+        // Store it locally for new sessions.
+        this._mediaKey = key;
+        this._mediaKeyIndex++;
+
+        // Broadcast it.
+        const promises = [];
+
+        for (const participant of this._conf.getParticipants()) {
+            const pId = participant.getId();
+            const olmData = this._getParticipantOlmData(participant);
+
+            // TODO: skip those who don't support E2EE.
+            if (!olmData.session) {
+                logger.warn(`Tried to send key to participant ${pId} but we have no session`);
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            const uuid = uuidv4();
+            const data = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    data: {
+                        ciphertext: this._encryptKeyInfo(olmData.session),
+                        uuid
+                    },
+                    type: OLM_MESSAGE_TYPES.KEY_INFO
+                }
+            };
+            const d = new Deferred();
+
+            d.setRejectTimeout(REQ_TIMEOUT);
+            d.catch(() => {
+                this._reqs.delete(uuid);
+            });
+            this._reqs.set(uuid, d);
+            promises.push(d);
+
+            this._sendMessage(data, pId);
+        }
+
+        await Promise.allSettled(promises);
+
+        // TODO: retry failed ones?
+
+        return this._mediaKeyIndex;
+    }
+
+    /**
+     * Updates the current participant key.
+     * @param {Uint8Array|boolean} key - The new key.
+     * @returns {number}
+    */
+    public updateCurrentMediaKey(key: Uint8Array | boolean): number {
+        this._mediaKey = key;
+
+        return this._mediaKeyIndex;
+    }
+
+    /**
+     * Frees the olmData session for the given participant.
+     *
+     */
+    public clearParticipantSession(participant: JitsiParticipant): void {
+        const olmData = this._getParticipantOlmData(participant);
+
+        if (olmData.session) {
+            olmData.session.free();
+            olmData.session = undefined;
+        }
+    }
+
+    /**
+     * Frees the olmData sessions for all participants.
+     *
+     */
+    public clearAllParticipantsSessions(): void {
+        for (const participant of this._conf.getParticipants()) {
+            this.clearParticipantSession(participant);
+        }
+    }
+
 }
 
 /**
