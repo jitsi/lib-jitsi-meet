@@ -818,7 +818,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails or there is no data channel created.
      */
-    public sendChannelMessage(to: string, payload: Record<string, unknown>): void {
+    public sendChannelMessage(to: string, payload: any): void {
         if (this._channel) {
             this._channel.sendMessage(to, payload);
         } else {
@@ -831,7 +831,7 @@ export default class RTC extends Listenable {
      * @param {Object} payload The payload of the message.
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
-    public sendEndpointStatsMessage(payload: Record<string, unknown>): void {
+    public sendEndpointStatsMessage(payload: any): void {
         if (this?._channel.isOpen()) {
             this._channel.sendEndpointStatsMessage(payload);
         }
