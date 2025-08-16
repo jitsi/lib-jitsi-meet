@@ -48,46 +48,14 @@ interface IMediaInfo {
  * remote sources across peers.
  */
 export default class SDP {
-    /**
-     * The raw SDP string
-     */
-    raw: string;
-
-    /**
-     * The session part of the SDP
-     */
-    session: string;
-
-    /**
-     * The media sections of the SDP
-     */
-    media: string[];
-
-    /**
-     * Whether this SDP belongs to a p2p peerconnection
-     */
-    isP2P: boolean;
-
-    /**
-     * This flag will make {@link transportToJingle} and {@link jingle2media} replace ICE candidates IPs with
-     * invalid value of '1.1.1.1' which will cause ICE failure. The flag is used in the automated testing.
-     */
-    failICE: boolean;
-
-    /**
-     * Whether or not to remove TCP ice candidates when translating from/to jingle.
-     */
-    removeTcpCandidates: boolean;
-
-    /**
-     * Whether or not to remove UDP ice candidates when translating from/to jingle.
-     */
-    removeUdpCandidates: boolean;
-
-    /**
-     * The initial last N value that is passed to Jicofo on join.
-     */
-    initialLastN?: number;
+    public raw: string;
+    public session: string;
+    public media: string[];
+    public isP2P: boolean;
+    public failICE: boolean;
+    public removeTcpCandidates: boolean;
+    public removeUdpCandidates: boolean;
+    public initialLastN?: number;
 
     /**
      * Constructor.
@@ -121,7 +89,7 @@ export default class SDP {
      * @param {Number} idx - The index of the m-line in the SDP.
      * @returns {String} - The adjusted msid semantic.
      */
-    _adjustMsidSemantic(msid: string, mediaType: MediaType, idx: number): string {
+    private _adjustMsidSemantic(msid: string, mediaType: MediaType, idx: number): string {
         if (mediaType === MediaType.AUDIO || !browser.isChromiumBased() || browser.isEngineVersionGreaterThan(116)) {
             return msid;
         }
@@ -142,7 +110,7 @@ export default class SDP {
      * @returns {void}
      * @private
      */
-    _updateSessionAndMediaSections(sdp?: string): void {
+    private _updateSessionAndMediaSections(sdp?: string): void {
         const media = typeof sdp === 'string' ? sdp.split('\r\nm=') : this.raw.split('\r\nm=');
 
         for (let i = 1, length = media.length; i < length; i++) {
@@ -164,7 +132,7 @@ export default class SDP {
      * @param {boolean} isAdd - Whether the sources are being added or removed.
      * @returns {Array<number>} - The indices of the new m-lines that were added/modifed in the SDP.
      */
-    updateRemoteSources(sourceMap: Map<string, ISourceInfo>, isAdd: boolean = true): number[] {
+    public updateRemoteSources(sourceMap: Map<string, ISourceInfo>, isAdd: boolean = true): number[] {
         const updatedMidIndices = [];
 
         for (const source of sourceMap.values()) {
@@ -231,7 +199,7 @@ export default class SDP {
      * @param {boolean} isRemote - Whether this is for a remote source.
      * @returns {void}
      */
-    addMlineForNewSource(mediaType: MediaType, isRemote: boolean = false): void {
+    public addMlineForNewSource(mediaType: MediaType, isRemote: boolean = false): void {
         const mid = this.media.length;
         const sdp = transform.parse(this.raw);
         const mline = cloneDeep(sdp.media.find(m => m.type === mediaType));
@@ -262,7 +230,7 @@ export default class SDP {
      * @param {*} jingle - The Jingle message element.
      * @returns {void}
      */
-    fromJingle(jingle: any): void {
+    public fromJingle(jingle: any): void {
         const sessionId = Date.now();
 
         // Use a unique session id for every TPC.
@@ -402,7 +370,7 @@ export default class SDP {
      *
      * @returns {Map<number, IMediaInfo>}
      */
-    getMediaSsrcMap(): Map<number, IMediaInfo> {
+    public getMediaSsrcMap(): Map<number, IMediaInfo> {
         const sourceInfo = new Map();
 
         this.media.forEach((mediaItem, mediaindex) => {
@@ -462,7 +430,7 @@ export default class SDP {
      * @param {*} content - The content section from the Jingle message element.
      * @returns {string} - The constructed media sections.
      */
-    jingle2media(content: any): string {
+    public jingle2media(content: any): string {
         const desc = content.find('>description');
         const transport = content.find(`>transport[xmlns='${XEP.ICE_UDP_TRANSPORT}']`);
         let sdp = '';
@@ -648,7 +616,7 @@ export default class SDP {
      * @param {*} payloadtype - Payload type for the codec.
      * @returns {string}
      */
-    rtcpFbFromJingle(elem, payloadtype) {
+    public rtcpFbFromJingle(elem: any, payloadtype: any): string {
         let sdp = '';
         const feedbackElementTrrInt = elem.find(`>rtcp-fb-trr-int[xmlns='${XEP.RTP_FEEDBACK}']`);
 
@@ -679,7 +647,7 @@ export default class SDP {
      * @param {*} elem - The Jingle message element.
      * @param {string} payloadtype - payload type for the codec.
      */
-    rtcpFbToJingle(mediaIndex: number, elem: any, payloadtype: string): void {
+    public rtcpFbToJingle(mediaIndex: number, elem: any, payloadtype: string): void {
         const lines = SDPUtil.findLines(this.media[mediaIndex], `a=rtcp-fb:${payloadtype}`, '');
 
         lines.forEach((line: string) => {
@@ -711,7 +679,7 @@ export default class SDP {
      * @param {*} thecreator - Sender role, whether it is an 'initiator' or 'responder'.
      * @returns - The updated Jingle message element.
      */
-    toJingle(elem, thecreator) {
+    public toJingle(elem: any, thecreator: any): any {
         SDPUtil.findLines(this.session, 'a=group:', '').forEach((line: string) => {
             const parts = line.split(' ');
             const semantics = parts.shift().substr(8);
@@ -999,7 +967,7 @@ export default class SDP {
      * @param {*} mediaIndex The index for the m-line in the SDP.
      * @param {*} elem The transport element.
      */
-    transportToJingle(mediaIndex, elem) {
+    public transportToJingle(mediaIndex: number, elem: any): void {
         elem.c('transport');
 
         const sctpport = SDPUtil.findLine(this.media[mediaIndex], 'a=sctp-port:', this.session);
