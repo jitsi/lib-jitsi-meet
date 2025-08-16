@@ -21,7 +21,7 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    async setKey(keyInfo: { encryptionKey: CryptoKey; index: number; }) {
+    public async setKey(keyInfo: { encryptionKey: CryptoKey; index: number; }) {
         const keyData = await crypto.subtle.exportKey('raw', keyInfo.encryptionKey);
 
         this.e2eeCtx.setKey(undefined, new Uint8Array(keyData), keyInfo.index);

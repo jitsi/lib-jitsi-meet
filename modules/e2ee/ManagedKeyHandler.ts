@@ -139,7 +139,7 @@ export class ManagedKeyHandler extends KeyHandler {
     private async _ratchetKeyImpl(): Promise<void> {
         logger.debug('Ratchetting key');
 
-        const material = await importKey(this._key as Uint8Array);
+        const material = await importKey(this._key as unknown as ArrayBuffer);
         const newKey = await ratchet(material);
 
         this._key = new Uint8Array(newKey);

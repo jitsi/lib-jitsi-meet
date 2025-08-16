@@ -70,7 +70,7 @@ export default class E2EEcontext {
      *
      * @param {string} participantId - The participant that just left.
      */
-    cleanup(participantId: string): void {
+    public cleanup(participantId: string): void {
         this._worker.postMessage({
             operation: 'cleanup',
             participantId
@@ -81,7 +81,7 @@ export default class E2EEcontext {
      * Cleans up all state associated with all participants in the conference. This is needed when disabling e2ee.
      *
      */
-    cleanupAll(): void {
+    public cleanupAll(): void {
         this._worker.postMessage({
             operation: 'cleanupAll'
         });
@@ -95,7 +95,7 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this receiver belongs to.
      * @param {string} participantId - The participant id that this receiver belongs to.
      */
-    handleReceiver(receiver: RTCRtpReceiver, kind: string, participantId: string): void {
+    public handleReceiver(receiver: RTCRtpReceiver, kind: string, participantId: string): void {
         if (receiver[kJitsiE2EE]) {
             return;
         }
@@ -128,7 +128,7 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this sender belongs to.
      * @param {string} participantId - The participant id that this sender belongs to.
      */
-    handleSender(sender: RTCRtpSender, kind: string, participantId: string): void {
+    public handleSender(sender: RTCRtpSender, kind: string, participantId: string): void {
         if (sender[kJitsiE2EE]) {
             return;
         }
@@ -158,7 +158,7 @@ export default class E2EEcontext {
      *
      * @param {boolean} enabled - whether E2EE is enabled or not.
      */
-    setEnabled(enabled: boolean): void {
+    public setEnabled(enabled: boolean): void {
         this._worker.postMessage({
             enabled,
             operation: 'setEnabled'
@@ -172,7 +172,7 @@ export default class E2EEcontext {
      * @param {Uint8Array | boolean} key - they key for the given participant.
      * @param {Number} keyIndex - the key index.
      */
-    setKey(participantId: string, key: Uint8Array | boolean, keyIndex: number): void {
+    public setKey(participantId: string, key: Uint8Array | boolean, keyIndex: number): void {
         this._worker.postMessage({
             key,
             keyIndex,

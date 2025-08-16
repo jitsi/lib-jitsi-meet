@@ -151,7 +151,7 @@ export class KeyHandler extends Listenable {
      *
      * @returns {boolean}
      */
-    isEnabled(): boolean {
+    public isEnabled(): boolean {
         return this.enabled;
     }
 
@@ -161,7 +161,7 @@ export class KeyHandler extends Listenable {
          * @param {boolean} enabled - whether E2EE should be enabled or not.
          * @returns {void}
          */
-    async setEnabled(enabled: boolean): Promise<void> {
+    public async setEnabled(enabled: boolean): Promise<void> {
         this._enabling && await this._enabling;
 
         if (enabled === this.enabled) {
