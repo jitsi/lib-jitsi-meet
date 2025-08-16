@@ -330,7 +330,7 @@ class RTCUtils extends Listenable {
      * @param {Object} options
      * @returns {void}
      */
-    init(options: IInitOptions = {}): void {
+    private _init(options: IInitOptions = {}): void {
         if (typeof options.disableAEC === 'boolean') {
             disableAEC = options.disableAEC;
             logger.info(`Disable AEC: ${disableAEC}`);
@@ -389,59 +389,6 @@ class RTCUtils extends Listenable {
     }
 
     /**
-     * Attaches the given media stream to the given element.
-     *
-     * @param {*} element DOM element.
-     * @param {*} stream MediaStream.
-     * @returns Promise<void>
-     */
-    attachMediaStream(element: Nullable<HTMLMediaElement>, stream: Nullable<MediaStream>): Promise<void> {
-        if (element) {
-            element.srcObject = stream;
-        }
-
-        if (element && stream
-                && this.isDeviceChangeAvailable('output')
-                && stream.getAudioTracks().length
-
-                // we skip setting audio output if there was no explicit change
-                && audioOutputChanged) {
-            return (element as HTMLAudioElement).setSinkId(this.getAudioOutputDevice()).catch((ex: Error) => {
-                const err
-                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
-                logger.warn(
-                    'Failed to set audio output device for the element.'
-                        + ' Default audio output device will be used'
-                        + ' instead',
-                    element?.id,
-                    err);
-
-                throw err;
-            });
-        }
-
-        return Promise.resolve();
-    }
-
-    /**
-     *
-     * @param {Function} callback
-     */
-    enumerateDevices(callback: (devices: MediaDeviceInfo[]) => void): void {
-        navigator.mediaDevices.enumerateDevices()
-            .then((devices: MediaDeviceInfo[]) => {
-                this._updateKnownDevices(devices);
-                callback(devices);
-            })
-            .catch((error: Error) => {
-                logger.warn(`Failed to  enumerate devices. ${error}`);
-                this._updateKnownDevices([]);
-                callback([]);
-            });
-    }
-
-    /**
      * Acquires a media stream via getUserMedia that
      * matches the given constraints
      *
@@ -450,7 +397,7 @@ class RTCUtils extends Listenable {
      * @param {number} timeout - The timeout in ms for GUM.
      * @returns {Promise}
      */
-    _getUserMedia(umDevices: string[], constraints: MediaStreamConstraints = {}, timeout: number = 0): Promise<MediaStream> {
+    private _getUserMedia(umDevices: string[], constraints: MediaStreamConstraints = {}, timeout: number = 0): Promise<MediaStream> {
         return new Promise((resolve, reject) => {
             let gumTimeout: ReturnType<typeof setTimeout>, timeoutExpired: boolean = false;
 
@@ -501,7 +448,7 @@ class RTCUtils extends Listenable {
      * contains the acquired display stream. If desktop sharing is not supported
      * then a rejected promise will be returned.
      */
-    _getDesktopMedia(options: IDesktopSharingOptions): Promise<IDesktopStreamInfo> {
+    private _getDesktopMedia(options: IDesktopSharingOptions): Promise<IDesktopStreamInfo> {
         if (!screenObtainer.isSupported()) {
             return Promise.reject(new Error('Desktop sharing is not supported!'));
         }
@@ -529,7 +476,7 @@ class RTCUtils extends Listenable {
      * @returns {string[]} An array of string with the missing track types. The
      * array will be empty if all requestedDevices are found in the stream.
      */
-    _getMissingTracks(requestedDevices: string[] = [], stream: MediaStream): string[] {
+    private _getMissingTracks(requestedDevices: string[] = [], stream: MediaStream): string[] {
         const missingDevices: string[] = [];
 
         const audioDeviceRequested = requestedDevices.includes('audio');
@@ -557,7 +504,7 @@ class RTCUtils extends Listenable {
      * @param {MediaDeviceInfo[]} devices - list of media devices.
      * @emits RTCEvents.DEVICE_LIST_CHANGED
      */
-    _onMediaDevicesListChanged(devicesReceived: MediaDeviceInfo[]): void {
+    private _onMediaDevicesListChanged(devicesReceived: MediaDeviceInfo[]): void {
         availableDevices = devicesReceived.slice(0);
         logger.info('list of media devices has changed:', availableDevices);
 
@@ -581,7 +528,7 @@ class RTCUtils extends Listenable {
      * This prevents duplication and works around a chrome bug (verified to occur on 68) where devicechange
      * fires twice in a row, which can cause async post devicechange processing to collide.
      */
-    _updateKnownDevices(pds: MediaDeviceInfo[]): void {
+    private _updateKnownDevices(pds: MediaDeviceInfo[]): void {
         if (compareAvailableMediaDevices(pds)) {
             this._onMediaDevicesListChanged(pds);
         }
@@ -593,7 +540,7 @@ class RTCUtils extends Listenable {
      * @param um the options we requested to getUserMedia.
      * @param stream the stream we received from calling getUserMedia.
      */
-    _updateGrantedPermissions(um: string[], stream: MediaStream): void {
+    private _updateGrantedPermissions(um: string[], stream: MediaStream): void {
         const audioTracksReceived: boolean
             = Boolean(stream) && stream!.getAudioTracks().length > 0;
         const videoTracksReceived: boolean
@@ -608,6 +555,59 @@ class RTCUtils extends Listenable {
         }
 
         this.eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions);
+    }
+
+    /**
+     * Attaches the given media stream to the given element.
+     *
+     * @param {*} element DOM element.
+     * @param {*} stream MediaStream.
+     * @returns Promise<void>
+     */
+    public attachMediaStream(element: Nullable<HTMLMediaElement>, stream: Nullable<MediaStream>): Promise<void> {
+        if (element) {
+            element.srcObject = stream;
+        }
+
+        if (element && stream
+                && this.isDeviceChangeAvailable('output')
+                && stream.getAudioTracks().length
+
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
+            return (element as HTMLAudioElement).setSinkId(this.getAudioOutputDevice()).catch((ex: Error) => {
+                const err
+                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
+
+                logger.warn(
+                    'Failed to set audio output device for the element.'
+                        + ' Default audio output device will be used'
+                        + ' instead',
+                    element?.id,
+                    err);
+
+                throw err;
+            });
+        }
+
+        return Promise.resolve();
+    }
+
+    /**
+     *
+     * @param {Function} callback
+     */
+    public enumerateDevices(callback: (devices: MediaDeviceInfo[]) => void): void {
+        navigator.mediaDevices.enumerateDevices()
+            .then((devices: MediaDeviceInfo[]) => {
+                this._updateKnownDevices(devices);
+                callback(devices);
+            })
+            .catch((error: Error) => {
+                logger.warn(`Failed to  enumerate devices. ${error}`);
+                this._updateKnownDevices([]);
+                callback([]);
+            });
     }
 
     /**
@@ -636,7 +636,7 @@ class RTCUtils extends Listenable {
      * track. If an error occurs, it will be deferred to the caller for
      * handling.
      */
-    obtainAudioAndVideoPermissions(options: IObtainAudioAndVideoOptions): Promise<IStreamInfo[]> {
+    public obtainAudioAndVideoPermissions(options: IObtainAudioAndVideoOptions): Promise<IStreamInfo[]> {
         const {
             timeout,
             ...otherOptions
@@ -839,7 +839,7 @@ class RTCUtils extends Listenable {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable(deviceType?: string): boolean {
+    public isDeviceChangeAvailable(deviceType?: string): boolean {
         if (deviceType === 'output' || deviceType === 'audiooutput') {
             return isAudioOutputDeviceChangeAvailable;
         }
@@ -852,7 +852,7 @@ class RTCUtils extends Listenable {
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
      */
-    stopMediaStream(mediaStream: MediaStream): void {
+    public stopMediaStream(mediaStream: MediaStream): void {
         if (!mediaStream) {
             return;
         }
@@ -880,7 +880,7 @@ class RTCUtils extends Listenable {
      * Returns whether the desktop sharing is enabled or not.
      * @returns {boolean}
      */
-    isDesktopSharingEnabled(): boolean {
+    public isDesktopSharingEnabled(): boolean {
         return screenObtainer.isSupported();
     }
 
@@ -892,7 +892,7 @@ class RTCUtils extends Listenable {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    setAudioOutputDevice(deviceId: string): Promise<void> {
+    public setAudioOutputDevice(deviceId: string): Promise<void> {
         if (!this.isDeviceChangeAvailable('output')) {
             return Promise.reject(
                 new Error('Audio output device change is not supported'));
@@ -916,7 +916,7 @@ class RTCUtils extends Listenable {
      * @param {number} maxFps - max fps to be used as the capture frame rate.
      * @returns {void}
      */
-    setDesktopSharingFrameRate(maxFps: number): void {
+    public setDesktopSharingFrameRate(maxFps: number): void {
         screenObtainer.setDesktopSharingFrameRate(maxFps);
     }
 
@@ -925,7 +925,7 @@ class RTCUtils extends Listenable {
      * device
      * @returns {string}
      */
-    getAudioOutputDevice(): string {
+    public getAudioOutputDevice(): string {
         return audioOutputDeviceId;
     }
 
@@ -934,7 +934,7 @@ class RTCUtils extends Listenable {
      * empty array is returned/
      * @returns {Array} list of available media devices.
      */
-    getCurrentlyAvailableMediaDevices(): MediaDeviceInfo[] {
+    public getCurrentlyAvailableMediaDevices(): MediaDeviceInfo[] {
         return availableDevices;
     }
 
@@ -942,7 +942,7 @@ class RTCUtils extends Listenable {
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */
-    getEventDataForActiveDevice(device: MediaDeviceInfo): { deviceList: MediaDeviceInfo[]; } {
+    public getEventDataForActiveDevice(device: MediaDeviceInfo): { deviceList: MediaDeviceInfo[]; } {
         const deviceList: MediaDeviceInfo[] = [];
         const deviceData = {
             deviceId: device.deviceId,
@@ -968,7 +968,7 @@ class RTCUtils extends Listenable {
      * @param {string} streamId The id of WebRTC MediaStream.
      * @returns {boolean}
      */
-    isUserStreamById(streamId: string): boolean {
+    public isUserStreamById(streamId: string): boolean {
         return Boolean(streamId) && streamId !== 'mixedmslabel' && streamId !== 'default';
     }
 }
