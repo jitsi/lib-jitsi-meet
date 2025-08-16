@@ -19,6 +19,7 @@ import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack, { IStreamEffect, ITrackConstraints } from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
+import JitsiRemoteTrack from './JitsiRemoteTrack';
 
 // Extend RTCConfiguration to include the encodedInsertableStreams property
 interface IExtendedRTCConfiguration extends RTCConfiguration {
@@ -144,78 +145,22 @@ export interface ICreatePeerConnectionOptions {
     startSilent: boolean;
     videoQuality: object;
 }
-
 /**
  *
  */
 export default class RTC extends Listenable {
 
-
-    /**
-     * Static options for the RTC class
-     */
     static options: IRTCOptions;
 
-    /**
-     * BridgeChannel instance.
-     * @private
-     * @type {BridgeChannel}
-     */
     private _channel: BridgeChannel;
-
-    /**
-     * The value specified to the last invocation of setLastN before the
-     * channel completed opening. If non-null, the value will be sent
-     * through a channel (once) as soon as it opens and will then be
-     * discarded.
-     * @private
-     * @type {Optional<number>}
-     */
     private _lastN: Optional<number>;
-
-    /**
-     * Defines the forwarded sources list. It can be null or an array once initialised with a channel forwarded
-     * sources event.
-     *
-     * @type {Array<string>|null}
-     * @private
-     */
     private _forwardedSources: Nullable<string[]>;
-
-    /**
-     * The forwarded sources change listener.
-     */
     private _forwardedSourcesChangeListener: (forwardedSources?: string[]) => void;
-
-    /**
-     * Channel open listener
-     */
     private _channelOpenListener?: () => void;
-
-    /**
-     * Receiver video constraints
-     */
     private _receiverVideoConstraints?: IReceiverVideoConstraints;
-
-    /**
-     * Conference instance
-     */
     public conference: JitsiConference;
-
-    /**
-     * A map of active <tt>TraceablePeerConnection</tt>.
-     * @type {Map.<number, TraceablePeerConnection>}
-     */
     public peerConnections: Map<number, TraceablePeerConnection>;
-
-    /**
-     * Array of local tracks
-     */
     public localTracks: JitsiLocalTrack[];
-
-    /**
-     * Configuration options
-     */
     public options: IRTCOptions | IConferenceOptions;
 
     /**
@@ -287,7 +232,7 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static addListener(eventType: string, listener: EventListener): void {
+    public static addListener(eventType: string, listener: EventListener): void {
         RTCUtils.addListener(eventType, listener);
     }
 
@@ -296,7 +241,7 @@ export default class RTC extends Listenable {
      * @param eventType
      * @param listener
      */
-    static removeListener(eventType: string, listener: EventListener): void {
+    public static removeListener(eventType: string, listener: EventListener): void {
         RTCUtils.removeListener(eventType, listener);
     }
 
@@ -304,7 +249,7 @@ export default class RTC extends Listenable {
      *
      * @param options
      */
-    static init(options: IRTCOptions = {}): void {
+    public static init(options: IRTCOptions = {}): void {
         this.options = options;
 
         return RTCUtils.init(this.options);
@@ -315,10 +260,10 @@ export default class RTC extends Listenable {
      * Exposes the private helper for converting a WebRTC MediaStream to a
      * JitsiLocalTrack.
      *
-     * @param {Array<Object>} tracksInfo
+     * @param {IMediaStreamMetaData[]} tracksInfo
      * @returns {Array<JitsiLocalTrack>}
      */
-    static createLocalTracks(tracksInfo) {
+    public static createLocalTracks(tracksInfo: IMediaStreamMetaData[]): Array<JitsiLocalTrack> {
         return _createLocalTracks(tracksInfo);
     }
 
@@ -328,7 +273,7 @@ export default class RTC extends Listenable {
      *
      * @returns {void}
      */
-    destroy() {
+    public destroy(): void {
         RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this._updateAudioOutputForAudioTracks);
         RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED, this._onDeviceListChanged);
 
@@ -346,7 +291,8 @@ export default class RTC extends Listenable {
      * @param {string=} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
-    static obtainAudioAndVideoPermissions(options) {
+    public static obtainAudioAndVideoPermissions(options = {}): Promise<Array<JitsiLocalTrack>> {
+        // @ts-ignore import interface from rtcUtils after it get merged
         return RTCUtils.obtainAudioAndVideoPermissions(options)
             .then(tracksInfo => _createLocalTracks(tracksInfo));
     }
@@ -359,7 +305,7 @@ export default class RTC extends Listenable {
      * instance.
      * @param {string} [wsUrl] WebSocket URL.
      */
-    initializeBridgeChannel(peerconnection, wsUrl) {
+    public initializeBridgeChannel(peerconnection: RTCPeerConnection, wsUrl: string): void {
         this._channel = new BridgeChannel(peerconnection, wsUrl, this.eventEmitter, this.conference);
 
         this._channelOpenListener = () => {
@@ -398,7 +344,7 @@ export default class RTC extends Listenable {
      * @private
      * @returns {void}
      */
-    _onDeviceListChanged(): void {
+    private _onDeviceListChanged(): void {
         this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
     }
 
@@ -408,7 +354,7 @@ export default class RTC extends Listenable {
      * @param {array} forwardedSources The new forwarded sources.
      * @private
      */
-    _onForwardedSourcesChanged(forwardedSources: string[] = []): void {
+    private _onForwardedSourcesChanged(forwardedSources: string[] = []): void {
         const oldForwardedSources = this._forwardedSources || [];
         let leavingForwardedSources: string[] = [];
         let enteringForwardedSources: string[] = [];
@@ -434,7 +380,7 @@ export default class RTC extends Listenable {
      * Should be called when current media session ends and after the
      * PeerConnection has been closed using PeerConnection.close() method.
      */
-    onCallEnded(): void {
+    public onCallEnded(): void {
         if (this._channel) {
             // The BridgeChannel is not explicitly closed as the PeerConnection
             // is closed on call ended which triggers datachannel onclose
@@ -455,7 +401,7 @@ export default class RTC extends Listenable {
      *
      * @param {number} maxFps framerate to be used for desktop track capture.
      */
-    setDesktopSharingFrameRate(maxFps: number): void {
+    public setDesktopSharingFrameRate(maxFps: number): void {
         RTCUtils.setDesktopSharingFrameRate(maxFps);
     }
 
@@ -465,7 +411,7 @@ export default class RTC extends Listenable {
      * is established.
      * @param {IReceiverVideoConstraints} constraints
      */
-    setReceiverVideoConstraints(constraints: IReceiverVideoConstraints): void {
+    public setReceiverVideoConstraints(constraints: IReceiverVideoConstraints): void {
         if (isEqual(this._receiverVideoConstraints, constraints)) {
             return;
         }
@@ -482,7 +428,7 @@ export default class RTC extends Listenable {
      * @param {SourceName} sourceName - the track's source name.
      * @param {BridgeVideoType} videoType - the track's video type.
      */
-    sendSourceVideoType(sourceName: SourceName, videoType: BridgeVideoType): void {
+    public sendSourceVideoType(sourceName: SourceName, videoType: BridgeVideoType): void {
         if (this?._channel.isOpen()) {
             this._channel.sendSourceVideoTypeMessage(sourceName, videoType);
         }
@@ -509,7 +455,7 @@ export default class RTC extends Listenable {
      * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling: SignalingLayer, pcConfig: IExtendedRTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
+    public createPeerConnection(signaling: SignalingLayer, pcConfig: IExtendedRTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
         const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
@@ -550,7 +496,7 @@ export default class RTC extends Listenable {
      * successfully or <tt>false</tt> if there was no peer connection mapped in
      * this RTC instance.
      */
-    _removePeerConnection(traceablePeerConnection) {
+    private _removePeerConnection(traceablePeerConnection: TraceablePeerConnection): boolean {
         const id = traceablePeerConnection.id;
 
         if (this.peerConnections.has(id)) {
@@ -568,7 +514,7 @@ export default class RTC extends Listenable {
      *
      * @param track
      */
-    addLocalTrack(track) {
+    public addLocalTrack(track: JitsiLocalTrack): void {
         if (!track) {
             throw new Error('track must not be null nor undefined');
         }
@@ -580,17 +526,17 @@ export default class RTC extends Listenable {
 
     /**
      * Get forwarded sources list.
-     * @returns {Array<string>|null}
+     * @returns {Nullable<string[]>}
      */
-    getForwardedSources() {
+    public getForwardedSources(): Nullable<string[]> {
         return this._forwardedSources;
     }
 
     /**
      * Get local video track.
-     * @returns {JitsiLocalTrack|undefined}
+     * @returns {Optional<JitsiLocalTrack>}
      */
-    getLocalVideoTrack() {
+    public getLocalVideoTrack(): Optional<JitsiLocalTrack> {
         const localVideo = this.getLocalTracks(MediaType.VIDEO);
 
         return localVideo.length ? localVideo[0] : undefined;
@@ -600,15 +546,15 @@ export default class RTC extends Listenable {
      * Returns all the local video tracks.
      * @returns {Array<JitsiLocalTrack>}
      */
-    getLocalVideoTracks() {
+    public getLocalVideoTracks(): JitsiLocalTrack[] {
         return this.getLocalTracks(MediaType.VIDEO);
     }
 
     /**
      * Get local audio track.
-     * @returns {JitsiLocalTrack|undefined}
+     * @returns {Optional<JitsiLocalTrack>}
      */
-    getLocalAudioTrack() {
+    public getLocalAudioTrack(): Optional<JitsiLocalTrack> {
         const localAudio = this.getLocalTracks(MediaType.AUDIO);
 
         return localAudio.length ? localAudio[0] : undefined;
@@ -618,7 +564,7 @@ export default class RTC extends Listenable {
      * Returns the endpoint id for the local user.
      * @returns {string}
      */
-    getLocalEndpointId() {
+    public getLocalEndpointId(): string {
         return this.conference.myUserId();
     }
 
@@ -628,7 +574,7 @@ export default class RTC extends Listenable {
      * @param {MediaType} [mediaType] Optional media type filter.
      * (audio or video).
      */
-    getLocalTracks(mediaType) {
+    public getLocalTracks(mediaType?: MediaType): JitsiLocalTrack[] {
         if (!mediaType) {
             return this.localTracks.slice();
         }
@@ -643,7 +589,7 @@ export default class RTC extends Listenable {
      *      by their media type if this argument is specified.
      * @return {Array<JitsiRemoteTrack>}
      */
-    getRemoteTracks(mediaType) {
+    public getRemoteTracks(mediaType?: MediaType): JitsiRemoteTrack[] {
         let remoteTracks = [];
 
         for (const tpc of this.peerConnections.values()) {
@@ -661,7 +607,7 @@ export default class RTC extends Listenable {
      * Set mute for all local audio streams attached to the conference.
      * @returns {Promise}
      */
-    setAudioMute() {
+    public setAudioMute(): Promise<void[]> {
         const mutePromises = [];
 
         this.getLocalTracks(MediaType.AUDIO).forEach(audioTrack => {
@@ -675,7 +621,7 @@ export default class RTC extends Listenable {
     * Set mute for all local video streams attached to the conference.
     * @returns {Promise}
     */
-    setVideoMute() {
+    public setVideoMute(): Promise<void[]> {
         const mutePromises = [];
         const tracks = this.localTracks.filter(
                 track => track.getType() === MediaType.VIDEO
@@ -690,7 +636,7 @@ export default class RTC extends Listenable {
     * Set mute for all local desktop video streams attached to the conference.
     * @returns {Promise}
     */
-    setDesktopMute() {
+    public setDesktopMute(): Promise<void[]> {
         const mutePromises = [];
         const tracks = this.localTracks.filter(
                 track => track.getType() === MediaType.VIDEO
@@ -705,7 +651,7 @@ export default class RTC extends Listenable {
      *
      * @param track
      */
-    removeLocalTrack(track) {
+    public removeLocalTrack(track: JitsiLocalTrack): void {
         const pos = this.localTracks.indexOf(track);
 
         if (pos === -1) {
@@ -720,7 +666,7 @@ export default class RTC extends Listenable {
      * @param elSelector
      * @param stream
      */
-    static attachMediaStream(elSelector, stream) {
+    public static attachMediaStream(elSelector: string, stream: MediaStream): void {
         return RTCUtils.attachMediaStream(elSelector, stream);
     }
 
@@ -731,7 +677,7 @@ export default class RTC extends Listenable {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    static isDeviceChangeAvailable(deviceType) {
+    public static isDeviceChangeAvailable(deviceType: string): boolean {
         return RTCUtils.isDeviceChangeAvailable(deviceType);
     }
 
@@ -743,7 +689,7 @@ export default class RTC extends Listenable {
      * execution environment (for use within this library); {@code false},
      * otherwise.
      */
-    static isWebRtcSupported() {
+    public static isWebRtcSupported(): boolean {
         return browser.isSupported();
     }
 
@@ -752,7 +698,7 @@ export default class RTC extends Listenable {
      * device
      * @returns {string}
      */
-    static getAudioOutputDevice() {
+    public static getAudioOutputDevice(): string {
         return RTCUtils.getAudioOutputDevice();
     }
 
@@ -761,7 +707,7 @@ export default class RTC extends Listenable {
      * empty array is returned/
      * @returns {array} list of available media devices.
      */
-    static getCurrentlyAvailableMediaDevices() {
+    public static getCurrentlyAvailableMediaDevices(): MediaDeviceInfo[] {
         return RTCUtils.getCurrentlyAvailableMediaDevices();
     }
 
@@ -769,7 +715,7 @@ export default class RTC extends Listenable {
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */
-    static getEventDataForActiveDevice(device) {
+    public static getEventDataForActiveDevice(device: MediaDeviceInfo): MediaDeviceInfo {
         return RTCUtils.getEventDataForActiveDevice(device);
     }
 
@@ -780,7 +726,7 @@ export default class RTC extends Listenable {
      * @returns {Promise} resolves when audio output is changed, is rejected
      *      otherwise
      */
-    static setAudioOutputDevice(deviceId) {
+    public static setAudioOutputDevice(deviceId: string): Promise<void> {
         return RTCUtils.setAudioOutputDevice(deviceId);
     }
 
@@ -789,7 +735,7 @@ export default class RTC extends Listenable {
      * @param {function} callback Would receive array of devices as an
      *      argument.
      */
-    static enumerateDevices(callback) {
+    public static enumerateDevices(callback: (devices: MediaDeviceInfo[]) => void): void {
         RTCUtils.enumerateDevices(callback);
     }
 
@@ -798,7 +744,7 @@ export default class RTC extends Listenable {
      * One point to handle the differences in various implementations.
      * @param {MediaStream} mediaStream MediaStream object to stop.
      */
-    static stopMediaStream(mediaStream) {
+    public static stopMediaStream(mediaStream: MediaStream): void {
         RTCUtils.stopMediaStream(mediaStream);
     }
 
@@ -806,14 +752,14 @@ export default class RTC extends Listenable {
      * Returns whether the desktop sharing is enabled or not.
      * @returns {boolean}
      */
-    static isDesktopSharingEnabled() {
+    public static isDesktopSharingEnabled(): boolean {
         return RTCUtils.isDesktopSharingEnabled();
     }
 
     /**
      * Closes the currently opened bridge channel.
      */
-    closeBridgeChannel() {
+    public closeBridgeChannel(): void {
         if (this._channel) {
             this._channel.close();
             this._channel = null;
@@ -828,7 +774,7 @@ export default class RTC extends Listenable {
      * @param {number} audioLevel
      * @param {boolean} isLocal
      */
-    setAudioLevel(tpc, ssrc, audioLevel, isLocal) {
+    public setAudioLevel(tpc: TraceablePeerConnection, ssrc: number, audioLevel: number, isLocal: boolean): void {
         const track = tpc.getTrackBySSRC(ssrc);
 
         if (!track) {
@@ -853,7 +799,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails or there is no data channel created.
      */
-    sendChannelMessage(to, payload) {
+    public sendChannelMessage(to: string, payload: Record<string, unknown>): void {
         if (this._channel) {
             this._channel.sendMessage(to, payload);
         } else {
@@ -866,7 +812,7 @@ export default class RTC extends Listenable {
      * @param {Object} payload The payload of the message.
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
-    sendEndpointStatsMessage(payload) {
+    public sendEndpointStatsMessage(payload: Record<string, unknown>): void {
         if (this?._channel.isOpen()) {
             this._channel.sendEndpointStatsMessage(payload);
         }
@@ -876,7 +822,7 @@ export default class RTC extends Listenable {
      * Sends a receiver audio subscription message.
      * @param {*} message
      */
-    sendReceiverAudioSubscriptionMessage(message: any): void {
+    public sendReceiverAudioSubscriptionMessage(message: any): void {
         if (this?._channel.isOpen()) {
             this._channel.sendReceiverAudioSubscriptionMessage(message);
         }
@@ -888,7 +834,7 @@ export default class RTC extends Listenable {
      * all available videos.
      * @param {number} value the new value for lastN.
      */
-    setLastN(value) {
+    public setLastN(value: number): void {
         if (this._lastN !== value) {
             this._lastN = value;
             if (this?._channel.isOpen()) {
@@ -905,7 +851,7 @@ export default class RTC extends Listenable {
      * @returns {boolean} true if the source name is in the forwarded sources or if we don't have bridge channel
      * support, otherwise we return false.
      */
-    isInForwardedSources(sourceName) {
+    public isInForwardedSources(sourceName: string): boolean {
         return !this._forwardedSources // forwardedSources not initialised yet.
             || this._forwardedSources.indexOf(sourceName) > -1;
     }
@@ -918,7 +864,7 @@ export default class RTC extends Listenable {
      * @private
      * @returns {void}
      */
-    _updateAudioOutputForAudioTracks(deviceId: string): void {
+    private _updateAudioOutputForAudioTracks(deviceId: string): void {
         const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
 
         for (const track of remoteAudioTracks) {
