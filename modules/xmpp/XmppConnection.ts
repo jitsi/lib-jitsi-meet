@@ -6,6 +6,7 @@ import Listenable from '../util/Listenable';
 
 import ResumeTask from './ResumeTask';
 import LastSuccessTracker from './StropheLastSuccess';
+import JingleConnectionPlugin from './strophe.jingle';
 import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
 import './strophe.stream-management';
 
@@ -93,6 +94,7 @@ export default class XmppConnection extends Listenable {
     private _status: Strophe.Status;
     private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
     public ping: PingConnectionPlugin;
+    public jingle: JingleConnectionPlugin;
 
     /**
      * The list of {@link XmppConnection} events.

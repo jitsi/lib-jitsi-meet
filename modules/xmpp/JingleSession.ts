@@ -70,7 +70,7 @@ export default class JingleSession extends Listenable {
     /**
      *  When dripping is used, stores ICE candidates which are to be sent.
      */
-    public dripContainer: unknown[];
+    public dripContainer: RTCIceCandidate[];
 
     /**
      * The chat room instance associated with the session.
