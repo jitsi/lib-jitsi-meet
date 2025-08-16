@@ -17,9 +17,9 @@ import { safeCounterIncrement } from '../util/MathUtil';
 
 import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack, { IStreamEffect, ITrackConstraints } from './JitsiLocalTrack';
+import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
-import JitsiRemoteTrack from './JitsiRemoteTrack';
 
 // Extend RTCConfiguration to include the encodedInsertableStreams property
 interface IExtendedRTCConfiguration extends RTCConfiguration {
@@ -227,6 +227,88 @@ export default class RTC extends Listenable {
         }
     }
 
+
+    /**
+     * Updates the target audio output device for all remote audio tracks.
+     *
+     * @param {string} deviceId - The device id of the audio ouput device to
+     * use for all remote tracks.
+     * @private
+     * @returns {void}
+     */
+    private _updateAudioOutputForAudioTracks(deviceId: string): void {
+        const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
+
+        for (const track of remoteAudioTracks) {
+            track.setAudioOutput(deviceId);
+        }
+    }
+
+
+    /**
+     * Callback invoked when the list of known audio and video devices has
+     * been updated. Attempts to update the known available audio output
+     * devices.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _onDeviceListChanged(): void {
+        this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
+    }
+
+    /**
+     * Receives events when forwarded sources had changed.
+     *
+     * @param {array} forwardedSources The new forwarded sources.
+     * @private
+     */
+    private _onForwardedSourcesChanged(forwardedSources: string[] = []): void {
+        const oldForwardedSources = this._forwardedSources || [];
+        let leavingForwardedSources: string[] = [];
+        let enteringForwardedSources: string[] = [];
+        const timestamp = Date.now();
+
+        this._forwardedSources = forwardedSources;
+
+        leavingForwardedSources = oldForwardedSources.filter(sourceName => !this.isInForwardedSources(sourceName));
+
+        enteringForwardedSources = forwardedSources.filter(
+            sourceName => oldForwardedSources.indexOf(sourceName) === -1);
+
+        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
+            + `${enteringForwardedSources} at ${timestamp}`);
+        this.conference.eventEmitter.emit(
+            JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
+            leavingForwardedSources,
+            enteringForwardedSources,
+            timestamp);
+    }
+
+    /* eslint-enable max-params */
+
+    /**
+     * Removed given peer connection from this RTC module instance.
+     * @param {TraceablePeerConnection} traceablePeerConnection
+     * @return {boolean} <tt>true</tt> if the given peer connection was removed
+     * successfully or <tt>false</tt> if there was no peer connection mapped in
+     * this RTC instance.
+     */
+    private _removePeerConnection(traceablePeerConnection: TraceablePeerConnection): boolean {
+        const id = traceablePeerConnection.id;
+
+        if (this.peerConnections.has(id)) {
+            // NOTE Remote tracks are not removed here.
+            this.peerConnections.delete(id);
+
+            return true;
+        }
+
+        return false;
+
+    }
+
+
     /**
      *
      * @param eventType
@@ -334,46 +416,6 @@ export default class RTC extends Listenable {
 
         // Add forwarded sources change listener.
         this.addListener(RTCEvents.FORWARDED_SOURCES_CHANGED, this._forwardedSourcesChangeListener);
-    }
-
-    /**
-     * Callback invoked when the list of known audio and video devices has
-     * been updated. Attempts to update the known available audio output
-     * devices.
-     *
-     * @private
-     * @returns {void}
-     */
-    private _onDeviceListChanged(): void {
-        this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
-    }
-
-    /**
-     * Receives events when forwarded sources had changed.
-     *
-     * @param {array} forwardedSources The new forwarded sources.
-     * @private
-     */
-    private _onForwardedSourcesChanged(forwardedSources: string[] = []): void {
-        const oldForwardedSources = this._forwardedSources || [];
-        let leavingForwardedSources: string[] = [];
-        let enteringForwardedSources: string[] = [];
-        const timestamp = Date.now();
-
-        this._forwardedSources = forwardedSources;
-
-        leavingForwardedSources = oldForwardedSources.filter(sourceName => !this.isInForwardedSources(sourceName));
-
-        enteringForwardedSources = forwardedSources.filter(
-            sourceName => oldForwardedSources.indexOf(sourceName) === -1);
-
-        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
-            + `${enteringForwardedSources} at ${timestamp}`);
-        this.conference.eventEmitter.emit(
-            JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
-            leavingForwardedSources,
-            enteringForwardedSources,
-            timestamp);
     }
 
     /**
@@ -485,29 +527,6 @@ export default class RTC extends Listenable {
         this.peerConnections.set(newConnection.id, newConnection);
 
         return newConnection;
-    }
-
-    /* eslint-enable max-params */
-
-    /**
-     * Removed given peer connection from this RTC module instance.
-     * @param {TraceablePeerConnection} traceablePeerConnection
-     * @return {boolean} <tt>true</tt> if the given peer connection was removed
-     * successfully or <tt>false</tt> if there was no peer connection mapped in
-     * this RTC instance.
-     */
-    private _removePeerConnection(traceablePeerConnection: TraceablePeerConnection): boolean {
-        const id = traceablePeerConnection.id;
-
-        if (this.peerConnections.has(id)) {
-            // NOTE Remote tracks are not removed here.
-            this.peerConnections.delete(id);
-
-            return true;
-        }
-
-        return false;
-
     }
 
     /**
@@ -856,19 +875,4 @@ export default class RTC extends Listenable {
             || this._forwardedSources.indexOf(sourceName) > -1;
     }
 
-    /**
-     * Updates the target audio output device for all remote audio tracks.
-     *
-     * @param {string} deviceId - The device id of the audio ouput device to
-     * use for all remote tracks.
-     * @private
-     * @returns {void}
-     */
-    private _updateAudioOutputForAudioTracks(deviceId: string): void {
-        const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
-
-        for (const track of remoteAudioTracks) {
-            track.setAudioOutput(deviceId);
-        }
-    }
 }
