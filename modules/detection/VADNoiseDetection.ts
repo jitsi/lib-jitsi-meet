@@ -148,7 +148,7 @@ export default class VADNoiseDetection extends EventEmitter {
      *
      * @param {boolean} isMuted - Is the device muted or not.
      */
-    changeMuteState(isMuted: boolean): void {
+    public changeMuteState(isMuted: boolean): void {
         // This service only needs to run when the microphone is not muted.
         this._setActiveState(!isMuted);
         this.reset();
@@ -159,7 +159,7 @@ export default class VADNoiseDetection extends EventEmitter {
      *
      * @returns {boolean}
      */
-    isActive(): boolean {
+    public isActive(): boolean {
         return this._active;
     }
 
@@ -173,7 +173,7 @@ export default class VADNoiseDetection extends EventEmitter {
      * @param {string} vadScore.deviceId - Device id of the associated track.
      * @listens VAD_SCORE_PUBLISHED
      */
-    processVADScore(vadScore: IVADScore): void {
+    public processVADScore(vadScore: IVADScore): void {
         if (!this._active) {
             return;
         }
@@ -211,7 +211,7 @@ export default class VADNoiseDetection extends EventEmitter {
      *
      * @returns {void}
      */
-    reset(): void {
+    public reset(): void {
         this._processing = false;
         this._scoreArray = [];
         this._audioLvlArray = [];
