@@ -323,7 +323,7 @@ export class OlmAdapter extends Listenable {
      *
      * @param {JitsiParticipant} participant - The target participant.
      * @returns {Promise<void>}
-     * @private
+     * @internal
      */
     startVerification(participant) {
         const pId = participant.getId();

@@ -1,21 +1,10 @@
-import JitsiConference from '../../JitsiConference';
+import JitsiConference, { IConferenceOptions } from '../../JitsiConference';
 import JitsiParticipant from '../../JitsiParticipant';
 import browser from '../browser';
 
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
-
-export interface IE2EConfig {
-    e2ee?: {
-        disabled?: boolean;
-        externallyManagedKey?: boolean;
-    };
-    enableEncodedTransformSupport?: boolean;
-    testing?: {
-        disableE2EE?: boolean;
-    };
-}
 
 /**
  * This module integrates {@link KeyHandler} with {@link JitsiConference} in order to enable E2E encryption.
@@ -46,7 +35,7 @@ export class E2EEncryption {
      * @param {object} config - Global configuration.
      * @returns {boolean}
      */
-    static isSupported(config: IE2EConfig): boolean {
+    static isSupported(config: IConferenceOptions['config']): boolean {
         const { e2ee = {} } = config;
 
         if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {

@@ -100,9 +100,14 @@ export interface IConferenceOptions {
         disableAudioLevels?: boolean;
         disableLocalStats?: boolean;
         disableLocalStatsBroadcast?: boolean;
+        e2ee?: {
+            disabled?: boolean;
+            externallyManagedKey?: boolean;
+        };
         e2eping?: {
             enabled?: boolean;
         };
+        enableEncodedTransformSupport?: boolean;
         enableNoAudioDetection?: boolean;
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
@@ -126,6 +131,7 @@ export interface IConferenceOptions {
         statisticsId?: string;
         testing?: {
             allowMultipleTracks?: boolean;
+            disableE2EE?: boolean;
             enableAV1ForFF?: boolean;
             enableFirefoxP2p?: boolean;
             forceInitiator?: boolean;
@@ -4333,7 +4339,7 @@ export default class JitsiConference extends Listenable {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    public setMediaEncryptionKey(keyInfo: CryptoKey): void {
+    public setMediaEncryptionKey(keyInfo: { encryptionKey?: CryptoKey; index?: number; }): void {
         this._e2eEncryption.setEncryptionKey(keyInfo);
     }
 
