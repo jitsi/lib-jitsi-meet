@@ -25,8 +25,133 @@ import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
+import ChatRoom from './ChatRoom';
 
 const logger = getLogger('modules/xmpp/xmpp');
+
+/**
+ * Connection options interface
+ */
+interface ICreateConnectionOptions {
+    enableWebsocketResume?: boolean;
+    serviceUrl?: string;
+    shard?: string;
+    token?: string;
+    websocketKeepAlive?: number;
+    websocketKeepAliveUrl?: string;
+    xmppPing?: Record<string, unknown>;
+}
+
+/**
+ * Credentials interface for connection handler
+ */
+interface IConnectionCredentials {
+    jid?: string;
+    password?: string;
+    sid?: string;
+    rid?: string;
+}
+
+/**
+ * Room creation options interface
+ */
+interface IRoomCreationOptions {
+    customDomain?: string;
+    statsId?: string;
+}
+
+/**
+ * Connection details for failure reasons
+ */
+interface IConnectionFailedReasonDetails {
+    shard_changed?: boolean;
+    suspend_time?: number;
+    time_since_last_success?: number;
+}
+
+/**
+ * Deployment info interface
+ */
+interface IDeploymentInfo {
+    shard?: string;
+    region?: string;
+    backendRelease?: string;
+}
+
+/**
+ * Hosts configuration interface
+ */
+interface IHostsConfig {
+    domain?: string;
+    anonymousdomain?: string;
+    muc?: string;
+}
+
+/**
+ * Testing configuration interface
+ */
+interface ITestingConfig {
+    enableGracefulReconnect?: boolean;
+}
+
+/**
+ * P2P configuration interface
+ */
+interface IP2PConfig {
+    stunServers?: Array<{ urls: string }>;
+    iceTransportPolicy?: string;
+}
+
+/**
+ * XMPP options interface
+ */
+export interface IXMPPOptions {
+    serviceUrl?: string;
+    bosh?: string;
+    enableWebsocketResume?: boolean;
+    websocketKeepAlive?: number;
+    websocketKeepAliveUrl?: string;
+    xmppPing?: Record<string, unknown>;
+    p2pStunServers?: Array<{ urls: string }>;
+    deploymentInfo?: IDeploymentInfo;
+    hosts?: IHostsConfig;
+    testing?: ITestingConfig;
+    p2p?: IP2PConfig;
+    disableRtx?: boolean;
+    enableOpusRed?: boolean;
+    enableRemb?: boolean;
+    enableTcc?: boolean;
+    disableBeforeUnloadHandlers?: boolean;
+}
+
+export interface IFaceLandmarksPayload {
+    duration: number;
+    faceExpression: string;
+    timestamp: number;
+}
+
+/**
+ * Identity interface for disco info
+ */
+interface IIdentity {
+    type: string;
+    name?: string;
+}
+
+/**
+ * Breakout rooms features interface
+ */
+interface IBreakoutRoomsFeatures {
+    rename?: boolean;
+}
+
+/**
+ * JSON message interface
+ */
+interface IJsonMessage {
+    [JITSI_MEET_MUC_TYPE]: string;
+    [key: string]: unknown;
+}
 
 /**
 * Regex to extract exact error message on jwt error.
@@ -54,7 +179,7 @@ function createConnection({
     token,
     websocketKeepAlive,
     websocketKeepAliveUrl,
-    xmppPing }) {
+    xmppPing }: ICreateConnectionOptions): XmppConnection {
 
     // Append token as URL param
     if (token) {
@@ -78,7 +203,7 @@ function createConnection({
  *
  * @returns {void}
  */
-function initStropheNativePlugins() {
+function initStropheNativePlugins(): void {
     initStropheUtil();
     initStropheLogger();
 }
@@ -87,7 +212,7 @@ function initStropheNativePlugins() {
 /**
  * A list of ice servers to use by default for P2P.
  */
-export const DEFAULT_STUN_SERVERS = [
+export const DEFAULT_STUN_SERVERS: Array<{ urls: string }> = [
     { urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }
 ];
 
@@ -97,37 +222,64 @@ export const DEFAULT_STUN_SERVERS = [
  * If the json-message of a chat message contains a valid JSON object, and
  * the JSON has this key, then it is a valid json-message to be sent.
  */
-export const JITSI_MEET_MUC_TYPE = 'type';
+export const JITSI_MEET_MUC_TYPE: string = 'type';
 
 /**
  * The feature used by jigasi participants.
  * @type {string}
  */
-export const FEATURE_JIGASI = 'http://jitsi.org/protocol/jigasi';
+export const FEATURE_JIGASI: string = 'http://jitsi.org/protocol/jigasi';
 
 /**
  * The feature used by jibri participants.
  * @type {string}
  */
-export const FEATURE_JIBRI = 'http://jitsi.org/protocol/jibri';
+export const FEATURE_JIBRI: string = 'http://jitsi.org/protocol/jibri';
 
 /**
  * The feature used by jigasi transcriber participants.
  * @type {string}
  */
-export const FEATURE_TRANSCRIBER = 'http://jitsi.org/protocol/transcriber';
+export const FEATURE_TRANSCRIBER: string = 'http://jitsi.org/protocol/transcriber';
 
 /**
  * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
  * to avoid additional signaling (disco-info).
  * @type {string}
  */
-export const FEATURE_E2EE = 'https://jitsi.org/meet/e2ee';
+export const FEATURE_E2EE: string = 'https://jitsi.org/meet/e2ee';
 
 /**
  *
  */
 export default class XMPP extends Listenable {
+    private _components: string[];
+    private _preComponentsMsgs: Element[];
+    private _sysMessageHandler: unknown;
+    private _startConnecting: Optional<boolean>;
+    public connection: Nullable<XmppConnection>;
+    public disconnectInProgress: Optional<Promise<void> | boolean>;
+    public connectionTimes: Record<string, number>;
+    public options: IXMPPOptions;
+    public token: Optional<string>;
+    public authenticatedUser: boolean;
+    public moderator: Moderator;
+    public caps: Caps;
+    public sendDiscoInfo: Optional<boolean>;
+    public sendDeploymentInfo: Optional<boolean>;
+    public anonymousConnectionFailed: Optional<boolean>;
+    public connectionFailed: Optional<boolean>;
+    public lastErrorMsg: Optional<string>;
+    public lobbySupported: Optional<boolean>;
+    public avModerationComponentAddress: Optional<string>;
+    public endConferenceComponentAddress: Optional<string>;
+    public speakerStatsComponentAddress: Optional<string>;
+    public breakoutRoomsComponentAddress: Optional<string>;
+    public breakoutRoomsFeatures: Optional<IBreakoutRoomsFeatures>;
+    public fileSharingComponentAddress: Optional<string>;
+    public roomMetadataComponentAddress: Optional<string>;
+
+
     /**
      * FIXME describe all options
      * @param {Object} options
@@ -143,7 +295,7 @@ export default class XMPP extends Listenable {
      * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
      */
-    constructor(options, token) {
+    constructor(options: IXMPPOptions, token?: string) {
         super();
 
         if (options.bosh && !options.serviceUrl) {
@@ -190,7 +342,7 @@ export default class XMPP extends Listenable {
         // forwards the shard changed event
         this.connection.on(XmppConnection.Events.CONN_SHARD_CHANGED, () => {
             /* eslint-disable camelcase */
-            const details = {
+            const details: IConnectionFailedReasonDetails = {
                 shard_changed: true,
                 suspend_time: this.connection.ping.getPingSuspendTime(),
                 time_since_last_success: this.connection.getTimeSinceLastSuccess()
@@ -242,7 +394,7 @@ export default class XMPP extends Listenable {
      * Initializes the list of feature advertised through the disco-info
      * mechanism.
      */
-    initFeaturesList() {
+    initFeaturesList(): void {
         // http://xmpp.org/extensions/xep-0167.html#support
         // http://xmpp.org/extensions/xep-0176.html#support
         this.caps.addFeature(XEP.JINGLE);
@@ -271,7 +423,7 @@ export default class XMPP extends Listenable {
             && (typeof this.options.enableTcc === 'undefined' || this.options.enableTcc)) {
             this.caps.addFeature('http://jitsi.org/tcc');
         }
-
+        // @ts-ignore 'rayo' does not exist on type 'XmppConnection'
         if (this.connection.rayo) {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
@@ -303,9 +455,9 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     *
+     * Returns the current XMPP connection instance.
      */
-    getConnection() {
+    getConnection(): XmppConnection {
         return this.connection;
     }
 
@@ -320,7 +472,7 @@ export default class XMPP extends Listenable {
      * @param {string} status - One of Strophe's connection status strings.
      * @param {string} [msg] - The connection error message provided by Strophe.
      */
-    connectionHandler(credentials = {}, status, msg) {
+    connectionHandler(credentials: IConnectionCredentials = {}, status: Strophe.Status, msg?: string): void {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
@@ -337,7 +489,7 @@ export default class XMPP extends Listenable {
                 this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
                 this._sysMessageHandler = null;
             }
-
+            // @ts-ignore Property 'jingle' does not exist on type 'XmppConnection'
             this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
@@ -347,7 +499,7 @@ export default class XMPP extends Listenable {
 
             // make sure we will send the info after the features request succeeds or fails
             this.sendDeploymentInfo = false;
-            this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
+            this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain, undefined)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
                         logger.error(`Ping NOT supported by ${
@@ -459,7 +611,7 @@ export default class XMPP extends Listenable {
      * for more features.
      * @private
      */
-    _processDiscoInfoIdentities(identities, features) {
+    _processDiscoInfoIdentities(identities: Set<IIdentity>, features?: Set<string>): void {
         // check for speakerstats
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
@@ -501,6 +653,7 @@ export default class XMPP extends Listenable {
             }
 
             if (identity.type === 'region') {
+                // @ts-ignore Property 'region' does not exist on type 'XmppConnection'
                 this.options.deploymentInfo.region = this.connection.region = identity.name;
             }
 
@@ -560,7 +713,7 @@ export default class XMPP extends Listenable {
     * @param {string} msg - The raw failure message from xmpp.
     * @returns {string|null} - The parsed message from the raw xmpp message.
     */
-    _parseConnectionFailedMessage(msg) {
+    _parseConnectionFailedMessage(msg?: string): Nullable<string> {
         if (!msg) {
             return null;
         }
@@ -576,7 +729,7 @@ export default class XMPP extends Listenable {
      * @param jid
      * @param password
      */
-    _connect(jid, password) {
+    _connect(jid: string, password?: string): void {
         // connection.connect() starts the connection process.
         //
         // As the connection process proceeds, the user supplied callback will
@@ -635,14 +788,14 @@ export default class XMPP extends Listenable {
      * @returns {void}
      * @private
      */
-    _onSystemMessage(msg) {
+    _onSystemMessage(msg: string): void {
         // proceed only if the message has any of the expected information
         if ($(msg).find('>services').length === 0 && $(msg).find('>query').length === 0) {
             return;
         }
 
         this.sendDiscoInfo = false;
-
+        // @ts-ignore Property 'jingle' does not exist on type 'XmppConnection'
         const foundIceServers = this.connection.jingle.onReceiveStunAndTurnCredentials(msg);
 
         const { features, identities } = parseDiscoInfo(msg);
@@ -662,7 +815,7 @@ export default class XMPP extends Listenable {
      *
      * @param options {object} connecting options - rid, sid, jid and password.
      */
-    attach(options) {
+    attach(options: IConnectionCredentials): void {
         this._resetState();
 
         // we want to send this only on the initial connect
@@ -672,7 +825,7 @@ export default class XMPP extends Listenable {
 
         logger.info('(TIME) Strophe Attaching:\t', now);
         this.connection.attach(options.jid, options.sid,
-            parseInt(options.rid, 10) + 1,
+            (parseInt(options.rid, 10) + 1).toString(),
             this.connectionHandler.bind(this, {
                 jid: options.jid,
                 password: options.password
@@ -683,7 +836,7 @@ export default class XMPP extends Listenable {
      * Resets any state/flag before starting a new connection.
      * @private
      */
-    _resetState() {
+    _resetState(): void {
         this.anonymousConnectionFailed = false;
         this.connectionFailed = false;
         this.lastErrorMsg = undefined;
@@ -695,7 +848,7 @@ export default class XMPP extends Listenable {
      * @param jid
      * @param password
      */
-    connect(jid, password) {
+    connect(jid: string, password: string) {
         if (!jid) {
             const { anonymousdomain, domain } = this.options.hosts;
             let configDomain = anonymousdomain || domain;
@@ -737,9 +890,9 @@ export default class XMPP extends Listenable {
      * is to be added to the jid.
      * @returns {ChatRoom} Resolves with an instance of a strophe muc.
      */
-    createRoom(roomName, options, onCreateResource) {
+    createRoom(roomName: string , options: IRoomCreationOptions, onCreateResource: (jid: string, user: any) => string): ChatRoom {
         // Support passing the domain in a String object as part of the room name.
-        const domain = roomName.domain || options.customDomain;
+        const domain = (roomName as { domain?: string }).domain || options.customDomain;
 
         // There are cases (when using subdomain) where muc can hold an uppercase part
         let roomjid = `${this.getRoomJid(roomName, domain)}/`;
@@ -749,7 +902,7 @@ export default class XMPP extends Listenable {
 
         logger.info(`JID ${this.connection.jid} using MUC nickname ${mucNickname}`);
         roomjid += mucNickname;
-
+        // @ts-ignore Property 'emuc' does not exist on type 'XmppConnection'
         return this.connection.emuc.createRoom(roomjid, null, options);
     }
 
@@ -760,7 +913,7 @@ export default class XMPP extends Listenable {
      * @param {string} domain - The domain.
      * @returns {string} - The room JID.
      */
-    getRoomJid(roomName, domain) {
+    getRoomJid(roomName: string, domain: string): string {
         return `${roomName}@${domain ? domain : this.options.hosts.muc.toLowerCase()}`;
     }
 
@@ -770,7 +923,8 @@ export default class XMPP extends Listenable {
      * @param {string} roomJid - The JID of the room.
      * @returns {boolean}
      */
-    isRoomCreated(roomName, domain) {
+    isRoomCreated(roomName: string, domain: string): boolean {
+        // @ts-ignore Property 'emuc' does not exist on type 'XmppConnection'
         return this.connection.emuc.isRoomCreated(this.getRoomJid(roomName, domain));
     }
 
@@ -779,7 +933,7 @@ export default class XMPP extends Listenable {
      *
      * @returns {string} The jid of the participant.
      */
-    getJid() {
+    getJid(): string {
         return this.connection.jid;
     }
 
@@ -787,17 +941,18 @@ export default class XMPP extends Listenable {
      * Returns the logs from strophe.jingle.
      * @returns {Object}
      */
-    getJingleLog() {
+    getJingleLog(): {metadata: Record<string, any>} {
+        // @ts-ignore Property 'jingle' does not exist on type 'XmppConnection'
         const jingle = this.connection.jingle;
 
 
-        return jingle ? jingle.getLog() : {};
+        return jingle ? jingle.getLog() : {metadata: {}};
     }
 
     /**
      * Returns the logs from strophe.
      */
-    getXmppLog() {
+    getXmppLog(): Nullable<Object>{
         return (this.connection.logger || {}).log || null;
     }
 
@@ -805,6 +960,7 @@ export default class XMPP extends Listenable {
      *
      */
     dial(...args) {
+        // @ts-ignore Property 'rayo' does not exist on type 'XmppConnection'
         this.connection.rayo.dial(...args);
     }
 
@@ -814,7 +970,7 @@ export default class XMPP extends Listenable {
      * @returns {Promise} resolved on ping success and reject on an error or
      * a timeout.
      */
-    ping(timeout) {
+    ping(timeout: number): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.ping.ping(this.connection.pingDomain, resolve, reject, timeout);
         });
@@ -823,7 +979,8 @@ export default class XMPP extends Listenable {
     /**
      *
      */
-    getSessions() {
+    getSessions(): Object {
+        // @ts-ignore Property 'jingle' does not exist on type 'XmppConnection'
         return this.connection.jingle.sessions;
     }
 
@@ -834,7 +991,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
-    disconnect(ev = undefined) {
+    disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean {
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {
@@ -868,7 +1025,7 @@ export default class XMPP extends Listenable {
      * @private
      * @returns {void}
      */
-    _cleanupXmppConnection(ev) {
+    _cleanupXmppConnection(ev: Optional<Event>): void {
         // XXX Strophe is asynchronously sending by default. Unfortunately, that means that there may not be enough time
         // to send an unavailable presence or disconnect at all. Switching Strophe to synchronous sending is not much of
         // an option because it may lead to a noticeable delay in navigating away from the current location. As
@@ -908,10 +1065,10 @@ export default class XMPP extends Listenable {
     /**
      *
      */
-    _initStrophePlugins() {
+    _initStrophePlugins(): void {
         const iceConfig = {
             jvb: { iceServers: [ ] },
-            p2p: { iceServers: [ ] }
+            p2p: { iceServers: [ ], iceTransportPolicy: undefined }
         };
 
         const p2pStunServers = (this.options.p2p
@@ -938,11 +1095,11 @@ export default class XMPP extends Listenable {
     /**
      * Returns details about connection failure. Shard change or is it after
      * suspend.
-     * @returns {object} contains details about a connection failure.
+     * @returns { IConnectionFailedReasonDetails} contains details about a connection failure.
      * @private
      */
-    _getConnectionFailedReasonDetails() {
-        const details = {};
+    _getConnectionFailedReasonDetails():  IConnectionFailedReasonDetails {
+        const details: IConnectionFailedReasonDetails = {};
 
         // check for moving between shard if information is available
         if (this.options.deploymentInfo
@@ -984,7 +1141,7 @@ export default class XMPP extends Listenable {
      * @param {String} roomJid - The room jid where the speaker event occurred.
      * @param {boolean} silence - Whether the dominant speaker is silent or not.
      */
-    sendDominantSpeakerEvent(roomJid, silence) {
+    sendDominantSpeakerEvent(roomJid: string, silence: boolean): void {
         // no speaker stats component advertised
         if (!this.speakerStatsComponentAddress || !roomJid) {
             return;
@@ -1006,7 +1163,7 @@ export default class XMPP extends Listenable {
      * @param {String} roomJid - The room jid where the speaker event occurred.
      * @param {Object} payload - The expression to be sent to the speaker stats.
      */
-    sendFaceLandmarksEvent(roomJid, payload) {
+    sendFaceLandmarksEvent(roomJid: string, payload: IFaceLandmarksPayload): void {
         // no speaker stats component advertised
         if (!this.speakerStatsComponentAddress || !roomJid) {
             return;
@@ -1034,7 +1191,7 @@ export default class XMPP extends Listenable {
      * @returns {boolean, object} if given object is a valid JSON string, return
      * the json object. Otherwise, returns false.
      */
-    tryParseJSONAndVerify(jsonString) {
+    tryParseJSONAndVerify(jsonString: string): boolean | IJsonMessage {
         // ignore empty strings, like message errors
         if (!jsonString) {
             return false;
@@ -1078,7 +1235,7 @@ export default class XMPP extends Listenable {
      *
      * @param {string} msg - The message.
      */
-    _onPrivateMessage(msg) {
+    _onPrivateMessage(msg: Element): boolean {
         const from = msg.getAttribute('from');
 
         if (!this._components.includes(from)) {
@@ -1089,7 +1246,7 @@ export default class XMPP extends Listenable {
 
         const jsonMessage = $(msg).find('>json-message[xmlns="http://jitsi.org/jitmeet"]')
             .text();
-        const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
+        const parsedJson: IJsonMessage | boolean = this.tryParseJSONAndVerify(jsonMessage);
 
         if (!parsedJson) {
             return true;
@@ -1120,7 +1277,7 @@ export default class XMPP extends Listenable {
      * @param force Whether to force sending without checking anything.
      * @private
      */
-    _maybeSendDeploymentInfoStat(force) {
+    _maybeSendDeploymentInfoStat(force: boolean = false): void {
         const acceptedStatuses = [
             Strophe.Status.ERROR,
             Strophe.Status.CONNFAIL,
@@ -1138,7 +1295,7 @@ export default class XMPP extends Listenable {
         const aprops = this.options.deploymentInfo;
 
         if (aprops && Object.keys(aprops).length > 0) {
-            const logObject = {};
+            const logObject = { id: undefined};
 
             for (const attr in aprops) {
                 if (aprops.hasOwnProperty(attr)) {

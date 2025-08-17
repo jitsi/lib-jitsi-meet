@@ -84,14 +84,17 @@ interface IInternalOptions {
  */
 export default class XmppConnection extends Listenable {
     private _options: IInternalOptions;
-    private _stropheConn: Strophe.Connection;
     private _usesWebsocket: boolean;
     private _rawInputTracker: LastSuccessTracker;
     private _resumeTask: ResumeTask;
     private _deferredIQs: IDeferredSendIQ[];
     private _oneSuccessfulConnect: boolean;
     private _status: Strophe.Status;
-    private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
+    private _wsKeepAlive: Optional<ReturnType<typeof setTimeout>>;
+    /**
+     * @internal
+     */
+    _stropheConn: Strophe.Connection;
     public ping: PingConnectionPlugin;
 
     /**

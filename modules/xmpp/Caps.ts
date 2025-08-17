@@ -286,6 +286,4 @@ export default class Caps extends Listenable {
     public submit(): void {
         this.rooms.forEach(room => room.sendPresence(undefined));
     }
-
-
 }

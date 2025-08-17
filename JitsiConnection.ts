@@ -5,7 +5,7 @@ import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import RTCStats from './modules/RTCStats/RTCStats';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
-import XMPP from './modules/xmpp/xmpp';
+import XMPP, { IXMPPOptions } from './modules/xmpp/xmpp';
 import {
     CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
     createConnectionFailedEvent
@@ -135,7 +135,7 @@ export default class JitsiConnection {
      * @param args - Optional arguments to be passed to XMPP.disconnect
      * @returns Promise that resolves when the disconnect process is finished or rejects with an error.
      */
-    disconnect(...args: [string?]): Promise<void> {
+    disconnect(...args: any): boolean |  Promise<void> {
         // XXX Forward any arguments passed to JitsiConnection.disconnect to
         // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
         // may optionally pass the event which triggered the disconnect in order to
