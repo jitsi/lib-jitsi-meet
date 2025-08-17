@@ -6,8 +6,11 @@ import Listenable from '../util/Listenable';
 
 import ResumeTask from './ResumeTask';
 import LastSuccessTracker from './StropheLastSuccess';
-import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
 import './strophe.stream-management';
+import MucConnectionPlugin from './strophe.emuc';
+import JingleConnectionPlugin from './strophe.jingle';
+import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
+import RayoConnectionPlugin from './strophe.rayo';
 
 const logger = getLogger('modules/xmpp/XmppConnection');
 
@@ -91,11 +94,15 @@ export default class XmppConnection extends Listenable {
     private _oneSuccessfulConnect: boolean;
     private _status: Strophe.Status;
     private _wsKeepAlive: Optional<ReturnType<typeof setTimeout>>;
+
     /**
      * @internal
      */
-    _stropheConn: Strophe.Connection;
+    public _stropheConn: Strophe.Connection;
     public ping: PingConnectionPlugin;
+    public jingle?: JingleConnectionPlugin;
+    public rayo?: RayoConnectionPlugin;
+    public emuc?: MucConnectionPlugin;
 
     /**
      * The list of {@link XmppConnection} events.
