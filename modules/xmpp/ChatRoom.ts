@@ -248,18 +248,18 @@ export default class ChatRoom extends Listenable {
     private subject?: string;
     private _roomCreationRetries?: number;
     private cachedShortTermCredentials?: Record<string, string>;
-    xmpp: XMPP;
-    connection: XmppConnection;
-    roomjid: string;
-    myroomjid: string;
-    joined: boolean;
-    presMap: IPresenceMap;
-    role: Nullable<string>;
-    focusMucJid: Nullable<string>;
-    connectionTimes: Record<string, number>;
-    transcriptionStatus: string;
-    membersOnlyEnabled?: boolean;
-    visitorsSupported?: boolean;
+    public xmpp: XMPP;
+    public connection: XmppConnection;
+    public roomjid: string;
+    public myroomjid: string;
+    public joined: boolean;
+    public presMap: IPresenceMap;
+    public role: Nullable<string>;
+    public focusMucJid: Nullable<string>;
+    public connectionTimes: Record<string, number>;
+    public transcriptionStatus: string;
+    public membersOnlyEnabled?: boolean;
+    public visitorsSupported?: boolean;
 
     /* eslint-disable max-params */
 
@@ -328,7 +328,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      */
-    initPresenceMap(options: IChatRoomOptions = {}): void {
+    private initPresenceMap(options: IChatRoomOptions = {}): void {
         this.presMap.to = this.myroomjid;
         this.presMap.xns = 'http://jabber.org/protocol/muc';
         this.presMap.nodes = [];
@@ -343,13 +343,45 @@ export default class ChatRoom extends Listenable {
         this.presenceUpdateTime = Date.now();
     }
 
+
+    /**
+     * Extracts the features from the presence.
+     * @param node the node to process.
+     * @return features the Set of features where extracted data is added.
+     * @private
+     */
+    private _extractFeatures(node: IPresenceNode): Set<string> {
+        const features = new Set<string>();
+
+        for (let j = 0; j < node.children.length; j++) {
+            const { attributes } = node.children[j];
+
+            if (attributes && attributes.var) {
+                features.add(attributes.var);
+            }
+        }
+
+        return features;
+    }
+
+    /**
+     * Initialize some properties when the focus participant is verified.
+     * @param from jid of the focus
+     * @param features the features reported in jicofo presence
+     */
+    private _initFocus(from: string, features?: Set<string>): void {
+        this.focusMucJid = from;
+        this.focusFeatures = features;
+    }
+
+
     /**
      * Joins the chat room.
      * @param {string} password - Password to unlock room on joining.
      * @returns {Promise} - resolved when join completes. At the time of this
      * writing it's never rejected.
      */
-    join(password?: string, replaceParticipant?: boolean): Promise<void> {
+    public join(password?: string, replaceParticipant?: boolean): Promise<void> {
         this.password = password;
         this.replaceParticipant = replaceParticipant;
 
@@ -383,7 +415,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param fromJoin - Whether this is initial presence to join the room.
      */
-    sendPresence(fromJoin: boolean = false): void {
+    public sendPresence(fromJoin: boolean = false): void {
         const to = this.presMap.to;
 
         if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
@@ -436,7 +468,7 @@ export default class ChatRoom extends Listenable {
      * Sends the presence unavailable, signaling the server
      * we want to leave the room.
      */
-    doLeave(reason?: string): void {
+    public doLeave(reason?: string): void {
         logger.info('do leave', this.myroomjid);
         const pres = $pres({
             to: this.myroomjid,
@@ -470,7 +502,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      */
-    discoRoomInfo(): void {
+    public discoRoomInfo(): void {
         // https://xmpp.org/extensions/xep-0045.html#disco-roominfo
 
         const getInfo
@@ -559,7 +591,7 @@ export default class ChatRoom extends Listenable {
      * @param {string} meetingId - The new meetings id.
      * @returns {void}
      */
-    setMeetingId(meetingId: string): void {
+    public setMeetingId(meetingId: string): void {
         if (this.meetingId !== meetingId) {
             if (this.meetingId) {
                 logger.warn(`Meeting Id changed from:${this.meetingId} to:${meetingId}`);
@@ -572,7 +604,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      */
-    createNonAnonymousRoom(): void {
+    public createNonAnonymousRoom(): void {
         // http://xmpp.org/extensions/xep-0045.html#createroom-reserved
 
         if (this.options.disableDiscoInfo) {
@@ -620,7 +652,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param {Strophe.Status} status - The Strophe connection status.
      */
-    onConnStatusChanged(status: Strophe.Status): void {
+    public onConnStatusChanged(status: Strophe.Status): void {
         // Send cached presence when the XMPP connection is re-established, only if needed
         if (status === XmppConnection.Status.CONNECTED && this.presenceUpdateTime > this.presenceSyncTime) {
             this.sendPresence();
@@ -631,7 +663,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param pres
      */
-    onPresence(pres: Element): void {
+    public onPresence(pres: Element): void {
         const from = pres.getAttribute('from');
         const member: IRoomMember = {};
         const statusEl = pres.getElementsByTagName('status')[0];
@@ -1018,40 +1050,10 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Extracts the features from the presence.
-     * @param node the node to process.
-     * @return features the Set of features where extracted data is added.
-     * @private
-     */
-    _extractFeatures(node: IPresenceNode): Set<string> {
-        const features = new Set<string>();
-
-        for (let j = 0; j < node.children.length; j++) {
-            const { attributes } = node.children[j];
-
-            if (attributes && attributes.var) {
-                features.add(attributes.var);
-            }
-        }
-
-        return features;
-    }
-
-    /**
-     * Initialize some properties when the focus participant is verified.
-     * @param from jid of the focus
-     * @param features the features reported in jicofo presence
-     */
-    _initFocus(from: string, features?: Set<string>): void {
-        this.focusMucJid = from;
-        this.focusFeatures = features;
-    }
-
-    /**
      * Sets the special listener to be used for "command"s whose name starts
      * with "jitsi_participant_".
      */
-    setParticipantPropertyListener(listener: ParticipantPropertyListener): void {
+    public setParticipantPropertyListener(listener: ParticipantPropertyListener): void {
         this.participantPropertyListener = listener;
     }
 
@@ -1060,7 +1062,7 @@ export default class ChatRoom extends Listenable {
      * @param node
      * @param from
      */
-    processNode(node: IPresenceNode, from: string): void {
+    public processNode(node: IPresenceNode, from: string): void {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe
         try {
@@ -1079,7 +1081,7 @@ export default class ChatRoom extends Listenable {
      * @param message
      * @param elementName
      */
-    sendMessage(message: string, elementName: string): void {
+    public sendMessage(message: string, elementName: string): void {
         const msg = $msg({
             to: this.roomjid,
             type: 'groupchat'
@@ -1104,7 +1106,7 @@ export default class ChatRoom extends Listenable {
      * @param {string} messageId - The id of the message being sent.
      * @param {string} receiverId - The receiver of the message if it is private.
      */
-    sendReaction(reaction: string, messageId: string, receiverId?: string): void {
+    public sendReaction(reaction: string, messageId: string, receiverId?: string): void {
         const m = reaction.match(EMOJI_REGEX);
 
         if (!m || !m[0]) {
@@ -1131,7 +1133,7 @@ export default class ChatRoom extends Listenable {
      * @param message
      * @param elementName
      */
-    sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false): void {
+    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
         const msg = $msg({ to: targetJid,
             type: 'chat' });
@@ -1156,7 +1158,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param subject
      */
-    setSubject(subject: string): void {
+    public setSubject(subject: string): void {
         const valueToProcess = subject ? subject.trim() : subject;
 
         if (valueToProcess === this.subject) {
@@ -1176,7 +1178,7 @@ export default class ChatRoom extends Listenable {
      * @param pres
      * @param from
      */
-    onPresenceUnavailable(pres, from) {
+    public onPresenceUnavailable(pres, from) {
         // ignore presence
         if ($(pres).find('>ignore[xmlns="http://jitsi.org/jitmeet/"]').length) {
             return true;
@@ -1308,7 +1310,7 @@ export default class ChatRoom extends Listenable {
      * @param msg
      * @param from
      */
-    onMessage(msg, from) {
+    public onMessage(msg, from) {
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
@@ -1463,7 +1465,7 @@ export default class ChatRoom extends Listenable {
      * @param pres
      * @param from
      */
-    onPresenceError(pres, from) {
+    public onPresenceError(pres, from) {
         let errorDescriptionNode;
 
         if (from === this.myroomjid) {
@@ -1574,7 +1576,7 @@ export default class ChatRoom extends Listenable {
      * @param jid
      * @param affiliation
      */
-    setAffiliation(jid, affiliation) {
+    public setAffiliation(jid, affiliation) {
         const grantIQ = $iq({
             to: this.roomjid,
             type: 'set'
@@ -1598,7 +1600,7 @@ export default class ChatRoom extends Listenable {
      * @param jid
      * @param reason
      */
-    kick(jid, reason = 'You have been kicked.') {
+    public kick(jid, reason = 'You have been kicked.') {
         const kickIQ = $iq({ to: this.roomjid,
             type: 'set' })
             .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
@@ -1621,7 +1623,7 @@ export default class ChatRoom extends Listenable {
      * @param onError
      * @param onNotSupported
      */
-    lockRoom(key, onSuccess, onError, onNotSupported) {
+    public lockRoom(key, onSuccess, onError, onNotSupported) {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         this.connection.sendIQ(
             $iq({
@@ -1713,7 +1715,7 @@ export default class ChatRoom extends Listenable {
      * @param onSuccess - optional callback.
      * @param onError - optional callback.
      */
-    setMembersOnly(enabled, onSuccess, onError) {
+    public setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
             // first grant membership to all that are in the room
             const affiliationsIq = $iq({
@@ -1797,7 +1799,7 @@ export default class ChatRoom extends Listenable {
      * performed as the value was already there.
      * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
      */
-    addToPresence(key: string, values: any): Nullable<boolean> {
+    public addToPresence(key: string, values: any): Nullable<boolean> {
         return this.addOrReplaceInPresence(key, values);
     }
 
@@ -1808,7 +1810,7 @@ export default class ChatRoom extends Listenable {
      * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replace was
      * performed as the value was already there.
      */
-    addOrReplaceInPresence(key: string, values: any): Nullable<boolean> {
+    public addOrReplaceInPresence(key: string, values: any): Nullable<boolean> {
         values.tagName = key;
 
         const matchingNodes = this.presMap.nodes.filter(node => key === node.tagName);
@@ -1831,7 +1833,7 @@ export default class ChatRoom extends Listenable {
      * @param {string} key - The key to find the value for.
      * @returns {Object?}
      */
-    getFromPresence(key: string): Optional<IPresenceNode> {
+    public getFromPresence(key: string): Optional<IPresenceNode> {
         return this.presMap.nodes.find(node => key === node.tagName);
     }
 
@@ -1839,7 +1841,7 @@ export default class ChatRoom extends Listenable {
      * Removes a key from the presence map.
      * @param key
      */
-    removeFromPresence(key: string): void {
+    public removeFromPresence(key: string): void {
         const nodes = this.presMap.nodes.filter(node => key !== node.tagName);
 
         this.presMap.nodes = nodes;
@@ -1851,7 +1853,7 @@ export default class ChatRoom extends Listenable {
      * @param name
      * @param handler
      */
-    addPresenceListener(name: string, handler: PresenceHandler): void {
+    public addPresenceListener(name: string, handler: PresenceHandler): void {
         if (typeof handler !== 'function') {
             throw new Error('"handler" is not a function');
         }
@@ -1873,7 +1875,7 @@ export default class ChatRoom extends Listenable {
      * @param name
      * @param handler
      */
-    removePresenceListener(name: string, handler: PresenceHandler): void {
+    public removePresenceListener(name: string, handler: PresenceHandler): void {
         const tagHandlers = this.presHandlers[name];
         const handlerIdx = tagHandlers ? tagHandlers.indexOf(handler) : -1;
 
@@ -1893,7 +1895,7 @@ export default class ChatRoom extends Listenable {
      * or <tt>false</tt> if is not. When given <tt>mucJid</tt> does not exist in
      * the MUC then <tt>null</tt> is returned.
      */
-    isFocus(mucJid: string): Nullable<boolean> {
+    public isFocus(mucJid: string): Nullable<boolean> {
         const member = this.members[mucJid];
 
         if (member) {
@@ -1906,7 +1908,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      */
-    isModerator(): boolean {
+    public isModerator(): boolean {
         return this.role === 'moderator';
     }
 
@@ -1920,7 +1922,7 @@ export default class ChatRoom extends Listenable {
      * @return {PeerMediaInfo} presenceInfo an object with media presence info or <tt>null</tt> either if there
      * is no presence available or if the media type given is invalid.
      */
-    getMediaPresenceInfo(endpointId: string, mediaType: MediaType): Nullable<IPeerMediaInfo> {
+    public getMediaPresenceInfo(endpointId: string, mediaType: MediaType): Nullable<IPeerMediaInfo> {
         // Will figure out current muted status by looking up owner's presence
         const pres = this.lastPresences[`${this.roomjid}/${endpointId}`];
 
@@ -1964,7 +1966,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param peerJid
      */
-    getMemberRole(peerJid: string): Nullable<string> {
+    public getMemberRole(peerJid: string): Nullable<string> {
         if (this.members[peerJid]) {
             return this.members[peerJid].role;
         }
@@ -1977,7 +1979,7 @@ export default class ChatRoom extends Listenable {
      * @param {string} mucNick
      * @returns {*}
      */
-    getLastPresence(mucNick: string): Optional<IPresenceNode[]> {
+    public getLastPresence(mucNick: string): Optional<IPresenceNode[]> {
         return this.lastPresences[`${this.roomjid}/${mucNick}`];
     }
 
@@ -1985,7 +1987,7 @@ export default class ChatRoom extends Listenable {
      * Dials a number.
      * @param number the number
      */
-    dial(number) {
+    public dial(number) {
         return this.connection.rayo.dial(number, 'fromnumber',
             Strophe.getBareJidFromJid(this.myroomjid), this.password,
             this.focusMucJid);
@@ -1994,7 +1996,7 @@ export default class ChatRoom extends Listenable {
     /**
      * Hangup an existing call
      */
-    hangup() {
+    public hangup() {
         return this.connection.rayo.hangup();
     }
 
@@ -2002,49 +2004,49 @@ export default class ChatRoom extends Listenable {
      *
      * @returns {Lobby}
      */
-    getLobby(): Optional<Lobby> {
+    public getLobby(): Optional<Lobby> {
         return this.lobby;
     }
 
     /**
      * @returns {AVModeration}
      */
-    getAVModeration(): AVModeration {
+    public getAVModeration(): AVModeration {
         return this.avModeration;
     }
 
     /**
      * @returns {BreakoutRooms}
      */
-    getBreakoutRooms(): BreakoutRooms {
+    public getBreakoutRooms(): BreakoutRooms {
         return this.breakoutRooms;
     }
 
     /**
      * @returns {FileSharing}
      */
-    getFileSharing(): FileSharing {
+    public getFileSharing(): FileSharing {
         return this.fileSharing;
     }
 
     /**
      * @returns {RoomMetadata}
      */
-    getMetadataHandler(): RoomMetadata {
+    public getMetadataHandler(): RoomMetadata {
         return this.roomMetadata;
     }
 
     /**
      * Returns the phone number for joining the conference.
      */
-    getPhoneNumber(): Nullable<string> {
+    public getPhoneNumber(): Nullable<string> {
         return this.phoneNumber;
     }
 
     /**
      * Returns the pin for joining the conference with phone.
      */
-    getPhonePin(): Nullable<string> {
+    public getPhonePin(): Nullable<string> {
         return this.phonePin;
     }
 
@@ -2053,7 +2055,7 @@ export default class ChatRoom extends Listenable {
      *
      * @returns {string} - The meeting ID.
      */
-    getMeetingId(): Optional<string> {
+    public getMeetingId(): Optional<string> {
         return this.meetingId;
     }
 
@@ -2063,7 +2065,7 @@ export default class ChatRoom extends Listenable {
      * @param mute
      * @param mediaType
      */
-    muteParticipant(jid: string, mute: boolean, mediaType: string): void {
+    public muteParticipant(jid: string, mute: boolean, mediaType: string): void {
         logger.info('set mute', mute, jid);
         const iqToFocus = $iq(
             { to: this.focusMucJid,
@@ -2086,7 +2088,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param iq
      */
-    onMute(iq: Element): void {
+    public onMute(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2112,7 +2114,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param iq
      */
-    onMuteVideo(iq: Element): void {
+    public onMuteVideo(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2138,7 +2140,7 @@ export default class ChatRoom extends Listenable {
      *
      * @param iq
      */
-    onMuteDesktop(iq: Element): void {
+    public onMuteDesktop(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2162,7 +2164,7 @@ export default class ChatRoom extends Listenable {
     /**
      * Clean any listeners or resources, executed on leaving.
      */
-    clean(): void {
+    public clean(): void {
         this._removeConnListeners.forEach(remove => remove());
         this._removeConnListeners = [];
 
@@ -2182,7 +2184,7 @@ export default class ChatRoom extends Listenable {
      * less than 5s after sending presence unavailable. Otherwise the promise is
      * rejected.
      */
-    leave(reason?: string): Promise<any> {
+    public leave(reason?: string): Promise<any> {
         this.avModeration.dispose();
         this.breakoutRooms.dispose();
         this.fileSharing.dispose();
@@ -2233,7 +2235,7 @@ export default class ChatRoom extends Listenable {
     /**
      * Ends the conference for all participants.
      */
-    end(): void {
+    public end(): void {
         if (this.breakoutRooms.isBreakoutRoom()) {
             logger.warn('Cannot end conference: this is a breakout room.');
 
@@ -2254,7 +2256,7 @@ export default class ChatRoom extends Listenable {
      * to be in the room as the credentials contain the meeting ID and are valid only for the room.
      * @param service
      */
-    getShortTermCredentials(service: string): Promise<string> {
+   public  getShortTermCredentials(service: string): Promise<string> {
         // Gets credentials via xep-0215 and cache it
         return new Promise((resolve, reject) => {
             const cachedCredentials = this.cachedShortTermCredentials || {};
