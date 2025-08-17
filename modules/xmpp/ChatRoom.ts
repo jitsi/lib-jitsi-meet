@@ -53,7 +53,7 @@ interface IRoomMember {
     identity?: IIdentity;
     botType?: string;
     features?: Set<string>;
-    isReplaceParticipant?: boolean;
+    isReplaceParticipant?: number;
     isSilent?: boolean;
     displayName?: string;
     version?: string;
@@ -680,7 +680,7 @@ export default class ChatRoom extends Listenable {
             = xElement && xElement.getElementsByTagName('item')[0];
 
         member.isReplaceParticipant
-            = pres.getElementsByTagName('flip_device').length > 0;
+            = pres.getElementsByTagName('flip_device').length;
 
         member.affiliation
             = mucUserItem && mucUserItem.getAttribute('affiliation');
