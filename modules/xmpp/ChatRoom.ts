@@ -25,76 +25,74 @@ import XmppConnection from './XmppConnection';
 import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
 
 // Callback types (moved earlier to be available)
-type IQSuccessCallback = (result: Element) => void;
-type IQErrorCallback = (error: Element | string) => void;
 type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 type ParticipantPropertyListener = (participantId: string, key: string, value: string) => void;
 
 
 // Node type for presence JSON structure
 interface IPresenceNode {
-    tagName: string;
     attributes?: Record<string, string>;
-    value?: string ;
     children?: IPresenceNode[];
+    tagName: string;
+    value?: string ;
 }
 
 // Member type for room members
 interface IRoomMember {
     affiliation?: string;
-    role?: string;
-    jid?: string;
+    botType?: string;
+    displayName?: string;
+    features?: Set<string>;
+    id?: string;
+    identity?: IIdentity;
     isFocus?: boolean;
     isHiddenDomain?: boolean;
-    nick?: string;
-    id?: string;
-    statsID?: string;
-    status?: string;
-    identity?: IIdentity;
-    botType?: string;
-    features?: Set<string>;
     isReplaceParticipant?: number;
     isSilent?: boolean;
-    displayName?: string;
-    version?: string;
+    jid?: string;
+    nick?: string;
     region?: string;
+    role?: string;
+    statsID?: string;
+    status?: string;
+    version?: string;
 }
 
 // Options interface for ChatRoom constructor
 interface IChatRoomOptions {
-    disableFocus?: boolean;
+    deploymentInfo?: any;
     disableDiscoInfo?: boolean;
+    disableFocus?: boolean;
     enableLobby?: boolean;
+    hiddenDomain?: string;
     hiddenFromRecorderFeatureEnabled?: boolean;
     statsId?: string;
-    hiddenDomain?: string;
-    deploymentInfo?: any;
 }
 
 // Presence map structure
 interface IPresenceMap {
+    length?: number;
+    nodes: IPresenceNode[];
     to?: string;
     xns?: string;
-    nodes: IPresenceNode[];
-    length?: number;
 }
 
 // Identity information interface
 interface IIdentity {
+    group?: string;
     user?: {
-        id?: string;
-        name?: string;
         avatar?: string;
         'hidden-from-recorder'?: string;
+        id?: string;
+        name?: string;
     };
-    group?: string;
 }
 
 // Peer media info type
 interface IPeerMediaInfo {
+    codecType?: string;
     muted: boolean;
     videoType?: VideoType | string;
-    codecType?: string;
 }
 
 const logger = getLogger('modules/xmpp/ChatRoom');
@@ -356,7 +354,7 @@ export default class ChatRoom extends Listenable {
         for (let j = 0; j < node.children.length; j++) {
             const { attributes } = node.children[j];
 
-            if (attributes && attributes.var) {
+            if (attributes?.var) {
                 features.add(attributes.var);
             }
         }
@@ -547,7 +545,7 @@ export default class ChatRoom extends Listenable {
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_lobbyroom"]>value');
 
             if (this.lobby) {
-                this.lobby.setLobbyRoomJid(lobbyRoomField && lobbyRoomField.length ? lobbyRoomField.text() : undefined);
+                this.lobby.setLobbyRoomJid(lobbyRoomField?.length ? lobbyRoomField.text() : undefined);
             }
 
             const isBreakoutField
@@ -677,22 +675,22 @@ export default class ChatRoom extends Listenable {
             = pres.getElementsByTagNameNS(
                 'http://jabber.org/protocol/muc#user', 'x')[0];
         const mucUserItem
-            = xElement && xElement.getElementsByTagName('item')[0];
+            = xElement?.getElementsByTagName('item')[0];
 
         member.isReplaceParticipant
             = pres.getElementsByTagName('flip_device').length;
 
         member.affiliation
-            = mucUserItem && mucUserItem.getAttribute('affiliation');
-        member.role = mucUserItem && mucUserItem.getAttribute('role');
+            = mucUserItem?.getAttribute('affiliation');
+        member.role = mucUserItem?.getAttribute('role');
 
         // Focus recognition
-        const jid = mucUserItem && mucUserItem.getAttribute('jid');
+        const jid = mucUserItem?.getAttribute('jid');
 
         member.jid = jid;
         member.isFocus = this.xmpp.moderator.isFocusJid(jid);
         member.isHiddenDomain
-            = jid && jid.indexOf('@') > 0
+            = jid?.indexOf('@') > 0
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
@@ -978,7 +976,7 @@ export default class ChatRoom extends Listenable {
                     for (let j = 0; j < node.children.length; j++) {
                         const { attributes } = node.children[j];
 
-                        if (attributes && attributes.key) {
+                        if (attributes?.key) {
                             properties[attributes.key] = attributes.value;
                         }
                     }
@@ -1109,7 +1107,7 @@ export default class ChatRoom extends Listenable {
     public sendReaction(reaction: string, messageId: string, receiverId?: string): void {
         const m = reaction.match(EMOJI_REGEX);
 
-        if (!m || !m[0]) {
+        if (!m?.[0]) {
             throw new Error(`Invalid reaction: ${reaction}`);
         }
 
@@ -1339,7 +1337,7 @@ export default class ChatRoom extends Listenable {
                 const m = reaction.match(EMOJI_REGEX);
 
                 // Only allow one reaction per <reaction> element.
-                if (m && m[0]) {
+                if (m?.[0]) {
                     reactionList.push(m[0]);
                 }
             });
@@ -1391,7 +1389,7 @@ export default class ChatRoom extends Listenable {
                 const passwordSelect = $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>password');
                 let password;
 
-                if (passwordSelect && passwordSelect.length) {
+                if (passwordSelect?.length) {
                     password = passwordSelect.text();
                 }
 
@@ -1490,6 +1488,7 @@ export default class ChatRoom extends Listenable {
                         + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
                 .length) {
             const toDomain = Strophe.getDomainFromJid(pres.getAttribute('to'));
+
             // @ts-ignore will fix after xmpp PR merge
             if (toDomain === this.xmpp.options.hosts.anonymousdomain) {
                 // enter the room by replying with 'not-authorized'. This would
@@ -1737,8 +1736,8 @@ export default class ChatRoom extends Listenable {
 
             sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up(), undefined, undefined, undefined);
         }
-
-        const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const errorCallback = onError ? onError : () => {};
 
         this.xmpp.connection.sendIQ(
             $iq({
@@ -2256,7 +2255,7 @@ export default class ChatRoom extends Listenable {
      * to be in the room as the credentials contain the meeting ID and are valid only for the room.
      * @param service
      */
-   public  getShortTermCredentials(service: string): Promise<string> {
+    public getShortTermCredentials(service: string): Promise<string> {
         // Gets credentials via xep-0215 and cache it
         return new Promise((resolve, reject) => {
             const cachedCredentials = this.cachedShortTermCredentials || {};
