@@ -275,6 +275,11 @@ class RecordingManager {
 
         session.setStatusFromJicofo(status);
 
+        if (this._chatRoom.role === 'visitor') {
+            // visitors will not receive presence updates from jibri, so we handle their status here
+            session.setStatus(status);
+        }
+
         if (error) {
             session.setError(error);
         }
