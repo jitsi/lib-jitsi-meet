@@ -21,10 +21,11 @@ import BreakoutRooms from './BreakoutRooms';
 import FileSharing from './FileSharing';
 import Lobby from './Lobby';
 import RoomMetadata from './RoomMetadata';
-import XmppConnection from './XmppConnection';
+import XmppConnection, { ErrorCallback } from './XmppConnection';
 import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
 
-// Callback types (moved earlier to be available)
+// Callback types
+type SuccessCallback = () => void;
 type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 type ParticipantPropertyListener = (participantId: string, key: string, value: string) => void;
 
@@ -372,6 +373,71 @@ export default class ChatRoom extends Listenable {
         this.focusFeatures = features;
     }
 
+    /**
+     * Handles Xmpp Connection status updates.
+     *
+     * @param {Strophe.Status} status - The Strophe connection status.
+     */
+    private _onConnStatusChanged(status: Strophe.Status): void {
+        // Send cached presence when the XMPP connection is re-established, only if needed
+        if (status === XmppConnection.Status.CONNECTED && this.presenceUpdateTime > this.presenceSyncTime) {
+            this.sendPresence();
+        }
+    }
+
+
+    /**
+     *
+     * @param node
+     * @param from
+     */
+    private _processNode(node: IPresenceNode, from: string): void {
+        // make sure we catch all errors coming from any handler
+        // otherwise we can remove the presence handler from strophe
+        try {
+            const tagHandlers = this.presHandlers[node.tagName] ?? [];
+
+            tagHandlers.forEach(handler => {
+                handler(node, Strophe.getResourceFromJid(from), from);
+            });
+        } catch (e) {
+            logger.error(`Error processing:${node.tagName} node.`, e);
+        }
+    }
+
+
+    /**
+     * Adds the key to the presence map, overriding any previous value.
+     * This method is used by jibri.
+     *
+     * @param key The key to add or replace.
+     * @param values The new values.
+     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
+     * performed as the value was already there.
+     * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
+     */
+    private _addToPresence(key: string, values: any): Nullable<boolean> {
+        return this.addOrReplaceInPresence(key, values);
+    }
+
+
+    /**
+     * Clean any listeners or resources, executed on leaving.
+     */
+    private clean(): void {
+        this._removeConnListeners.forEach(remove => remove());
+        this._removeConnListeners = [];
+
+        this.eventsForwarder.removeListeners(
+            AuthenticationEvents.IDENTITY_UPDATED,
+            XMPPEvents.AUTHENTICATION_REQUIRED,
+            XMPPEvents.FOCUS_DISCONNECTED,
+            XMPPEvents.RESERVATION_ERROR);
+
+        this.joined = false;
+        this.inProgressEmitted = false;
+    }
+
 
     /**
      * Joins the chat room.
@@ -391,7 +457,6 @@ export default class ChatRoom extends Listenable {
                 = this.options.disableFocus
                     ? Promise.resolve()
                         .finally(() => {
-                            // @ts-ignore Property '_breakoutMovingToMain' does not exist on type 'XmppConnection'
                             this.xmpp.connection._breakoutMovingToMain = undefined;
                         })
                     : this.xmpp.moderator.sendConferenceRequest(this.roomjid);
@@ -401,7 +466,7 @@ export default class ChatRoom extends Listenable {
                 this._removeConnListeners.push(
                     this.connection.addCancellableListener(
                         XmppConnection.Events.CONN_STATUS_CHANGED,
-                        this.onConnStatusChanged.bind(this))
+                        this._onConnStatusChanged.bind(this))
                 );
                 resolve();
             })
@@ -638,30 +703,19 @@ export default class ChatRoom extends Listenable {
             formSubmit.c('field', { 'var': 'muc#roomconfig_whois' })
                 .c('value').t('anyone').up().up();
 
-            this.connection.sendIQ(formSubmit, undefined, undefined, undefined);
+            this.connection.sendIQ(formSubmit);
 
         }, error => {
             logger.error('Error getting room configuration form: ', error);
-        }, undefined);
-    }
-
-    /**
-     * Handles Xmpp Connection status updates.
-     *
-     * @param {Strophe.Status} status - The Strophe connection status.
-     */
-    public onConnStatusChanged(status: Strophe.Status): void {
-        // Send cached presence when the XMPP connection is re-established, only if needed
-        if (status === XmppConnection.Status.CONNECTED && this.presenceUpdateTime > this.presenceSyncTime) {
-            this.sendPresence();
-        }
+        });
     }
 
     /**
      *
      * @param pres
+     * @internal
      */
-    public onPresence(pres: Element): void {
+    onPresence(pres: Element): void {
         const from = pres.getAttribute('from');
         const member: IRoomMember = {};
         const statusEl = pres.getElementsByTagName('status')[0];
@@ -1021,7 +1075,7 @@ export default class ChatRoom extends Listenable {
                     participantProperties
                         .set(node.tagName.substring('jitsi_participant_'.length), node.value);
                 } else {
-                    this.processNode(node, from);
+                    this._processNode(node, from);
                 }
             }
             }
@@ -1053,25 +1107,6 @@ export default class ChatRoom extends Listenable {
      */
     public setParticipantPropertyListener(listener: ParticipantPropertyListener): void {
         this.participantPropertyListener = listener;
-    }
-
-    /**
-     *
-     * @param node
-     * @param from
-     */
-    public processNode(node: IPresenceNode, from: string): void {
-        // make sure we catch all errors coming from any handler
-        // otherwise we can remove the presence handler from strophe
-        try {
-            const tagHandlers = this.presHandlers[node.tagName] ?? [];
-
-            tagHandlers.forEach(handler => {
-                handler(node, Strophe.getResourceFromJid(from), from);
-            });
-        } catch (e) {
-            logger.error(`Error processing:${node.tagName} node.`, e);
-        }
     }
 
     /**
@@ -1175,8 +1210,9 @@ export default class ChatRoom extends Listenable {
      *
      * @param pres
      * @param from
+     * @internal
      */
-    public onPresenceUnavailable(pres, from) {
+    onPresenceUnavailable(pres: Element, from: string): boolean {
         // ignore presence
         if ($(pres).find('>ignore[xmlns="http://jitsi.org/jitmeet/"]').length) {
             return true;
@@ -1307,8 +1343,9 @@ export default class ChatRoom extends Listenable {
      *
      * @param msg
      * @param from
+     * @internal
      */
-    public onMessage(msg, from) {
+    onMessage(msg: Element, from: string): boolean {
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
@@ -1462,8 +1499,9 @@ export default class ChatRoom extends Listenable {
      *
      * @param pres
      * @param from
+     * @internal
      */
-    public onPresenceError(pres, from) {
+    onPresenceError(pres: Element, from: string): void {
         let errorDescriptionNode;
 
         if (from === this.myroomjid) {
@@ -1575,7 +1613,7 @@ export default class ChatRoom extends Listenable {
      * @param jid
      * @param affiliation
      */
-    public setAffiliation(jid, affiliation) {
+    public setAffiliation(jid: string, affiliation: string): void {
         const grantIQ = $iq({
             to: this.roomjid,
             type: 'set'
@@ -1591,7 +1629,7 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(
             grantIQ,
             result => logger.info('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
-            error => logger.error('Set affiliation of participant error: ', error), undefined);
+            error => logger.error('Set affiliation of participant error: ', error));
     }
 
     /**
@@ -1599,7 +1637,7 @@ export default class ChatRoom extends Listenable {
      * @param jid
      * @param reason
      */
-    public kick(jid, reason = 'You have been kicked.') {
+    public kick(jid: string, reason: string = 'You have been kicked.'): void {
         const kickIQ = $iq({ to: this.roomjid,
             type: 'set' })
             .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
@@ -1622,7 +1660,7 @@ export default class ChatRoom extends Listenable {
      * @param onError
      * @param onNotSupported
      */
-    public lockRoom(key, onSuccess, onError, onNotSupported) {
+    public lockRoom(key: Nullable<string>, onSuccess: SuccessCallback, onError: ErrorCallback, onNotSupported: () => void): void {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         this.connection.sendIQ(
             $iq({
@@ -1697,12 +1735,12 @@ export default class ChatRoom extends Listenable {
                             this.password = key;
                             onSuccess();
                         },
-                        onError, undefined);
+                        onError);
                 } else {
                     onNotSupported();
                 }
             },
-            onError, undefined);
+            onError);
     }
 
     /* eslint-enable max-params */
@@ -1714,7 +1752,7 @@ export default class ChatRoom extends Listenable {
      * @param onSuccess - optional callback.
      * @param onError - optional callback.
      */
-    public setMembersOnly(enabled, onSuccess, onError) {
+    public setMembersOnly(enabled: boolean, onSuccess: SuccessCallback, onError: ErrorCallback): void {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
             // first grant membership to all that are in the room
             const affiliationsIq = $iq({
@@ -1734,7 +1772,7 @@ export default class ChatRoom extends Listenable {
                 }
             });
 
-            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up(), undefined, undefined, undefined);
+            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up());
         }
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const errorCallback = onError ? onError : () => {};
@@ -1780,27 +1818,14 @@ export default class ChatRoom extends Listenable {
                             .up();
                     }
 
-                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCallback, undefined);
+                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCallback);
                 } else {
                     errorCallback(new Error('Setting members only room not supported!'));
                 }
             },
-            errorCallback, undefined);
+            errorCallback);
     }
 
-    /**
-     * Adds the key to the presence map, overriding any previous value.
-     * This method is used by jibri.
-     *
-     * @param key The key to add or replace.
-     * @param values The new values.
-     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
-     * performed as the value was already there.
-     * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
-     */
-    public addToPresence(key: string, values: any): Nullable<boolean> {
-        return this.addOrReplaceInPresence(key, values);
-    }
 
     /**
      * Adds the key to the presence map, overriding any previous value.
@@ -1808,8 +1833,9 @@ export default class ChatRoom extends Listenable {
      * @param values The new values.
      * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replace was
      * performed as the value was already there.
+     * @internal
      */
-    public addOrReplaceInPresence(key: string, values: any): Nullable<boolean> {
+    addOrReplaceInPresence(key: string, values: any): Nullable<boolean> {
         values.tagName = key;
 
         const matchingNodes = this.presMap.nodes.filter(node => key === node.tagName);
@@ -1831,16 +1857,18 @@ export default class ChatRoom extends Listenable {
      *
      * @param {string} key - The key to find the value for.
      * @returns {Object?}
+     * @internal
      */
-    public getFromPresence(key: string): Optional<IPresenceNode> {
+    getFromPresence(key: string): Optional<IPresenceNode> {
         return this.presMap.nodes.find(node => key === node.tagName);
     }
 
     /**
      * Removes a key from the presence map.
      * @param key
+     * @internal
      */
-    public removeFromPresence(key: string): void {
+    removeFromPresence(key: string): void {
         const nodes = this.presMap.nodes.filter(node => key !== node.tagName);
 
         this.presMap.nodes = nodes;
@@ -1851,8 +1879,9 @@ export default class ChatRoom extends Listenable {
      *
      * @param name
      * @param handler
+     * @internal
      */
-    public addPresenceListener(name: string, handler: PresenceHandler): void {
+    addPresenceListener(name: string, handler: PresenceHandler): void {
         if (typeof handler !== 'function') {
             throw new Error('"handler" is not a function');
         }
@@ -1873,8 +1902,9 @@ export default class ChatRoom extends Listenable {
      *
      * @param name
      * @param handler
+     * @internal
      */
-    public removePresenceListener(name: string, handler: PresenceHandler): void {
+    removePresenceListener(name: string, handler: PresenceHandler): void {
         const tagHandlers = this.presHandlers[name];
         const handlerIdx = tagHandlers ? tagHandlers.indexOf(handler) : -1;
 
@@ -1977,8 +2007,9 @@ export default class ChatRoom extends Listenable {
      * Returns the last presence advertised by a MUC member.
      * @param {string} mucNick
      * @returns {*}
+     * @internal
      */
-    public getLastPresence(mucNick: string): Optional<IPresenceNode[]> {
+    getLastPresence(mucNick: string): Optional<IPresenceNode[]> {
         return this.lastPresences[`${this.roomjid}/${mucNick}`];
     }
 
@@ -1986,7 +2017,7 @@ export default class ChatRoom extends Listenable {
      * Dials a number.
      * @param number the number
      */
-    public dial(number) {
+    public dial(number: string): Promise<void> {
         return this.connection.rayo.dial(number, 'fromnumber',
             Strophe.getBareJidFromJid(this.myroomjid), this.password,
             this.focusMucJid);
@@ -2079,15 +2110,16 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(
             iqToFocus,
             result => logger.info('set mute', result),
-            error => logger.error('set mute error', error), undefined);
+            error => logger.error('set mute error', error));
     }
 
     /**
      * Handle remote mute reqyest from focus.
      *
      * @param iq
+     * @internal
      */
-    public onMute(iq: Element): void {
+    onMute(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2112,8 +2144,9 @@ export default class ChatRoom extends Listenable {
      * Handle remote video mute request from focus.
      *
      * @param iq
+     * @internal
      */
-    public onMuteVideo(iq: Element): void {
+    onMuteVideo(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2138,8 +2171,9 @@ export default class ChatRoom extends Listenable {
      * Handle remote desktop sharing mute request from focus.
      *
      * @param iq
+     * @internal
      */
-    public onMuteDesktop(iq: Element): void {
+    onMuteDesktop(iq: Element): void {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
@@ -2158,23 +2192,6 @@ export default class ChatRoom extends Listenable {
             logger.warn('Ignoring a mute request which does not explicitly '
                 + 'specify a positive mute command.');
         }
-    }
-
-    /**
-     * Clean any listeners or resources, executed on leaving.
-     */
-    public clean(): void {
-        this._removeConnListeners.forEach(remove => remove());
-        this._removeConnListeners = [];
-
-        this.eventsForwarder.removeListeners(
-            AuthenticationEvents.IDENTITY_UPDATED,
-            XMPPEvents.AUTHENTICATION_REQUIRED,
-            XMPPEvents.FOCUS_DISCONNECTED,
-            XMPPEvents.RESERVATION_ERROR);
-
-        this.joined = false;
-        this.inProgressEmitted = false;
     }
 
     /**
@@ -2291,7 +2308,7 @@ export default class ChatRoom extends Listenable {
 
                     resolve(this.cachedShortTermCredentials[service]);
                 },
-                reject, undefined);
+                reject);
         });
     }
 }
