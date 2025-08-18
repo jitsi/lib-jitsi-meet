@@ -18,7 +18,7 @@ module.exports = (_env, argv) => {
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
                 path: path.join(process.cwd(), 'dist', 'umd') } },
-        {
+        { ...config,
             entry: {
                 worker: './modules/e2ee/Worker.ts'
             },

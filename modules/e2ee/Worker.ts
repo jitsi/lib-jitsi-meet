@@ -6,7 +6,7 @@ import { Context } from './Context';
 
 const contexts: Map<string, Context> = new Map(); // Map participant id => context
 
-let sharedContext: Context | undefined;
+let sharedContext: Optional<Context>;
 
 let enabled = false;
 
@@ -40,10 +40,10 @@ function getParticipantContext(participantId: string): Context {
  * @param {Object} writableStream - Writable stream part.
  */
 function handleTransform(
-    context: Context,
-    operation: string,
-    readableStream: ReadableStream,
-    writableStream: WritableStream
+        context: Context,
+        operation: string,
+        readableStream: ReadableStream,
+        writableStream: WritableStream
 ): void {
     if (operation === 'encode' || operation === 'decode') {
         const transformFn = operation === 'encode' ? context.encodeFunction : context.decodeFunction;
@@ -59,18 +59,18 @@ function handleTransform(
     }
 }
 
-interface WorkerMessageEvent {
-    operation: string;
-    participantId?: string;
-    readableStream?: ReadableStream;
-    writableStream?: WritableStream;
+interface IWorkerMessageEvent {
     enabled?: boolean;
     key?: ArrayBuffer | false;
     keyIndex?: number;
+    operation: string;
+    participantId?: string;
+    readableStream?: ReadableStream;
     sharedKey?: ArrayBuffer;
+    writableStream?: WritableStream;
 }
 
-interface RTCTransformerEvent extends Event {
+interface IRTCTransformerEvent extends Event {
     transformer: {
         options: {
             operation: string;
@@ -83,12 +83,12 @@ interface RTCTransformerEvent extends Event {
 
 // Declare worker scope types
 declare const self: {
-    onmessage: (event: MessageEvent<WorkerMessageEvent>) => void;
-    RTCTransformEvent?: any;
-    onrtctransform?: (event: RTCTransformerEvent) => void;
+    RTCTransformEvent?: IRTCTransformerEvent;
+    onmessage: (event: MessageEvent<IWorkerMessageEvent>) => void;
+    onrtctransform?: (event: IRTCTransformerEvent) => void;
 };
 
-onmessage = (event: MessageEvent<WorkerMessageEvent>) => {
+onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
     const { operation } = event.data;
 
     if (operation === 'initialize') {
@@ -99,8 +99,10 @@ onmessage = (event: MessageEvent<WorkerMessageEvent>) => {
         }
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
+
         if (readableStream && writableStream && participantId) {
             const context = getParticipantContext(participantId);
+
             handleTransform(context, operation, readableStream, writableStream);
         }
     } else if (operation === 'setEnabled') {
@@ -108,6 +110,7 @@ onmessage = (event: MessageEvent<WorkerMessageEvent>) => {
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
+
         if (participantId && keyIndex !== undefined) {
             const context = getParticipantContext(participantId);
 
@@ -132,7 +135,7 @@ onmessage = (event: MessageEvent<WorkerMessageEvent>) => {
 
 // Operations using RTCRtpScriptTransform.
 if (self.RTCTransformEvent) {
-    self.onrtctransform = (event: RTCTransformerEvent) => {
+    self.onrtctransform = (event: IRTCTransformerEvent) => {
         const transformer = event.transformer;
         const { operation, participantId } = transformer.options;
         const context = getParticipantContext(participantId);
