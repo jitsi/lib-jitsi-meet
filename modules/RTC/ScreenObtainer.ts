@@ -32,11 +32,11 @@ interface IResolutionConfig {
  * Interface for audio quality configuration.
  */
 interface IAudioQuality {
-    stereo?: boolean;
     autogainControl?: boolean;
+    channelCount?: number;
     echoCancellation?: boolean;
     noiseSuppression?: boolean;
-    channelCount?: number;
+    stereo?: boolean;
 }
 
 /**
@@ -176,6 +176,7 @@ class ScreenObtainer {
         onFailure: (error: JitsiTrackError) => void,
         options?: any
     ) => void)>;
+
     public options: IScreenObtainerOptions;
 
     /**
@@ -245,7 +246,7 @@ class ScreenObtainer {
      * environment.
      * @returns {boolean}
      */
-    isSupported(): boolean {
+    public isSupported(): boolean {
         return this.obtainStream !== null;
     }
 
@@ -256,7 +257,7 @@ class ScreenObtainer {
      * @param onFailure - Failure callback.
      * @param {Object} options - Optional parameters.
      */
-    obtainScreenOnElectron(onSuccess: (result: IScreenCaptureResult) => void, onFailure: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
+    public obtainScreenOnElectron(onSuccess: (result: IScreenCaptureResult) => void, onFailure: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
         if (!this._electronSkipDisplayMedia) {
             // Fall-back to the old API in case of not supported error. This can happen if
             // an old Electron SDK is used with a new Jitsi Meet + lib-jitsi-meet version.
@@ -360,8 +361,9 @@ class ScreenObtainer {
      * @param errorCallback - The error callback.
      * @param {Object} options - Optional parameters.
      */
-    obtainScreenFromGetDisplayMedia(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
+    public obtainScreenFromGetDisplayMedia(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
         let getDisplayMedia;
+
         // @ts-ignore Property 'getDisplayMedia' does not exist on type 'Navigator'
         if (navigator.getDisplayMedia) {
             // @ts-ignore Property 'getDisplayMedia' does not exist on type 'Navigator'
@@ -518,7 +520,7 @@ class ScreenObtainer {
      * @param callback - The success callback.
      * @param errorCallback - The error callback.
      */
-    obtainScreenFromGetDisplayMediaRN(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void) {
+    public obtainScreenFromGetDisplayMediaRN(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void) {
         logger.info('Using getDisplayMedia for screen sharing');
 
         navigator.mediaDevices.getDisplayMedia({ video: true })
@@ -541,7 +543,7 @@ class ScreenObtainer {
      * @param {MediaStream} stream - The captured desktop stream.
      * @returns {void}
      */
-    setContentHint(stream: MediaStream): void {
+    public setContentHint(stream: MediaStream): void {
         const { desktopSharingFrameRate } = this.options;
         const desktopTrack = stream.getVideoTracks()[0];
 
@@ -559,7 +561,7 @@ class ScreenObtainer {
      * @param {number} maxFps capture frame rate to be used for desktop tracks.
      * @returns {void}
      */
-    setDesktopSharingFrameRate(maxFps: number): void {
+    public setDesktopSharingFrameRate(maxFps: number): void {
         logger.info(`Setting the desktop capture rate to ${maxFps}`);
 
         this.options.desktopSharingFrameRate = {
