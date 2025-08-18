@@ -28,7 +28,7 @@ function getParticipantContext(participantId: string): Context {
         contexts.set(participantId, context);
     }
 
-    return contexts.get(participantId)!;
+    return contexts.get(participantId);
 }
 
 /**
@@ -106,7 +106,7 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
             handleTransform(context, operation, readableStream, writableStream);
         }
     } else if (operation === 'setEnabled') {
-        enabled = event.data.enabled ?? false;
+        enabled = event.data.enabled;
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
