@@ -1,25 +1,8 @@
 import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { IMLine, ISsrcGroups, ISsrcs } from './sdp';
 
-export interface ISsrcGroups {
-    semantics: string;
-    ssrcs: string;
-}
-
-export interface ISsrcs {
-    attribute: string;
-    id: number;
-    value: string;
-}
-
-export interface IMLine {
-    direction?: string;
-    msid?: string;
-    ssrcGroups?: Array<ISsrcGroups>;
-    ssrcs?: Array<ISsrcs>;
-    type?: string;
-}
 
 /**
  * Parses the primary SSRC of given SSRC group.
