@@ -451,7 +451,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
     /**
      * Returns the data saved in 'updateLog' in a format to be logged.
-     * @returns {Object} An object containing the data to be logged.
+     * @returns {Record<string, unknown>} An object containing the data to be logged.
      */
     getLog() {
         const data = {};

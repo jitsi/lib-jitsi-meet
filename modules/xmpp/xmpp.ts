@@ -1,6 +1,6 @@
 import { safeJsonParse } from '@jitsi/js-utils/json';
 import { getLogger } from '@jitsi/logger';
-import { unescape } from 'lodash-es';
+import { cloneDeep, unescape } from 'lodash-es';
 import { $msg, Strophe } from 'strophe.js';
 
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
@@ -133,7 +133,7 @@ export interface IFaceLandmarksPayload {
 /**
  * Identity interface for disco info
  */
-interface IIdentity {
+export interface IIdentity {
     name?: string;
     type: string;
 }
@@ -178,8 +178,7 @@ function createConnection({
     shard,
     token,
     websocketKeepAlive,
-    websocketKeepAliveUrl,
-    xmppPing }: ICreateConnectionOptions): XmppConnection {
+    websocketKeepAliveUrl}: ICreateConnectionOptions): XmppConnection {
 
     // Append token as URL param
     if (token) {
@@ -192,8 +191,7 @@ function createConnection({
         serviceUrl,
         shard,
         websocketKeepAlive,
-        websocketKeepAliveUrl,
-        xmppPing
+        websocketKeepAliveUrl
     });
 }
 
@@ -250,7 +248,7 @@ export const FEATURE_TRANSCRIBER: string = 'http://jitsi.org/protocol/transcribe
 export const FEATURE_E2EE: string = 'https://jitsi.org/meet/e2ee';
 
 /**
- *
+ * @internal
  */
 export default class XMPP extends Listenable {
     private _components: string[];
@@ -258,7 +256,7 @@ export default class XMPP extends Listenable {
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
     public connection: Nullable<XmppConnection>;
-    public disconnectInProgress: Optional<Promise<void>>;
+    public disconnectInProgress: Optional<Promise<void>> | boolean;
     public connectionTimes: Record<string, number>;
     public options: IXMPPOptions;
     public token: Optional<string>;
@@ -303,7 +301,7 @@ export default class XMPP extends Listenable {
         }
 
         this.connection = null;
-        this.disconnectInProgress = undefined;
+        this.disconnectInProgress = false;
         this.connectionTimes = {};
         this.options = options;
         this.token = token;
@@ -380,9 +378,13 @@ export default class XMPP extends Listenable {
         // by registering their unload handler before us.
         const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
         const handleDisconnect = ev => {
-            this.disconnect(ev).catch(() => {
-                // Ignore errors in order to not break the unload.
-            });
+            // type-checking added as disconnect returns Promise<void> | boolean
+            const result = this.disconnect(ev); 
+            if (result instanceof Promise) {
+                result.catch(() => {
+                    // Ignore errors in order to not break the unload.
+                });
+            }
         };
 
         for (const event of events.split(' ')) {
@@ -520,7 +522,7 @@ export default class XMPP extends Listenable {
         // the application by individual deployments
         const aprops = this.options.deploymentInfo;
 
-        if (aprops && Object.keys(aprops).length > 0) {
+        if (Object.keys(aprops ?? {}).length > 0) {
             const logObject = { id: undefined };
 
             for (const attr in aprops) {
@@ -544,10 +546,7 @@ export default class XMPP extends Listenable {
 
         if (region || shard) {
             // avoids sending empty values
-            this.eventEmitter.emit(JitsiConnectionEvents.PROPERTIES_UPDATED, JSON.parse(JSON.stringify({
-                region,
-                shard
-            })));
+            this.eventEmitter.emit(JitsiConnectionEvents.PROPERTIES_UPDATED, cloneDeep({ region, shard }));
         }
     }
 
@@ -1049,7 +1048,7 @@ export default class XMPP extends Listenable {
 
         logger.info('(TIME) Strophe Attaching:\t', now);
         this.connection.attach(options.jid, options.sid,
-            (parseInt(options.rid, 10) + 1).toString(),
+            (Number.parseInt(options.rid, 10) + 1).toString(),
             this.connectionHandler.bind(this, {
                 jid: options.jid,
                 password: options.password
@@ -1151,9 +1150,9 @@ export default class XMPP extends Listenable {
 
     /**
      * Returns the logs from strophe.jingle.
-     * @returns {Object}
+     * @returns {Record<string, unknown>} - The jingle logs.
      */
-    public getJingleLog(): { metadata: Record<string, any>; } {
+    public getJingleLog(): Record<string, unknown> {
         const jingle = this.connection.jingle;
 
 
@@ -1200,7 +1199,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
-    public disconnect(ev: Optional<Event> = undefined): Promise<void> {
+    public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean{
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {

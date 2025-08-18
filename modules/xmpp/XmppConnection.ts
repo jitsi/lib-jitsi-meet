@@ -84,6 +84,7 @@ interface IInternalOptions {
 
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
+ * @internal
  */
 export default class XmppConnection extends Listenable {
     private _options: IInternalOptions;
@@ -98,7 +99,7 @@ export default class XmppConnection extends Listenable {
     /**
      * @internal
      */
-    public _stropheConn: Strophe.Connection;
+    _stropheConn: Strophe.Connection;
     public ping: PingConnectionPlugin;
     public jingle?: JingleConnectionPlugin;
     public rayo?: RayoConnectionPlugin;
