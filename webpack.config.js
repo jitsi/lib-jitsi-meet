@@ -18,20 +18,18 @@ module.exports = (_env, argv) => {
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
                 path: path.join(process.cwd(), 'dist', 'umd') } },
-        {
+        { ...config,
             entry: {
                 worker: './modules/e2ee/Worker.js'
             },
             mode,
-            module: config.module,
             optimization: {
                 minimize: false
             },
             output: {
                 filename: 'lib-jitsi-meet.e2ee-worker.js',
                 path: path.join(process.cwd(), 'dist', 'umd')
-            },
-            resolve: config.resolve
+            }
         }
     ];
 };
