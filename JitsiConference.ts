@@ -233,7 +233,7 @@ interface IUpgradeRoleError {
  */
 interface IAuthenticateAndUpgradeRoleOptions {
     id: string;
-    onCreateResource?: (...args: any[]) => any;
+    onCreateResource?: typeof JitsiConference.resourceCreator;
     onLoginSuccessful?: () => void;
     password: string;
 }
@@ -241,122 +241,6 @@ interface IProcessWithCancel extends Promise<void> {
     cancel: () => void;
 }
 
-/* eslint-disable no-invalid-this */
-
-/**
- * Connects to the XMPP server using the specified credentials and contacts
- * Jicofo in order to obtain a session ID (which is then stored in the local
- * storage). The user's role of the parent conference will be upgraded to
- * moderator (by Jicofo). It's also used to join the conference when starting
- * from anonymous domain and only authenticated users are allowed to create new
- * rooms.
- *
- * @param options - Options for authentication and upgrade.
- * @returns A thenable which settles when the process finishes and has a cancel method.
- */
-function authenticateAndUpgradeRole(this: JitsiConference, {
-    id,
-    password,
-    onCreateResource,
-
-    // 2. Let the API client/consumer know as soon as the XMPP user has been
-    //    successfully logged in.
-    onLoginSuccessful
-}: IAuthenticateAndUpgradeRoleOptions): Promise<void> {
-    let canceled = false;
-    let rejectPromise: (reason?: IUpgradeRoleError | {}) => void;
-    let xmpp: XMPP = new XMPP(this.connection.options, undefined);
-
-    const process = new Promise<void>((resolve, reject) => {
-        // The process is represented by a Thenable with a cancel method. The
-        // Thenable is implemented using Promise and the cancel using the
-        // Promise's reject function.
-        rejectPromise = reject;
-
-
-        xmpp.addListener(
-            CONNECTION_DISCONNECTED,
-            () => {
-                xmpp = undefined;
-            });
-        xmpp.addListener(
-            CONNECTION_ESTABLISHED,
-            () => {
-                if (canceled) {
-                    return;
-                }
-
-                // Let the caller know that the XMPP login was successful.
-                onLoginSuccessful?.();
-
-                // Now authenticate with Jicofo and get a new session ID.
-                const room = xmpp.createRoom(
-                    this.options.name,
-                    this.options.config,
-                    onCreateResource
-                );
-
-                room.xmpp.moderator.authenticate(room.roomjid)
-                    .then(() => {
-                        xmpp?.disconnect();
-
-                        if (canceled) {
-                            return;
-                        }
-
-                        // we execute this logic in JitsiConference where we bind the current conference as `this`
-                        // At this point we should have the new session ID
-                        // stored in the settings. Send a new conference IQ.
-                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
-                            .catch(e => logger.trace('sendConferenceRequest rejected', e))
-                            .finally(() => {
-                                // we need to reset it because of breakout rooms which will
-                                // reuse connection but will invite jicofo
-                                this.room.xmpp.moderator.conferenceRequestSent = false;
-
-                                resolve(undefined);
-                            });
-                    })
-                    .catch(({ error, message }) => {
-                        xmpp.disconnect();
-
-                        reject({
-                            authenticationError: error,
-                            message
-                        });
-                    });
-            });
-        xmpp.addListener(
-            CONNECTION_FAILED,
-            (connectionError: JitsiConnectionEvents, message: string, credentials: { jid?: string; password?: string; }) => {
-                reject({
-                    connectionError,
-                    credentials,
-                    message
-                });
-                xmpp = undefined;
-            });
-
-        canceled || xmpp.connect(id, password);
-    });
-
-    /**
-     * Cancels the process, if it's in progress, of authenticating and upgrading
-     * the role of the local participant/user.
-     *
-     * @public
-     * @returns {void}
-     */
-    (process as IProcessWithCancel).cancel = () => {
-        canceled = true;
-        rejectPromise({});
-        xmpp?.disconnect();
-    };
-
-    return process;
-}
-
-/* eslint-enable no-invalid-this */
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -2455,21 +2339,124 @@ export default class JitsiConference extends Listenable {
         }
     }
 
+
+    /* eslint-disable no-invalid-this */
+
     /**
-   * Authenticates and upgrades the role of the local participant/user.
-   *
-   * @param {Object} options - Configuration options for authentication.
-   * @returns {Object} A thenable which (1) settles when the process of
-   * authenticating and upgrading the role of the local participant/user finishes
-   * and (2) has a cancel method that allows the caller to interrupt the process.
-   * @internal
-   */
-    authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
-        return authenticateAndUpgradeRole.call(this, {
-            ...options,
-            onCreateResource: JitsiConference.resourceCreator
+ * Connects to the XMPP server using the specified credentials and contacts
+ * Jicofo in order to obtain a session ID (which is then stored in the local
+ * storage). The user's role of the parent conference will be upgraded to
+ * moderator (by Jicofo). It's also used to join the conference when starting
+ * from anonymous domain and only authenticated users are allowed to create new
+ * rooms.
+ *
+ * @param options - Options for authentication and upgrade.
+ * @returns A thenable which settles when the process finishes and has a cancel method.
+ * @internal
+ */
+    authenticateAndUpgradeRole({
+        id,
+        password,
+        onCreateResource,
+
+        // 2. Let the API client/consumer know as soon as the XMPP user has been
+        //    successfully logged in.
+        onLoginSuccessful
+    }: IAuthenticateAndUpgradeRoleOptions): Promise<void> {
+        let canceled = false;
+        let rejectPromise: (reason?: IUpgradeRoleError | {}) => void;
+        let xmpp: XMPP = new XMPP(this.connection.options, undefined);
+
+        const process = new Promise<void>((resolve, reject) => {
+        // The process is represented by a Thenable with a cancel method. The
+        // Thenable is implemented using Promise and the cancel using the
+        // Promise's reject function.
+            rejectPromise = reject;
+
+
+            xmpp.addListener(
+            CONNECTION_DISCONNECTED,
+            () => {
+                xmpp = undefined;
+            });
+            xmpp.addListener(
+            CONNECTION_ESTABLISHED,
+            () => {
+                if (canceled) {
+                    return;
+                }
+
+                // Let the caller know that the XMPP login was successful.
+                onLoginSuccessful?.();
+
+                // Now authenticate with Jicofo and get a new session ID.
+                const room = xmpp.createRoom(
+                    this.options.name,
+                    this.options.config,
+                    onCreateResource
+                );
+
+                room.xmpp.moderator.authenticate(room.roomjid)
+                    .then(() => {
+                        xmpp?.disconnect();
+
+                        if (canceled) {
+                            return;
+                        }
+
+                        // we execute this logic in JitsiConference where we bind the current conference as `this`
+                        // At this point we should have the new session ID
+                        // stored in the settings. Send a new conference IQ.
+                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
+                            .catch(e => logger.trace('sendConferenceRequest rejected', e))
+                            .finally(() => {
+                                // we need to reset it because of breakout rooms which will
+                                // reuse connection but will invite jicofo
+                                this.room.xmpp.moderator.conferenceRequestSent = false;
+
+                                resolve(undefined);
+                            });
+                    })
+                    .catch(({ error, message }) => {
+                        xmpp.disconnect();
+
+                        reject({
+                            authenticationError: error,
+                            message
+                        });
+                    });
+            });
+            xmpp.addListener(
+            CONNECTION_FAILED,
+            (connectionError: JitsiConnectionEvents, message: string, credentials: { jid?: string; password?: string; }) => {
+                reject({
+                    connectionError,
+                    credentials,
+                    message
+                });
+                xmpp = undefined;
+            });
+
+            canceled || xmpp.connect(id, password);
         });
+
+        /**
+     * Cancels the process, if it's in progress, of authenticating and upgrading
+     * the role of the local participant/user.
+     *
+     * @public
+     * @returns {void}
+     */
+        (process as IProcessWithCancel).cancel = () => {
+            canceled = true;
+            rejectPromise({});
+            xmpp?.disconnect();
+        };
+
+        return process;
     }
+
+    /* eslint-enable no-invalid-this */
 
     /**
    * Check if joined to the conference.
