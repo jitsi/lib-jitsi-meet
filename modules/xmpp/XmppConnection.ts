@@ -94,7 +94,7 @@ export default class XmppConnection extends Listenable {
     private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
     public ping: PingConnectionPlugin;
 
-        /**
+    /**
      * @internal
      */
     _breakoutMovingToMain?: string;
