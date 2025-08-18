@@ -94,6 +94,11 @@ export default class XmppConnection extends Listenable {
     private _wsKeepAlive: ReturnType<typeof setTimeout> | undefined;
     public ping: PingConnectionPlugin;
 
+        /**
+     * @internal
+     */
+    _breakoutMovingToMain?: string;
+
     /**
      * The list of {@link XmppConnection} events.
      *
@@ -605,7 +610,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the IQ.
      */
-    sendIQ(elem: Element, callback: IQResultCallback, errback: IQErrorCallback, timeout: number): number | undefined {
+    sendIQ(elem: Element, callback?: IQResultCallback, errback?: IQErrorCallback, timeout?: number): number | undefined {
         if (!this.connected) {
             errback('Not connected');
 

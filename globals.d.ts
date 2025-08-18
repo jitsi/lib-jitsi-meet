@@ -9,6 +9,7 @@ declare global {
             };
         };
         connectionTimes?: Record<string, any>;
+        attachEvent?: (event: string, listener: EventListener) => void;
     }
     interface RTCRtpReceiver {
         createEncodedStreams?: () => {
