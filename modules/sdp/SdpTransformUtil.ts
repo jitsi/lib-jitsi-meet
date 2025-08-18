@@ -1,7 +1,8 @@
 import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
-import { IMLine, ISsrcGroups, ISsrcs } from './sdp';
+
+import { IMLine, ISsrcGroups, ISsrcs } from './sdp_types';
 
 
 /**
