@@ -104,7 +104,7 @@ export class Context {
         // ---------+-------------------------+-+---------+----
 
         try {
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
             const frameTrailer = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - 2, 2);
 
             const ivLength = frameTrailer[0];
@@ -298,7 +298,7 @@ export class Context {
             const iv = this._makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
             // This is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Frame trailer contains the R|IV_LENGTH and key index
             const frameTrailer = new Uint8Array(2);
@@ -319,7 +319,7 @@ export class Context {
                 iv,
                 name: ENCRYPTION_ALGORITHM
             }, currentKey.encryptionKey, new Uint8Array(encodedFrame.data,
-                UNENCRYPTED_BYTES[encodedFrame.type || 'undefined']))
+                UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
                 const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
                     + iv.byteLength + frameTrailer.byteLength);
