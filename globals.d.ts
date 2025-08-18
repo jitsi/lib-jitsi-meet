@@ -1,9 +1,12 @@
 export {};
 
+import  { IJitsiMeetScreenObtainer } from './modules/RTC/ScreenObtainer'
+
 declare global {
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
-                JitsiMeetJS?: {
+        JitsiMeetScreenObtainer?: IJitsiMeetScreenObtainer;
+        JitsiMeetJS?: {
             app?: {
                 connectionTimes?: Record<string, any>;
             };
