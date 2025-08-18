@@ -6,7 +6,8 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
-import { IICECandidate, IMediaLine, ISDPObject, IMLine, IICEParams, ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IRTCPFBData, IRTPMapData, ISSRCGroupData, ISsrcGroups, IMediaDescription } from './sdp';
+
+import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMLine, IMediaDescription, IMediaLine, IRTCPFBData, IRTPMapData, ISDPObject, ISSRCGroupData, ISsrcGroups } from './sdp_types';
 
 
 const SDPUtil = {
@@ -631,7 +632,7 @@ const SDPUtil = {
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
         const numGroups
-            = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+            = (videoMLine?.ssrcGroups.length) || 0;
 
         if (numSsrcs > 1 && numGroups === 0) {
             // Ambiguous, can't figure out the primary
