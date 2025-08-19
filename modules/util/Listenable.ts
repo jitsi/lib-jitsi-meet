@@ -40,6 +40,15 @@ export default class Listenable {
     }
 
     /**
+   * Adds a one-time listener function for the event.
+   * @param {string} eventId - The event ID.
+   * @param {Function} handler - Handler for the event.
+   */
+    once(eventId: string, handler: EventListener): void {
+        this.eventEmitter.once(eventId, handler);
+    }
+
+    /**
      * Alias for on method.
      * @param {string} eventId - The event ID.
      * @param {Function} handler - Handler for the event.
