@@ -101,7 +101,7 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
         const { readableStream, writableStream, participantId } = event.data;
 
         if (!readableStream || !writableStream || !participantId) {
-            throw new Error("Missing required data: readableStream, writableStream, or participantId");
+            throw new Error('Missing required data: readableStream, writableStream, or participantId');
         }
         const context = getParticipantContext(participantId);
 
@@ -112,8 +112,9 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
+
         if (!participantId || keyIndex === undefined) {
-            throw new Error("Missing required data: participantId or keyIndex");
+            throw new Error('Missing required data: participantId or keyIndex');
         }
         const context = getParticipantContext(participantId);
 
@@ -124,8 +125,9 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
         }
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
+
         if (!participantId) {
-            throw new Error("Missing required data: participantId");
+            throw new Error('Missing required data: participantId');
         }
         contexts.delete(participantId);
     } else if (operation === 'cleanupAll') {
