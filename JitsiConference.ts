@@ -6,12 +6,7 @@ import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import type JitsiConnection from './JitsiConnection';
-import {
-    CONNECTION_DISCONNECTED,
-    CONNECTION_ESTABLISHED,
-    CONNECTION_FAILED,
-    JitsiConnectionEvents
-} from './JitsiConnectionEvents';
+import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiParticipant from './JitsiParticipant';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
@@ -2343,17 +2338,17 @@ export default class JitsiConference extends Listenable {
     /* eslint-disable no-invalid-this */
 
     /**
- * Connects to the XMPP server using the specified credentials and contacts
- * Jicofo in order to obtain a session ID (which is then stored in the local
- * storage). The user's role of the parent conference will be upgraded to
- * moderator (by Jicofo). It's also used to join the conference when starting
- * from anonymous domain and only authenticated users are allowed to create new
- * rooms.
- *
- * @param options - Options for authentication and upgrade.
- * @returns A thenable which settles when the process finishes and has a cancel method.
- * @internal
- */
+     * Connects to the XMPP server using the specified credentials and contacts
+     * Jicofo in order to obtain a session ID (which is then stored in the local
+     * storage). The user's role of the parent conference will be upgraded to
+     * moderator (by Jicofo). It's also used to join the conference when starting
+     * from anonymous domain and only authenticated users are allowed to create new
+     * rooms.
+     *
+     * @param options - Options for authentication and upgrade.
+     * @returns A thenable which settles when the process finishes and has a cancel method.
+     * @internal
+     */
     authenticateAndUpgradeRole({
         id,
         password,
@@ -2375,28 +2370,28 @@ export default class JitsiConference extends Listenable {
 
 
             xmpp.addListener(
-            CONNECTION_DISCONNECTED,
-            () => {
-                xmpp = undefined;
-            });
+                JitsiConnectionEvents.CONNECTION_DISCONNECTED,
+                () => {
+                    xmpp = undefined;
+                });
             xmpp.addListener(
-            CONNECTION_ESTABLISHED,
-            () => {
-                if (canceled) {
-                    return;
-                }
+                JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+                () => {
+                    if (canceled) {
+                        return;
+                    }
 
-                // Let the caller know that the XMPP login was successful.
-                onLoginSuccessful?.();
+                    // Let the caller know that the XMPP login was successful.
+                    onLoginSuccessful?.();
 
-                // Now authenticate with Jicofo and get a new session ID.
-                const room = xmpp.createRoom(
+                    // Now authenticate with Jicofo and get a new session ID.
+                    const room = xmpp.createRoom(
                     this.options.name,
                     this.options.config,
                     onCreateResource
-                );
+                    );
 
-                room.xmpp.moderator.authenticate(room.roomjid)
+                    room.xmpp.moderator.authenticate(room.roomjid)
                     .then(() => {
                         xmpp?.disconnect();
 
@@ -2425,17 +2420,17 @@ export default class JitsiConference extends Listenable {
                             message
                         });
                     });
-            });
-            xmpp.addListener(
-            CONNECTION_FAILED,
-            (connectionError: JitsiConnectionEvents, message: string, credentials: { jid?: string; password?: string; }) => {
-                reject({
-                    connectionError,
-                    credentials,
-                    message
                 });
-                xmpp = undefined;
-            });
+            xmpp.addListener(
+                JitsiConnectionEvents.CONNECTION_FAILED,
+                (connectionError: JitsiConnectionEvents, message: string, credentials: { jid?: string; password?: string; }) => {
+                    reject({
+                        connectionError,
+                        credentials,
+                        message
+                    });
+                    xmpp = undefined;
+                });
 
             canceled || xmpp.connect(id, password);
         });
