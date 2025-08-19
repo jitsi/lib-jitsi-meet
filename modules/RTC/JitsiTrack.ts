@@ -46,14 +46,14 @@ export default class JitsiTrack extends Listenable {
      */
 
     private _streamInactiveHandler: MediaStreamTrackEventHandler;
+    private audioLevel: number;
+    private type: MediaType;
+    private handlers: Map<string, MediaStreamTrackEventHandler>;
+    protected containers: HTMLElement[];
+    protected stream: MediaStream;
     public conference: JitsiConference;
-    public stream: MediaStream;
     public track: MediaStreamTrack;
     public videoType: Optional<VideoType>;
-    public handlers: Map<string, MediaStreamTrackEventHandler>;
-    public containers: HTMLElement[];
-    public audioLevel: number;
-    public type: MediaType;
     public disposed: boolean;
 
     constructor(
@@ -206,7 +206,7 @@ export default class JitsiTrack extends Listenable {
      * Unregisters all event handlers bound to the underlying media stream/track
      * @public
      */
-    public _unregisterHandlers(): void {
+    protected _unregisterHandlers(): void {
         if (!this.stream) {
             logger.warn(
                 `${this}: unable to unregister handlers - no stream object`);
