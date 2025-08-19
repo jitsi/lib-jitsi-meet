@@ -247,6 +247,10 @@ class ScreenObtainer {
             browser.isEngineVersionGreaterThan(111)
                 && (constraintOpts.selfBrowserSurface = screenShareSettings?.desktopSelfBrowserSurface || 'exclude');
 
+            // Allow users to include/exclude display monitors from the capture sources, default: include
+            browser.isEngineVersionGreaterThan(118)
+                && (constraintOpts.monitorTypeSurfaces = screenShareSettings?.desktopMonitorTypeSurfaces || 'include');
+
             // Set bogus resolution constraints to work around
             // https://bugs.chromium.org/p/chromium/issues/detail?id=1056311 for low fps screenshare. Capturing SS at
             // very high resolutions restricts the framerate. Therefore, skip this hack when capture fps > 5 fps.
