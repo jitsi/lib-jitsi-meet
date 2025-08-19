@@ -2051,7 +2051,7 @@ export default class JitsiConference extends Listenable {
     _sendBridgeVideoTypeMessage(localtrack: JitsiLocalTrack): void {
         let videoType = !localtrack || localtrack.isMuted() ? BridgeVideoType.NONE : localtrack.getVideoType();
 
-        if (videoType === BridgeVideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
+        if (videoType === VideoType.DESKTOP && this._desktopSharingFrameRate > SS_DEFAULT_FRAME_RATE) {
             videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
         }
 

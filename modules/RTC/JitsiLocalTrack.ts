@@ -628,8 +628,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _switchCamera(): void {
         if (this.isVideoTrack()
             && this.videoType === VideoType.CAMERA
-            && typeof this.track._switchCamera === 'function') {
-            this.track._switchCamera();
+            && typeof (this.track as any)._switchCamera === 'function') {
+            (this.track as any)._switchCamera();
 
             this._facingMode
                 = this._facingMode === CameraFacingMode.ENVIRONMENT
