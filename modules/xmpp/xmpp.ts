@@ -178,7 +178,7 @@ function createConnection({
     shard,
     token,
     websocketKeepAlive,
-    websocketKeepAliveUrl}: ICreateConnectionOptions): XmppConnection {
+    websocketKeepAliveUrl }: ICreateConnectionOptions): XmppConnection {
 
     // Append token as URL param
     if (token) {
@@ -379,7 +379,8 @@ export default class XMPP extends Listenable {
         const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
         const handleDisconnect = ev => {
             // type-checking added as disconnect returns Promise<void> | boolean
-            const result = this.disconnect(ev); 
+            const result = this.disconnect(ev);
+
             if (result instanceof Promise) {
                 result.catch(() => {
                     // Ignore errors in order to not break the unload.
@@ -1199,7 +1200,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
-    public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean{
+    public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean {
         if (this.disconnectInProgress) {
             return this.disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {
