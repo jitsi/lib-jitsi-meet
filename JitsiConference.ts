@@ -2405,7 +2405,6 @@ export default class JitsiConference extends Listenable {
         if (reason === 'switch_room' && this.getBreakoutRooms()?.isBreakoutRoom()) {
             const mJid = this.getBreakoutRooms().getMainRoomJid();
 
-            // @ts-ignore
             this.xmpp.connection._breakoutMovingToMain = mJid;
         }
 

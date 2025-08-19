@@ -31,12 +31,12 @@ interface IConnectionPlugin {
 /**
  * IQ result callback type - result is typically an XML Element
  */
-type IQResultCallback = (result: Element) => void;
+export type IQResultCallback = (result: Element) => void;
 
 /**
  * IQ error callback type - error can be a string, Element, Error object, or undefined (timeout)
  */
-type IQErrorCallback = (error: string | Element | Error | undefined) => void;
+export type ErrorCallback = (error: string | Element | Error | undefined) => void;
 
 /**
  * Connection status callback type
@@ -87,6 +87,7 @@ interface IInternalOptions {
  * @internal
  */
 export default class XmppConnection extends Listenable {
+
     private _options: IInternalOptions;
     private _usesWebsocket: boolean;
     private _rawInputTracker: LastSuccessTracker;
@@ -104,6 +105,10 @@ export default class XmppConnection extends Listenable {
     public jingle?: JingleConnectionPlugin;
     public rayo?: RayoConnectionPlugin;
     public emuc?: MucConnectionPlugin;
+    /**
+     * @internal
+     */
+    _breakoutMovingToMain?: string;
 
     /**
      * The list of {@link XmppConnection} events.
@@ -616,7 +621,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the IQ.
      */
-    sendIQ(elem: Element, callback: IQResultCallback, errback: IQErrorCallback, timeout: number): number | undefined {
+    sendIQ(elem: Element, callback: Optional<IQResultCallback> = undefined, errback: Optional<ErrorCallback> = undefined, timeout: Optional<number> = undefined): number | undefined {
         if (!this.connected) {
             errback('Not connected');
 
@@ -687,7 +692,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the presence.
      */
-    sendPresence(elem: Element, callback: IQResultCallback, errback: IQErrorCallback, timeout: number): void {
+    sendPresence(elem: Element, callback: IQResultCallback, errback: ErrorCallback, timeout: number): void {
         if (!this.connected) {
             errback('Not connected');
 
