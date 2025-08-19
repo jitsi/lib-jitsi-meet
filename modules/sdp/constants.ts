@@ -71,7 +71,7 @@ export interface IICEParams {
 }
 
 export interface ISDPObject {
-    media: MediaDescription[];
+    media: IMediaDescription[];
 }
 
 export interface IMediaDescription {
@@ -83,9 +83,9 @@ export interface IMLine {
     media?: string;
     ssrcs?: ISsrcs[];
     ssrcGroups?: ISsrcGroups[];
-    rtp?: RTPInfo[];
-    fmtp?: FMTPInfo[];
-    rtcpFb?: RTPInfo[];
+    rtp?: IRTPInfo[];
+    fmtp?: IFMTPInfo[];
+    rtcpFb?: IRTPInfo[];
     payloads: string | number;
     port?: number;
     direction?: string;

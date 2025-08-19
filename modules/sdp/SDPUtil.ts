@@ -7,7 +7,7 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
-import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMLine, IMediaDescription, IMediaLine, IRTCPFBData, IRTPMapData, ISDPObject, ISSRCGroupData, ISsrcGroups } from './sdp_types';
+import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMLine, IMediaDescription, IMediaLine, IRTCPFBData, IRTPMapData, ISDPObject, ISSRCGroupData, ISsrcGroups } from './constants';
 
 
 const SDPUtil = {
