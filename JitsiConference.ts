@@ -2328,9 +2328,6 @@ export default class JitsiConference extends Listenable {
         }
     }
 
-
-    /* eslint-disable no-invalid-this */
-
     /**
      * Connects to the XMPP server using the specified credentials and contacts
      * Jicofo in order to obtain a session ID (which is then stored in the local
@@ -2357,12 +2354,10 @@ export default class JitsiConference extends Listenable {
         let xmpp: XMPP = new XMPP(this.connection.options, undefined);
 
         const process = new Promise<void>((resolve, reject) => {
-        // The process is represented by a Thenable with a cancel method. The
-        // Thenable is implemented using Promise and the cancel using the
-        // Promise's reject function.
+            // The process is represented by a Thenable with a cancel method. The
+            // Thenable is implemented using Promise and the cancel using the
+            // Promise's reject function.
             rejectPromise = reject;
-
-
             xmpp.addListener(
                 JitsiConnectionEvents.CONNECTION_DISCONNECTED,
                 () => {
@@ -2444,8 +2439,6 @@ export default class JitsiConference extends Listenable {
 
         return process;
     }
-
-    /* eslint-enable no-invalid-this */
 
     /**
    * Check if joined to the conference.
