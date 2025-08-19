@@ -736,7 +736,7 @@ export default class XMPP extends Listenable {
      * @returns {void}
      * @private
      */
-    private _onSystemMessage(msg: string): void {
+    private _onSystemMessage(msg: Element): void {
         // proceed only if the message has any of the expected information
         if ($(msg).find('>services').length === 0 && $(msg).find('>query').length === 0) {
             return;
