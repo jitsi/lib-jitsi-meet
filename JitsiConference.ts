@@ -61,6 +61,7 @@ import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import XMPP, {
     FEATURE_E2EE,
     FEATURE_JIGASI,
+    IFaceLandmarksPayload,
     JITSI_MEET_MUC_TYPE
 } from './modules/xmpp/xmpp';
 import { BridgeVideoType } from './service/RTC/BridgeVideoType';
@@ -4093,10 +4094,10 @@ export default class JitsiConference extends Listenable {
 
     /**
      * Sends a face landmarks object to the xmpp server.
-     * @param {{ faceExpression?: unknown; }} payload - The face landmarks data to send.
+     * @param {IFaceLandmarksPayload} payload - The face landmarks data to send.
      * @returns {void}
      */
-    public sendFaceLandmarks(payload: { faceExpression?: unknown; }): void {
+    public sendFaceLandmarks(payload: IFaceLandmarksPayload): void {
         if (payload.faceExpression) {
             this._xmpp.sendFaceLandmarksEvent(this.room.roomjid, payload);
         }
