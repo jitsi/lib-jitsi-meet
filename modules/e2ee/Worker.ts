@@ -100,32 +100,34 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
 
-        if (readableStream && writableStream && participantId) {
-            const context = getParticipantContext(participantId);
-
-            handleTransform(context, operation, readableStream, writableStream);
+        if (!readableStream || !writableStream || !participantId) {
+            throw new Error("Missing required data: readableStream, writableStream, or participantId");
         }
+        const context = getParticipantContext(participantId);
+
+        handleTransform(context, operation, readableStream, writableStream);
+
     } else if (operation === 'setEnabled') {
         enabled = event.data.enabled;
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
+        if (!participantId || keyIndex === undefined) {
+            throw new Error("Missing required data: participantId or keyIndex");
+        }
+        const context = getParticipantContext(participantId);
 
-        if (participantId && keyIndex !== undefined) {
-            const context = getParticipantContext(participantId);
-
-            if (key) {
-                context.setKey(new Uint8Array(key), keyIndex);
-            } else {
-                context.setKey(false, keyIndex);
-            }
+        if (key) {
+            context.setKey(new Uint8Array(key), keyIndex);
+        } else {
+            context.setKey(false, keyIndex);
         }
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
-
-        if (participantId) {
-            contexts.delete(participantId);
+        if (!participantId) {
+            throw new Error("Missing required data: participantId");
         }
+        contexts.delete(participantId);
     } else if (operation === 'cleanupAll') {
         contexts.clear();
     } else {
