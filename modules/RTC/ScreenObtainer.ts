@@ -151,17 +151,6 @@ interface IScreenCaptureResult {
 }
 
 /**
- * Interface for JitsiMeetScreenObtainer window object.
- */
-export interface IJitsiMeetScreenObtainer {
-    openDesktopPicker: (
-        options: { desktopSharingSources: string[]; },
-        successCallback: (streamId: string, streamType: string, screenShareAudio?: boolean) => void,
-        errorCallback: (error: any) => void
-    ) => void;
-}
-
-/**
  * The default frame rate for Screen Sharing.
  */
 export const SS_DEFAULT_FRAME_RATE = 5;
@@ -177,11 +166,11 @@ class ScreenObtainer {
         options?: any
     ) => void)>;
 
-    public options: IScreenObtainerOptions;
-
     /**
-     *
+     * @internal
      */
+    options: IScreenObtainerOptions;
+
     constructor() {
         this.obtainStream = this._createObtainStreamMethod();
         this.options = {};
@@ -213,11 +202,11 @@ class ScreenObtainer {
         const supportsGetDisplayMedia = browser.supportsGetDisplayMedia();
 
         if (browser.isElectron()) {
-            return this.obtainScreenOnElectron;
+            return this._obtainScreenOnElectron;
         } else if (browser.isReactNative() && supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMediaRN;
         } else if (supportsGetDisplayMedia) {
-            return this.obtainScreenFromGetDisplayMedia;
+            return this._obtainScreenFromGetDisplayMedia;
         }
         logger.warn('Screen sharing not supported on ', browser.getName());
 
@@ -242,30 +231,21 @@ class ScreenObtainer {
     }
 
     /**
-     * Checks whether obtaining a screen capture is supported in the current
-     * environment.
-     * @returns {boolean}
-     */
-    public isSupported(): boolean {
-        return this.obtainStream !== null;
-    }
-
-    /**
      * Obtains a screen capture stream on Electron.
      *
      * @param onSuccess - Success callback.
      * @param onFailure - Failure callback.
      * @param {Object} options - Optional parameters.
      */
-    public obtainScreenOnElectron(onSuccess: (result: IScreenCaptureResult) => void, onFailure: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
+    private _obtainScreenOnElectron(onSuccess: (result: IScreenCaptureResult) => void, onFailure: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
         if (!this._electronSkipDisplayMedia) {
             // Fall-back to the old API in case of not supported error. This can happen if
             // an old Electron SDK is used with a new Jitsi Meet + lib-jitsi-meet version.
-            this.obtainScreenFromGetDisplayMedia(onSuccess, err => {
+            this._obtainScreenFromGetDisplayMedia(onSuccess, err => {
                 if (err.name === JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR) {
                     // Make sure we don't recurse infinitely.
                     this._electronSkipDisplayMedia = true;
-                    this.obtainScreenOnElectron(onSuccess, onFailure);
+                    this._obtainScreenOnElectron(onSuccess, onFailure);
                 } else {
                     onFailure(err);
                 }
@@ -274,10 +254,11 @@ class ScreenObtainer {
             return;
         }
 
-        // TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
+        // @ts-ignore TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
         if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
             const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
 
+            // @ts-ignore TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
                     desktopSharingSources:
@@ -361,7 +342,7 @@ class ScreenObtainer {
      * @param errorCallback - The error callback.
      * @param {Object} options - Optional parameters.
      */
-    public obtainScreenFromGetDisplayMedia(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
+    private _obtainScreenFromGetDisplayMedia(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
         let getDisplayMedia;
 
         // @ts-ignore Property 'getDisplayMedia' does not exist on type 'Navigator'
@@ -519,8 +500,9 @@ class ScreenObtainer {
      *
      * @param callback - The success callback.
      * @param errorCallback - The error callback.
+     * @internal
      */
-    public obtainScreenFromGetDisplayMediaRN(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void) {
+    obtainScreenFromGetDisplayMediaRN(callback: (result: IScreenCaptureResult) => void, errorCallback: (error: JitsiTrackError) => void) {
         logger.info('Using getDisplayMedia for screen sharing');
 
         navigator.mediaDevices.getDisplayMedia({ video: true })
@@ -553,6 +535,15 @@ class ScreenObtainer {
         } else {
             logger.warn('MediaStreamTrack contentHint attribute not supported');
         }
+    }
+
+    /**
+     * Checks whether obtaining a screen capture is supported in the current
+     * environment.
+     * @returns {boolean}
+     */
+    public isSupported(): boolean {
+        return this.obtainStream !== null;
     }
 
     /**
