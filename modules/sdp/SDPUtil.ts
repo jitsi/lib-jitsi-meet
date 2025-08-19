@@ -632,7 +632,7 @@ const SDPUtil = {
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
         const numGroups
-            = (videoMLine?.ssrcGroups.length) || 0;
+            = (videoMLine?.ssrcGroups?.length) || 0;
 
         if (numSsrcs > 1 && numGroups === 0) {
             // Ambiguous, can't figure out the primary
