@@ -6,7 +6,10 @@ import EventEmitter, { EventListener } from './EventEmitter';
  * this functionality to other classes.
  */
 export default class Listenable {
-    public eventEmitter: EventEmitter;
+    /**
+     * @internal
+     */
+    eventEmitter: EventEmitter;
 
     /**
      * Creates new instance.

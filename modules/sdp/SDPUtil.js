@@ -440,7 +440,7 @@ const SDPUtil = {
     /**
      * Parses a fingerprint line from the SDP.
      *
-     * @param {string} line - The fingerprint line to parse.
+     * @param {string | boolean} line - The fingerprint line to parse.
      * @returns {Object} - The parsed fingerprint parameters.
      */
     parseFingerprint(line) { // RFC 4572
