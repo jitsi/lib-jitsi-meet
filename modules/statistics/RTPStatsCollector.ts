@@ -93,7 +93,7 @@ class SsrcStats {
      * Sets the "loss" object.
      * @param loss the value to set.
      */
-    setLoss(loss: ILoss | undefined): void {
+    setLoss(loss: ILoss): void {
         this.loss = loss || { isDownloadStream: true, packetsLost: 0, packetsTotal: 0 };
     }
 
@@ -101,7 +101,7 @@ class SsrcStats {
      * Sets resolution that belong to the ssrc represented by this instance.
      * @param resolution new resolution value to be set.
      */
-    setResolution(resolution?: IResolution): void {
+    setResolution(resolution: IResolution): void {
         this.resolution = resolution || {
             height: 0,
             width: 0
@@ -147,8 +147,8 @@ class SsrcStats {
      * Sets the encode stats.
      * @param encodeStats the value to set.
      */
-    setEncodeStats(encodeStats?: Map<number, IEncodeStats>): void {
-        this.encodeStats = encodeStats || undefined;
+    setEncodeStats(encodeStats: Map<number, IEncodeStats>): void {
+        this.encodeStats = encodeStats;
     }
 }
 
@@ -407,8 +407,8 @@ export default class StatsCollector {
                 continue; // eslint-disable-line no-continue
             }
 
-            let audioCodec: string | undefined;
-            let videoCodec: string | undefined;
+            let audioCodec: Optional<string>;
+            let videoCodec: Optional<string>;
 
             if (track.isAudioTrack()) {
                 audioBitrateDownload += ssrcBitrateDownload;
@@ -526,7 +526,7 @@ export default class StatsCollector {
      * Callback passed to <tt>getStats</tt> method.
      * @param error an error that occurred on <tt>getStats</tt> call.
      */
-    errorCallback(error: Error): void {
+    public errorCallback(error: Error): void {
         logger.error('Get stats error', error);
         this.stop();
     }
@@ -534,7 +534,7 @@ export default class StatsCollector {
     /**
      * Stats processing for spec-compliant RTCPeerConnection#getStats.
      */
-    processStatsReport(): void {
+    public processStatsReport(): void {
         const byteSentStats: Record<number, number> = {};
         const encodedTimeStatsPerSsrc: Map<number, IEncodeStats> = new Map();
 
@@ -639,7 +639,7 @@ export default class StatsCollector {
                     });
                 }
 
-                let resolution: IResolution | undefined;
+                let resolution: Optional<IResolution>;
 
                 // Process the stats for 'inbound-rtp' streams always and 'outbound-rtp' only if the browser is
                 // Chromium based and version 112 and later since 'track' based stats are no longer available there
@@ -774,14 +774,14 @@ export default class StatsCollector {
      * @param {Array<string>} speakerList - Endpoint ids.
      * @returns {void}
      */
-    setSpeakerList(speakerList: Array<string>): void {
+    public setSpeakerList(speakerList: Array<string>): void {
         this.speakerList = speakerList;
     }
 
     /**
      * Stops stats updates.
      */
-    stop(): void {
+    public stop(): void {
         if (this.audioLevelsIntervalId) {
             clearInterval(this.audioLevelsIntervalId);
             this.audioLevelsIntervalId = null;
@@ -796,7 +796,7 @@ export default class StatsCollector {
     /**
      * Starts stats updates.
      */
-    start(startAudioLevelStats: boolean): void {
+    public start(startAudioLevelStats: boolean): void {
         if (startAudioLevelStats && browser.supportsReceiverStats()) {
             this.audioLevelsIntervalId = setInterval(
                 () => {
