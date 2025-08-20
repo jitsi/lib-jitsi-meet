@@ -404,10 +404,10 @@ export default class JitsiTrack extends Listenable {
     /**
      * Checks whether this is a local track.
      * @abstract
-     * @return {false} 'true' if it's a local track or 'false' otherwise.
+     * @return {boolean} 'true' if it's a local track or 'false' otherwise.
      */
     isLocal() {
-        throw new Error('Not implemented by subclass');
+        return false;
     }
 
     /**
