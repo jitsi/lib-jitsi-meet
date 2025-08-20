@@ -1,10 +1,14 @@
 /* eslint-disable max-len */
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
+import { VideoType } from '../../service/RTC/VideoType';
 
 import { MockJitsiLocalTrack, MockPeerConnection } from './MockClasses';
 import { TPCUtils } from './TPCUtils';
+
+// Fixme: import types from TPCUtil after merge
 
 describe('TPCUtils', () => {
     describe('ensureCorrectOrderOfSsrcs()', () => {
@@ -34,7 +38,7 @@ describe('TPCUtils', () => {
         ];
 
         it('sort ssrcs associated with all FID ssrc-groups', () => {
-            const pc = new MockPeerConnection();
+            const pc = new MockPeerConnection('', false, false);
             const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
@@ -98,7 +102,7 @@ describe('TPCUtils', () => {
         });
 
         it('sort ssrcs in case the first ssrc in the SIM group is not present at the top', () => {
-            const pc = new MockPeerConnection();
+            const pc = new MockPeerConnection('', false, false);
             const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
@@ -162,7 +166,7 @@ describe('TPCUtils', () => {
         });
 
         it('sort ssrcs in case there is a single FID group', () => {
-            const pc = new MockPeerConnection();
+            const pc = new MockPeerConnection('', false, false);
             const tpcUtils = new TPCUtils(pc);
             const source = new RTCSessionDescription({
                 type: 'offer',
@@ -218,7 +222,7 @@ describe('TPCUtils', () => {
         const videoQuality = {};
 
         describe('AV1 camera tracks', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.AV1;
 
             beforeEach(() => {
@@ -305,7 +309,7 @@ describe('TPCUtils', () => {
         });
 
         describe('AV1 high resolution camera tracks', () => {
-            const track = new MockJitsiLocalTrack(2160, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(2160, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.AV1;
 
             beforeEach(() => {
@@ -435,7 +439,7 @@ describe('TPCUtils', () => {
 
         describe('AV1 low fps desktop tracks', () => {
             const codec = CodecMimeType.AV1;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -481,7 +485,7 @@ describe('TPCUtils', () => {
 
         describe('AV1 desktop tracks for p2p', () => {
             const codec = CodecMimeType.AV1;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
@@ -522,7 +526,7 @@ describe('TPCUtils', () => {
 
         describe('AV1 high fps desktop tracks', () => {
             const codec = CodecMimeType.AV1;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -567,7 +571,7 @@ describe('TPCUtils', () => {
         });
 
         describe('AV1 camera tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.AV1;
 
             beforeEach(() => {
@@ -649,7 +653,7 @@ describe('TPCUtils', () => {
         });
 
         describe('AV1 desktop tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.AV1;
 
             beforeEach(() => {
@@ -686,7 +690,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP9 camera tracks', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             beforeEach(() => {
@@ -774,7 +778,7 @@ describe('TPCUtils', () => {
 
         describe('VP9 low fps desktop tracks', () => {
             const codec = CodecMimeType.VP9;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -820,7 +824,7 @@ describe('TPCUtils', () => {
 
         describe('VP9 high fps desktop tracks', () => {
             const codec = CodecMimeType.VP9;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -866,7 +870,7 @@ describe('TPCUtils', () => {
 
         describe('VP9 camera tracks with 1080p resolutions', () => {
             const codec = CodecMimeType.VP9;
-            const track = new MockJitsiLocalTrack(1080, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(1080, MediaType.VIDEO, VideoType.CAMERA);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -974,7 +978,7 @@ describe('TPCUtils', () => {
 
         describe('VP9 camera tracks with odd resolutions ', () => {
             const codec = CodecMimeType.VP9;
-            const track = new MockJitsiLocalTrack(550, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(550, MediaType.VIDEO, VideoType.CAMERA);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -1081,7 +1085,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP9 camera tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             beforeEach(() => {
@@ -1148,7 +1152,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP9 desktop tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
 
             beforeEach(() => {
@@ -1185,7 +1189,7 @@ describe('TPCUtils', () => {
         });
 
         describe('H.264 camera tracks', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.H264;
 
             beforeEach(() => {
@@ -1279,7 +1283,7 @@ describe('TPCUtils', () => {
 
         describe('H.264 low fps desktop tracks', () => {
             const codec = CodecMimeType.H264;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -1327,7 +1331,7 @@ describe('TPCUtils', () => {
 
         describe('H.264 high fps desktop tracks', () => {
             const codec = CodecMimeType.H264;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -1374,7 +1378,7 @@ describe('TPCUtils', () => {
         });
 
         describe('H.264 camera tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.H264;
 
             beforeEach(() => {
@@ -1441,7 +1445,7 @@ describe('TPCUtils', () => {
         });
 
         describe('H.264 desktop tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.H264;
 
             beforeEach(() => {
@@ -1478,7 +1482,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP8 camera tracks', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP8;
 
             beforeEach(() => {
@@ -1565,7 +1569,7 @@ describe('TPCUtils', () => {
 
             it('and capture resolution is 4k', () => {
                 height = 180;
-                const highResolutiontrack = new MockJitsiLocalTrack(2160, 'video', 'camera');
+                const highResolutiontrack = new MockJitsiLocalTrack(2160, MediaType.VIDEO, VideoType.CAMERA);
 
                 activeState = tpcUtils.calculateEncodingsActiveState(highResolutiontrack, codec, height);
                 expect(activeState[0]).toBe(true);
@@ -1589,7 +1593,7 @@ describe('TPCUtils', () => {
 
         describe('VP8 low fps desktop tracks', () => {
             const codec = CodecMimeType.VP8;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -1635,7 +1639,7 @@ describe('TPCUtils', () => {
 
         describe('VP8 high fps desktop tracks', () => {
             const codec = CodecMimeType.VP8;
-            const track = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
@@ -1680,7 +1684,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP8 camera tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP8;
 
             beforeEach(() => {
@@ -1747,7 +1751,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP8 desktop tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP8;
 
             beforeEach(() => {
@@ -1814,7 +1818,7 @@ describe('TPCUtils', () => {
         });
 
         describe('VP8 high fps desktop tracks for p2p', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP8;
 
             beforeEach(() => {
@@ -1865,7 +1869,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for AV1 camera tracks when simulcast is configured', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.AV1;
 
             // Configure AV1 to run in simulcast mode.
@@ -1990,7 +1994,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks when simulcast is configured', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in simulcast mode.
@@ -2115,7 +2119,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks and scalabilityMode is disabled', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
@@ -2226,7 +2230,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks and scalabilityMode is disabled', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
@@ -2337,7 +2341,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 low fps desktop tracks and scalabilityMode is disabled', () => {
-            const track = new MockJitsiLocalTrack(440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(440, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
@@ -2405,7 +2409,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 high fps desktop tracks and scalabilityMode is disabled', () => {
-            const track = new MockJitsiLocalTrack(560, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(560, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to run in K-SVC mode.
@@ -2473,7 +2477,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for H.264 camera tracks, scalability mode is disabled', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.H264;
 
             // Configure VP9 to run in simulcast mode.
@@ -2554,7 +2558,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks when deprecated settings are used for overriding bitrates', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 bitrates using the deprecated settings.
@@ -2644,7 +2648,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks when L3T3 mode is used', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to use SVC mode instead of the K-SVC mode.
@@ -2730,8 +2734,8 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera/desktop tracks when simulcast is used', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
-            const desktop = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
+            const desktop = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
 
             // Configure VP9 to use SVC mode instead of the K-SVC mode.
@@ -2853,8 +2857,8 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP8 camera/desktop tracks when simulcast is used', () => {
-            const track = new MockJitsiLocalTrack(2160, 'video', 'camera');
-            const desktop = new MockJitsiLocalTrack(1440, 'video', 'desktop');
+            const track = new MockJitsiLocalTrack(2160, MediaType.VIDEO, VideoType.CAMERA);
+            const desktop = new MockJitsiLocalTrack(1440, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP8;
             const videoQuality = {};
 
@@ -2962,7 +2966,7 @@ describe('TPCUtils', () => {
         });
 
         describe('for VP9 camera tracks and the jvb connection is suspended', () => {
-            const track = new MockJitsiLocalTrack(720, 'video', 'camera');
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
 
             beforeEach(() => {
