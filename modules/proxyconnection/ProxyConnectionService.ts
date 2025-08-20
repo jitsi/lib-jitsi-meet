@@ -53,13 +53,13 @@ interface IProxyMessage {
  */
 interface IProxyConnectionPCOptions {
     isInitiator?: boolean;
-    receiveAudio?: boolean;
-    receiveVideo?: boolean;
-    pcConfig?: RTCConfiguration;
     onError?: (peerJid: string, errorType: string, details?: string) => void;
     onRemoteStream?: (track: JitsiRemoteTrack) => void;
     onSendMessage?: (peerJid: string, iq: any) => void;
+    pcConfig?: RTCConfiguration;
     peerJid?: string;
+    receiveAudio?: boolean;
+    receiveVideo?: boolean;
 }
 
 /**
@@ -128,7 +128,7 @@ export default class ProxyConnectionService {
      * sending replies.
      * @returns {void}
      */
-    processMessage(message: IProxyMessage): void {
+    private _processMessage(message: IProxyMessage): void {
         const peerJid = message.from;
 
         if (!peerJid) {
@@ -186,7 +186,7 @@ export default class ProxyConnectionService {
      * send through to the peer.
      * @returns {void}
      */
-    start(peerJid: string, localTracks: JitsiLocalTrack[] = []): void {
+    private _start(peerJid: string, localTracks: JitsiLocalTrack[] = []): void {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
@@ -206,7 +206,7 @@ export default class ProxyConnectionService {
      *
      * @returns {void}
      */
-    stop(): void {
+    private _stop(): void {
         if (this._peerConnection) {
             this._peerConnection.stop();
         }
@@ -222,7 +222,7 @@ export default class ProxyConnectionService {
      * @returns {Object|null} An element version of the xml. Null will be returned
      * if an error is encountered during transformation.
      */
-    _convertStringToXML(xml: string): Nullable<ReturnType<typeof $>> {
+    private _convertStringToXML(xml: string): Nullable<ReturnType<typeof $>> {
         try {
             const xmlDom = new DOMParser().parseFromString(xml, 'text/xml');
 
@@ -245,7 +245,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {ProxyConnectionPC}
      */
-    _createPeerConnection(peerJid: string, options: Partial<IProxyConnectionPCOptions> = {}): ProxyConnectionPC {
+    private _createPeerConnection(peerJid: string, options: Partial<IProxyConnectionPCOptions> = {}): ProxyConnectionPC {
         if (!peerJid) {
             throw new Error('Cannot create ProxyConnectionPC without a peer.');
         }
@@ -276,7 +276,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onFatalError(peerJid: string, errorType: string, details: string = ''): void {
+    private _onFatalError(peerJid: string, errorType: string, details: string = ''): void {
         logger.error(
             'Received a proxy connection error', peerJid, errorType, details);
 
@@ -311,7 +311,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onRemoteStream(jitsiRemoteTrack: JitsiRemoteTrack): void {
+    private _onRemoteStream(jitsiRemoteTrack: JitsiRemoteTrack): void {
         if (!this._options.onRemoteStream) {
             logger.error('Remote track received without callback.');
             jitsiRemoteTrack.dispose();
@@ -354,7 +354,7 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _onSendMessage(peerJid: string, iq: any): void {
+    private _onSendMessage(peerJid: string, iq: any): void {
         if (!this._options.onSendMessage) {
             return;
         }
@@ -375,8 +375,8 @@ export default class ProxyConnectionService {
      * @private
      * @returns {void}
      */
-    _selfCloseConnection(): void {
-        this.stop();
+    private _selfCloseConnection(): void {
+        this._stop();
 
         this._options.onConnectionClosed
             && this._options.onConnectionClosed();
