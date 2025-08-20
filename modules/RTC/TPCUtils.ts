@@ -593,7 +593,7 @@ export class TPCUtils {
      * @returns {Array}
      * @internal
      */
-    getConfiguredVideoCodecs(sdp: string = ''): CodecMimeType[] {
+    getConfiguredVideoCodecs(sdp: Optional<string>): CodecMimeType[] {
         const currentSdp = sdp ?? this.pc.localDescription?.sdp;
 
         if (!currentSdp) {
