@@ -3,7 +3,7 @@ export {};
 declare global {
     type Timeout = ReturnType<typeof setTimeout>;
     interface Window {
-                JitsiMeetJS?: {
+        JitsiMeetJS?: {
             app?: {
                 connectionTimes?: Record<string, any>;
             };
