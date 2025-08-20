@@ -3,13 +3,31 @@ import { getLogger } from '@jitsi/logger';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RTC from '../RTC/RTC';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
+import ChatRoom from '../xmpp/ChatRoom';
 
 import CustomSignalingLayer from './CustomSignalingLayer';
 import { ACTIONS } from './constants';
+import JitsiTrack from '../RTC/JitsiTrack';
 
 const logger = getLogger('proxyconnection:ProxyConnectionPC');
+
+/**
+ * Interface for ProxyConnectionPC options
+ */
+interface IProxyConnectionPCOptions {
+    pcConfig?: RTCConfiguration;
+    isInitiator?: boolean;
+    onRemoteStream: (jitsiRemoteTrack: JitsiRemoteTrack) => void;
+    peerJid: string;
+    receiveAudio?: boolean;
+    receiveVideo?: boolean;
+    onSendMessage: (peerJid: string, iq: Element) => void;
+    onError: (peerJid: string, errorType: string, details?: string) => void;
+}
 
 /**
  * An adapter around {@code JingleSessionPC} so its logic can be re-used without
@@ -19,29 +37,28 @@ const logger = getLogger('proxyconnection:ProxyConnectionPC');
  * {@code JingleSessionPC}.
  */
 export default class ProxyConnectionPC {
+
+    private _options: IProxyConnectionPCOptions;
+    private _tracks: (JitsiTrack | JitsiRemoteTrack)[];
+    private _peerConnection: Nullable<JingleSessionPC>;
+    private _rtc: Nullable<RTC>;
     /**
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
-     * @param {Object} options - Values to initialize the instance with.
-     * @param {Object} [options.pcConfig] - The {@code RTCConfiguration} to use for the WebRTC peer connection.
-     * @param {boolean} [options.isInitiator] - If true, the local client should send offers. If false, the local
-     * client should send answers. Defaults to false.
-     * @param {Function} options.onRemoteStream - Callback to invoke when a remote media stream has been received
-     * through the peer connection.
-     * @param {string} options.peerJid - The jid of the remote client with which the peer connection is being establish
-     * and which should receive direct messages regarding peer connection updates.
-     * @param {boolean} [options.receiveVideo] - Whether or not the peer connection should accept incoming video
-     * streams. Defaults to false.
-     * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out.
+     * @param {IProxyConnectionPCOptions} options - Values to initialize the instance with.
      */
-    constructor(options = {}) {
+    constructor(options: Partial<IProxyConnectionPCOptions> = {}) {
         this._options = {
             isInitiator: false,
             pcConfig: {},
             receiveAudio: false,
             receiveVideo: false,
+            onRemoteStream: () => { /* no-op */ },
+            peerJid: '',
+            onSendMessage: () => { /* no-op */ },
+            onError: () => { /* no-op */ },
             ...options
-        };
+        } as IProxyConnectionPCOptions;
 
         /**
          * Instances of {@code JitsiTrack} associated with this instance of
@@ -81,8 +98,8 @@ export default class ProxyConnectionPC {
      * describing how the peer connection should be updated.
      * @returns {void}
      */
-    processMessage($jingle) {
-        switch ($jingle.attr('action')) {
+    processMessage($jingle: Element): void {
+        switch ($jingle.getAttribute('action')) {
         case ACTIONS.ACCEPT:
             this._onSessionAccept($jingle);
             break;
@@ -92,7 +109,7 @@ export default class ProxyConnectionPC {
             break;
 
         case ACTIONS.TERMINATE:
-            this._onSessionTerminate($jingle);
+            this._onSessionTerminate();
             break;
 
         case ACTIONS.TRANSPORT_INFO:
@@ -109,7 +126,7 @@ export default class ProxyConnectionPC {
      * to add to the peer connection.
      * @returns {void}
      */
-    start(localTracks = []) {
+    start(localTracks: JitsiLocalTrack[] = []): void {
         if (this._peerConnection) {
             return;
         }
@@ -127,7 +144,7 @@ export default class ProxyConnectionPC {
      *
      * @returns {void}
      */
-    stop() {
+    stop(): void {
         if (this._peerConnection) {
             this._peerConnection.terminate();
         }
@@ -142,7 +159,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {JingleSessionPC}
      */
-    _createPeerConnection() {
+    private _createPeerConnection(): JingleSessionPC {
         /**
          * {@code JingleSessionPC} takes in the entire jitsi-meet config.js
          * object, which may not be accessible from the caller.
@@ -157,10 +174,8 @@ export default class ProxyConnectionPC {
          * This connection object is used to signal out peer connection updates
          * via iqs, and those updates need to be piped back out to the remote
          * peer.
-         *
-         * @type {Object}
          */
-        const connectionStub = {
+        const connectionStub: any = {
             // At the time this is used for Spot and it's okay to say the connection is always connected, because if
             // spot has no signalling it will not be in a meeting where this is used.
             // eslint-disable-next-line no-empty-function
@@ -199,7 +214,7 @@ export default class ProxyConnectionPC {
          * @type {Function}
          * @returns {void}
          */
-        const emitter = event => {
+        const emitter = (event: string) => {
             switch (event) {
             case XMPPEvents.CONNECTION_ICE_FAILED:
             case XMPPEvents.CONNECTION_FAILED:
@@ -216,10 +231,10 @@ export default class ProxyConnectionPC {
          *
          * @type {Object}
          */
-        const roomStub = {
+        const roomStub: any = {
             addEventListener: () => { /* no op */ },
             addPresenceListener: () => { /* no-op */ },
-            connectionTimes: [],
+            connectionTimes: {},
             eventEmitter: { emit: emitter },
             removeEventListener: () => { /* no op */ },
             removePresenceListener: () => { /* no-op */ }
@@ -273,7 +288,7 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, this._rtc, signalingLayer, configStub);
+        peerConnection.initialize(roomStub, this._rtc, signalingLayer as any, configStub);
 
         return peerConnection;
     }
@@ -287,7 +302,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onError(errorType, details = '') {
+    private _onError(errorType: string, details: string = ''): void {
         this._options.onError(this._options.peerJid, errorType, details);
     }
 
@@ -300,7 +315,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onRemoteStream(jitsiRemoteTrack) {
+    private _onRemoteStream(jitsiRemoteTrack: JitsiRemoteTrack): void {
         this._tracks.push(jitsiRemoteTrack);
 
         this._options.onRemoteStream(jitsiRemoteTrack);
@@ -310,12 +325,12 @@ export default class ProxyConnectionPC {
      * Callback invoked when {@code JingleSessionPC} needs to signal a message
      * out to the remote peer.
      *
-     * @param {XML} iq - The message to signal out.
+     * @param {Element} iq - The message to signal out.
      * @param {Function} callback - Callback when the IQ was acknowledged.
      * @private
      * @returns {void}
      */
-    _onSendMessage(iq, callback) {
+    private _onSendMessage(iq: Element, callback?: () => void): void {
         this._options.onSendMessage(this._options.peerJid, iq);
 
         if (callback) {
@@ -333,7 +348,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onSessionAccept($jingle) {
+    private _onSessionAccept($jingle: Element): void {
         if (!this._peerConnection) {
             logger.error('Received an answer when no peer connection exists.');
 
@@ -351,7 +366,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onSessionInitiate($jingle) {
+    private _onSessionInitiate($jingle: Element): void {
         if (this._peerConnection) {
             logger.error('Received an offer when an offer was already sent.');
 
@@ -366,7 +381,6 @@ export default class ProxyConnectionPC {
             () => this._onError(
                 this._options.peerJid,
                 ACTIONS.CONNECTION_ERROR,
-                'session initiate error'
             ),
             []
         );
@@ -379,12 +393,12 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onSessionTerminate() {
+    private _onSessionTerminate(): void {
         this._tracks.forEach(track => track.dispose());
         this._tracks = [];
 
         if (this._peerConnection) {
-            this._peerConnection.onTerminated();
+            this._peerConnection.onTerminated(undefined, undefined);
         }
 
         if (this._rtc) {
@@ -405,7 +419,7 @@ export default class ProxyConnectionPC {
      * @private
      * @returns {void}
      */
-    _onTransportInfo($jingle) {
+    private _onTransportInfo($jingle: Element): void {
         this._peerConnection.addIceCandidates($jingle);
     }
 }
