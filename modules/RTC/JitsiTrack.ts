@@ -51,8 +51,8 @@ export default class JitsiTrack extends Listenable {
     private handlers: Map<string, MediaStreamTrackEventHandler>;
     protected containers: HTMLElement[];
     protected stream: MediaStream;
+    protected track: MediaStreamTrack;
     public conference: JitsiConference;
-    public track: MediaStreamTrack;
     public videoType: Optional<VideoType>;
     public disposed: boolean;
 
@@ -110,7 +110,7 @@ export default class JitsiTrack extends Listenable {
         if (browser.isFirefox() || browser.isWebKitBased()) {
             this.track.onended = handler;
         } else {
-            (this.stream as MediaStream & { oninactive?: typeof handler; }).oninactive = handler;
+            this.stream.oninactive = handler;
         }
     }
 
@@ -318,7 +318,7 @@ export default class JitsiTrack extends Listenable {
      * Returns the source name of the track.
      * @returns {String|undefined}
      */
-    public getSourceName(): Optional<string> { // eslint-disable-line no-unused-vars
+    public getSourceName(): Optional<string> { 
         // Should be defined by the classes that are extending JitsiTrack
         return undefined;
     }
@@ -458,7 +458,7 @@ export default class JitsiTrack extends Listenable {
      * <tt>MediaStreamTrack</tt> is muted or <tt>false</tt> otherwise.
      */
     public isWebRTCTrackMuted(): boolean {
-        return this.track && this.track.muted;
+        return this.track?.muted;
     }
 
     /**
@@ -466,7 +466,7 @@ export default class JitsiTrack extends Listenable {
      * @abstract
      * @return {boolean}
      */
-    public isMuted(): Optional<boolean> {
+    public isMuted(): boolean {
         return undefined;
     }
 
@@ -552,10 +552,10 @@ export default class JitsiTrack extends Listenable {
 
     /**
      * Assigns the source name to a track.
-     * @param {String} name - The name to be assigned to the track.
+     * @param {String} _name - The name to be assigned to the track.
      * @returns {void}
      */
-    public setSourceName(name: string): void { // eslint-disable-line no-unused-vars
+    public setSourceName(_name: string): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 }
