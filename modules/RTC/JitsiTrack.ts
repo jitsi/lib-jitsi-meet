@@ -122,7 +122,7 @@ export default class JitsiTrack extends Listenable {
      * 'audio' element.
      * @private
      */
-    private _attachTTFMTracker(container: HTMLElement): void { // eslint-disable-line no-unused-vars
+    private _attachTTFMTracker(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -133,7 +133,7 @@ export default class JitsiTrack extends Listenable {
      * 'audio' element.
      * @private
      */
-    private _onTrackAttach(container: HTMLElement): void { // eslint-disable-line no-unused-vars
+    private _onTrackAttach(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -144,7 +144,7 @@ export default class JitsiTrack extends Listenable {
      * 'audio' element.
      * @private
      */
-    private _onTrackDetach(container: HTMLElement): void { // eslint-disable-line no-unused-vars
+    private _onTrackDetach(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -318,7 +318,7 @@ export default class JitsiTrack extends Listenable {
      * Returns the source name of the track.
      * @returns {String|undefined}
      */
-    public getSourceName(): Optional<string> { 
+    public getSourceName(): Optional<string> {
         // Should be defined by the classes that are extending JitsiTrack
         return undefined;
     }
