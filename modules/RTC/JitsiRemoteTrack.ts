@@ -45,10 +45,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     private _rtc: RTC;
     private _muted: boolean;
     private _hasBeenMuted: boolean;
+    private _ssrc: number;
 
     public ownerEndpointId: string;
     public isP2P: boolean;
-    public ssrc: number;
 
     /**
      * Creates new JitsiRemoteTrack instance.
@@ -96,7 +96,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC ${ssrc} is not a number`);
         }
-        this.ssrc = ssrc;
+        this._ssrc = ssrc;
         this.ownerEndpointId = ownerEndpointId;
         this._muted = muted;
         this.isP2P = isP2P;
@@ -124,9 +124,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this._hasBeenMuted = muted;
 
         // Bind 'onmute' and 'onunmute' event handlers
-        if (this._rtc && this.track) {
-            this._bindTrackHandlers();
-        }
+        this._bindTrackHandlers();
         this._containerHandlers = {};
         containerEvents.forEach(event => {
             this._containerHandlers[event] = this._containerEventHandler.bind(this, event);
@@ -388,11 +386,11 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-         * Updates track's streaming status.
-         *
-         * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
-         * @internal
-         */
+     * Updates track's streaming status.
+     *
+     * @param {string} state the current track streaming state. {@link TrackStreamingStatus}.
+     * @internal
+     */
     _setTrackStreamingStatus(status: TrackStreamingStatus): void {
         this._trackStreamingStatus = status;
     }
@@ -455,7 +453,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
         // we can have a fake video stream
         if (this.stream) {
-            (this.stream as any).muted = value;
+            this.stream.muted = value;
         }
 
         this._muted = value;
@@ -484,13 +482,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Return false;
-     */
-    isLocal(): false {
-        return false;
-    }
-
-    /**
      * Returns the synchronization source identifier (SSRC) of this remote
      * track.
      *
@@ -498,7 +489,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {number} the SSRC of this remote track.
      */
     getSsrc() {
-        return this.ssrc;
+        return this._ssrc;
     }
 
 
@@ -516,6 +507,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Update the properties when the track is remapped to another source.
      *
      * @param {string} owner The endpoint ID of the new owner.
+     * @internal
      */
     setOwner(owner: string): void {
         this.ownerEndpointId = owner;
@@ -526,6 +518,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @override
      * @param {string} name - The source name to be associated with the track.
+     * @internal
      */
     setSourceName(name: string): void {
         this._sourceName = name;
