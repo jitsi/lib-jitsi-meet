@@ -545,7 +545,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn() {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled ;
+        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);

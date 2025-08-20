@@ -561,9 +561,9 @@ export class TPCUtils {
         const rtpSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
 
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
-            const { encodings } = rtpSender.getParameters() ;
+            const { encodings } = rtpSender.getParameters();
 
-             if (encodings[0].codec) {
+            if (encodings[0].codec) {
                 return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
             }
         }
