@@ -11,8 +11,9 @@ const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 
 /**
  * Media devices utilities for Jitsi.
+ * @noInheritDoc
  */
-class JitsiMediaDevices extends Listenable {
+export default class JitsiMediaDevices extends Listenable {
     private _initialized: boolean;
     private _permissions: { [key: string]: boolean; };
     private _permissionsApiSupported: Promise<boolean>;
@@ -29,7 +30,54 @@ class JitsiMediaDevices extends Listenable {
     }
 
     /**
+     * Parses a PermissionState object and returns true for granted and false otherwise.
+     *
+     * @param {PermissionState} permissionStatus - The PermissionState object retrieved from the Permissions API.
+     * @returns {boolean} - True for granted and false for denied.
+     * @throws {TypeError}
+     */
+    private _parsePermissionState(permissionStatus: PermissionStatus = {} as PermissionStatus): boolean {
+        const status = permissionStatus.state;
+
+        if (typeof status !== 'string') {
+            throw new TypeError();
+        }
+
+        return status === PERMISSION_GRANTED_STATUS;
+    }
+
+    /**
+     * Updates the local granted/denied permissions cache. A permissions might be
+     * granted, denied, or undefined. This is represented by having its media
+     * type key set to {@code true} or {@code false} respectively.
+     *
+     * @param {Object} permissions - Object with the permissions.
+     */
+    private _handlePermissionsChange(permissions: { [key: string]: boolean; }): void {
+        const hasPermissionsChanged
+            = [ MediaType.AUDIO, MediaType.VIDEO ]
+                .some(type => type in permissions && permissions[type] !== this._permissions[type]);
+
+        if (hasPermissionsChanged) {
+            this._permissions = {
+                ...this._permissions,
+                ...permissions
+            };
+            this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
+
+            if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
+                // Triggering device list update when the permissions are granted in order to update
+                // the labels the devices.
+                this.enumerateDevices(() => {
+                    // Empty callback - device list update triggered
+                });
+            }
+        }
+    }
+
+    /**
      * Initialize. Start listening for device changes and initialize permissions checks.
+     * @internal
      */
     init(): void {
         if (this._initialized) {
@@ -101,52 +149,6 @@ class JitsiMediaDevices extends Listenable {
             Promise.all(promises).then(results => resolve(results.every(supported => supported)));
 
         });
-    }
-
-    /**
-     * Parses a PermissionState object and returns true for granted and false otherwise.
-     *
-     * @param {PermissionState} permissionStatus - The PermissionState object retrieved from the Permissions API.
-     * @returns {boolean} - True for granted and false for denied.
-     * @throws {TypeError}
-     */
-    _parsePermissionState(permissionStatus: PermissionStatus = {} as PermissionStatus): boolean {
-        const status = permissionStatus.state;
-
-        if (typeof status !== 'string') {
-            throw new TypeError();
-        }
-
-        return status === PERMISSION_GRANTED_STATUS;
-    }
-
-    /**
-     * Updates the local granted/denied permissions cache. A permissions might be
-     * granted, denied, or undefined. This is represented by having its media
-     * type key set to {@code true} or {@code false} respectively.
-     *
-     * @param {Object} permissions - Object with the permissions.
-     */
-    _handlePermissionsChange(permissions: { [key: string]: boolean; }): void {
-        const hasPermissionsChanged
-            = [ MediaType.AUDIO, MediaType.VIDEO ]
-                .some(type => type in permissions && permissions[type] !== this._permissions[type]);
-
-        if (hasPermissionsChanged) {
-            this._permissions = {
-                ...this._permissions,
-                ...permissions
-            };
-            this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
-
-            if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
-                // Triggering device list update when the permissions are granted in order to update
-                // the labels the devices.
-                this.enumerateDevices(() => {
-                    // Empty callback - device list update triggered
-                });
-            }
-        }
     }
 
     /**
@@ -266,5 +268,3 @@ class JitsiMediaDevices extends Listenable {
         return RTC.setAudioOutputDevice(deviceId);
     }
 }
-
-export default new JitsiMediaDevices();

@@ -234,14 +234,8 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  * @param {number} [options.config.channelLastN=-1] The requested amount of
  * videos are going to be delivered after the value is in effect. Set to -1 for
  * unlimited or all available videos.
- * @constructor
  *
- * FIXME Make all methods which are called from lib-internal classes
- *       to non-public (use _). To name a few:
- *       {@link JitsiConference.onLocalRoleChanged}
- *       {@link JitsiConference.onUserRoleChanged}
- *       {@link JitsiConference.onMemberLeft}
- *       and so on...
+ * @noInheritDoc
  */
 export default class JitsiConference extends Listenable {
     private _transcribingEnabled?: boolean;

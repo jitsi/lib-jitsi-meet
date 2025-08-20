@@ -120,10 +120,12 @@ export interface IJoinConferenceOptions {
     tracks?: JitsiLocalTrack[];
 }
 
+const mediaDevices = new JitsiMediaDevices();
+
 /**
  * The public API of the Jitsi Meet library (a.k.a. {@code JitsiMeetJS}).
  */
-export default {
+const JitsiMeetJS = {
     JitsiConnection,
 
     /**
@@ -373,7 +375,7 @@ export default {
         // @ts-ignore
         logger.info(`This appears to be ${browser.getName()}, ver: ${browser.getVersion()}`);
 
-        JitsiMediaDevices.init();
+        mediaDevices.init();
         Settings.init(options.externalStorage);
         Statistics.init(options);
 
@@ -521,7 +523,7 @@ export default {
     },
 
     logLevels: Logger.levels,
-    mediaDevices: JitsiMediaDevices as unknown,
+    mediaDevices,
 
     /**
      * Removes global logging transport from the library logging framework.
@@ -646,3 +648,5 @@ export default {
     },
     version: COMMIT_HASH
 };
+
+export default JitsiMeetJS;
