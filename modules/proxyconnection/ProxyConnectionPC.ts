@@ -12,6 +12,7 @@ import ChatRoom from '../xmpp/ChatRoom';
 import CustomSignalingLayer from './CustomSignalingLayer';
 import { ACTIONS } from './constants';
 import JitsiTrack from '../RTC/JitsiTrack';
+import XmppConnection from '../xmpp/XmppConnection';
 
 const logger = getLogger('proxyconnection:ProxyConnectionPC');
 
@@ -174,8 +175,9 @@ export default class ProxyConnectionPC {
          * This connection object is used to signal out peer connection updates
          * via iqs, and those updates need to be piped back out to the remote
          * peer.
+         * @type {XmppConnection}
          */
-        const connectionStub: any = {
+        const connectionStub: Partial<XmppConnection> = {
             // At the time this is used for Spot and it's okay to say the connection is always connected, because if
             // spot has no signalling it will not be in a meeting where this is used.
             // eslint-disable-next-line no-empty-function
@@ -185,8 +187,11 @@ export default class ProxyConnectionPC {
             connected: true,
             jingle: {
                 terminate: () => { /** no-op */ }
-            },
-            sendIQ: this._onSendMessage
+            } as any,
+            sendIQ: (elem: Element, callback?: any, errback?: any, timeout?: number) => {
+                this._onSendMessage(elem, callback);
+                return 0;
+            }
         };
 
         /**
@@ -214,13 +219,14 @@ export default class ProxyConnectionPC {
          * @type {Function}
          * @returns {void}
          */
-        const emitter = (event: string) => {
+        const emitter = (event: string, ...args: any[]): boolean => {
             switch (event) {
             case XMPPEvents.CONNECTION_ICE_FAILED:
             case XMPPEvents.CONNECTION_FAILED:
                 this._onError(ACTIONS.CONNECTION_ERROR, event);
                 break;
             }
+            return true; // EventEmitter.emit should return boolean
         };
 
         /**
@@ -229,13 +235,13 @@ export default class ProxyConnectionPC {
          * is instantiated outside of the {@code JitsiConference}, so it must be
          * stubbed to prevent errors.
          *
-         * @type {Object}
+         * @type {ChatRoom}
          */
-        const roomStub: any = {
+        const roomStub: Partial<ChatRoom> = {
             addEventListener: () => { /* no op */ },
             addPresenceListener: () => { /* no-op */ },
             connectionTimes: {},
-            eventEmitter: { emit: emitter },
+            eventEmitter: { emit: emitter } as any,
             removeEventListener: () => { /* no op */ },
             removePresenceListener: () => { /* no-op */ }
         };
@@ -270,7 +276,7 @@ export default class ProxyConnectionPC {
             undefined, // sid
             undefined, // localJid
             this._options.peerJid, // remoteJid
-            connectionStub, // connection
+            connectionStub as XmppConnection, // connection
             {
                 offerToReceiveAudio: this._options.receiveAudio,
                 offerToReceiveVideo: this._options.receiveVideo
@@ -282,13 +288,13 @@ export default class ProxyConnectionPC {
 
         const signalingLayer = new CustomSignalingLayer();
 
-        signalingLayer.setChatRoom(roomStub);
+        signalingLayer.setChatRoom(roomStub as ChatRoom);
 
         /**
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, this._rtc, signalingLayer as any, configStub);
+        peerConnection.initialize(roomStub as ChatRoom, this._rtc, signalingLayer as any, configStub);
 
         return peerConnection;
     }
