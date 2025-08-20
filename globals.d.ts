@@ -16,7 +16,4 @@ declare global {
             writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
         }
     }
-    interface RTCRtpEncodingParameters {
-        codec?: RTCRtpCodec;
-    }
 }
