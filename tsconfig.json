@@ -43,9 +43,14 @@
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",
+      "modules/util/Listenable.ts",
     ],
     "excludePrivate": true,
     "excludeProtected": true,
     "readme": "none",
+    "plugin": [
+      "typedoc-plugin-no-inherit",
+      "typedoc-plugin-rename-defaults"
+    ]
   }
 }
