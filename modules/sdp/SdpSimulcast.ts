@@ -4,12 +4,6 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
-
-interface IDescription {
-    sdp: string;
-    type: RTCSdpType;
-}
-
 /**
  * This class handles SDP munging for enabling simulcast for local video streams in Unified plan. A set of random SSRCs
  * are generated for the higher layer streams and they are cached for a given mid. The cached SSRCs are then reused on
@@ -180,7 +174,7 @@ export default class SdpSimulcast {
      * @param description
      * @returns
      */
-    mungeLocalDescription(description: IDescription): IDescription {
+    mungeLocalDescription(description: RTCSessionDescription): RTCSessionDescription {
         if (!description?.sdp) {
             return description;
         }
@@ -226,9 +220,9 @@ export default class SdpSimulcast {
             }
         }
 
-        return {
+        return new RTCSessionDescription({
             sdp: transform.write(session),
             type: description.type
-        };
+        });
     }
 }
