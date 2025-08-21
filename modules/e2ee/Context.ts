@@ -31,7 +31,7 @@ const IV_LENGTH = 12;
 const RATCHET_WINDOW_SIZE = 8;
 
 export interface IContextOptions {
-    sharedKey?: boolean;
+    sharedKey?: boolean | ArrayBuffer;
 }
 
 export interface IEncodedFrame {
@@ -58,7 +58,7 @@ export class Context {
     private _cryptoKeyRing: (ICryptoKeyData | false)[];
     private _currentKeyIndex: number;
     private _sendCounts: Map<number, number>;
-    private _sharedKey: boolean;
+    private _sharedKey: ArrayBuffer | boolean;
     private _enabled: boolean;
 
     /**
