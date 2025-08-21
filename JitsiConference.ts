@@ -511,7 +511,6 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} isAuthenticatedUser - Whether or not the user has connected
      * to the XMPP service with a password.
      * @returns {string}
-     * @static
      */
     static resourceCreator(jid: string, isAuthenticatedUser: boolean): string {
         let mucNickname: string;

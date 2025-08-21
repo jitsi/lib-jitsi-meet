@@ -52,7 +52,6 @@ export default class JitsiParticipant {
     /**
      * Initializes a new JitsiParticipant instance.
      *
-     * @constructor
      * @param jid the conference XMPP jid
      * @param conference
      * @param displayName
