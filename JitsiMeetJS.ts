@@ -123,13 +123,13 @@ export interface IJoinConferenceOptions {
 const mediaDevices = new JitsiMediaDevices();
 
 /**
- * The public API of the Jitsi Meet library (a.k.a. {@code JitsiMeetJS}).
+ * The public API of the Jitsi Meet library (a.k.a. `JitsiMeetJS`).
  */
 const JitsiMeetJS = {
     JitsiConnection,
 
     /**
-     * {@code ProxyConnectionService} is used to connect a remote peer to a local Jitsi participant without going
+     * `ProxyConnectionService` is used to connect a remote peer to a local Jitsi participant without going
      * through a Jitsi conference. It is currently used for room integration development, specifically wireless
      * screensharing. Its API is experimental and will likely change; usage of it is advised against.
      */
@@ -425,8 +425,8 @@ const JitsiMeetJS = {
      * Returns whether the current execution environment supports WebRTC (for
      * use within this library).
      *
-     * @returns {boolean} {@code true} if WebRTC is supported in the current
-     * execution environment (for use within this library); {@code false},
+     * @returns {boolean} `true` if WebRTC is supported in the current
+     * execution environment (for use within this library); `false`,
      * otherwise.
      */
     isWebRtcSupported() {
@@ -631,7 +631,7 @@ const JitsiMeetJS = {
      * Informs lib-jitsi-meet about the current network status.
      *
      * @param {object} state - The network info state.
-     * @param {boolean} state.isOnline - {@code true} if the internet connectivity is online or {@code false}
+     * @param {boolean} state.isOnline - `true` if the internet connectivity is online or `false`
      * otherwise.
      */
     setNetworkInfo({ isOnline }) {

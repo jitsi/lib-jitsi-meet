@@ -221,7 +221,7 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  * @param options.connection the JitsiConnection object for this
  * JitsiConference.
  * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
- * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
+ * collected by `AvgRTPStatsReporter`, before arithmetic mean is
  * calculated and submitted to the analytics module.
  * @param {boolean} [options.config.p2p.enabled] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
@@ -3639,8 +3639,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Starts recording the current conference.
      *
-     * @param {IRecordingOptions} options - Configuration for the recording. See
-     * {@link Chatroom#startRecording} for more info.
+     * @param {IRecordingOptions} options - Configuration for the recording.
      * @returns {Promise} Resolves when recording starts successfully, rejects otherwise.
      */
     public startRecording(options: IRecordingOptions): Promise<JibriSession> {
@@ -4155,7 +4154,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Creates a video SIP GW session and returns it if service is enabled. Before
      * creating a session one need to check whether video SIP GW service is
-     * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
+     * available in the system. Even
      * if there are available nodes to serve this request, after creating the
      * session those nodes can be taken and the request about using the
      * created session can fail.
@@ -4341,7 +4340,7 @@ export default class JitsiConference extends Listenable {
      * Sends a message to a lobby room.
      * When id is specified it sends a private message.
      * Otherwise it sends the message to all moderators.
-     * @param {message} Object The message to send
+     * @param {object} message The message to send
      * @param {string} id The participant id.
      *
      * @returns {void}
