@@ -598,7 +598,7 @@ export default class TraceablePeerConnection {
             return '';
         }
 
-        return `type: ${description.type}\r\n${description?.sdp}`;
+        return `type: ${description.type}\r\n${description.sdp}`;
     };
 
     /**
@@ -1046,7 +1046,7 @@ export default class TraceablePeerConnection {
 
         this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
 
-        const handleSuccess = (resultSdp: RTCSessionDescription, resolveFn: (result: RTCSessionDescription) => void, rejectFn: (error: string) => void): void => {
+        const handleSuccess = (resultSdp: Nullable<RTCSessionDescription>, resolveFn: (result: RTCSessionDescription) => void, rejectFn: (error: string) => void): void => {
             try {
                 this.trace(
                     `create${logName}OnSuccess::preTransform`, TraceablePeerConnection.dumpSDP(resultSdp));
@@ -1072,7 +1072,9 @@ export default class TraceablePeerConnection {
                         TraceablePeerConnection.dumpSDP(resultSdp));
                 }
 
-                this._processAndExtractSourceInfo(resultSdp?.sdp);
+                if (resultSdp?.sdp) {
+                    this._processAndExtractSourceInfo(resultSdp.sdp);
+                }
 
                 resolveFn(resultSdp as RTCSessionDescription);
             } catch (e) {
@@ -1847,7 +1849,7 @@ export default class TraceablePeerConnection {
     get localDescription(): Nullable<RTCSessionDescription> {
         let desc = this.peerconnection.localDescription;
 
-        if (!desc) {
+        if (!desc?.sdp) {
             logger.debug(`${this} getLocalDescription no localDescription found`);
 
             return null;
@@ -1871,7 +1873,7 @@ export default class TraceablePeerConnection {
     get remoteDescription(): Nullable<RTCSessionDescription> {
         let desc = this.peerconnection.remoteDescription;
 
-        if (!desc) {
+        if (!desc?.sdp) {
             logger.debug(`${this} getRemoteDescription no remoteDescription found`);
 
             return null;
