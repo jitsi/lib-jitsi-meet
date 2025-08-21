@@ -563,6 +563,7 @@ export class TPCUtils {
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
             // @ts-ignore import type from tpc
             const { encodings } = rtpSender.getParameters() as IExtendedRtpParameters;
+
             // @ts-ignore
             if (encodings[0].codec) {
                 // @ts-ignore
