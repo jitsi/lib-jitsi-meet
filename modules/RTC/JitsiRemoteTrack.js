@@ -79,6 +79,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this._sourceName = sourceName;
         this._trackStreamingStatus = null;
         this._trackStreamingStatusImpl = null;
+        this.rtcId = null;
 
         /**
          * This holds the timestamp indicating when remote video track entered forwarded sources set. Track entering
