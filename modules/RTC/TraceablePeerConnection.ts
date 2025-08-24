@@ -1846,13 +1846,13 @@ export default class TraceablePeerConnection {
      * Gets the local description of the peer connection, with optional transformations for
      * simulcast and stream identifiers.
      */
-    get localDescription(): Optional<RTCSessionDescription> {
+    get localDescription(): RTCSessionDescription {
         let desc = this.peerconnection.localDescription;
 
         if (!desc) {
             logger.debug(`${this} getLocalDescription no localDescription found`);
 
-            return undefined;
+            return {} as RTCSessionDescription;
         }
 
         this.trace('getLocalDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
@@ -1870,13 +1870,13 @@ export default class TraceablePeerConnection {
     /**
      * Gets the remote description of the peer connection, with optional adjustments for media direction in P2P mode.
      */
-    get remoteDescription(): Optional<RTCSessionDescription> {
+    get remoteDescription(): RTCSessionDescription {
         let desc = this.peerconnection.remoteDescription;
 
         if (!desc) {
             logger.debug(`${this} getRemoteDescription no remoteDescription found`);
 
-            return undefined;
+            return {} as RTCSessionDescription;
         }
         this.trace('getRemoteDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
 
