@@ -19,7 +19,7 @@ export default class JitsiMediaDevices extends Listenable {
     private _permissionsApiSupported: Promise<boolean>;
 
     /**
-     * Initializes a {@code JitsiMediaDevices} object. There will be a single
+     * Initializes a `JitsiMediaDevices` object. There will be a single
      * instance of this class.
      */
     constructor() {
@@ -49,7 +49,7 @@ export default class JitsiMediaDevices extends Listenable {
     /**
      * Updates the local granted/denied permissions cache. A permissions might be
      * granted, denied, or undefined. This is represented by having its media
-     * type key set to {@code true} or {@code false} respectively.
+     * type key set to `true` or `false` respectively.
      *
      * @param {Object} permissions - Object with the permissions.
      */

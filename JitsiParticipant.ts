@@ -52,7 +52,6 @@ export default class JitsiParticipant {
     /**
      * Initializes a new JitsiParticipant instance.
      *
-     * @constructor
      * @param jid the conference XMPP jid
      * @param conference
      * @param displayName
@@ -391,8 +390,8 @@ export default class JitsiParticipant {
     /**
      * Sets the value of a property of this participant, and fires an event if
      * the value has changed.
-     * @name the name of the property.
-     * @value the value to set.
+     * @param {string} name the name of the property.
+     * @param {any} value the value to set.
      */
     setProperty(name: string, value: any): void {
         const oldValue = this._properties.get(name);

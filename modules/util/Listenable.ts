@@ -13,7 +13,6 @@ export default class Listenable {
 
     /**
      * Creates new instance.
-     * @constructor
      */
     constructor() {
         this.eventEmitter = new EventEmitter();
