@@ -4,6 +4,25 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import ChatRoom, { parser } from './ChatRoom';
 import Moderator from './moderator';
+import XMPP from './xmpp';
+import XmppConnection from './XmppConnection';
+import { IPresenceNode } from './SignalingLayerImpl';
+
+// Mock connection interface for tests
+interface IMockConnection {
+    send: () => void;
+}
+
+// Mock XMPP interface for tests  
+interface IMockXMPP {
+    moderator: Moderator;
+    options: Record<string, any>;
+    addListener: () => void;
+}
+
+// Jasmine types for spies
+declare let spyOn: (object: any, method: string) => jasmine.Spy;
+declare let jasmine: any;
 
 // This rule makes creating the xml elements take up way more
 // space than necessary.
@@ -13,7 +32,7 @@ import Moderator from './moderator';
 
 describe('ChatRoom', () => {
     describe('packet2JSON', () => {
-        let nodes = [];
+        let nodes: IPresenceNode[] = [];
 
         beforeEach(() => {
             nodes = [];
@@ -33,16 +52,16 @@ describe('ChatRoom', () => {
             expect(nodes.length).toBe(1);
 
             const fakeWithAttr = nodes
-                .find(n => n.tagName === 'fake-with-attr');
+                .find((n) => n.tagName === 'fake-with-attr');
 
             expect(fakeWithAttr).toBeTruthy();
-            expect(Object.keys(fakeWithAttr.attributes).length).toEqual(2);
-            expect(fakeWithAttr.attributes.fakeAttr1).toBeTruthy();
-            expect(fakeWithAttr.attributes.fakeAttr1).toEqual('attrValue1');
-            expect(fakeWithAttr.attributes.fakeAttr2).toBeTruthy();
-            expect(fakeWithAttr.attributes.fakeAttr2).toEqual('attrValue2');
-            expect(fakeWithAttr.children.length).toEqual(0);
-            expect(fakeWithAttr.value).toBeFalsy();
+            expect(Object.keys(fakeWithAttr!.attributes).length).toEqual(2);
+            expect(fakeWithAttr!.attributes.fakeAttr1).toBeTruthy();
+            expect(fakeWithAttr!.attributes.fakeAttr1).toEqual('attrValue1');
+            expect(fakeWithAttr!.attributes.fakeAttr2).toBeTruthy();
+            expect(fakeWithAttr!.attributes.fakeAttr2).toEqual('attrValue2');
+            expect(fakeWithAttr!.children.length).toEqual(0);
+            expect(fakeWithAttr!.value).toBeFalsy();
         });
 
         it('translates element text correctly', () => {
@@ -55,12 +74,12 @@ describe('ChatRoom', () => {
             parser.packet2JSON(p.tree(), nodes);
 
             expect(nodes.length).toBe(1);
-            const elem = nodes.find(n => n.tagName === 'element-name');
+            const elem = nodes.find((n: IPresenceNode) => n.tagName === 'element-name');
 
             expect(elem).toBeTruthy();
-            expect(Object.keys(elem.attributes).length).toEqual(0);
-            expect(elem.children.length).toEqual(0);
-            expect(elem.value).toEqual('element-name-text');
+            expect(Object.keys(elem!.attributes).length).toEqual(0);
+            expect(elem!.children.length).toEqual(0);
+            expect(elem!.value).toEqual('element-name-text');
         });
 
         it('translates elements with children correctly', () => {
@@ -79,78 +98,78 @@ describe('ChatRoom', () => {
 
             parser.packet2JSON(p.tree(), nodes);
 
-            const identity = nodes.find(n => n.tagName === 'identity');
+            const identity = nodes.find((n: IPresenceNode) => n.tagName === 'identity');
 
             expect(identity).toBeTruthy();
-            expect(Object.keys(identity.attributes).length).toEqual(0);
-            expect(identity.children.length).toEqual(2);
+            expect(Object.keys(identity!.attributes).length).toEqual(0);
+            expect(identity!.children.length).toEqual(2);
             {
-                const user = identity.children
-                    .find(n => n.tagName === 'user');
+                const user = identity!.children
+                    .find((n: IPresenceNode) => n.tagName === 'user');
 
                 expect(user).toBeTruthy();
-                expect(Object.keys(user.attributes).length).toEqual(0);
-                expect(user.children.length).toEqual(3);
+                expect(Object.keys(user!.attributes).length).toEqual(0);
+                expect(user!.children.length).toEqual(3);
                 {
-                    const id = user.children
-                        .find(n => n.tagName === 'id');
+                    const id = user!.children
+                        .find((n: IPresenceNode) => n.tagName === 'id');
 
                     expect(id).toBeTruthy();
-                    expect(Object.keys(id.attributes).length).toEqual(0);
-                    expect(id.children.length).toEqual(0);
-                    expect(id.value).toEqual('id-text');
+                    expect(Object.keys(id!.attributes).length).toEqual(0);
+                    expect(id!.children.length).toEqual(0);
+                    expect(id!.value).toEqual('id-text');
                 }
                 {
-                    const name = user.children
-                        .find(n => n.tagName === 'name');
+                    const name = user!.children
+                        .find((n: IPresenceNode) => n.tagName === 'name');
 
                     expect(name).toBeTruthy();
-                    expect(Object.keys(name.attributes).length).toEqual(0);
-                    expect(name.children.length).toEqual(0);
-                    expect(name.value).toEqual('name-text');
+                    expect(Object.keys(name!.attributes).length).toEqual(0);
+                    expect(name!.children.length).toEqual(0);
+                    expect(name!.value).toEqual('name-text');
                 }
                 {
-                    const avatar = user.children
-                        .find(n => n.tagName === 'avatar');
+                    const avatar = user!.children
+                        .find((n: IPresenceNode) => n.tagName === 'avatar');
 
                     expect(avatar).toBeTruthy();
-                    expect(Object.keys(avatar.attributes).length).toEqual(0);
-                    expect(avatar.children.length).toEqual(0);
-                    expect(avatar.value).toEqual('avatar-text');
+                    expect(Object.keys(avatar!.attributes).length).toEqual(0);
+                    expect(avatar!.children.length).toEqual(0);
+                    expect(avatar!.value).toEqual('avatar-text');
                 }
-                expect(user.value).toBeFalsy();
+                expect(user!.value).toBeFalsy();
             }
             {
-                const group = identity.children
-                    .find(n => n.tagName === 'group');
+                const group = identity!.children
+                    .find((n: IPresenceNode) => n.tagName === 'group');
 
                 expect(group).toBeTruthy();
-                expect(Object.keys(group.attributes).length).toEqual(0);
-                expect(group.children.length).toEqual(0);
-                expect(group.value).toEqual('group-text');
+                expect(Object.keys(group!.attributes).length).toEqual(0);
+                expect(group!.children.length).toEqual(0);
+                expect(group!.value).toEqual('group-text');
             }
-            expect(identity.value).toBeFalsy();
+            expect(identity!.value).toBeFalsy();
         });
     });
 
     describe('onPresence', () => {
-        let room;
-        let emitterSpy;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
 
         beforeEach(() => {
-            const xmpp = {
+            const xmpp: IMockXMPP = {
                 moderator: new Moderator({
                     options: {}
-                }),
+                } as any),
                 options: {},
                 addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
-                {} /* connection */,
+                {} as XmppConnection /* connection */,
                 'jid',
                 'password',
-                xmpp,
+                xmpp as any,
                 {} /* options */);
             emitterSpy = spyOn(room.eventEmitter, 'emit');
         });
@@ -354,50 +373,50 @@ describe('ChatRoom', () => {
     });
 
     describe('sendMessage', () => {
-        let room;
-        let connectionSpy;
+        let room: ChatRoom;
+        let connectionSpy: jasmine.Spy;
 
         beforeEach(() => {
-            const xmpp = {
+            const xmpp: IMockXMPP = {
                 moderator: new Moderator({
                     options: {}
-                }),
+                } as any),
                 options: {},
                 addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
                 // eslint-disable-next-line no-empty-function
-                { send: () => {} } /* connection */,
+                { send: () => {} } as any as XmppConnection /* connection */,
                 'jid',
                 'password',
-                xmpp,
+                xmpp as any as XMPP,
                 {} /* options */);
             connectionSpy = spyOn(room.connection, 'send');
         });
         it('sends a string msg with elementName body correctly', () => {
-            room.sendMessage('string message', 'body', 'receiver');
+            room.sendMessage('string message', 'body');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<body>string message</body>' +
                 '</message>');
         });
         it('sends a object msg with elementName body correctly', () => {
-            room.sendMessage({ object: 'message' }, 'body', 'receiver');
+            room.sendMessage({ object: 'message' } as any, 'body');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<body object="message"/>' +
                 '</message>');
         });
         it('sends a string msg with elementName json-message correctly', () => {
-            room.sendMessage('string message', 'json-message', 'receiver');
+            room.sendMessage('string message', 'json-message');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<json-message xmlns="http://jitsi.org/jitmeet">string message</json-message>' +
                 '</message>');
         });
         it('sends a object msg with elementName json-message correctly', () => {
-            room.sendMessage({ object: 'message' }, 'json-message', 'receiver');
+            room.sendMessage({ object: 'message' } as any, 'json-message');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
                 '<json-message object="message" xmlns="http://jitsi.org/jitmeet"/>' +
@@ -406,23 +425,23 @@ describe('ChatRoom', () => {
     });
 
     describe('onMessage - reaction', () => {
-        let room;
-        let emitterSpy;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
 
         beforeEach(() => {
-            const xmpp = {
+            const xmpp: IMockXMPP = {
                 moderator: new Moderator({
                     options: {}
-                }),
+                } as any),
                 options: {},
                 addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
-                {} /* connection */,
+                {} as XmppConnection /* connection */,
                 'jid',
                 'password',
-                xmpp,
+                xmpp as any,
                 {} /* options */);
             emitterSpy = spyOn(room.eventEmitter, 'emit');
         });
@@ -498,24 +517,24 @@ describe('ChatRoom', () => {
     });
 
     describe('sendReaction', () => {
-        let room;
-        let connectionSpy;
+        let room: ChatRoom;
+        let connectionSpy: jasmine.Spy;
 
         beforeEach(() => {
-            const xmpp = {
+            const xmpp: IMockXMPP = {
                 moderator: new Moderator({
                     options: {}
-                }),
+                } as any),
                 options: {},
                 addListener: () => {} // eslint-disable-line no-empty-function
             };
 
             room = new ChatRoom(
                 // eslint-disable-next-line no-empty-function
-                { send: () => {} } /* connection */,
+                { send: () => {} } as any as XmppConnection /* connection */,
                 'jid',
                 'password',
-                xmpp,
+                xmpp as any as XMPP,
                 {} /* options */);
             connectionSpy = spyOn(room.connection, 'send');
         });
