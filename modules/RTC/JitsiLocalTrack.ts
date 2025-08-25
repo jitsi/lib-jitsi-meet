@@ -511,7 +511,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 = RTCUtils.obtainAudioAndVideoPermissions({
 
                     ...streamOptions,
-                    constraints: { video: this._constraints } } as any) as Promise<IStreamInfo[]>;
+                    constraints: { video: this._constraints } }) as Promise<IStreamInfo[]>;
 
             promise = promise.then((streamsInfo: IStreamInfo[]) => {
                 const streamInfo = streamsInfo.find(info => info.track.kind === this.getType());
