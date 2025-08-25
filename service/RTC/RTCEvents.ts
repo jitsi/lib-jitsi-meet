@@ -11,6 +11,11 @@ export enum RTCEvents {
     AUDIO_SSRCS_REMAPPED = 'rtc.audio_ssrcs_remapped',
 
     /**
+     * Designates an event indicating that the audio subscription mode has changed.
+     */
+    AUDIO_SUBSCRIPTION_MODE_CHANGED = 'rtc.audio_subscription_mode_changed',
+
+    /**
      * Designates an event indicating that the bridge bandwidth estimation stats have been received.
      */
     BRIDGE_BWE_STATS_RECEIVED = 'rtc.bridge_bwe_stats_received',
@@ -131,6 +136,7 @@ export enum RTCEvents {
     VIDEO_SSRCS_REMAPPED = 'rtc.video_ssrcs_remapped'
 }
 
+export const AUDIO_SUBSCRIPTION_MODE_CHANGED = RTCEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED;
 export const BRIDGE_BWE_STATS_RECEIVED = RTCEvents.BRIDGE_BWE_STATS_RECEIVED;
 export const DATA_CHANNEL_OPEN = RTCEvents.DATA_CHANNEL_OPEN;
 export const DATA_CHANNEL_CLOSED = RTCEvents.DATA_CHANNEL_CLOSED;

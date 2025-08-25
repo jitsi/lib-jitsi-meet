@@ -8,6 +8,7 @@ describe( "/service/statistics/Events members", () => {
         BEFORE_DISPOSED,
         BYTE_SENT_STATS,
         CONNECTION_STATS,
+        DOMINANT_SPEAKER_CHANGED,
         ENCODE_TIME_STATS,
         Events,
         ...others
@@ -18,6 +19,7 @@ describe( "/service/statistics/Events members", () => {
         expect( BEFORE_DISPOSED ).toBe( 'statistics.before_disposed' );
         expect( BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
         expect( CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
+        expect( DOMINANT_SPEAKER_CHANGED ).toBe( 'statistics.dominantSpeakerChanged' );
         expect( ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
 
         expect( Events ).toBeDefined();
@@ -26,6 +28,7 @@ describe( "/service/statistics/Events members", () => {
         expect( Events.BEFORE_DISPOSED ).toBe( 'statistics.before_disposed' );
         expect( Events.BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
         expect( Events.CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
+        expect( Events.DOMINANT_SPEAKER_CHANGED ).toBe( 'statistics.dominantSpeakerChanged' );
         expect( Events.ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
     } );
 

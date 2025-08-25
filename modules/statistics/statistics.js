@@ -101,9 +101,7 @@ export default class Statistics {
             Statistics.audioLevelsInterval = options.audioLevelsInterval;
         }
 
-        if (typeof options.longTasksStatsInterval === 'number') {
-            Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
-        }
+        Statistics.dominantSpeakerEnabled = options.enableDominantSpeaker;
 
         Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 
@@ -249,6 +247,7 @@ export default class Statistics {
         this.conference = conference;
         this.xmpp = conference?.xmpp;
         this.options = options || {};
+        this.dominantSpeakerEnabled = Statistics.dominantSpeakerEnabled;
 
         Statistics.instances.add(this);
 
@@ -273,7 +272,8 @@ export default class Statistics {
                     peerconnection,
                     Statistics.audioLevelsInterval,
                     Statistics.pcStatsInterval,
-                    this.eventEmitter);
+                    this.eventEmitter,
+                    this.dominantSpeakerEnabled);
 
             rtpStats.start(Statistics.audioLevelsEnabled);
             this.rtpStatsMap.set(peerconnection.id, rtpStats);
@@ -291,6 +291,18 @@ export default class Statistics {
             return;
         }
         this.eventEmitter.on(StatisticsEvents.AUDIO_LEVEL, listener);
+    }
+
+    /**
+     * Adds a listener for dominant speaker events.
+     * @param {Function} listener - The listener to add.
+     * @returns {void}
+     */
+    addDominantSpeakerListener(listener) {
+        if (!this.dominantSpeakerEnabled) {
+            return;
+        }
+        this.eventEmitter.on(StatisticsEvents.DOMINANT_SPEAKER_CHANGED, listener);
     }
 
     /**
@@ -319,6 +331,14 @@ export default class Statistics {
     removeBeforeDisposedListener(listener) {
         this.eventEmitter.removeListener(
             StatisticsEvents.BEFORE_DISPOSED, listener);
+    }
+
+    /**
+     * Removes a dominant speaker listener.
+     * @param {Function} listener - The listener to remove.
+     */
+    removeDominantSpeakerListener(listener) {
+        this.eventEmitter.removeListener(StatisticsEvents.DOMINANT_SPEAKER_CHANGED, listener);
     }
 
     /**
