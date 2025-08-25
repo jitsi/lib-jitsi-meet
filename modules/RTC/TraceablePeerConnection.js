@@ -80,7 +80,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.audioTransferActive = !(options.startSilent === true);
 
@@ -116,7 +116,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.videoTransferActive = true;
 
@@ -545,8 +545,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn() {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-            && this.tpcUtils.supportsDDHeaderExt;
+        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
