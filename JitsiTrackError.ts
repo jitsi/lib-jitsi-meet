@@ -51,7 +51,6 @@ export default class JitsiTrackError extends Error {
     public gum?: IGum;
 
     /**
-     * @constructor
      * @param {IGumError|string} error - error object or error name
      * @param {IGumOptions|string} [options] - getUserMedia constraints object or error message
      * @param {DeviceType[]} [devices] - list of getUserMedia requested devices

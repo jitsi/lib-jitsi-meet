@@ -6,11 +6,11 @@ import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import type JitsiConnection from './JitsiConnection';
+import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiParticipant from './JitsiParticipant';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
-import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import type JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import type JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import type JitsiTrack from './modules/RTC/JitsiTrack';
@@ -212,6 +212,33 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
 }
 
 /**
+ * Error returned by authenticateAndUpgradeRole when authentication or connection fails.
+ */
+interface IUpgradeRoleError {
+    authenticationError?: string;
+    connectionError?: JitsiConnectionEvents;
+    credentials?: {
+        jid?: string;
+        password?: string;
+    };
+    message?: string;
+}
+
+/**
+ * Options for authenticateAndUpgradeRole.
+ */
+interface IAuthenticateAndUpgradeRoleOptions {
+    id: string;
+    onCreateResource?: typeof JitsiConference.resourceCreator;
+    onLoginSuccessful?: () => void;
+    password: string;
+}
+interface IProcessWithCancel extends Promise<void> {
+    cancel: () => void;
+}
+
+
+/**
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
  * created using JitsiConnection.createConference).
@@ -221,7 +248,7 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  * @param options.connection the JitsiConnection object for this
  * JitsiConference.
  * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
- * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
+ * collected by `AvgRTPStatsReporter`, before arithmetic mean is
  * calculated and submitted to the analytics module.
  * @param {boolean} [options.config.p2p.enabled] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
@@ -234,14 +261,8 @@ function _getCodecMimeType(codec: string): Nullable<CodecMimeType> {
  * @param {number} [options.config.channelLastN=-1] The requested amount of
  * videos are going to be delivered after the value is in effect. Set to -1 for
  * unlimited or all available videos.
- * @constructor
  *
- * FIXME Make all methods which are called from lib-internal classes
- *       to non-public (use _). To name a few:
- *       {@link JitsiConference.onLocalRoleChanged}
- *       {@link JitsiConference.onUserRoleChanged}
- *       {@link JitsiConference.onMemberLeft}
- *       and so on...
+ * @noInheritDoc
  */
 export default class JitsiConference extends Listenable {
     private _transcribingEnabled?: boolean;
@@ -517,7 +538,6 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} isAuthenticatedUser - Whether or not the user has connected
      * to the XMPP service with a password.
      * @returns {string}
-     * @static
      */
     static resourceCreator(jid: string, isAuthenticatedUser: boolean): string {
         let mucNickname: string;
@@ -2309,19 +2329,115 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-   * Authenticates and upgrades the role of the local participant/user.
-   *
-   * @param {Object} options - Configuration options for authentication.
-   * @returns {Object} A thenable which (1) settles when the process of
-   * authenticating and upgrading the role of the local participant/user finishes
-   * and (2) has a cancel method that allows the caller to interrupt the process.
-   * @internal
-   */
-    authenticateAndUpgradeRole(options) { // TODO: fix types after migration of authenticateAndUpgradeRole.js
-        return authenticateAndUpgradeRole.call(this, {
-            ...options,
-            onCreateResource: JitsiConference.resourceCreator
+     * Connects to the XMPP server using the specified credentials and contacts
+     * Jicofo in order to obtain a session ID (which is then stored in the local
+     * storage). The user's role of the parent conference will be upgraded to
+     * moderator (by Jicofo). It's also used to join the conference when starting
+     * from anonymous domain and only authenticated users are allowed to create new
+     * rooms.
+     *
+     * @param options - Options for authentication and upgrade.
+     * @returns A thenable which settles when the process finishes and has a cancel method.
+     * @internal
+     */
+    authenticateAndUpgradeRole({
+        id,
+        password,
+        onCreateResource,
+
+        // 2. Let the API client/consumer know as soon as the XMPP user has been
+        //    successfully logged in.
+        onLoginSuccessful
+    }: IAuthenticateAndUpgradeRoleOptions): Promise<void> {
+        let canceled = false;
+        let rejectPromise: (reason?: IUpgradeRoleError | {}) => void;
+        let xmpp: XMPP = new XMPP(this.connection.options, undefined);
+
+        const process = new Promise<void>((resolve, reject) => {
+            // The process is represented by a Thenable with a cancel method. The
+            // Thenable is implemented using Promise and the cancel using the
+            // Promise's reject function.
+            rejectPromise = reject;
+            xmpp.addListener(
+                JitsiConnectionEvents.CONNECTION_DISCONNECTED,
+                () => {
+                    xmpp = undefined;
+                });
+            xmpp.addListener(
+                JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+                () => {
+                    if (canceled) {
+                        return;
+                    }
+
+                    // Let the caller know that the XMPP login was successful.
+                    onLoginSuccessful?.();
+
+                    // Now authenticate with Jicofo and get a new session ID.
+                    const room = xmpp.createRoom(
+                    this.options.name,
+                    this.options.config,
+                    onCreateResource
+                    );
+
+                    room.xmpp.moderator.authenticate(room.roomjid)
+                    .then(() => {
+                        xmpp?.disconnect();
+
+                        if (canceled) {
+                            return;
+                        }
+
+                        // we execute this logic in JitsiConference where we bind the current conference as `this`
+                        // At this point we should have the new session ID
+                        // stored in the settings. Send a new conference IQ.
+                        this.room.xmpp.moderator.sendConferenceRequest(this.room.roomjid)
+                            .catch(e => logger.trace('sendConferenceRequest rejected', e))
+                            .finally(() => {
+                                // we need to reset it because of breakout rooms which will
+                                // reuse connection but will invite jicofo
+                                this.room.xmpp.moderator.conferenceRequestSent = false;
+
+                                resolve(undefined);
+                            });
+                    })
+                    .catch(({ error, message }) => {
+                        xmpp.disconnect();
+
+                        reject({
+                            authenticationError: error,
+                            message
+                        });
+                    });
+                });
+            xmpp.addListener(
+                JitsiConnectionEvents.CONNECTION_FAILED,
+                (connectionError: JitsiConnectionEvents, message: string, credentials: { jid?: string; password?: string; }) => {
+                    reject({
+                        connectionError,
+                        credentials,
+                        message
+                    });
+                    xmpp = undefined;
+                });
+
+            canceled || xmpp.connect(id, password);
         });
+
+        /**
+     * Cancels the process, if it's in progress, of authenticating and upgrading
+     * the role of the local participant/user.
+     *
+     * @public
+     * @returns {void}
+     */
+        (process as IProcessWithCancel).cancel = () => {
+            canceled = true;
+            rejectPromise({});
+            xmpp?.disconnect();
+        };
+
+        return process;
     }
 
     /**
@@ -3645,8 +3761,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Starts recording the current conference.
      *
-     * @param {IRecordingOptions} options - Configuration for the recording. See
-     * {@link Chatroom#startRecording} for more info.
+     * @param {IRecordingOptions} options - Configuration for the recording.
      * @returns {Promise} Resolves when recording starts successfully, rejects otherwise.
      */
     public startRecording(options: IRecordingOptions): Promise<JibriSession> {
@@ -4161,7 +4276,7 @@ export default class JitsiConference extends Listenable {
     /**
      * Creates a video SIP GW session and returns it if service is enabled. Before
      * creating a session one need to check whether video SIP GW service is
-     * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
+     * available in the system. Even
      * if there are available nodes to serve this request, after creating the
      * session those nodes can be taken and the request about using the
      * created session can fail.
@@ -4347,7 +4462,7 @@ export default class JitsiConference extends Listenable {
      * Sends a message to a lobby room.
      * When id is specified it sends a private message.
      * Otherwise it sends the message to all moderators.
-     * @param {message} Object The message to send
+     * @param {object} message The message to send
      * @param {string} id The participant id.
      *
      * @returns {void}
