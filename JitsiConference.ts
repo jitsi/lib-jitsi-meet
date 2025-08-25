@@ -90,6 +90,7 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import { config } from 'process';
 
 export interface IConferenceOptions {
     config: {
@@ -2376,7 +2377,10 @@ export default class JitsiConference extends Listenable {
                     // Now authenticate with Jicofo and get a new session ID.
                     const room = xmpp.createRoom(
                     this.options.name,
-                    this.options.config,
+                    {
+                        ...this.options.config,
+                        statsId: this._statsCurrentId
+                    },
                     onCreateResource
                     );
 
