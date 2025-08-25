@@ -1852,7 +1852,8 @@ export default class TraceablePeerConnection {
         if (!desc) {
             logger.debug(`${this} getLocalDescription no localDescription found`);
 
-            return new RTCSessionDescription({ sdp: '', type: undefined });
+            // @ts-ignore
+            return {};
         }
 
         this.trace('getLocalDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
@@ -1876,7 +1877,8 @@ export default class TraceablePeerConnection {
         if (!desc) {
             logger.debug(`${this} getRemoteDescription no remoteDescription found`);
 
-            return new RTCSessionDescription({ sdp: '', type: undefined });
+            // @ts-ignore
+            return {};
         }
         this.trace('getRemoteDescription::preTransform', TraceablePeerConnection.dumpSDP(desc));
 
