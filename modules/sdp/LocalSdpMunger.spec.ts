@@ -20,11 +20,11 @@ function getSsrcLines(desc, mediaType) {
 
 describe('TransformSdpsForUnifiedPlan', () => {
     let localSdpMunger;
-    const tpc = new MockPeerConnection('1', true);
+    const tpc = new MockPeerConnection('1', true, false);
     const localEndpointId = 'sRdpsdg';
 
     beforeEach(() => {
-        localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
+        localSdpMunger = new LocalSdpMunger(tpc as any, localEndpointId);
     });
     describe('StripSsrcs', () => {
         describe('should strip label and mslabel from an sdp with msid', () => {
@@ -127,10 +127,10 @@ describe('TransformSdpsForUnifiedPlan', () => {
 });
 
 describe('Transform msids for source-name signaling', () => {
-    const tpc = new MockPeerConnection('1', false);
+    const tpc = new MockPeerConnection('1', false, false);
     const localEndpointId = 'sRdpsdg';
 
-    const localSdpMunger = new LocalSdpMunger(tpc, localEndpointId);
+    const localSdpMunger = new LocalSdpMunger(tpc as any, localEndpointId);
     let audioMsid, audioMsidLine, videoMsid, videoMsidLine;
     const transformStreamIdentifiers = () => {
         const sdpStr = transform.write(SampleSdpStrings.simulcastRtxSdp);
