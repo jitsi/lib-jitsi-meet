@@ -563,4 +563,183 @@ describe('ChatRoom', () => {
             expect(() => room.sendReaction('foo bar baz', 'mdgId123', 'participant1')).toThrowError(/Invalid reaction/);
         });
     });
+
+    describe('onMessage - private messages with display-name extension', () => {
+        let room;
+        let emitterSpy;
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                }),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                {} /* connection */,
+                'jid',
+                'password',
+                xmpp,
+                {} /* options */);
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('parses private message with display-name extension correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="chat" id="msg123" xmlns="jabber:client">' +
+                    '<body>Hello from visitor</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="visitor">Visitor Name</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello from visitor',
+                room.myroomjid,
+                undefined, // stamp
+                'msg123', // messageId
+                'Visitor Name', // displayName
+                true, // isVisitorMessage
+                undefined); // originalFrom
+        });
+
+        it('parses private message with display-name extension and addresses correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="chat" id="msg124" xmlns="jabber:client">' +
+                    '<body>Hello with address</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="visitor">Visitor Name</display-name>' +
+                    '<addresses xmlns="http://jabber.org/protocol/address">' +
+                        '<address type="ofrom" jid="original@visitor.com"/>' +
+                    '</addresses>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello with address',
+                room.myroomjid,
+                undefined, // stamp
+                'msg124', // messageId
+                'Visitor Name', // displayName
+                true, // isVisitorMessage
+                'original@visitor.com'); // originalFrom
+        });
+
+        it('parses private message without display-name extension correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="chat" id="msg125" xmlns="jabber:client">' +
+                    '<body>Hello without display name</body>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello without display name',
+                room.myroomjid,
+                undefined, // stamp
+                'msg125', // messageId
+                undefined, // displayName
+                false, // isVisitorMessage
+                undefined); // originalFrom
+        });
+    });
+
+    describe('onMessage - group messages with display-name extension', () => {
+        let room;
+        let emitterSpy;
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                }),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                {} /* connection */,
+                'jid',
+                'password',
+                xmpp,
+                {} /* options */);
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('parses group message with display-name extension correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg126" xmlns="jabber:client">' +
+                    '<body>Hello from visitor to group</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="visitor">Group Visitor</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello from visitor to group',
+                room.myroomjid,
+                undefined, // stamp
+                'Group Visitor', // displayName from visitor
+                true, // isVisitorMessage
+                'msg126', // messageId
+                undefined); // source (null for visitor messages)
+        });
+
+        it('parses group message with display-name extension from non-visitor correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg127" xmlns="jabber:client">' +
+                    '<body>Hello from regular user</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="jitsi-meet">Regular User</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello from regular user',
+                room.myroomjid,
+                undefined, // stamp
+                undefined, // displayName
+                false, // isVisitorMessage
+                'msg127', // messageId
+                'jitsi-meet'); // source
+        });
+
+        it('parses group message without display-name extension correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg128" xmlns="jabber:client">' +
+                    '<body>Hello without display name extension</body>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello without display name extension',
+                room.myroomjid,
+                undefined, // stamp
+                undefined, // displayName
+                false, // isVisitorMessage
+                'msg128', // messageId
+                undefined); // source (undefined when no display-name element)
+        });
+    });
 });
