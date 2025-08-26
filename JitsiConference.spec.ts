@@ -85,12 +85,12 @@ describe('JitsiConference', () => {
             eventManager.setupChatRoomListeners();
         });
 
-        it('transforms XMPPEvents.MESSAGE_RECEIVED to JitsiConferenceEvents.MESSAGE_RECEIVED correctly', () => {
+        it('transforms XMPPEvents.MESSAGE_RECEIVED with source=visitor correctly', () => {
             // Get the MESSAGE_RECEIVED listener that was registered
             const messageListener = mockChatRoom.listeners.get(XMPPEvents.MESSAGE_RECEIVED);
             expect(messageListener).toBeDefined();
 
-            // Simulate ChatRoom firing MESSAGE_RECEIVED event with display-name extension
+            // Simulate ChatRoom firing MESSAGE_RECEIVED event with display-name extension source='visitor'
             messageListener(
                 'participant@example.com/resource', // jid
                 'Hello from visitor',                // txt
@@ -99,7 +99,7 @@ describe('JitsiConference', () => {
                 'Visitor Name',                      // displayName
                 true,                                // isVisitor
                 'msg123',                           // messageId
-                'visitor'                           // source
+                undefined                           // source (undefined for visitor)
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -110,7 +110,65 @@ describe('JitsiConference', () => {
                 'Visitor Name',         // displayName
                 true,                   // isVisitor
                 'msg123',              // messageId
-                'visitor'              // source
+                undefined              // source (undefined for visitor)
+            );
+        });
+
+        it('transforms XMPPEvents.MESSAGE_RECEIVED with source=token correctly', () => {
+            // Get the MESSAGE_RECEIVED listener that was registered
+            const messageListener = mockChatRoom.listeners.get(XMPPEvents.MESSAGE_RECEIVED);
+            expect(messageListener).toBeDefined();
+
+            // Simulate ChatRoom firing MESSAGE_RECEIVED event with display-name extension source='token'
+            messageListener(
+                'participant@example.com/resource', // jid
+                'Hello from token user',             // txt
+                'myroom@conference.example.com',     // myJid
+                1234567890,                          // ts
+                'Token User',                        // displayName
+                false,                               // isVisitor
+                'msg124',                           // messageId
+                'token'                             // source
+            );
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                JitsiConferenceEvents.MESSAGE_RECEIVED,
+                'resource',              // participantId (resource from jid)
+                'Hello from token user', // txt
+                1234567890,             // ts
+                'Token User',           // displayName
+                false,                  // isVisitor
+                'msg124',              // messageId
+                'token'                // source
+            );
+        });
+
+        it('transforms XMPPEvents.MESSAGE_RECEIVED with source=guest correctly', () => {
+            // Get the MESSAGE_RECEIVED listener that was registered
+            const messageListener = mockChatRoom.listeners.get(XMPPEvents.MESSAGE_RECEIVED);
+            expect(messageListener).toBeDefined();
+
+            // Simulate ChatRoom firing MESSAGE_RECEIVED event with display-name extension source='guest'
+            messageListener(
+                'participant@example.com/resource', // jid
+                'Hello from guest user',             // txt
+                'myroom@conference.example.com',     // myJid
+                1234567891,                          // ts
+                'Guest User',                        // displayName
+                false,                               // isVisitor
+                'msg125',                           // messageId
+                'guest'                             // source
+            );
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                JitsiConferenceEvents.MESSAGE_RECEIVED,
+                'resource',              // participantId (resource from jid)
+                'Hello from guest user', // txt
+                1234567891,             // ts
+                'Guest User',           // displayName
+                false,                  // isVisitor
+                'msg125',              // messageId
+                'guest'                // source
             );
         });
 
@@ -124,10 +182,10 @@ describe('JitsiConference', () => {
                 'participant@example.com/resource', // jid
                 'Hello regular message',             // txt
                 'myroom@conference.example.com',     // myJid
-                1234567891,                          // ts
+                1234567892,                          // ts
                 undefined,                           // displayName
                 false,                               // isVisitor
-                'msg124',                           // messageId
+                'msg126',                           // messageId
                 undefined                           // source
             );
 
@@ -135,10 +193,10 @@ describe('JitsiConference', () => {
                 JitsiConferenceEvents.MESSAGE_RECEIVED,
                 'resource',              // participantId
                 'Hello regular message', // txt
-                1234567891,             // ts
+                1234567892,             // ts
                 undefined,              // displayName
                 false,                  // isVisitor
-                'msg124',              // messageId
+                'msg126',              // messageId
                 undefined              // source
             );
         });
@@ -153,8 +211,8 @@ describe('JitsiConference', () => {
                 'participant@example.com/resource', // jid
                 'Private message from visitor',     // txt
                 'myroom@conference.example.com',     // myJid
-                1234567892,                          // ts
-                'msg125',                           // messageId
+                1234567893,                          // ts
+                'msg127',                           // messageId
                 'Visitor Name',                     // displayName
                 true,                               // isVisitor
                 'original@visitor.com'              // ofrom (originalFrom)
@@ -164,8 +222,8 @@ describe('JitsiConference', () => {
                 JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
                 'original@visitor.com',         // participantId (ofrom for visitor)
                 'Private message from visitor', // txt
-                1234567892,                    // ts
-                'msg125',                     // messageId
+                1234567893,                    // ts
+                'msg127',                     // messageId
                 'Visitor Name',               // displayName
                 true                          // isVisitor
             );
@@ -181,8 +239,8 @@ describe('JitsiConference', () => {
                 'participant@example.com/resource', // jid
                 'Private message from regular',     // txt
                 'myroom@conference.example.com',     // myJid
-                1234567893,                          // ts
-                'msg126',                           // messageId
+                1234567894,                          // ts
+                'msg128',                           // messageId
                 undefined,                          // displayName
                 false,                              // isVisitor
                 undefined                           // ofrom
@@ -192,8 +250,8 @@ describe('JitsiConference', () => {
                 JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
                 'resource',                     // participantId (resource from jid)
                 'Private message from regular', // txt
-                1234567893,                    // ts
-                'msg126',                     // messageId
+                1234567894,                    // ts
+                'msg128',                     // messageId
                 undefined,                    // displayName
                 false                         // isVisitor
             );
