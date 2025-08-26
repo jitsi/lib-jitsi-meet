@@ -699,9 +699,53 @@ describe('ChatRoom', () => {
                 undefined); // source (null for visitor messages)
         });
 
-        it('parses group message with display-name extension from non-visitor correctly', () => {
+        it('parses group message with display-name extension source=token correctly', () => {
             const msgStr = '' +
                 '<message to="jid" from="fromjid" type="groupchat" id="msg127" xmlns="jabber:client">' +
+                    '<body>Hello from token user</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="token">Token User</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello from token user',
+                room.myroomjid,
+                undefined, // stamp
+                'Token User', // displayName
+                false, // isVisitorMessage
+                'msg127', // messageId
+                'token'); // source
+        });
+
+        it('parses group message with display-name extension source=guest correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg127b" xmlns="jabber:client">' +
+                    '<body>Hello from guest user</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="guest">Guest User</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello from guest user',
+                room.myroomjid,
+                undefined, // stamp
+                'Guest User', // displayName
+                false, // isVisitorMessage
+                'msg127b', // messageId
+                'guest'); // source
+        });
+
+        it('parses group message with display-name extension from non-visitor correctly', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg127c" xmlns="jabber:client">' +
                     '<body>Hello from regular user</body>' +
                     '<display-name xmlns="http://jitsi.org/protocol/display-name" source="jitsi-meet">Regular User</display-name>' +
                 '</message>';
@@ -715,9 +759,9 @@ describe('ChatRoom', () => {
                 'Hello from regular user',
                 room.myroomjid,
                 undefined, // stamp
-                undefined, // displayName
+                'Regular User', // displayName
                 false, // isVisitorMessage
-                'msg127', // messageId
+                'msg127c', // messageId
                 'jitsi-meet'); // source
         });
 
