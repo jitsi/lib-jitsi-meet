@@ -26,7 +26,6 @@ module.exports = function(config) {
         // list of files / patterns to load in the browser
         files: [
             'node_modules/core-js/index.js',
-            'node_modules/jquery/dist/jquery.slim.min.js',
             './modules/**/*.spec.js',
             './modules/**/*.spec.ts',
             './service/**/*.spec.ts',

@@ -44,7 +44,7 @@ import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
-import $ from './modules/util/XMLParser';
+import { findAll, findFirst, getAttribute } from './modules/util/XMLUtils';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -1518,10 +1518,8 @@ export default class JitsiConference extends Listenable {
             Statistics.sendAnalyticsAndLog(createJingleEvent(AnalyticsEvents.ACTION_JINGLE_RESTART, { p2p: false }));
         }
 
-        const serverRegion
-            = $(jingleOffer)
-                .find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]')
-                .attr('region');
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const serverRegion = getAttribute(findFirst(jingleOffer, ':scope>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]'), 'region');
 
         this.eventEmitter.emit(JitsiConferenceEvents.SERVER_REGION_CHANGED, serverRegion);
 
@@ -1606,18 +1604,16 @@ export default class JitsiConference extends Listenable {
      * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
      * @private
      */
-    private _setBridgeChannel(offerIq: object, pc: TraceablePeerConnection): void {
+    private _setBridgeChannel(offerIq: Element, pc: TraceablePeerConnection): void {
         const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
         const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? true;
-        const sctpOffered = $(offerIq).find('>content[name="data"]')
-            .first().length === 1;
+        const sctpOffered = findAll(offerIq, ':scope>content[name="data"]').length === 1;
         let wsUrl = null;
 
         logger.info(`SCTP: offered=${sctpOffered}, prefered=${preferSctp}`);
 
         if (!(sctpOffered && preferSctp)) {
-            $(offerIq).find('>content>transport>web-socket')
-                .toArray()
+            findAll(offerIq, ':scope>content>transport>web-socket')
                 .map(e => e.getAttribute('url'))
                 .forEach(url => {
                     if (!wsUrl && (!ignoreDomain || ignoreDomain !== new URL(url).hostname)) {
@@ -1629,11 +1625,10 @@ export default class JitsiConference extends Listenable {
                 });
 
             if (!wsUrl) {
-                const firstWsUrl = $(offerIq).find('>content>transport>web-socket')
-                    .first();
+                const firstWsUrl = findFirst(offerIq, ':scope>content>transport>web-socket');
 
-                if (firstWsUrl.length === 1) {
-                    wsUrl = firstWsUrl[0].getAttribute('url');
+                if (firstWsUrl) {
+                    wsUrl = firstWsUrl.getAttribute('url');
                     logger.info(`Falling back to ${wsUrl}`);
                 }
             }
@@ -1691,7 +1686,7 @@ export default class JitsiConference extends Listenable {
      */
     private _onIncomingCallP2P(jingleSession: JingleSessionPC, jingleOffer: Element): void {
         let rejectReason;
-        const contentName = $(jingleOffer).find('>content').attr('name');
+        const contentName = getAttribute(findFirst(jingleOffer, ':scope>content'), 'name');
         const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
 
         // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
@@ -1816,10 +1811,10 @@ export default class JitsiConference extends Listenable {
     /**
      * Accepts an incoming P2P Jingle call.
      * @param {JingleSessionPC} jingleSession - The Jingle session instance.
-     * @param {Object} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
+     * @param {Element} jingleOffer - An element pointing to 'jingle' IQ element containing the offer.
      * @private
      */
-    private _acceptP2PIncomingCall(jingleSession: JingleSessionPC, jingleOffer: object): void {
+    private _acceptP2PIncomingCall(jingleSession: JingleSessionPC, jingleOffer: Element): void {
         this.isP2PConnectionInterrupted = false;
 
         // Accept the offer
@@ -3579,10 +3574,10 @@ export default class JitsiConference extends Listenable {
     /**
      * Callback called by the Jingle plugin when 'transport-info' is received.
      * @param {JingleSessionPC} session - The Jingle session for which the IQ was received.
-     * @param {Object} transportInfo - An element pointing to 'jingle' IQ element.
+     * @param {Element} transportInfo - An element pointing to 'jingle' IQ element.
      * @internal
      */
-    onTransportInfo(session: JingleSessionPC, transportInfo: object): void {
+    onTransportInfo(session: JingleSessionPC, transportInfo: Element): void {
         if (this.p2pJingleSession === session) {
             logger.info('P2P addIceCandidates');
             this.p2pJingleSession.addIceCandidates(transportInfo);

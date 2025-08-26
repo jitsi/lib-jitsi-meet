@@ -601,7 +601,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello from visitor',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'msg123', // messageId
                 'Visitor Name', // displayName
                 true, // isVisitorMessage
@@ -627,7 +627,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello with address',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'msg124', // messageId
                 'Visitor Name', // displayName
                 true, // isVisitorMessage
@@ -649,7 +649,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello without display name',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'msg125', // messageId
                 undefined, // displayName
                 false, // isVisitorMessage
@@ -695,7 +695,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello from visitor to group',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'Group Visitor', // displayName from visitor
                 true, // isVisitorMessage
                 'msg126', // messageId
@@ -718,7 +718,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello from token user',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'Token User', // displayName
                 false, // isVisitorMessage
                 'msg127', // messageId
@@ -741,7 +741,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello from guest user',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'Guest User', // displayName
                 false, // isVisitorMessage
                 'msg127b', // messageId
@@ -764,7 +764,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello from regular user',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 'Regular User', // displayName
                 false, // isVisitorMessage
                 'msg127c', // messageId
@@ -786,7 +786,7 @@ describe('ChatRoom', () => {
                 'fromjid',
                 'Hello without display name extension',
                 room.myroomjid,
-                undefined, // stamp
+                null, // stamp
                 undefined, // displayName
                 false, // isVisitorMessage
                 'msg128', // messageId

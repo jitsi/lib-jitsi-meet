@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq, type Connection } from 'strophe.js';
 
-import $ from '../util/XMLParser';
+import { findFirst, getAttribute } from '../util/XMLUtils';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
@@ -90,8 +90,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                 result => {
                     logger.info('Dial result ', result);
 
-                    // eslint-disable-next-line newline-per-chained-call
-                    const resource = $(result).find('ref').attr('uri');
+                    const resource = getAttribute(findFirst(result, 'ref'), 'uri');
 
                     this.callResource = resource.substr('xmpp:'.length);
                     logger.info(`Received call resource: ${this.callResource}`);
