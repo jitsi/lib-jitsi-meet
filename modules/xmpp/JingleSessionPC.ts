@@ -31,6 +31,8 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import RTC from '../RTC/RTC';
 
 const logger = getLogger('modules/xmpp/JingleSessionPC');
 
@@ -123,7 +125,7 @@ interface IJingleContents {
 interface IJingleSessionPCOptions {
     audioQuality?: IAudioQuality;
     channelLastN?: number;
-    codecSettings?: ICodecSettings;
+    codecSettings?: CodecMimeType[];
     desktopSharingFrameRate?: {
         max?: number;
     };
@@ -160,6 +162,16 @@ interface IJingleError {
 interface ISourceFrameHeight {
     maxHeight: string;
     sourceName: string;
+}
+
+/**
+ * Interface for Jingle session termination options.
+ */
+export interface ITerminateOptions {
+    reason?: string;
+    reasonDescription?: string;
+    requestRestart?: boolean;
+    sendSessionTerminate?: boolean;
 }
 
 /**
@@ -407,6 +419,7 @@ export default class JingleSessionPC extends JingleSession {
          * Remote preference for the receive video max frame heights when source-name signaling is enabled.
          *
          * @type {Optional<Map<string, number>>}
+         * @private
          */
         this.remoteSourceMaxFrameHeights = undefined;
 
@@ -452,7 +465,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param {boolean} isAdd <tt>true</tt> for 'source-add' or <tt>false</tt> otherwise.
      * @param {Array<Element>} elem an array of Jingle "content" elements.
      * @returns {Promise} resolved when the operation is done or rejected with an error.
-     * @private
      */
     private _addOrRemoveRemoteStream(isAdd: boolean, elem: Element[]): void {
         const logPrefix = isAdd ? 'addRemoteStream' : 'removeRemoteStream';
@@ -517,7 +529,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param {boolean} isRemove <tt>true</tt> for "remove" operation or <tt>false</tt> for "add" operation.
      * @param {JitsiLocalTrack} track the track that will be added/removed.
      * @returns {Promise} resolved when the operation is done or rejected with an error.
-     * @private
      */
     private _addRemoveTrack(isRemove: boolean, track: JitsiLocalTrack): Promise<void> {
         if (!track) {
@@ -576,7 +587,6 @@ export default class JingleSessionPC extends JingleSession {
      * Checks whether or not this session instance is still operational.
      *
      * @returns {boolean} {@code true} if operation or {@code false} otherwise.
-     * @private
      */
     private _assertNotEnded(): boolean {
         return this.state !== JingleSessionState.ENDED;
@@ -588,7 +598,6 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {Object} offerIq the incoming offer.
      * @returns {SDP object} the jingle offer translated to SDP.
-     * @private
      */
     private _processNewJingleOfferIq(offerIq: object): SDP {
         const remoteSdp = new SDP('', this.isP2P);
@@ -729,7 +738,6 @@ export default class JingleSessionPC extends JingleSession {
      * peerconnection will be used.
      * @returns {Promise} promise which resolves when the o/a flow is complete with no arguments or rejects with an
      * error {string}
-     * @private
      */
     private async _renegotiate(optionalRemoteSdp?: string): Promise<void> {
         if (this.peerconnection.signalingState === 'closed') {
@@ -742,10 +750,10 @@ export default class JingleSessionPC extends JingleSession {
             throw new Error(`Cannot renegotiate without remote description, state=${this.state}`);
         }
 
-        const remoteDescription = new RTCSessionDescription({
+        const remoteDescription ={
             sdp: remoteSdp,
-            type: 'offer' as RTCSdpType
-        });
+            type: 'offer'
+        } as RTCSessionDescription;
 
         const oldLocalSDP = this.peerconnection.localDescription.sdp;
 
@@ -773,7 +781,6 @@ export default class JingleSessionPC extends JingleSession {
      * adjust sender's video constraints.
      *
      * @returns {void}
-     * @private
      */
     private _sendContentModify() {
         const senders = this._localSendReceiveVideoActive ? 'both' : 'none';
@@ -821,7 +828,6 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {RTCIceCandidate} candidate the WebRTC ICE candidate instance
      * @returns {void}
-     * @private
      */
     private _sendIceCandidate(candidate: RTCIceCandidate): void {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
@@ -864,7 +870,6 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {Array<RTCIceCandidate>} candidates an array of the WebRTC ICE candidate instances.
      * @returns {void}
-     * @private
      */
     private _sendIceCandidates(candidates: RTCIceCandidate[]): void {
         if (!this._assertNotEnded()) {
@@ -945,7 +950,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param {function()} success callback called when we receive 'RESULT' packet for the 'session-accept'.
      * @param {function(error)} failure called when we receive an error response or when the request has timed out.
      * @returns {void}
-     * @private
      */
     private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void) {
         // NOTE: since we're just reading from it, we don't need to be within
@@ -1021,7 +1025,6 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {string} offerSdp  - The local session description which will be used to generate an offer.
      * @returns {void}
-     * @private
      */
     private _sendSessionInitiate(offerSdp: string): void {
         let init = $iq({
@@ -1061,7 +1064,6 @@ export default class JingleSessionPC extends JingleSession {
      *  source: {request.tree() that provides original request}
      *  session: {this JingleSessionPC.toString()}
      * }
-     * @param request Strophe IQ instance which is the request to be dumped into the error structure.
      * @param failureCb function(error) called when error response was returned or when a timeout has occurred.
      * @returns {function(this:JingleSessionPC)}
      */
@@ -1328,7 +1330,7 @@ export default class JingleSessionPC extends JingleSession {
      * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
      * assumption that the initial offer/answer cycle has been executed already.
      */
-    public acceptOffer(jingleOffer: any, success: () => void, failure: (error: any) => void, localTracks: JitsiLocalTrack[] = []): void {
+    public acceptOffer(jingleOffer:Element, success: () => void, failure: (error: any) => void, localTracks: JitsiLocalTrack[] = []): void {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -1365,7 +1367,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * {@inheritDoc}
      */
-    public addIceCandidates(elem: any): void {
+    public addIceCandidates(elem:Element): void {
         if (this.peerconnection.signalingState === 'closed') {
             logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 
@@ -1374,7 +1376,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const iceCandidates: RTCIceCandidate[] = [];
 
-        elem.find('>content>transport>candidate')
+        $(elem).find('>content>transport>candidate')
             .each((idx: number, candidate: Element) => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
@@ -1581,14 +1583,15 @@ export default class JingleSessionPC extends JingleSession {
         this.wasstable = false;
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
+
         const pcOptions = {
-            audioQuality: undefined,
+            audioQuality: options.audioQuality,
             capScreenshareBitrate: undefined,
-            codecSettings: undefined,
+            codecSettings: options.codecSettings,
             disableRtx: options.disableRtx,
-            disableSimulcast: undefined,
-            enableInsertableStreams: undefined,
-            forceTurnRelay: undefined,
+            disableSimulcast: this.isP2P ? true : options.disableSimulcast,
+            enableInsertableStreams: options.enableInsertableStreams,
+            forceTurnRelay: options.forceTurnRelay,
             maxstats: undefined,
             startSilent: undefined,
             usesCodecSelectionAPI: undefined,
@@ -1598,8 +1601,6 @@ export default class JingleSessionPC extends JingleSession {
         if (options.gatherStats) {
             pcOptions.maxstats = DEFAULT_MAX_STATS;
         }
-        pcOptions.codecSettings = options.codecSettings;
-        pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.usesCodecSelectionAPI = this.usesCodecSelectionAPI
             = browser.supportsCodecSelectionAPI()
             && (options.testing?.enableCodecSelectionAPI ?? true)
@@ -1615,9 +1616,6 @@ export default class JingleSessionPC extends JingleSession {
 
             pcOptions.videoQuality = Object.fromEntries(settings);
         }
-        pcOptions.forceTurnRelay = options.forceTurnRelay;
-        pcOptions.audioQuality = options.audioQuality;
-        pcOptions.disableSimulcast = this.isP2P ? true : options.disableSimulcast;
 
         if (!this.isP2P) {
             // Do not send lower spatial layers for low fps screenshare and enable them only for high fps screenshare.
@@ -1988,8 +1986,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (FeatureFlags.isSsrcRewritingSupported() && this.peerconnection) {
             this.peerconnection.getRemoteTracks().forEach(track => {
-                // @ts-ignore TRACK_REMOVED doesn't exist on JitsiTrackEvents
-                this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_REMOVED, track);
+                this.room.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
             });
         }
 
@@ -2245,10 +2242,10 @@ export default class JingleSessionPC extends JingleSession {
 
         const newRemoteSdp = this._processNewJingleOfferIq(jingleAnswer);
         const oldLocalSdp = new SDP(this.peerconnection.localDescription.sdp);
-        const remoteDescription = new RTCSessionDescription({
+        const remoteDescription = {
             sdp: newRemoteSdp.raw,
             type: 'answer'
-        });
+        } as RTCSessionDescription;
 
         try {
             await this.peerconnection.setRemoteDescription(remoteDescription);
@@ -2274,9 +2271,9 @@ export default class JingleSessionPC extends JingleSession {
      * Resumes or suspends media transfer over the underlying peer connection.
      *
      * @param {boolean} active - <tt>true</tt> to enable media transfer or <tt>false</tt> to suspend media transmission.
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
-    public setMediaTransferActive(active: boolean): Promise<void | PromiseSettledResult<any>[]> {
+    public setMediaTransferActive(active: boolean): Promise<void> {
         const changed = this.peerconnection.audioTransferActive !== active
             || this.peerconnection.videoTransferActive !== active;
 
@@ -2285,7 +2282,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         return this.peerconnection.setMediaTransferActive(active)
-            .then(() => {
+            .then(async () => {
                 this.peerconnection.audioTransferActive = active;
                 this.peerconnection.videoTransferActive = active;
 
@@ -2294,8 +2291,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 promises.push(this.peerconnection.configureVideoSenderEncodings());
                 promises.push(this.peerconnection.configureAudioSenderEncodings());
-
-                return Promise.allSettled(promises);
+                await Promise.allSettled(promises);
             });
     }
 
@@ -2436,7 +2432,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * @inheritDoc
      */
-    public terminate(success: () => void, failure: (error: IJingleError) => void, options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; sendSessionTerminate?: boolean; } = {}) {
+    public terminate(success: () => void, failure: (error: IJingleError) => void, options: ITerminateOptions = {}) {
         if (this.state === JingleSessionState.ENDED) {
             return;
         }
@@ -2488,7 +2484,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // this should result in 'onTerminated' being called by strophe.jingle.js
-        this.connection.jingle.terminate(this.sid, undefined, undefined);
+        this.connection.jingle.terminate(this.sid);
     }
 
     /**
