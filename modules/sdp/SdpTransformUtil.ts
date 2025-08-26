@@ -2,7 +2,7 @@ import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
-import { IMLine, ISsrcGroups, ISsrcAttribute } from './constants';
+import { IMLine, ISsrcAttribute, ISsrcGroups } from './constants';
 
 
 /**
