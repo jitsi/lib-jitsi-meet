@@ -1845,12 +1845,14 @@ export default class JingleSessionPC extends JingleSession {
                 && typeof remoteDescription.sdp === 'string') {
                 logger.info(`${this} onnegotiationneeded fired on ${this.peerconnection}`);
 
-                const workFunction = finishedCallback => {
-                    this._renegotiate()
-                        .then(() => {
-                            this.peerconnection.configureAudioSenderEncodings();
-                        })
-                        .then(() => finishedCallback(), error => finishedCallback(error));
+                const workFunction = async finishedCallback => {
+                    try {
+                        await this._renegotiate();
+                        await this.peerconnection.configureAudioSenderEncodings();
+                        finishedCallback();
+                    } catch (error) {
+                        finishedCallback(error);
+                    }
                 };
 
                 this.modificationQueue.push(
@@ -2404,21 +2406,18 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} setVideoCodecs: codecList=${codecList}, screenshareCodec=${screenshareCodec}`);
 
             // Initiate a renegotiate for the codec setting to take effect.
-            const workFunction = finishedCallback => {
-                this._renegotiate()
-                .then(() => {
-                    this.peerconnection.configureVideoSenderEncodings();
-                })
-                .then(
-                    () => {
-                        logger.debug(`${this} setVideoCodecs task is done`);
+            const workFunction = async finishedCallback => {
+                try {
+                    await this._renegotiate();
+                    await this.peerconnection.configureVideoSenderEncodings();
+                    logger.debug(`${this} setVideoCodecs task is done`);
 
-                        return finishedCallback();
-                    }, error => {
-                        logger.error(`${this} setVideoCodecs task failed: ${error}`);
+                    return finishedCallback();
+                } catch (error) {
+                    logger.error(`${this} setVideoCodecs task failed: ${error}`);
 
-                        return finishedCallback(error);
-                    });
+                    return finishedCallback(error);
+                }
             };
 
             logger.debug(`${this} Queued setVideoCodecs task`);
