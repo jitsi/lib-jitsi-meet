@@ -13,7 +13,7 @@ import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import type JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import type JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
-import type JitsiTrack from './modules/RTC/JitsiTrack';
+import JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import type TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
@@ -3988,10 +3988,10 @@ export default class JitsiConference extends Listenable {
     /**
      * Finds the SSRC of a given track.
      * @param {JitsiTrack} track - The track to find the SSRC for.
-     * @returns {number|undefined} The SSRC of the specified track, or undefined if not found.
+     * @returns {Optional<number>} The SSRC of the specified track, or undefined if not found.
      */
     public getSsrcByTrack(track: JitsiTrack): Optional<number> {
-        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSsrc();
+        return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track as JitsiLocalTrack) : track.getSsrc();
     }
 
 

@@ -6,24 +6,7 @@ import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 
 import { MLineWrap, SdpTransformWrap } from './SdpTransformUtil';
-
-
-export interface ITPCSSRCInfo {
-    groups: ITPCGroupInfo[];
-    msid: string;
-    ssrcs: number[];
-}
-
-export interface ITPCGroupInfo {
-    semantics: string;
-    ssrcs: number[];
-}
-
-export interface ISSRCAttribute {
-    attribute: string;
-    id: number;
-    value: string;
-}
+import { ISsrcInfo } from './constants';
 
 /**
  * Fakes local SDP exposed to {@link JingleSessionPC} through the local description getter. Modifies the SDP, so that
@@ -55,7 +38,7 @@ export default class LocalSdpMunger {
      * @returns {void}
      * @private
      */
-    private _transformMediaIdentifiers(mediaSection: MLineWrap, ssrcMap: Map<string, ITPCSSRCInfo>): void {
+    private _transformMediaIdentifiers(mediaSection: MLineWrap, ssrcMap: Map<string, ISsrcInfo>): void {
         const mediaType = mediaSection._mLine.type;
         const mediaDirection = mediaSection._mLine.direction;
         const sources = [ ...new Set(mediaSection._mLine.ssrcs?.map(s => s.id)) ];
@@ -158,7 +141,7 @@ export default class LocalSdpMunger {
      * @return {RTCSessionDescription} - Transformed local session description
      * (a modified copy of the one given as the input).
      */
-    transformStreamIdentifiers(sessionDesc: RTCSessionDescription, ssrcMap: Map<string, ITPCSSRCInfo>): RTCSessionDescription {
+    transformStreamIdentifiers(sessionDesc: RTCSessionDescription, ssrcMap: Map<string, ISsrcInfo>): RTCSessionDescription {
         if (!sessionDesc?.sdp || !sessionDesc.type) {
             return sessionDesc;
         }
