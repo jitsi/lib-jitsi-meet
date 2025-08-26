@@ -17,7 +17,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
-import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import TraceablePeerConnection, { IAudioQuality, ICodecSettings, IVideoQuality } from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
@@ -121,11 +121,9 @@ interface IJingleContents {
 }
 
 interface IJingleSessionPCOptions {
-    // Todo: import interface form tpc after their pr merge
-    audioQuality?: any;
+    audioQuality?: IAudioQuality;
     channelLastN?: number;
-    // Todo: import interface form tpc after their pr merge
-    codecSettings?: any;
+    codecSettings?: ICodecSettings;
     desktopSharingFrameRate?: {
         max?: number;
     };
@@ -141,8 +139,7 @@ interface IJingleSessionPCOptions {
         enableCodecSelectionAPI?: boolean;
         failICE?: boolean;
     };
-    // Todo: import interface form tpc after their pr merge
-    videoQuality?: any;
+    videoQuality?: IVideoQuality;
     webrtcIceTcpDisable?: boolean;
     webrtcIceUdpDisable?: boolean;
 }
@@ -757,7 +754,7 @@ export default class JingleSessionPC extends JingleSession {
         try {
             await this.peerconnection.setRemoteDescription(remoteDescription);
             logger.debug(`${this} Renegotiate: creating answer`);
-            const answer = await this.peerconnection.createAnswer(this.mediaConstraints);
+            const answer = await this.peerconnection.createAnswer(this.mediaConstraints as RTCOfferOptions);
 
             logger.debug(`${this} Renegotiate: setting local description`);
             await this.peerconnection.setLocalDescription(answer);
@@ -1517,11 +1514,11 @@ export default class JingleSessionPC extends JingleSession {
      */
     public addTrackToPc(track: JitsiLocalTrack): Promise<void> {
         return this._addRemoveTrack(false /* add */, track)
-            .then(() => {
+            .then(async () => {
                 // Configure the video encodings after the track is unmuted. If the user joins the call muted and
                 // unmutes it the first time, all the parameters need to be configured.
                 if (track.isVideoTrack()) {
-                    return this.peerconnection.configureVideoSenderEncodings(track, undefined);
+                    await this.peerconnection.configureVideoSenderEncodings(track);
                 }
             });
     }
@@ -1658,7 +1655,7 @@ export default class JingleSessionPC extends JingleSession {
                 }
 
                 // Discard candidates of disabled protocols.
-                let protocol = candidate.protocol;
+                let protocol = candidate.protocol as string;
 
                 if (typeof protocol === 'string') {
                     protocol = protocol.toLowerCase();
@@ -1853,7 +1850,9 @@ export default class JingleSessionPC extends JingleSession {
 
                 const workFunction = finishedCallback => {
                     this._renegotiate()
-                        .then(() => this.peerconnection.configureAudioSenderEncodings())
+                        .then(() => {
+                            this.peerconnection.configureAudioSenderEncodings();
+                        })
                         .then(() => finishedCallback(), error => finishedCallback(error));
                 };
 
@@ -1913,7 +1912,7 @@ export default class JingleSessionPC extends JingleSession {
 
         try {
             await Promise.all(addTracks);
-            const offerSdp = await this.peerconnection.createOffer(this.mediaConstraints);
+            const offerSdp = await this.peerconnection.createOffer(this.mediaConstraints as RTCOfferOptions);
 
             await this.peerconnection.setLocalDescription(offerSdp);
             this.peerconnection.processLocalSdpForTransceiverInfo(localTracks);
@@ -2412,7 +2411,9 @@ export default class JingleSessionPC extends JingleSession {
             // Initiate a renegotiate for the codec setting to take effect.
             const workFunction = finishedCallback => {
                 this._renegotiate()
-                .then(() => this.peerconnection.configureVideoSenderEncodings())
+                .then(() => {
+                    this.peerconnection.configureVideoSenderEncodings();
+                })
                 .then(
                     () => {
                         logger.debug(`${this} setVideoCodecs task is done`);
