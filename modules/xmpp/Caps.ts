@@ -2,7 +2,7 @@ import { Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
-import $ from '../util/XMLParser';
+import { findAll, getAttribute } from '../util/XMLUtils';
 
 import ChatRoom from './ChatRoom';
 import sha1 from './sha1';
@@ -68,14 +68,12 @@ export function parseDiscoInfo(node: Element): { features: Set<string>; identiti
     const features = new Set<string>();
     const identities = new Set<Identity>();
 
-    $(node).find('>query>feature')
-        .each((_: unknown, el: Element) => features.add(el.getAttribute('var') || ''));
-    $(node).find('>query>identity')
-        .each((_: unknown, el: Element) => identities.add({
-            category: el.getAttribute('category') || '',
-            name: el.getAttribute('name') || '',
-            type: el.getAttribute('type') || ''
-        }));
+    findAll(node, ':scope>query>feature').forEach(el => features.add(getAttribute(el, 'var')));
+    findAll(node, ':scope>query>identity').forEach(el => identities.add({
+        category: getAttribute(el, 'category'),
+        name: getAttribute(el, 'name'),
+        type: getAttribute(el, 'type')
+    }));
 
     return {
         features,

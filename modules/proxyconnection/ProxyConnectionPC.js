@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
+import { getAttribute } from '../../modules/util/XMLUtils';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RTC from '../RTC/RTC';
@@ -77,26 +78,25 @@ export default class ProxyConnectionPC {
     /**
      * Updates the peer connection based on the passed in jingle.
      *
-     * @param {Object} $jingle - An XML jingle element, wrapped in query,
-     * describing how the peer connection should be updated.
+     * @param {Element} jingleElement - An XML jingle element describing how the peer connection should be updated.
      * @returns {void}
      */
-    processMessage($jingle) {
-        switch ($jingle.attr('action')) {
+    processMessage(jingleElement) {
+        switch (getAttribute(jingleElement, 'action')) {
         case ACTIONS.ACCEPT:
-            this._onSessionAccept($jingle);
+            this._onSessionAccept(jingleElement);
             break;
 
         case ACTIONS.INITIATE:
-            this._onSessionInitiate($jingle);
+            this._onSessionInitiate(jingleElement);
             break;
 
         case ACTIONS.TERMINATE:
-            this._onSessionTerminate($jingle);
+            this._onSessionTerminate(jingleElement);
             break;
 
         case ACTIONS.TRANSPORT_INFO:
-            this._onTransportInfo($jingle);
+            this._onTransportInfo(jingleElement);
             break;
         }
     }
@@ -329,29 +329,29 @@ export default class ProxyConnectionPC {
      * The passed in jingle element should contain an SDP answer to a previously
      * sent SDP offer.
      *
-     * @param {Object} $jingle - The jingle element.
+     * @param {Element} jingleElement - The jingle element.
      * @private
      * @returns {void}
      */
-    _onSessionAccept($jingle) {
+    _onSessionAccept(jingleElement) {
         if (!this._peerConnection) {
             logger.error('Received an answer when no peer connection exists.');
 
             return;
         }
 
-        this._peerConnection.setAnswer($jingle);
+        this._peerConnection.setAnswer(jingleElement);
     }
 
     /**
      * Callback invoked in response to a request to start a proxy connection.
      * The passed in jingle element should contain an SDP offer.
      *
-     * @param {Object} $jingle - The jingle element.
+     * @param {Element} jingleElement - The jingle element.
      * @private
      * @returns {void}
      */
-    _onSessionInitiate($jingle) {
+    _onSessionInitiate(jingleElement) {
         if (this._peerConnection) {
             logger.error('Received an offer when an offer was already sent.');
 
@@ -361,7 +361,7 @@ export default class ProxyConnectionPC {
         this._peerConnection = this._createPeerConnection();
 
         this._peerConnection.acceptOffer(
-            $jingle,
+            jingleElement,
             () => { /** no-op */ },
             () => this._onError(
                 this._options.peerJid,
@@ -401,11 +401,11 @@ export default class ProxyConnectionPC {
      * Callback invoked in response to ICE candidates from the remote peer.
      * The passed in jingle element should contain an ICE candidate.
      *
-     * @param {Object} $jingle - The jingle element.
+     * @param {Element} jingleElement - The jingle element.
      * @private
      * @returns {void}
      */
-    _onTransportInfo($jingle) {
-        this._peerConnection.addIceCandidates($jingle);
+    _onTransportInfo(jingleElement) {
+        this._peerConnection.addIceCandidates(jingleElement);
     }
 }

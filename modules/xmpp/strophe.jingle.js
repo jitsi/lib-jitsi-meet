@@ -4,7 +4,7 @@ import { $iq, Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import RandomUtil from '../util/RandomUtil';
-import $ from '../util/XMLParser';
+import { findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import ConnectionPlugin from './ConnectionPlugin';
 import { expandSourcesFromJson } from './JingleHelperFunctions';
@@ -23,11 +23,11 @@ const logger = getLogger('xmpp:strophe.jingle');
  * @returns {Array<string>}
  */
 function _parseIceCandidates(transport) {
-    const candidates = $(transport).find('>candidate');
+    const candidates = findAll(transport, ':scope>candidate');
     const parseCandidates = [];
 
     // Extract the candidate information from the IQ.
-    candidates.each((_, candidate) => {
+    candidates.forEach(candidate => {
         const attributes = candidate.attributes;
         const candidateAttrs = [];
 
@@ -81,9 +81,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @param iq
      */
     onJingle(iq) {
-        const sid = $(iq).find('jingle').attr('sid');
-        const action = $(iq).find('jingle').attr('action');
-        const fromJid = iq.getAttribute('from');
+        const jingleElement = findFirst(iq, 'jingle');
+        const sid = getAttribute(jingleElement, 'sid');
+        const action = getAttribute(jingleElement, 'action');
+        const fromJid = getAttribute(iq, 'from');
 
         // send ack first
         const ack = $iq({ id: iq.getAttribute('id'),
@@ -151,7 +152,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
-        const jsonMessages = $(iq).find('jingle>json-message');
+        const jsonMessages = findAll(iq, 'jingle>json-message');
 
         if (jsonMessages?.length) {
             let audioVideoSsrcs;
@@ -184,8 +185,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
             sess
                 = new JingleSessionPC(
-                    $(iq).find('jingle').attr('sid'),
-                    $(iq).attr('to'),
+                    sid,
+                    iq.getAttribute('to'),
                     fromJid,
                     this.connection,
                     this.mediaConstraints,
@@ -194,33 +195,33 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     /* initiator */ false);
 
             this.sessions[sess.sid] = sess;
-            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, $(iq).find('>jingle'), now);
+            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, jingleElement, now);
             break;
         }
         case 'session-accept': {
             const ssrcs = [];
-            const contents = $(iq).find('jingle>content');
 
             // Extract the SSRCs from the session-accept received from a p2p peer.
-            for (const content of contents) {
-                const ssrc = $(content).find('description').attr('ssrc');
+            findAll(iq, 'jingle>content').forEach(content => {
+                const ssrc = getAttribute(findFirst(content, 'description'), 'ssrc');
 
                 ssrc && ssrcs.push(ssrc);
-            }
+            });
+
             logger.debug(`Received ${action} from ${fromJid} with ssrcs=${ssrcs}`);
-            this.eventEmitter.emit(XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            this.eventEmitter.emit(XMPPEvents.CALL_ACCEPTED, sess, jingleElement);
             break;
         }
         case 'content-modify': {
             logger.debug(`Received ${action} from ${fromJid}`);
-            sess.modifyContents($(iq).find('>jingle'));
+            sess.modifyContents(jingleElement);
             break;
         }
         case 'transport-info': {
-            const candidates = _parseIceCandidates($(iq).find('jingle>content>transport'));
+            const candidates = _parseIceCandidates(findFirst(iq, 'jingle>content>transport'));
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
-            this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
+            this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, jingleElement);
             break;
         }
         case 'session-terminate': {
@@ -228,11 +229,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             let reasonCondition = null;
             let reasonText = null;
 
-            if ($(iq).find('>jingle>reason').length) {
-                reasonCondition
-                    = $(iq).find('>jingle>reason>:first')[0].tagName;
-                reasonText = $(iq).find('>jingle>reason>text').text();
+            const reasonElement = findFirst(iq, ':scope>jingle>reason');
+
+            if (reasonElement) {
+                const firstReasonChild = reasonElement.children?.length > 0 ? reasonElement.children[0] : undefined;
+
+                reasonCondition = firstReasonChild ? firstReasonChild.tagName : null;
+                reasonText = getText(findFirst(iq, ':scope>jingle>reason>text'));
             }
+
             logger.debug(`Received ${action} from ${fromJid} disconnect reason=${reasonText}`);
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED, sess, reasonCondition, reasonText);
@@ -242,10 +247,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             logger.error(`Ignoring ${action} from ${fromJid} as it is not supported by the client.`);
             break;
         case 'source-add':
-            sess.addRemoteStream($(iq).find('>jingle>content'));
+            sess.addRemoteStream(findAll(iq, ':scope>jingle>content'));
             break;
         case 'source-remove':
-            sess.removeRemoteStream($(iq).find('>jingle>content'));
+            sess.removeRemoteStream(findAll(iq, ':scope>jingle>content'));
             break;
         default:
             logger.warn('jingle action not implemented', action);
@@ -346,37 +351,38 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
     onReceiveStunAndTurnCredentials(res) {
         let iceservers = [];
 
-        $(res).find('>services>service').each((idx, el) => {
-            // eslint-disable-next-line no-param-reassign
-            el = $(el);
+        findAll(res, ':scope>services>service').forEach(el => {
             const dict = {};
-            const type = el.attr('type');
+            const type = getAttribute(el, 'type');
 
             switch (type) {
-            case 'stun':
-                dict.urls = `stun:${el.attr('host')}`;
-                if (el.attr('port')) {
-                    dict.urls += `:${el.attr('port')}`;
-                }
-                iceservers.push(dict);
-                break;
-            case 'turn':
-            case 'turns': {
-                dict.urls = `${type}:`;
-                dict.username = el.attr('username');
-                dict.urls += el.attr('host');
-                const port = el.attr('port');
+            case 'stun': {
+                dict.urls = `stun:${getAttribute(el, 'host')}`;
+                const port = getAttribute(el, 'port');
 
                 if (port) {
                     dict.urls += `:${port}`;
                 }
-                const transport = el.attr('transport');
+                iceservers.push(dict);
+                break;
+            }
+            case 'turn':
+            case 'turns': {
+                dict.urls = `${type}:`;
+                dict.username = getAttribute(el, 'username');
+                dict.urls += getAttribute(el, 'host');
+                const turnPort = getAttribute(el, 'port');
+
+                if (turnPort) {
+                    dict.urls += `:${turnPort}`;
+                }
+                const transport = getAttribute(el, 'transport');
 
                 if (transport && transport !== 'udp') {
                     dict.urls += `?transport=${transport}`;
                 }
 
-                dict.credential = el.attr('password') || dict.credential;
+                dict.credential = getAttribute(el, 'password') || dict.credential;
                 iceservers.push(dict);
                 break;
             }
