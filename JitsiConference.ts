@@ -44,7 +44,7 @@ import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
-import $ from './modules/util/XMLParser';
+import { findAll, getAttribute } from './modules/util/XMLUtils';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -1516,10 +1516,9 @@ export default class JitsiConference extends Listenable {
             Statistics.sendAnalyticsAndLog(createJingleEvent(AnalyticsEvents.ACTION_JINGLE_RESTART, { p2p: false }));
         }
 
-        const serverRegion
-            = $(jingleOffer)
-                .find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]')
-                .attr('region');
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const bridgeSessionElement = findAll(jingleOffer, ':scope > bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]')[0];
+        const serverRegion = bridgeSessionElement ? getAttribute(bridgeSessionElement, 'region') : null;
 
         this.eventEmitter.emit(JitsiConferenceEvents.SERVER_REGION_CHANGED, serverRegion);
 
@@ -1604,18 +1603,16 @@ export default class JitsiConference extends Listenable {
      * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
      * @private
      */
-    private _setBridgeChannel(offerIq: object, pc: TraceablePeerConnection): void {
+    private _setBridgeChannel(offerIq: Element, pc: TraceablePeerConnection): void {
         const ignoreDomain = this.connection?.options?.bridgeChannel?.ignoreDomain;
         const preferSctp = this.connection?.options?.bridgeChannel?.preferSctp ?? true;
-        const sctpOffered = $(offerIq).find('>content[name="data"]')
-            .first().length === 1;
+        const sctpOffered = findAll(offerIq, ':scope > content[name="data"]').length === 1;
         let wsUrl = null;
 
         logger.info(`SCTP: offered=${sctpOffered}, prefered=${preferSctp}`);
 
         if (!(sctpOffered && preferSctp)) {
-            $(offerIq).find('>content>transport>web-socket')
-                .toArray()
+            findAll(offerIq, ':scope > content > transport > web-socket')
                 .map(e => e.getAttribute('url'))
                 .forEach(url => {
                     if (!wsUrl && (!ignoreDomain || ignoreDomain !== new URL(url).hostname)) {
@@ -1627,11 +1624,10 @@ export default class JitsiConference extends Listenable {
                 });
 
             if (!wsUrl) {
-                const firstWsUrl = $(offerIq).find('>content>transport>web-socket')
-                    .first();
+                const firstWsUrl = findAll(offerIq, ':scope > content > transport > web-socket')[0];
 
-                if (firstWsUrl.length === 1) {
-                    wsUrl = firstWsUrl[0].getAttribute('url');
+                if (firstWsUrl) {
+                    wsUrl = firstWsUrl.getAttribute('url');
                     logger.info(`Falling back to ${wsUrl}`);
                 }
             }
@@ -1689,7 +1685,8 @@ export default class JitsiConference extends Listenable {
      */
     private _onIncomingCallP2P(jingleSession: JingleSessionPC, jingleOffer: Element): void {
         let rejectReason;
-        const contentName = $(jingleOffer).find('>content').attr('name');
+        const contentElement = findAll(jingleOffer, ':scope > content')[0];
+        const contentName = contentElement ? getAttribute(contentElement, 'name') : null;
         const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
 
         // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).

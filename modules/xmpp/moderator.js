@@ -6,7 +6,7 @@ import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnection
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
-import $ from '../util/XMLParser';
+import { exists, findAll, getAttribute, getText } from '../util/XMLUtils';
 
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
@@ -249,37 +249,29 @@ export default class Moderator extends Listenable {
     _parseConferenceIq(resultIq) {
         const conferenceRequest = { properties: {} };
 
-        conferenceRequest.focusJid = $(resultIq)
-            .find('conference')
-            .attr('focusjid');
-        conferenceRequest.sessionId = $(resultIq)
-            .find('conference')
-            .attr('session-id');
-        conferenceRequest.identity = $(resultIq)
-            .find('>conference')
-            .attr('identity');
-        conferenceRequest.ready = $(resultIq)
-            .find('conference')
-            .attr('ready') === 'true';
-        conferenceRequest.vnode = $(resultIq)
-            .find('conference')
-            .attr('vnode');
+        const conferenceEl = findAll(resultIq, 'conference')[0];
 
-        if ($(resultIq).find('>conference>property[name=\'authentication\'][value=\'true\']').length > 0) {
+        conferenceRequest.focusJid = conferenceEl ? getAttribute(conferenceEl, 'focusjid') : null;
+        conferenceRequest.sessionId = conferenceEl ? getAttribute(conferenceEl, 'session-id') : null;
+        conferenceRequest.identity = conferenceEl ? getAttribute(conferenceEl, 'identity') : null;
+        conferenceRequest.ready = conferenceEl ? getAttribute(conferenceEl, 'ready') === 'true' : false;
+        conferenceRequest.vnode = conferenceEl ? getAttribute(conferenceEl, 'vnode') : null;
+
+        if (exists(resultIq, 'conference>property[name="authentication"][value="true"]')) {
             conferenceRequest.properties.authentication = 'true';
         }
 
-        if ($(resultIq).find('>conference>property[name=\'externalAuth\'][value=\'true\']').length > 0) {
+        if (findAll(resultIq, 'conference>property[name="externalAuth"][value="true"]').length > 0) {
             conferenceRequest.properties.externalAuth = 'true';
         }
 
         // Check if jicofo has jigasi support enabled.
-        if ($(resultIq).find('>conference>property[name=\'sipGatewayEnabled\'][value=\'true\']').length > 0) {
+        if (findAll(resultIq, 'conference>property[name="sipGatewayEnabled"][value="true"]').length > 0) {
             conferenceRequest.properties.sipGatewayEnabled = 'true';
         }
 
         // check for explicit false, all other cases is considered live
-        if ($(resultIq).find('>conference>property[name=\'live\'][value=\'false\']').length > 0) {
+        if (findAll(resultIq, 'conference>property[name="live"][value="false"]').length > 0) {
             conferenceRequest.properties.live = 'false';
         }
 
@@ -509,16 +501,17 @@ export default class Moderator extends Listenable {
     _handleIqError(roomJid, error, callback, errorCallback) {
         // The reservation system only works over XMPP. Handle the error separately.
         // Check for error returned by the reservation system
-        const reservationErr = $(error).find('>error>reservation-error');
+        // Convert Strophe object to DOM element for XMLUtils functions
+        const reservationErr = findAll(error, ':scope > error>reservation-error');
 
         if (reservationErr.length) {
             // Trigger error event
-            const errorCode = reservationErr.attr('error-code');
-            const errorTextNode = $(error).find('>error>text');
+            const errorCode = getAttribute(reservationErr[0], 'error-code');
+            const errorTextNode = findAll(error, ':scope > error>text');
             let errorMsg;
 
-            if (errorTextNode) {
-                errorMsg = errorTextNode.text();
+            if (errorTextNode.length) {
+                errorMsg = getText(errorTextNode[0]);
             }
             this.eventEmitter.emit(
                 XMPPEvents.RESERVATION_ERROR,
@@ -530,11 +523,11 @@ export default class Moderator extends Listenable {
             return;
         }
 
-        const invalidSession = Boolean($(error).find('>error>session-invalid').length
-                || $(error).find('>error>not-acceptable').length);
+        const invalidSession = Boolean(findAll(error, ':scope > error>session-invalid').length
+                || findAll(error, ':scope > error>not-acceptable').length);
 
         // Not authorized to create new room
-        const notAuthorized = $(error).find('>error>not-authorized').length > 0;
+        const notAuthorized = findAll(error, ':scope > error>not-authorized').length > 0;
 
         this._handleError(roomJid, invalidSession, notAuthorized, callback, errorCallback);
     }
@@ -566,9 +559,8 @@ export default class Moderator extends Listenable {
             this.connection.sendIQ(
                 this._createConferenceIq(roomJid),
                 result => {
-                    const sessionId = $(result)
-                        .find('conference')
-                        .attr('session-id');
+                    const conferenceEl = findAll(result, 'conference')[0];
+                    const sessionId = conferenceEl ? getAttribute(conferenceEl, 'session-id') : null;
 
                     if (sessionId) {
                         logger.info(`Received sessionId:  ${sessionId}`);
@@ -579,14 +571,16 @@ export default class Moderator extends Listenable {
 
                     resolve();
                 },
-                errorIq => reject({
-                    error: $(errorIq)
-                        .find('iq>error :first')
-                        .prop('tagName'),
-                    message: $(errorIq)
-                        .find('iq>error>text')
-                        .text()
-                })
+                errorIq => {
+                    const errorEl = findAll(errorIq, ':scope > iq>error')[0];
+                    const firstErrorChild = errorEl ? errorEl.children[0] : null;
+                    const errorTextEl = findAll(errorIq, ':scope > iq>error>text')[0];
+
+                    reject({
+                        error: firstErrorChild ? firstErrorChild.tagName : null,
+                        message: errorTextEl ? getText(errorTextEl) : null
+                    });
+                }
             );
         });
     }

@@ -22,7 +22,7 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
-import $ from '../util/XMLParser';
+import { findAll, getAttribute } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
 import { JingleSessionState } from './JingleSessionState';
@@ -105,18 +105,6 @@ function _addSourceElement(description: any, s: any, ssrc_: number, msid: string
  *
  * [1]: https://github.com/jitsi/jitsi-meet/blob/master/config.js
  */
-
-/**
- * Represents Jingle XML content elements that can be queried using jQuery-like syntax
- */
-interface IJingleContents {
-    [index: number]: Element;
-    attr: (name: string) => Optional<string>;
-    each: (callback: (index: number, element: Element) => void) => void;
-    find: (selector: string) => IJingleContents;
-    length: number;
-}
-
 interface IJingleSessionPCOptions {
     audioQuality?: IAudioQuality;
     channelLastN?: number;
@@ -214,8 +202,8 @@ export default class JingleSessionPC extends JingleSession {
      * invalid then <tt>null</tt> will be returned.
      * @private
      */
-    static parseVideoSenders(jingleContents: IJingleContents): Nullable<string> {
-        const videoContents = jingleContents.find('>content[name="video"]');
+    static parseVideoSenders(jingleContents: Element): Nullable<string> {
+        const videoContents = findAll(jingleContents, ':scope > content[name="video"]');
 
         if (videoContents.length) {
             const senders = videoContents[0].getAttribute('senders');
@@ -238,13 +226,13 @@ export default class JingleSessionPC extends JingleSession {
      * @param {Object} jingleContents - An element pointing to the '>jingle' element.
      * @returns {Nullable<Object>}
      */
-    static parseSourceMaxFrameHeight(jingleContents: IJingleContents): Nullable<ISourceFrameHeight[]> {
+    static parseSourceMaxFrameHeight(jingleContents: Element): Nullable<ISourceFrameHeight[]> {
         const receiverConstraints: ISourceFrameHeight[] = [];
-        const sourceFrameHeightSel = jingleContents.find('>content[name="video"]>source-frame-height');
+        const sourceFrameHeightSel = findAll(jingleContents, ':scope > content[name="video"]>source-frame-height');
         let maxHeight: string, sourceName: string;
 
         if (sourceFrameHeightSel.length) {
-            sourceFrameHeightSel.each((_: number, source: Element) => {
+            sourceFrameHeightSel.forEach(source => {
                 sourceName = source.getAttribute('sourceName');
                 maxHeight = source.getAttribute('maxHeight');
                 receiverConstraints.push({
@@ -591,7 +579,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {Object} offerIq the incoming offer.
      * @returns {SDP object} the jingle offer translated to SDP.
      */
-    private _processNewJingleOfferIq(offerIq: object): SDP {
+    private _processNewJingleOfferIq(offerIq: Element): SDP {
         const remoteSdp = new SDP('', this.isP2P);
 
         if (this.webrtcIceTcpDisable) {
@@ -605,7 +593,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         remoteSdp.fromJingle(offerIq);
-        this._processSourceMapFromJingle($(offerIq).find('>content'));
+        this._processSourceMapFromJingle(findAll(offerIq, ':scope > content'));
 
         return remoteSdp;
     }
@@ -630,13 +618,14 @@ export default class JingleSessionPC extends JingleSession {
          */
         const sourceDescription = new Map();
         const sourceElementArray = Array.isArray(sourceElement) ? sourceElement : [ sourceElement ];
+        let hasSourcesProcessed = false;
 
         for (const content of sourceElementArray) {
-            const descriptionsWithSources = $(content).find('>description')
-                .filter((_: number, el: Element) => $(el).find('>source').length);
+            const descriptionsWithSources = findAll(content, ':scope > description')
+                .filter((el: Element) => findAll(el, ':scope > source').length);
 
             for (const description of descriptionsWithSources) {
-                const mediaType = $(description).attr('media');
+                const mediaType = getAttribute(description, 'media');
 
                 if (mediaType === MediaType.AUDIO && this.options.startSilent) {
 
@@ -644,38 +633,35 @@ export default class JingleSessionPC extends JingleSession {
                     continue;
                 }
 
-                const sources = $(description).find('>source');
+                // Get direct source children, excluding those inside ssrc-group elements
+                const allSources = findAll(description, 'source');
+                const groupSources = findAll(description, 'ssrc-group source');
+                const sources = allSources.filter(source => !groupSources.includes(source));
                 const removeSsrcs = [];
 
                 for (const source of sources) {
-                    const ssrc = $(source).attr('ssrc');
-                    const sourceName = $(source).attr('name');
-                    const msid = $(source)
-                        .find('>parameter[name="msid"]')
-                        .attr('value');
-                    let videoType = $(source).attr('videoType');
+                    const ssrc = getAttribute(source, 'ssrc');
+                    const sourceName = getAttribute(source, 'name');
+                    const msidEl = findAll(source, 'parameter[name="msid"]')[0];
+                    const msid = msidEl ? getAttribute(msidEl, 'value') : null;
+                    let videoType = getAttribute(source, 'videoType');
 
                     // If the videoType is DESKTOP_HIGH_FPS for remote tracks, we should treat it as DESKTOP.
                     if (videoType === VideoType.DESKTOP_HIGH_FPS) {
                         videoType = VideoType.DESKTOP;
                     }
 
-                    if (sourceDescription.has(sourceName)) {
-                        sourceDescription.get(sourceName).ssrcList?.push(ssrc);
-                    } else {
-                        sourceDescription.set(sourceName, {
-                            groups: [],
-                            mediaType,
-                            msid,
-                            ssrcList: [ ssrc ],
-                            videoType
-                        });
+                    hasSourcesProcessed = true;
+
+                    // Only build sourceDescription map when adding sources
+                    if (isAdd) {
+                        this._addToSourceDescription(sourceDescription, sourceName, ssrc, mediaType, msid, videoType);
                     }
 
                     // Update the source owner and source name.
-                    const owner = $(source)
-                        .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                        .attr('owner');
+                    // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                    const ssrcInfo = findAll(source, 'ssrc-info[*|xmlns="http://jitsi.org/jitmeet"]')[0];
+                    const owner = ssrcInfo ? getAttribute(ssrcInfo, 'owner') : null;
 
                     if (owner && isAdd) {
                         // JVB source-add.
@@ -691,35 +677,77 @@ export default class JingleSessionPC extends JingleSession {
 
                 // 'source-remove' from remote peer.
                 removeSsrcs.length && this._signalingLayer.removeSSRCOwners(removeSsrcs);
-                const groups = $(description).find('>ssrc-group');
 
-                if (!groups.length) {
-                    continue; // eslint-disable-line no-continue
-                }
+                // Only process groups when adding sources
+                if (isAdd) {
+                    const groups = findAll(description, 'ssrc-group');
 
-                for (const group of groups) {
-                    const semantics = $(group).attr('semantics');
-                    const groupSsrcs = [];
-
-                    for (const source of $(group).find('>source')) {
-                        groupSsrcs.push($(source).attr('ssrc'));
+                    if (!groups.length) {
+                        continue; // eslint-disable-line no-continue
                     }
 
-                    for (const [ sourceName, { ssrcList } ] of sourceDescription) {
-                        if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
-                            sourceDescription.get(sourceName).groups.push({
-                                semantics,
-                                ssrcs: groupSsrcs
-                            });
+                    for (const group of groups) {
+                        const semantics = getAttribute(group, 'semantics');
+                        const groupSsrcs = [];
+
+                        for (const source of findAll(group, 'source')) {
+                            groupSsrcs.push(getAttribute(source, 'ssrc'));
                         }
+
+                        this._addGroupToMatchingSources(sourceDescription, groupSsrcs, semantics);
                     }
                 }
             }
         }
 
-        sourceDescription.size && this.peerconnection.updateRemoteSources(sourceDescription, isAdd);
+        // Only call updateRemoteSources if we processed any sources
+        if (hasSourcesProcessed) {
+            this.peerconnection.updateRemoteSources(sourceDescription, isAdd);
+        }
 
         return sourceDescription;
+    }
+
+    /**
+     * Helper method to add source information to sourceDescription map.
+     * @param {Map} sourceDescription - The source description map to update.
+     * @param {string} sourceName - The source name.
+     * @param {string} ssrc - The SSRC.
+     * @param {string} mediaType - The media type.
+     * @param {string} msid - The media stream ID.
+     * @param {string} videoType - The video type.
+     * @private
+     */
+    _addToSourceDescription(sourceDescription, sourceName, ssrc, mediaType, msid, videoType) {
+        if (sourceDescription.has(sourceName)) {
+            sourceDescription.get(sourceName).ssrcList?.push(ssrc);
+        } else {
+            sourceDescription.set(sourceName, {
+                groups: [],
+                mediaType,
+                msid,
+                ssrcList: [ ssrc ],
+                videoType
+            });
+        }
+    }
+
+    /**
+     * Helper method to add group information to matching sources.
+     * @param {Map} sourceDescription - The source description map to update.
+     * @param {Array<string>} groupSsrcs - The SSRCs in the group.
+     * @param {string} semantics - The group semantics.
+     * @private
+     */
+    _addGroupToMatchingSources(sourceDescription, groupSsrcs, semantics) {
+        for (const [ sourceName, { ssrcList } ] of sourceDescription) {
+            if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
+                sourceDescription.get(sourceName).groups.push({
+                    semantics,
+                    ssrcs: groupSsrcs
+                });
+            }
+        }
     }
 
     /**
@@ -1363,7 +1391,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * {@inheritDoc}
      */
-    public override addIceCandidates(elem: object): void {
+    public override addIceCandidates(elem: Element): void {
         if (this.peerconnection.signalingState === 'closed') {
             logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 
@@ -1372,8 +1400,8 @@ export default class JingleSessionPC extends JingleSession {
 
         const iceCandidates: RTCIceCandidate[] = [];
 
-        $(elem).find('>content>transport>candidate')
-            .each((idx: number, candidate: Element) => {
+        findAll(elem, ':scope > content>transport>candidate')
+            .forEach(candidate => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
                 line = line.replace('\r\n', '').replace('a=', '');
@@ -1929,7 +1957,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {Element} jingleContents - The content of the 'content-modify' IQ sent by the remote peer.
      * @returns {void}
      */
-    public modifyContents(jingleContents: IJingleContents): void {
+    public modifyContents(jingleContents: Element): void {
         const newVideoSenders = JingleSessionPC.parseVideoSenders(jingleContents);
         const sourceMaxFrameHeights = JingleSessionPC.parseSourceMaxFrameHeight(jingleContents);
 

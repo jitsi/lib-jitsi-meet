@@ -1,5 +1,5 @@
 import { MockRTC } from '../RTC/MockClasses';
-import $ from '../util/XMLParser';
+import { parseXML, findAll } from '../util/XMLUtils';
 
 import JingleSessionPC from './JingleSessionPC';
 import {JingleSessionState} from './JingleSessionState';
@@ -11,7 +11,7 @@ import { MockChatRoom, MockStropheConnection } from './MockClasses';
  * @returns {Object}
  */
 function createContentModifyForSourceNames() {
-    const modifyContentsIq = $.parseXML(
+    const modifyContentsIq = parseXML(
         '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
         + '<content name="video" senders="both">'
         + '<source-frame-height maxHeight="180" sourceName="8d519815-v0" xmlns="http://jitsi.org/jitmeet/video"/>'
@@ -19,7 +19,7 @@ function createContentModifyForSourceNames() {
         + '</content>'
         + '</jingle>');
 
-    return $(modifyContentsIq).find('>jingle');
+    return findAll(modifyContentsIq, 'jingle')[0];
 }
 
 describe('JingleSessionPC', () => {
@@ -138,7 +138,7 @@ describe('JingleSessionPC', () => {
             updateRemoteSourcesSpy = spyOn(peerconnection, 'updateRemoteSources');
         });
         it('should handle no sources', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                             <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -148,7 +148,7 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+            const sourceAddElem = findAll(jingle.documentElement, 'content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 
@@ -159,7 +159,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle a single source', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                             <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'>
@@ -170,7 +170,7 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+            const sourceAddElem = findAll(jingle.documentElement, 'content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
             expect(sourceInfo.size).toBe(1);
@@ -186,7 +186,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle multiple ssrcs belonging to the same source', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                                 <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -207,7 +207,7 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+            const sourceAddElem = findAll(jingle.documentElement, 'content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 
@@ -229,7 +229,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle multiple ssrcs belonging to different sources', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                                 <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -260,7 +260,7 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+            const sourceAddElem = findAll(jingle.documentElement, 'content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 

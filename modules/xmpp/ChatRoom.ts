@@ -14,7 +14,7 @@ import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
-import $ from '../util/XMLParser';
+import { findAll, getAttribute, getText } from '../util/XMLUtils';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
@@ -557,54 +557,51 @@ export default class ChatRoom extends Listenable {
                 .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
         this.connection.sendIQ(getInfo, result => {
-            const locked
-                = $(result).find('>query>feature[var="muc_passwordprotected"]')
-                    .length
-                    === 1;
+            const locked = findAll(result, ':scope > query>feature[var="muc_passwordprotected"]').length === 1;
 
             if (locked !== this.locked) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
             }
 
-            const meetingIdValEl
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
+            const meetingIdValEl = findAll(result, ':scope > query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
 
             if (meetingIdValEl.length) {
-                this.setMeetingId(meetingIdValEl.text());
+                this.setMeetingId(getText(meetingIdValEl[0]));
             } else {
                 logger.warn('No meeting ID from backend');
             }
 
-            const meetingCreatedTSValEl
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_created_timestamp"]>value');
+            const meetingCreatedTSValEl = findAll(result,
+                ':scope > query>x[type="result"]>field[var="muc#roominfo_created_timestamp"]>value');
 
             if (meetingCreatedTSValEl.length) {
-                this.eventEmitter.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, meetingCreatedTSValEl.text());
+                this.eventEmitter.emit(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, getText(meetingCreatedTSValEl[0]));
             } else {
                 logger.warn('No conference duration from backend');
             }
 
-            const membersOnly = $(result).find('>query>feature[var="muc_membersonly"]').length === 1;
+            const membersOnly = findAll(result, ':scope > query>feature[var="muc_membersonly"]').length === 1;
 
-            const lobbyRoomField
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_lobbyroom"]>value');
+            const lobbyRoomField = findAll(result,
+                ':scope > query>x[type="result"]>field[var="muc#roominfo_lobbyroom"]>value');
 
             if (this.lobby) {
-                this.lobby.setLobbyRoomJid(lobbyRoomField?.length ? lobbyRoomField.text() : undefined);
+                this.lobby.setLobbyRoomJid(
+                    lobbyRoomField?.length ? getText(lobbyRoomField[0]) : undefined);
             }
 
-            const isBreakoutField
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_isbreakout"]>value');
-            const isBreakoutRoom = Boolean(isBreakoutField?.text());
+            const isBreakoutField = findAll(result,
+                ':scope > query>x[type="result"]>field[var="muc#roominfo_isbreakout"]>value');
+            const isBreakoutRoom = Boolean(isBreakoutField.length ? getText(isBreakoutField[0]) : null);
 
             this.breakoutRooms._setIsBreakoutRoom(isBreakoutRoom);
 
-            const breakoutMainRoomField
-                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_breakout_main_room"]>value');
+            const breakoutMainRoomField = findAll(result,
+                ':scope > query>x[type="result"]>field[var="muc#roominfo_breakout_main_room"]>value');
 
-            if (breakoutMainRoomField?.length) {
-                this.breakoutRooms._setMainRoomJid(breakoutMainRoomField.text());
+            if (breakoutMainRoomField.length) {
+                this.breakoutRooms._setMainRoomJid(getText(breakoutMainRoomField[0]));
             }
 
             if (membersOnly !== this.membersOnlyEnabled) {
@@ -612,8 +609,9 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
             }
 
-            const visitorsSupported = $(result)
-                .find('>query>x[type="result"]>field[var="muc#roominfo_visitorsEnabled"]>value').text() === '1';
+            const visitorsEnabledEl = findAll(result,
+                ':scope > query>x[type="result"]>field[var="muc#roominfo_visitorsEnabled"]>value');
+            const visitorsSupported = visitorsEnabledEl.length && getText(visitorsEnabledEl[0]) === '1';
 
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
@@ -662,9 +660,8 @@ export default class ChatRoom extends Listenable {
                 xmlns: 'jabber:x:data' });
 
         this.connection.sendIQ(getForm, form => {
-            if (!$(form).find(
-                    '>query>x[xmlns="jabber:x:data"]'
-                    + '>field[var="muc#roomconfig_whois"]').length) {
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            if (!findAll(form, ':scope > query x[*|xmlns="jabber:x:data"] field[var="muc#roomconfig_whois"]').length) {
                 logger.error('non-anonymous rooms not supported');
 
                 return;
@@ -851,15 +848,16 @@ export default class ChatRoom extends Listenable {
                     this.role);
             }
 
-            if (xElement && $(xElement).find('>status[code="110"]').length) {
+            if (xElement && findAll(xElement, 'status[code="110"]').length) {
                 // let's check for some backend forced permissions
-                const permissionEl = $(pres).find('>permissions[xmlns="http://jitsi.org/jitmeet"]');
+                // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                const permissionEl = findAll(pres, 'permissions[*|xmlns="http://jitsi.org/jitmeet"]');
 
                 if (permissionEl.length) {
-                    const permissions = $(permissionEl).find('p');
+                    const permissions = findAll(permissionEl[0], 'p');
                     const permissionsMap = {};
 
-                    permissions.each((idx, p) => {
+                    permissions.forEach(p => {
                         permissionsMap[p.getAttribute('name')] = p.getAttribute('val');
                     });
 
@@ -1195,64 +1193,49 @@ export default class ChatRoom extends Listenable {
      */
     onPresenceUnavailable(pres: Element, from: string): boolean {
         // ignore presence
-        if ($(pres).find('>ignore[xmlns="http://jitsi.org/jitmeet/"]').length) {
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (findAll(pres, 'ignore[*|xmlns="http://jitsi.org/jitmeet/"]').length) {
             return true;
         }
 
         // room destroyed ?
-        const destroySelect = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>destroy');
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const destroySelect = findAll(pres, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>destroy');
 
         if (destroySelect.length) {
             let reason;
-            const reasonSelect
-                = $(pres).find(
-                    '>x[xmlns="http://jabber.org/protocol/muc#user"]'
-                        + '>destroy>reason');
+            const reasonSelect = findAll(pres, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>destroy>reason');
 
             if (reasonSelect.length) {
-                reason = reasonSelect.text();
+                reason = getText(reasonSelect[0]);
             }
 
-            this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason, destroySelect.attr('jid'));
+            this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason, getAttribute(destroySelect[0], 'jid'));
             this.connection.emuc.doLeave(this.roomjid);
 
             return true;
         }
 
         // Status code 110 indicates that this notification is "self-presence".
-        const isSelfPresence
-            = $(pres)
-                .find(
-                    '>x[xmlns="http://jabber.org/protocol/muc#user"]>'
-                        + 'status[code="110"]')
-                .length;
-        const isKick
-            = $(pres)
-                .find(
-                    '>x[xmlns="http://jabber.org/protocol/muc#user"]'
-                        + '>status[code="307"]')
-                .length;
+        const isSelfPresence = findAll(pres,
+            'x[*|xmlns="http://jabber.org/protocol/muc#user"] status[code="110"]').length;
+        const isKick = findAll(pres, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length;
         const membersKeys = Object.keys(this.members);
-        const isReplaceParticipant = $(pres).find('flip_device').length > 0;
+        const isReplaceParticipant = findAll(pres, 'flip_device').length > 0;
 
         if (isKick) {
-            const actorSelect
-                = $(pres)
-                .find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
+            const actorSelect = findAll(pres, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
             let actorNick;
 
             if (actorSelect.length) {
-                actorNick = actorSelect.attr('nick');
+                actorNick = getAttribute(actorSelect[0], 'nick');
             }
 
             let reason;
-            const reasonSelect
-                = $(pres).find(
-                '>x[xmlns="http://jabber.org/protocol/muc#user"]'
-                + '>item>reason');
+            const reasonSelect = findAll(pres, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>item>reason');
 
             if (reasonSelect.length) {
-                reason = reasonSelect.text();
+                reason = getText(reasonSelect[0]);
             }
 
             // we first fire the kicked so we can show the participant
@@ -1288,12 +1271,12 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
         } else {
-            const reasonSelect = $(pres).find('>status');
+            const reasonSelect = findAll(pres, 'status');
             const member = this.members[from];
             let reason;
 
             if (reasonSelect.length) {
-                reason = reasonSelect.text();
+                reason = getText(reasonSelect[0]);
             }
 
             delete this.members[from];
@@ -1330,28 +1313,36 @@ export default class ChatRoom extends Listenable {
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
-            const settingsErrorMsg = $(msg).find('>settings-error>text').text();
+            const settingsErrorEl = findAll(msg, 'settings-error>text');
+            const settingsErrorMsg = settingsErrorEl.length ? getText(settingsErrorEl[0]) : '';
 
             if (settingsErrorMsg.length) {
                 this.eventEmitter.emit(XMPPEvents.SETTINGS_ERROR_RECEIVED, settingsErrorMsg);
 
                 return true;
             }
-            const errorMsg = $(msg).find('>error>text').text();
+            const errorEl = findAll(msg, 'error>text');
+            const errorMsg = errorEl.length ? getText(errorEl[0]) : '';
 
             this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
 
             return true;
         }
 
-        const reactions = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]>reaction');
+        // Find reactions parent element first - use a namespace-agnostic approach
+        const allElements = findAll(msg, '*');
+        const reactionParent = allElements.find(el =>
+            el.localName === 'reactions'
+            && (el.namespaceURI === 'urn:xmpp:reactions:0'
+             || getAttribute(el, 'xmlns') === 'urn:xmpp:reactions:0'));
 
-        if (reactions.length > 0) {
-            const messageId = $(msg).find('>[xmlns="urn:xmpp:reactions:0"]').attr('id');
+        if (reactionParent) {
+            const reactions = findAll(reactionParent, 'reaction');
+            const messageId = getAttribute(reactionParent, 'id');
             const reactionList = [];
 
-            reactions.each((_, reactionElem) => {
-                const reaction = $(reactionElem).text();
+            reactions.forEach(reactionElem => {
+                const reaction = getText(reactionElem);
                 const m = reaction.match(EMOJI_REGEX);
 
                 // Only allow one reaction per <reaction> element.
@@ -1368,11 +1359,12 @@ export default class ChatRoom extends Listenable {
         }
 
 
-        const txt = $(msg).find('>body').text();
-        const subject = $(msg).find('>subject');
+        const bodyEl = findAll(msg, 'body');
+        const txt = bodyEl.length ? getText(bodyEl[0]) : '';
+        const subject = findAll(msg, 'subject');
 
         if (subject.length) {
-            const subjectText = subject.text();
+            const subjectText = getText(subject[0]);
 
             if (subjectText || subjectText === '') {
                 this.subject = subjectText.trim();
@@ -1382,11 +1374,15 @@ export default class ChatRoom extends Listenable {
         }
 
         // xep-0203 delay
-        let stamp = $(msg).find('>delay').attr('stamp');
+        const delayEl = findAll(msg, 'delay');
+        let stamp = delayEl.length ? getAttribute(delayEl[0], 'stamp') : null;
 
         if (!stamp) {
             // or xep-0091 delay, UTC timestamp
-            stamp = $(msg).find('>[xmlns="jabber:x:delay"]').attr('stamp');
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            const delayXEl = findAll(msg, '[*|xmlns="jabber:x:delay"]');
+
+            stamp = delayXEl.length ? getAttribute(delayXEl[0], 'stamp') : null;
 
             if (stamp) {
                 // the format is CCYYMMDDThh:mm:ss
@@ -1400,23 +1396,26 @@ export default class ChatRoom extends Listenable {
         if (from === this.roomjid) {
             let invite;
 
-            if ($(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            if (findAll(msg, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
                 this.discoRoomInfo();
-            } else if ((invite = $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>invite'))
+            } else if ((invite = findAll(msg, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite'))
                         && invite.length) {
-                const passwordSelect = $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>password');
+                const passwordSelect = findAll(msg, 'x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
                 let password;
 
                 if (passwordSelect?.length) {
-                    password = passwordSelect.text();
+                    password = getText(passwordSelect[0]);
                 }
 
                 this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                    from, invite.attr('from'), txt, password);
+                    from, getAttribute(invite[0], 'from'), txt, password);
             }
         }
 
-        const jsonMessage = $(msg).find('>json-message[xmlns="http://jitsi.org/jitmeet"]').text();
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const jsonMessageEl = findAll(msg, 'json-message[*|xmlns="http://jitsi.org/jitmeet"]');
+        const jsonMessage = jsonMessageEl.length ? getText(jsonMessageEl[0]) : '';
 
         if (jsonMessage) {
             const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
@@ -1434,26 +1433,26 @@ export default class ChatRoom extends Listenable {
 
         if (txt) {
 
-            const messageId = $(msg).attr('id') || uuidv4();
+            const messageId = getAttribute(msg, 'id') || uuidv4();
 
-            const displayNameEl = $(msg).find('>display-name[xmlns="http://jitsi.org/protocol/display-name"]');
-            const isVisitorMessage = displayNameEl.length > 0 && displayNameEl.attr('source') === 'visitor';
+            const displayNameEl = findAll(msg, ':scope > display-name[*|xmlns="http://jitsi.org/protocol/display-name"]');
+            const isVisitorMessage = displayNameEl.length > 0 && getAttribute(displayNameEl[0], 'source') === 'visitor';
 
             if (type === 'chat') {
                 let displayName;
                 let originalFrom;
 
                 if (isVisitorMessage) {
-                    displayName = displayNameEl.text();
+                    displayName = getText(displayNameEl[0]);
 
                     // Check for original visitor JID in addresses element (XEP-0033)
-                    const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
+                    const addressesEl = findAll(msg, ':scope > addresses[*|xmlns="http://jabber.org/protocol/address"]');
 
                     if (addressesEl.length > 0) {
-                        const ofromEl = addressesEl.find('address[type="ofrom"]');
+                        const ofromEl = findAll(addressesEl[0], 'address[type="ofrom"]');
 
                         if (ofromEl.length > 0) {
-                            originalFrom = ofromEl.attr('jid');
+                            originalFrom = getAttribute(ofromEl[0], 'jid');
                         }
                     }
                 }
@@ -1461,8 +1460,8 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom);
             } else if (type === 'groupchat') {
-                const displayName = displayNameEl.length > 0 ? displayNameEl.text() : undefined;
-                const source = isVisitorMessage ? undefined : displayNameEl.attr('source');
+                const displayName = displayNameEl.length > 0 ? getText(displayNameEl[0]) : undefined;
+                const source = isVisitorMessage ? undefined : getAttribute(displayNameEl[0], 'source');
 
                 // we will fire explicitly that this is a visitor(isVisitor:true) to the conference
                 // a message with explicit name set
@@ -1488,19 +1487,11 @@ export default class ChatRoom extends Listenable {
             this.xmpp.moderator.conferenceRequestSent = false;
         }
 
-        if ($(pres)
-                .find(
-                    '>error[type="auth"]'
-                        + '>not-authorized['
-                        + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
-                .length) {
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (findAll(pres, 'error[type="auth"] not-authorized[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]').length) {
             logger.debug('on password required', from);
             this.eventEmitter.emit(XMPPEvents.PASSWORD_REQUIRED);
-        } else if ($(pres)
-                .find(
-                    '>error[type="cancel"]'
-                        + '>not-allowed['
-                        + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
+        } else if (findAll(pres, 'error[type="cancel"] not-allowed[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')
                 .length) {
             const toDomain = Strophe.getDomainFromJid(pres.getAttribute('to'));
 
@@ -1515,8 +1506,9 @@ export default class ChatRoom extends Listenable {
             } else {
                 logger.warn('onPresError ', pres);
 
-                const txtNode = $(pres).find('>error[type="cancel"]>text[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
-                const txt = txtNode.length && txtNode.text();
+                const txtNode = findAll(pres,
+                    'error[type="cancel"] text[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]');
+                const txt = txtNode.length && getText(txtNode[0]);
                 let type = AUTH_ERROR_TYPES.GENERAL;
 
                 // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
@@ -1541,42 +1533,39 @@ export default class ChatRoom extends Listenable {
 
                         return;
                     }
-                } else if ($(pres).find(
-                    '>error[type="cancel"]>no-main-participants[xmlns="jitsi:visitors"]').length > 0) {
+                } else if (findAll(pres,
+                    'error[type="cancel"] no-main-participants[*|xmlns="jitsi:visitors"]').length > 0) {
                     type = AUTH_ERROR_TYPES.NO_MAIN_PARTICIPANTS;
-                } else if ($(pres).find(
-                    '>error[type="cancel"]>promotion-not-allowed[xmlns="jitsi:visitors"]').length > 0) {
+                } else if (findAll(pres,
+                    'error[type="cancel"] promotion-not-allowed[*|xmlns="jitsi:visitors"]').length > 0) {
                     type = AUTH_ERROR_TYPES.PROMOTION_NOT_ALLOWED;
-                } else if ($(pres).find(
-                    '>error[type="cancel"]>no-visitors-lobby[xmlns="jitsi:visitors"]').length > 0) {
+                } else if (findAll(pres,
+                    'error[type="cancel"] no-visitors-lobby[*|xmlns="jitsi:visitors"]').length > 0) {
                     type = AUTH_ERROR_TYPES.NO_VISITORS_LOBBY;
                 }
 
                 this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type, txt);
             }
-        } else if ($(pres).find('>error>service-unavailable').length) {
+        } else if (findAll(pres, 'error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
             this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
-        } else if ($(pres)
-            .find(
-                '>error[type="auth"]'
-                + '>registration-required['
-                + 'xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]').length) {
+        } else if (findAll(pres,
+            'error[type="auth"] registration-required[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]').length) {
 
             // let's extract the lobby jid from the custom field
-            const lobbyRoomNode = $(pres).find('>error[type="auth"]>lobbyroom');
+            const lobbyRoomNode = findAll(pres, 'error[type="auth"]>lobbyroom');
             let lobbyRoomJid;
 
             if (lobbyRoomNode.length) {
-                lobbyRoomJid = lobbyRoomNode.text();
+                lobbyRoomJid = getText(lobbyRoomNode[0]);
             }
 
-            const waitingForHost = $(pres).find('>error[type="auth"]>waiting-for-host').length > 0;
+            const waitingForHost = findAll(pres, 'error[type="auth"]>waiting-for-host').length > 0;
 
             this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR, lobbyRoomJid, waitingForHost);
-        } else if ((errorDescriptionNode = $(pres).find(
-                '>error[type="modify"]>displayname-required[xmlns="http://jitsi.org/jitmeet"]')).length) {
+        } else if ((errorDescriptionNode = findAll(pres,
+            'error[type="modify"] displayname-required[*|xmlns="http://jitsi.org/jitmeet"]')).length) {
             logger.warn('display name required ', pres);
             this.eventEmitter.emit(XMPPEvents.DISPLAY_NAME_REQUIRED, errorDescriptionNode[0].attributes.lobby?.value);
         } else {
@@ -1646,11 +1635,9 @@ export default class ChatRoom extends Listenable {
             })
                 .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
-                if ($(res)
-                        .find(
-                            '>query>x[xmlns="jabber:x:data"]'
-                                + '>field[var="muc#roomconfig_roomsecret"]')
-                        .length) {
+                // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                if (findAll(res,
+                    'query x[*|xmlns="jabber:x:data"] field[var="muc#roomconfig_roomsecret"]').length) {
                     const formsubmit
                         = $iq({
                             to: this.roomjid,
@@ -1760,7 +1747,8 @@ export default class ChatRoom extends Listenable {
                 type: 'get'
             }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
-                if ($(res).find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_membersonly"]').length) {
+                // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                if (findAll(res, ':scope > query x[*|xmlns="jabber:x:data"] field[var="muc#roomconfig_membersonly"]').length) {
                     const formToSubmit
                         = $iq({
                             to: this.roomjid,
@@ -2104,10 +2092,10 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = $(iq).find('mute');
+        const mute = findAll(iq, 'mute');
 
-        if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, mute.attr('actor'));
+        if (mute.length && getText(mute[0]) === 'true') {
+            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, getAttribute(mute[0], 'actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
@@ -2131,10 +2119,10 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = $(iq).find('mute');
+        const mute = findAll(iq, 'mute');
 
-        if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, mute.attr('actor'));
+        if (mute.length && getText(mute[0]) === 'true') {
+            this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, getAttribute(mute[0], 'actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
@@ -2158,10 +2146,10 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = $(iq).find('mute');
+        const mute = findAll(iq, 'mute');
 
-        if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, mute.attr('actor'));
+        if (mute.length && getText(mute[0]) === 'true') {
+            this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, getAttribute(mute[0], 'actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML
@@ -2272,11 +2260,12 @@ export default class ChatRoom extends Listenable {
                         type: 'short-lived-token'
                     }),
                 res => {
-                    const resultServiceEl = $(res).find('>credentials[xmlns="urn:xmpp:extdisco:2"]>service');
+                    // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                    const resultServiceEl = findAll(res, 'credentials[*|xmlns="urn:xmpp:extdisco:2"]>service');
                     const currentDate = new Date();
-                    const expirationDate = new Date(resultServiceEl.attr('expires'));
+                    const expirationDate = new Date(getAttribute(resultServiceEl[0], 'expires'));
 
-                    cachedCredentials[service] = resultServiceEl.attr('password');
+                    cachedCredentials[service] = getAttribute(resultServiceEl[0], 'password');
                     this.cachedShortTermCredentials = cachedCredentials;
 
                     setTimeout(() => {

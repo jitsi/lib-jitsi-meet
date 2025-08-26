@@ -8,7 +8,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import browser from '../browser';
-import $ from '../util/XMLParser';
+import { findAll, getAttribute, getText } from '../util/XMLUtils';
 
 import SDPUtil from './SDPUtil';
 
@@ -198,14 +198,14 @@ export default class SDP {
             + 's=-\r\n'
             + 't=0 0\r\n';
 
-        const groups = $(jingle).find(`>group[xmlns='${XEP.BUNDLE_MEDIA}']`);
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const groups = findAll(jingle, `:scope > group[*|xmlns='${XEP.BUNDLE_MEDIA}']`);
 
         if (this.isP2P && groups.length) {
-            groups.each((idx, group) => {
-                const contents = $(group)
-                    .find('>content')
-                    .map((_, content) => content.getAttribute('name'))
-                    .get();
+            groups.forEach(group => {
+                const children = Array.from(group.children || []);
+                const contents = children.filter(child => child.localName === 'content')
+                    .map(content => content.getAttribute('name'));
 
                 if (contents.length > 0) {
                     this.raw
@@ -218,8 +218,13 @@ export default class SDP {
         }
 
         this.session = this.raw;
-        jingle.find('>content').each((_, content) => {
-            const m = this.jingle2media($(content));
+
+        // Find content elements that are direct children of jingle (not inside group elements)
+        // This avoids processing the reference content elements inside BUNDLE groups
+        const directContentElements = jingle ? findAll(jingle, ':scope > content') : [];
+
+        directContentElements.forEach(content => {
+            const m = this.jingle2media(content);
 
             this.media.push(m);
         });
@@ -389,71 +394,78 @@ export default class SDP {
      * @returns {*} - The constructed media sections.
      */
     jingle2media(content) {
-        const desc = content.find('>description');
-        const transport = content.find(`>transport[xmlns='${XEP.ICE_UDP_TRANSPORT}']`);
+        const desc = findAll(content, ':scope > description')[0];
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const transport = findAll(content, `:scope > transport[*|xmlns='${XEP.ICE_UDP_TRANSPORT}']`)[0];
         let sdp = '';
-        const sctp = transport.find(`>sctpmap[xmlns='${XEP.SCTP_DATA_CHANNEL}']`);
-        const media = { media: desc.attr('media') };
-        const mid = content.attr('name');
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const sctp = transport ? findAll(transport, `:scope > sctpmap[*|xmlns='${XEP.SCTP_DATA_CHANNEL}']`)[0] : null;
+        const media = { media: desc ? getAttribute(desc, 'media') : null };
+        const mid = getAttribute(content, 'name');
 
         media.port = '9';
-        if (content.attr('senders') === 'rejected') {
+        if (getAttribute(content, 'senders') === 'rejected') {
             media.port = '0';
         }
-        if (transport.find(`>fingerprint[xmlns='${XEP.DTLS_SRTP}']`).length) {
-            media.proto = sctp.length ? 'UDP/DTLS/SCTP' : 'UDP/TLS/RTP/SAVPF';
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (transport && findAll(transport, `:scope > fingerprint[*|xmlns='${XEP.DTLS_SRTP}']`).length) {
+            media.proto = sctp ? 'UDP/DTLS/SCTP' : 'UDP/TLS/RTP/SAVPF';
         } else {
             media.proto = 'UDP/TLS/RTP/SAVPF';
         }
-        if (sctp.length) {
+        if (sctp) {
             sdp += `m=application ${media.port} UDP/DTLS/SCTP webrtc-datachannel\r\n`;
-            sdp += `a=sctp-port:${sctp.attr('number')}\r\n`;
+            sdp += `a=sctp-port:${getAttribute(sctp, 'number')}\r\n`;
             sdp += 'a=max-message-size:262144\r\n';
         } else {
-            media.fmt
-                = desc
-                    .find('>payload-type')
-                    .map((_, payloadType) => payloadType.getAttribute('id'))
-                    .get();
+            media.fmt = desc
+                ? findAll(desc, ':scope > payload-type').map(payloadType => getAttribute(payloadType, 'id')) : [];
             sdp += `${SDPUtil.buildMLine(media)}\r\n`;
         }
 
         sdp += 'c=IN IP4 0.0.0.0\r\n';
-        if (!sctp.length) {
+        if (!sctp) {
             sdp += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
         }
 
-        if (transport.length) {
-            if (transport.attr('ufrag')) {
-                sdp += `${SDPUtil.buildICEUfrag(transport.attr('ufrag'))}\r\n`;
+        if (transport) {
+            if (getAttribute(transport, 'ufrag')) {
+                sdp += `${SDPUtil.buildICEUfrag(getAttribute(transport, 'ufrag'))}\r\n`;
             }
-            if (transport.attr('pwd')) {
-                sdp += `${SDPUtil.buildICEPwd(transport.attr('pwd'))}\r\n`;
+            if (getAttribute(transport, 'pwd')) {
+                sdp += `${SDPUtil.buildICEPwd(getAttribute(transport, 'pwd'))}\r\n`;
             }
-            transport.find(`>fingerprint[xmlns='${XEP.DTLS_SRTP}']`).each((_, fingerprint) => {
-                sdp += `a=fingerprint:${fingerprint.getAttribute('hash')} ${$(fingerprint).text()}\r\n`;
+
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            findAll(transport, `:scope > fingerprint[*|xmlns='${XEP.DTLS_SRTP}']`).forEach(fingerprint => {
+                sdp += `a=fingerprint:${getAttribute(fingerprint, 'hash')} ${getText(fingerprint)}\r\n`;
                 if (fingerprint.hasAttribute('setup')) {
-                    sdp += `a=setup:${fingerprint.getAttribute('setup')}\r\n`;
+                    sdp += `a=setup:${getAttribute(fingerprint, 'setup')}\r\n`;
                 }
             });
         }
 
-        transport.find('>candidate').each((_, candidate) => {
-            let protocol = candidate.getAttribute('protocol');
+        if (transport) {
+            findAll(transport, ':scope > candidate').forEach(candidate => {
+                let protocol = getAttribute(candidate, 'protocol');
 
-            protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
+                protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
-            if ((this.removeTcpCandidates && (protocol === 'tcp' || protocol === 'ssltcp'))
-                || (this.removeUdpCandidates && protocol === 'udp')) {
-                return;
-            } else if (this.failICE) {
-                candidate.setAttribute('ip', '1.1.1.1');
-            }
+                if ((this.removeTcpCandidates && (protocol === 'tcp' || protocol === 'ssltcp'))
+                    || (this.removeUdpCandidates && protocol === 'udp')) {
+                    return;
+                } else if (this.failICE) {
+                    candidate.setAttribute('ip', '1.1.1.1');
+                }
 
-            sdp += SDPUtil.candidateFromJingle(candidate);
-        });
+                sdp += SDPUtil.candidateFromJingle(candidate);
+            });
+        }
 
-        switch (content.attr('senders')) {
+        switch (getAttribute(content, 'senders')) {
         case 'initiator':
             sdp += `a=${MediaDirection.SENDONLY}\r\n`;
             break;
@@ -472,68 +484,72 @@ export default class SDP {
         // <description><rtcp-mux/></description>
         // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec though
         // and http://mail.jabber.org/pipermail/jingle/2011-December/001761.html
-        if (desc.find('>rtcp-mux').length) {
+        if (desc && findAll(desc, ':scope > rtcp-mux').length) {
             sdp += 'a=rtcp-mux\r\n';
         }
 
-        desc.find('>payload-type').each((_, payloadType) => {
-            sdp += `${SDPUtil.buildRTPMap(payloadType)}\r\n`;
-            if ($(payloadType).find('>parameter').length) {
-                sdp += `a=fmtp:${payloadType.getAttribute('id')} `;
-                sdp += $(payloadType)
-                    .find('>parameter')
-                    .map((__, parameter) => {
-                        const name = parameter.getAttribute('name');
+        if (desc) {
+            findAll(desc, ':scope > payload-type').forEach(payloadType => {
+                sdp += `${SDPUtil.buildRTPMap(payloadType)}\r\n`;
+                const parameters = findAll(payloadType, ':scope > parameter');
 
-                        return (name ? `${name}=` : '') + parameter.getAttribute('value');
-                    })
-                    .get()
-                    .join(';');
-                sdp += '\r\n';
+                if (parameters.length) {
+                    sdp += `a=fmtp:${getAttribute(payloadType, 'id')} `;
+                    sdp += parameters
+                        .map(parameter => {
+                            const name = getAttribute(parameter, 'name');
+
+                            return (name ? `${name}=` : '') + getAttribute(parameter, 'value');
+                        })
+                        .join(';');
+                    sdp += '\r\n';
+                }
+
+                sdp += this.rtcpFbFromJingle(payloadType, getAttribute(payloadType, 'id'));
+            });
+
+            sdp += this.rtcpFbFromJingle(desc, '*');
+
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            findAll(desc, `:scope > rtp-hdrext[*|xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).forEach(hdrExt => {
+                sdp += `a=extmap:${getAttribute(hdrExt, 'id')} ${getAttribute(hdrExt, 'uri')}\r\n`;
+            });
+
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            if (findAll(desc, `:scope > extmap-allow-mixed[*|xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).length > 0) {
+                sdp += 'a=extmap-allow-mixed\r\n';
             }
-
-            sdp += this.rtcpFbFromJingle($(payloadType), payloadType.getAttribute('id'));
-        });
-
-        sdp += this.rtcpFbFromJingle(desc, '*');
-
-        desc.find(`>rtp-hdrext[xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).each((_, hdrExt) => {
-            sdp += `a=extmap:${hdrExt.getAttribute('id')} ${hdrExt.getAttribute('uri')}\r\n`;
-        });
-        if (desc.find(`>extmap-allow-mixed[xmlns='${XEP.RTP_HEADER_EXTENSIONS}']`).length > 0) {
-            sdp += 'a=extmap-allow-mixed\r\n';
         }
 
-        desc
-            .find(`>ssrc-group[xmlns='${XEP.SOURCE_ATTRIBUTES}']`)
-            .each((_, ssrcGroup) => {
-                const semantics = ssrcGroup.getAttribute('semantics');
-                const ssrcs
-                    = $(ssrcGroup)
-                        .find('>source')
-                        .map((__, source) => source.getAttribute('ssrc'))
-                        .get();
+        if (desc) {
+
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            findAll(desc, `:scope > ssrc-group[*|xmlns='${XEP.SOURCE_ATTRIBUTES}']`).forEach(ssrcGroup => {
+                const semantics = getAttribute(ssrcGroup, 'semantics');
+                const children = Array.from(ssrcGroup.children || []);
+                const ssrcs = children.filter(child => child.localName === 'source')
+                    .map(source => getAttribute(source, 'ssrc'));
 
                 if (ssrcs.length) {
                     sdp += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
                 }
             });
+        }
 
         let userSources = '';
         let nonUserSources = '';
 
-        desc
-            .find(`>source[xmlns='${XEP.SOURCE_ATTRIBUTES}']`)
-            .each((_, source) => {
-                const ssrc = source.getAttribute('ssrc');
+        if (desc) {
+            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+            findAll(desc, `:scope > source[*|xmlns='${XEP.SOURCE_ATTRIBUTES}']`).forEach(source => {
+                const ssrc = getAttribute(source, 'ssrc');
                 let isUserSource = true;
                 let sourceStr = '';
 
-                $(source)
-                    .find('>parameter')
-                    .each((__, parameter) => {
-                        const name = parameter.getAttribute('name');
-                        let value = parameter.getAttribute('value');
+                findAll(source, ':scope > parameter')
+                    .forEach(parameter => {
+                        const name = getAttribute(parameter, 'name');
+                        let value = getAttribute(parameter, 'value');
 
                         value = SDPUtil.filterSpecialChars(value);
                         sourceStr += `a=ssrc:${ssrc} ${name}`;
@@ -558,6 +574,7 @@ export default class SDP {
                     nonUserSources += sourceStr;
                 }
             });
+        }
 
         // Append sources in the correct order, the mixedmslable m-line which has the JVB's SSRC for RTCP termination
         // is expected to be in the first m-line.
@@ -576,17 +593,20 @@ export default class SDP {
      */
     rtcpFbFromJingle(elem, payloadtype) {
         let sdp = '';
-        const feedbackElementTrrInt = elem.find(`>rtcp-fb-trr-int[xmlns='${XEP.RTP_FEEDBACK}']`);
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const feedbackElementTrrInt = findAll(elem, `:scope > rtcp-fb-trr-int[*|xmlns='${XEP.RTP_FEEDBACK}']`);
 
         if (feedbackElementTrrInt.length) {
             sdp += 'a=rtcp-fb:* trr-int ';
-            sdp += feedbackElementTrrInt.attr('value') || '0';
+            sdp += getAttribute(feedbackElementTrrInt[0], 'value') || '0';
             sdp += '\r\n';
         }
 
-        const feedbackElements = elem.find(`>rtcp-fb[xmlns='${XEP.RTP_FEEDBACK}']`);
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const feedbackElements = findAll(elem, `:scope > rtcp-fb[*|xmlns='${XEP.RTP_FEEDBACK}']`);
 
-        feedbackElements.each((_, fb) => {
+        feedbackElements.forEach(fb => {
             sdp += `a=rtcp-fb:${payloadtype} ${fb.getAttribute('type')}`;
             if (fb.hasAttribute('subtype')) {
                 sdp += ` ${fb.getAttribute('subtype')}`;
@@ -670,7 +690,7 @@ export default class SDP {
                 ssrc = assrcline.substring(7).split(' ')[0];
             }
 
-            const contents = $(elem.tree()).find(`content[name='${mediaType}']`);
+            const contents = findAll(elem.tree(), `content[name='${mediaType}']`);
 
             // Append source groups from the new m-lines to the existing media description. The SDP will have multiple
             // m-lines for audio and video including the recv-only ones for remote sources but there needs to be only
@@ -683,7 +703,7 @@ export default class SDP {
                 }
 
                 if (ssrc && !(isRecvOnly && browser.isFirefox())) {
-                    const description = $(content).find('description');
+                    const description = findAll(content, 'description')[0];
                     const ssrcMap = SDPUtil.parseSSRC(mediaItem);
 
                     for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
