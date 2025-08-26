@@ -18,7 +18,7 @@ import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
 import JitsiLocalTrack from './JitsiLocalTrack';
-import TraceablePeerConnection from './TraceablePeerConnection';
+import TraceablePeerConnection, { IAudioQuality, IExtendedRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
 
 const logger = getLogger('modules/RTC/TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
@@ -34,33 +34,10 @@ export interface ICodecConfig {
     useSimulcast?: boolean;
 }
 
-// Video quality configuration interface
-export interface IVideoQuality {
-    desktopbitrate?: number;
-    [CodecMimeType.AV1]?: ICodecConfig;
-    [CodecMimeType.H264]?: ICodecConfig;
-    [CodecMimeType.VP8]?: ICodecConfig;
-    [CodecMimeType.VP9]?: ICodecConfig;
-    maxbitratesvideo?: {
-        [codec: string]: {
-            [quality: string]: number;
-        };
-    };
-}
-
 export interface ITPCUtilsOptions {
-    // @ts-ignore import type from tpc
     audioQuality?: IAudioQuality;
     isP2P?: boolean;
     videoQuality?: IVideoQuality;
-}
-
-export interface IStreamEncoding {
-    active: boolean;
-    maxBitrate?: number;
-    rid?: string;
-    scalabilityMode?: VideoEncoderScalabilityMode;
-    scaleResolutionDownBy?: number;
 }
 
 /**
@@ -70,8 +47,10 @@ export interface IStreamEncoding {
 export class TPCUtils {
     private pc: TraceablePeerConnection;
     private options: ITPCUtilsOptions;
-    private codecSettings: IVideoQuality;
-
+    /**
+     * @internal
+     */
+    codecSettings: IVideoQuality;
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
@@ -139,7 +118,7 @@ export class TPCUtils {
      * @returns {Object} configuration.
      * @private
      */
-    private _calculateActiveEncodingParams(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): IStreamEncoding {
+    private _calculateActiveEncodingParams(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): IExtendedRtpEncodingParameters {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const trackCaptureHeight = localVideoTrack.getCaptureResolution();
         const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
@@ -166,7 +145,7 @@ export class TPCUtils {
             }
         }
 
-        const config: IStreamEncoding = {
+        const config: IExtendedRtpEncodingParameters = {
             active: effectiveNewHeight > 0,
             maxBitrate,
             scalabilityMode,
@@ -230,7 +209,7 @@ export class TPCUtils {
      * @returns {Array<Object>} - The initial configuration for the stream encodings.
      * @private
      */
-    private _getVideoStreamEncodings(localTrack: JitsiLocalTrack, codec: string): IStreamEncoding[] {
+    private _getVideoStreamEncodings(localTrack: JitsiLocalTrack, codec: string): IExtendedRtpEncodingParameters[] {
         const captureResolution = localTrack.getCaptureResolution();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
@@ -265,7 +244,7 @@ export class TPCUtils {
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }
 
-        const standardSimulcastEncodings: IStreamEncoding[] = [
+        const standardSimulcastEncodings: IExtendedRtpEncodingParameters[] = [
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[0],
@@ -473,7 +452,7 @@ export class TPCUtils {
             const { scalabilityMode }
                 = this._calculateActiveEncodingParams(localVideoTrack, codec, maxHeight);
 
-            scalabilityModes[0] = scalabilityMode;
+            scalabilityModes[0] = scalabilityMode as VideoEncoderScalabilityMode;
             scalabilityModes[1] = undefined;
             scalabilityModes[2] = undefined;
 
@@ -631,7 +610,7 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localTrack
      * @internal
      */
-    getStreamEncodings(localTrack: JitsiLocalTrack): IStreamEncoding | IStreamEncoding[] {
+    getStreamEncodings(localTrack: JitsiLocalTrack): IExtendedRtpEncodingParameters[] {
         if (localTrack.isAudioTrack()) {
             return [ { active: this.pc.audioTransferActive } ];
         }
