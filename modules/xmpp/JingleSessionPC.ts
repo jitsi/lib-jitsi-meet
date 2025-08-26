@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 import { $build, $iq, Strophe } from 'strophe.js';
 
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
@@ -17,7 +18,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
-import TraceablePeerConnection, { IAudioQuality, ICodecSettings, IVideoQuality } from '../RTC/TraceablePeerConnection';
+import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
@@ -31,8 +32,6 @@ import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
 import MediaSessionEvents from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
-import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
-import RTC from '../RTC/RTC';
 
 const logger = getLogger('modules/xmpp/JingleSessionPC');
 
@@ -750,7 +749,7 @@ export default class JingleSessionPC extends JingleSession {
             throw new Error(`Cannot renegotiate without remote description, state=${this.state}`);
         }
 
-        const remoteDescription ={
+        const remoteDescription = {
             sdp: remoteSdp,
             type: 'offer'
         } as RTCSessionDescription;
@@ -1261,7 +1260,7 @@ export default class JingleSessionPC extends JingleSession {
      * offer/answer).
      * @returns {void}
      */
-    private setOfferAnswerCycle(jingleOfferAnswerIq: Element, success: () => void, failure: (error: Error) => void, localTracks: JitsiLocalTrack[] = []): void {
+    private setOfferAnswerCycle(jingleOfferAnswerIq: object, success: () => void, failure: (error: Error) => void, localTracks: JitsiLocalTrack[] = []): void {
         logger.debug(`${this} Executing setOfferAnswerCycle task`);
 
         const addTracks = [];
@@ -1330,7 +1329,7 @@ export default class JingleSessionPC extends JingleSession {
      * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
      * assumption that the initial offer/answer cycle has been executed already.
      */
-    public acceptOffer(jingleOffer:Element, success: () => void, failure: (error: any) => void, localTracks: JitsiLocalTrack[] = []): void {
+    public acceptOffer(jingleOffer: object, success: () => void, failure: (error: any) => void, localTracks: JitsiLocalTrack[] = []): void {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -1367,7 +1366,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * {@inheritDoc}
      */
-    public addIceCandidates(elem:Element): void {
+    public addIceCandidates(elem: object): void {
         if (this.peerconnection.signalingState === 'closed') {
             logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 

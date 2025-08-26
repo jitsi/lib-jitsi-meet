@@ -291,7 +291,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @param reasonCondition
      * @param reasonText
      */
-    terminate(sid, reasonCondition=undefined, reasonText=undefined) {
+    terminate(sid, reasonCondition = undefined, reasonText = undefined) {
         if (this.sessions.hasOwnProperty(sid)) {
             if (this.sessions[sid].state !== 'ended') {
                 this.sessions[sid].onTerminated(reasonCondition, reasonText);
