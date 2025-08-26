@@ -1454,42 +1454,38 @@ export default class ChatRoom extends Listenable {
 
             const messageId = $(msg).attr('id') || uuidv4();
 
+            const displayNameEl = $(msg).find('>display-name[xmlns="http://jitsi.org/protocol/display-name"]');
+            const isVisitorMessage = displayNameEl.length > 0 && displayNameEl.attr('source') === 'visitor';
+
             if (type === 'chat') {
-                // Check if this is a visitor message (has nick element like group messages)
-                const nickEl = $(msg).find('>nick');
-                let nick;
+                let displayName;
+                let originalFrom;
 
-                if (nickEl.length > 0) {
-                    nick = nickEl.text();
-                }
+                if (isVisitorMessage) {
+                    displayName = displayNameEl.text();
 
-                // Check for original visitor JID in addresses element (XEP-0033)
-                let originalFrom = null;
-                const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
+                    // Check for original visitor JID in addresses element (XEP-0033)
+                    const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
 
-                if (addressesEl.length > 0) {
-                    const ofromEl = addressesEl.find('address[type="ofrom"]');
+                    if (addressesEl.length > 0) {
+                        const ofromEl = addressesEl.find('address[type="ofrom"]');
 
-                    if (ofromEl.length > 0) {
-                        originalFrom = ofromEl.attr('jid');
+                        if (ofromEl.length > 0) {
+                            originalFrom = ofromEl.attr('jid');
+                        }
                     }
                 }
 
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp, messageId, nick, Boolean(nick), originalFrom);
+                        from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom);
             } else if (type === 'groupchat') {
-                const nickEl = $(msg).find('>nick');
-                let nick;
+                const displayName = displayNameEl.length > 0 ? displayNameEl.text() : undefined;
+                const source = isVisitorMessage ? undefined : displayNameEl.attr('source');
 
-                if (nickEl.length > 0) {
-                    nick = nickEl.text();
-                }
-
-                // we will fire explicitly that this is a guest(isGuest:true) to the conference
-                // informing that this is probably a message from a guest to the conference (visitor)
+                // we will fire explicitly that this is a visitor(isVisitor:true) to the conference
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    from, txt, this.myroomjid, stamp, nick, Boolean(nick), messageId);
+                    from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source);
             }
         }
     }
