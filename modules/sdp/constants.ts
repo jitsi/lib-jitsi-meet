@@ -16,46 +16,46 @@ export interface ISsrcAttribute {
 }
 
 export interface IICECandidate {
-    foundation: string;
     component: string;
-    protocol: string;
-    priority: string;
+    foundation: string;
+    generation?: string;
+    hasOwnAttribute?: (attr: string) => boolean;
+    id?: string;
     ip: string;
+    network?: string;
     port: string;
-    type: string;
+    priority: string;
+    protocol: string;
     'rel-addr'?: string;
     'rel-port'?: string;
-    generation?: string;
     tcptype?: string;
-    network?: string;
-    id?: string;
-    hasOwnAttribute?: (attr: string) => boolean;
+    type: string;
 }
 
 export interface IMediaLine {
+    fmt: string[];
     media: string;
     port: string;
     proto: string;
-    fmt: string[];
 }
 
 export interface ICryptoData {
-    tag: string;
     'crypto-suite': string;
     'key-params': string;
     'session-params'?: string;
+    tag: string;
 }
 
 export interface IExtmapData {
-    value: string;
     direction: string;
-    uri: string;
     params: string[];
+    uri: string;
+    value: string;
 }
 
 export interface IFingerprintData {
-    hash: string;
     fingerprint: string;
+    hash: string;
 }
 
 export interface IFmtpParameter {
@@ -64,16 +64,16 @@ export interface IFmtpParameter {
 }
 
 export interface IRTCPFBData {
+    params: string[];
     pt: string;
     type: string;
-    params: string[];
 }
 
 export interface IRTPMapData {
+    channels: string;
+    clockrate: string;
     id: string;
     name: string;
-    clockrate: string;
-    channels: string;
 }
 
 export interface ISSRCGroupData {
@@ -95,16 +95,16 @@ export interface IMediaDescription {
 }
 
 export interface IMLine {
-    msid?: string;
-    media?: string;
-    ssrcs?: ISsrcAttribute[];
-    ssrcGroups?: ISsrcGroups[];
-    rtp?: IRTPInfo[];
+    direction?: string;
     fmtp?: IFMTPInfo[];
-    rtcpFb?: IRTPInfo[];
+    media?: string;
+    msid?: string;
     payloads: string | number;
     port?: number;
-    direction?: string;
+    rtcpFb?: IRTPInfo[];
+    rtp?: IRTPInfo[];
+    ssrcGroups?: ISsrcGroups[];
+    ssrcs?: ISsrcAttribute[];
     type?: string;
 }
 
@@ -114,8 +114,8 @@ export interface IRTPInfo {
 }
 
 export interface IFMTPInfo {
-    payload: number;
     config: string;
+    payload: number;
 }
 
 export interface ISsrcGroups {
