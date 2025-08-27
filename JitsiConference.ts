@@ -575,7 +575,7 @@ export default class JitsiConference extends Listenable {
         this._statsCurrentId = config.statisticsId ?? Settings.callStatsUserName;
         this.room = this._xmpp.createRoom(
             this.options.name, {
-                customDomain: this.options.customDomain,
+                ...config,
                 statsId: this._statsCurrentId
             },
             JitsiConference.resourceCreator
