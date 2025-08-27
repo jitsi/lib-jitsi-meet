@@ -6,6 +6,12 @@ import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
 
+
+export interface IMediaEncryptionKeyInfo {
+    encryptionKey?: CryptoKey;
+    index?: number;
+}
+
 /**
  * This module integrates {@link KeyHandler} with {@link JitsiConference} in order to enable E2E encryption.
  */
@@ -71,12 +77,10 @@ export class E2EEncryption {
 
     /**
      * Sets the key and index for End-to-End encryption.
-     *
-     * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
-     * @param {Number} [keyInfo.index] - the index of the encryption key.
+     * @param {IMediaEncryptionKeyInfo} [keyInfo]
      * @returns {void}
      */
-    setEncryptionKey(keyInfo: { encryptionKey?: CryptoKey; index?: number; }): void {
+    setEncryptionKey(keyInfo: IMediaEncryptionKeyInfo): void {
         (this._keyHandler as ExternallyManagedKeyHandler).setKey(keyInfo);
     }
 
