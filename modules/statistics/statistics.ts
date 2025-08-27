@@ -88,6 +88,7 @@ export default class Statistics {
      * @type {Object}
      */
     static analytics: {
+        addPermanentProperties: (properties: Record<string, any>) => void;
         sendEvent: (eventName: string | Record<string, any>, properties?: Record<string, any>) => void;
     } = analytics;
 
@@ -297,7 +298,7 @@ export default class Statistics {
      * Adds a listener for audio level events.
      * @param {Function} listener - The listener to add
      */
-    addAudioLevelListener(listener: EventListener): void {
+    addAudioLevelListener(listener: (...args: any[]) => void): void {
         if (!Statistics.audioLevelsEnabled) {
             return;
         }
@@ -308,7 +309,7 @@ export default class Statistics {
      * Removes an audio level listener.
      * @param {Function} listener - The listener to remove
      */
-    removeAudioLevelListener(listener: EventListener): void {
+    removeAudioLevelListener(listener: (...args: any[]) => void): void {
         if (!Statistics.audioLevelsEnabled) {
             return;
         }
@@ -319,7 +320,7 @@ export default class Statistics {
      * Adds a listener for before disposed events.
      * @param {Function} listener - The listener to add
      */
-    addBeforeDisposedListener(listener: EventListener): void {
+    addBeforeDisposedListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.on(StatisticsEvents.BEFORE_DISPOSED, listener);
     }
 
@@ -327,7 +328,7 @@ export default class Statistics {
      * Removes a before disposed listener.
      * @param {Function} listener - The listener to remove
      */
-    removeBeforeDisposedListener(listener: EventListener): void {
+    removeBeforeDisposedListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.removeListener(
             StatisticsEvents.BEFORE_DISPOSED, listener);
     }
@@ -336,7 +337,7 @@ export default class Statistics {
      * Adds a listener for connection stats events.
      * @param {Function} listener - The listener to add
      */
-    addConnectionStatsListener(listener: EventListener): void {
+    addConnectionStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
     }
 
@@ -344,7 +345,7 @@ export default class Statistics {
      * Removes a connection stats listener.
      * @param {Function} listener - The listener to remove
      */
-    removeConnectionStatsListener(listener: EventListener): void {
+    removeConnectionStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.removeListener(
             StatisticsEvents.CONNECTION_STATS,
             listener);
@@ -354,7 +355,7 @@ export default class Statistics {
      * Adds a listener for encode time stats events.
      * @param {Function} listener - The listener to add
      */
-    addEncodeTimeStatsListener(listener: EventListener): void {
+    addEncodeTimeStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.on(StatisticsEvents.ENCODE_TIME_STATS, listener);
     }
 
@@ -362,7 +363,7 @@ export default class Statistics {
      * Removes an encode time stats listener.
      * @param {Function} listener - The listener to remove
      */
-    removeEncodeTimeStatsListener(listener: EventListener): void {
+    removeEncodeTimeStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.removeListener(StatisticsEvents.ENCODE_TIME_STATS, listener);
     }
 
@@ -370,7 +371,7 @@ export default class Statistics {
      * Adds a listener for byte sent stats events.
      * @param {Function} listener - The listener to add
      */
-    addByteSentStatsListener(listener: EventListener): void {
+    addByteSentStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
     }
 
@@ -378,7 +379,7 @@ export default class Statistics {
      * Removes a byte sent stats listener.
      * @param {Function} listener - The listener to remove
      */
-    removeByteSentStatsListener(listener: EventListener): void {
+    removeByteSentStatsListener(listener: (...args: any[]) => void): void {
         this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
             listener);
     }
