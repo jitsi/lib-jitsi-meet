@@ -839,8 +839,9 @@ export default class JitsiConference extends Listenable {
      * Restarts all active media sessions.
      *
      * @returns {void}
+     * @internal
      */
-    private _restartMediaSessions(): void {
+    _restartMediaSessions(): void {
         if (this.p2pJingleSession) {
             this._stopP2PSession({
                 reasonDescription: 'restart',
