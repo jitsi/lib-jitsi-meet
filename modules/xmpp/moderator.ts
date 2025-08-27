@@ -12,7 +12,7 @@ import Listenable from '../util/Listenable';
 import $ from '../util/XMLParser';
 
 import XmppConnection from './XmppConnection';
-import XMPP from './xmpp';
+import XMPP, { IXMPPOptions } from './xmpp';
 
 
 const logger = getLogger('modules/xmpp/moderator');
@@ -76,15 +76,17 @@ function createExpBackoffTimer(step: number): (reset?: boolean) => Optional<numb
 export default class Moderator extends Listenable {
     private getNextTimeout: (reset?: boolean) => Optional<number>;
     private getNextErrorTimeout: (reset?: boolean) => Optional<number>;
-    // Todo: IXMPPOptions after xmpp pr merge
-    private options: any;
+    private options: IXMPPOptions;
     private sipGatewayEnabled: boolean;
     private xmpp: XMPP;
     private connection: XmppConnection;
     private targetJid: string;
     private mode: string;
     private focusUserJids: Set<string>;
-    private conferenceRequestSent: boolean;
+    /**
+     * @internal
+     */
+    conferenceRequestSent: boolean;
     public targetUrl: string;
 
     /**
