@@ -1429,9 +1429,10 @@ export default class JitsiConference extends Listenable {
             }, {
                 reason,
                 reasonDescription,
-                sendSessionTerminate: this.room
+                sendSessionTerminate: Boolean(this.room
                     && this.getParticipantById(
                         Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid))
+                )
             });
 
         this.p2pJingleSession = null;
