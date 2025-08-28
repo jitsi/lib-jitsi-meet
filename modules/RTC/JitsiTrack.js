@@ -97,7 +97,7 @@ export default class JitsiTrack extends Listenable {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @private
+     * @internal
      */
     _attachTTFMTracker(container) { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
@@ -108,7 +108,7 @@ export default class JitsiTrack extends Listenable {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @private
+     * @internal
      */
     _onTrackAttach(container) { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
@@ -119,7 +119,7 @@ export default class JitsiTrack extends Listenable {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @private
+     * @internal
      */
     _onTrackDetach(container) { // eslint-disable-line no-unused-vars
         // Should be defined by the classes that are extending JitsiTrack
@@ -130,6 +130,7 @@ export default class JitsiTrack extends Listenable {
      * depending on the passed type.
      * @param {string} type the type of the handler that is going to be set
      * @param {Function} handler the handler.
+     * @internal
      */
     _setHandler(type, handler) {
         if (!trackHandler2Prop.hasOwnProperty(type)) {
@@ -406,7 +407,7 @@ export default class JitsiTrack extends Listenable {
      * @return {boolean} 'true' if it's a local track or 'false' otherwise.
      */
     isLocal() {
-        throw new Error('Not implemented by subclass');
+        return false;
     }
 
     /**
