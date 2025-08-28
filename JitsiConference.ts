@@ -26,7 +26,7 @@ import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerD
 import VADAudioAnalyser, { IVADProcessor } from './modules/detection/VADAudioAnalyser';
 import VADNoiseDetection from './modules/detection/VADNoiseDetection';
 import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
-import { E2EEncryption } from './modules/e2ee/E2EEncryption';
+import { E2EEncryption, IMediaEncryptionKeyInfo } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import FeatureFlags from './modules/flags/FeatureFlags';
@@ -106,9 +106,14 @@ export interface IConferenceOptions {
             userRegion?: string;
         };
         disableAudioLevels?: boolean;
+        e2ee?: {
+            disabled?: boolean;
+            externallyManagedKey?: boolean;
+        };
         e2eping?: {
             enabled?: boolean;
         };
+        enableEncodedTransformSupport?: boolean;
         enableNoAudioDetection?: boolean;
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
@@ -131,6 +136,7 @@ export interface IConferenceOptions {
         statisticsId?: string;
         testing?: {
             allowMultipleTracks?: boolean;
+            disableE2EE?: boolean;
             enableAV1ForFF?: boolean;
             enableFirefoxP2p?: boolean;
             forceInitiator?: boolean;
@@ -4341,7 +4347,7 @@ export default class JitsiConference extends Listenable {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    public setMediaEncryptionKey(keyInfo: CryptoKey): void {
+    public setMediaEncryptionKey(keyInfo: IMediaEncryptionKeyInfo): void {
         this._e2eEncryption.setEncryptionKey(keyInfo);
     }
 
