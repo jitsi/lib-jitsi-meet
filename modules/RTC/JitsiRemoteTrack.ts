@@ -49,6 +49,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
     public ownerEndpointId: string;
     public isP2P: boolean;
+    public rtcId: Nullable<string>;
 
     /**
      * Creates new JitsiRemoteTrack instance.
