@@ -1097,6 +1097,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             await this.conference._removeLocalTrackFromPc(this);
         }
 
+        const isMuted = this.isMuted();
+
         if (hasAudioMixEffect) {
             this._stopStreamEffect();
         }
@@ -1151,6 +1153,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         if (hasAudioMixEffect) {
             this._startStreamEffect(this._streamEffect);
+        }
+
+        if (isMuted) {
+            this._setMuted(true);
         }
 
         if (hasConference) {
