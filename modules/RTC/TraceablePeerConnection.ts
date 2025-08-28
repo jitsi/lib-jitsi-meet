@@ -230,7 +230,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.audioTransferActive = !(options.startSilent === true);
 
@@ -266,7 +266,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.videoTransferActive = true;
 
@@ -1232,7 +1232,7 @@ export default class TraceablePeerConnection {
      * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.)
      * which should be used when setting
      * local description on the peerconnection.
-     * @private
+     * @internal
      */
     getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): MediaDirection {
         return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
@@ -2047,7 +2047,7 @@ export default class TraceablePeerConnection {
      * @param {RTCSessionDescription} - The local description to be used.
      * @returns {Array}
      */
-    getConfiguredVideoCodecs(description: RTCSessionDescription): CodecMimeType[] {
+    getConfiguredVideoCodecs(description?: RTCSessionDescription): CodecMimeType[] {
         return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
     }
 
@@ -2543,7 +2543,7 @@ export default class TraceablePeerConnection {
      * sender associated with the video source.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    setSenderVideoConstraints(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec: Optional<CodecMimeType>): Promise<void> {
+    setSenderVideoConstraints(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec?: Optional<CodecMimeType>): Promise<void> {
         if (frameHeight < 0 || !isValidNumber(frameHeight)) {
             throw new Error(`Invalid frameHeight: ${frameHeight}`);
         }
@@ -2575,7 +2575,7 @@ export default class TraceablePeerConnection {
      * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
      * otherwise.
      */
-    setMediaTransferActive(enable: boolean, mediaType: Optional<MediaType>): Promise<void> {
+    setMediaTransferActive(enable: boolean, mediaType?: Optional<MediaType>): Promise<void> {
         logger.info(`${this} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
 
         const senders = this.peerconnection.getSenders()

@@ -257,7 +257,7 @@ const SDPUtil = {
      * @param {string} haystack - The SDP string to search.
      * @param {string} needle - The line prefix to find.
      * @param {string} sessionpart - The session part to search within.
-     * @returns {string|boolean} - The found line or false if not found.
+     * @returns {Optional<string>} - The found line or false if not found.
      */
     findLine(haystack, needle, sessionpart) {
         let lines = haystack.split('\r\n');
@@ -268,7 +268,7 @@ const SDPUtil = {
             }
         }
         if (!sessionpart) {
-            return false;
+            return undefined;
         }
 
         // search session part
@@ -279,7 +279,7 @@ const SDPUtil = {
             }
         }
 
-        return false;
+        return undefined;
     },
 
     /**
