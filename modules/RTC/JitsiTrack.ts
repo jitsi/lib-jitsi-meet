@@ -51,7 +51,10 @@ export default class JitsiTrack extends Listenable {
     private handlers: Map<string, MediaStreamTrackEventHandler>;
     protected containers: HTMLElement[];
     protected stream: MediaStream;
-    protected track: MediaStreamTrack;
+    /**
+     * @internal
+     */
+    track: MediaStreamTrack;
     public conference: JitsiConference;
     public videoType: Optional<VideoType>;
     public disposed: boolean;
