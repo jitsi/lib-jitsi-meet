@@ -2373,12 +2373,13 @@ export default class JitsiConference extends Listenable {
 
                     // Let the caller know that the XMPP login was successful.
                     onLoginSuccessful?.();
-
+                    const {config} = this.options;
+                    
                     // Now authenticate with Jicofo and get a new session ID.
                     const room = xmpp.createRoom(
                     this.options.name,
                     {
-                        customDomain: this.options.customDomain,
+                        ...config,
                         statsId: this._statsCurrentId
                     },
                     onCreateResource
