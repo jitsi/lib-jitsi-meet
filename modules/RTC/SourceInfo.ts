@@ -3,9 +3,11 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { ISsrcGroupInfo } from '../sdp/constants';
 
 export interface ITPCSourceInfo {
-    groups: Array<ISsrcGroupInfo>;
+    groups?: Array<ISsrcGroupInfo>;
     mediaType?: MediaType;
-    msid: string;
+    msid?: string;
+    muted?: boolean;
+    sourceName?: string;
     ssrcList?: Array<string>;
     ssrcs?: Array<string>;
     videoType?: VideoType;

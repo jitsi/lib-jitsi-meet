@@ -4,9 +4,10 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { ITPCSourceInfo } from '../RTC/SourceInfo';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import ChatRoom, { filterNodeFromPresenceJSON } from './ChatRoom';
@@ -39,16 +40,16 @@ export default class SignalingLayerImpl extends SignalingLayer {
     private _chatRoom?: ChatRoom;
 
     /**
-     * @type {Record<SourceName, Partial<ISourceInfo>>}
+     * @type {Record<SourceName, Partial<ITPCSourceInfo>>}
      * @private
      */
-    private _localSourceState: Record<SourceName, Partial<ISourceInfo>>;
+    private _localSourceState: Record<string, Partial<ITPCSourceInfo>>;
 
     /**
-     * @type {Record<EndpointId, Record<SourceName, ISourceInfo>>}
+     * @type {Record<EndpointId, Record<SourceName, ITPCSourceInfo>>}
      * @private
      */
-    private _remoteSourceState: Record<EndpointId, Record<SourceName, ISourceInfo>>;
+    private _remoteSourceState: Record<EndpointId, Record<string, ITPCSourceInfo>>;
 
     // Event handler references for cleanup
     private _audioMuteHandler?: (node: IPresenceNode, from: string) => void;
@@ -238,7 +239,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): Optional<IPeerMediaInfo> {
+    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: string): Optional<IPeerMediaInfo> {
         const legacyGetPeerMediaInfo = (): Optional<IPeerMediaInfo> => {
             if (this._chatRoom) {
                 return this._chatRoom.getMediaPresenceInfo(owner, mediaType);
@@ -283,9 +284,9 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): Optional<ISourceInfo> {
+    public getPeerSourceInfo(owner: EndpointId, sourceName: string): Optional<ITPCSourceInfo> {
         const mediaType = getMediaTypeFromSourceName(sourceName);
-        const mediaInfo: ISourceInfo = mediaType === MediaType.VIDEO
+        const mediaInfo: ITPCSourceInfo = mediaType === MediaType.VIDEO
             ? { muted: true, sourceName, videoType: VideoType.CAMERA }
             : { muted: true, sourceName };
 
@@ -304,7 +305,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getTrackSourceName(ssrc: number): Optional<SourceName> {
+    public getTrackSourceName(ssrc: number): Optional<string> {
         return this._ssrcOwners.get(ssrc)?.sourceName;
     }
 
@@ -377,7 +378,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public setTrackMuteStatus(sourceName: SourceName, muted: boolean): boolean {
+    public setTrackMuteStatus(sourceName: string, muted: boolean): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
@@ -395,7 +396,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public setTrackVideoType(sourceName: SourceName, videoType: VideoType): boolean {
+    public setTrackVideoType(sourceName: string, videoType: VideoType): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
