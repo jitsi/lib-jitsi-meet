@@ -56,6 +56,7 @@ export interface IExtmapData {
 export interface IFingerprintData {
     fingerprint: string;
     hash: string;
+    required: boolean;
 }
 
 export interface IFmtpParameter {
@@ -84,6 +85,7 @@ export interface ISSRCGroupData {
 export interface IICEParams {
     pwd: string;
     ufrag: string;
+    xmlns?: string;
 }
 
 export interface ISDPObject {
