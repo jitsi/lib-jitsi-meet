@@ -18,7 +18,7 @@ import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
 import JitsiLocalTrack from './JitsiLocalTrack';
-import TraceablePeerConnection, { IAudioQuality, IExtendedRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
+import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from './TraceablePeerConnection';
 
 const logger = getLogger('modules/RTC/TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
@@ -115,10 +115,10 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localVideoTrack - The local video track.
      * @param {CodecMimeType} codec - The video codec.
      * @param {number} newHeight - The resolution that needs to be configured for the local video track.
-     * @returns {Object} configuration.
+     * @returns {RTCRtpEncodingParameters} configuration. (putted `any` for now as scalabilityMode doesn't exist on `RTCRtpEncodingParameters`)
      * @private
      */
-    private _calculateActiveEncodingParams(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): IExtendedRtpEncodingParameters {
+    private _calculateActiveEncodingParams(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): any {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const trackCaptureHeight = localVideoTrack.getCaptureResolution();
         const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
@@ -145,7 +145,7 @@ export class TPCUtils {
             }
         }
 
-        const config: IExtendedRtpEncodingParameters = {
+        const config: any = {
             active: effectiveNewHeight > 0,
             maxBitrate,
             scalabilityMode,
@@ -206,10 +206,10 @@ export class TPCUtils {
      *
      * @param {JitsiLocalTrack} localTrack - The local video track.
      * @param {String} codec - The codec currently in use.
-     * @returns {Array<Object>} - The initial configuration for the stream encodings.
+     * @returns {RTCRtpEncodingParameters[]} configuration. (putted `any` for now as scalabilityMode doesn't exist on `RTCRtpEncodingParameters[]`)
      * @private
      */
-    private _getVideoStreamEncodings(localTrack: JitsiLocalTrack, codec: string): IExtendedRtpEncodingParameters[] {
+    private _getVideoStreamEncodings(localTrack: JitsiLocalTrack, codec: string): any[] {
         const captureResolution = localTrack.getCaptureResolution();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
@@ -243,8 +243,8 @@ export class TPCUtils {
             effectiveBitrates = effectiveBitrates.reverse();
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }
-
-        const standardSimulcastEncodings: IExtendedRtpEncodingParameters[] = [
+        // it's type is RTCRtpEncodingParameters use any as Property 'scalabilityMode' does not exist on type RTCRtpEncodingParameters
+        const standardSimulcastEncodings: any = [
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[0],
@@ -610,7 +610,7 @@ export class TPCUtils {
      * @param {JitsiLocalTrack} localTrack
      * @internal
      */
-    getStreamEncodings(localTrack: JitsiLocalTrack): IExtendedRtpEncodingParameters[] {
+    getStreamEncodings(localTrack: JitsiLocalTrack): RTCRtpEncodingParameters[] {
         if (localTrack.isAudioTrack()) {
             return [ { active: this.pc.audioTransferActive } ];
         }

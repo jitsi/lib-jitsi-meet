@@ -9,7 +9,6 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
-import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
@@ -37,23 +36,6 @@ import { ICodecConfig, TPCUtils } from './TPCUtils';
 const logger = getLogger('modules/RTC/TraceablePeerConnection');
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
-
-/**
- * Extended RTCRtpEncodingParameters interface with newer WebRTC properties
- */
-export interface IExtendedRtpEncodingParameters extends RTCRtpEncodingParameters {
-    codec?: RTCRtpCodec;
-    degradationPreference?: RTCDegradationPreference;
-    scalabilityMode?: VideoEncoderScalabilityMode | string;
-}
-
-/**
- * Extended RTCRtpParameters interface with extended encodings property
- */
-interface IExtendedRtpParameters extends RTCRtpSendParameters {
-    degradationPreference?: RTCDegradationPreference;
-    encodings: IExtendedRtpEncodingParameters[];
-}
 
 /**
  * Interface for legacy WebRTC stats report (pre-standard)
@@ -665,7 +647,7 @@ export default class TraceablePeerConnection {
         const transceiver = localTrack?.track && localTrack.getOriginalStream()
             ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
             : this.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
-        const parameters = transceiver?.sender?.getParameters() as IExtendedRtpParameters;
+        const parameters = transceiver?.sender?.getParameters();
 
         // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
         // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
@@ -686,7 +668,7 @@ export default class TraceablePeerConnection {
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
     private _enableSenderEncodings = async (sender: RTCRtpSender, enable: boolean): Promise<void> => {
-        const parameters = sender.getParameters() as IExtendedRtpParameters;
+        const parameters = sender.getParameters();
 
         if (parameters?.encodings?.length) {
             for (const encoding of parameters.encodings) {
@@ -922,7 +904,7 @@ export default class TraceablePeerConnection {
         if (!videoSender) {
             return Promise.resolve();
         }
-        const parameters = videoSender.getParameters() as IExtendedRtpParameters;
+        const parameters = videoSender.getParameters();
 
         if (!parameters?.encodings?.length) {
             return Promise.resolve();
@@ -961,7 +943,8 @@ export default class TraceablePeerConnection {
 
         for (const idx in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(idx)) {
-                const encoding = parameters.encodings[idx] as IExtendedRtpEncodingParameters;
+                // Used any here as Property 'scalabilityMode' does not exist on type RTCRtpEncodingParameters
+                const encoding = parameters.encodings[idx] as any;
                 const {
                     active = undefined,
                     maxBitrate = undefined,
@@ -2406,7 +2389,7 @@ export default class TraceablePeerConnection {
                     return result;
                 }
 
-                const { encodings } = sender.getParameters() as IExtendedRtpParameters;
+                const { encodings } = sender.getParameters();
 
                 result = encodings.reduce((maxValue, encoding) => {
                     if (encoding.active) {
