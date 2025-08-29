@@ -1586,7 +1586,7 @@ export default class JingleSessionPC extends JingleSession {
         const pcOptions = {
             audioQuality: options.audioQuality,
             capScreenshareBitrate: undefined,
-            codecSettings: options.codecSettings,
+            codecSettings: options.codecSettings ? { codecList: options.codecSettings } : undefined,
             disableRtx: options.disableRtx,
             disableSimulcast: this.isP2P ? true : options.disableSimulcast,
             enableInsertableStreams: options.enableInsertableStreams,

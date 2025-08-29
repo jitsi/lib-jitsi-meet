@@ -5,7 +5,6 @@ import JitsiConference, { IConferenceOptions } from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
-import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import SignalingLayer, { SourceName } from '../../service/RTC/SignalingLayer';
@@ -19,7 +18,7 @@ import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack, { IStreamEffect, ITrackConstraints } from './JitsiLocalTrack';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
-import TraceablePeerConnection from './TraceablePeerConnection';
+import TraceablePeerConnection, { ITPCOptions } from './TraceablePeerConnection';
 
 // Extend RTCConfiguration to include the encodedInsertableStreams property
 interface IExtendedRTCConfiguration extends RTCConfiguration {
@@ -131,20 +130,6 @@ export interface IRTCOptions {
     };
 }
 
-/**
- * Interface for createPeerConnection options
- */
-export interface ICreatePeerConnectionOptions {
-    audioQuality: object;
-    capScreenshareBitrate: boolean;
-    codecSettings: CodecMimeType[];
-    disableRtx: boolean;
-    disableSimulcast: boolean;
-    enableInsertableStreams: boolean;
-    forceTurnRelay: boolean;
-    startSilent: boolean;
-    videoQuality: object;
-}
 /**
  *
  */
@@ -276,7 +261,7 @@ export default class RTC extends Listenable {
         enteringForwardedSources = forwardedSources.filter(
             sourceName => oldForwardedSources.indexOf(sourceName) === -1);
 
-        logger.debug(`Fowarded sources changed leaving=${leavingForwardedSources}, entering=`
+        logger.debug(`Forwarded sources changed leaving=${leavingForwardedSources}, entering=`
             + `${enteringForwardedSources} at ${timestamp}`);
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED,
@@ -293,8 +278,9 @@ export default class RTC extends Listenable {
      * @return {boolean} <tt>true</tt> if the given peer connection was removed
      * successfully or <tt>false</tt> if there was no peer connection mapped in
      * this RTC instance.
+     * @internal
      */
-    private _removePeerConnection(traceablePeerConnection: TraceablePeerConnection): boolean {
+    _removePeerConnection(traceablePeerConnection: TraceablePeerConnection): boolean {
         const id = traceablePeerConnection.id;
 
         if (this.peerConnections.has(id)) {
@@ -460,7 +446,7 @@ export default class RTC extends Listenable {
 
         this._receiverVideoConstraints = cloneDeep(constraints);
 
-        if (this?._channel.isOpen()) {
+        if (this._channel?.isOpen()) {
             this._channel.sendReceiverVideoConstraintsMessage(constraints);
         }
     }
@@ -471,7 +457,7 @@ export default class RTC extends Listenable {
      * @param {BridgeVideoType} videoType - the track's video type.
      */
     public sendSourceVideoType(sourceName: SourceName, videoType: BridgeVideoType): void {
-        if (this?._channel.isOpen()) {
+        if (this._channel?.isOpen()) {
             this._channel.sendSourceVideoTypeMessage(sourceName, videoType);
         }
     }
@@ -497,7 +483,7 @@ export default class RTC extends Listenable {
      * @param {Object} options.videoQuality - Quality settings to applied on the outbound video streams.
      * @return {TraceablePeerConnection}
      */
-    public createPeerConnection(signaling: SignalingLayer, pcConfig: IExtendedRTCConfiguration, isP2P: boolean, options: ICreatePeerConnectionOptions): TraceablePeerConnection {
+    public createPeerConnection(signaling: SignalingLayer, pcConfig: IExtendedRTCConfiguration, isP2P: boolean, options: ITPCOptions): TraceablePeerConnection {
         const pcConstraints = {};
 
         if (options.enableInsertableStreams) {
@@ -832,7 +818,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError/InvalidStateError/Error if the operation fails or if there is no data channel created.
      */
     public sendEndpointStatsMessage(payload: any): void {
-        if (this?._channel.isOpen()) {
+        if (this._channel?.isOpen()) {
             this._channel.sendEndpointStatsMessage(payload);
         }
     }
@@ -842,7 +828,7 @@ export default class RTC extends Listenable {
      * @param {*} message
      */
     public sendReceiverAudioSubscriptionMessage(message: any): void {
-        if (this?._channel.isOpen()) {
+        if (this._channel?.isOpen()) {
             this._channel.sendReceiverAudioSubscriptionMessage(message);
         }
     }
@@ -856,7 +842,7 @@ export default class RTC extends Listenable {
     public setLastN(value: number): void {
         if (this._lastN !== value) {
             this._lastN = value;
-            if (this?._channel.isOpen()) {
+            if (this._channel?.isOpen()) {
                 this._channel.sendSetLastNMessage(value);
             }
             this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
