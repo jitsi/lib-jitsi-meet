@@ -71,7 +71,7 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
                             stopActiveDevices(availableDevices);
                             resolve({
                                 deviceId: device.deviceId,
-                                deviceLabel: device.track.label
+                                deviceLabel: device.getTrack().label
                             });
                         }
                     });

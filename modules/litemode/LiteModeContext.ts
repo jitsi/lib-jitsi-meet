@@ -43,7 +43,7 @@ export class LiteModeContext {
             return;
         }
 
-        const receiver = tpc.findReceiverForTrack(track.track);
+        const receiver = tpc.findReceiverForTrack(track.getTrack());
 
         if (!receiver) {
             logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
