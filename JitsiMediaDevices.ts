@@ -95,6 +95,7 @@ export default class JitsiMediaDevices extends Listenable {
         // We would still want to update the permissions cache in case the permissions API is not supported.
         RTC.addListener(
             RTCEvents.PERMISSIONS_CHANGED,
+            // @ts-expect-error: The type of 'permissions' from RTCEvents.PERMISSIONS_CHANGED may not match the expected type for _handlePermissionsChange, but this is intentional due to legacy event payloads.
             permissions => this._handlePermissionsChange(permissions));
 
         // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are

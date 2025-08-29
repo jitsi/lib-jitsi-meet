@@ -87,6 +87,8 @@ export interface ITPCOptions {
     codecSettings: ICodecSettings;
     disableRtx: boolean;
     disableSimulcast: boolean;
+    enableInsertableStreams?: boolean;
+    forceTurnRelay?: boolean;
     maxstats: number;
     startSilent: boolean;
     usesCodecSelectionAPI: boolean;
