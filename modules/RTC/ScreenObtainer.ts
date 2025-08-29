@@ -178,20 +178,6 @@ class ScreenObtainer {
     }
 
     /**
-     * Initializes the function used to obtain a screen capture
-     * (this.obtainStream).
-     *
-     * @param {object} options
-     */
-    private init(options: IScreenObtainerOptions = {}) {
-        this.options = options;
-
-        if (!this.obtainStream) {
-            logger.warn('Desktop sharing not supported');
-        }
-    }
-
-    /**
      * Returns a method which will be used to obtain the screen sharing stream
      * (based on the browser type).
      *
@@ -493,6 +479,22 @@ class ScreenObtainer {
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
                 }
             });
+    }
+
+
+    /**
+     * Initializes the function used to obtain a screen capture
+     * (this.obtainStream).
+     *
+     * @param {object} options
+     * @internal
+     */
+    init(options: IScreenObtainerOptions = {}) {
+        this.options = options;
+
+        if (!this.obtainStream) {
+            logger.warn('Desktop sharing not supported');
+        }
     }
 
     /**
