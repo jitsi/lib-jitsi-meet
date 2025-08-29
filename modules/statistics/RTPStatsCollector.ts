@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import * as StatisticsEvents from '../../service/statistics/Events';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -455,8 +456,8 @@ export default class StatsCollector {
             // calculated based on the outbound-rtp streams that are currently active for the simulcast case.
             // However for the SVC case, there will be only 1 "outbound-rtp" stream which will have the correct
             // send resolution width and height.
-            if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast(track)) {
-                const localSsrcs = this.peerconnection.getLocalVideoSSRCs(track);
+            if (track.isLocal() && !browser.supportsTrackBasedStats() && this.peerconnection.doesTrueSimulcast(track as JitsiLocalTrack)) {
+                const localSsrcs = this.peerconnection.getLocalVideoSSRCs(track as JitsiLocalTrack);
 
                 for (const localSsrc of localSsrcs) {
                     const ssrcResolution = this.ssrc2stats.get(localSsrc)?.resolution;
@@ -824,7 +825,10 @@ export default class StatsCollector {
             // Interval updates
             this.peerconnection.getStats()
                 .then(report => {
+                    // Legacy WebRTC API compatibility: Some older browsers/implementations
+                    // @ts-ignore - Property 'result' does not exist on modern RTCStatsReport type
                     this.currentStatsReport = typeof report?.result === 'function'
+                        // @ts-ignore - Legacy result() method not in modern RTCStatsReport type definition
                         ? report.result()
                         : report;
 
