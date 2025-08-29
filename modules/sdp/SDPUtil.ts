@@ -262,7 +262,7 @@ const SDPUtil = {
      * @param {string} sessionpart - The session part to search within.
      * @returns {Optional<string>} - The found line or false if not found.
      */
-    findLine(haystack: string, needle: string, sessionpart?: string): string | boolean {
+    findLine(haystack: string, needle: string, sessionpart?: string): Optional<string> {
         let lines = haystack.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
