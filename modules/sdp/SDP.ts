@@ -7,23 +7,11 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { ITPCSourceInfo } from '../RTC/SourceInfo';
 import browser from '../browser';
 import $ from '../util/XMLParser';
 
 import SDPUtil from './SDPUtil';
-
-/**
- * Interface for source information
- */
-interface ISourceInfo {
-    groups?: Array<{
-        semantics: string;
-        ssrcs: string[];
-    }>;
-    mediaType: MediaType;
-    msid: string;
-    ssrcList: string[];
-}
 
 /**
  * Interface for media info
@@ -128,11 +116,11 @@ export default class SDP {
     /**
      * Adds or removes the sources from the SDP.
      *
-     * @param {Map<string, ISourceInfo>} sourceMap - The map of the sources that are being added/removed.
+     * @param {Map<string, ITPCSourceInfo>} sourceMap - The map of the sources that are being added/removed.
      * @param {boolean} isAdd - Whether the sources are being added or removed.
      * @returns {Array<number>} - The indices of the new m-lines that were added/modifed in the SDP.
      */
-    public updateRemoteSources(sourceMap: Map<string, ISourceInfo>, isAdd: boolean = true): number[] {
+    public updateRemoteSources(sourceMap: Map<string, ITPCSourceInfo>, isAdd: boolean = true): number[] {
         const updatedMidIndices = [];
 
         for (const source of sourceMap.values()) {

@@ -3,12 +3,9 @@ import { Strophe } from 'strophe.js';
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
+import { ITPCSourceInfo } from './modules/RTC/SourceInfo';
 import { MediaType } from './service/RTC/MediaType';
-
-export interface ISourceInfo {
-    muted: boolean;
-    videoType: string;
-}
+import { VideoType } from './service/RTC/VideoType';
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -27,7 +24,7 @@ export default class JitsiParticipant {
     private _isReplaced?: boolean;
     private _isSilent?: boolean;
     private _features: Set<string>;
-    private _sources: Map<MediaType, Map<string, ISourceInfo>>;
+    private _sources: Map<MediaType, Map<string, ITPCSourceInfo>>;
     private _botType?: string;
     private _connectionJid?: string;
     /**
@@ -131,9 +128,9 @@ export default class JitsiParticipant {
      * @param {string} videoType The video type of the source.
      * @returns {void}
      */
-    _setSources(mediaType: MediaType, muted: boolean, sourceName: string, videoType: string): void {
+    _setSources(mediaType: MediaType, muted: boolean, sourceName: string, videoType: VideoType): void {
         let sourceByMediaType = this._sources.get(mediaType);
-        const sourceInfo: ISourceInfo = {
+        const sourceInfo: ITPCSourceInfo = {
             muted,
             videoType
         };
@@ -232,7 +229,7 @@ export default class JitsiParticipant {
      * Returns the sources associated with this participant.
      * @returns Map<string, Map<string, Object>>
      */
-    getSources(): Map<MediaType, Map<string, ISourceInfo>> {
+    getSources(): Map<MediaType, Map<string, ITPCSourceInfo>> {
         return this._sources;
     }
 
