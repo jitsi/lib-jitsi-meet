@@ -165,7 +165,7 @@ describe('E2EE Context', () => {
 
             const encodeFunction = async () => {
                 // Ratchet the key. We reimport from the raw bytes.
-                const material = await importKey(key);
+                const material = await importKey(key.buffer);
 
                 await sender.setKey(await ratchet(material), 0);
 

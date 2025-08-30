@@ -1,10 +1,13 @@
+import { ISourceInfo } from '../../JitsiParticipant';
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
 import { nextTick } from '../util/TestUtils';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses';
 
 import { MockConference, MockLocalTrack, MockParticipant } from './MockClasses';
-import { FixedSizeArray, QualityController } from './QualityController';
+import { FixedSizeArray, ISourceStats, QualityController } from './QualityController';
 
 describe('Codec Selection', () => {
     let qualityController;
@@ -192,7 +195,7 @@ describe('Codec Selection', () => {
         });
 
         it('and encode resolution is limited by cpu for camera tracks', async () => {
-            const localTrack = new MockLocalTrack('1', 720, 'camera');
+            const localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
 
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'av1', 'vp9', 'vp8' ]);
@@ -219,7 +222,7 @@ describe('Codec Selection', () => {
         });
 
         it('and does not change codec if the current codec is already the lowest complexity codec', async () => {
-            const localTrack = new MockLocalTrack('1', 720, 'camera');
+            const localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
 
             qualityController.codecController.codecPreferenceOrder.jvb = [ 'vp8', 'vp9', 'av1' ];
 
@@ -256,7 +259,7 @@ describe('Codec Selection', () => {
                 p2p: {}
             };
             jasmine.clock().install();
-            tpc = new MockPeerConnection();
+            tpc = new MockPeerConnection('tpc-id', false, false);
             qualityController = new QualityController(conference, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
@@ -266,7 +269,7 @@ describe('Codec Selection', () => {
         });
 
         it('and encode resolution is limited by cpu for camera tracks', async () => {
-            const localTrack = new MockLocalTrack('1', 720, 'camera');
+            const localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
 
             participant1 = new MockParticipant('remote-1');
             conference.addParticipant(participant1, [ 'av1', 'vp9', 'vp8' ]);
@@ -281,12 +284,12 @@ describe('Codec Selection', () => {
 
             const sourceStats = {
                 avgEncodeTime: 12,
-                codec: 'AV1',
+                codec: CodecMimeType.AV1,
                 encodeResolution: 360,
-                qualityLimitationReason: 'cpu',
-                localTrack,
+                qualityLimitationReason: 'cpu' as any,
+                localTrack: localTrack as any,
                 timestamp: 1,
-                tpc
+                tpc: tpc as any
             };
 
             qualityController._encodeTimeStats = new Map();
@@ -311,12 +314,12 @@ describe('Codec Selection', () => {
             // If the cpu limitation continues to exist, client should switch to vp8.
             const updatedStats = {
                 avgEncodeTime: 12,
-                codec: 'VP9',
+                codec: CodecMimeType.VP9,
                 encodeResolution: 360,
-                qualityLimitationReason: 'cpu',
-                localTrack,
+                qualityLimitationReason: 'cpu' as any,
+                localTrack: localTrack as any,
                 timestamp: 1,
-                tpc
+                tpc: tpc as any
             };
 
             data.add(updatedStats);
@@ -337,7 +340,7 @@ describe('Codec Selection', () => {
                 p2p: {}
             };
             jasmine.clock().install();
-            tpc = new MockPeerConnection();
+            tpc = new MockPeerConnection('tpc-id', false, false);
             qualityController = new QualityController(conference, options);
             spyOn(jingleSession, 'setVideoCodecs');
         });
@@ -347,15 +350,15 @@ describe('Codec Selection', () => {
         });
 
         it('and the client encounters cpu limitation with high complexity codec', async () => {
-            const localTrack = new MockLocalTrack('1', 720, 'camera');
+            const localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
             const sourceStats = {
                 avgEncodeTime: 12,
-                codec: 'AV1',
+                codec: CodecMimeType.AV1,
                 encodeResolution: 360,
-                qualityLimitationReason: 'cpu',
-                localTrack,
+                qualityLimitationReason: 'cpu' as any,
+                localTrack: localTrack as any,
                 timestamp: 1,
-                tpc
+                tpc: tpc as any
             };
 
             qualityController._performQualityOptimizations(sourceStats);

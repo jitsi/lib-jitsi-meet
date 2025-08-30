@@ -1,3 +1,4 @@
+import { VideoType } from '../../service/RTC/VideoType';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
 import { nextTick } from '../util/TestUtils';
 
@@ -18,7 +19,7 @@ describe('QualityController', () => {
     beforeEach(() => {
         rtc = new MockRTC();
         conference = new MockConference(rtc);
-        tpc = new MockPeerConnection();
+        tpc = new MockPeerConnection('test-id', false, false);
     });
 
     describe('When adaptive mode is enabled', () => {
@@ -32,7 +33,7 @@ describe('QualityController', () => {
                 lastNRampupTime: 60000,
                 p2p: {}
             };
-            localTrack = new MockLocalTrack('1', 720, 'camera');
+            localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
             qualityController = new QualityController(conference, options);
             sourceStats = {
                 avgEncodeTime: 12,
@@ -164,7 +165,7 @@ describe('QualityController', () => {
                 lastNRampupTime: 60000,
                 p2p: {}
             };
-            localTrack = new MockLocalTrack('1', 720, 'camera');
+            localTrack = new MockLocalTrack('1', 720, VideoType.CAMERA);
             qualityController = new QualityController(conference, options);
             sourceStats = {
                 avgEncodeTime: 12,
