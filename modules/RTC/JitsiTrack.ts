@@ -28,6 +28,13 @@ const trackHandler2Prop = {
 };
 
 /**
+ * Extended MediaStreamTrack interface that includes mobile-specific camera methods.
+ */
+export interface IExtendedMediaStreamTrack extends MediaStreamTrack {
+    _switchCamera?: () => void;
+}
+
+/**
  * Represents a single media track (either audio or video).
  */
 export default class JitsiTrack extends Listenable {
@@ -54,7 +61,7 @@ export default class JitsiTrack extends Listenable {
     /**
      * @internal
      */
-    track: MediaStreamTrack;
+    track: IExtendedMediaStreamTrack;
     public conference: JitsiConference;
     public videoType: Optional<VideoType>;
     public disposed: boolean;
@@ -63,7 +70,6 @@ export default class JitsiTrack extends Listenable {
             conference: JitsiConference,
             stream: MediaStream,
             track: MediaStreamTrack,
-            // todo create type for a handler function
             streamInactiveHandler: MediaStreamTrackEventHandler,
             trackMediaType: MediaType,
             videoType?: VideoType
@@ -471,7 +477,7 @@ export default class JitsiTrack extends Listenable {
      * @return {boolean}
      */
     public isMuted(): boolean {
-        return undefined;
+        return false;
     }
 
     /**
