@@ -442,6 +442,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     /**
      * Sets current muted status and fires an events for the change.
      * @param value the muted status.
+     * @internal
      */
     setMute(value: boolean): void {
         if (this._muted === value) {
