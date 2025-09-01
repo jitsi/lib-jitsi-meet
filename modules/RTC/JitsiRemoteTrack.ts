@@ -324,28 +324,13 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         }
     }
 
-
-    /**
-     * Changes the video type of the track.
-     *
-     * @param {string} type - The new video type("camera", "desktop").
-     * @internal
-     */
-    _setVideoType(type: VideoType): void {
-        if (this.videoType === type) {
-            return;
-        }
-        this.videoType = type;
-        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
-    }
-
     /**
      * Called when the track has been attached to a new container.
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @internal
      */
-    _onTrackAttach(container: HTMLElement): void {
+    protected _onTrackAttach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.addEventListener(event, this._containerHandlers[event]);
         });
@@ -357,7 +342,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @internal
      */
-    _onTrackDetach(container: HTMLElement): void {
+    protected _onTrackDetach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.removeEventListener(event, this._containerHandlers[event]);
         });
@@ -368,9 +353,8 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * for the first element.
      * @param container the HTML container which can be 'video' or 'audio'
      * element.
-     * @internal
      */
-    _attachTTFMTracker(container: HTMLElement): void {
+    protected _attachTTFMTracker(container: HTMLElement): void {
         if ((ttfmTrackerAudioAttached && this.isAudioTrack())
                 || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
             return;
@@ -384,6 +368,20 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         }
 
         container.addEventListener('canplay', this._playCallback.bind(this));
+    }
+
+    /**
+     * Changes the video type of the track.
+     *
+     * @param {string} type - The new video type("camera", "desktop").
+     * @internal
+     */
+    _setVideoType(type: VideoType): void {
+        if (this.videoType === type) {
+            return;
+        }
+        this.videoType = type;
+        this.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
     }
 
     /**

@@ -35,6 +35,14 @@ export interface IExtendedMediaStreamTrack extends MediaStreamTrack {
 }
 
 /**
+ * Extended MediaStream interface that allows setting the muted property.
+ */
+export interface IExtendedMediaStream extends MediaStream {
+    muted?: boolean;
+}
+
+
+/**
  * Represents a single media track (either audio or video).
  */
 export default class JitsiTrack extends Listenable {
@@ -57,7 +65,7 @@ export default class JitsiTrack extends Listenable {
     private type: MediaType;
     private handlers: Map<string, MediaStreamTrackEventHandler>;
     protected containers: HTMLElement[];
-    protected stream: MediaStream;
+    protected stream: IExtendedMediaStream;
     /**
      * @internal
      */
@@ -131,7 +139,7 @@ export default class JitsiTrack extends Listenable {
      * 'audio' element.
      * @internal
      */
-    private _attachTTFMTracker(_container: HTMLElement): void {
+    protected _attachTTFMTracker(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -140,9 +148,8 @@ export default class JitsiTrack extends Listenable {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @internal
      */
-    private _onTrackAttach(_container: HTMLElement): void {
+    protected _onTrackAttach(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -151,9 +158,8 @@ export default class JitsiTrack extends Listenable {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @internal
      */
-    private _onTrackDetach(_container: HTMLElement): void {
+    protected _onTrackDetach(_container: HTMLElement): void {
         // Should be defined by the classes that are extending JitsiTrack
     }
 
@@ -208,7 +214,7 @@ export default class JitsiTrack extends Listenable {
         }
     }
 
-    
+
     /**
      * Sets handler to the WebRTC MediaStream or MediaStreamTrack object
      * depending on the passed type.

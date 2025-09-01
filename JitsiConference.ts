@@ -93,6 +93,9 @@ import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
 export interface IConferenceOptions {
     config: {
+        _p2pConnStatusRtcMuteTimeout?: number;
+        _peerConnStatusOutOfLastNTimeout?: number;
+        _peerConnStatusRtcMuteTimeout?: number;
         analytics?: {
             rtcstatsEnabled?: boolean;
             rtcstatsEndpoint?: string;
