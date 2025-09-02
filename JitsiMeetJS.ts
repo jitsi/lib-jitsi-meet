@@ -181,10 +181,10 @@ const JitsiMeetJS = {
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      *
-     * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>} A promise that returns an array of created
-     * JitsiTracks if resolved, or a JitsiConferenceError if rejected.
+     * @returns {Promise.<{Array.<JitsiTrack>}, JitsiTrackError>} A promise that returns an array of created
+     * JitsiTracks if resolved, or a JitsiTrackError if rejected.
      */
-    createLocalTracks(options: ICreateLocalTrackOptions = {}) {
+    createLocalTracks(options: ICreateLocalTrackOptions = {}): Promise<JitsiLocalTrack[] | JitsiTrackError> {
         let isFirstGUM = false;
         const startTS = window.performance.now();
 
@@ -283,7 +283,7 @@ const JitsiMeetJS = {
      * @param {Array<ICreateLocalTrackFromMediaStreamOptions>} tracksInfo - array of track information
      * @returns {Array<JitsiLocalTrack>} - created local tracks
      */
-    createLocalTracksFromMediaStreams(tracksInfo: ICreateLocalTrackFromMediaStreamOptions[]) {
+    createLocalTracksFromMediaStreams(tracksInfo: ICreateLocalTrackFromMediaStreamOptions[]): JitsiLocalTrack[] {
         return RTC.createLocalTracks(tracksInfo.map(trackInfo => {
             const tracks = trackInfo.stream.getTracks()
                 .filter(track => track.kind === trackInfo.mediaType);

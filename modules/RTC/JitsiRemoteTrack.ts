@@ -28,6 +28,8 @@ const containerEvents = [ 'abort', 'canplaythrough', 'ended', 'error', 'stalled'
 
 /**
  * Represents a single media track (either audio or video).
+ *
+ * @noInheritDoc
  */
 export default class JitsiRemoteTrack extends JitsiTrack {
     private _sourceName: string;
@@ -68,7 +70,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * P2P session
      * @param {String} sourceName the source name signaled for the track
      * @throws {TypeError} if <tt>ssrc</tt> is not a number.
-     * @constructor
      */
     constructor(
             rtc: RTC,

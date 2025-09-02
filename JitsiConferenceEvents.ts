@@ -241,8 +241,6 @@ export enum JitsiConferenceEvents {
      * The first argument is a boolean which carries the previous value and
      * the seconds argument is a boolean with the new status. The event is emitted
      * only if the previous and the new values are different.
-     *
-     * @type {string}
      */
     JVB121_STATUS = 'conference.jvb121Status',
 
@@ -364,7 +362,6 @@ export enum JitsiConferenceEvents {
 
     /**
      * The conference properties changed.
-     * @type {string}
      */
     PROPERTIES_CHANGED = 'conference.propertiesChanged',
 
@@ -381,7 +378,6 @@ export enum JitsiConferenceEvents {
     /**
      * Indicates that the region of the media server (jitsi-videobridge) that we
      * are connected to changed (or was initially set).
-     * @type {string} the region.
      */
     SERVER_REGION_CHANGED = 'conference.server_region_changed',
 
@@ -517,14 +513,12 @@ export enum JitsiConferenceEvents {
 
     /**
      * An event(library-private) fired when the conference switches the currently active media session.
-     * @type {string}
      * @private
      */
     _MEDIA_SESSION_ACTIVE_CHANGED = 'conference.media_session.active_changed',
 
     /**
      * An event(library-private) fired when a new media session is added to the conference.
-     * @type {string}
      * @private
      */
     _MEDIA_SESSION_STARTED = 'conference.media_session.started'

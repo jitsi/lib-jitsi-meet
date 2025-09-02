@@ -43,10 +43,22 @@
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",
+      "modules/RTC/JitsiTrack.ts",
+      "modules/RTC/JitsiLocalTrack.ts",
+      "modules/RTC/JitsiRemoteTrack.ts",
       "modules/util/Listenable.ts",
     ],
     "excludePrivate": true,
     "excludeProtected": true,
+    "blockTags": [
+      "@noInheritDoc",
+      "@param",
+      "@return",
+      "@returns",
+      "@see",
+      "@throws",
+      "@deprecated"
+    ],
     "readme": "none",
     "plugin": [
       "typedoc-plugin-no-inherit",
