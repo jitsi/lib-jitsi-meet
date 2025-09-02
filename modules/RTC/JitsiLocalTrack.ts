@@ -112,7 +112,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Constructs a new JitsiLocalTrack instance.
      *
-     * @constructor
      * @param {Object} trackInfo
      * @param {Object} trackInfo.constraints - The contraints used for creating the track.
      * @param {number} trackInfo.rtcId - The ID assigned by the RTC module.
@@ -126,6 +125,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @param {string} trackInfo.sourceId - The id of the desktop sharing source, which is the Chrome media source ID,
      * returned by Desktop Picker on Electron. NOTE: defined for desktop sharing tracks only.
      * @param {string} trackInfo.sourceType - The type of source the track originates from.
+     *
+     * @noInheritDoc
      */
     constructor({
         constraints,
@@ -671,7 +672,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * Stops sending the media track. And removes it from the HTML. NOTE: Works for local tracks only.
      *
-     * @extends JitsiTrack#dispose
      * @returns {Promise}
      */
     async dispose(): Promise<void> {

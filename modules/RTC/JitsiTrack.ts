@@ -44,22 +44,10 @@ export interface IExtendedMediaStream extends MediaStream {
 
 /**
  * Represents a single media track (either audio or video).
+ *
+ * @noInheritDoc
  */
 export default class JitsiTrack extends Listenable {
-    /* eslint-disable max-params */
-    /**
-     * Represents a single media track (either audio or video).
-     * @constructor
-     * @param conference the rtc instance
-     * @param stream the WebRTC MediaStream instance
-     * @param track the WebRTC MediaStreamTrack instance, must be part of
-     * the given <tt>stream</tt>.
-     * @param streamInactiveHandler the function that will handle
-     *        onended/oninactive events of the stream.
-     * @param trackMediaType the media type of the JitsiTrack
-     * @param videoType the VideoType for this track if any
-     */
-
     private _streamInactiveHandler: MediaStreamTrackEventHandler;
     private audioLevel: number;
     private type: MediaType;
@@ -74,6 +62,18 @@ export default class JitsiTrack extends Listenable {
     public videoType: Optional<VideoType>;
     public disposed: boolean;
 
+    /* eslint-disable max-params */
+    /**
+     * Represents a single media track (either audio or video).
+     * @param conference the rtc instance
+     * @param stream the WebRTC MediaStream instance
+     * @param track the WebRTC MediaStreamTrack instance, must be part of
+     * the given <tt>stream</tt>.
+     * @param streamInactiveHandler the function that will handle
+     *        onended/oninactive events of the stream.
+     * @param trackMediaType the media type of the JitsiTrack
+     * @param videoType the VideoType for this track if any
+     */
     constructor(
             conference: JitsiConference,
             stream: MediaStream,
@@ -168,7 +168,6 @@ export default class JitsiTrack extends Listenable {
      * handlers to it.
      *
      * @param {MediaStream} stream the new stream.
-     * @protected
      */
     protected _setStream(stream: MediaStream): void {
         if (this.stream === stream) {
@@ -192,8 +191,7 @@ export default class JitsiTrack extends Listenable {
     }
 
     /**
-     * Unregisters all event handlers bound to the underlying media stream/track
-     * @public
+     * Unregisters all event handlers bound to the underlying media stream/track.
      */
     protected _unregisterHandlers(): void {
         if (!this.stream) {
@@ -239,6 +237,17 @@ export default class JitsiTrack extends Listenable {
                 track[trackHandler2Prop[type]] = handler;
             }
         }
+    }
+
+    /**
+     * Checks whether the underlying WebRTC <tt>MediaStreamTrack</tt> is muted
+     * according to it's 'muted' field status.
+     * @return {boolean} <tt>true</tt> if the underlying
+     * <tt>MediaStreamTrack</tt> is muted or <tt>false</tt> otherwise.
+     * @internal
+     */
+    isWebRTCTrackMuted(): boolean {
+        return this.track?.muted;
     }
 
     /**
@@ -468,16 +477,6 @@ export default class JitsiTrack extends Listenable {
     }
 
     /**
-     * Checks whether the underlying WebRTC <tt>MediaStreamTrack</tt> is muted
-     * according to it's 'muted' field status.
-     * @return {boolean} <tt>true</tt> if the underlying
-     * <tt>MediaStreamTrack</tt> is muted or <tt>false</tt> otherwise.
-     */
-    public isWebRTCTrackMuted(): boolean {
-        return this.track?.muted;
-    }
-
-    /**
      * Checks whether this track is muted.
      * @abstract
      * @return {boolean}
@@ -526,10 +525,9 @@ export default class JitsiTrack extends Listenable {
 
     /**
      * Sets new audio output device for track's DOM elements. Video tracks are
-     * ignored.
+     * ignored. Emits `JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED`.
      * @param {string} audioOutputDeviceId - id of 'audiooutput' device from
      *      navigator.mediaDevices.enumerateDevices(), '' for default device
-     * @emits JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED
      * @returns {Promise}
      */
     public setAudioOutput(audioOutputDeviceId: string): Promise<void> {
