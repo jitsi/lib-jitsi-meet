@@ -15,6 +15,7 @@
     ],
     "outDir": "dist/esm/",
     "stripInternal": true,
+    "noImplicitOverride": true
   },
   "exclude": [
     "dist",

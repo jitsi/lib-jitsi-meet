@@ -107,7 +107,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
     public deviceId: string;
     public resolution?: number;
     public maxEnabledResolution?: number;
-    public conference: Nullable<JitsiConference>;
 
     /**
      * Constructs a new JitsiLocalTrack instance.
@@ -657,24 +656,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Sets the stream property of JitsiLocalTrack object and sets all stored handlers to it.
-     *
-     * @param {Nullable<MediaStream>} stream - The new MediaStream.
-     * @private
-     * @returns {void}
-     */
-    protected _setStream(stream: Nullable<MediaStream>): void {
-        super._setStream(stream);
-    }
-
-    /**
      * @inheritdoc
      *
      * Stops sending the media track. And removes it from the HTML. NOTE: Works for local tracks only.
      *
      * @returns {Promise}
      */
-    async dispose(): Promise<void> {
+    override async dispose(): Promise<void> {
         if (this.disposed) {
             return;
         }
@@ -796,7 +784,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @returns {Nullable<string>} source name
      */
-    getSourceName(): Nullable<string> {
+    override getSourceName(): Nullable<string> {
         return this._sourceName;
     }
 
@@ -804,7 +792,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Returns the primary SSRC associated with the track.
      * @returns {Nullable<number>}
      */
-    getSsrc(): Nullable<number> {
+    override getSsrc(): Nullable<number> {
         return this._ssrc;
     }
 
@@ -828,7 +816,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @returns {boolean} <tt>true</tt>
      */
-    isLocal(): boolean {
+    override isLocal(): boolean {
         return true;
     }
 
@@ -837,7 +825,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @returns {boolean} <tt>true</tt> - if the stream is muted and <tt>false</tt> otherwise.
      */
-    isMuted(): boolean {
+    override isMuted(): boolean {
         // this.stream will be null when we mute local video on Chrome
         if (!this.stream) {
             return true;
@@ -1004,8 +992,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Sets the source name to be used for signaling the jitsi track.
      *
      * @param {string} name The source name.
+     * @internal
      */
-    setSourceName(name: string): void {
+    override setSourceName(name: string): void {
         this._sourceName = name;
     }
 
@@ -1048,7 +1037,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @return {string}
      */
-    toString(): string {
+    override toString(): string {
         return `LocalTrack[${this.rtcId},${this.getType()}]`;
     }
 

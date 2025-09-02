@@ -24,7 +24,7 @@ class StropheLogger extends ConnectionPlugin {
      *
      * @param connection
      */
-    init(connection: Strophe.Connection): void {
+    override init(connection: Strophe.Connection): void {
         super.init(connection);
         connection.rawInput = this.logIncoming.bind(this);
         connection.rawOutput = this.logOutgoing.bind(this);
