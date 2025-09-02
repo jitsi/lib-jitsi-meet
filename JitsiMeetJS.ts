@@ -3,25 +3,25 @@ import { merge } from 'lodash-es';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConnection from './JitsiConnection';
 import * as JitsiConnectionErrors from './JitsiConnectionErrors';
 import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiMediaDevices from './JitsiMediaDevices';
-import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
+import { JitsiMediaDevicesEvents } from './JitsiMediaDevicesEvents';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import RTC from './modules/RTC/RTC';
 import RTCStats from './modules/RTCStats/RTCStats';
-import * as RTCStatsEvents from './modules/RTCStats/RTCStatsEvents';
+import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
 import browser from './modules/browser';
 import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatus';
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
+import { DetectionEvents } from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
@@ -36,9 +36,8 @@ import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
 import { MediaType } from './service/RTC/MediaType';
 import { VideoType } from './service/RTC/VideoType';
-import * as ConnectionQualityEvents
-    from './service/connectivity/ConnectionQualityEvents';
-import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
+import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
+import { E2ePingEvents } from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
 

@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';

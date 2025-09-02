@@ -3,8 +3,8 @@ import { Strophe } from 'strophe.js';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import JibriSession from './modules/recording/JibriSession';
@@ -13,12 +13,11 @@ import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaType } from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
+import { RTCEvents } from './service/RTC/RTCEvents';
 import { VideoType } from './service/RTC/VideoType';
-import AuthenticationEvents
-    from './service/authentication/AuthenticationEvents';
+import { AuthenticationEvents } from './service/authentication/AuthenticationEvents';
 import {
-    ACTION_JINGLE_SA_TIMEOUT,
+    AnalyticsEvents,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
@@ -278,7 +277,7 @@ export default class JitsiConferenceEventManager {
             (jingleSession: JingleSessionPC) => {
                 Statistics.sendAnalyticsAndLog(
                     createJingleEvent(
-                        ACTION_JINGLE_SA_TIMEOUT,
+                        AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT,
                         { p2p: jingleSession.isP2P }));
             });
 

@@ -1,4 +1,4 @@
-enum MediaSessionEvents {
+export enum MediaSessionEvents {
 
     /**
      * Event triggered when the remote party signals video max frame heights for its local sources.
@@ -10,5 +10,3 @@ enum MediaSessionEvents {
      */
     VIDEO_CODEC_CHANGED = 'media_session.VIDEO_CODEC_CHANGED'
 }
-
-export default MediaSessionEvents;

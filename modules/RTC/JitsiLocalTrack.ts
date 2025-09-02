@@ -7,18 +7,13 @@ import {
     TRACK_IS_DISPOSED,
     TRACK_NO_STREAM_FOUND
 } from '../../JitsiTrackErrors';
-import {
-    LOCAL_TRACK_STOPPED,
-    NO_DATA_FROM_SOURCE,
-    TRACK_MUTE_CHANGED
-} from '../../JitsiTrackEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
 import {
-    NO_BYTES_SENT,
-    TRACK_UNMUTED,
+    AnalyticsEvents,
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
@@ -144,7 +139,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             /* conference */ null,
             stream,
             track,
-            /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED, this),
+            /* streamInactiveHandler */ () => this.emit(JitsiTrackEvents.LOCAL_TRACK_STOPPED, this),
             mediaType,
             videoType);
 
@@ -337,7 +332,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _fireNoDataFromSourceEvent(): void {
         const value = !this.isReceivingData();
 
-        this.emit(NO_DATA_FROM_SOURCE, value);
+        this.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE, value);
 
         logger.debug(`NO_DATA_FROM_SOURCE event with value ${value} detected for track: ${this}`);
 
@@ -364,7 +359,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._setHandler('track_unmute', () => {
             this._fireNoDataFromSourceEvent();
             Statistics.sendAnalyticsAndLog(
-                TRACK_UNMUTED,
+                AnalyticsEvents.TRACK_UNMUTED,
                 {
                     'media_type': this.getType(),
                     'track_type': 'local',
@@ -550,7 +545,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
                 // Send the videoType message to the bridge.
                 this.isVideoTrack() && this.conference?._sendBridgeVideoTypeMessage(this);
-                this.emit(TRACK_MUTE_CHANGED, this);
+                this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
             });
     }
 
@@ -901,7 +896,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     logger.warn(`${this} 'bytes sent' <= 0: \
                         ${bytesSent}`);
 
-                    Statistics.analytics.sendEvent(NO_BYTES_SENT, { 'media_type': this.getType() });
+                    Statistics.analytics.sendEvent(AnalyticsEvents.NO_BYTES_SENT, { 'media_type': this.getType() });
                 }
             }, 3000);
             this._testDataSent = false;

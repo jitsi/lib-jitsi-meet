@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import RTC from '../RTC/RTC';
 import Statistics from '../statistics/statistics';

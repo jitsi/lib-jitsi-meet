@@ -4,13 +4,13 @@ import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import type JitsiConnection from './JitsiConnection';
 import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiParticipant from './JitsiParticipant';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
 import type JitsiLocalTrack from './modules/RTC/JitsiLocalTrack';
 import type JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import JitsiTrack from './modules/RTC/JitsiTrack';
@@ -20,7 +20,7 @@ import type TraceablePeerConnection from './modules/RTC/TraceablePeerConnection'
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedHandling from './modules/connectivity/IceFailedHandling';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
+import { DetectionEvents } from './modules/detection/DetectionEvents';
 import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
 import VADAudioAnalyser, { IVADProcessor } from './modules/detection/VADAudioAnalyser';
@@ -54,7 +54,7 @@ import BreakoutRooms from './modules/xmpp/BreakoutRooms';
 import type { ChatRoom, PresenceHandler } from './modules/xmpp/ChatRoom';
 import FileSharing from './modules/xmpp/FileSharing';
 import type JingleSessionPC from './modules/xmpp/JingleSessionPC';
-import MediaSessionEvents from './modules/xmpp/MediaSessionEvents';
+import { MediaSessionEvents } from './modules/xmpp/MediaSessionEvents';
 import RoomMetadata from './modules/xmpp/RoomMetadata';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import XMPP, {
@@ -66,23 +66,14 @@ import XMPP, {
 import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
+import { RTCEvents } from './service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
-    ACTION_JINGLE_RESTART,
-    ACTION_JINGLE_SI_RECEIVED,
-    ACTION_JINGLE_SI_TIMEOUT,
-    ACTION_JINGLE_TERMINATE,
-    ACTION_JVB_ICE_FAILED,
-    ACTION_P2P_DECLINED,
-    ACTION_P2P_ESTABLISHED,
-    ACTION_P2P_FAILED,
-    ACTION_P2P_SWITCH_TO_JVB,
-    ICE_ESTABLISHMENT_DURATION_DIFF,
+    AnalyticsEvents,
     createConferenceEvent,
     createJingleEvent,
     createJvbIceFailedEvent,
@@ -1074,7 +1065,7 @@ export default class JitsiConference extends Listenable {
             this._sessionInitiateTimeout = window.setTimeout(() => {
                 this._sessionInitiateTimeout = null;
                 Statistics.sendAnalytics(createJingleEvent(
-                    ACTION_JINGLE_SI_TIMEOUT,
+                    AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT,
                     {
                         p2p: false,
                         value: JINGLE_SI_TIMEOUT
@@ -1339,7 +1330,7 @@ export default class JitsiConference extends Listenable {
             // Log that there will be a switch back to the JVB connection
             if (this.p2pJingleSession.isInitiator && peerCount > 1) {
                 Statistics.sendAnalyticsAndLog(
-                    createP2PEvent(ACTION_P2P_SWITCH_TO_JVB));
+                    createP2PEvent(AnalyticsEvents.ACTION_P2P_SWITCH_TO_JVB));
             }
             this._stopP2PSession();
         }
@@ -1530,7 +1521,7 @@ export default class JitsiConference extends Listenable {
         this._sendConferenceJoinAnalyticsEvent();
 
         if (this.wasStopped) {
-            Statistics.sendAnalyticsAndLog(createJingleEvent(ACTION_JINGLE_RESTART, { p2p: false }));
+            Statistics.sendAnalyticsAndLog(createJingleEvent(AnalyticsEvents.ACTION_JINGLE_RESTART, { p2p: false }));
         }
 
         const serverRegion
@@ -1542,7 +1533,7 @@ export default class JitsiConference extends Listenable {
 
         this._maybeClearSITimeout();
         Statistics.sendAnalytics(createJingleEvent(
-            ACTION_JINGLE_SI_RECEIVED,
+            AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED,
             {
                 p2p: false,
                 value: now
@@ -1736,7 +1727,7 @@ export default class JitsiConference extends Listenable {
                 reason: 'decline',
                 reasonDescription: 'P2P requirements not met'
             };
-            Statistics.sendAnalytics(createJingleEvent(ACTION_P2P_DECLINED));
+            Statistics.sendAnalytics(createJingleEvent(AnalyticsEvents.ACTION_P2P_DECLINED));
         }
 
         if (rejectReason) {
@@ -1777,7 +1768,7 @@ export default class JitsiConference extends Listenable {
             if (this.p2pJingleSession) {
                 Statistics.sendAnalyticsAndLog(
                     createP2PEvent(
-                        ACTION_P2P_FAILED,
+                        AnalyticsEvents.ACTION_P2P_FAILED,
                         {
                             initiator: this.p2pJingleSession.isInitiator
                         }));
@@ -1801,7 +1792,7 @@ export default class JitsiConference extends Listenable {
             logger.warn('ICE failed, force reloading the conference after failed attempts to re-establish ICE');
             Statistics.sendAnalyticsAndLog(
                 createJvbIceFailedEvent(
-                    ACTION_JVB_ICE_FAILED,
+                    AnalyticsEvents.ACTION_JVB_ICE_FAILED,
                     {
                         participantId: this.myUserId(),
                         userRegion: this.options.config.deploymentInfo?.userRegion
@@ -1949,7 +1940,7 @@ export default class JitsiConference extends Listenable {
                 = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
 
             Statistics.sendAnalytics(
-                ICE_ESTABLISHMENT_DURATION_DIFF,
+                AnalyticsEvents.ICE_ESTABLISHMENT_DURATION_DIFF,
                 { value: establishmentDurationDiff });
         }
 
@@ -1984,7 +1975,7 @@ export default class JitsiConference extends Listenable {
 
         Statistics.sendAnalyticsAndLog(
             createP2PEvent(
-                ACTION_P2P_ESTABLISHED,
+                AnalyticsEvents.ACTION_P2P_ESTABLISHED,
                 {
                     initiator: this.p2pJingleSession.isInitiator
                 }));
@@ -3670,7 +3661,7 @@ export default class JitsiConference extends Listenable {
             this.wasStopped = true;
 
             Statistics.sendAnalytics(
-                createJingleEvent(ACTION_JINGLE_TERMINATE, { p2p: false }));
+                createJingleEvent(AnalyticsEvents.ACTION_JINGLE_TERMINATE, { p2p: false }));
 
             // Stop the stats
             if (this.statistics) {

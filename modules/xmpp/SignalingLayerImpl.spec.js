@@ -1,5 +1,5 @@
 import { MediaType } from '../../service/RTC/MediaType';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';

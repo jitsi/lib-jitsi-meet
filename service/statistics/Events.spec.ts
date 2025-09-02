@@ -4,29 +4,18 @@ import * as exported from "./Events";
 
 describe( "/service/statistics/Events members", () => {
     const {
-        AUDIO_LEVEL,
-        BEFORE_DISPOSED,
-        BYTE_SENT_STATS,
-        CONNECTION_STATS,
-        ENCODE_TIME_STATS,
-        Events,
+        StatisticsEvents,
         ...others
     } = exported;
 
     it( "known members", () => {
-        expect( AUDIO_LEVEL ).toBe( 'statistics.audioLevel' );
-        expect( BEFORE_DISPOSED ).toBe( 'statistics.before_disposed' );
-        expect( BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
-        expect( CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
-        expect( ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
+        expect( StatisticsEvents ).toBeDefined();
 
-        expect( Events ).toBeDefined();
-
-        expect( Events.AUDIO_LEVEL ).toBe( 'statistics.audioLevel' );
-        expect( Events.BEFORE_DISPOSED ).toBe( 'statistics.before_disposed' );
-        expect( Events.BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
-        expect( Events.CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
-        expect( Events.ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
+        expect( StatisticsEvents.AUDIO_LEVEL ).toBe( 'statistics.audioLevel' );
+        expect( StatisticsEvents.BEFORE_DISPOSED ).toBe( 'statistics.before_disposed' );
+        expect( StatisticsEvents.BYTE_SENT_STATS ).toBe( 'statistics.byte_sent_stats' );
+        expect( StatisticsEvents.CONNECTION_STATS ).toBe( 'statistics.connectionstats' );
+        expect( StatisticsEvents.ENCODE_TIME_STATS ).toBe( 'statistics.encode_time_stats' );
     } );
 
     it( "unknown members", () => {

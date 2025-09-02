@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';

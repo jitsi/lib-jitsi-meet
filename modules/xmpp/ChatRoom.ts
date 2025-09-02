@@ -8,7 +8,7 @@ import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
-import AuthenticationEvents from '../../service/authentication/AuthenticationEvents';
+import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';

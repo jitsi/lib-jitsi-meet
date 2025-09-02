@@ -5,12 +5,12 @@ import transform from 'sdp-transform';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -994,7 +994,7 @@ export default class TraceablePeerConnection {
                     needsUpdate = true;
 
                     Statistics.sendAnalytics(
-                        VIDEO_CODEC_CHANGED,
+                        AnalyticsEvents.VIDEO_CODEC_CHANGED,
                         {
                             value: codec,
                             videoType
