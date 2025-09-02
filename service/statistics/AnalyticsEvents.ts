@@ -217,31 +217,6 @@ export enum AnalyticsEvents {
     VIDEO_CODEC_CHANGED = 'quality.video-codec-changed',
 }
 
-// exported for backward compatibility
-export const TYPE_OPERATIONAL = AnalyticsEvents.TYPE_OPERATIONAL;
-export const TYPE_PAGE = AnalyticsEvents.TYPE_PAGE;
-export const TYPE_TRACK = AnalyticsEvents.TYPE_TRACK;
-export const TYPE_UI = AnalyticsEvents.TYPE_UI;
-export const ACTION_JINGLE_RESTART = AnalyticsEvents.ACTION_JINGLE_RESTART;
-export const ACTION_JINGLE_SA_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT;
-export const ACTION_JINGLE_SI_RECEIVED = AnalyticsEvents.ACTION_JINGLE_SI_RECEIVED;
-export const ACTION_JINGLE_SI_TIMEOUT = AnalyticsEvents.ACTION_JINGLE_SI_TIMEOUT;
-export const ACTION_JINGLE_TERMINATE = AnalyticsEvents.ACTION_JINGLE_TERMINATE;
-export const ACTION_JVB_ICE_FAILED = AnalyticsEvents.ACTION_JVB_ICE_FAILED;
-export const ACTION_P2P_DECLINED = AnalyticsEvents.ACTION_P2P_DECLINED;
-export const ACTION_P2P_ESTABLISHED = AnalyticsEvents.ACTION_P2P_ESTABLISHED;
-export const ACTION_P2P_FAILED = AnalyticsEvents.ACTION_P2P_FAILED;
-export const ACTION_P2P_SWITCH_TO_JVB = AnalyticsEvents.ACTION_P2P_SWITCH_TO_JVB;
-export const AVAILABLE_DEVICE = AnalyticsEvents.AVAILABLE_DEVICE;
-export const CONNECTION_DISCONNECTED = AnalyticsEvents.CONNECTION_DISCONNECTED;
-export const FEEDBACK = AnalyticsEvents.FEEDBACK;
-export const ICE_DURATION = AnalyticsEvents.ICE_DURATION;
-export const ICE_ESTABLISHMENT_DURATION_DIFF = AnalyticsEvents.ICE_ESTABLISHMENT_DURATION_DIFF;
-export const ICE_STATE_CHANGED = AnalyticsEvents.ICE_STATE_CHANGED;
-export const NO_BYTES_SENT = AnalyticsEvents.NO_BYTES_SENT;
-export const TRACK_UNMUTED = AnalyticsEvents.TRACK_UNMUTED;
-export const VIDEO_CODEC_CHANGED = AnalyticsEvents.VIDEO_CODEC_CHANGED;
-
 /**
  * Creates an operational event which indicates that we have received a
  * "bridge down" event from jicofo.
@@ -250,7 +225,7 @@ export const createBridgeDownEvent = () => {
     return {
         action: 'bridge.down',
         actionSubject: 'bridge.down',
-        type: TYPE_OPERATIONAL
+        type: AnalyticsEvents.TYPE_OPERATIONAL
     };
 };
 

@@ -6,7 +6,7 @@ import base64js from 'base64-js';
 import { isEqual } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';

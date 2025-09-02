@@ -3,19 +3,13 @@ import rtcstatsInit from '@jitsi/rtcstats/rtcstats';
 import traceInit from '@jitsi/rtcstats/trace-ws';
 
 import JitsiConference from '../../JitsiConference';
-import {
-    BEFORE_STATISTICS_DISPOSED,
-    CONFERENCE_CREATED_TIMESTAMP,
-    CONFERENCE_JOINED,
-    CONFERENCE_LEFT,
-    CONFERENCE_UNIQUE_ID_SET
-} from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiConnection from '../../JitsiConnection';
 import Settings from '../settings/Settings';
 import EventEmitter from '../util/EventEmitter';
 
 import DefaultLogStorage from './DefaulLogStorage';
-import { RTC_STATS_PC_EVENT, RTC_STATS_WC_DISCONNECTED } from './RTCStatsEvents';
+import { RTCStatsEvents } from './RTCStatsEvents';
 import { ITraceOptions } from './interfaces';
 
 const logger = getLogger('modules/RTCStats/RTCStats');
@@ -69,7 +63,7 @@ class RTCStats {
         if (!this._initialized) {
             rtcstatsInit(
                 { statsEntry: this.sendStatsEntry.bind(this) },
-                { eventCallback: event => this.events.emit(RTC_STATS_PC_EVENT, event),
+                { eventCallback: event => this.events.emit(RTCStatsEvents.RTC_STATS_PC_EVENT, event),
                     pollInterval,
                     sendSdp,
                     useLegacy: false }
@@ -155,7 +149,7 @@ class RTCStats {
 
         // When the conference is joined, we need to initialize the trace module with the new conference's config.
         // The trace module will then connect to the rtcstats server and send the identity data.
-        conference.once(CONFERENCE_JOINED, () => {
+        conference.once(JitsiConferenceEvents.CONFERENCE_JOINED, () => {
             const isBreakoutRoom = Boolean(conference.getBreakoutRooms()?.isBreakoutRoom());
             const endpointId = conference.myUserId();
             const meetingUniqueId = conference.getMeetingUniqueId();
@@ -194,20 +188,20 @@ class RTCStats {
         });
 
         // Note, this will only be called for normal rooms, not breakout rooms.
-        conference.once(CONFERENCE_UNIQUE_ID_SET, meetingUniqueId => {
+        conference.once(JitsiConferenceEvents.CONFERENCE_UNIQUE_ID_SET, meetingUniqueId => {
             this.sendIdentity({ meetingUniqueId });
         });
 
-        conference.once(CONFERENCE_LEFT, () => {
+        conference.once(JitsiConferenceEvents.CONFERENCE_LEFT, () => {
             this.reset();
         });
 
-        conference.once(CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
+        conference.once(JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
             this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
         });
 
         conference.once(
-            BEFORE_STATISTICS_DISPOSED,
+            JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED,
             () => this._defaultLogCollector?.flush()
         );
     }
@@ -222,7 +216,7 @@ class RTCStats {
 
         const traceOptionsComplete = {
             ...traceOptions,
-            onCloseCallback: event => this.events.emit(RTC_STATS_WC_DISCONNECTED, event),
+            onCloseCallback: event => this.events.emit(RTCStatsEvents.RTC_STATS_WC_DISCONNECTED, event),
             useLegacy: false
         };
 

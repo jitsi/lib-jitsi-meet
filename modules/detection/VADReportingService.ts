@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import EventEmitter from '../util/EventEmitter';
 
-import * as DetectionEvents from './DetectionEvents';
+import { DetectionEvents } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 
 const logger = getLogger('modules/detection/VADReportingService');

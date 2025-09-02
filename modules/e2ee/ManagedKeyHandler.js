@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { debounce } from 'lodash-es';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 
 import { KeyHandler } from './KeyHandler';
 import { OlmAdapter } from './OlmAdapter';

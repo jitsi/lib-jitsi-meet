@@ -43,10 +43,3 @@ export enum SignalingEvents {
      */
     SOURCE_VIDEO_TYPE_CHANGED = 'signaling.sourceVideoType'
 }
-
-// exported for backward compatibility
-export const PEER_MUTED_CHANGED = SignalingEvents.PEER_MUTED_CHANGED;
-export const PEER_VIDEO_TYPE_CHANGED = SignalingEvents.PEER_VIDEO_TYPE_CHANGED;
-export const SOURCE_MUTED_CHANGED = SignalingEvents.SOURCE_MUTED_CHANGED;
-export const SOURCE_UPDATED = SignalingEvents.SOURCE_UPDATED;
-export const SOURCE_VIDEO_TYPE_CHANGED = SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED;

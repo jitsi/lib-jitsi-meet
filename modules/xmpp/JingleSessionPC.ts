@@ -9,11 +9,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import {
-    ICE_DURATION,
-    ICE_STATE_CHANGED,
-    VIDEO_CODEC_CHANGED
-} from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
@@ -30,7 +26,7 @@ import $ from '../util/XMLParser';
 
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
-import MediaSessionEvents from './MediaSessionEvents';
+import { MediaSessionEvents } from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
 const logger = getLogger('modules/xmpp/JingleSessionPC');
@@ -1670,7 +1666,7 @@ export default class JingleSessionPC extends JingleSession {
             } else if (!this._gatheringReported) {
                 // End of gathering
                 Statistics.sendAnalytics(
-                    ICE_DURATION,
+                    AnalyticsEvents.ICE_DURATION,
                     {
                         initiator: this.isInitiator,
                         p2p: this.isP2P,
@@ -1718,7 +1714,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`(TIME) ICE ${this.peerconnection.iceConnectionState} ${this.isP2P ? 'P2P' : 'JVB'}:\t`, now);
 
             Statistics.sendAnalytics(
-                ICE_STATE_CHANGED,
+                AnalyticsEvents.ICE_STATE_CHANGED,
                 {
                     p2p: this.isP2P,
                     reconnect: this.isReconnect,
@@ -1757,7 +1753,7 @@ export default class JingleSessionPC extends JingleSession {
                         || (this.isInitiator && (browser.isChromiumBased() || browser.isReactNative())))) {
 
                     Statistics.sendAnalytics(
-                        ICE_DURATION,
+                        AnalyticsEvents.ICE_DURATION,
                         {
                             initiator: this.isInitiator,
                             p2p: this.isP2P,
@@ -1776,7 +1772,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.establishmentDuration = now - iceStarted;
 
                     Statistics.sendAnalytics(
-                        ICE_DURATION,
+                        AnalyticsEvents.ICE_DURATION,
                         {
                             initiator: this.isInitiator,
                             p2p: this.isP2P,
@@ -2398,7 +2394,7 @@ export default class JingleSessionPC extends JingleSession {
 
             this.eventEmitter.emit(MediaSessionEvents.VIDEO_CODEC_CHANGED);
             Statistics.sendAnalytics(
-                VIDEO_CODEC_CHANGED,
+                AnalyticsEvents.VIDEO_CODEC_CHANGED,
                 {
                     value: codecList[0],
                     videoType: VideoType.CAMERA

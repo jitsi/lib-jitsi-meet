@@ -19,7 +19,3 @@ export enum RTCStatsEvents {
      */
     RTC_STATS_WC_DISCONNECTED = 'rtcstats_ws_disconnected'
 }
-
-// exported for backward compatibility
-export const RTC_STATS_WC_DISCONNECTED = RTCStatsEvents.RTC_STATS_WC_DISCONNECTED;
-export const RTC_STATS_PC_EVENT = RTCStatsEvents.RTC_STATS_PC_EVENT;
