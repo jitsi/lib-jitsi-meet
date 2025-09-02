@@ -9,6 +9,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
+import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
@@ -38,23 +39,6 @@ const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
 /**
- * Extended RTCRtpEncodingParameters interface with newer WebRTC properties
- */
-interface IExtendedRtpEncodingParameters extends RTCRtpEncodingParameters {
-    codec?: RTCRtpCodec;
-    degradationPreference?: RTCDegradationPreference;
-    scalabilityMode?: string;
-}
-
-/**
- * Extended RTCRtpParameters interface with extended encodings property
- */
-interface IExtendedRtpParameters extends RTCRtpSendParameters {
-    degradationPreference?: RTCDegradationPreference;
-    encodings: IExtendedRtpEncodingParameters[];
-}
-
-/**
  * Interface for legacy WebRTC stats report (pre-standard)
  */
 interface ILegacyStatsReport {
@@ -68,6 +52,11 @@ interface ILegacyStatsReport {
  */
 interface ILegacyStatsResponse {
     result: () => ILegacyStatsReport[];
+}
+export interface IRTCRtpEncodingParameters extends RTCRtpEncodingParameters {
+    codec?: RTCRtpCodec;
+    degradationPreference?: string; // Firefox only supports the non-standard way.
+    scalabilityMode?: VideoEncoderScalabilityMode;
 }
 
 /**
@@ -651,7 +640,7 @@ export default class TraceablePeerConnection {
         const transceiver = localTrack?.track && localTrack.getOriginalStream()
             ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
             : this.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
-        const parameters = transceiver?.sender?.getParameters() as IExtendedRtpParameters;
+        const parameters = transceiver?.sender?.getParameters() as RTCRtpSendParameters;
 
         // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
         // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
@@ -672,7 +661,7 @@ export default class TraceablePeerConnection {
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
     private _enableSenderEncodings = async (sender: RTCRtpSender, enable: boolean): Promise<void> => {
-        const parameters = sender.getParameters() as IExtendedRtpParameters;
+        const parameters: RTCRtpSendParameters = sender.getParameters() as RTCRtpSendParameters;
 
         if (parameters?.encodings?.length) {
             for (const encoding of parameters.encodings) {
@@ -908,7 +897,7 @@ export default class TraceablePeerConnection {
         if (!videoSender) {
             return Promise.resolve();
         }
-        const parameters = videoSender.getParameters() as IExtendedRtpParameters;
+        const parameters = videoSender.getParameters() as RTCRtpSendParameters;
 
         if (!parameters?.encodings?.length) {
             return Promise.resolve();
@@ -947,14 +936,14 @@ export default class TraceablePeerConnection {
 
         for (const idx in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(idx)) {
-                const encoding = parameters.encodings[idx] as IExtendedRtpEncodingParameters;
+                const encoding: IRTCRtpEncodingParameters = parameters.encodings[idx];
                 const {
                     active = undefined,
+                    codec: currentCodec = undefined,
                     maxBitrate = undefined,
+                    scalabilityMode = undefined,
                     scaleResolutionDownBy = undefined
                 } = encoding;
-                const scalabilityMode = encoding.scalabilityMode;
-                const currentCodec = encoding.codec;
 
                 if (active !== activeState[idx]) {
                     encoding.active = activeState[idx];
@@ -2391,7 +2380,7 @@ export default class TraceablePeerConnection {
                     return result;
                 }
 
-                const { encodings } = sender.getParameters() as IExtendedRtpParameters;
+                const { encodings } = sender.getParameters() as RTCRtpSendParameters;
 
                 result = encodings.reduce((maxValue, encoding) => {
                     if (encoding.active) {
