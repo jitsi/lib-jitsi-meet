@@ -11,6 +11,8 @@ import {
     createRtpStatsEvent,
     createTransportStatsEvent
 } from '../../service/statistics/AnalyticsEvents';
+import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import { isValidNumber } from '../util/MathUtil';
@@ -834,7 +836,7 @@ export default class AvgRTPStatsReporter {
      */
     private _calculatePeerAvgVideoPixels(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks: Nullable<any[]> = null;// JitsiLocalTrack[] | JitsiRemoteTrack[]
+        let videoTracks: Nullable<JitsiLocalTrack[] | JitsiRemoteTrack[]> = null;
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.
@@ -858,7 +860,7 @@ export default class AvgRTPStatsReporter {
                     ssrc => videoTracks.find(
                         track =>
                             !track.isMuted()
-                                && tpc.getLocalSSRC(track) === ssrc
+                                && tpc.getLocalSSRC(track as JitsiLocalTrack) === ssrc
                                 && track.videoType === videoType));
         }
 
@@ -930,7 +932,7 @@ export default class AvgRTPStatsReporter {
      */
     private _calculatePeerAvgVideoFps(videos: Record<string, any>, participant: Nullable<JitsiParticipant>, videoType: VideoType): number {
         let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
-        let videoTracks: Nullable<any[]> = null; // JitsiLocalTrack[] | JitsiRemoteTrack[]
+        let videoTracks: Nullable<JitsiLocalTrack[] | JitsiRemoteTrack[]> = null;
 
         // NOTE that this method is supposed to be called for the stats
         // received from the current peerconnection.
@@ -952,7 +954,7 @@ export default class AvgRTPStatsReporter {
                 = ssrcs.filter(
                     ssrc => videoTracks.find(
                         track => !track.isMuted()
-                            && tpc.getLocalSSRC(track) === ssrc
+                            && tpc.getLocalSSRC(track as JitsiLocalTrack) === ssrc
                             && track.videoType === videoType));
         }
 

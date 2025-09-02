@@ -1,5 +1,7 @@
 import Listenable from '../util/Listenable';
 
+import XmppConnection from './XmppConnection';
+
 /**
  * Creates ConnectionPlugin class that extends the passed class.
  * @param {Class} base the definition of the class that will be extended by
@@ -10,7 +12,7 @@ function getConnectionPluginDefinition<T extends new (...args: any[]) => {}>(bas
      * Base class for strophe connection plugins.
      */
     return class extends base {
-        connection: Nullable<any>;
+        connection: Nullable<XmppConnection>;
         /**
          *
          */
@@ -23,7 +25,7 @@ function getConnectionPluginDefinition<T extends new (...args: any[]) => {}>(bas
          *
          * @param connection
          */
-        init(connection: any): void {
+        init(connection: XmppConnection): void {
             this.connection = connection;
         }
     };

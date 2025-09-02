@@ -108,6 +108,8 @@ export interface IConferenceOptions {
             userRegion?: string;
         };
         disableAudioLevels?: boolean;
+        disableLocalStats?: boolean;
+        disableLocalStatsBroadcast?: boolean;
         e2eping?: {
             enabled?: boolean;
         };
@@ -125,6 +127,7 @@ export interface IConferenceOptions {
             preferredCodec?: string;
             screenshareCodec?: string;
         };
+        pcStatsInterval?: number;
         startAudioMuted?: number;
         startLastN?: number;
         startSilent?: boolean;
@@ -1212,7 +1215,6 @@ export default class JitsiConference extends Listenable {
 
         this.isP2PConnectionInterrupted = false;
         this.p2pJingleSession
-        // @ts-ignore - migrate xmppConnection
             = this.xmpp.connection.jingle.newP2PJingleSession(
                 this.room.myroomjid,
                 remoteJid);

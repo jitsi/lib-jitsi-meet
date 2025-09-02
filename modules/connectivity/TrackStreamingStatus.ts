@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -73,7 +74,7 @@ const DEFAULT_RESTORING_TIMEOUT = 10000;
  */
 export class TrackStreamingStatusImpl {
     rtc: RTC;
-    conference: any; // TODO: needs JitsiConference type
+    conference: JitsiConference;
     track: JitsiRemoteTrack;
 
     /**  This holds the timeout callback ID scheduled using window.setTimeout. */
@@ -214,7 +215,7 @@ export class TrackStreamingStatusImpl {
      * @param {number} [options.outOfForwardedSourcesTimeout=500] custom value for
      * {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.
      */
-    constructor(rtc: RTC, conference: any, track: JitsiRemoteTrack, options: {
+    constructor(rtc: RTC, conference: JitsiConference, track: JitsiRemoteTrack, options: {
         outOfForwardedSourcesTimeout: number;
         p2pRtcMuteTimeout: number;
         rtcMuteTimeout: number;
