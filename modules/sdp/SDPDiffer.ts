@@ -3,11 +3,12 @@ import Strophe from 'strophe';
 
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 
+import SDP from './SDP';
 import SDPUtil from './SDPUtil';
 
 export interface IMediaSsrc {
     lines: string[];
-    ssrc: number;
+    ssrc: string;
 }
 
 export interface IMediaSsrcs {
@@ -16,7 +17,7 @@ export interface IMediaSsrcs {
 
 export interface ISsrcGroup {
     semantics: string;
-    ssrcs: number[];
+    ssrcs: string[];
 }
 
 export interface IMediaSource {
@@ -30,18 +31,14 @@ export interface IDiffSourceInfo {
     [index: string]: IMediaSource;
 }
 
-export interface ISDP {
-    getMediaSsrcMap: () => Map<string, IMediaSource>;
-}
-
 /**
  * A class that provides methods for comparing the source information present in two different SDPs so that the delta
  * can be signaled to Jicofo via 'source-remove' or 'source-add'.
  */
 export class SDPDiffer {
     private isP2P: boolean;
-    private mySdp: ISDP;
-    private othersSdp: ISDP;
+    private mySdp: SDP;
+    private othersSdp: SDP;
 
     /**
      * Constructor.
@@ -50,7 +47,7 @@ export class SDPDiffer {
      * @param {SDP} othersSdp - the old SDP.
      * @param {boolean} isP2P - Whether the SDPs belong to a p2p peerconnection.
      */
-    constructor(mySdp: ISDP, othersSdp: ISDP, isP2P: boolean) {
+    constructor(mySdp: SDP, othersSdp: SDP, isP2P: boolean) {
         this.isP2P = isP2P;
         this.mySdp = mySdp;
         this.othersSdp = othersSdp;

@@ -6,7 +6,6 @@ import JitsiConference from '../../JitsiConference';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
-import { SourceName } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
 import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
@@ -291,10 +290,10 @@ export default class BridgeChannel {
      * Sends a 'SourceVideoTypeMessage' message via the bridge channel.
      *
      * @param {BridgeVideoType} videoType - the video type.
-     * @param {SourceName} sourceName - the source name of the video track.
+     * @param {string} sourceName - the source name of the video track.
      * @returns {void}
      */
-    sendSourceVideoTypeMessage(sourceName: SourceName, videoType: BridgeVideoType): void {
+    sendSourceVideoTypeMessage(sourceName: string, videoType: BridgeVideoType): void {
         logger.info(`Sending SourceVideoTypeMessage with video type ${sourceName}: ${videoType}`);
         this._send({
             colibriClass: 'SourceVideoTypeMessage',

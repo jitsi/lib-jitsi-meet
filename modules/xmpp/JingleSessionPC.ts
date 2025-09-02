@@ -18,6 +18,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import { ITPCSourceInfo } from '../RTC/SourceInfo';
 import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -622,9 +623,9 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @param {Object} sourceElement the source-add/source-remove element from jingle.
      * @param {boolean} isAdd true if the sources are being added, false if they are to be removed.
-     * @returns {Map<string, Object>} - The map of source name to ssrcs, msid and groups.
+     * @returns {Map<string, ITPCSourceInfo>} - The map of source name to ssrcs, msid and groups.
      */
-    private _processSourceMapFromJingle(sourceElement: object, isAdd: boolean = true): Map<string, object> {
+    private _processSourceMapFromJingle(sourceElement: object, isAdd: boolean = true): Map<string, ITPCSourceInfo> {
         /**
          * Map of source name to ssrcs, mediaType, msid and groups.
          * @type {Map<string,
