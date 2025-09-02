@@ -44,11 +44,8 @@
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",
-      "modules/RTC/JitsiTrack.ts",
-      "modules/RTC/JitsiLocalTrack.ts",
-      "modules/RTC/JitsiRemoteTrack.ts",
-      "modules/util/Listenable.ts",
     ],
+    "excludeExternals": true,
     "excludePrivate": true,
     "excludeProtected": true,
     "blockTags": [
@@ -58,10 +55,14 @@
       "@returns",
       "@see",
       "@throws",
-      "@deprecated"
+      "@deprecated",
+      "@code",
+      "@property",
+      "@type",
     ],
     "readme": "none",
     "plugin": [
+      "typedoc-plugin-missing-exports",
       "typedoc-plugin-no-inherit",
       "typedoc-plugin-rename-defaults"
     ]
