@@ -1,10 +1,14 @@
 import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import { ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
 import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import { isValidNumber } from '../util/MathUtil';
+
+import DominantSpeakerIdentification from './DominantSpeakerIdentification';
 
 const logger = getLogger('modules/statistics/RTPStatsCollector');
 
@@ -153,7 +157,7 @@ export default class StatsCollector {
      * @param eventEmitter
      * @constructor
      */
-    constructor(peerconnection, audioLevelsInterval, statsInterval, eventEmitter) {
+    constructor(peerconnection, audioLevelsInterval, statsInterval, eventEmitter, enableDominantSpeaker = false) {
         this.peerconnection = peerconnection;
         this.currentStatsReport = null;
         this.previousStatsReport = null;
@@ -164,6 +168,8 @@ export default class StatsCollector {
         // Updates stats interval
         this.audioLevelsIntervalMilis = audioLevelsInterval;
 
+        this.dominantSpeakerEnabled = false;
+        this.previousSpeakers = [];
         this.speakerList = [];
         this.statsIntervalId = null;
         this.statsIntervalMilis = statsInterval;
@@ -173,6 +179,33 @@ export default class StatsCollector {
          * @type {Map<number,SsrcStats}
          */
         this.ssrc2stats = new Map();
+
+        /**
+         * Dominant Speaker Identification instance
+         */
+        this.dominantSpeakerIdentification = new DominantSpeakerIdentification();
+
+        this.eventEmitter.on(RTCEvents.AUDIO_SUBSCRIPTION_MODE_CHANGED, mode => {
+            this.dominantSpeakerEnabled = enableDominantSpeaker && mode !== ReceiverAudioSubscription.ALL;
+        });
+    }
+
+    /**
+     * Get the current dominant speaker SSRC.
+     *
+     * @returns {number|null} The SSRC of the current dominant speaker, or null if none.
+     */
+    getCurrentDominantSpeaker() {
+        return this.dominantSpeakerIdentification.getDominantSpeaker();
+    }
+
+    /**
+     * Get speaker statistics for debugging purposes, currently used by the unit tests.
+     *
+     * @returns {Object} Object containing speaker statistics keyed by SSRC.
+     */
+    getSpeakerStats() {
+        return this.dominantSpeakerIdentification.getSpeakerStats();
     }
 
     /**
@@ -217,18 +250,52 @@ export default class StatsCollector {
             this.audioLevelsIntervalId = setInterval(
                 () => {
                     const audioLevels = this.peerconnection.getAudioLevels(this.speakerList);
+                    let previousSpeaker;
 
+                    if (this.dominantSpeakerEnabled) {
+                        previousSpeaker = this.dominantSpeakerIdentification.currentDominantSpeaker;
+
+                        if (this.previousSpeakers.length) {
+                            const index = this.previousSpeakers.indexOf(previousSpeaker);
+
+                            if (index !== -1) {
+                                this.previousSpeakers.splice(index, 1);
+                            }
+                            this.previousSpeakers.unshift(previousSpeaker);
+                        } else if (previousSpeaker) {
+                            this.previousSpeakers.push(previousSpeaker);
+                        }
+                    }
                     for (const ssrc in audioLevels) {
                         if (audioLevels.hasOwnProperty(ssrc)) {
                             // Use a scaling factor of 2.5 to report the same audio levels that getStats reports.
                             const audioLevel = audioLevels[ssrc] * 2.5;
+                            const ssrcNumber = Number.parseInt(ssrc, 10);
+
+                            // Process audio level for dominant speaker identification
+                            this.dominantSpeakerEnabled
+                                && this.dominantSpeakerIdentification.processAudioLevel(ssrcNumber, audioLevel);
 
                             this.eventEmitter.emit(
                                 StatisticsEvents.AUDIO_LEVEL,
                                 this.peerconnection,
-                                Number.parseInt(ssrc, 10),
+                                ssrcNumber,
                                 audioLevel,
                                 false /* isLocal */);
+                        }
+                    }
+
+                    if (this.dominantSpeakerEnabled) {
+                        // Check for dominant speaker changes
+                        const currentDominantSpeaker = this.dominantSpeakerIdentification.getDominantSpeaker();
+
+                        if (currentDominantSpeaker !== previousSpeaker) {
+
+                            this.eventEmitter.emit(
+                                StatisticsEvents.DOMINANT_SPEAKER_CHANGED,
+                                this.peerconnection,
+                                currentDominantSpeaker,
+                                this.previousSpeakers);
                         }
                     }
                 },
