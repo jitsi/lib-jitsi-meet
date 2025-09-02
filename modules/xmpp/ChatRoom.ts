@@ -26,9 +26,8 @@ import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
 
 // Callback types
 type SuccessCallback = () => void;
-type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 type ParticipantPropertyListener = (participantId: string, key: string, value: string) => void;
-
+export type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 
 // Node type for presence JSON structure
 interface IPresenceNode {
@@ -2312,5 +2311,7 @@ export default class ChatRoom extends Listenable {
         });
     }
 }
+
+export { ChatRoom };
 
 /* eslint-enable newline-per-chained-call */

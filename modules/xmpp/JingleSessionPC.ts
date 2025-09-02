@@ -209,9 +209,6 @@ export default class JingleSessionPC extends JingleSession {
     options: IJingleSessionPCOptions;
     peerconnection: TraceablePeerConnection;
     failICE: boolean;
-    pcConfig: RTCConfiguration;
-    mediaConstraints: MediaStreamConstraints;
-    connection: XmppConnection;
 
     /**
      * Parses 'senders' attribute of the video content.
@@ -1329,7 +1326,11 @@ export default class JingleSessionPC extends JingleSession {
      * other operations which originate in the XMPP Jingle messages related with this session to be executed with an
      * assumption that the initial offer/answer cycle has been executed already.
      */
-    public acceptOffer(jingleOffer: object, success: () => void, failure: (error: any) => void, localTracks: JitsiLocalTrack[] = []): void {
+    public override acceptOffer(
+            jingleOffer: object,
+            success: () => void,
+            failure: (error: any) => void,
+            localTracks: JitsiLocalTrack[] = []): void {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -1366,7 +1367,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * {@inheritDoc}
      */
-    public addIceCandidates(elem: object): void {
+    public override addIceCandidates(elem: object): void {
         if (this.peerconnection.signalingState === 'closed') {
             logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 
@@ -1564,7 +1565,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {JingleSessionPCOptions} options  - a set of config options.
      * @returns {void}
      */
-    public doInitialize(options: IJingleSessionPCOptions): void {
+    public override doInitialize(options: IJingleSessionPCOptions): void {
         this.failICE = Boolean(options.testing?.failICE);
         this.lasticecandidate = false;
         this.options = options;
@@ -2430,7 +2431,10 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * @inheritDoc
      */
-    public terminate(success: () => void, failure: (error: IJingleError) => void, options: ITerminateOptions = {}) {
+    public override terminate(
+            success: () => void,
+            failure: (error: IJingleError) => void,
+            options: ITerminateOptions = {}) {
         if (this.state === JingleSessionState.ENDED) {
             return;
         }
@@ -2490,7 +2494,7 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @return {string}
      */
-    public toString(): string {
+    public override toString(): string {
         return `JingleSessionPC[session=${this.isP2P ? 'P2P' : 'JVB'},initiator=${this.isInitiator},sid=${this.sid}]`;
     }
 }

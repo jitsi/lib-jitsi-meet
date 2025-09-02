@@ -19,7 +19,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
      *
      * @param connection
      */
-    init(connection: Connection): void {
+    override init(connection: Connection): void {
         super.init(connection);
 
         connection.addHandler(

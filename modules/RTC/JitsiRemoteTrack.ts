@@ -331,7 +331,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @internal
      */
-    protected _onTrackAttach(container: HTMLElement): void {
+    protected override _onTrackAttach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.addEventListener(event, this._containerHandlers[event]);
         });
@@ -343,7 +343,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {HTMLElement} container the HTML container which can be 'video' or 'audio' element.
      * @internal
      */
-    protected _onTrackDetach(container: HTMLElement): void {
+    protected override _onTrackDetach(container: HTMLElement): void {
         containerEvents.forEach(event => {
             container.removeEventListener(event, this._containerHandlers[event]);
         });
@@ -355,7 +355,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param container the HTML container which can be 'video' or 'audio'
      * element.
      */
-    protected _attachTTFMTracker(container: HTMLElement): void {
+    protected override _attachTTFMTracker(container: HTMLElement): void {
         if ((ttfmTrackerAudioAttached && this.isAudioTrack())
                 || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
             return;
@@ -428,9 +428,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @returns {Promise}
      */
-    dispose(): Promise<void> {
+    override async dispose(): Promise<void> {
         if (this.disposed) {
-            return Promise.resolve();
+            return;
         }
 
         this._disposeTrackStreamingStatus();
@@ -468,7 +468,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
      * muted and <tt>false</tt> otherwise.
      */
-    isMuted(): boolean {
+    override isMuted(): boolean {
         return this._muted;
     }
 
@@ -489,7 +489,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @override
      * @returns {number} the SSRC of this remote track.
      */
-    getSsrc() {
+    override getSsrc() {
         return this._ssrc;
     }
 
@@ -500,7 +500,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @override
      * @returns {string} the track's source name
      */
-    getSourceName(): string {
+    override getSourceName(): string {
         return this._sourceName;
     }
 
@@ -521,7 +521,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @param {string} name - The source name to be associated with the track.
      * @internal
      */
-    setSourceName(name: string): void {
+    override setSourceName(name: string): void {
         this._sourceName = name;
     }
 
@@ -541,7 +541,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * Creates a text representation of this remote track instance.
      * @return {string}
      */
-    toString(): string {
+    override toString(): string {
         return `RemoteTrack[userID: ${this.getParticipantId()}, type: ${this.getType()}, ssrc: ${
             this.getSsrc()}, p2p: ${this.isP2P}, sourceName: ${this._sourceName}, status: {${this._getStatus()}}]`;
     }

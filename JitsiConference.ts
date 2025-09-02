@@ -41,7 +41,6 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import SpeakerStats from './modules/statistics/SpeakerStats';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
-import EventEmitter, { EventListener } from './modules/util/EventEmitter';
 import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
@@ -52,7 +51,7 @@ import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession'
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import BreakoutRooms from './modules/xmpp/BreakoutRooms';
-import type ChatRoom from './modules/xmpp/ChatRoom';
+import type { ChatRoom, PresenceHandler } from './modules/xmpp/ChatRoom';
 import FileSharing from './modules/xmpp/FileSharing';
 import type JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import MediaSessionEvents from './modules/xmpp/MediaSessionEvents';
@@ -295,7 +294,6 @@ export default class JitsiConference extends Listenable {
 
     public options: IConferenceOptions;
     public connection: JitsiConnection;
-    public eventEmitter: EventEmitter;
     public eventManager: JitsiConferenceEventManager;
     public participants: Map<string, JitsiParticipant>;
     public componentsVersions: ComponentsVersions;
@@ -2730,7 +2728,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler for the command.
    */
-    public addCommandListener(command: string, handler: EventListener): void {
+    public addCommandListener(command: string, handler: PresenceHandler): void {
         if (this.room) {
             this.room.addPresenceListener(command, handler);
         }
@@ -2741,7 +2739,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} command - The name of the command.
    * @param {Function} handler - Handler to remove for the command.
    */
-    public removeCommandListener(command: string, handler: EventListener): void {
+    public removeCommandListener(command: string, handler: PresenceHandler): void {
         if (this.room) {
             this.room.removePresenceListener(command, handler);
         }
