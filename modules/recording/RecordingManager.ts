@@ -21,7 +21,7 @@ export interface IRecordingOptions {
  */
 class RecordingManager {
     private _sessions: { [key: string]: JibriSession; } = {};
-    private _chatRoom: any;
+    private _chatRoom: ChatRoom;
 
     /**
      * Initialize {@code RecordingManager} with other objects that are necessary
@@ -291,10 +291,10 @@ class RecordingManager {
      * Handles updates from the Jibri which can broadcast a YouTube URL that
      * needs to be updated in a JibriSession.
      *
-     * @param {Node} presence - An XMPP presence update.
+     * @param {Element} presence - An XMPP presence update.
      * @returns {void}
      */
-    _handleJibriPresence(presence: any): void {
+    _handleJibriPresence(presence: Element): void {
         const { liveStreamViewURL, mode, sessionID }
             = getHiddenDomainUpdate(presence);
 
