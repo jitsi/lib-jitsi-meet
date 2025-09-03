@@ -1,3 +1,6 @@
+// Initialize enhanced logging transport before any modules are loaded
+require('./modules/util/LoggerInit');
+
 const ljm = require('./JitsiMeetJS').default;
 
 /**

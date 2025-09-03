@@ -360,7 +360,6 @@ const JitsiMeetJS = {
      * @returns {void}
      */
     init(options: IJitsiMeetJSOptions = {}) {
-        // Start capturing and sending logs to the rtcstats server as soon as possible.
         const {
             analytics: {
                 rtcstatsStoreLogs,
@@ -368,6 +367,7 @@ const JitsiMeetJS = {
             } = {}
         } = options;
 
+        // Start capturing and sending logs to the rtcstats server as soon as possible.
         if (rtcstatsStoreLogs) {
             Logger.addGlobalTransport(RTCStats.getDefaultLogCollector(rtcstatsLogFlushSizeBytes));
         }
