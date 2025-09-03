@@ -59,7 +59,7 @@ interface IRoomMember {
 }
 
 // Options interface for ChatRoom constructor
-interface IChatRoomOptions {
+export interface IChatRoomOptions {
     deploymentInfo?: any;
     disableDiscoInfo?: boolean;
     disableFocus?: boolean;
