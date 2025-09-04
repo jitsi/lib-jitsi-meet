@@ -1,7 +1,7 @@
 import EventEmitter from '../util/EventEmitter';
 import { calculateAverage } from '../util/MathUtil';
 
-import { DETECTOR_STATE_CHANGE, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
+import { DetectionEvents } from './DetectionEvents';
 
 /**
  * The threshold which the average VAD values for a span of time needs to exceed to trigger an event.
@@ -76,7 +76,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
         const score = calculateAverage(new Float32Array(this._scoreArray));
 
         if (score > VAD_AVG_THRESHOLD) {
-            this.emit(VAD_TALK_WHILE_MUTED);
+            this.emit(DetectionEvents.VAD_TALK_WHILE_MUTED);
 
             // Event was fired. Stop event emitter and remove listeners so no residue events kick off after this point
             // and a single VAD_TALK_WHILE_MUTED is generated per mic muted state.
@@ -95,7 +95,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
      */
     private _setActiveState(active: boolean): void {
         this._active = active;
-        this.emit(DETECTOR_STATE_CHANGE, this._active);
+        this.emit(DetectionEvents.DETECTOR_STATE_CHANGE, this._active);
     }
 
     /**

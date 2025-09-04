@@ -1,7 +1,3 @@
-/**
- * The events for the media devices.
- */
-
 export enum JitsiMediaDevicesEvents {
 
     /**
@@ -32,8 +28,3 @@ export enum JitsiMediaDevicesEvents {
      */
     PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown'
 }
-
-// exported for backward compatibility
-export const DEVICE_LIST_CHANGED = JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED;
-export const PERMISSIONS_CHANGED = JitsiMediaDevicesEvents.PERMISSIONS_CHANGED;
-export const PERMISSION_PROMPT_IS_SHOWN = JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN;

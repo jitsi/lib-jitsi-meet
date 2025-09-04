@@ -1,5 +1,5 @@
 import JitsiConference from '../../JitsiConference';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
 import EventEmitter from '../util/EventEmitter';
 

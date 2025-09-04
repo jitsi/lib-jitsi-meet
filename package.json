@@ -53,6 +53,7 @@
     "karma-webpack": "5.0.0",
     "process": "0.11.10",
     "typedoc": "0.28.1",
+    "typedoc-plugin-missing-exports": "4.1.0",
     "typedoc-plugin-no-inherit": "1.6.1",
     "typedoc-plugin-rename-defaults": "0.7.3",
     "typescript": "5.7.2",
@@ -72,6 +73,7 @@
     "prepack": "npm run build && npm run gen-types",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
+    "type-check": "tsc --noEmit",
     "typedoc": "npm run gen-version && typedoc",
     "validate": "npm ls",
     "watch": "npm run gen-version && webpack --config webpack.config.js --watch --mode development"

@@ -3,8 +3,8 @@ import { Strophe } from 'strophe.js';
 
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import JibriSession from './modules/recording/JibriSession';
@@ -13,12 +13,11 @@ import Statistics from './modules/statistics/statistics';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaType } from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
+import { RTCEvents } from './service/RTC/RTCEvents';
 import { VideoType } from './service/RTC/VideoType';
-import AuthenticationEvents
-    from './service/authentication/AuthenticationEvents';
+import { AuthenticationEvents } from './service/authentication/AuthenticationEvents';
 import {
-    ACTION_JINGLE_SA_TIMEOUT,
+    AnalyticsEvents,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
@@ -278,7 +277,7 @@ export default class JitsiConferenceEventManager {
             (jingleSession: JingleSessionPC) => {
                 Statistics.sendAnalyticsAndLog(
                     createJingleEvent(
-                        ACTION_JINGLE_SA_TIMEOUT,
+                        AnalyticsEvents.ACTION_JINGLE_SA_TIMEOUT,
                         { p2p: jingleSession.isP2P }));
             });
 
@@ -381,12 +380,13 @@ export default class JitsiConferenceEventManager {
             XMPPEvents.MESSAGE_RECEIVED,
 
             // eslint-disable-next-line max-params
-            (jid: string, txt: string, myJid: string, ts: number, nick: string, isGuest: boolean, messageId: string) => {
+            (jid: string, txt: string, myJid: string, ts: number,
+                    displayName: string, isVisitor: boolean, messageId: string, source: string) => {
                 const participantId = Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.MESSAGE_RECEIVED,
-                    participantId, txt, ts, nick, isGuest, messageId);
+                    participantId, txt, ts, displayName, isVisitor, messageId, source);
             });
 
         chatRoom.addListener(
@@ -404,12 +404,13 @@ export default class JitsiConferenceEventManager {
             XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
 
             // eslint-disable-next-line max-params
-            (jid: string, txt: string, myJid: string, ts: number, messageId: string) => {
-                const participantId = Strophe.getResourceFromJid(jid);
+            (jid: string, txt: string, myJid: string, ts: number, messageId: string,
+                    displayName: string, isVisitor: boolean, ofrom: string) => {
+                const participantId = isVisitor ? ofrom : Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                    participantId, txt, ts, messageId);
+                    participantId, txt, ts, messageId, displayName, isVisitor);
             });
 
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,

@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
@@ -238,7 +238,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): Optional<IPeerMediaInfo> {
+    public override getPeerMediaInfo(owner: string, mediaType: MediaType, sourceName?: SourceName): Optional<IPeerMediaInfo> {
         const legacyGetPeerMediaInfo = (): Optional<IPeerMediaInfo> => {
             if (this._chatRoom) {
                 return this._chatRoom.getMediaPresenceInfo(owner, mediaType);
@@ -283,7 +283,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): Optional<ISourceInfo> {
+    public override getPeerSourceInfo(owner: EndpointId, sourceName: SourceName): Optional<ISourceInfo> {
         const mediaType = getMediaTypeFromSourceName(sourceName);
         const mediaInfo: ISourceInfo = mediaType === MediaType.VIDEO
             ? { muted: true, sourceName, videoType: VideoType.CAMERA }
@@ -297,21 +297,21 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public getSSRCOwner(ssrc: number): Optional<string> {
+    public override getSSRCOwner(ssrc: number): Optional<string> {
         return this._ssrcOwners.get(ssrc)?.endpointId;
     }
 
     /**
      * @inheritDoc
      */
-    public getTrackSourceName(ssrc: number): Optional<SourceName> {
+    public override getTrackSourceName(ssrc: number): Optional<SourceName> {
         return this._ssrcOwners.get(ssrc)?.sourceName;
     }
 
     /**
      * @inheritDoc
      */
-    public removeSSRCOwners(ssrcList: number[]): void {
+    public override removeSSRCOwners(ssrcList: number[]): void {
         if (!ssrcList?.length) {
             return;
         }
@@ -350,7 +350,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public setSSRCOwner(ssrc: number, newEndpointId: string, newSourceName: string): void {
+    public override setSSRCOwner(ssrc: number, newEndpointId: string, newSourceName: string): void {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
@@ -377,7 +377,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public setTrackMuteStatus(sourceName: SourceName, muted: boolean): boolean {
+    public override setTrackMuteStatus(sourceName: SourceName, muted: boolean): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
@@ -395,7 +395,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public setTrackVideoType(sourceName: SourceName, videoType: VideoType): boolean {
+    public override setTrackVideoType(sourceName: SourceName, videoType: VideoType): boolean {
         if (!this._localSourceState[sourceName]) {
             this._localSourceState[sourceName] = {};
         }
@@ -413,7 +413,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    public updateSsrcOwnersOnLeave(id: string): void {
+    public override updateSsrcOwnersOnLeave(id: string): void {
         const ssrcs: number[] = [];
 
         this._ssrcOwners.forEach(({ endpointId }, ssrc) => {

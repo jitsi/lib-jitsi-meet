@@ -61,12 +61,3 @@ export enum DetectionEvents {
      */
     VAD_TALK_WHILE_MUTED = 'detection.vad_talk_while_muted'
 }
-
-// exported for backward compatibility
-export const DETECTOR_STATE_CHANGE = DetectionEvents.DETECTOR_STATE_CHANGE;
-export const AUDIO_INPUT_STATE_CHANGE = DetectionEvents.AUDIO_INPUT_STATE_CHANGE;
-export const NO_AUDIO_INPUT = DetectionEvents.NO_AUDIO_INPUT;
-export const VAD_NOISY_DEVICE = DetectionEvents.VAD_NOISY_DEVICE;
-export const VAD_REPORT_PUBLISHED = DetectionEvents.VAD_REPORT_PUBLISHED;
-export const VAD_SCORE_PUBLISHED = DetectionEvents.VAD_SCORE_PUBLISHED;
-export const VAD_TALK_WHILE_MUTED = DetectionEvents.VAD_TALK_WHILE_MUTED;

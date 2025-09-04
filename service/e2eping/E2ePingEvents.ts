@@ -5,6 +5,3 @@ export enum E2ePingEvents {
      */
     E2E_RTT_CHANGED = 'e2eping.e2e_rtt_changed'
 }
-
-// exported for backward compatibility
-export const E2E_RTT_CHANGED = E2ePingEvents.E2E_RTT_CHANGED;

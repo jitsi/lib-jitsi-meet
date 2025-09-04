@@ -2,7 +2,7 @@ import RTC from '../RTC/RTC';
 import EventEmitter from '../util/EventEmitter';
 import { createAudioContext } from '../webaudio/WebAudioUtils';
 
-import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
+import { DetectionEvents } from './DetectionEvents';
 
 /**
  * Connects an audio JitsiLocalTrack to a vadProcessor using WebAudio ScriptProcessorNode.
@@ -136,7 +136,7 @@ export default class TrackVADEmitter extends EventEmitter {
             // The VAD processor might change the values inside the array so we make a copy.
             const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample.slice());
 
-            this.emit(VAD_SCORE_PUBLISHED, {
+            this.emit(DetectionEvents.VAD_SCORE_PUBLISHED, {
                 deviceId: this._localTrack.getDeviceId(),
                 pcmData: pcmSample,
                 score: vadScore,

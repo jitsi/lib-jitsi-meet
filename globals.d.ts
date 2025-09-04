@@ -16,4 +16,7 @@ declare global {
             writable: WritableStream<RTCEncodedAudioFrame | RTCEncodedVideoFrame>;
         }
     }
+    interface MediaStream {
+        oninactive?: ((this: MediaStream, ev: Event) => void) | ((this: MediaStreamTrack, ev: Event) => void) | null;
+    }
 }

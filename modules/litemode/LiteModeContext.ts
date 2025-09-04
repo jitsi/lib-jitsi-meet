@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -43,7 +43,7 @@ export class LiteModeContext {
             return;
         }
 
-        const receiver = tpc.findReceiverForTrack(track.track);
+        const receiver = tpc.findReceiverForTrack(track.getTrack());
 
         if (!receiver) {
             logger.warn(`Could not set up lite mode for ${track}: receiver not found in: ${tpc}`);
