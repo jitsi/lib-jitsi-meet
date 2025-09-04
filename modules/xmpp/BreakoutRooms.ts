@@ -185,7 +185,7 @@ export default class BreakoutRooms {
      *
      * @returns The address of the component.
      */
-    getComponentAddress(): string | undefined {
+    getComponentAddress(): Optional<string> {
         return this.room.xmpp.breakoutRoomsComponentAddress;
     }
 
@@ -227,7 +227,7 @@ export default class BreakoutRooms {
      *
      * @returns The main room JID.
      */
-    getMainRoomJid(): string | undefined {
+    getMainRoomJid(): Optional<string> {
         return this._mainRoomJid;
     }
 
