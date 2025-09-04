@@ -1,8 +1,5 @@
-import { Strophe } from 'strophe.js';
-
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 
 describe('JitsiConference', () => {
