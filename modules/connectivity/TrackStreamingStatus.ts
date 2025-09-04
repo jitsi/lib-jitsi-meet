@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';

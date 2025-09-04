@@ -40,7 +40,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      *
      * @param connection
      */
-    init(connection: XmppConnection): void {
+    override init(connection: XmppConnection): void {
         super.init(connection);
 
         // add handlers (just once)

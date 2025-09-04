@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 
 import JitsiConference from '../../JitsiConference';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
 import { SourceName } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';

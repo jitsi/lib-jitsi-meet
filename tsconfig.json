@@ -15,6 +15,7 @@
     ],
     "outDir": "dist/esm/",
     "stripInternal": true,
+    "noImplicitOverride": true
   },
   "exclude": [
     "dist",
@@ -43,12 +44,25 @@
       "JitsiTrackError.ts",
       "JitsiTrackErrors.ts",
       "JitsiTrackEvents.ts",
-      "modules/util/Listenable.ts",
     ],
+    "excludeExternals": true,
     "excludePrivate": true,
     "excludeProtected": true,
+    "blockTags": [
+      "@noInheritDoc",
+      "@param",
+      "@return",
+      "@returns",
+      "@see",
+      "@throws",
+      "@deprecated",
+      "@code",
+      "@property",
+      "@type",
+    ],
     "readme": "none",
     "plugin": [
+      "typedoc-plugin-missing-exports",
       "typedoc-plugin-no-inherit",
       "typedoc-plugin-rename-defaults"
     ]

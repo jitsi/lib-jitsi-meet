@@ -5,12 +5,13 @@ import transform from 'sdp-transform';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
+import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
-import { VIDEO_CODEC_CHANGED } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -38,23 +39,6 @@ const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
 /**
- * Extended RTCRtpEncodingParameters interface with newer WebRTC properties
- */
-interface IExtendedRtpEncodingParameters extends RTCRtpEncodingParameters {
-    codec?: RTCRtpCodec;
-    degradationPreference?: RTCDegradationPreference;
-    scalabilityMode?: string;
-}
-
-/**
- * Extended RTCRtpParameters interface with extended encodings property
- */
-interface IExtendedRtpParameters extends RTCRtpSendParameters {
-    degradationPreference?: RTCDegradationPreference;
-    encodings: IExtendedRtpEncodingParameters[];
-}
-
-/**
  * Interface for legacy WebRTC stats report (pre-standard)
  */
 interface ILegacyStatsReport {
@@ -68,6 +52,11 @@ interface ILegacyStatsReport {
  */
 interface ILegacyStatsResponse {
     result: () => ILegacyStatsReport[];
+}
+export interface IRTCRtpEncodingParameters extends RTCRtpEncodingParameters {
+    codec?: RTCRtpCodec;
+    degradationPreference?: string; // Firefox only supports the non-standard way.
+    scalabilityMode?: VideoEncoderScalabilityMode;
 }
 
 /**
@@ -230,7 +219,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.audioTransferActive = !(options.startSilent === true);
 
@@ -266,7 +255,7 @@ export default class TraceablePeerConnection {
          * media direction will be adjusted to 'inactive' in order to suspend
          * the transmission.
          * @type {boolean}
-         * @private
+         * @internal
          */
         this.videoTransferActive = true;
 
@@ -651,7 +640,7 @@ export default class TraceablePeerConnection {
         const transceiver = localTrack?.track && localTrack.getOriginalStream()
             ? this.peerconnection.getTransceivers().find(t => t.sender?.track?.id === localTrack.getTrackId())
             : this.peerconnection.getTransceivers().find(t => t.receiver?.track?.kind === mediaType);
-        const parameters = transceiver?.sender?.getParameters() as IExtendedRtpParameters;
+        const parameters = transceiver?.sender?.getParameters() as RTCRtpSendParameters;
 
         // Resolve if the encodings are not available yet. This happens immediately after the track is added to the
         // peerconnection on chrome in unified-plan. It is ok to ignore and not report the error here since the
@@ -672,7 +661,7 @@ export default class TraceablePeerConnection {
      * @returns {Promise} - A promise that resolves when the operation is successful, rejected otherwise.
      */
     private _enableSenderEncodings = async (sender: RTCRtpSender, enable: boolean): Promise<void> => {
-        const parameters = sender.getParameters() as IExtendedRtpParameters;
+        const parameters: RTCRtpSendParameters = sender.getParameters() as RTCRtpSendParameters;
 
         if (parameters?.encodings?.length) {
             for (const encoding of parameters.encodings) {
@@ -908,7 +897,7 @@ export default class TraceablePeerConnection {
         if (!videoSender) {
             return Promise.resolve();
         }
-        const parameters = videoSender.getParameters() as IExtendedRtpParameters;
+        const parameters = videoSender.getParameters() as RTCRtpSendParameters;
 
         if (!parameters?.encodings?.length) {
             return Promise.resolve();
@@ -947,14 +936,14 @@ export default class TraceablePeerConnection {
 
         for (const idx in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(idx)) {
-                const encoding = parameters.encodings[idx] as IExtendedRtpEncodingParameters;
+                const encoding: IRTCRtpEncodingParameters = parameters.encodings[idx];
                 const {
                     active = undefined,
+                    codec: currentCodec = undefined,
                     maxBitrate = undefined,
+                    scalabilityMode = undefined,
                     scaleResolutionDownBy = undefined
                 } = encoding;
-                const scalabilityMode = encoding.scalabilityMode;
-                const currentCodec = encoding.codec;
 
                 if (active !== activeState[idx]) {
                     encoding.active = activeState[idx];
@@ -994,7 +983,7 @@ export default class TraceablePeerConnection {
                     needsUpdate = true;
 
                     Statistics.sendAnalytics(
-                        VIDEO_CODEC_CHANGED,
+                        AnalyticsEvents.VIDEO_CODEC_CHANGED,
                         {
                             value: codec,
                             videoType
@@ -1232,7 +1221,7 @@ export default class TraceablePeerConnection {
      * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly' etc.)
      * which should be used when setting
      * local description on the peerconnection.
-     * @private
+     * @internal
      */
     getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): MediaDirection {
         return this.tpcUtils.getDesiredMediaDirection(mediaType, isAddOperation);
@@ -2047,7 +2036,7 @@ export default class TraceablePeerConnection {
      * @param {RTCSessionDescription} - The local description to be used.
      * @returns {Array}
      */
-    getConfiguredVideoCodecs(description: RTCSessionDescription): CodecMimeType[] {
+    getConfiguredVideoCodecs(description?: RTCSessionDescription): CodecMimeType[] {
         return this.tpcUtils.getConfiguredVideoCodecs(description?.sdp);
     }
 
@@ -2391,7 +2380,7 @@ export default class TraceablePeerConnection {
                     return result;
                 }
 
-                const { encodings } = sender.getParameters() as IExtendedRtpParameters;
+                const { encodings } = sender.getParameters() as RTCRtpSendParameters;
 
                 result = encodings.reduce((maxValue, encoding) => {
                     if (encoding.active) {
@@ -2543,7 +2532,7 @@ export default class TraceablePeerConnection {
      * sender associated with the video source.
      * @returns {Promise} promise that will be resolved when the operation is successful and rejected otherwise.
      */
-    setSenderVideoConstraints(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec: Optional<CodecMimeType>): Promise<void> {
+    setSenderVideoConstraints(frameHeight: number, localVideoTrack: JitsiLocalTrack, preferredCodec?: Optional<CodecMimeType>): Promise<void> {
         if (frameHeight < 0 || !isValidNumber(frameHeight)) {
             throw new Error(`Invalid frameHeight: ${frameHeight}`);
         }
@@ -2575,7 +2564,7 @@ export default class TraceablePeerConnection {
      * @returns {Promise} - A promise that is resolved when the change is succesful on all the senders, rejected
      * otherwise.
      */
-    setMediaTransferActive(enable: boolean, mediaType: Optional<MediaType>): Promise<void> {
+    setMediaTransferActive(enable: boolean, mediaType?: Optional<MediaType>): Promise<void> {
         logger.info(`${this} ${enable ? 'Resuming' : 'Suspending'} media transfer.`);
 
         const senders = this.peerconnection.getSenders()

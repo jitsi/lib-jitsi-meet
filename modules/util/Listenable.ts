@@ -25,9 +25,7 @@ export default class Listenable {
    * @param {Function} handler - Handler for the event.
    */
     on(eventId: string, handler: EventListener): void {
-        if (this.eventEmitter) {
-            this.eventEmitter.on(eventId, handler);
-        }
+        this.eventEmitter.on(eventId, handler);
     }
 
     /**
@@ -36,9 +34,7 @@ export default class Listenable {
    * @param {Function} [handler] - Optional, the specific handler to unbind.
    */
     off(eventId: string, handler?: EventListener): void {
-        if (this.eventEmitter) {
-            this.eventEmitter.removeListener(eventId, handler);
-        }
+        this.eventEmitter.removeListener(eventId, handler);
     }
 
     /**

@@ -7,7 +7,7 @@ import FeatureFlags from './modules/flags/FeatureFlags';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
 import {
-    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
+    AnalyticsEvents,
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
 
@@ -86,7 +86,7 @@ export default class JitsiConnection {
                 // analytics event here?
                 if (msg) {
                     Statistics.sendAnalytics(
-                        ANALYTICS_CONNECTION_DISCONNECTED,
+                        AnalyticsEvents.CONNECTION_DISCONNECTED,
                         { message: msg });
                 }
             });

@@ -1,11 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import {
-    TYPE_OPERATIONAL,
-    TYPE_PAGE,
-    TYPE_TRACK,
-    TYPE_UI
-} from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 
 const MAX_CACHE_SIZE = 100;
@@ -202,19 +197,19 @@ class AnalyticsAdapter {
         }
 
         if (!event.type) {
-            event.type = TYPE_OPERATIONAL;
+            event.type = AnalyticsEvents.TYPE_OPERATIONAL;
         }
 
         const type = event.type;
 
-        if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
-            && type !== TYPE_UI && type !== TYPE_TRACK) {
+        if (type !== AnalyticsEvents.TYPE_OPERATIONAL && type !== AnalyticsEvents.TYPE_PAGE
+                && type !== AnalyticsEvents.TYPE_UI && type !== AnalyticsEvents.TYPE_TRACK) {
             logger.error(`Unknown event type: ${type}`);
 
             return false;
         }
 
-        if (type === TYPE_PAGE) {
+        if (type === AnalyticsEvents.TYPE_PAGE) {
             return Boolean(event.name);
         }
 
@@ -233,7 +228,7 @@ class AnalyticsAdapter {
         }
 
         // Track events have additional required fields.
-        if (type === TYPE_TRACK) {
+        if (type === AnalyticsEvents.TYPE_TRACK) {
             event.objectType = event.objectType || 'generic-object-type';
             event.containerType = event.containerType || 'conference';
             if (event.containerType === 'conference' && !event.containerId) {
@@ -335,7 +330,7 @@ class AnalyticsAdapter {
                 actionSubject: eventName,
                 attributes: properties,
                 source: eventName,
-                type: TYPE_OPERATIONAL
+                type: AnalyticsEvents.TYPE_OPERATIONAL
             };
         } else if (typeof eventName === 'object') {
             event = eventName;

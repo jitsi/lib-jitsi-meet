@@ -1,6 +1,6 @@
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
-import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
-import * as StatisticsEvents from '../../service/statistics/Events';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import { StatisticsEvents } from '../../service/statistics/Events';
 import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import EventEmitter from '../util/EventEmitter';
@@ -437,7 +437,7 @@ export default class Statistics {
         // Statistics.analytics.sendEvent is currently fire and forget, without
         // confirmation of successful send.
         Statistics.analytics.sendEvent(
-            FEEDBACK,
+            AnalyticsEvents.FEEDBACK,
             {
                 comment,
                 rating: overall

@@ -70,12 +70,13 @@ export default class JingleSession extends Listenable {
     /**
      *  When dripping is used, stores ICE candidates which are to be sent.
      */
-    public dripContainer: unknown[];
+    public dripContainer: RTCIceCandidate[];
 
     /**
      * The chat room instance associated with the session.
+     * @internal
      */
-    public room: Nullable<ChatRoom>;
+    room: Nullable<ChatRoom>;
 
     /**
      * Jingle session state - uninitialized until {@link initialize} is
@@ -85,8 +86,9 @@ export default class JingleSession extends Listenable {
 
     /**
      * The RTC service instance
+     * @internal
      */
-    public rtc: Nullable<RTC>;
+    rtc: Nullable<RTC>;
 
     /**
      * Creates new <tt>JingleSession</tt>.

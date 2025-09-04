@@ -5,10 +5,10 @@ import 'webrtc-adapter';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
-import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
@@ -245,7 +245,7 @@ function sendDeviceListToAnalytics(deviceList) {
             'video_output_device_count': videoOutputDeviceCount
         };
 
-        Statistics.sendAnalytics(AVAILABLE_DEVICE, attributes);
+        Statistics.sendAnalytics(AnalyticsEvents.AVAILABLE_DEVICE, attributes);
     });
 }
 

@@ -35,35 +35,35 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): IPeerMediaInfo {
+    override getPeerMediaInfo(_owner: string, _mediaType: MediaType, _sourceName: string): IPeerMediaInfo {
         return { };
     }
 
     /**
      * @inheritDoc
      */
-    getPeerSourceInfo(_owner: string, _sourceName: string): any {
+    override getPeerSourceInfo(_owner: string, _sourceName: string): any {
         return undefined;
     }
 
     /**
      * @inheritDoc
      */
-    getSSRCOwner(ssrc: number): Optional<string> {
+    override getSSRCOwner(ssrc: number): Optional<string> {
         return this.ssrcOwners.get(ssrc);
     }
 
     /**
      * @inheritDoc
      */
-    getTrackSourceName(_ssrc: number): Optional<string> {
+    override getTrackSourceName(_ssrc: number): Optional<string> {
         return undefined;
     }
 
     /**
      * @inheritDoc
      */
-    removeSSRCOwners(ssrcList: number[]): void {
+    override removeSSRCOwners(ssrcList: number[]): void {
         if (!ssrcList?.length) {
             return;
         }
@@ -84,7 +84,7 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setSSRCOwner(ssrc: number, endpointId: string): void {
+    override setSSRCOwner(ssrc: number, endpointId: string): void {
         if (typeof ssrc !== 'number') {
             throw new TypeError(`SSRC(${ssrc}) must be a number`);
         }
@@ -102,21 +102,21 @@ export default class CustomSignalingLayer extends SignalingLayer {
     /**
      * @inheritDoc
      */
-    setTrackMuteStatus(_sourceName: string, _muted: boolean): boolean {
+    override setTrackMuteStatus(_sourceName: string, _muted: boolean): boolean {
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    setTrackVideoType(_sourceName: string, _videoType: string): boolean {
+    override setTrackVideoType(_sourceName: string, _videoType: string): boolean {
         return false;
     }
 
     /**
      * @inheritDoc
      */
-    updateSsrcOwnersOnLeave(id: string): void {
+    override updateSsrcOwnersOnLeave(id: string): void {
         const ssrcs = Array.from(this.ssrcOwners)
             .filter((entry: [number, string]) => entry[1] === id)
             .map((entry: [number, string]) => entry[0]);

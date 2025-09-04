@@ -8,7 +8,7 @@ import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
-import AuthenticationEvents from '../../service/authentication/AuthenticationEvents';
+import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
@@ -26,9 +26,8 @@ import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
 
 // Callback types
 type SuccessCallback = () => void;
-type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 type ParticipantPropertyListener = (participantId: string, key: string, value: string) => void;
-
+export type PresenceHandler = (node: IPresenceNode, participantId: string, from: string) => void;
 
 // Node type for presence JSON structure
 interface IPresenceNode {
@@ -385,7 +384,6 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-
     /**
      *
      * @param node
@@ -405,22 +403,6 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-
-    /**
-     * Adds the key to the presence map, overriding any previous value.
-     * This method is used by jibri.
-     *
-     * @param key The key to add or replace.
-     * @param values The new values.
-     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
-     * performed as the value was already there.
-     * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
-     */
-    private _addToPresence(key: string, values: any): Nullable<boolean> {
-        return this.addOrReplaceInPresence(key, values);
-    }
-
-
     /**
      * Clean any listeners or resources, executed on leaving.
      */
@@ -437,7 +419,6 @@ export default class ChatRoom extends Listenable {
         this.joined = false;
         this.inProgressEmitted = false;
     }
-
 
     /**
      * Joins the chat room.
@@ -1455,42 +1436,38 @@ export default class ChatRoom extends Listenable {
 
             const messageId = $(msg).attr('id') || uuidv4();
 
+            const displayNameEl = $(msg).find('>display-name[xmlns="http://jitsi.org/protocol/display-name"]');
+            const isVisitorMessage = displayNameEl.length > 0 && displayNameEl.attr('source') === 'visitor';
+
             if (type === 'chat') {
-                // Check if this is a visitor message (has nick element like group messages)
-                const nickEl = $(msg).find('>nick');
-                let nick;
+                let displayName;
+                let originalFrom;
 
-                if (nickEl.length > 0) {
-                    nick = nickEl.text();
-                }
+                if (isVisitorMessage) {
+                    displayName = displayNameEl.text();
 
-                // Check for original visitor JID in addresses element (XEP-0033)
-                let originalFrom = null;
-                const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
+                    // Check for original visitor JID in addresses element (XEP-0033)
+                    const addressesEl = $(msg).find('>addresses[xmlns="http://jabber.org/protocol/address"]');
 
-                if (addressesEl.length > 0) {
-                    const ofromEl = addressesEl.find('address[type="ofrom"]');
+                    if (addressesEl.length > 0) {
+                        const ofromEl = addressesEl.find('address[type="ofrom"]');
 
-                    if (ofromEl.length > 0) {
-                        originalFrom = ofromEl.attr('jid');
+                        if (ofromEl.length > 0) {
+                            originalFrom = ofromEl.attr('jid');
+                        }
                     }
                 }
 
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp, messageId, nick, Boolean(nick), originalFrom);
+                        from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom);
             } else if (type === 'groupchat') {
-                const nickEl = $(msg).find('>nick');
-                let nick;
+                const displayName = displayNameEl.length > 0 ? displayNameEl.text() : undefined;
+                const source = isVisitorMessage ? undefined : displayNameEl.attr('source');
 
-                if (nickEl.length > 0) {
-                    nick = nickEl.text();
-                }
-
-                // we will fire explicitly that this is a guest(isGuest:true) to the conference
-                // informing that this is probably a message from a guest to the conference (visitor)
+                // we will fire explicitly that this is a visitor(isVisitor:true) to the conference
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    from, txt, this.myroomjid, stamp, nick, Boolean(nick), messageId);
+                    from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source);
             }
         }
     }
@@ -2312,5 +2289,7 @@ export default class ChatRoom extends Listenable {
         });
     }
 }
+
+export { ChatRoom };
 
 /* eslint-enable newline-per-chained-call */

@@ -65,14 +65,3 @@ export enum JitsiTrackEvents {
      */
     TRACK_VIDEOTYPE_CHANGED = 'track.videoTypeChanged'
 }
-
-// exported for backward compatibility
-export const LOCAL_TRACK_STOPPED = JitsiTrackEvents.LOCAL_TRACK_STOPPED;
-export const TRACK_AUDIO_LEVEL_CHANGED = JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED;
-export const TRACK_AUDIO_OUTPUT_CHANGED = JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED;
-export const TRACK_MUTE_CHANGED = JitsiTrackEvents.TRACK_MUTE_CHANGED;
-export const TRACK_VIDEOTYPE_CHANGED = JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED;
-export const NO_DATA_FROM_SOURCE = JitsiTrackEvents.NO_DATA_FROM_SOURCE;
-export const NO_AUDIO_INPUT = JitsiTrackEvents.NO_AUDIO_INPUT;
-export const TRACK_OWNER_SET = JitsiTrackEvents.TRACK_OWNER_SET;
-export const TRACK_STREAMING_STATUS_CHANGED = JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED;

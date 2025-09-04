@@ -1,7 +1,7 @@
 import { Strophe } from 'strophe.js';
 
 import JitsiConference from './JitsiConference';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { MediaType } from './service/RTC/MediaType';
 

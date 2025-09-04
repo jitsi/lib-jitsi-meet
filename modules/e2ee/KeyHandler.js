@@ -1,7 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';

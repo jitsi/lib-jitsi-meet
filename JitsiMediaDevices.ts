@@ -1,9 +1,9 @@
-import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
+import { JitsiMediaDevicesEvents } from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import Listenable from './modules/util/Listenable';
 import { MediaType } from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
+import { RTCEvents } from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone' as PermissionName;
 const PERMISSION_GRANTED_STATUS = 'granted';

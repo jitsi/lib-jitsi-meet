@@ -1,7 +1,7 @@
 import EventEmitter from '../util/EventEmitter';
 import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
 
-import { DETECTOR_STATE_CHANGE, VAD_NOISY_DEVICE } from './DetectionEvents';
+import { DetectionEvents } from './DetectionEvents';
 
 /**
  * The average value VAD needs to be under over a period of time to be considered noise.
@@ -80,7 +80,7 @@ export default class VADNoiseDetection extends EventEmitter {
         const audioLevelAvg = calculateAverage(this._audioLvlArray);
 
         if (scoreAvg < VAD_NOISE_AVG_THRESHOLD && audioLevelAvg > NOISY_AUDIO_LEVEL_THRESHOLD) {
-            this.emit(VAD_NOISY_DEVICE);
+            this.emit(DetectionEvents.VAD_NOISY_DEVICE);
 
             this._setActiveState(false);
         }
@@ -108,7 +108,7 @@ export default class VADNoiseDetection extends EventEmitter {
      */
     _setActiveState(active) {
         this._active = active;
-        this.emit(DETECTOR_STATE_CHANGE, this._active);
+        this.emit(DetectionEvents.DETECTOR_STATE_CHANGE, this._active);
     }
 
     /**

@@ -1,13 +1,13 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference, { IConferenceOptions } from '../../JitsiConference';
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents as ConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
-import * as RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
 import { VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import { ConnectionQualityEvents } from '../../service/connectivity/ConnectionQualityEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import EventEmitter from '../util/EventEmitter';

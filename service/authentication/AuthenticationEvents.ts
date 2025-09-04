@@ -1,4 +1,4 @@
-const AuthenticationEvents = {
+export enum AuthenticationEvents {
     /**
      * Event callback arguments:
      * function(authenticationEnabled, userIdentity)
@@ -7,7 +7,5 @@ const AuthenticationEvents = {
      * userIdentity - if user has been logged in then it contains user name. If
      *                contains 'null' or 'undefined' then user is not logged in.
      */
-    IDENTITY_UPDATED: 'authentication.identity_updated'
-};
-
-export default AuthenticationEvents;
+    IDENTITY_UPDATED = 'authentication.identity_updated'
+}

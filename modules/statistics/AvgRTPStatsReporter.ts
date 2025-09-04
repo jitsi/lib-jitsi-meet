@@ -2,11 +2,11 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents as ConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
-import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+import { ConnectionQualityEvents } from '../../service/connectivity/ConnectionQualityEvents';
 import {
     createRtpStatsEvent,
     createTransportStatsEvent

@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import RTC from '../RTC/RTC';
 import Statistics from '../statistics/statistics';
@@ -71,7 +71,7 @@ export default function getActiveAudioDevice(): Promise<IActiveDeviceInfo> {
                             stopActiveDevices(availableDevices);
                             resolve({
                                 deviceId: device.deviceId,
-                                deviceLabel: device.track.label
+                                deviceLabel: device.getTrack().label
                             });
                         }
                     });

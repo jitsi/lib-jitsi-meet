@@ -4,18 +4,11 @@ import * as exported from "./JitsiMediaDevicesEvents";
 
 describe( "/JitsiMediaDevicesEvents members", () => {
     const {
-        DEVICE_LIST_CHANGED,
-        PERMISSIONS_CHANGED,
-        PERMISSION_PROMPT_IS_SHOWN,
         JitsiMediaDevicesEvents,
         ...others
     } = exported;
 
     it( "known members", () => {
-        expect( DEVICE_LIST_CHANGED ).toBe( 'mediaDevices.devicechange' );
-        expect( PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
-        expect( PERMISSION_PROMPT_IS_SHOWN ).toBe( 'mediaDevices.permissionPromptIsShown' );
-
         expect( JitsiMediaDevicesEvents ).toBeDefined();
 
         expect( JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED ).toBe( 'mediaDevices.devicechange' );

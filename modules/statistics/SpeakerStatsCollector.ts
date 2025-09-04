@@ -1,5 +1,5 @@
 import JitsiConference from '../../JitsiConference';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import { type IFaceLandmarks, default as SpeakerStats } from './SpeakerStats';

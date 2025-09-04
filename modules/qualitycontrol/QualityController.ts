@@ -3,7 +3,7 @@ import { getLogger } from '@jitsi/logger';
 import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
-import RTCEvents from '../../service/RTC/RTCEvents';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import {
     DEFAULT_LAST_N,
     LAST_N_UNLIMITED,
