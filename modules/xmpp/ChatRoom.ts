@@ -384,7 +384,6 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-
     /**
      *
      * @param node
@@ -404,22 +403,6 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-
-    /**
-     * Adds the key to the presence map, overriding any previous value.
-     * This method is used by jibri.
-     *
-     * @param key The key to add or replace.
-     * @param values The new values.
-     * @returns {boolean|null} <tt>true</tt> if the operation succeeded or <tt>false</tt> when no add or replce was
-     * performed as the value was already there.
-     * @deprecated Use 'addOrReplaceInPresence' instead. TODO: remove it from here and jibri.
-     */
-    private _addToPresence(key: string, values: any): Nullable<boolean> {
-        return this.addOrReplaceInPresence(key, values);
-    }
-
-
     /**
      * Clean any listeners or resources, executed on leaving.
      */
@@ -436,7 +419,6 @@ export default class ChatRoom extends Listenable {
         this.joined = false;
         this.inProgressEmitted = false;
     }
-
 
     /**
      * Joins the chat room.
