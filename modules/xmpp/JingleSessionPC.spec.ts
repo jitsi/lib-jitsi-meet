@@ -2,7 +2,7 @@ import { MockRTC } from '../RTC/MockClasses';
 import $ from '../util/XMLParser';
 
 import JingleSessionPC from './JingleSessionPC';
-import * as JingleSessionState from './JingleSessionState';
+import {JingleSessionState} from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
 import { MockChatRoom, MockStropheConnection } from './MockClasses';
 
