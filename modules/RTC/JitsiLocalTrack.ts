@@ -550,37 +550,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Sets real device ID by comparing track information with device information. This is temporary solution until
-     * getConstraints() method will be implemented in browsers.
-     *
-     * @param {MediaDeviceInfo[]} devices - The list of devices obtained from enumerateDevices() call.
-     * @private
-     * @returns {void}
-     */
-    private _setRealDeviceIdFromDeviceList(devices: MediaDeviceInfo[]): void {
-        const track = this.getTrack();
-        const kind = `${track.kind}input`;
-
-        // We need to match by deviceId as well, in case of multiple devices with the same label.
-        let device = devices.find(d => d.kind === kind && d.label === track.label && d.deviceId === this.deviceId);
-
-        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
-            // If the default device was 'A' and the default device is changed to 'B' the label for the track will
-            // remain 'Default - A' but the label for the device in the device list will be updated to 'A'. That's
-            // why in order to match it we need to remove the 'Default - ' part.
-            const label = (track.label || '').replace('Default - ', '');
-
-            device = devices.find(d => d.kind === kind && d.label === label);
-        }
-
-        if (device) {
-            this._realDeviceId = device.deviceId;
-        } else {
-            this._realDeviceId = undefined;
-        }
-    }
-
-    /**
      * Starts the effect process and returns the modified stream.
      *
      * @param {Object} effect - Represents effect instance
@@ -684,6 +653,37 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         return super.dispose();
+    }
+
+    /**
+     * Sets real device ID by comparing track information with device information. This is temporary solution until
+     * getConstraints() method will be implemented in browsers.
+     *
+     * @param {MediaDeviceInfo[]} devices - The list of devices obtained from enumerateDevices() call.
+     * @internal
+     * @returns {void}
+     */
+    _setRealDeviceIdFromDeviceList(devices: MediaDeviceInfo[]): void {
+        const track = this.getTrack();
+        const kind = `${track.kind}input`;
+
+        // We need to match by deviceId as well, in case of multiple devices with the same label.
+        let device = devices.find(d => d.kind === kind && d.label === track.label && d.deviceId === this.deviceId);
+
+        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
+            // If the default device was 'A' and the default device is changed to 'B' the label for the track will
+            // remain 'Default - A' but the label for the device in the device list will be updated to 'A'. That's
+            // why in order to match it we need to remove the 'Default - ' part.
+            const label = (track.label || '').replace('Default - ', '');
+
+            device = devices.find(d => d.kind === kind && d.label === label);
+        }
+
+        if (device) {
+            this._realDeviceId = device.deviceId;
+        } else {
+            this._realDeviceId = undefined;
+        }
     }
 
     /**
