@@ -18,7 +18,8 @@ import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack, { IStreamEffect, ITrackConstraints } from './JitsiLocalTrack';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTCUtils from './RTCUtils';
-import TraceablePeerConnection, { ITPCOptions } from './TraceablePeerConnection';
+import TraceablePeerConnection, { IAudioQuality, ITPCOptions, IVideoQuality } from './TraceablePeerConnection';
+import { IFrameRateConfig } from './ScreenObtainer';
 
 // Extend RTCConfiguration to include the encodedInsertableStreams property
 interface IExtendedRTCConfiguration extends RTCConfiguration {
@@ -107,13 +108,8 @@ function _createLocalTracks(mediaStreamMetaData: IMediaStreamMetaData[] = []): J
  * Interface for RTC options
  */
 export interface IRTCOptions {
-    audioQuality?: {
-        stereo?: boolean;
-    };
-    desktopSharingFrameRate?: {
-        max?: number;
-        min?: number;
-    };
+    audioQuality?: IAudioQuality;
+    desktopSharingFrameRate?: IFrameRateConfig;
     disableAEC?: boolean;
     disableAGC?: boolean;
     disableAP?: boolean;
@@ -123,11 +119,7 @@ export interface IRTCOptions {
         audio?: MediaTrackConstraints | boolean;
         video?: MediaTrackConstraints | boolean;
     };
-    videoQuality?: {
-        disabledCodec?: string;
-        enableAdaptiveMode?: boolean;
-        maxbitratesvideo?: Record<string, any>;
-    };
+    videoQuality?: IVideoQuality;
 }
 
 /**

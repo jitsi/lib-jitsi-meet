@@ -90,6 +90,8 @@ export interface IAudioQuality {
 }
 
 export interface IVideoQuality {
+    disabledCodec?: string;
+    enableAdaptiveMode?: boolean;
     maxBitratesVideo?: Record<string, number>;
     preferredCodec?: CodecMimeType;
 }

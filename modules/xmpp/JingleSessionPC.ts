@@ -13,7 +13,7 @@ import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
-import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
+import { IFrameRateConfig, SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import TraceablePeerConnection, { IAudioQuality, ICodecSettings, IVideoQuality } from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -121,9 +121,7 @@ interface IJingleSessionPCOptions {
     audioQuality?: IAudioQuality;
     channelLastN?: number;
     codecSettings?: ICodecSettings;
-    desktopSharingFrameRate?: {
-        max?: number;
-    };
+    desktopSharingFrameRate?: IFrameRateConfig;
     disableRtx?: boolean;
     disableSimulcast?: boolean;
     enableInsertableStreams?: boolean;
