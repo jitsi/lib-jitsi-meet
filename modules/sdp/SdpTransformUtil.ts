@@ -2,24 +2,8 @@ import * as transform from 'sdp-transform';
 
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
-export interface ISsrcGroups {
-    semantics: string;
-    ssrcs: string;
-}
+import { IMLine, ISsrcAttribute, ISsrcGroups } from './constants';
 
-export interface ISsrcs {
-    attribute: string;
-    id: number;
-    value: string;
-}
-
-export interface IMLine {
-    direction?: string;
-    msid?: string;
-    ssrcGroups?: Array<ISsrcGroups>;
-    ssrcs?: Array<ISsrcs>;
-    type?: string;
-}
 
 /**
  * Parses the primary SSRC of given SSRC group.
@@ -86,7 +70,7 @@ export class MLineWrap {
      * @return {Array<Object>} an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    get ssrcs(): Array<ISsrcs> {
+    get ssrcs(): Array<ISsrcAttribute> {
         if (!this._mLine.ssrcs) {
             this._mLine.ssrcs = [];
         }
@@ -100,7 +84,7 @@ export class MLineWrap {
      * @param {Array<Object>} ssrcs an array of 'sdp-transform' SSRC attributes
      * objects.
      */
-    set ssrcs(ssrcs: Array<ISsrcs>) {
+    set ssrcs(ssrcs: Array<ISsrcAttribute>) {
         this._mLine.ssrcs = ssrcs;
     }
 
@@ -176,7 +160,7 @@ export class MLineWrap {
      * @param {object} ssrcObj the SSRC attribute object as defined in
      * the 'sdp-transform' lib.
      */
-    addSSRCAttribute(ssrcObj: ISsrcs): void {
+    addSSRCAttribute(ssrcObj: ISsrcAttribute): void {
         this.ssrcs.push(ssrcObj);
     }
 
