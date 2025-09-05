@@ -37,6 +37,7 @@ describe('sdp-simulcast', () => {
     let simulcast;
 
     beforeEach(() => {
+        // @ts-ignore
         simulcast = new SdpSimulcast({ numOfLayers: numLayers });
     });
 
@@ -79,8 +80,9 @@ describe('sdp-simulcast', () => {
             it('should do nothing if the mline has no ssrcs in the local sdp', () => {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === MediaType.VIDEO);
-
-                videoMLine.ssrcs = [];
+                if(videoMLine) {
+                    videoMLine.ssrcs = [];
+                }
                 const desc = {
                     type: 'answer',
                     sdp: transform.write(sdp)

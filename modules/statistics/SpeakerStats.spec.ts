@@ -1,12 +1,12 @@
 import SpeakerStats from './SpeakerStats';
 
 describe('SpeakerStats', () => {
-    const mockUserId = 1;
+    const mockUserId = '1';
     const mockUserName = 'foo';
     let speakerStats;
 
     beforeEach(() => {
-        speakerStats = new SpeakerStats(mockUserId, mockUserName);
+        speakerStats = new SpeakerStats(mockUserId, mockUserName, false);
     });
 
     describe('markAsHasLeft', () => {

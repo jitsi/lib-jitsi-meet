@@ -27,6 +27,10 @@ class MockStreamManagement {
  * A minimal set of Strophe.Connection class required by the {@link ResumeTask}.
  */
 class MockStropheConection {
+
+    streamManagement: MockStreamManagement;
+    service: string;
+
     /**
      * A constructor.
      */

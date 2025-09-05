@@ -25,7 +25,7 @@ import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
 import $ from '../util/XMLParser';
 
 import JingleSession from './JingleSession';
-import * as JingleSessionState from './JingleSessionState';
+import { JingleSessionState } from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
