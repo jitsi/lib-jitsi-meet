@@ -621,7 +621,7 @@ export default class XmppConnection extends Listenable {
      * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
      * @returns {number} - The id used to send the IQ.
      */
-    sendIQ(elem: Element, callback: Optional<IQResultCallback> = undefined, errback: Optional<ErrorCallback> = undefined, timeout: Optional<number> = undefined): number | undefined {
+    sendIQ(elem: Element, callback: Optional<IQResultCallback> = undefined, errback: Optional<ErrorCallback> = undefined, timeout: Optional<number> = undefined): Optional<number> {
         if (!this.connected) {
             errback('Not connected');
 
