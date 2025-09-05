@@ -664,7 +664,7 @@ export default class TraceablePeerConnection {
             return;
         }
 
-        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack) as  RTCRtpEncodingParameters[];
+        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack) as RTCRtpEncodingParameters[];
         await transceiver.sender.setParameters(parameters);
     };
 
