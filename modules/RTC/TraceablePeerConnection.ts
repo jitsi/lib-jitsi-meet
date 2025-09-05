@@ -75,10 +75,12 @@ export interface ITPCOptions {
     capScreenshareBitrate: boolean;
     codecSettings: ICodecSettings;
     disableRtx: boolean;
-    disableSimulcast: boolean;
-    maxstats: number;
+    disableSimulcast?: boolean;
+    enableInsertableStreams?: boolean;
+    forceTurnRelay: boolean;
+    maxstats?: number;
     startSilent: boolean;
-    usesCodecSelectionAPI: boolean;
+    usesCodecSelectionAPI?: boolean;
     videoQuality: IVideoQuality;
 }
 
