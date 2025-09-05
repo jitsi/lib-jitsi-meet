@@ -31,7 +31,7 @@ import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import { ITPCSourceInfo } from './SourceInfo';
-import { TPCUtils } from './TPCUtils';
+import { ICodecConfig, TPCUtils } from './TPCUtils';
 
 
 const logger = getLogger('modules/RTC/TraceablePeerConnection');
@@ -55,7 +55,9 @@ interface ILegacyStatsResponse {
 }
 export interface IRTCRtpEncodingParameters extends RTCRtpEncodingParameters {
     codec?: RTCRtpCodec;
-    degradationPreference?: string; // Firefox only supports the non-standard way.
+    degradationPreference?: string;
+    rid: string;
+    // Firefox only supports the non-standard way.
     scalabilityMode?: VideoEncoderScalabilityMode;
 }
 
@@ -83,13 +85,24 @@ export interface ITPCOptions {
 }
 
 export interface IAudioQuality {
+    enableOpusDtx?: boolean;
     opusMaxAverageBitrate?: number;
     stereo?: boolean;
 }
 
 export interface IVideoQuality {
+    desktopbitrate?: number;
     maxBitratesVideo?: Record<string, number>;
     preferredCodec?: CodecMimeType;
+    [CodecMimeType.AV1]?: ICodecConfig;
+    [CodecMimeType.H264]?: ICodecConfig;
+    [CodecMimeType.VP8]?: ICodecConfig;
+    [CodecMimeType.VP9]?: ICodecConfig;
+    maxbitratesvideo?: {
+        [codec: string]: {
+            [quality: string]: number;
+        };
+    };
 }
 
 export interface ICodecSettings {
@@ -125,7 +138,6 @@ export default class TraceablePeerConnection {
     private _dtmfSender?: RTCDTMFSender;
     private _dtmfTonesQueue: ITouchToneRequest[];
     private _dtlsTransport?: RTCDtlsTransport;
-    private _capScreenshareBitrate: boolean;
     private _usesCodecSelectionAPI: boolean;
     private _senderMaxHeights: Map<string, number>;
     private _localSsrcMap?: Map<string, ISsrcInfo>;
@@ -134,7 +146,10 @@ export default class TraceablePeerConnection {
     private _localUfrag: string;
     private _remoteUfrag: string;
     private _signalingLayer: SignalingLayer;
-
+    /**
+     * @internal
+     */
+    _capScreenshareBitrate: boolean;
     /**
      * @internal
      */
@@ -649,7 +664,7 @@ export default class TraceablePeerConnection {
             return;
         }
 
-        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack);
+        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack) as  RTCRtpEncodingParameters[];
         await transceiver.sender.setParameters(parameters);
     };
 
@@ -914,7 +929,7 @@ export default class TraceablePeerConnection {
 
         // Calculate the encodings active state based on the resolution requested by the bridge.
         const codecForCamera = preferredCodec ?? this.tpcUtils.getConfiguredVideoCodec(localVideoTrack);
-        const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera) : codecForCamera;
+        const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera as CodecMimeType) : codecForCamera as CodecMimeType;
         const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
         let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
         const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
@@ -936,7 +951,7 @@ export default class TraceablePeerConnection {
 
         for (const idx in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(idx)) {
-                const encoding: IRTCRtpEncodingParameters = parameters.encodings[idx];
+                const encoding = parameters.encodings[idx] as IRTCRtpEncodingParameters;
                 const {
                     active = undefined,
                     codec: currentCodec = undefined,
@@ -1233,8 +1248,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn(): boolean {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-            && this.tpcUtils.supportsDDHeaderExt;
+        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
@@ -1280,7 +1294,7 @@ export default class TraceablePeerConnection {
     doesTrueSimulcast(localTrack: JitsiLocalTrack): boolean {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
-        return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
+        return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec as CodecMimeType);
     }
 
     /**
