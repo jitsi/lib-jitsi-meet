@@ -20,7 +20,7 @@ import SDPUtil from '../sdp/SDPUtil';
 import JitsiLocalTrack from './JitsiLocalTrack';
 import TraceablePeerConnection, { IAudioQuality, IRTCRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
 
-const logger = getLogger('modules/RTC/TPCUtils');
+const logger = getLogger('RTC:TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
 
 

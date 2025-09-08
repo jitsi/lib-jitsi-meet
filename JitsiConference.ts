@@ -174,7 +174,7 @@ export interface IStopSessionOptions {
     sendSessionTerminate?: boolean;
 }
 
-const logger = getLogger('JitsiConference');
+const logger = getLogger('Core:JitsiConference');
 
 /**
  * How long since Jicofo is supposed to send a session-initiate, before

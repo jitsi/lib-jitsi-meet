@@ -44,7 +44,7 @@ type StreamingStatusMap = {
     videoType?: VideoType;
 };
 
-const logger = getLogger('modules/connectivity/TrackStreamingStatus');
+const logger = getLogger('Connectivity:TrackStreamingStatus');
 
 /**
  * Default value of 500 milliseconds for {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.

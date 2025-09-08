@@ -18,7 +18,7 @@ import JingleSession from '../xmpp/JingleSession';
 
 import Statistics from './statistics';
 
-const logger = getLogger('modules/statistics/AvgRTPStatsReporter');
+const logger = getLogger('Statistics:AvgRTPStatsReporter');
 
 /**
  * This will calculate an average for one, named stat and submit it to

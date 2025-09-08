@@ -10,7 +10,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 // more than once.
 const kJitsiLiteMode = Symbol('kJitsiLiteMode');
 
-const logger = getLogger('modules/litemode/LiteModeContext');
+const logger = getLogger('Litemode:LiteModeContext');
 
 /**
  * This module implements a discard-all insertable stream.  Use to reduce decoder CPU load for testing.

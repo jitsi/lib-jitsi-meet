@@ -11,7 +11,7 @@ import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
 
-const logger = getLogger('modules/RTC/JitsiTrack');
+const logger = getLogger('RTC:JitsiTrack');
 
 /**
  * Type for MediaStreamTrack event handler functions.

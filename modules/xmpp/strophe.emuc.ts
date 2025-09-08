@@ -10,7 +10,7 @@ import { ConnectionPluginListenable } from './ConnectionPlugin';
 import XmppConnection from './XmppConnection';
 import XMPP from './xmpp';
 
-const logger = getLogger('modules/xmpp/strophe.emuc');
+const logger = getLogger('XMPP:strophe.emuc');
 
 /**
  * MUC connection plugin.

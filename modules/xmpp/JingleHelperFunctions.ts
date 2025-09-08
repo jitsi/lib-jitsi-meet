@@ -8,7 +8,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import $ from '../util/XMLParser';
 
-const logger = getLogger('modules/xmpp/JingleHelperFunctions');
+const logger = getLogger('XMPP:JingleHelperFunctions');
 
 export interface ISourceCompactJson {
     m?: string;

@@ -21,7 +21,7 @@ import ReceiveVideoController from './ReceiveVideoController';
 import SendVideoController, { IVideoConstraint } from './SendVideoController';
 
 
-const logger = getLogger('modules/qualitycontrol/QualityController');
+const logger = getLogger('Qualitycontrol:QualityController');
 
 // Period for which the client will wait for the cpu limitation flag to be reset in the peerconnection stats before it
 // attempts to rectify the situation by attempting a codec switch.

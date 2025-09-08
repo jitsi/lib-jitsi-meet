@@ -3,7 +3,7 @@ import { $iq, Strophe } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
-const logger = getLogger('modules/xmpp/strophe.ping');
+const logger = getLogger('XMPP:strophe.ping');
 
 /**
  * Default ping every 10 sec

@@ -15,7 +15,7 @@ import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
 
-const logger = getLogger('modules/RTC/RTC');
+const logger = getLogger('RTC:RTC');
 
 /**
  * The counter used to generated id numbers assigned to peer connections

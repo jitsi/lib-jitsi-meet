@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger('modules/statistics/LocalStatsCollector');
+const logger = getLogger('Statistics:LocalStatsCollector');
 /**
  * Size of the webaudio analyzer buffer.
  * @type {number}

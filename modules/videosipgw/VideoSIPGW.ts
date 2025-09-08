@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-const logger = getLogger('modules/videosipgw/VideoSIPGW');
+const logger = getLogger('VideoSIPGW:VideoSIPGW');
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import EventEmitter from '../util/EventEmitter';

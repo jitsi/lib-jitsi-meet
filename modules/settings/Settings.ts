@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { generateUsername } from '../util/UsernameGenerator';
 
-const logger = getLogger('modules/settings/Settings');
+const logger = getLogger('Settings:Settings');
 
 let _callStatsUserName: Nullable<string> = null;
 

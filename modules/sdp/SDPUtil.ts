@@ -9,7 +9,7 @@ import RandomUtil from '../util/RandomUtil';
 
 import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMediaLine, IRTCPFBData, IRTPMapData, ISSRCGroupData } from './constants';
 
-const logger = getLogger('modules/sdp/SDPUtil');
+const logger = getLogger('SDP:SDPUtil');
 
 const SDPUtil = {
     /**

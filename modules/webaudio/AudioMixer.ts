@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { createAudioContext } from './WebAudioUtils';
 
-const logger = getLogger('modules/webaudio/AudioMixer');
+const logger = getLogger('WebAudio:AudioMixer');
 
 /**
  * The AudioMixer, as the name implies, mixes a number of MediaStreams containing audio tracks into a single

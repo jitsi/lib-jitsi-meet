@@ -4,7 +4,7 @@
 import { getLogger } from '@jitsi/logger';
 import { Strophe } from 'strophe.js';
 
-const logger = getLogger('modules/xmpp/strophe.util');
+const logger = getLogger('XMPP:strophe.util');
 
 /**
  * This is the last HTTP error status captured from Strophe debug logs.
