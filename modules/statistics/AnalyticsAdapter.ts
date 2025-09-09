@@ -5,7 +5,7 @@ import browser from '../browser';
 
 const MAX_CACHE_SIZE = 100;
 
-const logger = getLogger('Statistics:AnalyticsAdapter');
+const logger = getLogger('stats:AnalyticsAdapter');
 
 /**
  * Type for analytics event objects.

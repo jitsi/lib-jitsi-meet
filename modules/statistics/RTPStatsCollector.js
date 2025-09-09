@@ -6,7 +6,7 @@ import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import { isValidNumber } from '../util/MathUtil';
 
-const logger = getLogger('Statistics:RTPStatsCollector');
+const logger = getLogger('stats:RTPStatsCollector');
 
 /**
  * Calculates packet lost percent using the number of lost packets and the

@@ -7,7 +7,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from './ChatRoom';
 import XMPP from './xmpp';
 
-const logger = getLogger('XMPP:AVModeration');
+const logger = getLogger('xmpp:AVModeration');
 
 export interface IModerationEnabledByType {
     audio: boolean;

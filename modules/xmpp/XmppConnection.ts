@@ -12,7 +12,7 @@ import JingleConnectionPlugin from './strophe.jingle';
 import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
 import RayoConnectionPlugin from './strophe.rayo';
 
-const logger = getLogger('XMPP:XmppConnection');
+const logger = getLogger('xmpp:XmppConnection');
 
 /**
  * Extended ping options interface that includes domain property

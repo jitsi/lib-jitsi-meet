@@ -5,7 +5,7 @@ import JitsiParticipant from '../../JitsiParticipant';
 
 import { getSessionIdFromIq } from './recordingXMLUtils';
 
-const logger = getLogger('Recording:JibriSession');
+const logger = getLogger('recording:JibriSession');
 
 export interface IJibriSessionOptions {
     connection?: any;

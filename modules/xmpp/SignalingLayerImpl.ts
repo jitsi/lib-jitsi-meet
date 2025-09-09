@@ -12,7 +12,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import ChatRoom, { filterNodeFromPresenceJSON } from './ChatRoom';
 
 
-const logger = getLogger('XMPP:SignalingLayerImpl');
+const logger = getLogger('xmpp:SignalingLayerImpl');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
 

@@ -9,7 +9,7 @@ import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import browser from '../browser';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
-const logger = getLogger('Qualitycontrol:CodecSelection');
+const logger = getLogger('qc:CodecSelection');
 
 // Default video codec preferences on mobile and desktop endpoints.
 const DESKTOP_VIDEO_CODEC_ORDER = [ CodecMimeType.AV1, CodecMimeType.VP9, CodecMimeType.VP8, CodecMimeType.H264 ];

@@ -6,7 +6,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import { JITSI_MEET_MUC_TYPE } from './xmpp';
 
-const logger = getLogger('XMPP:RoomMetadata');
+const logger = getLogger('xmpp:RoomMetadata');
 
 /**
  * Helper class for handling room metadata.

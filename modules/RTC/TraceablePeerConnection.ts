@@ -33,7 +33,7 @@ import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
 import { ICodecConfig, TPCUtils } from './TPCUtils';
 
 
-const logger = getLogger('RTC:TraceablePeerConnection');
+const logger = getLogger('rtc:TraceablePeerConnection');
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 

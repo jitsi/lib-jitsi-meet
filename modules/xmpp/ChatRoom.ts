@@ -95,7 +95,7 @@ interface IPeerMediaInfo {
     videoType?: VideoType | string;
 }
 
-const logger = getLogger('XMPP:ChatRoom');
+const logger = getLogger('xmpp:ChatRoom');
 
 /**
  * Regex that matches all emojis.

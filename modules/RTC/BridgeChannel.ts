@@ -12,7 +12,7 @@ import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
 
 
-const logger = getLogger('RTC:BridgeChannel');
+const logger = getLogger('rtc:BridgeChannel');
 
 /**
  * Handles a WebRTC RTCPeerConnection or a WebSocket instance to communicate

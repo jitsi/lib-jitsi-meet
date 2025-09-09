@@ -15,7 +15,7 @@ const BREAKOUT_ROOM_EVENTS = {
     UPDATE: `${FEATURE_KEY}/update`
 };
 
-const logger = getLogger('XMPP:BreakoutRooms');
+const logger = getLogger('xmpp:BreakoutRooms');
 
 /**
  * Helper class for handling breakout rooms.

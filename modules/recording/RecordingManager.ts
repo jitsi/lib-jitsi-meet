@@ -6,7 +6,7 @@ import ChatRoom from '../xmpp/ChatRoom';
 import JibriSession from './JibriSession';
 import { getFocusRecordingUpdate, getHiddenDomainUpdate, isFromFocus } from './recordingXMLUtils';
 
-const logger = getLogger('Recording:RecordingManager');
+const logger = getLogger('recording:RecordingManager');
 
 export interface IRecordingOptions {
     appData?: string;

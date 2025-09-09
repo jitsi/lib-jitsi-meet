@@ -4,7 +4,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { type IPeerMediaInfo, default as SignalingLayer } from '../../service/RTC/SignalingLayer';
 import ChatRoom from '../xmpp/ChatRoom';
 
-const logger = getLogger('ProxyConnection:CustomSignalingLayer');
+const logger = getLogger('proxyconnection:CustomSignalingLayer');
 
 /**
  * Custom semi-mock implementation for the Proxy connection service.

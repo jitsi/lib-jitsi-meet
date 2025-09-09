@@ -8,7 +8,7 @@ import Listenable from '../util/Listenable';
 
 import E2EEContext from './E2EEContext';
 
-const logger = getLogger('E2EE:KeyHandler');
+const logger = getLogger('e2ee:KeyHandler');
 
 /**
  * Abstract class that integrates {@link E2EEContext} with a key management system.

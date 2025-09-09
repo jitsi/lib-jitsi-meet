@@ -11,7 +11,7 @@ import {
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
 
-const logger = getLogger('Core:JitsiConnection');
+const logger = getLogger('core:JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;

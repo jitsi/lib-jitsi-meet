@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
 
-const logger = getLogger('Connectivity:IceFailedHandling');
+const logger = getLogger('connectivity:IceFailedHandling');
 
 /**
  * This class deals with shenanigans around JVB media session's ICE failed status handling.

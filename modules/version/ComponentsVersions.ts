@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger('Version:ComponentsVersions');
+const logger = getLogger('misc:ComponentsVersions');
 
 /**
  * Discovers component versions in a conference.
