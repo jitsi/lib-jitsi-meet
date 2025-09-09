@@ -2,17 +2,10 @@ export interface ISsrcGroupInfo {
     semantics: string;
     ssrcs: number[];
 }
-
 export interface ISsrcInfo {
     groups: Array<ISsrcGroupInfo>;
     msid: string;
     ssrcs: Array<number>;
-}
-
-export interface ISsrcAttribute {
-    attribute: string;
-    id: number;
-    value: string;
 }
 
 export interface IICECandidate {
@@ -88,28 +81,6 @@ export interface IICEParams {
     xmlns?: string;
 }
 
-export interface ISDPObject {
-    media: IMediaDescription[];
-}
-
-export interface IMediaDescription {
-    type: string;
-}
-
-export interface IMLine {
-    direction?: string;
-    fmtp?: IFMTPInfo[];
-    media?: string;
-    msid?: string;
-    payloads: string | number;
-    port?: number;
-    rtcpFb?: IRTPInfo[];
-    rtp?: IRTPInfo[];
-    ssrcGroups?: ISsrcGroups[];
-    ssrcs?: ISsrcAttribute[];
-    type?: string;
-}
-
 export interface IRTPInfo {
     codec?: string;
     payload: number;
@@ -118,9 +89,4 @@ export interface IRTPInfo {
 export interface IFMTPInfo {
     config: string;
     payload: number;
-}
-
-export interface ISsrcGroups {
-    semantics: string;
-    ssrcs: string;
 }
