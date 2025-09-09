@@ -25,7 +25,7 @@ import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
 import $ from '../util/XMLParser';
 
 import JingleSession from './JingleSession';
-import * as JingleSessionState from './JingleSessionState';
+import { JingleSessionState } from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
@@ -488,7 +488,7 @@ export default class JingleSessionPC extends JingleSession {
             for (const mid of modifiedMids) {
                 if (this.isP2P) {
                     const { media } = SDPUtil.parseMLine(currentRemoteSdp.media[mid].split('\r\n')[0]);
-                    const desiredDirection = this.peerconnection.getDesiredMediaDirection(media, isAdd);
+                    const desiredDirection = this.peerconnection.getDesiredMediaDirection(media as MediaType, isAdd);
                     const currentDirections = isAdd ? [ MediaDirection.RECVONLY, MediaDirection.INACTIVE ]
                         : [ MediaDirection.SENDRECV, MediaDirection.SENDONLY ];
 
@@ -625,7 +625,7 @@ export default class JingleSessionPC extends JingleSession {
          *      mediaType: string,
          *      msid: string,
          *      ssrcList: Array<number>,
-         *      groups: {semantics: string, ssrcs: Array<number>}
+         *      groups: ISsrcGroupInfo
          *  }>}
          */
         const sourceDescription = new Map();

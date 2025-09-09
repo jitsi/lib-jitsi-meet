@@ -1,4 +1,3 @@
-/* eslint-disable max-len*/
 import * as transform from 'sdp-transform';
 
 import RtxModifier from './RtxModifier.js';
@@ -27,8 +26,8 @@ function numVideoSsrcs(parsedSdp) {
 function getPrimaryVideoSsrc(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
-
-    return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine), 10);
+    const ssrc = SDPUtil.parsePrimaryVideoSsrc(videoMLine);
+    return typeof ssrc === 'string' ? parseInt(ssrc, 10) : ssrc;
 }
 
 /**
@@ -318,7 +317,10 @@ describe('RtxModifier', () => {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
 
-                videoMLine.direction = 'recvonly';
+                if(videoMLine){
+
+                    videoMLine.direction = 'recvonly';
+                }
                 const newSdpStr = rtxModifier.modifyRtxSsrcs(transform.write(sdp));
 
                 expect(newSdpStr).toEqual(transform.write(sdp));
@@ -328,7 +330,9 @@ describe('RtxModifier', () => {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
 
-                videoMLine.ssrcs = [];
+                if (videoMLine) {
+                    videoMLine.ssrcs = [];
+                }
                 const newSdpStr = rtxModifier.modifyRtxSsrcs(transform.write(sdp));
 
                 expect(newSdpStr).toEqual(transform.write(sdp));
