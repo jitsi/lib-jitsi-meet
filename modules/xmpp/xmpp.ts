@@ -279,6 +279,7 @@ export default class XMPP extends Listenable {
     public breakoutRoomsFeatures: Optional<IBreakoutRoomsFeatures>;
     public fileSharingComponentAddress: Optional<string>;
     public roomMetadataComponentAddress: Optional<string>;
+    public pollsComponentAddress: Optional<string>;
 
 
     /**
@@ -484,6 +485,12 @@ export default class XMPP extends Listenable {
             return true;
         }
 
+        if (from === this.pollsComponentAddress) {
+            this.eventEmitter.emit(XMPPEvents.POLLS_EVENT, parsedJson);
+
+            return true;
+        }
+
         if (parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats' && parsedJson.users) {
             this.eventEmitter.emit(XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'av_moderation') {
@@ -647,6 +654,11 @@ export default class XMPP extends Listenable {
 
             if (identity.type === 'visitors') {
                 this._components.push(identity.name);
+            }
+
+            if (identity.type === 'polls') {
+                this.pollsComponentAddress = identity.name;
+                this._components.push(this.pollsComponentAddress);
             }
         });
 
