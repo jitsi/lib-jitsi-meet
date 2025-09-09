@@ -625,7 +625,7 @@ export default class JingleSessionPC extends JingleSession {
          *      mediaType: string,
          *      msid: string,
          *      ssrcList: Array<number>,
-         *      groups: {semantics: string, ssrcs: Array<number>}
+         *      groups: ISsrcGroupInfo
          *  }>}
          */
         const sourceDescription = new Map();

@@ -30,9 +30,7 @@ import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
-import { ITPCSourceInfo } from './SourceInfo';
 import { ICodecConfig, TPCUtils } from './TPCUtils';
-
 
 const logger = getLogger('modules/RTC/TraceablePeerConnection');
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
@@ -84,6 +82,13 @@ export interface ITPCOptions {
     videoQuality: IVideoQuality;
 }
 
+interface ITPCSourceInfo {
+    groups: ISsrcGroupInfo;
+    mediaType?: MediaType;
+    msid: string;
+    ssrcList?: Array<string>;
+    videoType?: VideoType;
+}
 export interface IAudioQuality {
     enableOpusDtx?: boolean;
     opusMaxAverageBitrate?: number;
@@ -1313,7 +1318,7 @@ export default class TraceablePeerConnection {
         const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
         return this.localSSRCs.get(localTrack.rtcId)
-        ?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
+            ?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
     }
 
     /**
@@ -1777,7 +1782,7 @@ export default class TraceablePeerConnection {
 
                 if (ssrcGroups?.length) {
                     for (const group of ssrcGroups) {
-                        const parsedGroup: ISsrcGroupInfo = {
+                        const parsedGroup = {
                             semantics: group.semantics,
                             ssrcs: group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10))
                         };

@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep } from 'lodash-es';
-import transform from 'sdp-transform';
+import transform, { type SessionDescription } from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
@@ -179,11 +179,11 @@ export class TPCUtils {
     /**
      * Returns the codecs in the current order of preference in the SDP provided.
      *
-     * @param {transform.SessionDescription} parsedSdp the parsed SDP object.
+     * @param {SessionDescription} parsedSdp the parsed SDP object.
      * @returns {Array<CodecMimeType>}
      * @private
      */
-    private _getConfiguredVideoCodecsImpl(parsedSdp: transform.SessionDescription): CodecMimeType[] {
+    private _getConfiguredVideoCodecsImpl(parsedSdp: SessionDescription): CodecMimeType[] {
         const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
         const codecs = new Set(mLine.rtp
             .filter(pt => pt.codec.toLowerCase() !== 'rtx')
@@ -775,11 +775,11 @@ export class TPCUtils {
     /**
      * Munges the session description to ensure that the codec order is as per the preferred codec settings.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged
-     * @returns {transform.SessionDescription} the munged SDP.
+     * @param {SessionDescription} parsedSdp that needs to be munged
+     * @returns {SessionDescription} the munged SDP.
      * @internal
      */
-    mungeCodecOrder(parsedSdp: transform.SessionDescription): transform.SessionDescription {
+    mungeCodecOrder(parsedSdp: SessionDescription): SessionDescription {
         const codecSettings = this.pc.codecSettings;
 
         if (!codecSettings) {
@@ -827,11 +827,11 @@ export class TPCUtils {
      * Munges the stereo flag as well as the opusMaxAverageBitrate in the SDP, based on values set through config.js,
      * if present.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
-     * @returns {transform.SessionDescription} the munged SDP.
+     * @param {SessionDescription} parsedSdp that needs to be munged.
+     * @returns {SessionDescription} the munged SDP.
      * @internal
      */
-    mungeOpus(parsedSdp: transform.SessionDescription): transform.SessionDescription {
+    mungeOpus(parsedSdp: SessionDescription): SessionDescription {
         const { audioQuality } = this.options;
 
         if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
@@ -897,12 +897,12 @@ export class TPCUtils {
     /**
      * Munges the session SDP by setting the max bitrates on the video m-lines when VP9 K-SVC codec is in use.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
+     * @param {SessionDescription} parsedSdp that needs to be munged.
      * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
-     * @returns {transform.SessionDescription} The munged SDP.
+     * @returns {SessionDescription} The munged SDP.
      * @internal
      */
-    setMaxBitrates(parsedSdp: transform.SessionDescription, isLocalSdp = false): transform.SessionDescription {
+    setMaxBitrates(parsedSdp: SessionDescription, isLocalSdp = false): SessionDescription {
         const pcCodecSettings = this.pc.codecSettings;
 
         if (!pcCodecSettings) {

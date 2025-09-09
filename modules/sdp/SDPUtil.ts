@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-const logger = getLogger('modules/sdp/SDPUtil');
+import type { MediaDescription } from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
@@ -7,8 +7,9 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
-import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMLine, IMediaDescription, IMediaLine, IRTCPFBData, IRTPMapData, ISDPObject, ISSRCGroupData, ISsrcGroups } from './constants';
+import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMediaLine, IRTCPFBData, IRTPMapData, ISSRCGroupData } from './constants';
 
+const logger = getLogger('modules/sdp/SDPUtil');
 
 const SDPUtil = {
     /**
@@ -327,25 +328,14 @@ const SDPUtil = {
     },
 
     /**
-     * Gets the media description for a specific media type from the SDP.
-     *
-     * @param {ISDPObject} sdp - The SDP object.
-     * @param {string} type - The media type to search for (e.g., "audio", "video").
-     * @returns {Nullable<IMediaDescription>} - The media description object or null if not found.
-     */
-    getMedia(sdp: ISDPObject, type: string): Nullable<IMediaDescription> {
-        return sdp.media.find(m => m.type === type);
-    },
-
-    /**
      * Gets the SSRC attribute value from the media line.
      *
-     * @param {IMLine} mLine - The media line object.
+     * @param {MediaDescription} mLine - The media line object.
      * @param {number} ssrc - The SSRC value to search for.
      * @param {string} attributeName - The attribute name to search for.
      * @returns {string|null} - The attribute value or null if not found.
      */
-    getSsrcAttribute(mLine: IMLine, ssrc: number, attributeName: string): Nullable<string> {
+    getSsrcAttribute(mLine: MediaDescription, ssrc: number, attributeName: string): Nullable<string> {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             const ssrcLine = mLine.ssrcs[i];
 
@@ -493,10 +483,10 @@ const SDPUtil = {
     /**
      * Parses the SSRCs from a group description.
      *
-     * @param {ISsrcGroups} ssrcGroup - The SSRC group object.
+     * @param {MediaDescription['ssrcGroups'][number]} ssrcGroup - The SSRC group object.
      * @returns {number[]} - The list of SSRCs in the group.
      */
-    parseGroupSsrcs(ssrcGroup: ISsrcGroups): number[] {
+    parseGroupSsrcs(ssrcGroup: MediaDescription['ssrcGroups'][number]): number[] {
         return ssrcGroup
             .ssrcs
             .split(' ')
@@ -623,10 +613,10 @@ const SDPUtil = {
 
     /**
      * Parse the 'most' primary video ssrc from the given m line
-     * @param {IMLine} videoMLine object as parsed from transform.parse
+     * @param {MediaDescription} videoMLine object as parsed from transform.parse
      * @return {Optional<number>} the primary video ssrc from the given m line
      */
-    parsePrimaryVideoSsrc(videoMLine: IMLine): Optional<number> {
+    parsePrimaryVideoSsrc(videoMLine: MediaDescription): Optional<number> {
         const numSsrcs = (videoMLine.ssrcs)
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
@@ -804,11 +794,11 @@ const SDPUtil = {
      * Sets the given codecName as the preferred codec by moving it to the beginning
      * of the payload types list (modifies the given mline in place). All instances
      * of the codec are moved up.
-     * @param {IMLine} mLine the mline object from an sdp as parsed by transform.parse.
+     * @param {MediaDescription} mLine the mline object from an sdp as parsed by transform.parse.
      * @param {string} codecName the name of the preferred codec.
      * @param {boolean} sortPayloadTypes whether the payloadtypes need to be sorted for a given codec.
      */
-    preferCodec(mline: IMLine, codecName: string, sortPayloadTypes: boolean = false): void {
+    preferCodec(mline: MediaDescription, codecName: string, sortPayloadTypes: boolean = false): void {
         if (!mline || !codecName) {
             return;
         }
@@ -865,12 +855,12 @@ const SDPUtil = {
      * types are also stripped. If the resulting mline would have no codecs,
      * it's disabled.
      *
-     * @param {IMLine} mLine the mline object from an sdp as parsed by transform.parse.
+     * @param {MediaDescription} mLine the mline object from an sdp as parsed by transform.parse.
      * @param {string} codecName the name of the codec which will be stripped.
      * @param {boolean} highProfile determines if only the high profile codec needs to be stripped from the sdp for a
      * given codec type.
      */
-    stripCodec(mLine: IMLine, codecName: string, highProfile: boolean = false): void {
+    stripCodec(mLine: MediaDescription, codecName: string, highProfile: boolean = false): void {
         if (!mLine || !codecName) {
             return;
         }
@@ -937,7 +927,7 @@ const SDPUtil = {
                 item => keepPts.indexOf(item.payload) !== -1);
             if (mLine.rtcpFb) {
                 mLine.rtcpFb = mLine.rtcpFb.filter(
-                    item => keepPts.indexOf(item.payload) !== -1);
+                    item => keepPts.indexOf(Number(item.payload)) !== -1);
             }
         }
     }
