@@ -37,7 +37,6 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.FILE_SHARING_FILES_RECEIVED ).toBe( 'conference.file_sharing.files_received' );
         expect( JitsiConferenceEvents.FILE_SHARING_FILE_ADDED ).toBe( 'conference.file_sharing.file_added' );
         expect( JitsiConferenceEvents.FILE_SHARING_FILE_REMOVED ).toBe( 'conference.file_sharing.file_removed' );
-        expect( JitsiConferenceEvents.JVB121_STATUS ).toBe( 'conference.jvb121Status' );
         expect( JitsiConferenceEvents.KICKED ).toBe( 'conference.kicked' );
         expect( JitsiConferenceEvents.PARTICIPANT_KICKED ).toBe( 'conference.participant_kicked' );
         expect( JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED ).toBe( 'conference.lastNEndpointsChanged' );

@@ -14,6 +14,7 @@ import {
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
 import { isValidNumber } from '../util/MathUtil';
+import JingleSession from '../xmpp/JingleSession';
 
 import Statistics from './statistics';
 
@@ -374,7 +375,7 @@ export default class AvgRTPStatsReporter {
     _cachedTransportStats: Optional<Record<string, unknown>>;
     _onLocalStatsUpdated: (data: any) => void;
     _onP2PStatusChanged: () => void;
-    _onJvb121StatusChanged: (oldStatus: boolean, newStatus: boolean) => void;
+    _onJvb121StatusChanged: (activeSession: JingleSession) => void;
     jvbStatsMonitor: ConnectionAvgStats;
     p2pStatsMonitor: ConnectionAvgStats;
 
@@ -592,17 +593,15 @@ export default class AvgRTPStatsReporter {
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);
 
-        this._onJvb121StatusChanged = (oldStatus: boolean, newStatus: boolean) => {
-            // We want to reset only on the transition from false => true,
-            // because otherwise those stats are resetted on JVB <=> P2P
-            // transition.
-            if (newStatus === true) {
+        this._onJvb121StatusChanged = activeSession => {
+
+            if (activeSession === conference.jvbJingleSession) {
                 logger.info('Resetting JVB avg RTP stats');
                 this._resetAvgJvbStats();
             }
         };
         conference.on(
-            ConferenceEvents.JVB121_STATUS,
+            ConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
             this._onJvb121StatusChanged);
 
         this.jvbStatsMonitor
@@ -1052,7 +1051,7 @@ export default class AvgRTPStatsReporter {
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
             this._onLocalStatsUpdated);
         this._conference.off(
-            ConferenceEvents.JVB121_STATUS,
+            ConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
             this._onJvb121StatusChanged);
         this.jvbStatsMonitor.dispose();
         this.p2pStatsMonitor.dispose();
