@@ -276,6 +276,22 @@ export enum XMPPEvents {
      * Indicates that phone number changed.
      */
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
+
+    /**
+     * Event fired when we receive an answer for a poll.
+     */
+    POLLS_ANSWER_EVENT = 'xmpp.polls.answer.event',
+
+    /**
+     * Event fired when we receive a message for polls.
+     */
+    POLLS_EVENT = 'xmpp.polls.event',
+
+    /**
+     * Event fired when we received a poll or polls history event (old-polls).
+     */
+    POLLS_RECEIVE_EVENT = 'xmpp.polls.received.event',
+
     PRESENCE_RECEIVED = 'xmpp.presence_received',
     PRESENCE_STATUS = 'xmpp.presence_status',
 
