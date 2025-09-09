@@ -7,7 +7,7 @@ import {
 } from '../connectivity/NetworkInfo';
 import { getJitterDelay } from '../util/Retry';
 
-const logger = getLogger('modules/xmpp/ResumeTask');
+const logger = getLogger('xmpp:ResumeTask');
 
 
 export interface INetworkInfoEvent {

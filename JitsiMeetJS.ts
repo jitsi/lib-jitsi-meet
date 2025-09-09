@@ -41,7 +41,7 @@ import { E2ePingEvents } from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
 
-const logger = Logger.getLogger('JitsiMeetJS');
+const logger = Logger.getLogger('core:JitsiMeetJS');
 
 // Settin the default log levels to info early so that we avoid overriding a log level set externally.
 Logger.setLogLevel(Logger.levels.INFO);

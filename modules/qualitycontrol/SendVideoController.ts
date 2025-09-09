@@ -4,7 +4,7 @@ import JitsiConference from '../../JitsiConference';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { MediaSessionEvents } from '../xmpp/MediaSessionEvents';
 
-const logger = getLogger('modules/qualitycontrol/SendVideoController');
+const logger = getLogger('qc:SendVideoController');
 const MAX_LOCAL_RESOLUTION = 2160;
 
 export interface IVideoConstraint {

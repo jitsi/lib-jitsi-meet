@@ -27,7 +27,7 @@ import initStropheLogger from './strophe.logger';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
 
-const logger = getLogger('modules/xmpp/xmpp');
+const logger = getLogger('xmpp:Xmpp');
 
 /**
  * Connection options interface

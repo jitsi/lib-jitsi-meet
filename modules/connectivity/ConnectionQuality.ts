@@ -12,7 +12,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import EventEmitter from '../util/EventEmitter';
 
-const logger = getLogger('modules/connectivity/ConnectionQuality');
+const logger = getLogger('connectivity:ConnectionQuality');
 
 /**
  * The value to use for the "type" field for messages sent by ConnectionQuality

@@ -12,7 +12,7 @@ const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
-const logger = getLogger('modules/xmpp/moderator');
+const logger = getLogger('xmpp:Moderator');
 
 /**
  * Exponential backoff timer.
