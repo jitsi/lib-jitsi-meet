@@ -12,7 +12,7 @@ import DefaultLogStorage from './DefaulLogStorage';
 import { RTCStatsEvents } from './RTCStatsEvents';
 import { ITraceOptions } from './interfaces';
 
-const logger = getLogger('rtcstats:RTCStats');
+const logger = getLogger('analytics:RTCStats');
 
 /**
  * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
