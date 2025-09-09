@@ -8,7 +8,7 @@ import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
 import { SourceName } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
-import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
+import { IReceiverVideoConstraints } from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
 
 
@@ -277,9 +277,9 @@ export default class BridgeChannel {
     /**
      * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
      *
-     * @param {ReceiverVideoConstraints} constraints video constraints.
+     * @param {IReceiverVideoConstraints} constraints video constraints.
      */
-    sendReceiverVideoConstraintsMessage(constraints: ReceiverVideoConstraints): void {
+    sendReceiverVideoConstraintsMessage(constraints: IReceiverVideoConstraints): void {
         logger.info(`Sending ReceiverVideoConstraints with ${JSON.stringify(constraints)}`);
         this._send({
             colibriClass: 'ReceiverVideoConstraints',

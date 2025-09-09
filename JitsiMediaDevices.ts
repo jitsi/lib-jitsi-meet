@@ -17,6 +17,7 @@ export default class JitsiMediaDevices extends Listenable {
     private _initialized: boolean;
     private _permissions: { [key: string]: boolean; };
     private _permissionsApiSupported: Promise<boolean>;
+    private _rtc: RTC;
 
     /**
      * Initializes a `JitsiMediaDevices` object. There will be a single
@@ -85,7 +86,7 @@ export default class JitsiMediaDevices extends Listenable {
         }
         this._initialized = true;
 
-        RTC.addListener(
+        this._rtc.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
             devices =>
                 this.eventEmitter.emit(
@@ -93,7 +94,7 @@ export default class JitsiMediaDevices extends Listenable {
                     devices));
 
         // We would still want to update the permissions cache in case the permissions API is not supported.
-        RTC.addListener(
+        this._rtc.addListener(
             RTCEvents.PERMISSIONS_CHANGED,
             permissions => this._handlePermissionsChange(permissions));
 

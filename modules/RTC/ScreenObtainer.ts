@@ -9,7 +9,7 @@ const logger = getLogger('modules/RTC/ScreenObtainer');
 /**
  * Interface for desktop sharing frame rate configuration.
  */
-interface IFrameRateConfig {
+export interface IFrameRateConfig {
     max?: number;
     min?: number;
 }

@@ -2066,7 +2066,7 @@ export default class JitsiConference extends Listenable {
             videoType = BridgeVideoType.DESKTOP_HIGH_FPS;
         }
 
-        localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType);
+        localtrack && this.rtc.sendSourceVideoType(localtrack.getSourceName(), videoType as BridgeVideoType);
     }
 
     /**
