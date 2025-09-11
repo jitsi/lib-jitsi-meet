@@ -52,10 +52,11 @@ export default class Polls {
             this._xmpp.pollsComponentAddress,
             JSON.stringify({
                 answers: answers.map(answer => answer.name),
+                command: COMMAND_NEW_POLL,
                 pollId,
                 question,
                 roomJid: this._mainRoom.roomjid,
-                type: COMMAND_NEW_POLL
+                type: 'polls'
             }),
             'json-message',
             true);
@@ -72,8 +73,9 @@ export default class Polls {
             this._xmpp.pollsComponentAddress,
             JSON.stringify({
                 answers,
+                command: COMMAND_ANSWER_POLL,
                 pollId,
-                type: COMMAND_ANSWER_POLL
+                type: 'polls'
             }),
             'json-message',
             true);
@@ -85,20 +87,18 @@ export default class Polls {
      * @param {object} payload - Arbitrary data.
      */
     _handleMessages(payload) {
-        switch (payload.type) {
+        switch (payload.command) {
         case COMMAND_NEW_POLL:
             this._mainRoom.eventEmitter.emit(XMPPEvents.POLLS_RECEIVE_EVENT, payload);
 
             break;
         case COMMAND_OLD_POLLS: {
-            if (payload?.polls) {
-                payload.polls.forEach((poll: any) => {
-                    this._mainRoom.eventEmitter.emit(XMPPEvents.POLLS_RECEIVE_EVENT, {
-                        history: true,
-                        ...poll
-                    });
+            payload?.polls?.forEach((poll: any) => {
+                this._mainRoom.eventEmitter.emit(XMPPEvents.POLLS_RECEIVE_EVENT, {
+                    history: true,
+                    ...poll
                 });
-            }
+            });
             break;
         }
         case COMMAND_ANSWER_POLL: {
