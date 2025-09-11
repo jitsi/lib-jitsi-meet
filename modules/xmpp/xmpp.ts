@@ -485,12 +485,6 @@ export default class XMPP extends Listenable {
             return true;
         }
 
-        if (from === this.pollsComponentAddress) {
-            this.eventEmitter.emit(XMPPEvents.POLLS_EVENT, parsedJson);
-
-            return true;
-        }
-
         if (parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats' && parsedJson.users) {
             this.eventEmitter.emit(XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'av_moderation') {
@@ -503,6 +497,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'visitors') {
             this.eventEmitter.emit(XMPPEvents.VISITORS_MESSAGE, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'polls') {
+            this.eventEmitter.emit(XMPPEvents.POLLS_EVENT, parsedJson);
         }
 
         return true;
