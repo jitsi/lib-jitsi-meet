@@ -10,8 +10,7 @@
     "allowSyntheticDefaultImports": true,
     "lib": [
       "DOM",
-      "ES2021",
-      "ES2024.Promise"
+      "ES2021"
     ],
     "outDir": "dist/esm/",
     "stripInternal": true,

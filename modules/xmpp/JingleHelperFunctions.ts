@@ -6,7 +6,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
-import $ from '../util/XMLParser';
+import { findAll } from '../util/XMLUtils';
 
 const logger = getLogger('xmpp:JingleHelperFunctions');
 
@@ -91,21 +91,26 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Nod
  * @returns the RTP description element with the given media type.
  */
 function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
-    const jingle = $(iq).find('jingle')[0];
-    let content = $(jingle).find(`content[name="${mediaType}"]`);
+    const jingle = findAll(iq, 'jingle')[0];
+
+    // Find content elements that are direct children of jingle (not inside group elements)
+    // This avoids finding the reference content elements inside BUNDLE groups
+    const directContentElements = jingle ? findAll(jingle, `:scope > content[name="${mediaType}"]`) : [];
+
+    let content: Element;
     let description: Element;
 
-    if (content.length) {
-        content = content[0];
+    if (directContentElements.length > 0) {
+        content = directContentElements[0];
     } else {
         // I'm not suree if "creator" and "senders" are required.
         content = $build('content', {
             name: mediaType
         }).node;
-        jingle.appendChild(content);
+        jingle?.appendChild(content);
     }
 
-    const descriptionElements = $(content).find('description');
+    const descriptionElements = findAll(content as Element, 'description');
 
     if (descriptionElements.length) {
         description = descriptionElements[0];
@@ -114,7 +119,7 @@ function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
             media: mediaType,
             xmlns: XEP.RTP_MEDIA
         }).node;
-        content.appendChild(description);
+        (content as Element).appendChild(description);
     }
 
     return description;
@@ -149,6 +154,7 @@ function _getSemantics(str: string): Nullable<string> {
  * endpoint id as the key.
  */
 export function expandSourcesFromJson(iq: Element, jsonMessageXml: Element): Nullable<Map<string, string[]>> {
+    const _jingleInit = findAll(iq, 'jingle')[0];
     let json: any;
 
     try {

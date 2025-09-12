@@ -2,7 +2,7 @@ import { $iq } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';
 import { expandSourcesFromJson } from '../xmpp/JingleHelperFunctions';
-import $ from '../util/XMLParser';
+import { findAll, parseXML } from '../util/XMLUtils';
 
 import SDP from './SDP';
 
@@ -12,7 +12,18 @@ import SDP from './SDP';
  * @param {string} xml - raw xml of the stanza
  */
 function createStanzaElement(xml) {
-    return new DOMParser().parseFromString(xml, 'text/xml').documentElement;
+    const element = new DOMParser().parseFromString(xml, 'text/xml').documentElement;
+    // Debug: Check if parsing creates duplicates
+    if (element.tagName === 'iq') {
+        const jingle = element.querySelector('jingle');
+        if (jingle) {
+            const contents = Array.from(jingle.children).filter(child => child.tagName === 'content');
+            if (contents.length > 2) {
+                console.log(`[DEBUG] createStanzaElement created ${contents.length} content elements:`, contents.map(c => c.getAttribute('name')));
+            }
+        }
+    }
+    return element;
 }
 
 describe('SDP', () => {
@@ -1003,7 +1014,7 @@ describe('SDP', () => {
         });
 
         it('should handle no sources', () => {
-            const jingle = $(
+            const jingle = createStanzaElement(
                 `<jingle xmlns='urn:xmpp:jingle:1'>
                     <content name='audio'>
                         <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -1144,7 +1155,16 @@ a=extmap-allow-mixed
 `.split('\n').join('\r\n');
             const offer = createStanzaElement(stanza);
 
-            sdp.fromJingle($(offer).find('>jingle'));
+            // Find jingle element: either as child or as the root element itself
+            let jingleEl = null;
+            if (offer.localName === 'jingle') {
+                jingleEl = offer;
+            } else {
+                // Look for jingle child using both querySelector and manual search for namespace compatibility
+                jingleEl = offer.querySelector('jingle') || 
+                          Array.from(offer.children).find(child => child.localName === 'jingle');
+            }
+            sdp.fromJingle(jingleEl);
             const rawSDP = sdp.raw.replace(/o=- \d+/, 'o=- 123'); // replace generated o= timestamp.
 
             expect(rawSDP).toEqual(expectedSDP);
@@ -1340,13 +1360,31 @@ a=ssrc-group:FID 2306112481 620660772
 a=rtcp-mux
 `.split('\n').join('\r\n');
             const offer = createStanzaElement(stanza);
-            const jsonMessages = $(offer).find('jingle>json-message');
+            
+            // Find jingle element first, then find json-message children
+            let jingleEl = null;
+            if (offer.localName === 'jingle') {
+                jingleEl = offer;
+            } else {
+                jingleEl = offer.querySelector('jingle') || 
+                          Array.from(offer.children).find(child => child.localName === 'jingle');
+            }
+            
+            const jsonMessages = jingleEl ? findAll(jingleEl, 'json-message') : [];
 
             for (let i = 0; i < jsonMessages.length; i++) {
                 expandSourcesFromJson(offer, jsonMessages[i]);
             }
 
-            sdp.fromJingle($(offer).find('>jingle'));
+            // Re-find jingle element after potential modifications from json expansion
+            if (offer.localName === 'jingle') {
+                jingleEl = offer;
+            } else {
+                // Look for jingle child using both querySelector and manual search for namespace compatibility
+                jingleEl = offer.querySelector('jingle') || 
+                          Array.from(offer.children).find(child => child.localName === 'jingle');
+            }
+            sdp.fromJingle(jingleEl);
             const rawSDP = sdp.raw.replace(/o=- \d+/, 'o=- 123'); // replace generated o= timestamp.
 
             expect(rawSDP).toEqual(expectedSDP);
@@ -1368,7 +1406,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('m=audio 9 UDP/TLS/RTP/SAVPF 111');
             expect(media).toContain('a=rtpmap:111 opus/48000/2');
@@ -1390,7 +1428,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('m=video 9 UDP/TLS/RTP/SAVPF 100 101');
             expect(media).toContain('a=rtpmap:100 VP8/90000');
@@ -1413,7 +1451,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('a=candidate:1 1 udp 2130706431 192.168.1.1 10000 typ host');
             expect(media).toContain('a=candidate:2 1 tcp 2130706430 192.168.1.2 10001 typ host');
