@@ -51,7 +51,7 @@ export default class Polls {
         this._mainRoom.sendPrivateMessage(
             this._xmpp.pollsComponentAddress,
             JSON.stringify({
-                answers: answers.map(answer => answer.name),
+                answers: answers,
                 command: COMMAND_NEW_POLL,
                 pollId,
                 question,
@@ -75,6 +75,7 @@ export default class Polls {
                 answers,
                 command: COMMAND_ANSWER_POLL,
                 pollId,
+                roomJid: this._mainRoom.roomjid,
                 type: 'polls'
             }),
             'json-message',
