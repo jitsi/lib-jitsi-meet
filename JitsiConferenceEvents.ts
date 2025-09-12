@@ -339,6 +339,16 @@ export enum JitsiConferenceEvents {
     PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged',
 
     /**
+     * An answer for a pool was received.
+     */
+    POLL_ANSWER_RECEIVED = 'conference.pollAnswerReceived',
+
+    /**
+     * A new poll was received or a poll is loaded from the history.
+     */
+    POLL_RECEIVED = 'conference.pollReceived',
+
+    /**
      * New private text message was received.
      */
     PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived',
