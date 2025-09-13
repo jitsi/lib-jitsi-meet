@@ -4,10 +4,12 @@ import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { MediaType } from './service/RTC/MediaType';
+import { VideoType } from './service/RTC/VideoType';
 
 export interface ISourceInfo {
-    muted: boolean;
-    videoType: string;
+    muted?: boolean;
+    sourceName?: string;
+    videoType?: VideoType;
 }
 
 /**
@@ -131,7 +133,7 @@ export default class JitsiParticipant {
      * @param {string} videoType The video type of the source.
      * @returns {void}
      */
-    _setSources(mediaType: MediaType, muted: boolean, sourceName: string, videoType: string): void {
+    _setSources(mediaType: MediaType, muted: boolean, sourceName: string, videoType: VideoType): void {
         let sourceByMediaType = this._sources.get(mediaType);
         const sourceInfo: ISourceInfo = {
             muted,

@@ -1,3 +1,5 @@
+import { MediaType } from '../../service/RTC/MediaType';
+
 export interface ISsrcGroupInfo {
     semantics: string;
     ssrcs: number[];
@@ -27,7 +29,7 @@ export interface IICECandidate {
 
 export interface IMediaLine {
     fmt: string[];
-    media: string;
+    media: string | MediaType;
     port: string;
     proto: string;
 }
@@ -50,6 +52,8 @@ export interface IFingerprintData {
     fingerprint: string;
     hash: string;
     required: boolean;
+    setup?: string;
+    xmlns?: string;
 }
 
 export interface IFmtpParameter {
