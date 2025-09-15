@@ -2729,14 +2729,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+    /**
    * Sends text message to the other participants in the conference.
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
+   * @param {string} [replyToId] - The ID of the message being replied to.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendTextMessage(message: string, elementName: string = 'body'): void {
+    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string): void {
         if (this.room) {
-            this.room.sendMessage(message, elementName);
+            this.room.sendMessage(message, elementName, replyToId);
         }
     }
 
@@ -2757,11 +2759,13 @@ export default class JitsiConference extends Listenable {
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
+   * @param {boolean} [useFullJid=false] - Whether to use the full JID.
+   * @param {string} [replyToId] - The ID of the message being replied to.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false): void {
+    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string): void {
         if (this.room) {
-            this.room.sendPrivateMessage(id, message, elementName, useFullJid);
+            this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId);
         }
     }
 
@@ -4036,8 +4040,9 @@ export default class JitsiConference extends Listenable {
      * @param {string|object} message - The message to send (string for chat, object for JSON).
      * @param {string} [to=''] - The ID of the recipient endpoint, or empty string to broadcast.
      * @param {boolean} [sendThroughVideobridge=false] - Whether to send through jitsi-videobridge.
+     * @param {string} [replyToId] - The ID of the message being replied to.
      */
-    public sendMessage(message: any, to = '', sendThroughVideobridge = false): void {
+    public sendMessage(message: any, to = '', sendThroughVideobridge = false, replyToId?: string): void {
         const messageType = typeof message;
 
         // Through videobridge we support only objects. Through XMPP we support
@@ -4077,10 +4082,10 @@ export default class JitsiConference extends Listenable {
             }
 
             if (to) {
-                this.sendPrivateTextMessage(to, messageToSend, elementName);
+                this.sendPrivateTextMessage(to, messageToSend, elementName, false, replyToId);
             } else {
                 // Broadcast
-                this.sendTextMessage(messageToSend, elementName);
+                this.sendTextMessage(messageToSend, elementName, replyToId);
             }
         }
     }

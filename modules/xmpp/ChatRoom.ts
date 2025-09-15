@@ -1094,8 +1094,9 @@ export default class ChatRoom extends Listenable {
      * Send text message to the other participants in the conference
      * @param message
      * @param elementName
+     * @param replyToId
      */
-    public sendMessage(message: string, elementName: string): void {
+    public sendMessage(message: string, elementName: string, replyToId?: string): void {
         const msg = $msg({
             to: this.roomjid,
             type: 'groupchat'
@@ -1108,6 +1109,10 @@ export default class ChatRoom extends Listenable {
             msg.c(elementName, {}, message);
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
+        }
+
+        if (replyToId) {
+            msg.up().c('reply', { to: replyToId });
         }
 
         this.connection.send(msg);
@@ -1146,8 +1151,10 @@ export default class ChatRoom extends Listenable {
      * @param id id/muc resource of the receiver
      * @param message
      * @param elementName
+     * @param useDirectJid
+     * @param replyToId
      */
-    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false): void {
+    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
         const msg = $msg({ to: targetJid,
             type: 'chat' });
@@ -1160,6 +1167,10 @@ export default class ChatRoom extends Listenable {
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
                 .up();
+        }
+
+        if (replyToId) {
+            msg.c('reply', { to: replyToId });
         }
 
         this.connection.send(msg);
