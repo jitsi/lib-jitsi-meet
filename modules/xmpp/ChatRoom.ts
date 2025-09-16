@@ -1105,38 +1105,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Extracts and cleans the message body, removing quoted preview text from replies.
-     * @param {string} body - The original message body.
-     * @param {string|null} replyToId - The ID of the message being replied to.
-     * @returns {string} The cleaned message body.
-     * @private
-     */
-    private _extractCleanReplyBody(body: string, replyToId: string | null): string {
-        if (!replyToId || !body) {
-            return body;
-        }
-
-        // Remove quoted text that starts with '> ' at the beginning of lines
-        const lines = body.split('\n');
-        const cleanLines = [];
-        let inQuotedSection = false;
-
-        for (const line of lines) {
-            if (line.startsWith('> ')) {
-                inQuotedSection = true;
-                continue;
-            }
-            if (inQuotedSection && line.trim() === '') {
-                continue;
-            }
-            inQuotedSection = false;
-            cleanLines.push(line);
-        }
-
-        return cleanLines.join('\n').trim();
-    }
-
-    /**
      * Send text message to the other participants in the conference
      * @param message
      * @param elementName
@@ -1493,7 +1461,6 @@ export default class ChatRoom extends Listenable {
 
             const messageId = $(msg).attr('id') || uuidv4();
             const replyToId = this._parseReplyMessage(msg);
-            const cleanedTxt = this._extractCleanReplyBody(txt, replyToId);
 
             const displayNameEl = $(msg).find('>display-name[xmlns="http://jitsi.org/protocol/display-name"]');
             const isVisitorMessage = displayNameEl.length > 0 && displayNameEl.attr('source') === 'visitor';
@@ -1518,7 +1485,7 @@ export default class ChatRoom extends Listenable {
                 }
 
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, cleanedTxt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
+                        from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
             } else if (type === 'groupchat') {
                 const displayName = displayNameEl.length > 0 ? displayNameEl.text() : undefined;
                 const source = isVisitorMessage ? undefined : displayNameEl.attr('source');
@@ -1526,7 +1493,7 @@ export default class ChatRoom extends Listenable {
                 // we will fire explicitly that this is a visitor(isVisitor:true) to the conference
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    from, cleanedTxt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source, replyToId);
+                    from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source, replyToId);
             }
         }
     }
