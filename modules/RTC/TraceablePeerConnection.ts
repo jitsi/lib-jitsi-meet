@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 import { cloneDeep } from 'lodash-es';
 import transform from 'sdp-transform';
 
-import JitsiMeetJS from '../../JitsiMeetJS';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -13,6 +12,7 @@ import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/St
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -152,6 +152,7 @@ export default class TraceablePeerConnection {
     private _remoteSsrcMap: Map<string, ITPCSourceInfo>;
     private _lastVideoSenderUpdatePromise: Promise<void>;
     private _localUfrag: string;
+    private _pcId: string;
     private _remoteUfrag: string;
     private _signalingLayer: SignalingLayer;
     /**
@@ -294,6 +295,11 @@ export default class TraceablePeerConnection {
          * @type {number}
          */
         this.id = id;
+
+        /**
+         * RTCStats identifier for this peerconnection.
+         */
+        this._pcId = `PC_${this.id}`;
 
         /**
          * Indicates whether or not this instance is used in a peer to peer
@@ -1176,11 +1182,11 @@ export default class TraceablePeerConnection {
         const mediaType = track.getType();
 
         if (mediaType === MediaType.AUDIO) {
-            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.AUDIO_MUTE_CHANGED_EVENT, muted);
+            RTCStats.sendStatsEntry(RTCStatsEvents.AUDIO_MUTE_CHANGED_EVENT, this._pcId, muted);
         } else if (track.getVideoType() === VideoType.DESKTOP) {
-            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, muted);
+            RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, muted);
         } else {
-            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.VIDEO_MUTE_CHANGED_EVENT, muted);
+            RTCStats.sendStatsEntry(RTCStatsEvents.VIDEO_MUTE_CHANGED_EVENT, this._pcId, muted);
         }
     }
 
@@ -2127,7 +2133,7 @@ export default class TraceablePeerConnection {
             }
         }
 
-        updated && JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.CODEC_CHANGED_EVENT, {
+        updated && RTCStats.sendStatsEntry(RTCStatsEvents.CODEC_CHANGED_EVENT, this._pcId, {
             camera: codecList[0],
             screenshare: screenshareCodec
         });
@@ -2327,7 +2333,7 @@ export default class TraceablePeerConnection {
 
                     // When a screenshare is stopped and started again, replace track will be called.
                     if (oldTrack.getVideoType() === VideoType.DESKTOP) {
-                        JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, false);
+                        RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, false);
                     }
                 }
 

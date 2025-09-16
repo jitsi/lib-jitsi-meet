@@ -5,9 +5,9 @@ import { $msg, Strophe } from 'strophe.js';
 
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
-import JitsiMeetJS from '../../JitsiMeetJS';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
@@ -924,7 +924,7 @@ export default class XMPP extends Listenable {
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
-            this._wasDisconnected && JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.STROPHE_RECONNECTED_EVENT);
+            this._wasDisconnected && RTCStats.sendStatsEntry(RTCStatsEvents.STROPHE_RECONNECTED_EVENT);
 
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
@@ -976,7 +976,7 @@ export default class XMPP extends Listenable {
         } else if (status === Strophe.Status.ERROR) {
             this._lastErrorMsg = msg;
         } else if (status === Strophe.Status.DISCONNECTED) {
-            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.STROPHE_DISCONNECTED_EVENT);
+            RTCStats.sendStatsEntry(RTCStatsEvents.STROPHE_DISCONNECTED_EVENT);
             this._wasDisconnected = true;
             // Stop ping interval
             this.connection.ping.stopInterval();

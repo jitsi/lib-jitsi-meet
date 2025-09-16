@@ -2,7 +2,6 @@ import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
-import JitsiMeetJS from '../../JitsiMeetJS';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import {
@@ -13,6 +12,7 @@ import {
 } from '../../service/RTC/StandardVideoQualitySettings';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
@@ -334,7 +334,7 @@ export class QualityController {
             if (qualityLimitationReason === QualityLimitationReason.NONE
                 && this.receiveVideoController.isLastNLimitedByCpu()) {
                 if (!this._lastNRampupTimeout && !this._isLastNRampupBlocked) {
-                    JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, false);
+                    RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, false);
 
                     // Ramp up the number of received videos if CPU limitation no longer exists. If the cpu
                     // limitation returns as a consequence, do not attempt to ramp up again, continue to
@@ -368,7 +368,7 @@ export class QualityController {
                 this._lastNRampupTimeout = undefined;
                 this._isLastNRampupBlocked = true;
             }
-            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, true);
+            RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, true);
             const codecSwitched = this._maybeSwitchVideoCodec(trackId);
 
             if (!codecSwitched && !this._limitedByCpuTimeout) {
