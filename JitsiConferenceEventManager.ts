@@ -381,12 +381,12 @@ export default class JitsiConferenceEventManager {
 
             // eslint-disable-next-line max-params
             (jid: string, txt: string, myJid: string, ts: number,
-                    displayName: string, isVisitor: boolean, messageId: string, source: string) => {
+                    displayName: string, isVisitor: boolean, messageId: string, source: string, replyToId?: string) => {
                 const participantId = Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.MESSAGE_RECEIVED,
-                    participantId, txt, ts, displayName, isVisitor, messageId, source);
+                    participantId, txt, ts, displayName, isVisitor, messageId, source, replyToId);
             });
 
         chatRoom.addListener(
@@ -405,12 +405,12 @@ export default class JitsiConferenceEventManager {
 
             // eslint-disable-next-line max-params
             (jid: string, txt: string, myJid: string, ts: number, messageId: string,
-                    displayName: string, isVisitor: boolean, ofrom: string) => {
+                    displayName: string, isVisitor: boolean, ofrom: string, replyToId?: string) => {
                 const participantId = isVisitor ? ofrom : Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                    participantId, txt, ts, messageId, displayName, isVisitor);
+                    participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
