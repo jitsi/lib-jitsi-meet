@@ -13,7 +13,7 @@ interface IMockConnection {
     send: () => void;
 }
 
-// Mock XMPP interface for tests  
+// Mock XMPP interface for tests
 interface IMockXMPP {
     moderator: Moderator;
     options: Record<string, any>;
@@ -605,7 +605,8 @@ describe('ChatRoom', () => {
                 'msg123', // messageId
                 'Visitor Name', // displayName
                 true, // isVisitorMessage
-                undefined); // originalFrom
+                undefined, // originalFrom
+                null); // replyToId
         });
 
         it('parses private message with display-name extension and addresses correctly', () => {
@@ -630,7 +631,8 @@ describe('ChatRoom', () => {
                 'msg124', // messageId
                 'Visitor Name', // displayName
                 true, // isVisitorMessage
-                'original@visitor.com'); // originalFrom
+                'original@visitor.com', // originalFrom
+                null); // replyToId
         });
 
         it('parses private message without display-name extension correctly', () => {
@@ -651,7 +653,8 @@ describe('ChatRoom', () => {
                 'msg125', // messageId
                 undefined, // displayName
                 false, // isVisitorMessage
-                undefined); // originalFrom
+                undefined, // originalFrom
+                null); // replyToId
         });
     });
 
@@ -696,7 +699,8 @@ describe('ChatRoom', () => {
                 'Group Visitor', // displayName from visitor
                 true, // isVisitorMessage
                 'msg126', // messageId
-                undefined); // source (null for visitor messages)
+                undefined, // source (null for visitor messages)
+                null); // replyToId
         });
 
         it('parses group message with display-name extension source=token correctly', () => {
@@ -718,7 +722,8 @@ describe('ChatRoom', () => {
                 'Token User', // displayName
                 false, // isVisitorMessage
                 'msg127', // messageId
-                'token'); // source
+                'token', // source
+                null); // replyToId
         });
 
         it('parses group message with display-name extension source=guest correctly', () => {
@@ -740,7 +745,8 @@ describe('ChatRoom', () => {
                 'Guest User', // displayName
                 false, // isVisitorMessage
                 'msg127b', // messageId
-                'guest'); // source
+                'guest', // source
+                null); // replyToId
         });
 
         it('parses group message with display-name extension from non-visitor correctly', () => {
@@ -762,7 +768,8 @@ describe('ChatRoom', () => {
                 'Regular User', // displayName
                 false, // isVisitorMessage
                 'msg127c', // messageId
-                'jitsi-meet'); // source
+                'jitsi-meet', // source
+                null); // replyToId
         });
 
         it('parses group message without display-name extension correctly', () => {
@@ -783,7 +790,8 @@ describe('ChatRoom', () => {
                 undefined, // displayName
                 false, // isVisitorMessage
                 'msg128', // messageId
-                undefined); // source (undefined when no display-name element)
+                undefined, // source (undefined when no display-name element)
+                null); // replyToId
         });
     });
 });

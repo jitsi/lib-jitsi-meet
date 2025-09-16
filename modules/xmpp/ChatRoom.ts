@@ -421,6 +421,23 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Parses XEP-0461 reply message information from a message stanza.
+     * @param {Element} msg - The message stanza.
+     * @returns {string|null} The ID of the message being replied to, or null if not a reply.
+     * @private
+     */
+    private _parseReplyMessage(msg: Element): string | null {
+        const replyEl = $(msg).find('>reply');
+
+        if (replyEl.length > 0) {
+
+            return replyEl.attr('to') || null;
+        }
+
+        return null;
+    }
+
+    /**
      * Joins the chat room.
      * @param {string} password - Password to unlock room on joining.
      * @returns {Promise} - resolved when join completes. At the time of this
@@ -1088,20 +1105,6 @@ export default class ChatRoom extends Listenable {
      */
     public setParticipantPropertyListener(listener: ParticipantPropertyListener): void {
         this.participantPropertyListener = listener;
-    }
-
-    /**
-     * Parses XEP-0461 reply message information from a message stanza.
-     * @param {Element} msg - The message stanza.
-     * @returns {string|null} The ID of the message being replied to, or null if not a reply.
-     * @private
-     */
-    private _parseReplyMessage(msg: Element): string | null {
-        const replyEl = $(msg).find('>reply');
-        if (replyEl.length > 0) {
-            return replyEl.attr('to') || null;
-        }
-        return null;
     }
 
     /**
