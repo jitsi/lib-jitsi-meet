@@ -577,7 +577,7 @@ const JitsiMeetJS = {
          * @param {string} statsType - The type of stats to send.
          * @param {Object} data - The stats data to send.
          */
-        sendStatsEntry(statsType, data) {
+        sendStatsEntry(statsType: RTCStatsEvents, data?: Optional<any>) {
             RTCStats.sendStatsEntry(statsType, null, data);
         }
     },

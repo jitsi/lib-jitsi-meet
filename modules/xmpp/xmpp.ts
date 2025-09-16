@@ -5,8 +5,10 @@ import { $msg, Strophe } from 'strophe.js';
 
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
+import JitsiMeetJS from '../../JitsiMeetJS';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import { E2EEncryption } from '../e2ee/E2EEncryption';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -251,12 +253,15 @@ export const FEATURE_E2EE: string = 'https://jitsi.org/meet/e2ee';
  * @internal
  */
 export default class XMPP extends Listenable {
+    private _anonymousConnectionFailed: Optional<boolean>;
     private _components: string[];
+    private _disconnectInProgress: Optional<Promise<void>> | boolean;
+    private _lastErrorMsg: Optional<string>;
     private _preComponentsMsgs: Element[];
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
+    private _wasDisconnected: boolean;
     public connection: Nullable<XmppConnection>;
-    public disconnectInProgress: Optional<Promise<void>> | boolean;
     public connectionTimes: Record<string, number>;
     public options: IXMPPOptions;
     public token: Optional<string>;
@@ -265,9 +270,7 @@ export default class XMPP extends Listenable {
     public caps: Caps;
     public sendDiscoInfo: Optional<boolean>;
     public sendDeploymentInfo: Optional<boolean>;
-    public anonymousConnectionFailed: Optional<boolean>;
     public connectionFailed: Optional<boolean>;
-    public lastErrorMsg: Optional<string>;
     public lobbySupported: Optional<boolean>;
     public avModerationComponentAddress: Optional<string>;
     public endConferenceComponentAddress: Optional<string>;
@@ -301,7 +304,7 @@ export default class XMPP extends Listenable {
         }
 
         this.connection = null;
-        this.disconnectInProgress = false;
+        this._disconnectInProgress = false;
         this.connectionTimes = {};
         this.options = options;
         this.token = token;
@@ -877,10 +880,11 @@ export default class XMPP extends Listenable {
      * @private
      */
     private _resetState(): void {
-        this.anonymousConnectionFailed = false;
+        this._anonymousConnectionFailed = false;
         this.connectionFailed = false;
-        this.lastErrorMsg = undefined;
-        this.disconnectInProgress = undefined;
+        this._lastErrorMsg = undefined;
+        this._disconnectInProgress = undefined;
+        this._wasDisconnected = false;
     }
 
     /**
@@ -906,9 +910,7 @@ export default class XMPP extends Listenable {
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
         this.connectionTimes[statusStr] = now;
-        logger.info(
-            `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
-            now);
+        logger.info(`(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`, now);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         this._maybeSendDeploymentInfoStat();
@@ -921,6 +923,8 @@ export default class XMPP extends Listenable {
             this.sendDiscoInfo && this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
+
+            this._wasDisconnected && JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.STROPHE_RECONNECTED_EVENT);
 
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
@@ -959,25 +963,27 @@ export default class XMPP extends Listenable {
             }
         } else if (status === Strophe.Status.CONNFAIL) {
             if (msg === 'x-strophe-bad-non-anon-jid') {
-                this.anonymousConnectionFailed = true;
+                this._anonymousConnectionFailed = true;
             } else {
                 this.connectionFailed = true;
             }
-            this.lastErrorMsg = msg;
+            this._lastErrorMsg = msg;
             if (msg === 'giving-up') {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR, msg);
             }
         } else if (status === Strophe.Status.ERROR) {
-            this.lastErrorMsg = msg;
+            this._lastErrorMsg = msg;
         } else if (status === Strophe.Status.DISCONNECTED) {
+            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.STROPHE_DISCONNECTED_EVENT);
+            this._wasDisconnected = true;
             // Stop ping interval
             this.connection.ping.stopInterval();
-            const wasIntentionalDisconnect = Boolean(this.disconnectInProgress);
-            const errMsg = msg || this.lastErrorMsg;
+            const wasIntentionalDisconnect = Boolean(this._disconnectInProgress);
+            const errMsg = msg || this._lastErrorMsg;
 
-            if (this.anonymousConnectionFailed) {
+            if (this._anonymousConnectionFailed) {
                 // prompt user for username and password
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
@@ -1201,15 +1207,16 @@ export default class XMPP extends Listenable {
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
     public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean {
-        if (this.disconnectInProgress) {
-            return this.disconnectInProgress;
+        logger.info(`XMPP disconnect triggered by the event=${ev?.type}`);
+        if (this._disconnectInProgress) {
+            return this._disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {
             // we have created a connection, but never called connect we still want to resolve on calling disconnect
             // this is visitors use case when using http to send conference request.
             return Promise.resolve();
         }
 
-        this.disconnectInProgress = new Promise(resolve => {
+        this._disconnectInProgress = new Promise(resolve => {
             const disconnectListener = (credentials, status) => {
                 if (status === Strophe.Status.DISCONNECTED) {
                     this.eventEmitter.removeListener(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
@@ -1222,7 +1229,7 @@ export default class XMPP extends Listenable {
 
         this._cleanupXmppConnection(ev);
 
-        return this.disconnectInProgress;
+        return this._disconnectInProgress;
     }
 
     /**

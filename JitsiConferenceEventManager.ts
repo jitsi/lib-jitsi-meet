@@ -4,9 +4,11 @@ import { Strophe } from 'strophe.js';
 import JitsiConference from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
+import JitsiMeetJS from './JitsiMeetJS';
 import { JitsiTrackEvents } from './JitsiTrackEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
 import JibriSession from './modules/recording/JibriSession';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
@@ -505,7 +507,9 @@ export default class JitsiConferenceEventManager {
                             const speakerList = previous.slice(0);
 
                             // Add the dominant speaker to the top of the list (exclude self).
-                            if (conference.myUserId() !== dominant) {
+                            if (conference.myUserId() === dominant) {
+                                JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.DOMINANT_SPEAKER_CHANGED_EVENT);
+                            } else {
                                 speakerList.splice(0, 0, dominant);
                             }
 

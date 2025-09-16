@@ -1,6 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
+import JitsiMeetJS from '../../JitsiMeetJS';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 
 const logger = getLogger('connectivity:IceFailedHandling');
 
@@ -44,6 +46,7 @@ export default class IceFailedHandling {
             logger.info('ICE connection restored - not sending ICE failed');
         } else {
             logger.info(`Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`);
+            JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.JVB_ICE_RESTARTED_EVENT);
             this._conference._stopJvbSession({
                 reason: 'connectivity-error',
                 reasonDescription: 'ICE FAILED',

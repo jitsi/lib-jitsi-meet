@@ -1,12 +1,14 @@
 import { getLogger } from '@jitsi/logger';
 
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import JitsiMeetJS from '../../JitsiMeetJS';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RTC from '../RTC/RTC';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 
@@ -329,6 +331,11 @@ export class TrackStreamingStatusImpl {
 
             // It's common for the event listeners to access the JitsiRemoteTrack. Thus pass it as a parameter here.
             this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, this.track, newStatus);
+            if (newStatus === TrackStreamingStatus.INACTIVE) {
+                JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.REMOTE_SOURCE_SUSPENDED_EVENT);
+            } else if (newStatus === TrackStreamingStatus.INTERRUPTED) {
+                JitsiMeetJS.rtcstats.sendStatsEntry(RTCStatsEvents.REMOTE_SOURCE_INTERRUPTED_EVENT);
+            }
         }
     }
 
