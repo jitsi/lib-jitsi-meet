@@ -1,3 +1,5 @@
+import { MediaType } from '../../service/RTC/MediaType';
+
 export interface ISsrcGroupInfo {
     semantics: string;
     ssrcs: number[];
@@ -27,7 +29,7 @@ export interface IICECandidate {
 
 export interface IMediaLine {
     fmt: string[];
-    media: string;
+    media: string | MediaType;
     port: string;
     proto: string;
 }
@@ -50,6 +52,8 @@ export interface IFingerprintData {
     fingerprint: string;
     hash: string;
     required: boolean;
+    setup?: string;
+    xmlns?: string;
 }
 
 export interface IFmtpParameter {
@@ -70,11 +74,6 @@ export interface IRTPMapData {
     name: string;
 }
 
-export interface ISSRCGroupData {
-    semantics: string;
-    ssrcs: string[];
-}
-
 export interface IICEParams {
     pwd: string;
     ufrag: string;
@@ -89,4 +88,33 @@ export interface IRTPInfo {
 export interface IFMTPInfo {
     config: string;
     payload: number;
+}
+
+export interface IMediaInfo {
+    mediaType: MediaType;
+    mediaindex: number;
+    mid: string;
+    ssrcGroups: ISsrcGroup[];
+    ssrcs: { [ssrc: string]: IMediaSsrc; };
+}
+
+export interface IMediaSsrc {
+    lines: string[];
+    ssrc: string;
+}
+
+export interface ISsrcGroup {
+    semantics: string;
+    ssrcs: string[];
+}
+
+export interface IMediaSource {
+    mediaType: string;
+    mid?: string;
+    ssrcGroups: ISsrcGroup[];
+    ssrcs: { [ssrcNum: string]: IMediaSsrc; };
+}
+
+export interface IDiffSourceInfo {
+    [index: string]: IMediaSource;
 }
