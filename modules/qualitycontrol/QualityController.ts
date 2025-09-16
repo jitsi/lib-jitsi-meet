@@ -12,6 +12,8 @@ import {
 } from '../../service/RTC/StandardVideoQualitySettings';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
@@ -332,6 +334,8 @@ export class QualityController {
             if (qualityLimitationReason === QualityLimitationReason.NONE
                 && this.receiveVideoController.isLastNLimitedByCpu()) {
                 if (!this._lastNRampupTimeout && !this._isLastNRampupBlocked) {
+                    RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, false);
+
                     // Ramp up the number of received videos if CPU limitation no longer exists. If the cpu
                     // limitation returns as a consequence, do not attempt to ramp up again, continue to
                     // increment the lastN value otherwise until it is equal to the channelLastN value.
@@ -364,6 +368,7 @@ export class QualityController {
                 this._lastNRampupTimeout = undefined;
                 this._isLastNRampupBlocked = true;
             }
+            RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, true);
             const codecSwitched = this._maybeSwitchVideoCodec(trackId);
 
             if (!codecSwitched && !this._limitedByCpuTimeout) {

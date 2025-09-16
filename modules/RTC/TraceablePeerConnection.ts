@@ -12,6 +12,8 @@ import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/St
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -150,6 +152,7 @@ export default class TraceablePeerConnection {
     private _remoteSsrcMap: Map<string, ITPCSourceInfo>;
     private _lastVideoSenderUpdatePromise: Promise<void>;
     private _localUfrag: string;
+    private _pcId: string;
     private _remoteUfrag: string;
     private _signalingLayer: SignalingLayer;
     /**
@@ -292,6 +295,11 @@ export default class TraceablePeerConnection {
          * @type {number}
          */
         this.id = id;
+
+        /**
+         * RTCStats identifier for this peerconnection.
+         */
+        this._pcId = `PC_${this.id}`;
 
         /**
          * Indicates whether or not this instance is used in a peer to peer
@@ -1162,6 +1170,24 @@ export default class TraceablePeerConnection {
         }
 
         return null;
+    }
+
+    /**
+     * Sends a stats entry to the rtcstats server about the mute state change for local track.
+     *
+     * @param {JitsiLocalTrack} track - The local track.
+     * @param {boolean} muted - muted state.
+     */
+    _sendRtcStatsEvent(track: JitsiLocalTrack, muted: boolean): void {
+        const mediaType = track.getType();
+
+        if (mediaType === MediaType.AUDIO) {
+            RTCStats.sendStatsEntry(RTCStatsEvents.AUDIO_MUTE_CHANGED_EVENT, this._pcId, muted);
+        } else if (track.getVideoType() === VideoType.DESKTOP) {
+            RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, muted);
+        } else {
+            RTCStats.sendStatsEntry(RTCStatsEvents.VIDEO_MUTE_CHANGED_EVENT, this._pcId, muted);
+        }
     }
 
     /**
@@ -2107,6 +2133,11 @@ export default class TraceablePeerConnection {
             }
         }
 
+        updated && RTCStats.sendStatsEntry(RTCStatsEvents.CODEC_CHANGED_EVENT, this._pcId, {
+            camera: codecList[0],
+            screenshare: screenshareCodec
+        });
+
         return updated;
     }
 
@@ -2264,6 +2295,9 @@ export default class TraceablePeerConnection {
         return transceiver.sender.replaceTrack(track)
             .then(() => {
                 if (isMuteOperation) {
+                    // Send RTCStats events for mute operations.
+                    this._sendRtcStatsEvent((oldTrack ?? newTrack), (oldTrack && !newTrack));
+
                     return Promise.resolve();
                 }
                 if (oldTrack) {
@@ -2279,6 +2313,9 @@ export default class TraceablePeerConnection {
                     }
                     this.localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
                     this.localTracks.set(newTrack.rtcId, newTrack);
+
+                    // Send RTCStats event when the track is added for the first time.
+                    this._sendRtcStatsEvent(newTrack, false);
                 }
 
                 // Update the local SSRC cache for the case when one track gets replaced with another and no
@@ -2292,6 +2329,11 @@ export default class TraceablePeerConnection {
                         const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
 
                         newTrack.setSsrc(oldSsrcNum);
+                    }
+
+                    // When a screenshare is stopped and started again, replace track will be called.
+                    if (oldTrack.getVideoType() === VideoType.DESKTOP) {
+                        RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, false);
                     }
                 }
 
