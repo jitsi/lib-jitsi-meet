@@ -622,7 +622,7 @@ export default class SDP {
      * @param {string} payloadtype - payload type for the codec.
      */
     public rtcpFbToJingle(mediaIndex: number, elem: any, payloadtype: string): void {
-        const lines = SDPUtil.findLines(this.media[mediaIndex], `a=rtcp-fb:${payloadtype}`, '');
+        const lines = SDPUtil.findLines(this.media[mediaIndex], `a=rtcp-fb:${payloadtype}`);
 
         lines.forEach((line: string) => {
             const feedback = SDPUtil.parseRTCPFB(line);
@@ -654,7 +654,7 @@ export default class SDP {
      * @returns - The updated Jingle message element.
      */
     public toJingle(elem: any, thecreator: any): any {
-        SDPUtil.findLines(this.session, 'a=group:', '').forEach((line: string) => {
+        SDPUtil.findLines(this.session, 'a=group:').forEach((line: string) => {
             const parts = line.split(' ');
             const semantics = parts.shift().substr(8);
 
@@ -729,7 +729,7 @@ export default class SDP {
                         description.append(source);
                     }
 
-                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:', '');
+                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
 
                     ssrcGroupLines.forEach((line: string) => {
                         const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
@@ -821,7 +821,7 @@ export default class SDP {
                         elem.up();
                     }
 
-                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:', '');
+                    const ssrcGroupLines = SDPUtil.findLines(mediaItem, 'a=ssrc-group:');
 
                     ssrcGroupLines.forEach((line: string) => {
                         const { semantics, ssrcs } = SDPUtil.parseSSRCGroupLine(line);
@@ -837,7 +837,7 @@ export default class SDP {
                     });
                 }
 
-                const ridLines = SDPUtil.findLines(mediaItem, 'a=rid:', '');
+                const ridLines = SDPUtil.findLines(mediaItem, 'a=rid:');
 
                 if (ridLines.length && browser.usesRidsForSimulcast()) {
                     // Map a line which looks like "a=rid:2 send" to just the rid ("2").
