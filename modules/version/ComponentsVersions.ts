@@ -1,4 +1,5 @@
 import { getLogger } from '@jitsi/logger';
+
 import JitsiConference from '../../JitsiConference';
 
 const logger = getLogger('misc:ComponentsVersions');
