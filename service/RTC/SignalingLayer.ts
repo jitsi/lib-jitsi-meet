@@ -118,7 +118,7 @@ export default class SignalingLayer extends Listenable {
      * Obtains the info about a source for given name and endpoint ID.
      * @param {EndpointId} owner - The owner's endpoint ID.
      * @param {SourceName} sourceName - The name of the source for which the info is to be obtained.
-     * @returns {Optional<ISourceInfo>}
+     * @returns {Optional<ITPCSourceInfo>}
      */
     getPeerSourceInfo(
             owner: EndpointId, sourceName: SourceName
@@ -157,10 +157,10 @@ export default class SignalingLayer extends Listenable {
      *
      * @param {number} ssrc - An SSRC to be owned.
      * @param {string} endpointId - Owner's ID (MUC nickname).
-     * @param {string} sourceName - The related source name.
+     * @param {SourceName} sourceName - The related source name.
      * @throws TypeError if <tt>ssrc</tt> is not a number.
      */
-    setSSRCOwner(ssrc: number, endpointId: string, sourceName: string): void {
+    setSSRCOwner(ssrc: number, endpointId: string, sourceName: SourceName): void {
     }
 
     /**
