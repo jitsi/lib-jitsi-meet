@@ -58,6 +58,10 @@ export default class Moderator extends Listenable {
         // availability.
         this.sipGatewayEnabled = false;
 
+        // Response to conference request may contain whether visitors are supported
+        // in certain cases we need to know this to be able to get decisions on some errors (max-occupants reached)
+        this.visitorsSupported = false;
+
         this.xmpp = xmpp;
         this.connection = xmpp.connection;
 
@@ -412,6 +416,8 @@ export default class Moderator extends Listenable {
 
             return;
         }
+
+        this.visitorsSupported = conferenceRequest.properties['visitors-supported'];
 
         if (conferenceRequest.ready) {
             // Reset the non-error timeout (because we've succeeded here).
