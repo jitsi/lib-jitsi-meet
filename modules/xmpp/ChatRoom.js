@@ -1426,7 +1426,9 @@ export default class ChatRoom extends Listenable {
         } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
+            this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR, {
+                visitorsSupported: this.xmpp.moderator.visitorsSupported
+            });
         } else if ($(pres)
             .find(
                 '>error[type="auth"]'
