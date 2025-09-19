@@ -73,6 +73,15 @@ interface ITouchToneRequest {
     tones: string;
 }
 
+export interface ITPCSourceInfo {
+    groups?: Array<ISsrcGroupInfo>;
+    mediaType?: MediaType;
+    msid?: string;
+    ssrcList?: Array<string>;
+    ssrcs?: Array<string>;
+    videoType?: VideoType;
+}
+
 export interface ITPCOptions {
     audioQuality: IAudioQuality;
     capScreenshareBitrate: boolean;
@@ -85,13 +94,6 @@ export interface ITPCOptions {
     videoQuality: IVideoQuality;
 }
 
-interface ITPCSourceInfo {
-    groups: ISsrcGroupInfo;
-    mediaType?: MediaType;
-    msid: string;
-    ssrcList?: Array<string>;
-    videoType?: VideoType;
-}
 export interface IAudioQuality {
     enableOpusDtx?: boolean;
     opusMaxAverageBitrate?: number;

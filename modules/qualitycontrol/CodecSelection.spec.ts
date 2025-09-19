@@ -1,4 +1,3 @@
-import { ISourceInfo } from '../../JitsiParticipant';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
@@ -7,7 +6,7 @@ import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses';
 
 import { MockConference, MockLocalTrack, MockParticipant } from './MockClasses';
-import { FixedSizeArray, ISourceStats, QualityController } from './QualityController';
+import { FixedSizeArray, QualityController } from './QualityController';
 
 describe('Codec Selection', () => {
     let qualityController;
