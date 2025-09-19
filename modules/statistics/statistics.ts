@@ -17,7 +17,7 @@ import analytics from './AnalyticsAdapter';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 
-const logger = getLogger('modules/statistics/statistics');
+const logger = getLogger('stats:statistics');
 
 export type IStatisticsOptions = {
     aliasName?: string;
