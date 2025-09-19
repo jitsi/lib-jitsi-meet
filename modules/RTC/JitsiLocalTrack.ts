@@ -25,7 +25,7 @@ import JitsiTrack from './JitsiTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
-const logger = getLogger('modules/RTC/JitsiLocalTrack');
+const logger = getLogger('rtc:JitsiLocalTrack');
 
 export interface IStreamEffect {
     isEnabled: (track: JitsiLocalTrack) => boolean;

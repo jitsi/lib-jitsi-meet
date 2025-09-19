@@ -12,7 +12,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import ChatRoom, { filterNodeFromPresenceJSON } from './ChatRoom';
 
 
-const logger = getLogger('modules/xmpp/SignalingLayerImpl');
+const logger = getLogger('xmpp:SignalingLayerImpl');
 
 export const SOURCE_INFO_PRESENCE_ELEMENT = 'SourceInfo';
 
@@ -29,9 +29,9 @@ export interface IPresenceNode {
 export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * A map that stores SSRCs of remote streams and the corresponding jid and source name.
-     * @type {Map<number, { endpointId: string, sourceName: string }>}
+     * @type {Map<number, { endpointId: EndpointId, sourceName: SourceName }>}
      */
-    private _ssrcOwners: Map<number, { endpointId: string; sourceName: string; }>;
+    private _ssrcOwners: Map<number, { endpointId: EndpointId; sourceName: SourceName; }>;
 
     /**
      * @type {ChatRoom|null}

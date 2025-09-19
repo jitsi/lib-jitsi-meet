@@ -29,7 +29,7 @@ import { JingleSessionState } from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
 import XmppConnection from './XmppConnection';
 
-const logger = getLogger('modules/xmpp/JingleSessionPC');
+const logger = getLogger('xmpp:JingleSessionPC');
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout

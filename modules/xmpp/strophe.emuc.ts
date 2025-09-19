@@ -5,12 +5,12 @@ import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import $ from '../util/XMLParser';
 
-import ChatRoom from './ChatRoom';
+import ChatRoom, { IChatRoomOptions } from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
 import XmppConnection from './XmppConnection';
 import XMPP from './xmpp';
 
-const logger = getLogger('modules/xmpp/strophe.emuc');
+const logger = getLogger('xmpp:strophe.emuc');
 
 /**
  * MUC connection plugin.
@@ -68,7 +68,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param password
      * @param options
      */
-    createRoom(jid: string, password: string, options: any): ChatRoom {
+    createRoom(jid: string, password: string, options: IChatRoomOptions): ChatRoom {
         const roomJid = Strophe.getBareJidFromJid(jid);
 
         if (this.isRoomCreated(roomJid)) {

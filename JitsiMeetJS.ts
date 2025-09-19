@@ -1,10 +1,10 @@
 import Logger from '@jitsi/logger';
 import { merge } from 'lodash-es';
 
-import JitsiConference from './JitsiConference';
+import JitsiConference, { IConferenceOptions } from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
-import JitsiConnection from './JitsiConnection';
+import JitsiConnection, { IConnectionOptions } from './JitsiConnection';
 import * as JitsiConnectionErrors from './JitsiConnectionErrors';
 import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiMediaDevices from './JitsiMediaDevices';
@@ -41,7 +41,7 @@ import { E2ePingEvents } from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
 
-const logger = Logger.getLogger('JitsiMeetJS');
+const logger = Logger.getLogger('core:JitsiMeetJS');
 
 // Settin the default log levels to info early so that we avoid overriding a log level set externally.
 Logger.setLogLevel(Logger.levels.INFO);
@@ -109,13 +109,13 @@ interface ICreateLocalTrackFromMediaStreamOptions {
     mediaType: MediaType;
     sourceType: string;
     stream: MediaStream;
-    track: any;
+    track: MediaStreamTrack;
     videoType?: VideoType;
 }
 
 export interface IJoinConferenceOptions {
-    conferenceOptions?: any;
-    connectionOptions?: any;
+    conferenceOptions?: IConferenceOptions;
+    connectionOptions?: IConnectionOptions;
     jaas?: {
         release?: boolean;
         useStaging?: boolean;
@@ -478,7 +478,7 @@ const JitsiMeetJS = {
             connectionOptions = merge(connectionOptions, opts);
         }
 
-        const conn = new JitsiConnection(appId, token, connectionOptions);
+        const conn = new JitsiConnection(appId, token, connectionOptions as IConnectionOptions);
 
         function cleanupListeners() {
             conn.removeEventListener(
@@ -581,7 +581,7 @@ const JitsiMeetJS = {
          * @param {string} statsType - The type of stats to send.
          * @param {Object} data - The stats data to send.
          */
-        sendStatsEntry(statsType, data) {
+        sendStatsEntry(statsType: RTCStatsEvents, data?: Optional<any>) {
             RTCStats.sendStatsEntry(statsType, null, data);
         }
     },

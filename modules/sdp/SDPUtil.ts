@@ -7,9 +7,9 @@ import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySett
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
-import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMediaLine, IRTCPFBData, IRTPMapData, ISSRCGroupData } from './constants';
+import { ICryptoData, IExtmapData, IFingerprintData, IFmtpParameter, IICECandidate, IICEParams, IMediaLine, IRTCPFBData, IRTPMapData, ISsrcGroup } from './constants';
 
-const logger = getLogger('modules/sdp/SDPUtil');
+const logger = getLogger('sdp:SDPUtils');
 
 const SDPUtil = {
     /**
@@ -752,9 +752,9 @@ const SDPUtil = {
      * Parses the 'a=ssrc-group' line.
      *
      * @param {string} line - The media line to parse.
-     * @returns {ISSRCGroupData}
+     * @returns {ISsrcGroup}
      */
-    parseSSRCGroupLine(line: string): ISSRCGroupData {
+    parseSSRCGroupLine(line: string): ISsrcGroup {
         const parts = line.substr(13).split(' ');
 
         return {

@@ -16,7 +16,7 @@ import { isValidNumber } from '../util/MathUtil';
 
 import screenObtainer from './ScreenObtainer';
 
-const logger = getLogger('modules/RTC/RTCUtils');
+const logger = getLogger('rtc:RTCUtils');
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 

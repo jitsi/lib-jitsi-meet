@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
@@ -7,6 +8,8 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RTC from '../RTC/RTC';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 
@@ -44,7 +47,7 @@ type StreamingStatusMap = {
     videoType?: VideoType;
 };
 
-const logger = getLogger('modules/connectivity/TrackStreamingStatus');
+const logger = getLogger('connectivity:TrackStreamingStatus');
 
 /**
  * Default value of 500 milliseconds for {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.
@@ -73,7 +76,7 @@ const DEFAULT_RESTORING_TIMEOUT = 10000;
  */
 export class TrackStreamingStatusImpl {
     rtc: RTC;
-    conference: any; // TODO: needs JitsiConference type
+    conference: JitsiConference;
     track: JitsiRemoteTrack;
 
     /**  This holds the timeout callback ID scheduled using window.setTimeout. */
@@ -214,7 +217,7 @@ export class TrackStreamingStatusImpl {
      * @param {number} [options.outOfForwardedSourcesTimeout=500] custom value for
      * {@link TrackStreamingStatusImpl.outOfForwardedSourcesTimeout}.
      */
-    constructor(rtc: RTC, conference: any, track: JitsiRemoteTrack, options: {
+    constructor(rtc: RTC, conference: JitsiConference, track: JitsiRemoteTrack, options: {
         outOfForwardedSourcesTimeout: number;
         p2pRtcMuteTimeout: number;
         rtcMuteTimeout: number;
@@ -329,6 +332,11 @@ export class TrackStreamingStatusImpl {
 
             // It's common for the event listeners to access the JitsiRemoteTrack. Thus pass it as a parameter here.
             this.track.emit(JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED, this.track, newStatus);
+            if (newStatus === TrackStreamingStatus.INACTIVE) {
+                RTCStats.sendStatsEntry(RTCStatsEvents.REMOTE_SOURCE_SUSPENDED_EVENT);
+            } else if (newStatus === TrackStreamingStatus.INTERRUPTED) {
+                RTCStats.sendStatsEntry(RTCStatsEvents.REMOTE_SOURCE_INTERRUPTED_EVENT);
+            }
         }
     }
 

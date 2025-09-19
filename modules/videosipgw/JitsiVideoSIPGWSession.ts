@@ -6,7 +6,7 @@ import ChatRoom from '../xmpp/ChatRoom';
 
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
-const logger = getLogger('modules/videosipgw/JitsiVideoSIPGWSession');
+const logger = getLogger('videosipgw:JitsiVideoSIPGWSession');
 
 /**
  * The event name for current sip video session state changed.
