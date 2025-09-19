@@ -1,5 +1,6 @@
 import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+import JitsiParticipant from '../../JitsiParticipant';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import { type IFaceLandmarks, default as SpeakerStats } from './SpeakerStats';
@@ -67,7 +68,7 @@ export default class SpeakerStatsCollector {
 
         conference.on(
             JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-                (participant: any, { type, faceLandmarks }: IFaceLandmarkMessage) => {
+                (participant: JitsiParticipant, { type, faceLandmarks }: IFaceLandmarkMessage) => {
                     if (type === FACE_LANDMARK_MESSAGE_TYPE) {
                         this._onFaceLandmarkAdd(participant.getId(), faceLandmarks);
                     }
@@ -107,7 +108,7 @@ export default class SpeakerStatsCollector {
      * @returns {void}
      * @private
      */
-    _onUserJoin(userId: string, participant: any): void {
+    _onUserJoin(userId: string, participant: JitsiParticipant): void {
         if (participant.isHidden()) {
             return;
         }
@@ -153,11 +154,11 @@ export default class SpeakerStatsCollector {
      * Processes a new face landmark object of a remote user.
      *
      * @param {string} userId - The user id of the user that left.
-     * @param {Object} data - The face landmark object.
+     * @param {IFaceLandmarks} data - The face landmark object.
      * @returns {void}
      * @private
      */
-    _onFaceLandmarkAdd(userId: string, data: any): void {
+    _onFaceLandmarkAdd(userId: string, data: IFaceLandmarks): void {
         const savedUser = this.stats.users[userId];
 
         if (savedUser && data) {

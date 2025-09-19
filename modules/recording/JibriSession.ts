@@ -2,13 +2,14 @@ import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
 import JitsiParticipant from '../../JitsiParticipant';
+import XmppConnection from '../xmpp/XmppConnection';
 
 import { getSessionIdFromIq } from './recordingXMLUtils';
 
 const logger = getLogger('recording:JibriSession');
 
 export interface IJibriSessionOptions {
-    connection?: any;
+    connection?: XmppConnection;
     focusMucJid?: string;
     mode?: string;
     sessionID?: string;
@@ -38,7 +39,7 @@ export interface IQOptions {
  * Represents a recording session.
  */
 export default class JibriSession {
-    private _connection?: any;
+    private _connection?: XmppConnection;
     private _mode?: string;
     private _jibriJid: Nullable<string> = null;
     private _statusFromJicofo: string = '';

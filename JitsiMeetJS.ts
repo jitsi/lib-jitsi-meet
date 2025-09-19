@@ -1,10 +1,10 @@
 import Logger from '@jitsi/logger';
 import { merge } from 'lodash-es';
 
-import JitsiConference from './JitsiConference';
+import JitsiConference, { IConferenceOptions } from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
-import JitsiConnection from './JitsiConnection';
+import JitsiConnection, { IConnectionOptions } from './JitsiConnection';
 import * as JitsiConnectionErrors from './JitsiConnectionErrors';
 import { JitsiConnectionEvents } from './JitsiConnectionEvents';
 import JitsiMediaDevices from './JitsiMediaDevices';
@@ -105,13 +105,13 @@ interface ICreateLocalTrackFromMediaStreamOptions {
     mediaType: MediaType;
     sourceType: string;
     stream: MediaStream;
-    track: any;
+    track: MediaStreamTrack;
     videoType?: VideoType;
 }
 
 export interface IJoinConferenceOptions {
-    conferenceOptions?: any;
-    connectionOptions?: any;
+    conferenceOptions?: IConferenceOptions;
+    connectionOptions?: IConnectionOptions;
     jaas?: {
         release?: boolean;
         useStaging?: boolean;
@@ -474,7 +474,7 @@ const JitsiMeetJS = {
             connectionOptions = merge(connectionOptions, opts);
         }
 
-        const conn = new JitsiConnection(appId, token, connectionOptions);
+        const conn = new JitsiConnection(appId, token, connectionOptions as IConnectionOptions);
 
         function cleanupListeners() {
             conn.removeEventListener(
