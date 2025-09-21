@@ -4,7 +4,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import browser from '../browser';
 
-const logger = getLogger('modules/RTC/ScreenObtainer');
+const logger = getLogger('rtc:ScreenObtainer');
 
 /**
  * Interface for desktop sharing frame rate configuration.

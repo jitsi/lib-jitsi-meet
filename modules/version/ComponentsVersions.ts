@@ -1,13 +1,15 @@
 import { getLogger } from '@jitsi/logger';
 
-const logger = getLogger('modules/version/ComponentsVersions');
+import JitsiConference from '../../JitsiConference';
+
+const logger = getLogger('misc:ComponentsVersions');
 
 /**
  * Discovers component versions in a conference.
  */
 export default class ComponentsVersions {
     versions: { [key: string]: string; };
-    conference: any;
+    conference: JitsiConference;
 
     /**
      * Creates new instance of <tt>ComponentsVersions</tt> which will be discovering

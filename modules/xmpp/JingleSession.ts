@@ -11,7 +11,7 @@ import { JingleSessionState } from './JingleSessionState';
 import SignalingLayerImpl from './SignalingLayerImpl';
 import XmppConnection from './XmppConnection';
 
-const logger = getLogger('modules/xmpp/JingleSession');
+const logger = getLogger('xmpp:JingleSession');
 
 /**
  * JingleSession provides an API to manage a single Jingle session. We will

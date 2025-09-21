@@ -96,7 +96,8 @@ describe('JitsiConference', () => {
                 'Visitor Name',                      // displayName
                 true,                                // isVisitor
                 'msg123',                           // messageId
-                undefined                           // source (undefined for visitor)
+                undefined,                          // source (undefined for visitor)
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -107,7 +108,8 @@ describe('JitsiConference', () => {
                 'Visitor Name',         // displayName
                 true,                   // isVisitor
                 'msg123',              // messageId
-                undefined              // source (undefined for visitor)
+                undefined,             // source (undefined for visitor)
+                undefined              // replyToId
             );
         });
 
@@ -125,7 +127,8 @@ describe('JitsiConference', () => {
                 'Token User',                        // displayName
                 false,                               // isVisitor
                 'msg124',                           // messageId
-                'token'                             // source
+                'token',                            // source
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -136,7 +139,8 @@ describe('JitsiConference', () => {
                 'Token User',           // displayName
                 false,                  // isVisitor
                 'msg124',              // messageId
-                'token'                // source
+                'token',               // source
+                undefined              // replyToId
             );
         });
 
@@ -154,7 +158,8 @@ describe('JitsiConference', () => {
                 'Guest User',                        // displayName
                 false,                               // isVisitor
                 'msg125',                           // messageId
-                'guest'                             // source
+                'guest',                            // source
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -165,7 +170,8 @@ describe('JitsiConference', () => {
                 'Guest User',           // displayName
                 false,                  // isVisitor
                 'msg125',              // messageId
-                'guest'                // source
+                'guest',               // source
+                undefined              // replyToId
             );
         });
 
@@ -183,7 +189,8 @@ describe('JitsiConference', () => {
                 undefined,                           // displayName
                 false,                               // isVisitor
                 'msg126',                           // messageId
-                undefined                           // source
+                undefined,                          // source
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -194,7 +201,8 @@ describe('JitsiConference', () => {
                 undefined,              // displayName
                 false,                  // isVisitor
                 'msg126',              // messageId
-                undefined              // source
+                undefined,             // source
+                undefined              // replyToId
             );
         });
 
@@ -212,7 +220,8 @@ describe('JitsiConference', () => {
                 'msg127',                           // messageId
                 'Visitor Name',                     // displayName
                 true,                               // isVisitor
-                'original@visitor.com'              // ofrom (originalFrom)
+                'original@visitor.com',             // ofrom (originalFrom)
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -222,7 +231,8 @@ describe('JitsiConference', () => {
                 1234567893,                    // ts
                 'msg127',                     // messageId
                 'Visitor Name',               // displayName
-                true                          // isVisitor
+                true,                         // isVisitor
+                undefined                     // replyToId
             );
         });
 
@@ -240,7 +250,8 @@ describe('JitsiConference', () => {
                 'msg128',                           // messageId
                 undefined,                          // displayName
                 false,                              // isVisitor
-                undefined                           // ofrom
+                undefined,                          // ofrom
+                undefined                           // replyToId
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -250,7 +261,8 @@ describe('JitsiConference', () => {
                 1234567894,                    // ts
                 'msg128',                     // messageId
                 undefined,                    // displayName
-                false                         // isVisitor
+                false,                        // isVisitor
+                undefined                     // replyToId
             );
         });
     });

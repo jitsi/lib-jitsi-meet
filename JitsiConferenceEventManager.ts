@@ -7,6 +7,8 @@ import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import { JitsiTrackEvents } from './JitsiTrackEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import RTCStats from './modules/RTCStats/RTCStats';
+import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
 import JibriSession from './modules/recording/JibriSession';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
@@ -26,7 +28,7 @@ import {
 } from './service/statistics/AnalyticsEvents';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
-const logger = getLogger('JitsiConferenceEventManager');
+const logger = getLogger('core:JitsiConferenceEventManager');
 
 /**
  * Setups all event listeners related to conference
@@ -381,12 +383,12 @@ export default class JitsiConferenceEventManager {
 
             // eslint-disable-next-line max-params
             (jid: string, txt: string, myJid: string, ts: number,
-                    displayName: string, isVisitor: boolean, messageId: string, source: string) => {
+                    displayName: string, isVisitor: boolean, messageId: string, source: string, replyToId?: string) => {
                 const participantId = Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.MESSAGE_RECEIVED,
-                    participantId, txt, ts, displayName, isVisitor, messageId, source);
+                    participantId, txt, ts, displayName, isVisitor, messageId, source, replyToId);
             });
 
         chatRoom.addListener(
@@ -405,12 +407,12 @@ export default class JitsiConferenceEventManager {
 
             // eslint-disable-next-line max-params
             (jid: string, txt: string, myJid: string, ts: number, messageId: string,
-                    displayName: string, isVisitor: boolean, ofrom: string) => {
+                    displayName: string, isVisitor: boolean, ofrom: string, replyToId?: string) => {
                 const participantId = isVisitor ? ofrom : Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
-                    participantId, txt, ts, messageId, displayName, isVisitor);
+                    participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
@@ -505,7 +507,9 @@ export default class JitsiConferenceEventManager {
                             const speakerList = previous.slice(0);
 
                             // Add the dominant speaker to the top of the list (exclude self).
-                            if (conference.myUserId() !== dominant) {
+                            if (conference.myUserId() === dominant) {
+                                RTCStats.sendStatsEntry(RTCStatsEvents.DOMINANT_SPEAKER_CHANGED_EVENT);
+                            } else {
                                 speakerList.splice(0, 0, dominant);
                             }
 

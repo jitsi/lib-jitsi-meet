@@ -13,7 +13,7 @@ import { isValidNumber } from '../util/MathUtil';
 import JitsiTrack from './JitsiTrack';
 import RTC from './RTC';
 
-const logger = getLogger('modules/RTC/JitsiRemoteTrack');
+const logger = getLogger('rtc:JitsiRemoteTrack');
 
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;

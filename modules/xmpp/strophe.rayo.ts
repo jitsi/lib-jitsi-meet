@@ -5,7 +5,7 @@ import $ from '../util/XMLParser';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
-const logger = getLogger('modules/xmpp/strophe.rayo');
+const logger = getLogger('xmpp:strophe.rayo');
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 

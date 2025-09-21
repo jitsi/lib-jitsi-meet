@@ -11,8 +11,9 @@ import { ConnectionQualityEvents } from '../../service/connectivity/ConnectionQu
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import EventEmitter from '../util/EventEmitter';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 
-const logger = getLogger('modules/connectivity/ConnectionQuality');
+const logger = getLogger('connectivity:ConnectionQuality');
 
 /**
  * The value to use for the "type" field for messages sent by ConnectionQuality
@@ -105,14 +106,6 @@ export interface ILocalStats {
     serverRegion?: string;
 }
 
-export interface IConnectionQualityOptions {
-    config: {
-        disableLocalStats: boolean;
-        disableLocalStatsBroadcast: boolean;
-        pcStatsInterval: number;
-    };
-}
-
 export type IRemoteStats = Pick<
     ILocalStats,
     'bitrate' | 'connectionQuality' | 'jvbRTT' | 'maxEnabledResolution' | 'packetLoss' | 'serverRegion'
@@ -129,7 +122,7 @@ export default class ConnectionQuality {
     private _conference: JitsiConference;
     private _localStats: ILocalStats;
     private _lastConnectionQualityUpdate: number;
-    private _options: any;
+    private _options: IConferenceOptions;
     private _remoteStats: { [key: string]: any; };
     private _timeIceConnected: number;
     private _timeVideoUnmuted: number;
@@ -140,7 +133,7 @@ export default class ConnectionQuality {
      * @param eventEmitter
      * @param options
      */
-    constructor(conference: JitsiConference, eventEmitter: EventEmitter, options: IConferenceOptions | IConnectionQualityOptions) {
+    constructor(conference: JitsiConference, eventEmitter: EventEmitter, options: IConferenceOptions) {
         this.eventEmitter = eventEmitter;
 
         /**
@@ -204,7 +197,7 @@ export default class ConnectionQuality {
 
         conference.room.addListener(
             XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
-            (jingleSession: any, newState: string) => {
+            (jingleSession: JingleSessionPC, newState: string) => {
                 if (!jingleSession.isP2P && newState === 'connected') {
                     this._timeIceConnected = window.performance.now();
                 }

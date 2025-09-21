@@ -59,7 +59,7 @@ interface IRoomMember {
 }
 
 // Options interface for ChatRoom constructor
-interface IChatRoomOptions {
+export interface IChatRoomOptions {
     deploymentInfo?: any;
     disableDiscoInfo?: boolean;
     disableFocus?: boolean;
@@ -95,7 +95,7 @@ interface IPeerMediaInfo {
     videoType?: VideoType | string;
 }
 
-const logger = getLogger('modules/xmpp/ChatRoom');
+const logger = getLogger('xmpp:ChatRoom');
 
 /**
  * Regex that matches all emojis.
@@ -418,6 +418,23 @@ export default class ChatRoom extends Listenable {
 
         this.joined = false;
         this.inProgressEmitted = false;
+    }
+
+    /**
+     * Parses XEP-0461 reply message information from a message stanza.
+     * @param {Element} msg - The message stanza.
+     * @returns {string|null} The ID of the message being replied to, or null if not a reply.
+     * @private
+     */
+    private _parseReplyMessage(msg: Element): string | null {
+        const replyEl = $(msg).find('>reply');
+
+        if (replyEl.length > 0) {
+
+            return replyEl.attr('to') || null;
+        }
+
+        return null;
     }
 
     /**
@@ -1094,8 +1111,9 @@ export default class ChatRoom extends Listenable {
      * Send text message to the other participants in the conference
      * @param message
      * @param elementName
+     * @param replyToId
      */
-    public sendMessage(message: string, elementName: string): void {
+    public sendMessage(message: string, elementName: string, replyToId?: string): void {
         const msg = $msg({
             to: this.roomjid,
             type: 'groupchat'
@@ -1108,6 +1126,10 @@ export default class ChatRoom extends Listenable {
             msg.c(elementName, {}, message);
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
+        }
+
+        if (replyToId) {
+            msg.up().c('reply', { to: replyToId });
         }
 
         this.connection.send(msg);
@@ -1146,8 +1168,10 @@ export default class ChatRoom extends Listenable {
      * @param id id/muc resource of the receiver
      * @param message
      * @param elementName
+     * @param useDirectJid
+     * @param replyToId
      */
-    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false): void {
+    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
         const msg = $msg({ to: targetJid,
             type: 'chat' });
@@ -1160,6 +1184,10 @@ export default class ChatRoom extends Listenable {
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
                 .up();
+        }
+
+        if (replyToId) {
+            msg.c('reply', { to: replyToId });
         }
 
         this.connection.send(msg);
@@ -1435,6 +1463,7 @@ export default class ChatRoom extends Listenable {
         if (txt) {
 
             const messageId = $(msg).attr('id') || uuidv4();
+            const replyToId = this._parseReplyMessage(msg);
 
             const displayNameEl = $(msg).find('>display-name[xmlns="http://jitsi.org/protocol/display-name"]');
             const isVisitorMessage = displayNameEl.length > 0 && displayNameEl.attr('source') === 'visitor';
@@ -1459,7 +1488,7 @@ export default class ChatRoom extends Listenable {
                 }
 
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                        from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom);
+                        from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
             } else if (type === 'groupchat') {
                 const displayName = displayNameEl.length > 0 ? displayNameEl.text() : undefined;
                 const source = isVisitorMessage ? undefined : displayNameEl.attr('source');
@@ -1467,7 +1496,7 @@ export default class ChatRoom extends Listenable {
                 // we will fire explicitly that this is a visitor(isVisitor:true) to the conference
                 // a message with explicit name set
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                    from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source);
+                    from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source, replyToId);
             }
         }
     }
@@ -1557,7 +1586,9 @@ export default class ChatRoom extends Listenable {
         } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
+            this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR, {
+                visitorsSupported: this.xmpp.moderator.visitorsSupported
+            });
         } else if ($(pres)
             .find(
                 '>error[type="auth"]'

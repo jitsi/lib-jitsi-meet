@@ -12,7 +12,7 @@ const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
-const logger = getLogger('modules/xmpp/moderator');
+const logger = getLogger('xmpp:Moderator');
 
 /**
  * Exponential backoff timer.
@@ -57,6 +57,10 @@ export default class Moderator extends Listenable {
         // Whether SIP gateway (jigasi) support is enabled. TODO: use presence so it can be changed based on jigasi
         // availability.
         this.sipGatewayEnabled = false;
+
+        // Response to conference request may contain whether visitors are supported
+        // in certain cases we need to know this to be able to get decisions on some errors (max-occupants reached)
+        this.visitorsSupported = false;
 
         this.xmpp = xmpp;
         this.connection = xmpp.connection;
@@ -412,6 +416,8 @@ export default class Moderator extends Listenable {
 
             return;
         }
+
+        this.visitorsSupported = conferenceRequest.properties['visitors-supported'];
 
         if (conferenceRequest.ready) {
             // Reset the non-error timeout (because we've succeeded here).

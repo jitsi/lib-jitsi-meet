@@ -1,4 +1,5 @@
 import RTCStats from './RTCStats';
+import { RTCStatsEvents } from './RTCStatsEvents';
 
 /**
  * The default log storage implementation.
@@ -34,6 +35,6 @@ export default class DefaultLogStorage {
      * @returns {void}
      */
     storeLogs(logEntries: Array<string | any>) {
-        RTCStats.sendStatsEntry('logs', null, logEntries);
+        RTCStats.sendStatsEntry(RTCStatsEvents.LOG_EVENT, null, logEntries);
     }
 }

@@ -1,7 +1,17 @@
 import FeatureFlags from '../flags/FeatureFlags';
 import Listenable from '../util/Listenable';
+import JingleSessionPC from '../xmpp/JingleSessionPC';
 
 import ReceiveVideoController from './ReceiveVideoController';
+
+/**
+ * Mock conference options interface for testing.
+ */
+export interface IMockConferenceOptions {
+    config: {
+        [key: string]: any;
+    };
+}
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
@@ -9,6 +19,11 @@ import ReceiveVideoController from './ReceiveVideoController';
  * Mock conference for the purpose of this test file.
  */
 class MockConference extends Listenable {
+
+    options: IMockConferenceOptions;
+    activeMediaSession: JingleSessionPC | undefined;
+    mediaSessions: JingleSessionPC[];
+
     /**
      * A constructor...
      */
@@ -22,7 +37,7 @@ class MockConference extends Listenable {
         this.mediaSessions = [];
     }
 
-    getMediaSessions() {
+    getMediaSessions(): JingleSessionPC[] {
         return this.mediaSessions;
     }
 }

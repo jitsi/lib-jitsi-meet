@@ -12,6 +12,8 @@ import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/St
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
@@ -30,11 +32,10 @@ import JitsiRemoteTrack from './JitsiRemoteTrack';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import { SS_DEFAULT_FRAME_RATE } from './ScreenObtainer';
-import { ITPCSourceInfo } from './SourceInfo';
-import { TPCUtils } from './TPCUtils';
+import { ICodecConfig, TPCUtils } from './TPCUtils';
 
 
-const logger = getLogger('modules/RTC/TraceablePeerConnection');
+const logger = getLogger('rtc:TraceablePeerConnection');
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 
@@ -55,7 +56,9 @@ interface ILegacyStatsResponse {
 }
 export interface IRTCRtpEncodingParameters extends RTCRtpEncodingParameters {
     codec?: RTCRtpCodec;
-    degradationPreference?: string; // Firefox only supports the non-standard way.
+    degradationPreference?: string;
+    rid: string;
+    // Firefox only supports the non-standard way.
     scalabilityMode?: VideoEncoderScalabilityMode;
 }
 
@@ -68,6 +71,15 @@ interface ITouchToneRequest {
     duration: number;
     interToneGap: number;
     tones: string;
+}
+
+export interface ITPCSourceInfo {
+    groups?: Array<ISsrcGroupInfo>;
+    mediaType?: MediaType;
+    msid?: string;
+    ssrcList?: Array<string>;
+    ssrcs?: Array<string>;
+    videoType?: VideoType;
 }
 
 export interface ITPCOptions {
@@ -83,13 +95,24 @@ export interface ITPCOptions {
 }
 
 export interface IAudioQuality {
+    enableOpusDtx?: boolean;
     opusMaxAverageBitrate?: number;
     stereo?: boolean;
 }
 
 export interface IVideoQuality {
+    desktopbitrate?: number;
     maxBitratesVideo?: Record<string, number>;
     preferredCodec?: CodecMimeType;
+    [CodecMimeType.AV1]?: ICodecConfig;
+    [CodecMimeType.H264]?: ICodecConfig;
+    [CodecMimeType.VP8]?: ICodecConfig;
+    [CodecMimeType.VP9]?: ICodecConfig;
+    maxbitratesvideo?: {
+        [codec: string]: {
+            [quality: string]: number;
+        };
+    };
 }
 
 export interface ICodecSettings {
@@ -125,16 +148,19 @@ export default class TraceablePeerConnection {
     private _dtmfSender?: RTCDTMFSender;
     private _dtmfTonesQueue: ITouchToneRequest[];
     private _dtlsTransport?: RTCDtlsTransport;
-    private _capScreenshareBitrate: boolean;
     private _usesCodecSelectionAPI: boolean;
     private _senderMaxHeights: Map<string, number>;
     private _localSsrcMap?: Map<string, ISsrcInfo>;
     private _remoteSsrcMap: Map<string, ITPCSourceInfo>;
     private _lastVideoSenderUpdatePromise: Promise<void>;
     private _localUfrag: string;
+    private _pcId: string;
     private _remoteUfrag: string;
     private _signalingLayer: SignalingLayer;
-
+    /**
+     * @internal
+     */
+    _capScreenshareBitrate: boolean;
     /**
      * @internal
      */
@@ -271,6 +297,11 @@ export default class TraceablePeerConnection {
          * @type {number}
          */
         this.id = id;
+
+        /**
+         * RTCStats identifier for this peerconnection.
+         */
+        this._pcId = `PC_${this.id}`;
 
         /**
          * Indicates whether or not this instance is used in a peer to peer
@@ -649,7 +680,7 @@ export default class TraceablePeerConnection {
             return;
         }
 
-        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack);
+        parameters.encodings = this.tpcUtils.getStreamEncodings(localTrack) as RTCRtpEncodingParameters[];
         await transceiver.sender.setParameters(parameters);
     };
 
@@ -914,7 +945,7 @@ export default class TraceablePeerConnection {
 
         // Calculate the encodings active state based on the resolution requested by the bridge.
         const codecForCamera = preferredCodec ?? this.tpcUtils.getConfiguredVideoCodec(localVideoTrack);
-        const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera) : codecForCamera;
+        const codec = isScreensharingTrack ? this._getPreferredCodecForScreenshare(codecForCamera as CodecMimeType) : codecForCamera as CodecMimeType;
         const activeState = this.tpcUtils.calculateEncodingsActiveState(localVideoTrack, codec, frameHeight);
         let bitrates = this.tpcUtils.calculateEncodingsBitrates(localVideoTrack, codec, frameHeight);
         const scalabilityModes = this.tpcUtils.calculateEncodingsScalabilityMode(localVideoTrack, codec, frameHeight);
@@ -936,7 +967,7 @@ export default class TraceablePeerConnection {
 
         for (const idx in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(idx)) {
-                const encoding: IRTCRtpEncodingParameters = parameters.encodings[idx];
+                const encoding = parameters.encodings[idx] as IRTCRtpEncodingParameters;
                 const {
                     active = undefined,
                     codec: currentCodec = undefined,
@@ -1144,6 +1175,24 @@ export default class TraceablePeerConnection {
     }
 
     /**
+     * Sends a stats entry to the rtcstats server about the mute state change for local track.
+     *
+     * @param {JitsiLocalTrack} track - The local track.
+     * @param {boolean} muted - muted state.
+     */
+    _sendRtcStatsEvent(track: JitsiLocalTrack, muted: boolean): void {
+        const mediaType = track.getType();
+
+        if (mediaType === MediaType.AUDIO) {
+            RTCStats.sendStatsEntry(RTCStatsEvents.AUDIO_MUTE_CHANGED_EVENT, this._pcId, muted);
+        } else if (track.getVideoType() === VideoType.DESKTOP) {
+            RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, muted);
+        } else {
+            RTCStats.sendStatsEntry(RTCStatsEvents.VIDEO_MUTE_CHANGED_EVENT, this._pcId, muted);
+        }
+    }
+
+    /**
      * Handles remote source mute and unmute changed events.
      *
      * @param {string} sourceName - The name of the remote source.
@@ -1233,8 +1282,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn(): boolean {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled
-            && this.tpcUtils.supportsDDHeaderExt;
+        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
@@ -1280,7 +1328,7 @@ export default class TraceablePeerConnection {
     doesTrueSimulcast(localTrack: JitsiLocalTrack): boolean {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
-        return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec);
+        return this.isSpatialScalabilityOn() && this.tpcUtils.isRunningInSimulcastMode(currentCodec as CodecMimeType);
     }
 
     /**
@@ -1299,7 +1347,7 @@ export default class TraceablePeerConnection {
         const ssrcGroup = this.isSpatialScalabilityOn() ? SSRC_GROUP_SEMANTICS.SIM : SSRC_GROUP_SEMANTICS.FID;
 
         return this.localSSRCs.get(localTrack.rtcId)
-        ?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
+            ?.groups?.find(group => group.semantics === ssrcGroup)?.ssrcs || ssrcs;
     }
 
     /**
@@ -1763,7 +1811,7 @@ export default class TraceablePeerConnection {
 
                 if (ssrcGroups?.length) {
                     for (const group of ssrcGroups) {
-                        const parsedGroup: ISsrcGroupInfo = {
+                        const parsedGroup = {
                             semantics: group.semantics,
                             ssrcs: group.ssrcs.split(' ').map(ssrcStr => parseInt(ssrcStr, 10))
                         };
@@ -2087,6 +2135,11 @@ export default class TraceablePeerConnection {
             }
         }
 
+        updated && RTCStats.sendStatsEntry(RTCStatsEvents.CODEC_CHANGED_EVENT, this._pcId, {
+            camera: codecList[0],
+            screenshare: screenshareCodec
+        });
+
         return updated;
     }
 
@@ -2244,6 +2297,9 @@ export default class TraceablePeerConnection {
         return transceiver.sender.replaceTrack(track)
             .then(() => {
                 if (isMuteOperation) {
+                    // Send RTCStats events for mute operations.
+                    this._sendRtcStatsEvent((oldTrack ?? newTrack), (oldTrack && !newTrack));
+
                     return Promise.resolve();
                 }
                 if (oldTrack) {
@@ -2259,6 +2315,9 @@ export default class TraceablePeerConnection {
                     }
                     this.localTrackTransceiverMids.set(newTrack.rtcId, transceiver?.mid?.toString());
                     this.localTracks.set(newTrack.rtcId, newTrack);
+
+                    // Send RTCStats event when the track is added for the first time.
+                    this._sendRtcStatsEvent(newTrack, false);
                 }
 
                 // Update the local SSRC cache for the case when one track gets replaced with another and no
@@ -2272,6 +2331,11 @@ export default class TraceablePeerConnection {
                         const oldSsrcNum = this._extractPrimarySSRC(oldTrackSSRC);
 
                         newTrack.setSsrc(oldSsrcNum);
+                    }
+
+                    // When a screenshare is stopped and started again, replace track will be called.
+                    if (oldTrack.getVideoType() === VideoType.DESKTOP) {
+                        RTCStats.sendStatsEntry(RTCStatsEvents.SCREENSHARE_MUTE_CHANGED_EVENT, this._pcId, false);
                     }
                 }
 

@@ -6,7 +6,7 @@ import JitsiConference from '../../JitsiConference';
 import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
-const logger = getLogger('modules/qualitycontrol/ReceiveAudioController');
+const logger = getLogger('qc:ReceiveAudioController');
 
 /**
  * Controller for managing audio subscriptions in a Jitsi conference. It allows subscribing to remote audio streams

@@ -8,7 +8,7 @@ import EventEmitter from '../util/EventEmitter';
 import { DetectionEvents } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 
-const logger = getLogger('modules/detection/VADAudioAnalyser');
+const logger = getLogger('vad:VADAudioAnalyser');
 
 /**
  * Sample rate of TrackVADEmitter, it defines how many audio samples are processed at a time.

@@ -7,7 +7,7 @@ import { ASSUMED_BANDWIDTH_BPS, LAST_N_UNLIMITED } from '../../service/RTC/Stand
 import RTC from '../RTC/RTC';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
-const logger = getLogger('modules/qualitycontrol/ReceiveVideoController');
+const logger = getLogger('qc:ReceiveVideoController');
 const MAX_HEIGHT = 2160;
 
 export interface IReceiverVideoConstraint {

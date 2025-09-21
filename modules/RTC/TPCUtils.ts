@@ -1,6 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 import { cloneDeep } from 'lodash-es';
-import transform from 'sdp-transform';
+import transform, { type SessionDescription } from 'sdp-transform';
 
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
@@ -17,14 +17,40 @@ import { VideoType } from '../../service/RTC/VideoType';
 import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
-const logger = getLogger('modules/RTC/TPCUtils');
+import JitsiLocalTrack from './JitsiLocalTrack';
+import TraceablePeerConnection, { IAudioQuality, IRTCRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
+
+const logger = getLogger('rtc:TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
+
+
+// Codec configuration interface (reusable for all video codecs)
+export interface ICodecConfig {
+    maxBitratesVideo?: {
+        [key: string]: number;
+    };
+    scalabilityModeEnabled?: boolean;
+    useKSVC?: boolean;
+    useSimulcast?: boolean;
+}
+
+export interface ITPCUtilsOptions {
+    audioQuality?: IAudioQuality;
+    isP2P?: boolean;
+    videoQuality?: IVideoQuality;
+}
 
 /**
  * Handles all the utility functions for the TraceablePeerConnection class, like calculating the encoding parameters,
  * determining the media direction, calculating bitrates based on the current codec settings, etc.
  */
 export class TPCUtils {
+    private pc: TraceablePeerConnection;
+    private options: ITPCUtilsOptions;
+    /**
+     * @internal
+     */
+    codecSettings: IVideoQuality;
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
@@ -34,17 +60,10 @@ export class TPCUtils {
      * @param options.isP2P - whether the connection is a P2P connection.
      * @param options.videoQuality - the video quality settings that are used to calculate the encoding parameters.
      */
-    constructor(peerconnection, options = {}) {
+    constructor(peerconnection: TraceablePeerConnection, options: ITPCUtilsOptions = {}) {
         this.pc = peerconnection;
         this.options = options;
         this.codecSettings = cloneDeep(STANDARD_CODEC_SETTINGS);
-
-        /**
-         * Flag indicating bridge support for AV1 codec. On the bridge connection, it is supported only when support for
-         * Dependency Descriptor header extensions is offered by Jicofo. H.264 simulcast is also possible when these
-         * header extensions are negotiated.
-         */
-        this.supportsDDHeaderExt = false;
 
         /**
          * Reads videoQuality settings from config.js and overrides the code defaults for video codecs.
@@ -57,8 +76,7 @@ export class TPCUtils {
                 const bitrateSettings = codecConfig?.maxBitratesVideo
 
                     // Read the deprecated settings for max bitrates.
-                    ?? (videoQualitySettings.maxbitratesvideo
-                        && videoQualitySettings.maxbitratesvideo[codec.toUpperCase()]);
+                    ?? (videoQualitySettings?.maxbitratesvideo?.[codec.toUpperCase()]);
 
                 if (bitrateSettings) {
                     const settings = Object.values(VIDEO_QUALITY_SETTINGS);
@@ -100,7 +118,7 @@ export class TPCUtils {
      * @returns {Object} configuration.
      * @private
      */
-    _calculateActiveEncodingParams(localVideoTrack, codec, newHeight) {
+    private _calculateActiveEncodingParams(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): IRTCRtpEncodingParameters {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const trackCaptureHeight = localVideoTrack.getCaptureResolution();
         const effectiveNewHeight = newHeight > trackCaptureHeight ? trackCaptureHeight : newHeight;
@@ -127,9 +145,10 @@ export class TPCUtils {
             }
         }
 
-        const config = {
+        const config: IRTCRtpEncodingParameters = {
             active: effectiveNewHeight > 0,
             maxBitrate,
+            rid: undefined,
             scalabilityMode,
             scaleResolutionDownBy
         };
@@ -160,17 +179,17 @@ export class TPCUtils {
     /**
      * Returns the codecs in the current order of preference in the SDP provided.
      *
-     * @param {transform.SessionDescription} parsedSdp the parsed SDP object.
+     * @param {SessionDescription} parsedSdp the parsed SDP object.
      * @returns {Array<CodecMimeType>}
      * @private
      */
-    _getConfiguredVideoCodecsImpl(parsedSdp) {
+    private _getConfiguredVideoCodecsImpl(parsedSdp: SessionDescription): CodecMimeType[] {
         const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
         const codecs = new Set(mLine.rtp
             .filter(pt => pt.codec.toLowerCase() !== 'rtx')
             .map(pt => pt.codec.toLowerCase()));
 
-        return Array.from(codecs);
+        return Array.from(codecs) as CodecMimeType[];
     }
 
     /**
@@ -191,7 +210,7 @@ export class TPCUtils {
      * @returns {Array<Object>} - The initial configuration for the stream encodings.
      * @private
      */
-    _getVideoStreamEncodings(localTrack, codec) {
+    private _getVideoStreamEncodings(localTrack: JitsiLocalTrack, codec: string): Partial<IRTCRtpEncodingParameters>[] {
         const captureResolution = localTrack.getCaptureResolution();
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const videoType = localTrack.getVideoType();
@@ -226,7 +245,7 @@ export class TPCUtils {
             effectiveScaleFactors = effectiveScaleFactors.reverse();
         }
 
-        const standardSimulcastEncodings = [
+        const standardSimulcastEncodings: IRTCRtpEncodingParameters[] = [
             {
                 active: this.pc.videoTransferActive,
                 maxBitrate: effectiveBitrates[0],
@@ -290,7 +309,7 @@ export class TPCUtils {
      * @returns boolean - true if the video encoder is running in full SVC mode, false otherwise.
      * @private
      */
-    _isRunningInFullSvcMode(codec) {
+    private _isRunningInFullSvcMode(codec: CodecMimeType): boolean {
         return (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1)
             && this.codecSettings[codec].scalabilityModeEnabled
             && !this.codecSettings[codec].useSimulcast;
@@ -308,7 +327,7 @@ export class TPCUtils {
      * @returns {boolean} - true if the bitrate needs to be capped for the screenshare track, false otherwise.
      * @private
      */
-    _isScreenshareBitrateCapped(localVideoTrack) {
+    private _isScreenshareBitrateCapped(localVideoTrack: JitsiLocalTrack): boolean {
         return localVideoTrack.getVideoType() === VideoType.DESKTOP
             && this.pc._capScreenshareBitrate
             && !browser.isWebKitBased();
@@ -322,8 +341,9 @@ export class TPCUtils {
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} newHeight The resolution requested for the video track.
      * @returns {Array<boolean>}
+     * @internal
      */
-    calculateEncodingsActiveState(localVideoTrack, codec, newHeight) {
+    calculateEncodingsActiveState(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): boolean[] {
         const height = localVideoTrack.getCaptureResolution();
         const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack, codec);
         const encodingsState = videoStreamEncodings
@@ -375,8 +395,9 @@ export class TPCUtils {
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} newHeight The resolution requested for the video track.
      * @returns {Array<number>}
+     * @internal
      */
-    calculateEncodingsBitrates(localVideoTrack, codec, newHeight) {
+    calculateEncodingsBitrates(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): number[] {
         const codecBitrates = this.codecSettings[codec].maxBitratesVideo;
         const desktopShareBitrate = this.options.videoQuality?.desktopbitrate || codecBitrates.ssHigh;
         const encodingsBitrates = this._getVideoStreamEncodings(localVideoTrack, codec)
@@ -408,8 +429,9 @@ export class TPCUtils {
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
      * @returns {Optional<Array<VideoEncoderScalabilityMode>>}
+     * @internal
      */
-    calculateEncodingsScalabilityMode(localVideoTrack, codec, maxHeight) {
+    calculateEncodingsScalabilityMode(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, maxHeight: number): Optional<Optional<VideoEncoderScalabilityMode>[]> {
         if (!this.codecSettings[codec].scalabilityModeEnabled) {
             return;
         }
@@ -431,7 +453,7 @@ export class TPCUtils {
             const { scalabilityMode }
                 = this._calculateActiveEncodingParams(localVideoTrack, codec, maxHeight);
 
-            scalabilityModes[0] = scalabilityMode;
+            scalabilityModes[0] = scalabilityMode as VideoEncoderScalabilityMode;
             scalabilityModes[1] = undefined;
             scalabilityModes[2] = undefined;
 
@@ -449,8 +471,9 @@ export class TPCUtils {
      * @param {CodecMimeType} codec - The codec currently in use.
      * @param {number} maxHeight The resolution requested for the video track.
      * @returns {Array<float>}
+     * @internal
      */
-    calculateEncodingsScaleFactor(localVideoTrack, codec, maxHeight) {
+    calculateEncodingsScaleFactor(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, maxHeight: number): number[] {
         if (this.pc.isSpatialScalabilityOn() && this.isRunningInSimulcastMode(codec)) {
             return this._getVideoStreamEncodings(localVideoTrack, codec)
                 .map(encoding => encoding.scaleResolutionDownBy);
@@ -469,15 +492,16 @@ export class TPCUtils {
      * media description.
      * @param {Object} description the webRTC session description instance for the remote description.
      * @returns {Object} the modified webRTC session description instance.
+     * @internal
      */
-    ensureCorrectOrderOfSsrcs(description) {
+    ensureCorrectOrderOfSsrcs(description: RTCSessionDescription) {
         const parsedSdp = transform.parse(description.sdp);
 
         parsedSdp.media.forEach(mLine => {
             if (mLine.type === MediaType.AUDIO) {
                 return;
             }
-            if (!mLine.ssrcGroups || !mLine.ssrcGroups.length) {
+            if (!mLine.ssrcGroups?.length) {
                 return;
             }
             let reorderedSsrcs = [];
@@ -499,10 +523,10 @@ export class TPCUtils {
             mLine.ssrcs = reorderedSsrcs;
         });
 
-        return {
+        return new RTCSessionDescription({
             sdp: transform.write(parsedSdp),
             type: description.type
-        };
+        });
     }
 
     /**
@@ -510,13 +534,15 @@ export class TPCUtils {
      *
      * @param {JitsiLocalTrack} localTrack - The local video track.
      * @returns {CodecMimeType} The codec that is set as the preferred codec for the given local video track.
+     * @internal
      */
-    getConfiguredVideoCodec(localTrack) {
+    getConfiguredVideoCodec(localTrack: JitsiLocalTrack): CodecMimeType | string {
         const localVideoTrack = localTrack ?? this.pc.getLocalVideoTracks()[0];
         const rtpSender = this.pc.findSenderForTrack(localVideoTrack.getTrack());
 
         if (this.pc.usesCodecSelectionAPI() && rtpSender) {
-            const { encodings } = rtpSender.getParameters();
+            // added any to remove the subsequrnt @ts-ignore comments
+            const { encodings } = rtpSender.getParameters() as any;
 
             if (encodings[0].codec) {
                 return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
@@ -546,8 +572,9 @@ export class TPCUtils {
      *
      * @param {string} - The local SDP to be used.
      * @returns {Array}
+     * @internal
      */
-    getConfiguredVideoCodecs(sdp) {
+    getConfiguredVideoCodecs(sdp: Optional<string>): CodecMimeType[] {
         const currentSdp = sdp ?? this.pc.localDescription?.sdp;
 
         if (!currentSdp) {
@@ -564,8 +591,9 @@ export class TPCUtils {
      * @param {MediaType} mediaType - The media type for which the desired media direction is to be obtained.
      * @param {boolean} isAddOperation - Whether the direction is being set for a source add operation.
      * @returns {MediaDirection} - The desired media direction for the given media type.
+     * @internal
      */
-    getDesiredMediaDirection(mediaType, isAddOperation = false) {
+    getDesiredMediaDirection(mediaType: MediaType, isAddOperation = false): MediaDirection {
         const hasLocalSource = this.pc.getLocalTracks(mediaType).length > 0;
 
         if (isAddOperation) {
@@ -579,8 +607,9 @@ export class TPCUtils {
      * Obtains stream encodings that need to be configured on the given track based
      * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
+     * @internal
      */
-    getStreamEncodings(localTrack) {
+    getStreamEncodings(localTrack: JitsiLocalTrack): Partial<IRTCRtpEncodingParameters>[] {
         if (localTrack.isAudioTrack()) {
             return [ { active: this.pc.audioTransferActive } ];
         }
@@ -603,8 +632,9 @@ export class TPCUtils {
      *
      * @param desc A session description object (with 'type' and 'sdp' fields)
      * @return A session description object with its sdp field modified to contain an inject ssrc-group for simulcast.
+     * @internal
      */
-    injectSsrcGroupForSimulcast(desc) {
+    injectSsrcGroupForSimulcast(desc: RTCSessionDescription): RTCSessionDescription {
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
@@ -615,7 +645,7 @@ export class TPCUtils {
         if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
-            if (fidGroups && fidGroups.length) {
+            if (fidGroups?.length) {
                 fidGroups.forEach(group => {
                     ssrcs.push(group.ssrcs.split(' ')[0]);
                 });
@@ -642,10 +672,10 @@ export class TPCUtils {
             }
         }
 
-        return {
+        return new RTCSessionDescription({
             sdp: transform.write(sdp),
             type: desc.type
-        };
+        });
     }
 
     /**
@@ -653,11 +683,11 @@ export class TPCUtils {
      * @param {Object} desc - A session description object
      * @param {String} desc.type - the type (offer/answer)
      * @param {String} desc.sdp - the sdp content
-     *
+     * @internal
      * @return {Object} A session description (same format as above) object with its sdp field modified to advertise
      * simulcast receive support.
      */
-    insertUnifiedPlanSimulcastReceive(desc) {
+    insertUnifiedPlanSimulcastReceive(desc: RTCSessionDescription): RTCSessionDescription {
         // a=simulcast line is not needed on browsers where we SDP munging is used for enabling on simulcast.
         // Remove this check when the client switches to RID/MID based simulcast on all browsers.
         if (browser.usesSdpMungingForSimulcast()) {
@@ -704,10 +734,10 @@ export class TPCUtils {
             }
         });
 
-        return {
+        return new RTCSessionDescription({
             sdp: transform.write(sdp),
             type: desc.type
-        };
+        });
     }
 
     /**
@@ -716,9 +746,10 @@ export class TPCUtils {
      *
      * @param {CodecMimeType} videoCodec - The video codec in use.
      * @returns {boolean}
+     * @internal
      */
-    isRunningInSimulcastMode(videoCodec) {
-        if (!this.codecSettings || !this.codecSettings[videoCodec]) {
+    isRunningInSimulcastMode(videoCodec: CodecMimeType): boolean {
+        if (!this.codecSettings?.[videoCodec]) {
             // If codec settings are not available, assume no simulcast
             return false;
         }
@@ -744,10 +775,11 @@ export class TPCUtils {
     /**
      * Munges the session description to ensure that the codec order is as per the preferred codec settings.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged
-     * @returns {transform.SessionDescription} the munged SDP.
+     * @param {SessionDescription} parsedSdp that needs to be munged
+     * @returns {SessionDescription} the munged SDP.
+     * @internal
      */
-    mungeCodecOrder(parsedSdp) {
+    mungeCodecOrder(parsedSdp: SessionDescription): SessionDescription {
         const codecSettings = this.pc.codecSettings;
 
         if (!codecSettings) {
@@ -795,10 +827,11 @@ export class TPCUtils {
      * Munges the stereo flag as well as the opusMaxAverageBitrate in the SDP, based on values set through config.js,
      * if present.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
-     * @returns {transform.SessionDescription} the munged SDP.
+     * @param {SessionDescription} parsedSdp that needs to be munged.
+     * @returns {SessionDescription} the munged SDP.
+     * @internal
      */
-    mungeOpus(parsedSdp) {
+    mungeOpus(parsedSdp: SessionDescription): SessionDescription {
         const { audioQuality } = this.options;
 
         if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
@@ -864,11 +897,12 @@ export class TPCUtils {
     /**
      * Munges the session SDP by setting the max bitrates on the video m-lines when VP9 K-SVC codec is in use.
      *
-     * @param {transform.SessionDescription} parsedSdp that needs to be munged.
+     * @param {SessionDescription} parsedSdp that needs to be munged.
      * @param {boolean} isLocalSdp - Whether the max bitrate (via b=AS line in SDP) is set on local SDP.
-     * @returns {transform.SessionDescription} The munged SDP.
+     * @returns {SessionDescription} The munged SDP.
+     * @internal
      */
-    setMaxBitrates(parsedSdp, isLocalSdp = false) {
+    setMaxBitrates(parsedSdp: SessionDescription, isLocalSdp = false): SessionDescription {
         const pcCodecSettings = this.pc.codecSettings;
 
         if (!pcCodecSettings) {

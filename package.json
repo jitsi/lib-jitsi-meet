@@ -17,7 +17,7 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "@jitsi/js-utils": "2.4.6",
-    "@jitsi/logger": "2.0.2",
+    "@jitsi/logger": "2.1.1",
     "@jitsi/precall-test": "1.0.6",
     "@jitsi/rtcstats": "9.7.0",
     "@testrtc/watchrtc-sdk": "1.38.2",
@@ -40,7 +40,7 @@
     "@types/async": "3.2.12",
     "@types/jasmine": "4.0.3",
     "@types/lodash-es": "4.17.12",
-    "@types/sdp-transform": "2.4.5",
+    "@types/sdp-transform": "2.15.0",
     "@types/strophe": "1.2.37",
     "babel-loader": "8.2.3",
     "core-js": "3.19.1",

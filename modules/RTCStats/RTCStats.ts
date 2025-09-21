@@ -12,7 +12,7 @@ import DefaultLogStorage from './DefaulLogStorage';
 import { RTCStatsEvents } from './RTCStatsEvents';
 import { ITraceOptions } from './interfaces';
 
-const logger = getLogger('modules/RTCStats/RTCStats');
+const logger = getLogger('analytics:RTCStats');
 
 /**
  * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
@@ -28,7 +28,7 @@ class RTCStats {
     private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
 
-    isTraceAvailable() {
+    isTraceAvailable(): boolean {
         return this._trace !== null;
     }
 
@@ -41,7 +41,7 @@ class RTCStats {
      * @param connection - The JitsiConnection instance.
      * @returns {void}
      */
-    startWithConnection(connection: JitsiConnection) {
+    startWithConnection(connection: JitsiConnection): void {
         const { options } = connection;
         const name = options?.name ?? '';
         const {
@@ -109,7 +109,7 @@ class RTCStats {
      * @param conference - JitsiConference instance that's about to start.
      * @returns {void}
      */
-    attachToConference(conference: JitsiConference) {
+    attachToConference(conference: JitsiConference): void {
         const {
             options: {
                 config: confConfig = {},
@@ -197,7 +197,7 @@ class RTCStats {
         });
 
         conference.once(JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP, (timestamp: number) => {
-            this.sendStatsEntry('conferenceStartTimestamp', null, timestamp);
+            this.sendStatsEntry(RTCStatsEvents.CONFERENCE_START_TIMESTAMP_EVENT, null, timestamp);
         });
 
         conference.once(
@@ -212,7 +212,7 @@ class RTCStats {
      * @param traceOptions - Options for the trace module.
      * @returns {void}
      */
-    _connectTrace(traceOptions: ITraceOptions) {
+    _connectTrace(traceOptions: ITraceOptions): void {
 
         const traceOptionsComplete = {
             ...traceOptions,
@@ -233,7 +233,7 @@ class RTCStats {
      * @param identityData - Identity data to send.
      * @returns {void}
      */
-    sendIdentity(identityData) {
+    sendIdentity(identityData: any): void {
         this._trace?.identity('identity', null, identityData);
     }
 
@@ -245,7 +245,7 @@ class RTCStats {
      *
      * @returns {void}
      */
-    reset() {
+    reset(): void {
         // If a trace is connected, flush the remaining logs before closing the connection,
         // if the trace is not present and we flush the logs will be lost,
         this._trace && this._defaultLogCollector?.flush();
@@ -260,14 +260,14 @@ class RTCStats {
      * @param entry - Stats entry to send.
      * @returns {void}
      */
-    sendStatsEntry(statsType, pcId, data) {
+    sendStatsEntry(statsType: RTCStatsEvents, pcId?: Optional<string>, data?: Optional<any>): void {
         this._trace?.statsEntry(statsType, pcId, data);
     }
 
     /**
      * Creates a new log collector with the default log storage.
      */
-    getDefaultLogCollector(maxEntryLength: number = 10000) {
+    getDefaultLogCollector(maxEntryLength: number = 10000): void {
         if (!this._defaultLogCollector) {
             // If undefined is passed  as maxEntryLength LogCollector will default to 10000 bytes
             this._defaultLogCollector = new Logger.LogCollector(new DefaultLogStorage(this), { maxEntryLength });
