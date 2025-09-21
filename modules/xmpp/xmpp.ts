@@ -59,6 +59,9 @@ interface IConnectionCredentials {
  */
 interface IRoomCreationOptions {
     customDomain?: string;
+    disableDiscoInfo?: boolean;
+    disableFocus?: boolean;
+    enableLobby?: boolean;
     statsId?: string;
 }
 
@@ -1109,7 +1112,7 @@ export default class XMPP extends Listenable {
      * is to be added to the jid.
      * @returns {ChatRoom} Resolves with an instance of a strophe muc.
      */
-    public createRoom(roomName: string, options: IRoomCreationOptions, onCreateResource: (jid: string, user: any) => string): ChatRoom {
+    public createRoom(roomName: string, options: IRoomCreationOptions, onCreateResource?: (jid: string, user: any) => string): ChatRoom {
         // Support passing the domain in a String object as part of the room name.
         const domain = (roomName as { domain?: string; }).domain || options.customDomain;
 

@@ -3,6 +3,9 @@ import { $msg, Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
+import ChatRoom from './ChatRoom';
+import XMPP from './xmpp';
+
 const logger = getLogger('xmpp:Lobby');
 
 /**
@@ -17,13 +20,17 @@ const EMAIL_COMMAND = 'email';
  * approving or denying access to participants from the lobby room.
  */
 export default class Lobby {
+    xmpp: XMPP;
+    mainRoom: any;
+    lobbyRoomJid?: string;
+    lobbyRoom?: any;
 
     /**
      * Constructs lobby room.
      *
      * @param {ChatRoom} room the main room.
      */
-    constructor(room) {
+    constructor(room: ChatRoom) {
         this.xmpp = room.xmpp;
         this.mainRoom = room;
 
@@ -39,7 +46,7 @@ export default class Lobby {
 
         this.mainRoom.addEventListener(
             XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
-            jid => {
+            (jid: string) => {
                 this.lobbyRoomJid = jid;
             });
     }
@@ -49,16 +56,16 @@ export default class Lobby {
      *
      * @returns {boolean} whether lobby is supported on backend.
      */
-    isSupported() {
+    isSupported(): boolean {
         return this.xmpp.lobbySupported;
     }
 
     /**
      * Enables lobby by setting the main room to be members only and joins the lobby chat room.
      *
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
-    enable() {
+    enable(): Promise<void> {
         if (!this.isSupported()) {
             return Promise.reject(new Error('Lobby not supported!'));
         }
@@ -66,7 +73,7 @@ export default class Lobby {
         // let's wait for the room data form to be populated after XMPPEvents.MUC_JOINED
         if (!this.mainRoom.initialDiscoRoomInfoReceived) {
             return new Promise((resolve, reject) => {
-                let unsubscribers = [];
+                let unsubscribers: Array<() => void> = [];
                 const unsubscribe = () => {
                     unsubscribers.forEach(remove => remove());
                     unsubscribers = [];
@@ -86,7 +93,7 @@ export default class Lobby {
                     }));
 
                 // on timeout or failure
-                unsubscribers.push(this.mainRoom.addCancellableListener(XMPPEvents.ROOM_DISCO_INFO_FAILED, e => {
+                unsubscribers.push(this.mainRoom.addCancellableListener(XMPPEvents.ROOM_DISCO_INFO_FAILED, (e: any) => {
                     unsubscribe();
                     reject(e);
                 }));
@@ -107,7 +114,7 @@ export default class Lobby {
      *
      * @returns {void}
      */
-    disable() {
+    disable(): void {
         if (!this.isSupported() || !this.mainRoom.isModerator()
                 || !this.lobbyRoom || !this.mainRoom.membersOnlyEnabled) {
             return;
@@ -122,7 +129,7 @@ export default class Lobby {
      *
      * @returns {void}
      */
-    sendMessage(message) {
+    sendMessage(message: object): void {
         if (this.lobbyRoom) {
             this.lobbyRoom.sendMessage(JSON.stringify(message), 'json-message');
         }
@@ -135,7 +142,7 @@ export default class Lobby {
      *
      * @returns {void}
      */
-    sendPrivateMessage(id, message) {
+    sendPrivateMessage(id: string, message: object): void {
         if (this.lobbyRoom) {
             this.lobbyRoom.sendPrivateMessage(id, JSON.stringify(message), 'json-message');
         }
@@ -145,9 +152,9 @@ export default class Lobby {
      * Gets the local id for a participant in a lobby room.
      * This is used for lobby room private chat messages.
      *
-     * @returns {string}
+     * @returns {Optional<string>}
      */
-    getLocalId() {
+    getLocalId(): Optional<string> {
         if (this.lobbyRoom) {
             return Strophe.getResourceFromJid(this.lobbyRoom.myroomjid);
         }
@@ -158,11 +165,11 @@ export default class Lobby {
      * @param {Function} listener The listener function,
      * called when a new message is received in the lobby room.
      *
-     * @returns {Function} Handler returned to be able to remove it later.
+     * @returns {Function|undefined} Handler returned to be able to remove it later.
      */
-    addMessageListener(listener) {
+    addMessageListener(listener: (message: string, participantId: string) => void): Optional<((participantId: string, message: any) => void) > {
         if (this.lobbyRoom) {
-            const handler = (participantId, message) => {
+            const handler = (participantId: string, message: string) => {
                 listener(message, Strophe.getResourceFromJid(participantId));
             };
 
@@ -178,7 +185,7 @@ export default class Lobby {
      *
      * @returns {void}
      */
-    removeMessageHandler(handler) {
+    removeMessageHandler(handler: (...args: any[]) => void): void {
         if (this.lobbyRoom) {
             this.lobbyRoom.off(XMPPEvents.JSON_MESSAGE_RECEIVED, handler);
         }
@@ -187,16 +194,16 @@ export default class Lobby {
     /**
      * Leaves the lobby room.
      *
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
-    leave() {
+    leave(): Promise<void> {
         if (this.lobbyRoom) {
             return this.lobbyRoom.leave()
                 .then(() => {
                     this.lobbyRoom = undefined;
                     logger.info('Lobby room left!');
                 })
-                .catch(() => {}); // eslint-disable-line no-empty-function
+                .catch(() => {}); //  eslint-disable-line @typescript-eslint/no-empty-function
         }
 
         return Promise.reject(
@@ -208,7 +215,7 @@ export default class Lobby {
      *
      * @param jid the lobby room jid to join.
      */
-    setLobbyRoomJid(jid) {
+    setLobbyRoomJid(jid: string): void {
         this.lobbyRoomJid = jid;
     }
 
@@ -216,7 +223,7 @@ export default class Lobby {
      * Checks the state of mainRoom, lobbyRoom and current user role to decide whether to join lobby room.
      * @private
      */
-    _maybeJoinLobbyRoom() {
+    _maybeJoinLobbyRoom(): void {
         if (!this.isSupported()) {
             return;
         }
@@ -227,18 +234,18 @@ export default class Lobby {
             // join the lobby
             this.join()
                 .then(() => logger.info('Joined lobby room'))
-                .catch(e => logger.error('Failed joining lobby', e));
+                .catch((e: Error) => logger.error('Failed joining lobby', e));
         }
     }
 
     /**
      * Joins a lobby room setting display name and eventually avatar(using the email provided).
      *
-     * @param {string} username is required.
+     * @param {string} displayName is required.
      * @param {string} email is optional.
-     * @returns {Promise} resolves once we join the room.
+     * @returns {Promise<void>} resolves once we join the room.
      */
-    join(displayName, email) {
+    join(displayName?: string, email?: string): Promise<void> {
         const isModerator = this.mainRoom.joined && this.mainRoom.isModerator();
 
         if (!this.lobbyRoomJid) {
@@ -266,21 +273,21 @@ export default class Lobby {
         }
 
         if (isModerator) {
-            this.lobbyRoom.addPresenceListener(EMAIL_COMMAND, (node, from) => {
+            this.lobbyRoom.addPresenceListener(EMAIL_COMMAND, (node: any, from: string) => {
                 this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_LOBBY_MEMBER_UPDATED, from, { email: node.value });
             });
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 // eslint-disable-next-line max-params
-                (from, nick, role, isHiddenDomain, statsID, status, identity, botType, jid) => {
+                (from: string, nick: string, role: string, isHiddenDomain: boolean, statsID: any, status: any, identity: any, botType: any, jid: string) => {
                     // we need to ignore joins on lobby for participants that are already in the main room
-                    if (Object.values(this.mainRoom.members).find(m => m.jid === jid)) {
+                    if (Object.values(this.mainRoom.members).find((m: any) => m.jid === jid)) {
                         return;
                     }
 
                     // Check if the user is a member if any breakout room.
                     for (const room of Object.values(this.mainRoom.getBreakoutRooms()._rooms)) {
-                        if (Object.values(room.participants).find(p => p.jid === jid)) {
+                        if (Object.values((room as { participants: { jid: string; }[]; }).participants).find(p => p.jid === jid)) {
                             return;
                         }
                     }
@@ -295,7 +302,7 @@ export default class Lobby {
                     );
                 });
             this.lobbyRoom.addEventListener(
-                XMPPEvents.MUC_MEMBER_LEFT, from => {
+                XMPPEvents.MUC_MEMBER_LEFT, (from: string) => {
                     // we emit the new event on the main room so we can propagate
                     // events to the conference
                     this.mainRoom.eventEmitter.emit(
@@ -318,13 +325,11 @@ export default class Lobby {
                 });
         } else {
             // this should only be handled by those waiting in lobby
-            this.lobbyRoom.addEventListener(XMPPEvents.KICKED, isSelfPresence => {
+            this.lobbyRoom.addEventListener(XMPPEvents.KICKED, (isSelfPresence: boolean) => {
                 if (isSelfPresence) {
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DENIED_ACCESS);
 
                     this.lobbyRoom.clean();
-
-
                 }
             });
 
@@ -333,7 +338,7 @@ export default class Lobby {
             // the invite message should be received directly to the xmpp conn in general
             this.mainRoom.addEventListener(
                 XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                (roomJid, from, txt, invitePassword) => {
+                (roomJid: string, from: string, txt: string, invitePassword: string) => {
                     logger.debug(`Received approval to join ${roomJid} ${from} ${txt}`);
                     if (roomJid === this.mainRoom.roomjid) {
                         // we are now allowed, so let's join
@@ -342,7 +347,7 @@ export default class Lobby {
                 });
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_DESTROYED,
-                (reason, jid) => {
+                (reason: any, jid: string) => {
                     this.lobbyRoom?.clean();
 
                     this.lobbyRoom = undefined;
@@ -370,7 +375,7 @@ export default class Lobby {
                 });
         }
 
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             this.lobbyRoom.addEventListener(XMPPEvents.MUC_JOINED, () => {
                 resolve();
 
@@ -393,7 +398,7 @@ export default class Lobby {
      * Should be possible only for moderators.
      * @param id
      */
-    denyAccess(id) {
+    denyAccess(id: string): void {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
             return;
         }
@@ -412,7 +417,7 @@ export default class Lobby {
      * Should be possible only for moderators.
      * @param param or an array of ids.
      */
-    approveAccess(param) {
+    approveAccess(param: string | string[]): void {
         if (!this.isSupported() || !this.mainRoom.isModerator()) {
             return;
         }
@@ -425,12 +430,8 @@ export default class Lobby {
             mainRoomJid = this.mainRoom.getBreakoutRooms().getMainRoomJid();
         }
 
-        const membersToApprove = [];
-        let ids = param;
-
-        if (!Array.isArray(param)) {
-            ids = [ param ];
-        }
+        const membersToApprove: string[] = [];
+        const ids: string[] = Array.isArray(param) ? param : [ param ];
 
         ids.forEach(id => {
             const memberRoomJid = Object.keys(this.lobbyRoom.members)
@@ -453,10 +454,11 @@ export default class Lobby {
             });
 
             this.xmpp.connection.sendIQ(msgToSend,
-                () => { }, // eslint-disable-line no-empty-function
-                e => {
+                () => { }, //  eslint-disable-line @typescript-eslint/no-empty-function
+                (e: Error) => {
                     logger.error(`Error sending invite for ${membersToApprove}`, e);
-                });
+                },
+                undefined);
         }
     }
 }
