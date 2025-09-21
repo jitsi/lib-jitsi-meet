@@ -86,6 +86,7 @@ interface IDeploymentInfo {
 interface IHostsConfig {
     anonymousdomain?: string;
     domain?: string;
+    focus?: string;
     muc?: string;
 }
 
@@ -105,10 +106,19 @@ interface IP2PConfig {
 }
 
 /**
+ * Analytics configuration interface
+ */
+interface IAnalyticsConfig {
+    rtcstatsEnabled?: boolean;
+}
+
+/**
  * XMPP options interface
  */
 export interface IXMPPOptions {
+    analytics?: IAnalyticsConfig;
     bosh?: string;
+    conferenceRequestUrl?: string;
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
     disableRtx?: boolean;
@@ -116,10 +126,16 @@ export interface IXMPPOptions {
     enableRemb?: boolean;
     enableTcc?: boolean;
     enableWebsocketResume?: boolean;
+    focusUserJid?: string;
     hosts?: IHostsConfig;
+    iAmRecorder?: boolean;
+    iAmSipGateway?: boolean;
     p2p?: IP2PConfig;
     p2pStunServers?: Array<{ urls: string; }>;
+    preferVisitor?: boolean;
     serviceUrl?: string;
+    startAudioMuted?: boolean;
+    startVideoMuted?: boolean;
     testing?: ITestingConfig;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: string;
