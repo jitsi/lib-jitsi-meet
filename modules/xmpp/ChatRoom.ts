@@ -226,7 +226,6 @@ export default class ChatRoom extends Listenable {
     private _removeConnListeners: (() => void)[];
     private inProgressEmitted: boolean;
     private noBridgeAvailable: boolean;
-    private options: IChatRoomOptions;
     private eventsForwarder: EventEmitterForwarder;
     private lobby?: Lobby;
     private avModeration: AVModeration;
@@ -246,6 +245,10 @@ export default class ChatRoom extends Listenable {
     private subject?: string;
     private _roomCreationRetries?: number;
     private cachedShortTermCredentials?: Record<string, string>;
+    /**
+     * @internal
+     */
+    options: IChatRoomOptions;
     public xmpp: XMPP;
     public connection: XmppConnection;
     public roomjid: string;
