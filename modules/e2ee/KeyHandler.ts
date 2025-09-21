@@ -1,8 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
+import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
-import JitsiConference from '../../JitsiConference';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
