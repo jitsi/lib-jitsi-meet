@@ -2428,8 +2428,8 @@ export default class JingleSessionPC extends JingleSession {
      * @inheritDoc
      */
     public override terminate(
-            success: () => void,
-            failure: (error: IJingleError) => void,
+            success?: () => void,
+            failure?: (error: IJingleError) => void,
             options: ITerminateOptions = {}) {
         if (this.state === JingleSessionState.ENDED) {
             return;
