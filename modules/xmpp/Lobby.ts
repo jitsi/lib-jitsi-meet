@@ -2,8 +2,9 @@ import { getLogger } from '@jitsi/logger';
 import { $msg, Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import XMPP from './xmpp';
+
 import ChatRoom from './ChatRoom';
+import XMPP from './xmpp';
 
 const logger = getLogger('xmpp:Lobby');
 
@@ -151,9 +152,9 @@ export default class Lobby {
      * Gets the local id for a participant in a lobby room.
      * This is used for lobby room private chat messages.
      *
-     * @returns {string|undefined}
+     * @returns {Optional<string>}
      */
-    getLocalId(): string | undefined {
+    getLocalId(): Optional<string> {
         if (this.lobbyRoom) {
             return Strophe.getResourceFromJid(this.lobbyRoom.myroomjid);
         }
@@ -166,7 +167,7 @@ export default class Lobby {
      *
      * @returns {Function|undefined} Handler returned to be able to remove it later.
      */
-    addMessageListener(listener: (message: string, participantId: string) => void): ((participantId: string, message: any) => void) | undefined {
+    addMessageListener(listener: (message: string, participantId: string) => void): Optional<((participantId: string, message: any) => void) > {
         if (this.lobbyRoom) {
             const handler = (participantId: string, message: string) => {
                 listener(message, Strophe.getResourceFromJid(participantId));

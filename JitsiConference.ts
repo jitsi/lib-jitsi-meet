@@ -4480,9 +4480,9 @@ export default class JitsiConference extends Listenable {
      *
      * @returns {Function} Handler returned to be able to remove it later.
      */
-    public addLobbyMessageListener(listener: (message: object) => void): Optional<EventListener> {
+    public addLobbyMessageListener(listener: (message: string, participantId: string) => void): Optional<(participantId: string, message: string) => void> {
         if (this.room) {
-            return this.room.getLobby().addMessageListener(listener) as Optional<EventListener>;
+            return this.room.getLobby().addMessageListener(listener);
         }
     }
 
