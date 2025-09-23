@@ -7,7 +7,7 @@ const logger = getLogger('util:XMLUtils');
  * @param xmlString - The XML string to parse.
  * @returns Parsed XML Document or null if parsing fails.
  */
-export function parseXML(xmlString: string): Document | null {
+export function parseXML(xmlString: string): Nullable<Document> {
     if (!xmlString || typeof xmlString !== 'string') {
         return null;
     }
