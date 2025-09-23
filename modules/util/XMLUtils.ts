@@ -15,11 +15,8 @@ export function parseXML(xmlString: string): Nullable<Document> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlString, 'text/xml');
 
-    // Check for parser errors - use documentElement since
-    // Document.querySelector might not be polyfilled in React Native
-    const parserError = doc.documentElement
-        ? findFirst(doc.documentElement, 'parsererror')
-        : null;
+    // Check for parser errors.
+    const parserError = findFirst(doc, 'parsererror');
 
     if (parserError) {
         logger.error('XML parsing error:', parserError.textContent || '');
@@ -152,7 +149,7 @@ export function findFirst(element: Element | Document, selector: string): Elemen
     try {
         return element.querySelector(selector);
     } catch (error) {
-        logger.error('Query error:', selector, error);
+        logger.error('findFirst error:', selector, error);
 
         return null;
     }
