@@ -220,7 +220,7 @@ export default class SDP {
             groups.forEach(group => {
                 const contents = findAll(group, ':scope>content')?.map(content => content.getAttribute('name'));
 
-                if (contents && contents.length > 0) {
+                if (contents?.length > 0) {
                     this.raw
                         += `a=group:${
                             group.getAttribute('semantics')
