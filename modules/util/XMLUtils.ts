@@ -44,7 +44,7 @@ export function findAll(element: Element | Document, selector: string): Element[
     try {
         return Array.from(element.querySelectorAll(selector));
     } catch (error) {
-        logger.error('Query error:', selector, error);
+        logger.error('findAll error:', selector, error);
 
         return [];
     }
