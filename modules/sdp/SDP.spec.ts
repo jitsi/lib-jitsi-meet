@@ -1,4 +1,3 @@
-// @ts-ignore
 import { $iq } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';
