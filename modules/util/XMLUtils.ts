@@ -131,7 +131,7 @@ export function exists(element: Element | Document, selector: string): boolean {
     try {
         return element.querySelector(selector) !== null;
     } catch (error) {
-        logger.error('Query error:', selector, error);
+        logger.error('exists error:', selector, error);
 
         return false;
     }
