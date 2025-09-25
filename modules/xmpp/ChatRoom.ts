@@ -1168,8 +1168,6 @@ export default class ChatRoom extends Listenable {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
         const msg = $msg({ to: targetJid,
             type: 'chat' });
-        // when not sending to a direct jid, let's indicate the room jid (used in polls)
-        const roomJid = useDirectJid ? this.roomjid : undefined;
 
         // We are adding the message in packet. If this element is different
         // from 'body', we add our custom namespace for the same.
@@ -1177,7 +1175,7 @@ export default class ChatRoom extends Listenable {
         if (elementName === 'body') {
             msg.c(elementName, message).up();
         } else {
-            msg.c(elementName, { roomJid, xmlns: 'http://jitsi.org/jitmeet' }, message)
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
                 .up();
         }
 

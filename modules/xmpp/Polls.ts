@@ -55,7 +55,6 @@ export default class Polls {
                 command: COMMAND_NEW_POLL,
                 pollId,
                 question,
-                roomJid: this._mainRoom.roomjid,
                 type: 'polls'
             }),
             'json-message',
@@ -75,7 +74,6 @@ export default class Polls {
                 answers,
                 command: COMMAND_ANSWER_POLL,
                 pollId,
-                roomJid: this._mainRoom.roomjid,
                 type: 'polls'
             }),
             'json-message',
