@@ -85,9 +85,9 @@ export default class FileSharing {
     }
 
     /**
-     * Whether AV moderation is supported on backend.
+     * Whether file sharing is supported on backend.
      *
-     * @returns {boolean} whether AV moderation is supported on backend.
+     * @returns {boolean} whether file sharing is supported on backend.
      */
     isSupported() {
         return Boolean(this._xmpp.fileSharingComponentAddress);

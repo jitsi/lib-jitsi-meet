@@ -54,6 +54,7 @@ import type { ChatRoom, PresenceHandler } from './modules/xmpp/ChatRoom';
 import FileSharing from './modules/xmpp/FileSharing';
 import type JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaSessionEvents } from './modules/xmpp/MediaSessionEvents';
+import Polls from './modules/xmpp/Polls';
 import RoomMetadata from './modules/xmpp/RoomMetadata';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import XMPP, {
@@ -4632,6 +4633,15 @@ export default class JitsiConference extends Listenable {
      */
     public getMetadataHandler(): Optional<RoomMetadata> {
         return this.room?.getMetadataHandler();
+    }
+
+    /**
+     * Returns the polls object.
+     *
+     * @returns {Optional<Polls>} the polls.
+     */
+    public getPolls(): Optional<Polls> {
+        return this.room?.getPolls();
     }
 
     /**

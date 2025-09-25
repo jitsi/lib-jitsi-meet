@@ -20,6 +20,7 @@ import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
 import FileSharing from './FileSharing';
 import Lobby from './Lobby';
+import Polls from './Polls';
 import RoomMetadata from './RoomMetadata';
 import XmppConnection, { ErrorCallback } from './XmppConnection';
 import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
@@ -232,6 +233,7 @@ export default class ChatRoom extends Listenable {
     private avModeration: AVModeration;
     private breakoutRooms: BreakoutRooms;
     private fileSharing: FileSharing;
+    private polls: Polls;
     private roomMetadata: RoomMetadata;
     private lastPresences: Record<string, IPresenceNode[]>;
     private phoneNumber: Nullable<string>;
@@ -308,6 +310,7 @@ export default class ChatRoom extends Listenable {
         this.avModeration = new AVModeration(this);
         this.breakoutRooms = new BreakoutRooms(this);
         this.fileSharing = new FileSharing(this);
+        this.polls = new Polls(this);
         this.roomMetadata = new RoomMetadata(this);
         this.initPresenceMap(options);
         this.lastPresences = {};
@@ -2049,6 +2052,13 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * @returns {Polls}
+     */
+    public getPolls(): Polls {
+        return this.polls;
+    }
+
+    /**
      * Returns the phone number for joining the conference.
      */
     public getPhoneNumber(): Nullable<string> {
@@ -2186,6 +2196,7 @@ export default class ChatRoom extends Listenable {
         this.avModeration.dispose();
         this.breakoutRooms.dispose();
         this.fileSharing.dispose();
+        this.polls.dispose();
         this.roomMetadata.dispose();
 
         const promises = [];
