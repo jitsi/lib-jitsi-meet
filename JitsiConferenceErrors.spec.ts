@@ -36,6 +36,7 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( AUTH_ERROR_TYPES.NO_VISITORS_LOBBY ).toBe( 'no-visitors-lobby' );
         expect( AUTH_ERROR_TYPES.PROMOTION_NOT_ALLOWED ).toBe( 'promotion-not-allowed' );
         expect( AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION ).toBe( 'room-creation-restriction' );
+        expect( AUTH_ERROR_TYPES.ROOM_UNAUTHENTICATED_ACCESS_DISABLED ).toBe( 'unauthenticated-access-disabled' );
         expect( AUTHENTICATION_REQUIRED ).toBe( 'conference.authenticationRequired' );
         expect( CHAT_ERROR ).toBe( 'conference.chatError' );
         expect( SETTINGS_ERROR ).toBe( 'conference.settingsError' );
