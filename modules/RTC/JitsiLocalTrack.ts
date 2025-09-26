@@ -16,6 +16,8 @@ import {
     AnalyticsEvents,
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import VADAudioAnalyser from '../detection/VADAudioAnalyser';
 import Statistics from '../statistics/statistics';
@@ -542,6 +544,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         return promise
             .then(() => {
                 this._sendMuteStatus(muted);
+                const event = this.isAudioTrack() ? RTCStatsEvents.AUDIO_MUTE_CHANGED_EVENT : RTCStatsEvents.VIDEO_MUTE_CHANGED_EVENT;
+
+                RTCStats.sendStatsEntry(event, null, muted);
 
                 // Send the videoType message to the bridge.
                 this.isVideoTrack() && this.conference?._sendBridgeVideoTypeMessage(this);
