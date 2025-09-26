@@ -120,7 +120,7 @@ export enum AUTH_ERROR_TYPES {
     NO_VISITORS_LOBBY = 'no-visitors-lobby',
     PROMOTION_NOT_ALLOWED = 'promotion-not-allowed',
     ROOM_CREATION_RESTRICTION = 'room-creation-restriction',
-    ROOM_UNAUTHENTICATED_ACCESS_DISABLED = 'unauthenticated-access-disabled'
+    ROOM_UNAUTHENTICATED_ACCESS_DISABLED = 'authentication-required'
 }
 
 // exported for backward compatibility

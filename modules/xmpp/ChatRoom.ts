@@ -1552,7 +1552,7 @@ export default class ChatRoom extends Listenable {
                         return;
                     }
                 } else if (exists(pres,
-                    ':scope>error[type="cancel"]>unauthenticated-access-disabled[*|xmlns="http://jitsi.org/jitmeet"]')) {
+                    ':scope>error[type="cancel"]>authentication-required[*|xmlns="http://jitsi.org/jitmeet"]')) {
                     type = AUTH_ERROR_TYPES.ROOM_UNAUTHENTICATED_ACCESS_DISABLED;
                 } else if (exists(pres,
                     ':scope>error[type="cancel"]>no-main-participants[*|xmlns="jitsi:visitors"]')) {
