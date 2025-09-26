@@ -258,7 +258,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
 
         // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
         const visitors = findFirst(iq, ':scope>visitors[*|xmlns="jitsi:visitors"]');
-        const response = findFirst(iq, ':scope>promotion-response');
+        const response = findFirst(visitors, ':scope>promotion-response');
 
         if (visitors && response) {
             if (String(getAttribute(response, 'allow')).toLowerCase() === 'true') {
