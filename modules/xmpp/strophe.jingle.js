@@ -9,6 +9,7 @@ import { findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 import ConnectionPlugin from './ConnectionPlugin';
 import { expandSourcesFromJson } from './JingleHelperFunctions';
 import JingleSessionPC from './JingleSessionPC';
+import { handleStropheError } from './StropheErrorHandler';
 
 const logger = getLogger('xmpp:strophe.jingle');
 
@@ -327,14 +328,26 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 type: 'get' })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
             v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
-            () => {
+            error => {
+                handleStropheError(error, {
+                    domain: this.xmpp.options.hosts.domain,
+                    operation: 'get STUN/TURN credentials (extdisco:2)',
+                    userJid: this.connection.jid,
+                    xmlns: 'urn:xmpp:extdisco:2'
+                });
                 logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1');
                 this.connection.sendIQ(
                     $iq({ to: this.xmpp.options.hosts.domain,
                         type: 'get' })
                         .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
                     v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
-                    () => {
+                    err => {
+                        handleStropheError(err, {
+                            domain: this.xmpp.options.hosts.domain,
+                            operation: 'get STUN/TURN credentials (extdisco:1)',
+                            userJid: this.connection.jid,
+                            xmlns: 'urn:xmpp:extdisco:1'
+                        });
                         logger.warn('getting turn credentials failed');
                         logger.warn('is mod_turncredentials or similar installed and configured?');
                     }
