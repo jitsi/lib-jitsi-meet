@@ -4,6 +4,7 @@ import { $iq, type Connection } from 'strophe.js';
 import { findFirst, getAttribute } from '../util/XMLUtils';
 
 import ConnectionPlugin from './ConnectionPlugin';
+import { handleStropheError } from './StropheErrorHandler';
 
 const logger = getLogger('xmpp:strophe.rayo');
 
@@ -97,7 +98,13 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                     resolve();
                 },
                 error => {
-                    logger.info('Dial error ', error);
+                    handleStropheError(error, {
+                        from,
+                        operation: 'dial (Rayo)',
+                        roomName,
+                        to,
+                        userJid: (this.connection as Connection).jid
+                    });
                     reject(error);
                 }
             );
@@ -135,7 +142,11 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                     resolve();
                 },
                 error => {
-                    logger.info('Hangup error ', error);
+                    handleStropheError(error, {
+                        callResource: this.callResource,
+                        operation: 'hangup (Rayo)',
+                        userJid: (this.connection as Connection).jid
+                    });
                     this.callResource = null;
                     reject(new Error('Hangup error '));
                 }

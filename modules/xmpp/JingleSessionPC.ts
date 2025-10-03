@@ -27,6 +27,7 @@ import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUt
 import JingleSession from './JingleSession';
 import { JingleSessionState } from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
+import { handleStropheError } from './StropheErrorHandler';
 import XmppConnection from './XmppConnection';
 
 const logger = getLogger('xmpp:JingleSessionPC');
@@ -1018,7 +1019,15 @@ export default class JingleSessionPC extends JingleSession {
                 logger.info(`${this} Got RESULT for "session-initiate"`);
             },
             error => {
-                logger.error(`${this} "session-initiate" error`, error);
+                handleStropheError(error, {
+                    isP2P: this.isP2P,
+                    operation: 'session-initiate',
+                    remoteJid: this.remoteJid,
+                    roomJid: this.room?.roomjid,
+                    session: this.toString(),
+                    sid: this.sid,
+                    userJid: this.connection.jid
+                });
             },
             IQ_TIMEOUT);
     }
@@ -1040,6 +1049,18 @@ export default class JingleSessionPC extends JingleSession {
      */
     private newJingleErrorHandler(failureCb?: (error: IJingleError) => void): ErrorCallback {
         return errResponse => {
+
+            // Call handleStropheError for centralized error logging and analytics
+            handleStropheError(errResponse, {
+                isP2P: this.isP2P,
+                operation: 'Jingle IQ',
+                remoteJid: this.remoteJid,
+                roomJid: this.room?.roomjid,
+                session: this.toString(),
+                sid: this.sid,
+                state: this.state,
+                userJid: this.connection.jid
+            });
 
             const error: IJingleError = {
                 code: undefined,

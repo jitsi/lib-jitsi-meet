@@ -3,6 +3,7 @@ import { $iq } from 'strophe.js';
 
 import Listenable from '../util/Listenable';
 import ChatRoom from '../xmpp/ChatRoom';
+import { handleStropheError } from '../xmpp/StropheErrorHandler';
 
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
@@ -75,8 +76,12 @@ export default class JitsiVideoSIPGWSession extends Listenable {
             iq,
             () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
             (error: any) => {
-                logger.error(
-                    `Failed to ${action} video SIP GW session, error: `, error);
+                handleStropheError(error, {
+                    operation: `${action} video SIP GW session`,
+                    roomJid: this.chatRoom.roomjid,
+                    sipAddress: this.sipAddress,
+                    userJid: this.chatRoom.connection.jid
+                });
                 this.setState(VideoSIPGWConstants.STATE_FAILED);
             },
             undefined);
