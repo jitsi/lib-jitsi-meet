@@ -1,5 +1,5 @@
 import { MockRTC } from '../RTC/MockClasses';
-import $ from '../util/XMLParser';
+import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 
 import JingleSessionPC from './JingleSessionPC';
 import {JingleSessionState} from './JingleSessionState';
@@ -11,28 +11,22 @@ import { MockChatRoom, MockStropheConnection } from './MockClasses';
  * @returns {Object}
  */
 function createContentModifyForSourceNames() {
-    const modifyContentsIq = $.parseXML(
+    return parseXML(
         '<jingle action="content-modify" initiator="peer2" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
         + '<content name="video" senders="both">'
         + '<source-frame-height maxHeight="180" sourceName="8d519815-v0" xmlns="http://jitsi.org/jitmeet/video"/>'
         + '<source-frame-height maxHeight="2160" sourceName="8d519815-v1" xmlns="http://jitsi.org/jitmeet/video"/>'
         + '</content>'
         + '</jingle>');
-
-    return $(modifyContentsIq).find('>jingle');
 }
 
 describe('JingleSessionPC', () => {
-    let jingleSession;
-    let connection;
+    let jingleSession: JingleSessionPC;
+    let connection: MockStropheConnection;
     let rtc;
     const offerIQ = {
-        find: () => {
-            return {
-                // eslint-disable-next-line no-empty-function
-                each: () => { }
-            };
-        }
+        querySelector: () => null,
+        querySelectorAll: () => []
     };
 
     const SID = 'sid12345';
@@ -104,6 +98,7 @@ describe('JingleSessionPC', () => {
         it('fires an event when remote peer sends content-modify', () => {
             let remoteSourcesRecvMaxFrameHeight;
             const remoteVideoConstraintsListener = () => {
+                console.error('asdasdasd', jingleSession.getRemoteSourcesRecvMaxFrameHeight());
                 remoteSourcesRecvMaxFrameHeight = jingleSession.getRemoteSourcesRecvMaxFrameHeight();
             };
 
@@ -119,6 +114,8 @@ describe('JingleSessionPC', () => {
                     /* local tracks */ []);
             }).then(() => {
                 jingleSession.modifyContents(createContentModifyForSourceNames());
+
+                console.error('BBBBBB ', remoteSourcesRecvMaxFrameHeight);
                 const v0Height = remoteSourcesRecvMaxFrameHeight[0].maxHeight;
                 const v1Height = remoteSourcesRecvMaxFrameHeight[1].maxHeight;
 
@@ -138,7 +135,7 @@ describe('JingleSessionPC', () => {
             updateRemoteSourcesSpy = spyOn(peerconnection, 'updateRemoteSources');
         });
         it('should handle no sources', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                             <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -148,7 +145,7 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>jingle>content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 
@@ -159,7 +156,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle a single source', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                             <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'>
@@ -170,7 +167,14 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+
+            expect(jingle).not.toBe(null);
+
+            if (!jingle) {
+                return;
+            }
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
             expect(sourceInfo.size).toBe(1);
@@ -186,7 +190,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle multiple ssrcs belonging to the same source', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                                 <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -207,7 +211,14 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+
+            expect(jingle).not.toBe(null);
+
+            if (!jingle) {
+                return;
+            }
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 
@@ -229,7 +240,7 @@ describe('JingleSessionPC', () => {
         });
 
         it('should handle multiple ssrcs belonging to different sources', () => {
-            const jingle = $.parseXML(
+            const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
                                 <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -260,7 +271,14 @@ describe('JingleSessionPC', () => {
                         </content>
                     </jingle>`
             );
-            const sourceAddElem = $(jingle).find('>jingle>content');
+
+            expect(jingle).not.toBe(null);
+
+            if (!jingle) {
+                return;
+            }
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
 
             sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
 

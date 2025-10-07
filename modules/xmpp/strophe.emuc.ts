@@ -3,7 +3,7 @@ import { Strophe } from 'strophe.js';
 
 import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import $ from '../util/XMLParser';
+import { exists, findFirst, getAttribute } from '../util/XMLUtils';
 
 import ChatRoom, { IChatRoomOptions } from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
@@ -124,8 +124,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         // Parse status.
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
-            + '>status[code="201"]').length) {
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (exists(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="201"]')) {
             room.createNonAnonymousRoom();
         }
 
@@ -256,14 +256,15 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             return true;
         }
 
-        const visitors = $(iq).find('>visitors[xmlns="jitsi:visitors"]');
-        const response = $(iq).find('promotion-response');
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const visitors = findFirst(iq, ':scope>visitors[*|xmlns="jitsi:visitors"]');
+        const response = findFirst(visitors, ':scope>promotion-response');
 
-        if (visitors.length && response.length) {
-            if (String(response.attr('allow')).toLowerCase() === 'true') {
+        if (visitors && response) {
+            if (String(getAttribute(response, 'allow')).toLowerCase() === 'true') {
                 logger.info('Promotion request accepted. Redirected to main room.');
                 this.xmpp.eventEmitter.emit(
-                    CONNECTION_REDIRECTED, undefined, visitors.attr('focusjid'), response.attr('username'));
+                    CONNECTION_REDIRECTED, undefined, getAttribute(visitors, 'focusjid'), getAttribute(response, 'username'));
             } else {
                 logger.info('Promotion request rejected.');
                 this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
