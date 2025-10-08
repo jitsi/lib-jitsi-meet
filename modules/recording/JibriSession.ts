@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
 import JitsiParticipant from '../../JitsiParticipant';
+import { handleStropheError } from '../xmpp/StropheErrorHandler';
 import XmppConnection from '../xmpp/XmppConnection';
 
 import { getSessionIdFromIq } from './recordingXMLUtils';
@@ -244,6 +245,10 @@ export default class JibriSession {
                 },
                 (error: any) => {
                     this._setErrorFromIq(error);
+                    handleStropheError(error, {
+                        operation: 'start Jibri session request',
+                        userJid: this._connection?.jid,
+                    });
 
                     reject(error);
                 }
@@ -268,7 +273,13 @@ export default class JibriSession {
                     focusMucJid
                 }),
                 resolve,
-                reject
+                (error: any) => {
+                    handleStropheError(error, {
+                        operation: 'stop Jibri session request',
+                        userJid: this._connection?.jid
+                    });
+                    reject(error);
+                }
             );
         });
     }

@@ -85,6 +85,13 @@ export enum RTCStatsEvents {
     STROPHE_DISCONNECTED_EVENT = 'stropheDisconnected',
 
     /**
+     * Event that indicates that a strophe error has occurred.
+     *
+     * @param {object} data - The data.
+     */
+    STROPHE_ERROR_EVENT = 'strophe.error',
+
+    /**
      * Event that indicates that the strophe connection has been re-established.
      */
     STROPHE_RECONNECTED_EVENT = 'stropheReconnected',

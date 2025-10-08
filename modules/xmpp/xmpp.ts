@@ -15,7 +15,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
-import $ from '../util/XMLParser';
+import { exists, findFirst, getText } from '../util/XMLUtils';
 
 import Caps, { parseDiscoInfo } from './Caps';
 import ChatRoom from './ChatRoom';
@@ -279,6 +279,7 @@ export default class XMPP extends Listenable {
     public breakoutRoomsFeatures: Optional<IBreakoutRoomsFeatures>;
     public fileSharingComponentAddress: Optional<string>;
     public roomMetadataComponentAddress: Optional<string>;
+    public pollsComponentAddress: Optional<string>;
 
 
     /**
@@ -476,8 +477,8 @@ export default class XMPP extends Listenable {
             return true;
         }
 
-        const jsonMessage = $(msg).find('>json-message[xmlns="http://jitsi.org/jitmeet"]')
-            .text();
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const jsonMessage = getText(findFirst(msg, ':scope>json-message[*|xmlns="http://jitsi.org/jitmeet"]'));
         const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
 
         if (!parsedJson || typeof parsedJson !== 'object') {
@@ -496,6 +497,8 @@ export default class XMPP extends Listenable {
             this.eventEmitter.emit(XMPPEvents.ROOM_METADATA_EVENT, parsedJson);
         } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'visitors') {
             this.eventEmitter.emit(XMPPEvents.VISITORS_MESSAGE, parsedJson);
+        } else if (parsedJson[JITSI_MEET_MUC_TYPE] === 'polls') {
+            this.eventEmitter.emit(XMPPEvents.POLLS_EVENT, parsedJson);
         }
 
         return true;
@@ -648,6 +651,11 @@ export default class XMPP extends Listenable {
             if (identity.type === 'visitors') {
                 this._components.push(identity.name);
             }
+
+            if (identity.type === 'polls') {
+                this.pollsComponentAddress = identity.name;
+                this._components.push(this.pollsComponentAddress);
+            }
         });
 
         this._maybeSendDeploymentInfoStat(true);
@@ -741,7 +749,7 @@ export default class XMPP extends Listenable {
      */
     private _onSystemMessage(msg: Element): void {
         // proceed only if the message has any of the expected information
-        if ($(msg).find('>services').length === 0 && $(msg).find('>query').length === 0) {
+        if (!exists(msg, ':scope>services') && !exists(msg, ':scope>query')) {
             return;
         }
 

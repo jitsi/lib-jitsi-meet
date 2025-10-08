@@ -2,7 +2,7 @@ import { $iq } from 'strophe.js';
 
 import FeatureFlags from '../flags/FeatureFlags';
 import { expandSourcesFromJson } from '../xmpp/JingleHelperFunctions';
-import $ from '../util/XMLParser';
+import { findAll, findFirst } from '../util/XMLUtils';
 
 import SDP from './SDP';
 
@@ -11,7 +11,7 @@ import SDP from './SDP';
 /**
  * @param {string} xml - raw xml of the stanza
  */
-function createStanzaElement(xml) {
+function createStanzaElement(xml: string) {
     return new DOMParser().parseFromString(xml, 'text/xml').documentElement;
 }
 
@@ -996,14 +996,14 @@ describe('SDP', () => {
     });
 
     describe('fromJingle', () => {
-        let sdp;
+        let sdp: SDP;
 
         beforeEach(() => {
             sdp = new SDP('');
         });
 
         it('should handle no sources', () => {
-            const jingle = $(
+            const jingle = createStanzaElement(
                 `<jingle xmlns='urn:xmpp:jingle:1'>
                     <content name='audio'>
                         <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/>
@@ -1144,7 +1144,7 @@ a=extmap-allow-mixed
 `.split('\n').join('\r\n');
             const offer = createStanzaElement(stanza);
 
-            sdp.fromJingle($(offer).find('>jingle'));
+            sdp.fromJingle(findFirst(offer, ':scope>jingle'));
             const rawSDP = sdp.raw.replace(/o=- \d+/, 'o=- 123'); // replace generated o= timestamp.
 
             expect(rawSDP).toEqual(expectedSDP);
@@ -1340,13 +1340,13 @@ a=ssrc-group:FID 2306112481 620660772
 a=rtcp-mux
 `.split('\n').join('\r\n');
             const offer = createStanzaElement(stanza);
-            const jsonMessages = $(offer).find('jingle>json-message');
+            const jsonMessages = findAll(offer, 'jingle>json-message');
 
             for (let i = 0; i < jsonMessages.length; i++) {
                 expandSourcesFromJson(offer, jsonMessages[i]);
             }
 
-            sdp.fromJingle($(offer).find('>jingle'));
+            sdp.fromJingle(findFirst(offer, ':scope>jingle'));
             const rawSDP = sdp.raw.replace(/o=- \d+/, 'o=- 123'); // replace generated o= timestamp.
 
             expect(rawSDP).toEqual(expectedSDP);
@@ -1368,7 +1368,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('m=audio 9 UDP/TLS/RTP/SAVPF 111');
             expect(media).toContain('a=rtpmap:111 opus/48000/2');
@@ -1390,7 +1390,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('m=video 9 UDP/TLS/RTP/SAVPF 100 101');
             expect(media).toContain('a=rtpmap:100 VP8/90000');
@@ -1413,7 +1413,7 @@ a=rtcp-mux
             `);
 
             const sdp = new SDP('');
-            const media = sdp.jingle2media($(jingleContent));
+            const media = sdp.jingle2media(jingleContent);
 
             expect(media).toContain('a=candidate:1 1 udp 2130706431 192.168.1.1 10000 typ host');
             expect(media).toContain('a=candidate:2 1 tcp 2130706430 192.168.1.2 10001 typ host');

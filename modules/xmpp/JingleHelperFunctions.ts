@@ -6,7 +6,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
-import $ from '../util/XMLParser';
+import { findFirst } from '../util/XMLUtils';
 
 const logger = getLogger('xmpp:JingleHelperFunctions');
 
@@ -91,25 +91,20 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Nod
  * @returns the RTP description element with the given media type.
  */
 function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
-    const jingle = $(iq).find('jingle')[0];
-    let content = $(jingle).find(`content[name="${mediaType}"]`);
-    let description: Element;
+    const jingle = findFirst(iq, 'jingle');
+    let content = findFirst(jingle, `:scope>content[name="${mediaType}"]`);
 
-    if (content.length) {
-        content = content[0];
-    } else {
-        // I'm not suree if "creator" and "senders" are required.
+    if (!content) {
+        // I'm not sure if "creator" and "senders" are required.
         content = $build('content', {
             name: mediaType
         }).node;
-        jingle.appendChild(content);
+        jingle?.appendChild(content);
     }
 
-    const descriptionElements = $(content).find('description');
+    let description = findFirst(content, 'description');
 
-    if (descriptionElements.length) {
-        description = descriptionElements[0];
-    } else {
+    if (!description) {
         description = $build('description', {
             media: mediaType,
             xmlns: XEP.RTP_MEDIA
