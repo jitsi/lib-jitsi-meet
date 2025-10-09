@@ -222,7 +222,7 @@ const streamManagement: IStreamManagementPlugin = {
 		this._c.send($build('r', { xmlns: this._NS }));
 	},
 
-	getOutgoingCounter: function(): number | null {
+	getOutgoingCounter: function(): Nullable<number> {
 		return this._clientSentStanzasCounter;
 	},
 
