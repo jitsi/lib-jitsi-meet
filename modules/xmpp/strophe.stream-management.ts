@@ -192,7 +192,7 @@ const streamManagement: IStreamManagementPlugin = {
 		this._c.pause();
 	},
 
-	getResumeToken: function(): string | undefined {
+	getResumeToken: function(): Optional<string> {
 		return this._resumeToken;
 	},
 
