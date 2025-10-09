@@ -22,11 +22,12 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
-import $ from '../util/XMLParser';
+import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
 import { JingleSessionState } from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
+import { handleStropheError } from './StropheErrorHandler';
 import XmppConnection from './XmppConnection';
 
 const logger = getLogger('xmpp:JingleSessionPC');
@@ -105,18 +106,6 @@ function _addSourceElement(description: any, s: any, ssrc_: number, msid: string
  *
  * [1]: https://github.com/jitsi/jitsi-meet/blob/master/config.js
  */
-
-/**
- * Represents Jingle XML content elements that can be queried using jQuery-like syntax
- */
-interface IJingleContents {
-    [index: number]: Element;
-    attr: (name: string) => Optional<string>;
-    each: (callback: (index: number, element: Element) => void) => void;
-    find: (selector: string) => IJingleContents;
-    length: number;
-}
-
 interface IJingleSessionPCOptions {
     audioQuality?: IAudioQuality;
     channelLastN?: number;
@@ -208,24 +197,21 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Parses 'senders' attribute of the video content.
-     * @param {Object} jingleContents
+     * @param {Element} jingleContents
      * @return {Nullable<string>} one of the values of content "senders" attribute
      * defined by Jingle. If there is no "senders" attribute or if the value is
      * invalid then <tt>null</tt> will be returned.
      * @private
      */
-    static parseVideoSenders(jingleContents: IJingleContents): Nullable<string> {
-        const videoContents = jingleContents.find('>content[name="video"]');
+    static parseVideoSenders(jingleContents: Element): Nullable<string> {
+        const videoContents = findFirst(jingleContents, ':scope>content[name="video"]');
+        const senders = getAttribute(videoContents, 'senders');
 
-        if (videoContents.length) {
-            const senders = videoContents[0].getAttribute('senders');
-
-            if (senders === 'both'
-                || senders === 'initiator'
-                || senders === 'responder'
-                || senders === 'none') {
-                return senders;
-            }
+        if (senders === 'both'
+            || senders === 'initiator'
+            || senders === 'responder'
+            || senders === 'none') {
+            return senders;
         }
 
         return null;
@@ -235,16 +221,16 @@ export default class JingleSessionPC extends JingleSession {
      * Parses the source-name and max frame height value of the 'content-modify' IQ when source-name signaling
      * is enabled.
      *
-     * @param {Object} jingleContents - An element pointing to the '>jingle' element.
+     * @param {Element} jingleContents - An element pointing to the '>jingle' element.
      * @returns {Nullable<Object>}
      */
-    static parseSourceMaxFrameHeight(jingleContents: IJingleContents): Nullable<ISourceFrameHeight[]> {
+    static parseSourceMaxFrameHeight(jingleContents: Element): Nullable<ISourceFrameHeight[]> {
         const receiverConstraints: ISourceFrameHeight[] = [];
-        const sourceFrameHeightSel = jingleContents.find('>content[name="video"]>source-frame-height');
+        const sourceFrameHeightSel = findAll(jingleContents, ':scope>content[name="video"]>source-frame-height');
         let maxHeight: string, sourceName: string;
 
         if (sourceFrameHeightSel.length) {
-            sourceFrameHeightSel.each((_: number, source: Element) => {
+            sourceFrameHeightSel.forEach(source => {
                 sourceName = source.getAttribute('sourceName');
                 maxHeight = source.getAttribute('maxHeight');
                 receiverConstraints.push({
@@ -588,10 +574,10 @@ export default class JingleSessionPC extends JingleSession {
      * Takes in a jingle offer iq, returns the new sdp offer that can be set as remote description in the
      * peerconnection.
      *
-     * @param {Object} offerIq the incoming offer.
+     * @param {Element} offerIq the incoming offer.
      * @returns {SDP object} the jingle offer translated to SDP.
      */
-    private _processNewJingleOfferIq(offerIq: object): SDP {
+    private _processNewJingleOfferIq(offerIq: Element): SDP {
         const remoteSdp = new SDP('', this.isP2P);
 
         if (this.webrtcIceTcpDisable) {
@@ -605,7 +591,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         remoteSdp.fromJingle(offerIq);
-        this._processSourceMapFromJingle($(offerIq).find('>content'));
+        this._processSourceMapFromJingle(findAll(offerIq, ':scope>content'));
 
         return remoteSdp;
     }
@@ -632,11 +618,11 @@ export default class JingleSessionPC extends JingleSession {
         const sourceElementArray = Array.isArray(sourceElement) ? sourceElement : [ sourceElement ];
 
         for (const content of sourceElementArray) {
-            const descriptionsWithSources = $(content).find('>description')
-                .filter((_: number, el: Element) => $(el).find('>source').length);
+            const descriptionsWithSources
+                = findAll(content, ':scope>description').filter((el: Element) => exists(el, ':scope>source'));
 
             for (const description of descriptionsWithSources) {
-                const mediaType = $(description).attr('media');
+                const mediaType = getAttribute(description, 'media');
 
                 if (mediaType === MediaType.AUDIO && this.options.startSilent) {
 
@@ -644,16 +630,15 @@ export default class JingleSessionPC extends JingleSession {
                     continue;
                 }
 
-                const sources = $(description).find('>source');
+                // Get direct source children, excluding those inside ssrc-group elements
+                const sources = findAll(description, ':scope>source');
                 const removeSsrcs = [];
 
                 for (const source of sources) {
-                    const ssrc = $(source).attr('ssrc');
-                    const sourceName = $(source).attr('name');
-                    const msid = $(source)
-                        .find('>parameter[name="msid"]')
-                        .attr('value');
-                    let videoType = $(source).attr('videoType');
+                    const ssrc = getAttribute(source, 'ssrc');
+                    const sourceName = getAttribute(source, 'name');
+                    const msid = getAttribute(findFirst(source, ':scope>parameter[name="msid"]'), 'value');
+                    let videoType = getAttribute(source, 'videoType');
 
                     // If the videoType is DESKTOP_HIGH_FPS for remote tracks, we should treat it as DESKTOP.
                     if (videoType === VideoType.DESKTOP_HIGH_FPS) {
@@ -673,9 +658,9 @@ export default class JingleSessionPC extends JingleSession {
                     }
 
                     // Update the source owner and source name.
-                    const owner = $(source)
-                        .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                        .attr('owner');
+                    // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+                    const owner = getAttribute(
+                        findFirst(source, ':scope>ssrc-info[*|xmlns="http://jitsi.org/jitmeet"]'), 'owner');
 
                     if (owner && isAdd) {
                         // JVB source-add.
@@ -691,19 +676,14 @@ export default class JingleSessionPC extends JingleSession {
 
                 // 'source-remove' from remote peer.
                 removeSsrcs.length && this._signalingLayer.removeSSRCOwners(removeSsrcs);
-                const groups = $(description).find('>ssrc-group');
 
-                if (!groups.length) {
-                    continue; // eslint-disable-line no-continue
-                }
-
-                for (const group of groups) {
-                    const semantics = $(group).attr('semantics');
+                findAll(description, ':scope>ssrc-group').forEach(group => {
+                    const semantics = getAttribute(group, 'semantics');
                     const groupSsrcs = [];
 
-                    for (const source of $(group).find('>source')) {
-                        groupSsrcs.push($(source).attr('ssrc'));
-                    }
+                    findAll(group, ':scope>source').forEach(source => {
+                        groupSsrcs.push(getAttribute(source, 'ssrc'));
+                    });
 
                     for (const [ sourceName, { ssrcList } ] of sourceDescription) {
                         if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
@@ -713,7 +693,7 @@ export default class JingleSessionPC extends JingleSession {
                             });
                         }
                     }
-                }
+                });
             }
         }
 
@@ -1039,7 +1019,15 @@ export default class JingleSessionPC extends JingleSession {
                 logger.info(`${this} Got RESULT for "session-initiate"`);
             },
             error => {
-                logger.error(`${this} "session-initiate" error`, error);
+                handleStropheError(error, {
+                    isP2P: this.isP2P,
+                    operation: 'session-initiate',
+                    remoteJid: this.remoteJid,
+                    roomJid: this.room?.roomjid,
+                    session: this.toString(),
+                    sid: this.sid,
+                    userJid: this.connection.jid
+                });
             },
             IQ_TIMEOUT);
     }
@@ -1059,8 +1047,20 @@ export default class JingleSessionPC extends JingleSession {
      * @param failureCb function(error) called when error response was returned or when a timeout has occurred.
      * @returns {function(this:JingleSessionPC)}
      */
-    private newJingleErrorHandler(failureCb?: (error: IJingleError) => void): (errResponse: string | Element | Error) => void {
+    private newJingleErrorHandler(failureCb?: (error: IJingleError) => void): ErrorCallback {
         return errResponse => {
+
+            // Call handleStropheError for centralized error logging and analytics
+            handleStropheError(errResponse, {
+                isP2P: this.isP2P,
+                operation: 'Jingle IQ',
+                remoteJid: this.remoteJid,
+                roomJid: this.room?.roomjid,
+                session: this.toString(),
+                sid: this.sid,
+                state: this.state,
+                userJid: this.connection.jid
+            });
 
             const error: IJingleError = {
                 code: undefined,
@@ -1069,21 +1069,23 @@ export default class JingleSessionPC extends JingleSession {
                 session: undefined
             };
 
-            // Get XMPP error code and condition(reason)
-            const errorElSel = $(errResponse).find('error');
+            if (errResponse instanceof Element) {
+                // Get XMPP error code and condition(reason)
+                const errorElSel = findFirst(errResponse, 'error');
 
-            if (errorElSel.length) {
-                error.code = errorElSel.attr('code');
-                const errorReasonSel = $(errResponse).find('error :first');
+                if (errorElSel) {
+                    error.code = getAttribute(errorElSel, 'code');
+                    const errorResponseChildren = errResponse.children;
 
-                if (errorReasonSel.length) {
-                    error.reason = errorReasonSel[0].tagName;
-                }
+                    if (errorResponseChildren.length) {
+                        error.reason = errorResponseChildren[0].tagName;
+                    }
 
-                const errorMsgSel = errorElSel.find('>text');
+                    const errorMsgSel = findFirst(errorElSel, ':scope>text');
 
-                if (errorMsgSel.length) {
-                    error.msg = errorMsgSel.text();
+                    if (errorMsgSel) {
+                        error.msg = getText(errorMsgSel);
+                    }
                 }
             }
 
@@ -1253,7 +1255,7 @@ export default class JingleSessionPC extends JingleSession {
      * offer/answer).
      * @returns {void}
      */
-    private setOfferAnswerCycle(jingleOfferAnswerIq: object, success: () => void, failure: (error: Error) => void, localTracks: JitsiLocalTrack[] = []): void {
+    private setOfferAnswerCycle(jingleOfferAnswerIq: Element, success: () => void, failure: (error: Error) => void, localTracks: JitsiLocalTrack[] = []): void {
         logger.debug(`${this} Executing setOfferAnswerCycle task`);
 
         const addTracks = [];
@@ -1271,8 +1273,8 @@ export default class JingleSessionPC extends JingleSession {
             addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
         }
         const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferAnswerIq);
-        const bridgeSession = $(jingleOfferAnswerIq).find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]');
-        const bridgeSessionId = bridgeSession.attr('id');
+        const bridgeSession = findFirst(jingleOfferAnswerIq, ':scope>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]');
+        const bridgeSessionId = getAttribute(bridgeSession, 'id');
 
         if (bridgeSessionId !== this._bridgeSessionId) {
             this._bridgeSessionId = bridgeSessionId;
@@ -1323,7 +1325,7 @@ export default class JingleSessionPC extends JingleSession {
      * assumption that the initial offer/answer cycle has been executed already.
      */
     public override acceptOffer(
-            jingleOffer: object,
+            jingleOffer: Element,
             success: () => void,
             failure: (error: any) => void,
             localTracks: JitsiLocalTrack[] = []): void {
@@ -1363,7 +1365,7 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * {@inheritDoc}
      */
-    public override addIceCandidates(elem: object): void {
+    public override addIceCandidates(elem: Element): void {
         if (this.peerconnection.signalingState === 'closed') {
             logger.warn(`${this} Ignored add ICE candidate when in closed state`);
 
@@ -1372,8 +1374,8 @@ export default class JingleSessionPC extends JingleSession {
 
         const iceCandidates: RTCIceCandidate[] = [];
 
-        $(elem).find('>content>transport>candidate')
-            .each((idx: number, candidate: Element) => {
+        findAll(elem, ':scope>content>transport>candidate')
+            .forEach(candidate => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
                 line = line.replace('\r\n', '').replace('a=', '');
@@ -1929,7 +1931,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {Element} jingleContents - The content of the 'content-modify' IQ sent by the remote peer.
      * @returns {void}
      */
-    public modifyContents(jingleContents: IJingleContents): void {
+    public modifyContents(jingleContents: Element): void {
         const newVideoSenders = JingleSessionPC.parseVideoSenders(jingleContents);
         const sourceMaxFrameHeights = JingleSessionPC.parseSourceMaxFrameHeight(jingleContents);
 

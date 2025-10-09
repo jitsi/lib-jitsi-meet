@@ -391,6 +391,11 @@ export default class JitsiConferenceEventManager {
                     participantId, txt, ts, displayName, isVisitor, messageId, source, replyToId);
             });
 
+        this.chatRoomForwarder.forward(XMPPEvents.POLLS_RECEIVE_EVENT,
+            JitsiConferenceEvents.POLL_RECEIVED);
+        this.chatRoomForwarder.forward(XMPPEvents.POLLS_ANSWER_EVENT,
+            JitsiConferenceEvents.POLL_ANSWER_RECEIVED);
+
         chatRoom.addListener(
             XMPPEvents.REACTION_RECEIVED,
 
@@ -494,22 +499,22 @@ export default class JitsiConferenceEventManager {
             (dominant: string, previous: string[], silence: boolean) => {
                 if ((conference.lastDominantSpeaker !== dominant || conference.dominantSpeakerIsSilent !== silence)
                         && conference.room) {
-                    conference.lastDominantSpeaker = dominant;
                     conference.dominantSpeakerIsSilent = silence;
                     conference.eventEmitter.emit(
                         JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, dominant, previous, silence);
                     if (conference.statistics && conference.myUserId() === dominant) {
                         // We are the new dominant speaker.
                         conference.xmpp.sendDominantSpeakerEvent(conference.room.roomjid, silence);
+                        RTCStats.sendStatsEntry(RTCStatsEvents.DOMINANT_SPEAKER_CHANGED_EVENT);
                     }
                     if (conference.lastDominantSpeaker !== dominant) {
+                        conference.lastDominantSpeaker = dominant;
+
                         if (previous?.length) {
                             const speakerList = previous.slice(0);
 
                             // Add the dominant speaker to the top of the list (exclude self).
-                            if (conference.myUserId() === dominant) {
-                                RTCStats.sendStatsEntry(RTCStatsEvents.DOMINANT_SPEAKER_CHANGED_EVENT);
-                            } else {
+                            if (conference.myUserId() !== dominant) {
                                 speakerList.splice(0, 0, dominant);
                             }
 
