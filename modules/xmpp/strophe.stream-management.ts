@@ -226,7 +226,7 @@ const streamManagement: IStreamManagementPlugin = {
 		return this._clientSentStanzasCounter;
 	},
 
-	getIncomingCounter: function(): number | null {
+	getIncomingCounter: function(): Nullable<number> {
 		return this._clientProcessedStanzasCounter;
 	},
 
