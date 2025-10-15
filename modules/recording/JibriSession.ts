@@ -324,9 +324,25 @@ export default class JibriSession {
      * @returns {void}
      */
     _setErrorFromIq(errorIq: any): void {
-        const error = errorIq.getElementsByTagName('error')[0];
+        let error;
 
-        this.setError(error.children[0].tagName);
+        if (errorIq) {
+            if (typeof errorIq === 'string') {
+                error = errorIq;
+            } else if (errorIq.nodeType === 1) {
+                const errors = errorIq.getElementsByTagName('error');
+
+                if (errors?.length > 0) {
+                    const errorChildren = errors[0].children;
+
+                    error = errorChildren?.length > 0 ? errorChildren[0].tagName : undefined;
+                }
+            }
+        } else {
+            error = 'timeout';
+        }
+
+        this.setError(error ?? 'unknown');
     }
 
     /**
