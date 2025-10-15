@@ -25,7 +25,11 @@ export function handleStropheError(errResponse: any, context: IStropheErrorConte
         if (errResponse.nodeType === 1 && errResponse.tagName.toUpperCase() === 'ERROR') {
             errorEl = errResponse;
         } else if (errResponse.nodeType === 1) {
-            errorEl = Array.from(errResponse.getElementsByTagName('error') as HTMLCollectionOf<Element>)[0] || null;
+            const errorElements = errResponse.getElementsByTagName('error');
+
+            if (errorElements?.length > 0) {
+                errorEl = Array.from(errorElements as HTMLCollectionOf<Element>)[0] || null;
+            }
         }
     }
 
@@ -48,8 +52,14 @@ export function handleStropheError(errResponse: any, context: IStropheErrorConte
 
         // Raw XML string for debugging
         errorObj.raw = errorEl.outerHTML;
-    } else {
+
+    // if the connection is not established we directly return a string as error from sendIQ method
+    } else if (typeof errResponse === 'string') {
+        errorObj.reason = errResponse;
+    } else if (!errResponse) { // null or undefined
         errorObj.reason = 'timeout';
+    } else { // Invalid type of error.
+        errorObj.reason = 'unknown';
     }
 
     // Merge in contextual info
