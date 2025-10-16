@@ -239,6 +239,61 @@ describe('StropheErrorHandler', () => {
         });
     });
 
+    describe('handleStropheError with string error', () => {
+        it('should handle string error like "Not connected"', () => {
+            handleStropheError('Not connected', {
+                operation: 'test operation',
+                userJid: 'user@example.com'
+            });
+
+            expect(sendStatsEntrySpy).toHaveBeenCalled();
+            const statsCall = sendStatsEntrySpy.calls.mostRecent().args[2];
+
+            expect(statsCall.reason).toBe('Not connected');
+            expect(statsCall.operation).toBe('test operation');
+            expect(statsCall.userJid).toBe('user@example.com');
+        });
+    });
+
+    describe('handleStropheError with unknown error type', () => {
+        it('should handle invalid error types with reason "unknown"', () => {
+            handleStropheError(12345 as any, {
+                operation: 'test with number'
+            });
+
+            expect(sendStatsEntrySpy).toHaveBeenCalled();
+            const statsCall = sendStatsEntrySpy.calls.mostRecent().args[2];
+
+            expect(statsCall.reason).toBe('unknown');
+            expect(statsCall.operation).toBe('test with number');
+        });
+
+        it('should handle array error with reason "unknown"', () => {
+            handleStropheError([] as any, {
+                operation: 'test with array'
+            });
+
+            expect(sendStatsEntrySpy).toHaveBeenCalled();
+            const statsCall = sendStatsEntrySpy.calls.mostRecent().args[2];
+
+            expect(statsCall.reason).toBe('unknown');
+        });
+
+        it('should still merge context for unknown error types', () => {
+            handleStropheError({ unexpected: 'object' } as any, {
+                operation: 'test with object',
+                userJid: 'user@example.com'
+            });
+
+            expect(sendStatsEntrySpy).toHaveBeenCalled();
+            const statsCall = sendStatsEntrySpy.calls.mostRecent().args[2];
+
+            expect(statsCall.reason).toBe('unknown');
+            expect(statsCall.operation).toBe('test with object');
+            expect(statsCall.userJid).toBe('user@example.com');
+        });
+    });
+
     describe('Integration scenarios', () => {
         it('should handle Jibri session error scenario', () => {
             const mockError = document.createElement('iq');
