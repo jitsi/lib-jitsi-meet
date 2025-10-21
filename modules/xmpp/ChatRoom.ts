@@ -896,7 +896,7 @@ export default class ChatRoom extends Listenable {
         } else if (this.members[from] === undefined) {
             // new participant
             this.members[from] = member;
-            logger.info('entered', from, member);
+            logger.info('entered', from);
             hasStatusUpdate = member.status !== undefined;
             hasVersionUpdate = member.version !== undefined;
             if (member.isFocus) {
