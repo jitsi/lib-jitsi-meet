@@ -2,7 +2,11 @@
 
 // Worker for E2EE/Insertable streams.
 
+import { getLogger } from '@jitsi/logger';
+
 import { Context } from './Context';
+
+const logger = getLogger('e2ee:Worker');
 
 const contexts: Map<string, Context> = new Map(); // Map participant id => context
 
@@ -55,7 +59,7 @@ function handleTransform(
             .pipeThrough(transformStream)
             .pipeTo(writableStream);
     } else {
-        console.error(`Invalid operation: ${operation}`);
+        logger.error(`Invalid operation: ${operation}`);
     }
 }
 
@@ -133,7 +137,7 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
     } else if (operation === 'cleanupAll') {
         contexts.clear();
     } else {
-        console.error('e2ee worker', operation);
+        logger.error('Unknown operation received:', operation);
     }
 };
 

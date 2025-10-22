@@ -1,6 +1,10 @@
 /* eslint-disable no-bitwise */
 
+import { getLogger } from '@jitsi/logger';
+
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
+
+const logger = getLogger('e2ee:Context');
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key. We use a size of 16 which corresponds to the four bits
@@ -339,7 +343,7 @@ export class Context {
                 return controller.enqueue(encodedFrame);
             }, e => {
                 // TODO: surface this to the app.
-                console.error(e);
+                logger.error('Encryption failed:', e);
 
                 // We are not enqueuing the frame here on purpose.
             });
