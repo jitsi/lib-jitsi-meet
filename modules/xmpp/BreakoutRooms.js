@@ -56,6 +56,8 @@ export default class BreakoutRooms {
             return;
         }
 
+        logger.debug('Create breakout room');
+
         const message = {
             subject,
             type: BREAKOUT_ROOM_ACTIONS.ADD
@@ -76,6 +78,8 @@ export default class BreakoutRooms {
 
             return;
         }
+
+        logger.debug(`Remove breakout room: ${breakoutRoomJid}`);
 
         const message = {
             breakoutRoomJid,
@@ -98,6 +102,8 @@ export default class BreakoutRooms {
 
             return;
         }
+
+        logger.debug(`Rename breakout room: ${breakoutRoomJid}`);
 
         const message = {
             breakoutRoomJid,
@@ -122,6 +128,8 @@ export default class BreakoutRooms {
 
             return;
         }
+
+        logger.debug(`Send participant: ${participantJid} to room: ${roomJid}`);
 
         const message = {
             participantJid,
