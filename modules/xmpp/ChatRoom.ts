@@ -1275,6 +1275,8 @@ export default class ChatRoom extends Listenable {
                 reason = getText(reasonSelect);
             }
 
+            logger.info(`Kicked by ${from}`);
+
             // we first fire the kicked so we can show the participant
             // who kicked, before notifying that participant left
             // we fire kicked for us and for any participant kicked
