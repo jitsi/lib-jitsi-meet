@@ -4,15 +4,14 @@ import { $iq } from 'strophe.js';
 
 import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
+import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 import { exists, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import { handleStropheError } from './StropheErrorHandler';
 
-const AuthenticationEvents
-    = require('../../service/authentication/AuthenticationEvents');
-const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
 
 const logger = getLogger('xmpp:Moderator');
 
