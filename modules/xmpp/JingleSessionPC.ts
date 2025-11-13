@@ -22,7 +22,7 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
-import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
 import { JingleSessionState } from './JingleSessionState';
@@ -1049,19 +1049,6 @@ export default class JingleSessionPC extends JingleSession {
      */
     private newJingleErrorHandler(failureCb?: (error: IJingleError) => void): ErrorCallback {
         return errResponse => {
-
-            // Call handleStropheError for centralized error logging and analytics
-            handleStropheError(errResponse, {
-                isP2P: this.isP2P,
-                operation: 'Jingle IQ',
-                remoteJid: this.remoteJid,
-                roomJid: this.room?.roomjid,
-                session: this.toString(),
-                sid: this.sid,
-                state: this.state,
-                userJid: this.connection.jid
-            });
-
             const error: IJingleError = {
                 code: undefined,
                 msg: undefined,
@@ -1075,16 +1062,10 @@ export default class JingleSessionPC extends JingleSession {
 
                 if (errorElSel) {
                     error.code = getAttribute(errorElSel, 'code');
-                    const errorResponseChildren = errResponse.children;
+                    const errorResponseChildren = errorElSel.children;
 
                     if (errorResponseChildren.length) {
                         error.reason = errorResponseChildren[0].tagName;
-                    }
-
-                    const errorMsgSel = findFirst(errorElSel, ':scope>text');
-
-                    if (errorMsgSel) {
-                        error.msg = getText(errorMsgSel);
                     }
                 }
             }
@@ -1093,20 +1074,25 @@ export default class JingleSessionPC extends JingleSession {
                 error.reason = 'timeout';
             }
 
-            error.session = this.toString();
+            // When remote peer decides to terminate the session, but it still has few messages on the queue for
+            // processing, it will first send us 'session-terminate' (we enter ENDED) and then follow with
+            // 'item-not-found' for the queued requests. These 'item-not-found' errors can be ignored.
+            const ignoreErrors = this.state === JingleSessionState.ENDED && error?.reason === 'item-not-found';
 
-            if (failureCb) {
-                failureCb(error);
-            } else if (this.state === JingleSessionState.ENDED
-                        && error.reason === 'item-not-found') {
-                // When remote peer decides to terminate the session, but it
-                // still have few messages on the queue for processing,
-                // it will first send us 'session-terminate' (we enter ENDED)
-                // and then follow with 'item-not-found' for the queued requests
-                // We don't want to have that logged on error level.
-                logger.debug(`${this} Jingle error: ${JSON.stringify(error)}`);
-            } else {
-                logger.error(`Jingle error: ${JSON.stringify(error)}`);
+            if (!ignoreErrors) {
+                failureCb?.(error);
+
+                // Call handleStropheError for centralized error logging and analytics.
+                handleStropheError(errResponse, {
+                    isP2P: this.isP2P,
+                    operation: 'Jingle IQ',
+                    remoteJid: this.remoteJid,
+                    roomJid: this.room?.roomjid,
+                    session: this.toString(),
+                    sid: this.sid,
+                    state: this.state,
+                    userJid: this.connection.jid
+                });
             }
         };
     }
