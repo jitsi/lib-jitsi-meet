@@ -221,6 +221,7 @@ class ScreenObtainer {
      */
     private _getAudioConstraints(): boolean | IAudioQuality {
         const { audioQuality } = this.options;
+        const isTestModeEnabled = this.options.testing?.testMode;
 
         // Chrome 140+ requires 'restrictOwnAudio' for proper audio sharing when not using stereo.
         // Starting Chrome 137 'echoCancellation' was turned off by default for screen share audio and needs to be
@@ -243,9 +244,9 @@ class ScreenObtainer {
 
         let audio: boolean | IAudioQuality = (audioQuality?.stereo || needsEchoCancellation)
             ? defaultAudioConstraints
-            : true;
+            : !isTestModeEnabled;
 
-        if (supportsRestrictOwnAudio) {
+        if (supportsRestrictOwnAudio && !isTestModeEnabled) {
             if (typeof audio === 'boolean') {
                 audio = {
                     restrictOwnAudio: true
