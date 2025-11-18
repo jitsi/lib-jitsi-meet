@@ -266,6 +266,18 @@ export class TPCUtils {
             }
         ];
 
+        // Workaround for Chromium bug with VP8 simulcast at low resolutions.
+        // At resolutions below 640px, Chromium limits the number of simulcast layers and picks the first encoding
+        // in the array. By reversing the order for low resolutions, we ensure the highest quality layer is selected.
+        // See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
+        // Chromium source: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/video/config/simulcast.cc
+        if (codec === CodecMimeType.VP8
+            && !browser.isFirefox()
+            && videoType === VideoType.CAMERA
+            && captureResolution < 640) {
+            standardSimulcastEncodings.reverse();
+        }
+
         if (this.codecSettings[codec].scalabilityModeEnabled) {
             // Configure all 3 encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
             // always since that is the only supported mode when DD header extension is negotiated for H.264.
