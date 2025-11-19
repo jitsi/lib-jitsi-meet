@@ -272,7 +272,7 @@ export class TPCUtils {
         // See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
         // Chromium source: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/video/config/simulcast.cc
         if (codec === CodecMimeType.VP8
-            && !browser.isFirefox()
+            && browser.isChromiumBased()
             && videoType === VideoType.CAMERA
             && captureResolution < 640) {
             standardSimulcastEncodings.reverse();
