@@ -383,12 +383,14 @@ export class TPCUtils {
                         // requested resolution. This can happen when camera is captured at high resolutions like 4k
                         // but the requested resolution is 180. Since getParameters doesn't give us information about
                         // the resolutions of the simulcast encodings, we have to rely on our initial config for the
-                        // simulcast streams.
-                        || videoStreamEncodings[idx]?.scaleResolutionDownBy === SIM_LAYERS[0].scaleFactor;
+                        // simulcast streams. We check for the lowest quality scale factor (4.0) regardless of array
+                        // position since the encoding order may be reversed for Firefox or low-res Chromium VP8.
+                        || videoStreamEncodings[idx]?.scaleResolutionDownBy === 4.0;
                 } else {
                     // For screenshare, keep the HD layer enabled always and the lower layers only for high fps
-                    // screensharing.
-                    activeState = videoStreamEncodings[idx].scaleResolutionDownBy === SIM_LAYERS[2].scaleFactor
+                    // screensharing. We check for the highest quality scale factor (1.0) regardless of array position
+                    // since the encoding order may be reversed for Firefox.
+                    activeState = videoStreamEncodings[idx].scaleResolutionDownBy === 1.0
                         || !this._isScreenshareBitrateCapped(localVideoTrack);
                 }
             }
