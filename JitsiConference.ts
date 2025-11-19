@@ -836,32 +836,6 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Restarts all active media sessions.
-     *
-     * @returns {void}
-     */
-    private _restartMediaSessions(): void {
-        if (this.p2pJingleSession) {
-            this._stopP2PSession({
-                reasonDescription: 'restart',
-                requestRestart: true
-            });
-        }
-
-        if (this.jvbJingleSession) {
-            this._stopJvbSession({
-                reason: 'success',
-                reasonDescription: 'restart required',
-                requestRestart: true,
-                sendSessionTerminate: true
-            });
-        }
-
-        this._maybeStartOrStopP2P(false);
-    }
-
-
-    /**
    * Fires TRACK_AUDIO_LEVEL_CHANGED change conference event (for local tracks).
    * @param {number} audioLevel - The audio level.
    * @param {TraceablePeerConnection} [tpc] - The peer connection.
@@ -2425,6 +2399,32 @@ export default class JitsiConference extends Listenable {
         };
 
         return process;
+    }
+
+    /**
+     * Restarts all active media sessions.
+     *
+     * @returns {void}
+     * @internal
+     */
+    _restartMediaSessions(): void {
+        if (this.p2pJingleSession) {
+            this._stopP2PSession({
+                reasonDescription: 'restart',
+                requestRestart: true
+            });
+        }
+
+        if (this.jvbJingleSession) {
+            this._stopJvbSession({
+                reason: 'success',
+                reasonDescription: 'restart required',
+                requestRestart: true,
+                sendSessionTerminate: true
+            });
+        }
+
+        this._maybeStartOrStopP2P(false);
     }
 
     /**
