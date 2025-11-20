@@ -311,6 +311,69 @@ export class TPCUtils {
         }
 
         return standardSimulcastEncodings;
+        // Dynamically determine number of simulcast layers based on resolution
+        let numLayers = 1;
+        if (captureResolution >= 720) {
+            numLayers = 3;
+        } else if (captureResolution >= 360) {
+            numLayers = 2;
+        }
+
+        // If only one layer is possible, disable simulcast
+        const enableSimulcast = numLayers > 1 && (
+            codec === CodecMimeType.VP8 ||
+            (this.codecSettings[codec].useSimulcast && (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1))
+        );
+
+        let simulcastEncodings: IRTCRtpEncodingParameters[] = [];
+        for (let i = 0; i < numLayers; i++) {
+            simulcastEncodings.push({
+                active: this.pc.videoTransferActive,
+                maxBitrate: effectiveBitrates[i],
+                rid: SIM_LAYERS[i].rid,
+                scaleResolutionDownBy: effectiveScaleFactors[i]
+            });
+        }
+
+        // Chromium workaround: reverse encodings for low-res camera simulcast
+        const needsLowResWorkaround = enableSimulcast && browser.isChromiumBased()
+            && videoType === VideoType.CAMERA
+            && captureResolution < 640;
+        if (needsLowResWorkaround) {
+            simulcastEncodings.reverse();
+        }
+
+        if (this.codecSettings[codec].scalabilityModeEnabled) {
+            // Configure all encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
+            // always since that is the only supported mode when DD header extension is negotiated for H.264.
+            if (enableSimulcast || codec === CodecMimeType.H264) {
+                for (const encoding of simulcastEncodings) {
+                    encoding.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
+                }
+                return simulcastEncodings;
+            }
+            // Configure only one encoding for the SVC mode.
+            return [
+                {
+                    active: this.pc.videoTransferActive,
+                    maxBitrate: effectiveBitrates[numLayers - 1],
+                    rid: SIM_LAYERS[0].rid,
+                    scalabilityMode: this.codecSettings[codec].useKSVC
+                        ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3,
+                    scaleResolutionDownBy: effectiveScaleFactors[numLayers - 1]
+                },
+                {
+                    active: false,
+                    maxBitrate: 0
+                },
+                {
+                    active: false,
+                    maxBitrate: 0
+                }
+            ];
+        }
+
+        return simulcastEncodings;
     }
 
     /**
