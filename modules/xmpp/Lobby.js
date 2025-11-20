@@ -385,9 +385,8 @@ export default class Lobby {
                 }
             });
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_JOIN_ERROR, reject);
-            this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, reject);
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_ERROR, reject);
-            this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type => {
+            this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, (type, txt) => {
                 if (type === AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION) {
                     logger.info('Lobby room creation not allowed, we will retry on main room.');
                     this.lobbyRoom?.clean();
@@ -395,6 +394,8 @@ export default class Lobby {
                     this.lobbyRoom = undefined;
 
                     this.mainRoom.join();
+                } else {
+                    reject(type, txt);
                 }
             });
 
