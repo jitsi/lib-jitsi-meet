@@ -266,6 +266,18 @@ export class TPCUtils {
             }
         ];
 
+        // Workaround for Chromium bug with VP8 simulcast at low resolutions.
+        // At resolutions below 640px, Chromium limits the number of simulcast layers and picks the first encoding
+        // in the array. By reversing the order for low resolutions, we ensure the highest quality layer is selected.
+        // See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
+        // Chromium source: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/video/config/simulcast.cc
+        if (codec === CodecMimeType.VP8
+            && browser.isChromiumBased()
+            && videoType === VideoType.CAMERA
+            && captureResolution < 640) {
+            standardSimulcastEncodings.reverse();
+        }
+
         if (this.codecSettings[codec].scalabilityModeEnabled) {
             // Configure all 3 encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
             // always since that is the only supported mode when DD header extension is negotiated for H.264.
@@ -299,6 +311,69 @@ export class TPCUtils {
         }
 
         return standardSimulcastEncodings;
+        // Dynamically determine number of simulcast layers based on resolution
+        let numLayers = 1;
+        if (captureResolution >= 720) {
+            numLayers = 3;
+        } else if (captureResolution >= 360) {
+            numLayers = 2;
+        }
+
+        // If only one layer is possible, disable simulcast
+        const enableSimulcast = numLayers > 1 && (
+            codec === CodecMimeType.VP8 ||
+            (this.codecSettings[codec].useSimulcast && (codec === CodecMimeType.VP9 || codec === CodecMimeType.AV1))
+        );
+
+        let simulcastEncodings: IRTCRtpEncodingParameters[] = [];
+        for (let i = 0; i < numLayers; i++) {
+            simulcastEncodings.push({
+                active: this.pc.videoTransferActive,
+                maxBitrate: effectiveBitrates[i],
+                rid: SIM_LAYERS[i].rid,
+                scaleResolutionDownBy: effectiveScaleFactors[i]
+            });
+        }
+
+        // Chromium workaround: reverse encodings for low-res camera simulcast
+        const needsLowResWorkaround = enableSimulcast && browser.isChromiumBased()
+            && videoType === VideoType.CAMERA
+            && captureResolution < 640;
+        if (needsLowResWorkaround) {
+            simulcastEncodings.reverse();
+        }
+
+        if (this.codecSettings[codec].scalabilityModeEnabled) {
+            // Configure all encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
+            // always since that is the only supported mode when DD header extension is negotiated for H.264.
+            if (enableSimulcast || codec === CodecMimeType.H264) {
+                for (const encoding of simulcastEncodings) {
+                    encoding.scalabilityMode = VideoEncoderScalabilityMode.L1T3;
+                }
+                return simulcastEncodings;
+            }
+            // Configure only one encoding for the SVC mode.
+            return [
+                {
+                    active: this.pc.videoTransferActive,
+                    maxBitrate: effectiveBitrates[numLayers - 1],
+                    rid: SIM_LAYERS[0].rid,
+                    scalabilityMode: this.codecSettings[codec].useKSVC
+                        ? VideoEncoderScalabilityMode.L3T3_KEY : VideoEncoderScalabilityMode.L3T3,
+                    scaleResolutionDownBy: effectiveScaleFactors[numLayers - 1]
+                },
+                {
+                    active: false,
+                    maxBitrate: 0
+                },
+                {
+                    active: false,
+                    maxBitrate: 0
+                }
+            ];
+        }
+
+        return simulcastEncodings;
     }
 
     /**
@@ -371,12 +446,14 @@ export class TPCUtils {
                         // requested resolution. This can happen when camera is captured at high resolutions like 4k
                         // but the requested resolution is 180. Since getParameters doesn't give us information about
                         // the resolutions of the simulcast encodings, we have to rely on our initial config for the
-                        // simulcast streams.
-                        || videoStreamEncodings[idx]?.scaleResolutionDownBy === SIM_LAYERS[0].scaleFactor;
+                        // simulcast streams. We check for the lowest quality scale factor (4.0) regardless of array
+                        // position since the encoding order may be reversed for Firefox or low-res Chromium VP8.
+                        || videoStreamEncodings[idx]?.scaleResolutionDownBy === 4.0;
                 } else {
                     // For screenshare, keep the HD layer enabled always and the lower layers only for high fps
-                    // screensharing.
-                    activeState = videoStreamEncodings[idx].scaleResolutionDownBy === SIM_LAYERS[2].scaleFactor
+                    // screensharing. We check for the highest quality scale factor (1.0) regardless of array position
+                    // since the encoding order may be reversed for Firefox.
+                    activeState = videoStreamEncodings[idx].scaleResolutionDownBy === 1.0
                         || !this._isScreenshareBitrateCapped(localVideoTrack);
                 }
             }

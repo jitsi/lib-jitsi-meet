@@ -1589,6 +1589,29 @@ describe('TPCUtils', () => {
                 expect(scaleFactor[1]).toBe(6);
                 expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
             });
+
+            it('and capture resolution is 320 (low resolution - Chromium workaround applied)', () => {
+                height = 240;
+                const lowResolutionTrack = new MockJitsiLocalTrack(320, MediaType.VIDEO, VideoType.CAMERA);
+
+                // For low resolution VP8 on Chromium, encodings are reversed so the highest quality comes first
+                // This ensures Chromium picks the correct layer when it limits the number of simulcast layers
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(lowResolutionTrack, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor); // Highest quality first (1x)
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // Mid quality (2x)
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[0].scaleFactor); // Lowest quality last (4x)
+            });
+
+            it('and capture resolution is 480 (low resolution - Chromium workaround applied)', () => {
+                height = 360;
+                const lowResolutionTrack = new MockJitsiLocalTrack(480, MediaType.VIDEO, VideoType.CAMERA);
+
+                // For low resolution VP8 on Chromium, encodings are reversed
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(lowResolutionTrack, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor); // Highest quality first (1x)
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // Mid quality (2x)
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[0].scaleFactor); // Lowest quality last (4x)
+            });
         });
 
         describe('VP8 low fps desktop tracks', () => {
