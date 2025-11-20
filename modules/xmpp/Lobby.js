@@ -1,6 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $msg, Strophe } from 'strophe.js';
 
+import { AUTH_ERROR_TYPES } from '../../JitsiConferenceErrors';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import { handleStropheError } from './StropheErrorHandler';
@@ -255,6 +256,7 @@ export default class Lobby {
                 customDomain,
                 disableDiscoInfo: true,
                 disableFocus: true,
+                disableRoomCreationRetry: true,
                 enableLobby: false
             }
         );
@@ -385,10 +387,19 @@ export default class Lobby {
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_JOIN_ERROR, reject);
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, reject);
             this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_ERROR, reject);
+            this.lobbyRoom.addEventListener(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type => {
+                if (type === AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION) {
+                    logger.info('Lobby room creation not allowed, we will retry on main room.');
+                    this.lobbyRoom?.clean();
+
+                    this.lobbyRoom = undefined;
+
+                    this.mainRoom.join();
+                }
+            });
 
             this.lobbyRoom.join();
         });
-
     }
 
     /**
