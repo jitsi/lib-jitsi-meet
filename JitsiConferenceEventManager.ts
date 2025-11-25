@@ -559,6 +559,14 @@ export default class JitsiConferenceEventManager {
 
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
             (from: string, payload: any) => {
+                if (from === 'transcriber') {
+                    conference.eventEmitter.emit(
+                        JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED,
+                        from, payload);
+
+                    return;
+                }
+
                 const participant = conference.getParticipantById(from);
 
                 if (participant) {
