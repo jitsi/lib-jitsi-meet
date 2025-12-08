@@ -2288,16 +2288,11 @@ export default class ChatRoom extends Listenable {
         this.lobby?.lobbyRoom && promises.push(this.lobby.leave());
 
         promises.push(new Promise((resolve, reject) => {
-            let timeout: Optional<ReturnType<typeof setTimeout>>;
+            let timeout: number | Timeout = -1;
 
             const onMucLeft = (doReject = false) => {
                 this.eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
-                
-                // Always clear the timeout to prevent memory leaks and race conditions
-                if (timeout !== undefined) {
-                    clearTimeout(timeout);
-                    timeout = undefined;
-                }
+                clearTimeout(timeout as number);
 
                 // This will reset the joined flag to false. If we reset it earlier any self presence will be
                 // interpreted as muc join. That's why we reset the flag once we have received presence unavalable
