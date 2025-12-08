@@ -3257,13 +3257,13 @@ export default class JitsiConference extends Listenable {
      * @param identity the member identity, if any
      * @param botType the member botType, if any
      * @param fullJid the member full jid, if any
-     * @param features the member botType, if any
+     * @param features the member features, if any.
      * @param isReplaceParticipant whether this join replaces a participant with
      * the same jwt.
      * @internal
      */
     onMemberJoined(
-            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
+            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: Set<string> | undefined, isReplaceParticipant: boolean
     ): void {
         const id = Strophe.getResourceFromJid(jid);
 
@@ -3275,7 +3275,7 @@ export default class JitsiConference extends Listenable {
         participant.setConnectionJid(fullJid);
         participant.setRole(role);
         participant.setBotType(botType);
-        participant.setFeatures(features ? new Set([ features ]) : undefined);
+        participant.setFeatures(features);
         participant.setIsReplacing(isReplaceParticipant);
 
         // Set remote tracks on the participant if source signaling was received before presence.
