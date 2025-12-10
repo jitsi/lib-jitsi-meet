@@ -217,7 +217,7 @@ export class TPCUtils {
             return config;
         }
 
-        // Configure the sender to send all 3 spatial layers for resolutions 720p and higher.
+        // Configure spatial scalability based on quality level (L3T3 for high/ultra, L2T3 for standard, L1T3 for low).
         switch (level) {
             case VIDEO_QUALITY_SETTINGS.ULTRA:
             case VIDEO_QUALITY_SETTINGS.FULL:
@@ -392,10 +392,10 @@ export class TPCUtils {
     /**
      * Returns a boolean indicating whether the bitrate needs to be capped for the local video track if it happens to
      * be a screenshare track. The lower spatial layers for screensharing are disabled when low fps screensharing is in
-     * progress. Sending all three streams often results in the browser suspending the high resolution in low b/w and
-     * and low cpu conditions, especially on the low end machines. Suspending the low resolution streams ensures that
-     * the highest resolution stream is available always. Safari is an exception here since it does not send the
-     * desktop stream at all if only the high resolution stream is enabled.
+     * progress. Sending multiple simulcast streams often results in the browser suspending the high resolution in low
+     * bandwidth and low cpu conditions, especially on the low end machines. Suspending the low resolution streams
+     * ensures that the highest resolution stream is available always. Safari is an exception here since it does not
+     * send the desktop stream at all if only the high resolution stream is enabled.
      *
      * @param {JitsiLocalTrack} localVideoTrack - The local video track.
      * @returns {boolean} - true if the bitrate needs to be capped for the screenshare track, false otherwise.
@@ -816,14 +816,14 @@ export class TPCUtils {
 
         // Build rid IDs based on effective simulcast layers using standard high-quality resolution.
         // Use the canonical default reference height (720p 'high' quality level) for RID generation.
+        // getEffectiveSimulcastLayers() returns 1-3 layers dynamically based on resolution.
         const referenceHeight = getDefaultSimulcastReferenceHeight();
         let ridIds = (getEffectiveSimulcastLayers(referenceHeight) || [])
-            .slice(0, MAX_SIMULCAST_LAYERS)
             .map(l => l?.rid)
             .filter(Boolean);
 
         if (ridIds.length === 0 && Array.isArray(SIM_LAYERS)) {
-            ridIds = (SIM_LAYERS || []).slice(0, MAX_SIMULCAST_LAYERS).map(l => l?.rid).filter(Boolean);
+            ridIds = (SIM_LAYERS || []).map(l => l?.rid).filter(Boolean);
         }
 
         // If still no rids, nothing to inject.
@@ -865,8 +865,8 @@ export class TPCUtils {
     }
 
     /**
-     * Returns a boolean indicating whether the video encoder is running in Simulcast mode, i.e., three encodings need
-     * to be configured in 4:2:1 resolution order with temporal scalability.
+     * Returns a boolean indicating whether the video encoder is running in Simulcast mode, i.e., multiple encodings
+     * (1-3 layers based on resolution) need to be configured in 4:2:1 resolution order with temporal scalability.
      *
      * @param {CodecMimeType} videoCodec - The video codec in use.
      * @returns {boolean}
@@ -883,7 +883,7 @@ export class TPCUtils {
 
             // For FF: scalabilityModeEnabled is not supported and we have to use simulcast.
             // For other browsers we use K-SVC mode for VP9 when no scalability mode is set. Although
-            // only one outbound-rtp stream is present, three separate encodings have to be configured.
+            // only one outbound-rtp stream is present, multiple separate encodings have to be configured.
             || (!this.codecSettings[normalizedCodec].scalabilityModeEnabled && normalizedCodec === CodecMimeType.VP9)
 
             // FF uses simulcast with AV1.
