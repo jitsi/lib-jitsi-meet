@@ -1,3 +1,5 @@
+import JitsiConference from '../../JitsiConference';
+
 import { KeyHandler } from './KeyHandler';
 
 /**
@@ -8,7 +10,7 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * Build a new ExternallyManagedKeyHandler instance, which will be used in a given conference.
      * @param conference - the current conference.
      */
-    constructor(conference) {
+    constructor(conference: JitsiConference) {
         super(conference, { sharedKey: true });
     }
 
@@ -19,7 +21,9 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
      * @param {Number} [keyInfo.index] - the index of the encryption key.
      * @returns {void}
      */
-    setKey(keyInfo) {
-        this.e2eeCtx.setKey(undefined, { encryptionKey: keyInfo.encryptionKey }, keyInfo.index);
+    public async setKey(keyInfo: { encryptionKey: CryptoKey; index: number; }) {
+        const keyData = await crypto.subtle.exportKey('raw', keyInfo.encryptionKey);
+
+        this.e2eeCtx.setKey(undefined, new Uint8Array(keyData), keyInfo.index);
     }
 }
