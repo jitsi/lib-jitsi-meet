@@ -1,5 +1,6 @@
 import browser from '../browser';
 
+import { detectE2EESupport } from './capabilities';
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
@@ -33,16 +34,16 @@ export class E2EEncryption {
     static isSupported(config) {
         const { e2ee = {} } = config;
 
-        if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {
-            return false;
-        }
-
+        // Check if E2EE is explicitly disabled
         if (e2ee.disabled || config.testing?.disableE2EE) {
             return false;
         }
 
-        return browser.supportsInsertableStreams()
-                || (config.enableEncodedTransformSupport && browser.supportsEncodedTransform());
+        // Use comprehensive runtime capability detection
+        return detectE2EESupport({
+            externallyManagedKey: e2ee.externallyManagedKey,
+            enableEncodedTransformSupport: config.enableEncodedTransformSupport
+        });
     }
 
     /**

@@ -4318,7 +4318,14 @@ export default class JitsiConference extends Listenable {
      */
     public toggleE2EE(enabled: boolean): void {
         if (!this.isE2EESupported()) {
-            logger.warn('Cannot enable / disable E2EE: platform is not supported.');
+            logger.warn('E2EE not supported in this environment, refusing to enable');
+
+            return;
+        }
+
+        // Additional check: if we're enabling E2EE, verify the _e2eEncryption object exists
+        if (enabled && !this._e2eEncryption) {
+            logger.error('Cannot enable E2EE: E2EE module not initialized (platform may not support E2EE)');
 
             return;
         }

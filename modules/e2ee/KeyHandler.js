@@ -6,6 +6,7 @@ import browser from '../browser';
 import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 
+import { detectE2EESupport } from './capabilities';
 import E2EEContext from './E2EEContext';
 
 const logger = getLogger('e2ee:KeyHandler');
@@ -68,6 +69,20 @@ export class KeyHandler extends Listenable {
 
         if (enabled === this.enabled) {
             return;
+        }
+        
+        // Additional safety check: verify E2EE is actually supported before enabling
+        if (enabled) {
+            const config = this.conference.options.config;
+            const isSupported = detectE2EESupport({
+                externallyManagedKey: config.e2ee?.externallyManagedKey,
+                enableEncodedTransformSupport: config.enableEncodedTransformSupport
+            });
+            
+            if (!isSupported) {
+                logger.error('Cannot enable E2EE: runtime environment does not support E2EE');
+                return;
+            }
         }
 
         this._enabling = new Deferred();

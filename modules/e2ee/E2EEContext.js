@@ -2,6 +2,8 @@
 
 import { getLogger } from '@jitsi/logger';
 
+import browser from '../browser';
+
 const logger = getLogger('e2ee:E2EEContext');
 
 // Flag to set on senders / receivers to avoid setting up the encryption transform
@@ -96,6 +98,13 @@ export default class E2EEcontext {
         if (receiver[kJitsiE2EE]) {
             return;
         }
+        
+        // Safety check: don't attach transforms if neither API is supported
+        if (!window.RTCRtpScriptTransform && !receiver.createEncodedStreams) {
+            logger.warn('Cannot setup E2EE receiver: no insertable streams support');
+            return;
+        }
+        
         receiver[kJitsiE2EE] = true;
 
         if (window.RTCRtpScriptTransform) {
@@ -129,6 +138,13 @@ export default class E2EEcontext {
         if (sender[kJitsiE2EE]) {
             return;
         }
+        
+        // Safety check: don't attach transforms if neither API is supported
+        if (!window.RTCRtpScriptTransform && !sender.createEncodedStreams) {
+            logger.warn('Cannot setup E2EE sender: no insertable streams support');
+            return;
+        }
+        
         sender[kJitsiE2EE] = true;
 
         if (window.RTCRtpScriptTransform) {

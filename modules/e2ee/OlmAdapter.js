@@ -36,6 +36,14 @@ const OLM_KEY_VERIFICATION_MAC_KEY_IDS = 'Jitsi-KEY_IDS';
 
 const kOlmData = Symbol('OlmData');
 
+// Session states for tracking participant E2EE session initialization
+const SessionState = {
+    NOT_INITIALIZED: 'NOT_INITIALIZED',
+    INITIALIZING: 'INITIALIZING',
+    READY: 'READY',
+    FAILED: 'FAILED'
+};
+
 const OlmAdapterEvents = {
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
@@ -77,6 +85,12 @@ export class OlmAdapter extends Listenable {
         this._mediaKeyIndex = -1;
         this._reqs = new Map();
         this._sessionInitialization = undefined;
+        
+        // Track session states to avoid repeated initialization attempts
+        this._sessionStates = new Map();
+        
+        // Queue keys that need to be sent once sessions are ready
+        this._keyQueue = new Map();
 
         if (OlmAdapter.isSupported()) {
             this._bootstrapOlm();
@@ -157,9 +171,31 @@ export class OlmAdapter extends Listenable {
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
 
-            // TODO: skip those who don't support E2EE.
+            // Check session state and handle accordingly
             if (!olmData.session) {
-                logger.warn(`Tried to send key to participant ${pId} but we have no session`);
+                const state = this._sessionStates.get(pId) || SessionState.NOT_INITIALIZED;
+
+                if (state === SessionState.NOT_INITIALIZED) {
+                    // First time we need a session - start initializing
+                    logger.debug(`No session for participant ${pId}, initiating session establishment`);
+                    this._sessionStates.set(pId, SessionState.INITIALIZING);
+                    
+                    // Queue the key to be sent after session is ready
+                    this._keyQueue.set(pId, { key, keyIndex: this._mediaKeyIndex });
+                    
+                    // Trigger session initialization (don't await to avoid blocking)
+                    this._initSessionForParticipant(participant).catch(err => {
+                        logger.warn(`Failed to initialize session with ${pId}`, err);
+                        this._sessionStates.set(pId, SessionState.FAILED);
+                    });
+                } else if (state === SessionState.INITIALIZING) {
+                    // Session initialization in progress - queue the key
+                    logger.debug(`Session initializing for ${pId}, queuing key`);
+                    this._keyQueue.set(pId, { key, keyIndex: this._mediaKeyIndex });
+                } else if (state === SessionState.FAILED) {
+                    // Session failed - skip E2EE for this participant but don't break their media
+                    logger.debug(`Skipping E2EE key send to ${pId} (session failed, participant will remain unencrypted)`);
+                }
 
                 // eslint-disable-next-line no-continue
                 continue;
@@ -211,12 +247,17 @@ export class OlmAdapter extends Listenable {
      *
      */
     clearParticipantSession(participant) {
+        const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
         if (olmData.session) {
             olmData.session.free();
             olmData.session = undefined;
         }
+        
+        // Clean up state tracking for this participant
+        this._sessionStates.delete(pId);
+        this._keyQueue.delete(pId);
     }
 
     /**
@@ -408,6 +449,60 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
+     * Initializes an Olm session with a specific participant.
+     *
+     * @param {JitsiParticipant} participant - The participant to initialize a session with.
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _initSessionForParticipant(participant) {
+        const pId = participant.getId();
+        
+        try {
+            await this._sendSessionInit(participant);
+            
+            // After successful session init, check if we have queued keys to send
+            const queuedData = this._keyQueue.get(pId);
+            
+            if (queuedData) {
+                this._keyQueue.delete(pId);
+                const olmData = this._getParticipantOlmData(participant);
+                
+                if (olmData.session) {
+                    // Session is now ready, send the queued key
+                    const uuid = uuidv4();
+                    const data = {
+                        [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                        olm: {
+                            data: {
+                                ciphertext: this._encryptKeyInfo(olmData.session),
+                                uuid
+                            },
+                            type: OLM_MESSAGE_TYPES.KEY_INFO
+                        }
+                    };
+                    const d = new Deferred();
+                    
+                    d.setRejectTimeout(REQ_TIMEOUT);
+                    d.catch(() => {
+                        this._reqs.delete(uuid);
+                    });
+                    this._reqs.set(uuid, d);
+                    
+                    this._sendMessage(data, pId);
+                    
+                    await d;
+                }
+            }
+        } catch (error) {
+            logger.error(`Failed to initialize session with participant ${pId}`, error);
+            this._sessionStates.set(pId, SessionState.FAILED);
+            this._keyQueue.delete(pId);
+            throw error;
+        }
+    }
+
+    /**
      * Internal helper for getting the olm related data associated with a participant.
      *
      * @param {JitsiParticipant} participant - Participant whose data wants to be extracted.
@@ -476,6 +571,9 @@ export class OlmAdapter extends Listenable {
 
                 session.create_outbound(this._olmAccount, msg.data.idKey, msg.data.otKey);
                 olmData.session = session;
+                
+                // Mark session as ready
+                this._sessionStates.set(pId, SessionState.READY);
 
                 // Send ACK
                 const ack = {
@@ -515,6 +613,9 @@ export class OlmAdapter extends Listenable {
 
                 olmData.session = session;
                 olmData.pendingSessionUuid = undefined;
+                
+                // Mark session as ready
+                this._sessionStates.set(pId, SessionState.READY);
 
                 this._onParticipantE2EEChannelReady(pId);
 
@@ -878,6 +979,10 @@ export class OlmAdapter extends Listenable {
         logger.debug(`Participant ${id} left`);
 
         this.clearParticipantSession(participant);
+        
+        // Clean up session state tracking
+        this._sessionStates.delete(id);
+        this._keyQueue.delete(id);
     }
 
     /**
@@ -985,14 +1090,16 @@ export class OlmAdapter extends Listenable {
 
         if (olmData.session) {
             logger.warn(`Tried to send session-init to ${pId} but we already have a session`);
+            // Mark as ready if we already have a session
+            this._sessionStates.set(pId, SessionState.READY);
 
-            return Promise.reject();
+            return Promise.resolve();
         }
 
         if (olmData.pendingSessionUuid !== undefined) {
-            logger.warn(`Tried to send session-init to ${pId} but we already have a pending session`);
+            logger.debug(`Session-init already pending for ${pId}`);
 
-            return Promise.reject();
+            return this._reqs.get(olmData.pendingSessionUuid) || Promise.reject();
         }
 
         // Generate a One Time Key.
