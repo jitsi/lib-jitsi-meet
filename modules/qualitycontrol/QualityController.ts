@@ -115,6 +115,7 @@ export class QualityController {
     private _limitedByCpuTimeout: Optional<number>;
     private _receiveVideoController: ReceiveVideoController;
     private _sendVideoController: SendVideoController;
+    private _timer: Optional<number>;
 
     /**
      *
@@ -496,5 +497,32 @@ export class QualityController {
      */
     get sendVideoController() {
         return this._sendVideoController;
+    }
+
+    /**
+     * Cleans up the QualityController by clearing all active timeouts and disposing of controllers.
+     * This prevents memory leaks and ensures proper cleanup when the controller is no longer needed.
+     */
+    dispose(): void {
+        // Clear all active timeouts to prevent memory leaks
+        if (this._timer) {
+            clearTimeout(this._timer);
+            this._timer = undefined;
+        }
+
+        if (this._limitedByCpuTimeout) {
+            clearTimeout(this._limitedByCpuTimeout);
+            this._limitedByCpuTimeout = undefined;
+        }
+
+        if (this._lastNRampupTimeout) {
+            clearTimeout(this._lastNRampupTimeout);
+            this._lastNRampupTimeout = undefined;
+        }
+
+        // Clear the encode time stats
+        this._encodeTimeStats.clear();
+
+        logger.info('QualityController disposed, all timeouts cleared');
     }
 }

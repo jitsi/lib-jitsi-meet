@@ -2559,6 +2559,10 @@ export default class JitsiConference extends Listenable {
             );
         }
 
+        if (this.qualityController) {
+            this.qualityController.dispose();
+        }
+
         if (this.rtc) {
             this.rtc.destroy();
         }
