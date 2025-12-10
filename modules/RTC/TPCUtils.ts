@@ -7,7 +7,6 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import {
     getEffectiveSimulcastLayers,
-    getPreferredEncodingsOrder,
     SIM_LAYERS,
     SSRC_GROUP_SEMANTICS,
     STANDARD_CODEC_SETTINGS,
@@ -297,31 +296,21 @@ export class TPCUtils {
             return [{
                 active: this.pc.videoTransferActive,
                 maxBitrate: codecBitrates.high || codecBitrates.ssHigh,
-                rid: undefined, // No canonical rid available, use undefined instead of arbitrary '3'
+                rid: undefined,
                 scaleResolutionDownBy: 1.0
             }];
         }
 
-        // 2. Sort layers low->high quality (higher scaleFactor = lower quality)
-        // This ensures consistent bitrate-to-layer mapping regardless of input order from getEffectiveSimulcastLayers
-        // Runtime guard: ensure scaleFactor is always numeric
-        const layersSortedLowToHigh = effectiveLayers.slice().sort((a, b) => {
-            const scaleA = Number(a.scaleFactor);
-            const scaleB = Number(b.scaleFactor);
-            const safeA = Number.isFinite(scaleA) ? scaleA : 1;
-            const safeB = Number.isFinite(scaleB) ? scaleB : 1;
-            return safeA - safeB;
-        });
-
-        // 3. Map bitrate tiers by scaleFactor (quality), not by array index
-        // This is more robust if getEffectiveSimulcastLayers changes its output order
-        const bitrateForSortedIndex = (sortedIdx: number): number => {
-            const highIdx = layersSortedLowToHigh.length - 1;
-            if (sortedIdx === highIdx) {
-                // Highest quality layer gets high bitrate
-                return codecBitrates.high || codecBitrates.ssHigh;
+        // 2. Map bitrate tiers: getEffectiveSimulcastLayers returns layers in canonical order [low→high quality]
+        // Index 0 = lowest quality (scaleFactor 4), gets low bitrate
+        // Index 1 = medium quality (scaleFactor 2), gets standard bitrate  
+        // Index 2 = highest quality (scaleFactor 1), gets high/ssHigh bitrate
+        const bitrateForIndex = (idx: number): number => {
+            if (idx === numLayers - 1) {
+                // Highest quality layer gets ssHigh for screenshare, high for camera
+                return videoType === VideoType.DESKTOP ? codecBitrates.ssHigh : codecBitrates.high;
             }
-            if (sortedIdx === 0) {
+            if (idx === 0) {
                 // Lowest quality layer gets low bitrate
                 return codecBitrates.low;
             }
@@ -330,40 +319,17 @@ export class TPCUtils {
         };
 
         logger.debug(`TPCUtils._getVideoStreamEncodings: codec=${codecKey}, captureRes=${captureResolution}px, ` +
-            `numLayers=${numLayers}, scaleFactors=[${layersSortedLowToHigh.map(l => Number(l.scaleFactor) || 1).join(',')}]`);
+            `numLayers=${numLayers}, scaleFactors=[${effectiveLayers.map(l => l.scaleFactor).join(',')}]`);
 
-        // 4. Build Encodings array with sorted layers and mapped bitrates
-        // Runtime guard: ensure scaleResolutionDownBy is always numeric
-        const sortedEncodings: IRTCRtpEncodingParameters[] = layersSortedLowToHigh.map((layer, sortedIdx) => {
-            const scaleFactor = Number(layer.scaleFactor);
-            return {
-                active: this.pc.videoTransferActive,
-                maxBitrate: bitrateForSortedIndex(sortedIdx),
-                rid: layer.rid ?? undefined, // Use canonical rid or undefined, not arbitrary '3'
-                scaleResolutionDownBy: Number.isFinite(scaleFactor) ? scaleFactor : 1
-            };
-        });
+        // 3. Build encodings array from canonical layers (already in correct order)
+        const simulcastEncodings: IRTCRtpEncodingParameters[] = effectiveLayers.map((layer, idx) => ({
+            active: this.pc.videoTransferActive,
+            maxBitrate: bitrateForIndex(idx),
+            rid: layer.rid,
+            scaleResolutionDownBy: layer.scaleFactor
+        }));
 
-        // 5. Apply browser-specific ordering for sender (non-mutating)
-        // For Chromium+VP8+low-res, this reverses to [high, mid, low] so Chromium picks highest quality first
-        // when it collapses layers. See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
-        const beforeOrdering = sortedEncodings.map(e => e.scaleResolutionDownBy ?? 1);
-        let simulcastEncodings = getPreferredEncodingsOrder(
-            sortedEncodings.slice(),
-            {
-                ...layerOptions,
-                captureHeight: captureResolution
-            }
-        ) as IRTCRtpEncodingParameters[];
-        const afterOrdering = simulcastEncodings.map(e => e.scaleResolutionDownBy ?? 1);
-
-        // Log when ordering is actually applied (for observability and debugging)
-        if (JSON.stringify(beforeOrdering) !== JSON.stringify(afterOrdering)) {
-            logger.debug(`TPCUtils: Applied browser-specific encoding ordering for ${browser.getName() || 'unknown'} ` +
-                `codec=${codecKey} capture=${captureResolution}px: [${beforeOrdering.join(',')}] -> [${afterOrdering.join(',')}]`);
-        }
-
-        // 6. Handle scalability modes (SVC vs Simulcast)
+        // 4. Handle scalability modes (SVC vs Simulcast)
         if (this.codecSettings[codecKey].scalabilityModeEnabled) {
             // Configure all encodings when simulcast is requested through config.js for AV1 and VP9 and for H.264
             // always since that is the only supported mode when DD header extension is negotiated for H.264.
@@ -376,9 +342,9 @@ export class TPCUtils {
 
             // Configure only one encoding for full SVC mode.
             // Use the configuration of the highest quality layer available.
-            const topLayerIndex = layersSortedLowToHigh.length - 1;
-            const topLayer = layersSortedLowToHigh[topLayerIndex];
-            const topLayerBitrate = bitrateForSortedIndex(topLayerIndex);
+            const topLayerIndex = effectiveLayers.length - 1;
+            const topLayer = effectiveLayers[topLayerIndex];
+            const topLayerBitrate = bitrateForIndex(topLayerIndex);
 
             // For SVC, we send one stream at native resolution with spatial scalability.
             // 
