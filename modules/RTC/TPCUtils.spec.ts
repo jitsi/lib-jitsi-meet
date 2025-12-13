@@ -508,7 +508,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -594,7 +594,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(1000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -609,7 +609,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(300000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[1].scaleFactor);
@@ -624,7 +624,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(1000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -639,7 +639,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(100000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
@@ -676,7 +676,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -1108,7 +1108,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(1200000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -1123,7 +1123,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(300000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[1].scaleFactor);
@@ -1138,7 +1138,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(100000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
@@ -1175,7 +1175,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -1401,7 +1401,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(2000000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -1416,7 +1416,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(800000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[1].scaleFactor);
@@ -1431,7 +1431,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(400000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
@@ -1468,7 +1468,7 @@ describe('TPCUtils', () => {
                 expect(maxBitrates[0]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes).toEqual([ VideoEncoderScalabilityMode.L1T3 ]);
+                expect(scalabilityModes).toEqual([VideoEncoderScalabilityMode.L1T3]);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
@@ -1579,15 +1579,37 @@ describe('TPCUtils', () => {
                 maxBitrates = tpcUtils.calculateEncodingsBitrates(highResolutiontrack, codec, height);
                 expect(maxBitrates[0]).toBe(200000);
                 expect(maxBitrates[1]).toBe(500000);
-                expect(maxBitrates[2]).toBe(6000000);
+                expect(maxBitrates[2]).toBe(1500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(highResolutiontrack, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
+                // Now using canonical scale factors from getEffectiveSimulcastLayers()
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(highResolutiontrack, codec, height);
-                expect(scaleFactor[0]).toBe(12);
-                expect(scaleFactor[1]).toBe(6);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // 4
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // 2
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor); // 1
+            });
+
+            it('and capture resolution is 320 (low resolution - 1 layer only)', () => {
+                height = 240;
+                const lowResolutionTrack = new MockJitsiLocalTrack(320, MediaType.VIDEO, VideoType.CAMERA);
+
+                // 320p < 360p threshold, so only 1 layer is returned
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(lowResolutionTrack, codec, height);
+                expect(scaleFactor.length).toBe(1);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // Only low layer (4x)
+            });
+
+            it('and capture resolution is 480 (low resolution - 2 layers)', () => {
+                height = 360;
+                const lowResolutionTrack = new MockJitsiLocalTrack(480, MediaType.VIDEO, VideoType.CAMERA);
+
+                // 480p gets 2 layers (low + standard quality)
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(lowResolutionTrack, codec, height);
+                expect(scaleFactor.length).toBe(2);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // Low quality (4x)
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // Standard quality (2x)
             });
         });
 
@@ -2366,45 +2388,43 @@ describe('TPCUtils', () => {
             it('and requested resolution is 2160', () => {
                 height = 2160;
 
+                // 440p track gets 2 layers (low + standard quality), not 3
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(false);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(true);
+                expect(activeState[1]).toBe(true);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
                 expect(bitrates[0]).toBe(2500000);
                 expect(bitrates[1]).toBe(2500000);
-                expect(bitrates[2]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor.length).toBe(2);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
                 expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
             });
 
             it('and requested resolution is 0', () => {
                 height = 0;
 
+                // 440p track gets 2 layers (low + standard quality), not 3
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(false);
                 expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
                 expect(bitrates[0]).toBe(2500000);
                 expect(bitrates[1]).toBe(2500000);
-                expect(bitrates[2]).toBe(2500000);
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor.length).toBe(2);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
                 expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
             });
         });
 
@@ -2434,45 +2454,43 @@ describe('TPCUtils', () => {
             it('and requested resolution is 2160', () => {
                 height = 2160;
 
+                // 560p track gets 2 layers (low + high quality for desktop)
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(true);
                 expect(activeState[1]).toBe(true);
-                expect(activeState[2]).toBe(true);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(100000);
-                expect(bitrates[1]).toBe(300000);
-                expect(bitrates[2]).toBe(2500000);
+                expect(bitrates[0]).toBe(100000);  // low
+                expect(bitrates[1]).toBe(2500000);  // ssHigh for desktop
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor.length).toBe(2);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
                 expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
             });
 
             it('and requested resolution is 0', () => {
                 height = 0;
 
+                // 560p track gets 2 layers (low + high quality for desktop)
                 activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
                 expect(activeState[0]).toBe(false);
                 expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
 
                 bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(100000);
-                expect(bitrates[1]).toBe(300000);
-                expect(bitrates[2]).toBe(2500000);
+                expect(bitrates[0]).toBe(100000);  // low
+                expect(bitrates[1]).toBe(2500000);  // ssHigh for desktop
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
                 scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor.length).toBe(2);
                 expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
                 expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
             });
         });
 
@@ -2900,59 +2918,66 @@ describe('TPCUtils', () => {
                 bitrates = utils.calculateEncodingsBitrates(track, codec, height);
                 expect(bitrates[0]).toBe(200000);
                 expect(bitrates[1]).toBe(500000);
-                expect(bitrates[2]).toBe(6000000);
+                expect(bitrates[2]).toBe(1500000);
 
                 scalabilityModes = utils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
+                // Now using canonical scale factors from getEffectiveSimulcastLayers()
                 scaleFactor = utils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(12);
-                expect(scaleFactor[1]).toBe(6);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // 4
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // 2
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor); // 1
             });
 
             it('and requested camera resolution is 360', () => {
                 height = 360;
 
+                // Track captured at 2160p always gets 3 layers, but only LD active at 360p request
+                // frameHeight calculation: 2160/4=540 (LD), 2160/2=1080 (mid), 2160/1=2160 (HD)
+                // Active if frameHeight <= requested (360), but LD is always active for camera
                 activeState = utils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(true);
-                expect(activeState[1]).toBe(true);
-                expect(activeState[2]).toBe(false);
+                expect(activeState[0]).toBe(true);  // LD always active for camera (even though 540 > 360)
+                expect(activeState[1]).toBe(false); // Inactive: 1080 > 360
+                expect(activeState[2]).toBe(false); // Inactive: 2160 > 360
 
                 bitrates = utils.calculateEncodingsBitrates(track, codec, height);
                 expect(bitrates[0]).toBe(200000);
                 expect(bitrates[1]).toBe(500000);
-                expect(bitrates[2]).toBe(6000000);
+                expect(bitrates[2]).toBe(1500000);
 
                 scalabilityModes = utils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
+                // Capture resolution determines layer count (2160p = 3 layers)
                 scaleFactor = utils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(12);
-                expect(scaleFactor[1]).toBe(6);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // 4
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // 2
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor); // 1
             });
 
             it('and requested camera resolution is 180', () => {
                 height = 180;
 
+                // Track captured at 2160p always gets 3 layers, but only LD is active at 180p request
                 activeState = utils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(true);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
+                expect(activeState[0]).toBe(true);  // LD always active for camera
+                expect(activeState[1]).toBe(false); // Inactive since 2160/2=1080 > 180
+                expect(activeState[2]).toBe(false); // Inactive since 2160/1=2160 > 180
 
                 bitrates = utils.calculateEncodingsBitrates(track, codec, height);
                 expect(bitrates[0]).toBe(200000);
                 expect(bitrates[1]).toBe(500000);
-                expect(bitrates[2]).toBe(6000000);
+                expect(bitrates[2]).toBe(1500000);
 
                 scalabilityModes = utils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
 
+                // Capture resolution determines layer count (2160p = 3 layers)
                 scaleFactor = utils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(12);
-                expect(scaleFactor[1]).toBe(6);
-                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor); // 4
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor); // 2
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor); // 1
             });
 
             it('and requested camera resolution is 0', () => {

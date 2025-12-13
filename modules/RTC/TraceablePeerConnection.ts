@@ -960,7 +960,7 @@ export default class TraceablePeerConnection {
         if (codec === CodecMimeType.VP9
             && browser.supportsSVC()
             && this.isSpatialScalabilityOn()
-            && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
+            && !this.tpcUtils.getCodecSettings(codec).scalabilityModeEnabled) {
             scaleFactors = scaleFactors.map(() => undefined);
             bitrates = bitrates.map(() => undefined);
         }
@@ -1282,7 +1282,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn(): boolean {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
+        const h264SimulcastEnabled = this.tpcUtils.getCodecSettings(CodecMimeType.H264).scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
@@ -1461,7 +1461,7 @@ export default class TraceablePeerConnection {
     getTargetVideoBitrates(localTrack: JitsiLocalTrack): any {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
-        return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
+        return this.tpcUtils.getCodecSettings(currentCodec).maxBitratesVideo;
     }
 
     /**
