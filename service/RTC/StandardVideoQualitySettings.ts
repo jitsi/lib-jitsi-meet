@@ -1,6 +1,10 @@
+import { getLogger } from '@jitsi/logger';
+
 import browser from '../../modules/browser';
 
 import { CodecMimeType } from './CodecMimeType';
+
+const logger = getLogger('rtc:StandardVideoQualitySettings');
 
 // Default value for assumed downlink bandwidth for the local endpoint which tells the bridge to use its own calculated
 // BWE value while determining the number of video streams to route to the endpoint.
@@ -293,8 +297,8 @@ export function getEffectiveSimulcastLayers(
         numLayers = Math.max(1, Math.min(3, Math.floor(options.forceNumLayers)));
         
         if (numLayers !== options.forceNumLayers) {
-            console.warn(
-                `[StandardVideoQualitySettings] forceNumLayers=${options.forceNumLayers} out of range. ` +
+            logger.warn(
+                `forceNumLayers=${options.forceNumLayers} out of range. ` +
                 `Clamped to ${numLayers}.`
             );
         }
@@ -318,8 +322,8 @@ export function getEffectiveSimulcastLayers(
                 && options.codec === 'vp8'
                 && captureHeight < 640
                 && numLayers > 1) {
-                console.info(
-                    `[StandardVideoQualitySettings] Chromium + VP8 + low resolution (${captureHeight}p). ` +
+                logger.info(
+                    `Chromium + VP8 + low resolution (${captureHeight}p). ` +
                     `Keeping ${numLayers} layers but Chromium may collapse to fewer at runtime.`
                 );
             }
@@ -331,69 +335,12 @@ export function getEffectiveSimulcastLayers(
     
     // Log layer reduction for debugging
     if (numLayers < 3) {
-        console.debug(
-            `[StandardVideoQualitySettings] getEffectiveSimulcastLayers: ` +
+        logger.debug(
+            `getEffectiveSimulcastLayers: ` +
             `captureHeight=${captureHeight}, numLayers=${numLayers}, ` +
             `codec=${options.codec || 'unknown'}, forceNumLayers=${options.forceNumLayers}`
         );
     }
     
     return effectiveLayers;
-}
-
-/**
- * Returns the preferred order of encodings for the browser/codec combination.
- * **This function is non-mutating**: it returns a new array and does not modify the input.
- * 
- * For most cases, we want encodings in ascending quality order (low → high).
- * However, Chromium with VP8 at low resolutions benefits from reversed order
- * (high → low) because Chromium picks the first encoding when collapsing layers.
- * 
- * This is a defensive shim for Chromium's simulcast layer collapse behavior at low
- * resolutions. See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
- * 
- * @param {Array<any>} encodings - Array of encoding objects (not mutated).
- * @param {ISimulcastLayerOptions} [opts] - Browser and codec information.
- * @returns {Array<any>} A **new array** with encodings in the preferred order for the platform.
- * 
- * @example
- * const encodings = [{scaleResolutionDownBy: 4}, {scaleResolutionDownBy: 2}, {scaleResolutionDownBy: 1}];
- * const ordered = getPreferredEncodingsOrder(encodings, {
- *   codec: 'vp8',
- *   browser: { name: 'Chrome' },
- *   captureHeight: 480
- * });
- * // On Chrome + VP8 at low res, returns NEW reversed array: [{...1}, {...2}, {...4}]
- * // Original encodings array is unchanged
- */
-export function getPreferredEncodingsOrder<T>(
-    encodings: T[],
-    opts?: ISimulcastLayerOptions & { captureHeight?: number }
-): T[] {
-    if (!encodings || encodings.length <= 1) {
-        return encodings;
-    }
-    
-    const options = opts || {};
-    const browserName = options.browser?.name?.toLowerCase() || '';
-    const isChromium = browserName.includes('chrome') || browserName.includes('chromium') || browserName.includes('edge');
-    const captureHeight = options.captureHeight ?? 720;
-    
-    // Reverse order for Chromium + VP8 + low resolution
-    // This ensures the highest-quality encoding is first when Chromium collapses layers
-    const shouldReverse = isChromium
-        && options.codec === 'vp8'
-        && captureHeight < 640
-        && encodings.length > 1;
-    
-    if (shouldReverse) {
-        console.debug(
-            `[StandardVideoQualitySettings] Reversing encoding order for Chromium VP8 ` +
-            `at ${captureHeight}p to prefer high-quality layer. (github.com/jitsi/lib-jitsi-meet/issues/2939)`
-        );
-        return encodings.slice().reverse(); // Non-mutating: creates new reversed array
-    }
-    
-    // Return a shallow copy to guarantee non-mutating behavior
-    return encodings.slice();
 }

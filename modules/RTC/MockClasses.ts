@@ -1,15 +1,11 @@
-import * as transform from 'sdp-transform';
+import transform from 'sdp-transform';
 
-import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import Listenable from '../util/Listenable';
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable max-len */
-
-// Type alias for optional values
-type Optional<T> = T | undefined | null;
 
 /**
  * MockRTCPeerConnection that return the local description sdp.
@@ -29,13 +25,6 @@ class MockRTCPeerConnection {
         return this._localDescription;
     }
 
-    /**
-     * Helper so tests can change the local SDP easily.
-     * @param sdp - new SDP string
-     */
-    setLocalDescriptionSdp(sdp: string) {
-        this._localDescription.sdp = sdp;
-    }
 
     /**
      * Creates an instance of MockRTCPeerConnection and initializes the local SDP description.
@@ -140,60 +129,14 @@ export class MockPeerConnection {
      * @internal
      */
     id: string;
-
-    // --- ADDED: Missing properties required by TPCUtils ---
-    videoTransferActive: boolean = true;
-    audioTransferActive: boolean = true;
-    _capScreenshareBitrate: boolean = false;
-    codecSettings: any = { codecList: [CodecMimeType.VP8] };
-    localTrackTransceiverMids: Map<number, string> = new Map();
-
-    // --- ADDED: Internal properties required to satisfy interface ---
-    _dtmfSender: any;
-    _dtmfTonesQueue: any[] = [];
-    _dtlsTransport: any = null;
-    _usesCodecSelectionAPI: boolean = false;
-    testSenderParameters: any = null;
-    _remoteDescription: { sdp: string } = { sdp: '' };
-    // Allow tests to inject sender objects keyed by track.rtcId
-    senders: Map<number, any> = new Map();
-    _senderMaxHeights: Map<string, number> = new Map();
-    _localSsrcMap: Map<string, any> = new Map();
-    _remoteSsrcMap: Map<string, any> = new Map();
-    _lastVideoSenderUpdatePromise: Promise<void> = Promise.resolve();
-    _localUfrag: string = '';
-    _pcId: string = 'mock-pc';
-    _remoteUfrag: string = '';
-    _signalingLayer: any = {};
-    _hasHadAudioTrack: boolean = false;
-    _hasHadVideoTrack: boolean = false;
-
-    remoteTracksBySsrc: Map<number, any> = new Map();
-    remoteTracks: Map<string, Map<MediaType, Set<any>>> = new Map();
-    localTracks: Map<number, any> = new Map();
-    localSSRCs: Map<number, any> = new Map();
-    remoteSSRCs: Set<number> = new Set();
-    remoteSources: Map<string, number> = new Map();
-    options: any = {};
-    tpcUtils: any;
-    updateLog: any[] = [];
-    stats: any = {};
-    statsinterval: any;
-    simulcast: any = {};
-    localSdpMunger: any;
-    eventEmitter: any;
-    rtxModifier: any;
-    maxstats: number = 0;
-    rtc: any;
-    trace: any = () => { };
-    onicecandidate: any;
-    onTrack: any;
-    onsignalingstatechange: any;
-    oniceconnectionstatechange: any;
-    onnegotiationneeded: any;
-    onconnectionstatechange: any;
-    ondatachannel: any;
-
+    /**
+     * @internal
+     */
+    videoTransferActive: boolean;
+    /**
+     * @internal
+     */
+    _capScreenshareBitrate: boolean;
     /**
      * Constructor.
      *
@@ -206,13 +149,8 @@ export class MockPeerConnection {
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
         this._simulcast = simulcast;
-    }
-
-    /**
-     * Expose helper for tests to mutate the *local* SDP.
-     */
-    setLocalDescriptionSdp(sdp: string) {
-        this.peerconnection.setLocalDescriptionSdp(sdp);
+        this.videoTransferActive = false;
+        this._capScreenshareBitrate = false;
     }
 
     /**
@@ -221,8 +159,9 @@ export class MockPeerConnection {
      * @returns {Object}
      */
     get localDescription(): { sdp: string; } {
-        // Return the inner mock RTCPeerConnection local description so tests can inspect SDP
-        return this.peerconnection.localDescription;
+        return {
+            sdp: ''
+        };
     }
 
     /**
@@ -231,7 +170,9 @@ export class MockPeerConnection {
      * @returns {Object}
      */
     get remoteDescription(): { sdp: string; } {
-        return this._remoteDescription;
+        return {
+            sdp: ''
+        };
     }
 
     /**
@@ -270,30 +211,12 @@ export class MockPeerConnection {
         if (!sdp) {
             return [];
         }
+        const parsedSdp = transform.parse(sdp);
+        const mLine = parsedSdp.media.find(m => m.type === 'video');
+        const codecs = new Set(mLine.rtp.map(pt => pt.codec.toLowerCase()));
 
-        let parsedSdp;
-        try {
-            parsedSdp = transform.parse(sdp);
-        } catch (e) {
-            // Return empty when SDP cannot be parsed
-            return [];
-        }
-
-        const mLine = parsedSdp.media?.find((m: any) => m.type === 'video');
-
-        if (!mLine || !mLine.rtp || !Array.isArray(mLine.rtp)) {
-            return [];
-        }
-
-        const codecs = new Set(
-            mLine.rtp
-                .filter((pt: any) => pt && pt.codec)
-                .map((pt: any) => (pt.codec || '').toString().toLowerCase())
-        );
-
-        return Array.from(codecs) as string[];
+        return Array.from(codecs);
     }
-
 
     /**
      * {@link TraceablePeerConnection.getDesiredMediaDirection}.
@@ -314,7 +237,7 @@ export class MockPeerConnection {
     /**
      * {@link TraceablePeerConnection.processLocalSdpForTransceiverInfo}.
      *
-     * @returns {void}
+          * @returns {void}
      */
     processLocalSdpForTransceiverInfo(): void {
     }
@@ -335,14 +258,6 @@ export class MockPeerConnection {
      */
     setRemoteDescription(): Promise<void> {
         return Promise.resolve();
-    }
-
-    /**
-     * Test helper to set remote description SDP.
-     * @param {string} sdp - The SDP string to set
-     */
-    setRemoteDescriptionSdp(sdp: string): void {
-        this._remoteDescription.sdp = sdp;
     }
 
     /**
@@ -377,150 +292,12 @@ export class MockPeerConnection {
         return this._usesUnifiedPlan;
     }
 
+
     /**
      * {@link TraceablePeerConnection.getLocalVideoTracks}.
-     * Returns video tracks from the localTracks map.
      */
     getLocalVideoTracks(): any[] {
-        const videoTracks: any[] = [];
-        for (const track of this.localTracks.values()) {
-            if (track && typeof track.isVideoTrack === 'function' && track.isVideoTrack()) {
-                videoTracks.push(track);
-            } else if (track && typeof track.getType === 'function' && track.getType() === MediaType.VIDEO) {
-                // fallback if legacy mock implements getType()
-                videoTracks.push(track);
-            }
-        }
-        return videoTracks;
-    }
-
-
-    // --- ADDED: Methods required by TPCUtils ---
-
-    /**
-     * Gets local tracks, optionally filtered by media type.
-     * Returns tracks from the localTracks map that tests can populate.
-     * @param {MediaType} mediaType - Optional media type filter
-     * @returns {Array} Array of local tracks
-     */
-    getLocalTracks(mediaType?: MediaType): any[] {
-        const tracks: any[] = [];
-        // Convert iterator to array to avoid downlevelIteration requirement
-        const trackArray = Array.from(this.localTracks.values());
-        for (const track of trackArray) {
-            if (!track) {
-                continue;
-            }
-            // If mediaType filter is specified, apply it
-            if (mediaType !== undefined) {
-                if (typeof track.getType === 'function' && track.getType() === mediaType) {
-                    tracks.push(track);
-                }
-            } else {
-                // No filter, return all tracks
-                tracks.push(track);
-            }
-        }
-        return tracks;
-    }
-
-    /**
-     * Finds the RTCRtpSender for a given track.
-     * Returns a mock sender object that tests can inspect/manipulate.
-     * Tests can inject prebuilt senders via pc.senders.set(track.rtcId, customSender).
-     * @param {any} track - The track to find sender for
-     * @returns {any} Mock RTCRtpSender or null if not found
-     */
-    findSenderForTrack(track: any) {
-        if (!track) return null;
-
-        // tests can inject a precomputed sender
-        const injected = this.senders?.get(track.rtcId);
-        if (injected) {
-            return injected;
-        }
-
-        if (this.testSenderParameters) {
-            return {
-                track,
-                getParameters: () => this.testSenderParameters,
-                setParameters: () => Promise.resolve(),
-                replaceTrack: () => Promise.resolve()
-            };
-        }
-
-        const defaultEncoding = {
-            active: true,
-            maxBitrate: 200000,
-            scaleResolutionDownBy: 1,
-            rid: undefined
-        };
-
-        const defaultParams = this._usesCodecSelectionAPI
-            ? {
-                encodings: [{ ...defaultEncoding, codec: { mimeType: 'video/VP8' } }],
-                codecs: [{ mimeType: 'video/VP8' }]
-            }
-            : {
-                encodings: [{ ...defaultEncoding }],
-                codecs: undefined
-            };
-
-        return {
-            track,
-            getParameters: () => defaultParams,
-            setParameters: (params: any) => Promise.resolve(),
-            replaceTrack: (newTrack: any) => Promise.resolve()
-        };
-    }
-
-
-    /**
-     * Returns whether this peer connection uses the codec selection API.
-     * Tests can set pc._usesCodecSelectionAPI = true to emulate this behavior.
-     * @returns {boolean}
-     */
-    usesCodecSelectionAPI(): boolean {
-        return this._usesCodecSelectionAPI;
-    }
-
-    getRemoteTracks() {
         return [];
-    }
-
-    // --- TEST HELPER METHODS ---
-
-    /**
-     * Helper for tests to add a local track.
-     * @param {any} track - MockJitsiLocalTrack to add
-     * @param {string} mid - Optional media line identifier for track-to-transceiver mapping
-     */
-    addLocalTrack(track: any, mid?: string): void {
-        if (track && track.rtcId) {
-            this.localTracks.set(track.rtcId, track);
-            if (mid) {
-                this.localTrackTransceiverMids.set(track.rtcId, mid);
-            }
-        }
-    }
-
-    /**
-     * Helper for tests to remove a local track.
-     * @param {any} track - MockJitsiLocalTrack to remove
-     */
-    removeLocalTrack(track: any): void {
-        if (track && track.rtcId) {
-            this.localTracks.delete(track.rtcId);
-            this.localTrackTransceiverMids.delete(track.rtcId);
-        }
-    }
-
-    /**
-     * Helper for tests to clear all local tracks.
-     */
-    clearLocalTracks(): void {
-        this.localTracks.clear();
-        this.localTrackTransceiverMids.clear();
     }
 }
 
@@ -529,7 +306,7 @@ export class MockPeerConnection {
  */
 export class MockRTC extends Listenable {
     private pc: MockPeerConnection;
-    private forwardedSources: string[] = [];
+    private forwardedSources: string[];
 
     /**
      * {@link RTC.createPeerConnection}.
@@ -619,6 +396,7 @@ export class MockTrack {
         };
     }
 
+
     /**
      * Gets the height value.
      * @returns {number} The height.
@@ -636,8 +414,6 @@ export class MockJitsiLocalTrack {
     private track: MockTrack;
     private type: MediaType;
     private videoType: VideoType;
-    rtcId: number;
-    maxEnabledResolution: number;
 
     /**
      * A constructor
@@ -647,8 +423,6 @@ export class MockJitsiLocalTrack {
         this.track = new MockTrack(height);
         this.type = mediaType;
         this.videoType = videoType;
-        this.rtcId = Math.floor(Math.random() * 10000) + 1;
-        this.maxEnabledResolution = height;
     }
 
     /**
@@ -689,31 +463,5 @@ export class MockJitsiLocalTrack {
      */
     getVideoType(): VideoType {
         return this.videoType;
-    }
-
-    // --- ADDED: Helpers for TPCUtils logic ---
-
-    getOriginalStream() {
-        return null;
-    }
-
-    getTrackId() {
-        return `track-${this.rtcId}`;
-    }
-
-    isVideoTrack() {
-        return this.type === MediaType.VIDEO;
-    }
-
-    isAudioTrack() {
-        return this.type === MediaType.AUDIO;
-    }
-
-    getSourceName() {
-        return `source-${this.rtcId}`;
-    }
-
-    isMuted() {
-        return false;
     }
 }

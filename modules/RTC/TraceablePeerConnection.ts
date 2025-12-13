@@ -1027,61 +1027,6 @@ export default class TraceablePeerConnection {
             return Promise.resolve();
         }
 
-        // Defensive shim for Chromium VP8 simulcast layer collapse at low resolutions
-        // When Chromium collapses simulcast to fewer layers, it picks the first encoding.
-        // This shim ensures the highest-quality encoding is first.
-        // See: https://github.com/jitsi/lib-jitsi-meet/issues/2939
-        const enableChromiumShim = (this.options as any)?.enableChromiumVP8Shim !== false;
-        
-        if (enableChromiumShim 
-            && browser.isChromiumBased()
-            && codec === CodecMimeType.VP8
-            && !isScreensharingTrack
-            && parameters.encodings.length > 1) {
-            
-            // Check if we're in a low-resolution scenario where collapse might occur
-            const captureHeight = localVideoTrack.getCaptureResolution();
-            
-            if (captureHeight < 640) {
-                // Count how many encodings are actually active
-                const activeEncodings = parameters.encodings.filter(enc => enc.active);
-                
-                if (activeEncodings.length > 1) {
-                    // Multiple active encodings - Chromium might collapse them
-                    // Ensure highest quality (lowest scaleResolutionDownBy) is first
-                    const sorted = [...parameters.encodings].sort((a, b) => {
-                        const scaleA = (a as IRTCRtpEncodingParameters).scaleResolutionDownBy ?? 1;
-                        const scaleB = (b as IRTCRtpEncodingParameters).scaleResolutionDownBy ?? 1;
-                        return scaleA - scaleB; // ascending order - lowest scale factor (highest quality) first
-                    });
-                    
-                    // Check if reordering is needed
-                    const needsReorder = sorted.some((enc, idx) => enc !== parameters.encodings[idx]);
-                    
-                    if (needsReorder) {
-                        logger.info(
-                            `${this} Chromium VP8 shim: Reordering encodings for ${captureHeight}p to prevent ` +
-                            `low-quality layer selection. Original order: ` +
-                            `${parameters.encodings.map(e => (e as IRTCRtpEncodingParameters).scaleResolutionDownBy).join(', ')} → ` +
-                            `New order: ${sorted.map(e => (e as IRTCRtpEncodingParameters).scaleResolutionDownBy).join(', ')}`
-                        );
-                        
-                        parameters.encodings = sorted;
-                        
-                        // Send analytics event for monitoring
-                        Statistics.sendAnalytics(
-                            'chromium.vp8.shim.applied',
-                            {
-                                captureHeight,
-                                numEncodings: parameters.encodings.length,
-                                numActive: activeEncodings.length
-                            }
-                        );
-                    }
-                }
-            }
-        }
-
         logger.info(`${this} setting max height=${frameHeight},encodings=${JSON.stringify(parameters.encodings)}`);
 
         return videoSender.setParameters(parameters).then(() => {

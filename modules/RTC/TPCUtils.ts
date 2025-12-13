@@ -420,9 +420,8 @@ export class TPCUtils {
     calculateEncodingsActiveState(localVideoTrack: JitsiLocalTrack, codec: CodecMimeType, newHeight: number): boolean[] {
         const height = localVideoTrack.getCaptureResolution();
         const videoStreamEncodings = this._getVideoStreamEncodings(localVideoTrack, codec);
-        // compute highest/lowest scale factors so activation checks remain correct even
-        // if encoding order has been reversed (Chromium/Firefox) or if scale factors
-        // are non-power-of-two from getEffectiveSimulcastLayers()
+        // Compute highest/lowest scale factors for activation checks.
+        // Scale factors may vary (1-3 layers) based on resolution via getEffectiveSimulcastLayers()
         const scaleFactors = videoStreamEncodings.map(e => e?.scaleResolutionDownBy ?? 1);
         const highestQualityScale = Math.min(...scaleFactors);
         const lowestQualityScale = Math.max(...scaleFactors);
@@ -452,13 +451,11 @@ export class TPCUtils {
                             // requested resolution. This can happen when camera is captured at high resolutions like 4k
                             // but the requested resolution is 180. Since getParameters doesn't give us information about
                             // the resolutions of the simulcast encodings, we have to rely on our initial config for the
-                            // simulcast streams. We check for the lowest quality scale factor (4.0) regardless of array
-                            // position since the encoding order may be reversed for Firefox or low-res Chromium VP8.
+                            // simulcast streams. We check for the lowest quality scale factor regardless of array position.
                             || videoStreamEncodings[idx]?.scaleResolutionDownBy === lowestQualityScale;
                     } else {
                         // For screenshare, keep the HD layer enabled always and the lower layers only for high fps
-                        // screensharing. We check for the highest quality scale factor (1.0) regardless of array position
-                        // since the encoding order may be reversed for Firefox.
+                        // screensharing. We check for the highest quality scale factor (1.0) regardless of array position.
                         activeState = (videoStreamEncodings[idx]?.scaleResolutionDownBy ?? 1) === highestQualityScale
 
                             || !this._isScreenshareBitrateCapped(localVideoTrack);
