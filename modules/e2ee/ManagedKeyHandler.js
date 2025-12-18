@@ -82,7 +82,16 @@ export class ManagedKeyHandler extends KeyHandler {
      */
     async _setEnabled(enabled) {
         if (enabled) {
+            // Step 1: Initiate outgoing sessions (to participants with higher IDs)
             await this._olmAdapter.initSessions();
+
+            // Step 2: Wait for incoming sessions (from participants with lower IDs)
+            // This ensures all bidirectional sessions are established before sending keys.
+            // Since we advertised e2ee.enabled before this method was called,
+            // participants with lower IDs should be establishing sessions with us.
+            await this._olmAdapter.waitForAllSessions();
+
+            logger.debug('All Olm sessions established, proceeding with key distribution');
         } else {
             this._olmAdapter.clearAllParticipantsSessions();
         }
@@ -91,6 +100,7 @@ export class ManagedKeyHandler extends KeyHandler {
         this._key = enabled ? this._generateKey() : false;
 
         // Send it to others using the E2EE olm channel.
+        // At this point, all sessions should be ready.
         const index = await this._olmAdapter.updateKey(this._key);
 
         // Set our key so we begin encrypting.

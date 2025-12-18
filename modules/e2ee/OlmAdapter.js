@@ -77,6 +77,7 @@ export class OlmAdapter extends Listenable {
         this._mediaKeyIndex = -1;
         this._reqs = new Map();
         this._sessionInitialization = undefined;
+        this._sessionReadyCallbacks = new Map(); // participantId -> callback
 
         if (OlmAdapter.isSupported()) {
             this._bootstrapOlm();
@@ -126,6 +127,62 @@ export class OlmAdapter extends Listenable {
 
             this._sessionInitialization.resolve();
             this._sessionInitialization = undefined;
+        }
+    }
+
+    /**
+     * Waits for Olm sessions to be established with all E2EE-enabled participants.
+     * This includes both outgoing sessions (that we initiated) and incoming sessions
+     * (initiated by participants with lower IDs).
+     *
+     * @returns {Promise<void>}
+     */
+    async waitForAllSessions() {
+        await this._init;
+
+        const promises = [];
+        const participantsToWaitFor = [];
+
+        for (const participant of this._conf.getParticipants()) {
+            const pId = participant.getId();
+
+            if (!participant.hasFeature(FEATURE_E2EE)) {
+                continue;
+            }
+
+            const olmData = this._getParticipantOlmData(participant);
+
+            if (olmData.session) {
+                // Session already exists
+                continue;
+            }
+
+            // Need to wait for session to be established
+            participantsToWaitFor.push(pId);
+            const sessionPromise = new Promise(resolve => {
+                this._sessionReadyCallbacks.set(pId, resolve);
+            });
+
+            promises.push(sessionPromise);
+        }
+
+        if (promises.length === 0) {
+            logger.debug('All sessions already established');
+
+            return;
+        }
+
+        logger.debug(`Waiting for ${promises.length} sessions to be established`);
+
+        // Wait for all pending sessions with a timeout
+        await Promise.race([
+            Promise.allSettled(promises),
+            new Promise(resolve => setTimeout(resolve, 10000)) // 10s timeout
+        ]);
+
+        // Clean up any remaining callbacks (e.g., if timeout fired before sessions completed)
+        for (const pId of participantsToWaitFor) {
+            this._sessionReadyCallbacks.delete(pId);
         }
     }
 
@@ -387,6 +444,14 @@ export class OlmAdapter extends Listenable {
      */
     _onParticipantE2EEChannelReady(id) {
         logger.debug(`E2EE channel with participant ${id} is ready`);
+
+        // Notify any waiting promises that this session is ready
+        const callback = this._sessionReadyCallbacks.get(id);
+
+        if (callback) {
+            callback();
+            this._sessionReadyCallbacks.delete(id);
+        }
     }
 
     /**
@@ -900,10 +965,29 @@ export class OlmAdapter extends Listenable {
                 const participantFeatures = await participant.getFeatures();
 
                 if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
-                    if (this._sessionInitialization) {
-                        await this._sessionInitialization;
+                    let sessionEstablished = false;
+
+                    try {
+                        // eslint-disable-next-line max-depth
+                        if (this._sessionInitialization) {
+                            await this._sessionInitialization;
+                        }
+                        await this._sendSessionInit(participant);
+                        sessionEstablished = true;
+                    } catch (error) {
+                        // Handle specific error cases
+                        // eslint-disable-next-line max-depth
+                        if (error.message === E2EEErrors.E2EE_OLM_SESSION_ALREADY_EXISTS) {
+                            sessionEstablished = true;
+                        } else if (error.message !== E2EEErrors.E2EE_OLM_SESSION_INIT_PENDING) {
+                            logger.error(`Failed to establish Olm session with ${participantId}:`, error);
+                        }
                     }
-                    await this._sendSessionInit(participant);
+
+                    // Only proceed with KEY_INFO if session is ready
+                    if (!sessionEstablished) {
+                        return;
+                    }
 
                     const uuid = uuidv4();
 
@@ -986,13 +1070,13 @@ export class OlmAdapter extends Listenable {
         if (olmData.session) {
             logger.warn(`Tried to send session-init to ${pId} but we already have a session`);
 
-            return Promise.reject();
+            return Promise.reject(new Error(E2EEErrors.E2EE_OLM_SESSION_ALREADY_EXISTS));
         }
 
         if (olmData.pendingSessionUuid !== undefined) {
             logger.warn(`Tried to send session-init to ${pId} but we already have a pending session`);
 
-            return Promise.reject();
+            return Promise.reject(new Error(E2EEErrors.E2EE_OLM_SESSION_INIT_PENDING));
         }
 
         // Generate a One Time Key.
@@ -1002,7 +1086,7 @@ export class OlmAdapter extends Listenable {
         const otKey = Object.values(otKeys.curve25519)[0];
 
         if (!otKey) {
-            return Promise.reject(new Error('No one-time-keys generated'));
+            return Promise.reject(new Error(E2EEErrors.E2EE_OLM_NO_ONE_TIME_KEYS));
         }
 
         // Mark the OT keys (one really) as published so they are not reused.
