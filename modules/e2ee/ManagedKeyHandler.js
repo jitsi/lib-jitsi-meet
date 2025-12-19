@@ -84,21 +84,17 @@ export class ManagedKeyHandler extends KeyHandler {
         if (enabled) {
             // Initialize Olm sessions with all participants.
             await this._olmAdapter.initSessions();
-
             logger.debug('All Olm sessions established, proceeding with key distribution');
-        } else {
-            this._olmAdapter.clearAllParticipantsSessions();
         }
-
-        // Generate a random key in case we are enabling.
         this._key = enabled ? this._generateKey() : false;
-
-        // Send it to others using the E2EE olm channel.
-        // At this point, all sessions should be ready.
         const index = await this._olmAdapter.updateKey(this._key);
 
-        // Set our key so we begin encrypting.
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+
+        // Clear sessions after key distribution when disabling.
+        if (!enabled) {
+            this._olmAdapter.clearAllParticipantsSessions();
+        }
     }
 
     /**

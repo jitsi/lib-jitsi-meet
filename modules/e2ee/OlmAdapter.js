@@ -240,7 +240,7 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Frees the olmData session for the given participant.
+     * Frees the olmData session for the given participant and clears all session-related state.
      *
      */
     clearParticipantSession(participant) {
@@ -250,6 +250,16 @@ export class OlmAdapter extends Listenable {
             olmData.session.free();
             olmData.session = undefined;
         }
+
+        // Clear all session-related state to allow clean re-initialization
+        olmData.pendingSessionUuid = undefined;
+        olmData.lastKey = undefined;
+
+        // Clean up SAS verification if active
+        if (olmData.sasVerification?.sas) {
+            olmData.sasVerification.sas.free();
+        }
+        olmData.sasVerification = undefined;
     }
 
     /**
@@ -260,6 +270,8 @@ export class OlmAdapter extends Listenable {
         for (const participant of this._conf.getParticipants()) {
             this.clearParticipantSession(participant);
         }
+        this._reqs.clear();
+        this._sessionInitialization = undefined;
     }
 
     /**
