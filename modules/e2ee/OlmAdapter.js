@@ -102,88 +102,64 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Starts new olm sessions with every other participant that has the participantId "smaller" the localParticipantId.
+     * Starts new olm sessions with every other participant and waits for all sessions to be established.
+     * This includes both outgoing sessions (initiated by us to participants with higher IDs) and
+     * incoming sessions (initiated by participants with lower IDs).
      */
     async initSessions() {
         if (this._sessionInitialization) {
             throw new Error('OlmAdapter initSessions called multiple times');
-        } else {
-            this._sessionInitialization = new Deferred();
-
-            await this._init;
-
-            const promises = [];
-            const localParticipantId = this._conf.myUserId();
-
-            for (const participant of this._conf.getParticipants()) {
-                if (participant.hasFeature(FEATURE_E2EE) && localParticipantId < participant.getId()) {
-                    promises.push(this._sendSessionInit(participant));
-                }
-            }
-
-            await Promise.allSettled(promises);
-
-            // TODO: retry failed ones.
-
-            this._sessionInitialization.resolve();
-            this._sessionInitialization = undefined;
         }
-    }
 
-    /**
-     * Waits for Olm sessions to be established with all E2EE-enabled participants.
-     * This includes both outgoing sessions (that we initiated) and incoming sessions
-     * (initiated by participants with lower IDs).
-     *
-     * @returns {Promise<void>}
-     */
-    async waitForAllSessions() {
+        this._sessionInitialization = new Deferred();
+
         await this._init;
 
-        const promises = [];
-        const participantsToWaitFor = [];
+        const localParticipantId = this._conf.myUserId();
+        const e2eeParticipants = this._conf.getParticipants().filter(p => p.hasFeature(FEATURE_E2EE));
+        const outgoingParticipants = e2eeParticipants.filter(p => localParticipantId < p.getId());
 
-        for (const participant of this._conf.getParticipants()) {
+        // Send session-init to participants with higher IDs (outgoing sessions)
+        const outgoingPromises = outgoingParticipants.map(participant =>
+            this._sendSessionInit(participant)
+        );
+
+        await Promise.allSettled(outgoingPromises);
+
+        // TODO: retry failed ones.
+
+        const waitPromises = [];
+
+        for (const participant of e2eeParticipants) {
             const pId = participant.getId();
-
-            if (!participant.hasFeature(FEATURE_E2EE)) {
-                continue;
-            }
-
             const olmData = this._getParticipantOlmData(participant);
 
             if (olmData.session) {
-                // Session already exists
+                // Session already established
                 continue;
             }
 
-            // Need to wait for session to be established
-            participantsToWaitFor.push(pId);
+            logger.debug(`Waiting for session with participant ${pId}`);
             const sessionPromise = new Promise(resolve => {
                 this._sessionReadyCallbacks.set(pId, resolve);
             });
 
-            promises.push(sessionPromise);
+            waitPromises.push(sessionPromise);
         }
 
-        if (promises.length === 0) {
-            logger.debug('All sessions already established');
+        if (waitPromises.length > 0) {
+            logger.debug(`Waiting for ${waitPromises.length} sessions to be established`);
 
-            return;
+            await Promise.race([
+                Promise.allSettled(waitPromises),
+                new Promise(resolve => setTimeout(resolve, 10000)) // 10s timeout
+            ]);
+            this._sessionReadyCallbacks.clear();
         }
 
-        logger.debug(`Waiting for ${promises.length} sessions to be established`);
-
-        // Wait for all pending sessions with a timeout
-        await Promise.race([
-            Promise.allSettled(promises),
-            new Promise(resolve => setTimeout(resolve, 10000)) // 10s timeout
-        ]);
-
-        // Clean up any remaining callbacks (e.g., if timeout fired before sessions completed)
-        for (const pId of participantsToWaitFor) {
-            this._sessionReadyCallbacks.delete(pId);
-        }
+        logger.debug('All Olm sessions established (outgoing and incoming)');
+        this._sessionInitialization.resolve();
+        this._sessionInitialization = undefined;
     }
 
     /**
