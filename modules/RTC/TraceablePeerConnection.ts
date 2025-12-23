@@ -1598,9 +1598,9 @@ export default class TraceablePeerConnection {
         const mediaType = track.kind as MediaType;
 
         // Do not create remote tracks for 'mixed' JVB SSRCs (used by JVB for RTCP termination).
-        if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
-            return;
-        }
+        //if (!this.isP2P && !RTCUtils.isUserStreamById(streamId)) {
+        //    return;
+        //}
         logger.info(`${this} Received track event for remote stream[id=${streamId},type=${mediaType}]`);
 
         // look up an associated JID for a stream id
