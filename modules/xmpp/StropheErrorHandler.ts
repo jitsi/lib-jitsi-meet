@@ -34,24 +34,32 @@ export function handleStropheError(errResponse: any, context: IStropheErrorConte
     }
 
     if (errorEl) {
-        errorObj.code = errorEl.getAttribute('code') || undefined;
+        try {
+            errorObj.code = errorEl.getAttribute('code') || undefined;
 
-        // Get first child element as reason
-        const reasonEl = Array.from(errorEl.children)[0];
+            // Get first child element as reason
+            const reasonEl = Array.from(errorEl.children || [])[0];
 
-        if (reasonEl) {
-            errorObj.reason = reasonEl.tagName;
+            if (reasonEl) {
+                errorObj.reason = reasonEl.tagName;
+            }
+
+            // Get <text> child element
+            const msgEl = Array.from(errorEl.getElementsByTagName('text') || [])[0];
+
+            if (msgEl?.textContent) {
+                errorObj.msg = msgEl.textContent;
+            }
+
+            // Raw XML string for debugging
+            if (errorEl.outerHTML) {
+                errorObj.raw = errorEl.outerHTML;
+            }
+        } catch (e: any) {
+            // React Native doesn't have full DOM API - fall back to basic error info
+            errorObj.reason = 'parse-error';
+            errorObj.parseError = e.message;
         }
-
-        // Get <text> child element
-        const msgEl = Array.from(errorEl.getElementsByTagName('text'))[0];
-
-        if (msgEl?.textContent) {
-            errorObj.msg = msgEl.textContent;
-        }
-
-        // Raw XML string for debugging
-        errorObj.raw = errorEl.outerHTML;
 
     // if the connection is not established we directly return a string as error from sendIQ method
     } else if (typeof errResponse === 'string') {
