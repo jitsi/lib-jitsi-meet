@@ -311,6 +311,8 @@ export default class JitsiConference extends Listenable {
     public backToP2PDelay: number;
     public isP2PConnectionInterrupted: boolean;
     public p2p: boolean;
+    public pendingP2PTracks: any[];
+    public _p2pTracksProcessed: boolean;
     public p2pJingleSession?: JingleSessionPC;
     public videoSIPGWHandler: VideoSIPGW;
     public recordingManager: RecordingManager;
@@ -465,6 +467,19 @@ export default class JitsiConference extends Listenable {
          * @type {boolean}
          */
         this.p2p = false;
+
+        /**
+         * Queue for P2P tracks that arrive before P2P mode is established.
+         * Fixes race condition where WebRTC ontrack events fire before _setP2PStatus(true).
+         * @type {Array}
+         */
+        this.pendingP2PTracks = [];
+
+        /**
+         * Flag to track whether queued P2P tracks were processed to avoid duplicate processing.
+         * @type {boolean}
+         */
+        this._p2pTracksProcessed = false;
 
         /**
          * A JingleSession for the direct peer to peer connection.
@@ -1149,6 +1164,19 @@ export default class JitsiConference extends Listenable {
         if (newStatus) {
             logger.info('Peer to peer connection established!');
 
+            // Process any P2P tracks that arrived before P2P mode was set
+            // This fixes the race condition where tracks arrive before ICE completes
+            if (this.pendingP2PTracks.length > 0) {
+                logger.info(`Processing ${this.pendingP2PTracks.length} queued P2P tracks`);
+                this.pendingP2PTracks.forEach(track => {
+                    this.onRemoteTrackAdded(track);
+                });
+                this.pendingP2PTracks = [];
+                this._p2pTracksProcessed = true; // Mark that we processed queued tracks
+            } else {
+                this._p2pTracksProcessed = false; // No queued tracks, normal flow
+            }
+
             // When we end up in a valid P2P session need to reset the properties
             // in case they have persisted, after session with another peer.
             Statistics.analytics.addPermanentProperties({
@@ -1165,6 +1193,8 @@ export default class JitsiConference extends Listenable {
                 });
         } else {
             logger.info('Peer to peer connection closed!');
+            // Clear pending tracks when exiting P2P mode
+            this.pendingP2PTracks = [];
         }
 
         // Clear dtmfManager, so that it can be recreated with new connection
@@ -1953,7 +1983,11 @@ export default class JitsiConference extends Listenable {
             logger.info('Not removing remote JVB tracks - no session yet');
         }
 
-        this._addRemoteP2PTracks();
+        // Only add remote P2P tracks if we didn't already process them from the queue
+        // This prevents duplicate TRACK_ADDED events for the same tracks
+        if (!this._p2pTracksProcessed) {
+            this._addRemoteP2PTracks();
+        }
 
         // Stop media transfer over the JVB connection
         if (this.jvbJingleSession) {
@@ -3510,7 +3544,10 @@ export default class JitsiConference extends Listenable {
      */
     onRemoteTrackAdded(track: JitsiRemoteTrack): void {
         if (track.isP2P && !this.isP2PActive()) {
-            logger.info('Trying to add remote P2P track, when not in P2P - IGNORED');
+            // Queue P2P tracks that arrive before P2P mode is established
+            // This fixes a race condition where WebRTC ontrack events fire before ICE completes
+            logger.info('Queueing remote P2P track until P2P mode is established');
+            this.pendingP2PTracks.push(track);
 
             return;
         } else if (!track.isP2P && this.isP2PActive()) {
