@@ -7,7 +7,7 @@
 This document describes some of the high-level concepts and outlines the design.
 Please refer to the source code for details.
 
-This library implements End-to-End Encryiption (E2EE) on supported endpopints (currently just browsers with support
+This library implements End-to-End Encryption (E2EE) on supported endpoints (currently just browsers with support
 for [insertable streams](https://github.com/w3c/webrtc-insertable-streams)).
 
 This implementation follows the model outlined in [SFrame](https://tools.ietf.org/html/draft-omara-sframe-00) with
@@ -27,7 +27,7 @@ then sent to every other participant over the E2EE Olm channel.
 ### Key ratcheting
 
 Each participant ratchets their key when another participant joins. The new resulting key is not distributed since
-every participant can derive it by ratchetting themselves.
+every participant can derive it by ratcheting themselves.
 
 Unlike described in [SFrame 4.3.5.1](https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1)
 we attempt to ratchet the key forward when we do not find a valid authentication tag. Note that we only update
@@ -39,7 +39,7 @@ the set of keys when we find a valid signature which avoids a denial of service 
 
 We are using a variant of [SFrame](https://tools.ietf.org/html/draft-omara-sframe-00)
 that uses a trailer instead of a header. We call it JFrame.
-`
+
 These transformations use AES-GCM (with a 128 bit key; we could have used
 256 bits but since the keys are short-lived decided against it) and the
 webcrypto API:
