@@ -243,8 +243,8 @@ Module scope examples:
 
 ## External Resources
 - [Jitsi Handbook](https://jitsi.github.io/handbook/) - Comprehensive documentation
-- [lib-jitsi-meet Development Guide](https://jitsi.github.io/handbook/docs/dev-guide/ljm)
-- [jitsi-meet Integration Guide](https://jitsi.github.io/handbook/docs/dev-guide/ljm)
+- [lib-jitsi-meet Development Guide](https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-ljm/)
+- [jitsi-meet Integration Guide](https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-ljm-api/)
 - [XMPP Protocol Specifications](https://xmpp.org/extensions/) - XEP documentation
 - [WebRTC API Reference](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API) - Browser WebRTC APIs
 
