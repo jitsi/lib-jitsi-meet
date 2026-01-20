@@ -413,13 +413,6 @@ export enum JitsiConferenceEvents {
     TRACK_AUDIO_LEVEL_CHANGED = 'conference.audioLevelsChanged',
 
     /**
-     * A remote participant's audio mute status changed based on signaling.
-     * @param {JitsiParticipant} participant - The participant whose audio mute status changed
-     * @param {boolean} muted - true if muted, false if unmuted
-     */
-    TRACK_AUDIO_MUTED_CHANGED = 'conference.trackAudioMutedChanged',
-
-    /**
      * A media track ( attached to the conference) mute status was changed.
      * @param {JitsiParticipant|null} the participant that initiated the mute
      * if it is a remote mute.
@@ -439,13 +432,6 @@ export enum JitsiConferenceEvents {
      *
      */
     TRACK_UNMUTE_REJECTED = 'conference.trackUnmuteRejected',
-
-    /**
-     * A remote participant's video mute status changed based on signaling.
-     * @param {JitsiParticipant} participant - The participant whose video mute status changed
-     * @param {boolean} muted - true if muted, false if unmuted
-     */
-    TRACK_VIDEO_MUTED_CHANGED = 'conference.trackVideoMutedChanged',
 
     /**
      * Notifies for transcription status changes. The event provides the

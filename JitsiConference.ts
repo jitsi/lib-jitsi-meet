@@ -3546,6 +3546,10 @@ export default class JitsiConference extends Listenable {
         );
 
         emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+
+        // Emit initial mute state since the track may be created with a mute state
+        // and subsequent setMute() calls won't trigger the event if state doesn't change
+        emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
     }
 
 

@@ -30,8 +30,6 @@ export default class JitsiParticipant {
     private _isSilent?: boolean;
     private _features: Set<string>;
     private _sources: Map<MediaType, Map<string, ISourceInfo>>;
-    private _previousAudioMuted?: boolean;
-    private _previousVideoMuted?: boolean;
     private _botType?: string;
     private _connectionJid?: string;
     /**
@@ -144,41 +142,13 @@ export default class JitsiParticipant {
 
         if (sourceByMediaType?.size) {
             sourceByMediaType.set(sourceName, sourceInfo);
-        } else {
-            sourceByMediaType = new Map();
-            sourceByMediaType.set(sourceName, sourceInfo);
-            this._sources.set(mediaType, sourceByMediaType);
+
+            return;
         }
 
-        // Calculate aggregate mute state for the media type
-        // If ANY source is unmuted, consider the media type unmuted
-        let isMediaTypeMuted = true;
-
-        for (const source of sourceByMediaType.values()) {
-            if (!source.muted) {
-                isMediaTypeMuted = false;
-                break;
-            }
-        }
-
-        // Detect mute state changes and emit events
-        if (mediaType === MediaType.AUDIO) {
-            if (this._previousAudioMuted !== undefined && this._previousAudioMuted !== isMediaTypeMuted) {
-                this._conference.eventEmitter.emit(
-                    JitsiConferenceEvents.TRACK_AUDIO_MUTED_CHANGED,
-                    this,
-                    isMediaTypeMuted);
-            }
-            this._previousAudioMuted = isMediaTypeMuted;
-        } else if (mediaType === MediaType.VIDEO) {
-            if (this._previousVideoMuted !== undefined && this._previousVideoMuted !== isMediaTypeMuted) {
-                this._conference.eventEmitter.emit(
-                    JitsiConferenceEvents.TRACK_VIDEO_MUTED_CHANGED,
-                    this,
-                    isMediaTypeMuted);
-            }
-            this._previousVideoMuted = isMediaTypeMuted;
-        }
+        sourceByMediaType = new Map();
+        sourceByMediaType.set(sourceName, sourceInfo);
+        this._sources.set(mediaType, sourceByMediaType);
     }
 
     /**
