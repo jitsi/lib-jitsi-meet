@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import { $iq, Strophe } from 'strophe.js';
+import { handleStropheError } from './StropheErrorHandler';
 
 Strophe.addConnectionPlugin('disco',
 {
@@ -128,7 +129,15 @@ Strophe.addConnectionPlugin('disco',
 
         var info = $iq({from:this._connection.jid,
                          to:jid, type:'get'}).c('query', attrs);
-        this._connection.sendIQ(info, success, error, timeout);
+        this._connection.sendIQ(info, success, error ? err => {
+            handleStropheError(err, {
+                jid,
+                node,
+                operation: 'disco info query',
+                userJid: this._connection.jid
+            });
+            error(err);
+        } : undefined, timeout);
     },
     /** Function: items
      * Items query
@@ -146,7 +155,15 @@ Strophe.addConnectionPlugin('disco',
 
         var items = $iq({from:this._connection.jid,
                          to:jid, type:'get'}).c('query', attrs);
-        this._connection.sendIQ(items, success, error, timeout);
+        this._connection.sendIQ(items, success, error ? err => {
+            handleStropheError(err, {
+                jid,
+                node,
+                operation: 'disco items query',
+                userJid: this._connection.jid
+            });
+            error(err);
+        } : undefined, timeout);
     },
 
     /** PrivateFunction: _buildIQResult

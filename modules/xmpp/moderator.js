@@ -4,12 +4,16 @@ import { $iq } from 'strophe.js';
 
 import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
+import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 import { exists, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { handleStropheError } from './StropheErrorHandler';
+
 
 const logger = getLogger('xmpp:Moderator');
 
@@ -504,6 +508,15 @@ export default class Moderator extends Listenable {
      * @param errorCallback
      */
     _handleIqError(roomJid, error, callback, errorCallback) {
+        // Call handleStropheError for centralized error logging and analytics
+        handleStropheError(error, {
+            mode: this.mode,
+            operation: 'conference request (IQ)',
+            roomJid,
+            targetJid: this.targetJid,
+            userJid: this.connection.jid
+        });
+
         // The reservation system only works over XMPP. Handle the error separately.
         // Check for error returned by the reservation system
         // Convert Strophe object to DOM element for XMLUtils functions
@@ -576,6 +589,13 @@ export default class Moderator extends Listenable {
                     resolve();
                 },
                 errorIq => {
+                    handleStropheError(errorIq, {
+                        operation: 'authenticate conference',
+                        roomJid,
+                        targetJid: this.targetJid,
+                        userJid: this.connection.jid
+                    });
+
                     const errorEl = findFirst(errorIq, ':scope>iq>error');
                     const firstErrorChild = errorEl?.children?.length > 0 ? errorEl.children[0] : undefined;
 
@@ -616,7 +636,12 @@ export default class Moderator extends Listenable {
                 callback();
             },
             error => {
-                logger.error('Logout error', error);
+                handleStropheError(error, {
+                    operation: 'logout',
+                    sessionId,
+                    targetJid: this.targetJid,
+                    userJid: this.connection.jid
+                });
             }
         );
     }

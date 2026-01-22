@@ -22,6 +22,7 @@ import FileSharing from './FileSharing';
 import Lobby from './Lobby';
 import Polls from './Polls';
 import RoomMetadata from './RoomMetadata';
+import { handleStropheError } from './StropheErrorHandler';
 import XmppConnection, { ErrorCallback } from './XmppConnection';
 import XMPP, { FEATURE_TRANSCRIBER } from './xmpp';
 
@@ -636,7 +637,11 @@ export default class ChatRoom extends Listenable {
             this.initialDiscoRoomInfoReceived = true;
             this.eventEmitter.emit(XMPPEvents.ROOM_DISCO_INFO_UPDATED);
         }, error => {
-            logger.error('Error getting room info: ', error);
+            handleStropheError(error, {
+                operation: 'get room disco info',
+                roomJid: this.roomjid,
+                userJid: this.connection.jid
+            });
             this.eventEmitter.emit(XMPPEvents.ROOM_DISCO_INFO_FAILED, error);
         },
         IQ_TIMEOUT);
@@ -696,10 +701,20 @@ export default class ChatRoom extends Listenable {
             formSubmit.c('field', { 'var': 'muc#roomconfig_whois' })
                 .c('value').t('anyone').up().up();
 
-            this.connection.sendIQ(formSubmit);
+            this.connection.sendIQ(formSubmit, undefined, error => {
+                handleStropheError(error, {
+                    operation: 'submit room configuration form',
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            });
 
         }, error => {
-            logger.error('Error getting room configuration form: ', error);
+            handleStropheError(error, {
+                operation: 'get room configuration form',
+                roomJid: this.roomjid,
+                userJid: this.connection.jid
+            });
         });
     }
 
@@ -887,7 +902,7 @@ export default class ChatRoom extends Listenable {
         } else if (this.members[from] === undefined) {
             // new participant
             this.members[from] = member;
-            logger.info('entered', from, member);
+            logger.info('entered', from);
             hasStatusUpdate = member.status !== undefined;
             hasVersionUpdate = member.version !== undefined;
             if (member.isFocus) {
@@ -1266,6 +1281,8 @@ export default class ChatRoom extends Listenable {
                 reason = getText(reasonSelect);
             }
 
+            logger.info(`Kicked by ${from}`);
+
             // we first fire the kicked so we can show the participant
             // who kicked, before notifying that participant left
             // we fire kicked for us and for any participant kicked
@@ -1624,7 +1641,15 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(
             grantIQ,
             result => logger.info('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
-            error => logger.error('Set affiliation of participant error: ', error));
+            error => {
+                handleStropheError(error, {
+                    affiliation,
+                    operation: 'set affiliation of participant',
+                    participantJid: jid,
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            });
     }
 
     /**
@@ -1643,7 +1668,15 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(
             kickIQ,
             result => logger.info('Kick participant with jid: ', jid, result),
-            error => logger.error('Kick participant error: ', error), undefined);
+            error => {
+                handleStropheError(error, {
+                    operation: 'kick participant',
+                    participantJid: jid,
+                    reason,
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            }, undefined);
     }
 
     /* eslint-disable max-params */
@@ -1728,12 +1761,26 @@ export default class ChatRoom extends Listenable {
                             this.password = key;
                             onSuccess();
                         },
-                        onError);
+                        error => {
+                            handleStropheError(error, {
+                                operation: 'lock room (submit form)',
+                                roomJid: this.roomjid,
+                                userJid: this.connection.jid
+                            });
+                            onError(error);
+                        });
                 } else {
                     onNotSupported();
                 }
             },
-            onError);
+            error => {
+                handleStropheError(error, {
+                    operation: 'lock room (get configuration)',
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+                onError(error);
+            });
     }
 
     /* eslint-enable max-params */
@@ -1765,7 +1812,13 @@ export default class ChatRoom extends Listenable {
                 }
             });
 
-            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up());
+            sendIq && this.xmpp.connection.sendIQ(affiliationsIq.up(), undefined, error => {
+                handleStropheError(error, {
+                    operation: 'set members affiliation',
+                    roomJid: this.roomjid,
+                    userJid: this.xmpp.connection.jid
+                });
+            });
         }
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const errorCallback = onError ? onError : () => {};
@@ -1812,12 +1865,28 @@ export default class ChatRoom extends Listenable {
                             .up();
                     }
 
-                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCallback);
+                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, error => {
+                        handleStropheError(error, {
+                            enabled,
+                            operation: 'set members only (submit form)',
+                            roomJid: this.roomjid,
+                            userJid: this.xmpp.connection.jid
+                        });
+                        errorCallback(error);
+                    });
                 } else {
                     errorCallback(new Error('Setting members only room not supported!'));
                 }
             },
-            errorCallback);
+            error => {
+                handleStropheError(error, {
+                    enabled,
+                    operation: 'set members only (get configuration)',
+                    roomJid: this.roomjid,
+                    userJid: this.xmpp.connection.jid
+                });
+                errorCallback(error);
+            });
     }
 
 
@@ -2142,7 +2211,16 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(
             iqToFocus,
             result => logger.info('set mute', result),
-            error => logger.error('set mute error', error));
+            error => {
+                handleStropheError(error, {
+                    mediaType,
+                    mute,
+                    operation: 'set mute participant',
+                    participantJid: jid,
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            });
     }
 
     /**
@@ -2342,7 +2420,15 @@ export default class ChatRoom extends Listenable {
 
                     resolve(this.cachedShortTermCredentials[service]);
                 },
-                reject);
+                error => {
+                    handleStropheError(error, {
+                        operation: 'get short term credentials',
+                        roomJid: this.roomjid,
+                        service,
+                        userJid: this.connection.jid
+                    });
+                    reject(error);
+                });
         });
     }
 }

@@ -402,8 +402,15 @@ export default class XmppConnection extends Listenable {
 
             // after connecting - immediately check whether shard changed,
             // we need this only when using websockets as bosh checks headers from every response
-            if (this._usesWebsocket && this._oneSuccessfulConnect) {
-                this._keepAliveAndCheckShard();
+            if (this._usesWebsocket) {
+                if (this._oneSuccessfulConnect) {
+                    // on reconnect we do it immediately
+                    this._keepAliveAndCheckShard();
+                } else {
+                    // delay it a bit to not interfere with the connection process
+                    // and to allow backend to correct any possible split brain issues
+                    setTimeout(() => this._keepAliveAndCheckShard(), 5000);
+                }
             }
             this._oneSuccessfulConnect = true;
 
