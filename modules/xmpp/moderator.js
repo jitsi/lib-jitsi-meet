@@ -10,8 +10,6 @@ import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 import { exists, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
-import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
-import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { handleStropheError } from './StropheErrorHandler';
 
 
