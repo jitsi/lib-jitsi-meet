@@ -409,7 +409,8 @@ export default class XmppConnection extends Listenable {
                 } else {
                     // delay it a bit to not interfere with the connection process
                     // and to allow backend to correct any possible split brain issues
-                    setTimeout(() => this._keepAliveAndCheckShard(), 5000);
+                    // Store timeout so it can be cleared if needed
+                    this._wsKeepAlive = setTimeout(() => this._keepAliveAndCheckShard(), 5000);
                 }
             }
             this._oneSuccessfulConnect = true;

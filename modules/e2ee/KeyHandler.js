@@ -74,9 +74,11 @@ export class KeyHandler extends Listenable {
 
         this.enabled = enabled;
 
-        this._setEnabled && await this._setEnabled(enabled);
-
+        // Advertise E2EE support BEFORE establishing sessions so other participants
+        // know to establish sessions with us when they see our presence update.
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
+
+        this._setEnabled && await this._setEnabled(enabled);
 
         // Only restart media sessions if E2EE is enabled. If it's later disabled
         // we'll continue to use the existing media sessions with an empty transform.

@@ -2042,7 +2042,7 @@ export default class JingleSessionPC extends JingleSession {
                 // been received before the updated source map is received on the bridge channel.
                 const { muted, videoType } = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
 
-                muted && this.peerconnection._sourceMutedChanged(source, muted);
+                typeof muted !== 'undefined' && this.peerconnection._sourceMutedChanged(source, muted);
                 this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, source, videoType);
             }
         }

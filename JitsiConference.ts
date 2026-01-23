@@ -2559,6 +2559,10 @@ export default class JitsiConference extends Listenable {
             );
         }
 
+        if (this.qualityController) {
+            this.qualityController.dispose();
+        }
+
         if (this.rtc) {
             this.rtc.destroy();
         }
@@ -3257,13 +3261,13 @@ export default class JitsiConference extends Listenable {
      * @param identity the member identity, if any
      * @param botType the member botType, if any
      * @param fullJid the member full jid, if any
-     * @param features the member botType, if any
+     * @param features the member features, if any.
      * @param isReplaceParticipant whether this join replaces a participant with
      * the same jwt.
      * @internal
      */
     onMemberJoined(
-            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: string, isReplaceParticipant: boolean
+            jid: string, nick: string, role: string, isHidden: boolean, statsID: string, status: string, identity: object, botType: string, fullJid: string, features: Set<string> | undefined, isReplaceParticipant: boolean
     ): void {
         const id = Strophe.getResourceFromJid(jid);
 
@@ -3275,7 +3279,7 @@ export default class JitsiConference extends Listenable {
         participant.setConnectionJid(fullJid);
         participant.setRole(role);
         participant.setBotType(botType);
-        participant.setFeatures(features ? new Set([ features ]) : undefined);
+        participant.setFeatures(features);
         participant.setIsReplacing(isReplaceParticipant);
 
         // Set remote tracks on the participant if source signaling was received before presence.
@@ -3542,6 +3546,16 @@ export default class JitsiConference extends Listenable {
         );
 
         emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+
+        // Apply any pending mute state that arrived before the track was created
+        // Always call setMute when there's a pending state, even if it matches current state,
+        // because setMute() is designed to emit on the first call regardless of state change
+        const pendingMutedState = track._getPendingMuteState();
+
+        if (pendingMutedState !== undefined) {
+            track._clearPendingMuteState();
+            track.setMute(pendingMutedState);
+        }
     }
 
 
