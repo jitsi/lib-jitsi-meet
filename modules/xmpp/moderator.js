@@ -107,11 +107,7 @@ export default class Moderator extends Listenable {
         }
 
         // Register
-        if (window.addEventListener) {
-            window.addEventListener('message', listener, false);
-        } else {
-            window.attachEvent('onmessage', listener);
-        }
+        window.addEventListener('message', listener, false);
     }
 
     /**
