@@ -1224,7 +1224,7 @@ export default class JitsiConference extends Listenable {
 
         this.p2pJingleSession.invite(localTracks)
             .then(() => {
-                this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                this.p2pJingleSession?.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
                     this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
                 });
             })
