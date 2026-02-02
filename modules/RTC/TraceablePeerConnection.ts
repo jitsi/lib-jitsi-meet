@@ -157,7 +157,6 @@ export default class TraceablePeerConnection {
     private _pcId: string;
     private _remoteUfrag: string;
     private _signalingLayer: SignalingLayer;
-    private _pendingMuteUpdates: Map<string, boolean>;
     /**
      * @internal
      */
@@ -324,13 +323,6 @@ export default class TraceablePeerConnection {
          * @type {Map<string, Map<MediaType, Set<JitsiRemoteTrack>>>}
          */
         this.remoteTracks = new Map();
-
-        /**
-         * Stores pending mute updates for sources that haven't had tracks created yet.
-         * @type {Map<string, boolean>}
-         * @private
-         */
-        this._pendingMuteUpdates = new Map();
 
         /**
          * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
@@ -1211,14 +1203,11 @@ export default class TraceablePeerConnection {
         const track = this.getRemoteTracks().slice().reverse().find(t => t.getSourceName() === sourceName);
 
         if (!track) {
-            // Store the pending mute update to be applied when the track is created
-            this._pendingMuteUpdates.set(sourceName, isMuted);
+            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
 
             return;
         }
 
-        // Clear any pending mute update since we're applying the current state to an existing track
-        this._pendingMuteUpdates.delete(sourceName);
         track.setMute(isMuted);
     }
 
@@ -1701,14 +1690,6 @@ export default class TraceablePeerConnection {
             this.remoteTracksBySsrc.set(ssrc, remoteTrack);
         } else {
             userTracksByMediaType.add(remoteTrack);
-        }
-
-        // Store pending mute update on the track itself so JitsiConference can apply it after attaching listeners
-        if (this._pendingMuteUpdates.has(sourceName)) {
-            const pendingMutedState = this._pendingMuteUpdates.get(sourceName);
-
-            remoteTrack._setPendingMuteState(pendingMutedState);
-            this._pendingMuteUpdates.delete(sourceName);
         }
 
         this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);

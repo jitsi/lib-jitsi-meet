@@ -47,9 +47,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     private _rtc: RTC;
     private _muted: boolean;
     private _hasBeenMuted: boolean;
-    private _setMuteCalled: boolean;
     private _ssrc: number;
-    private _pendingMuteState?: boolean;
 
     public ownerEndpointId: string;
     public isP2P: boolean;
@@ -103,7 +101,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this._ssrc = ssrc;
         this.ownerEndpointId = ownerEndpointId;
         this._muted = muted;
-        this._setMuteCalled = false;
         this.isP2P = isP2P;
         this._sourceName = sourceName;
         this._trackStreamingStatus = null;
@@ -427,37 +424,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * Sets the pending mute state for this track,
-     * received before the track was fully initialized.
-     *
-     * @param {boolean | undefined} state - The pending mute state
-     * @internal
-     */
-    _setPendingMuteState(state: boolean | undefined): void {
-        this._pendingMuteState = state;
-    }
-
-    /**
-     * Returns the pending mute state for this track,
-     * received before the track was fully initialized.
-     *
-     * @returns {boolean | undefined} the pending mute state
-     * @internal
-     */
-    _getPendingMuteState(): boolean | undefined {
-        return this._pendingMuteState;
-    }
-
-    /**
-     * Clears the pending mute state for this track.
-     *
-     * @internal
-     */
-    _clearPendingMuteState(): void {
-        this._pendingMuteState = undefined;
-    }
-
-    /**
      * Removes attached event listeners and dispose TrackStreamingStatus .
      *
      * @returns {Promise}
@@ -478,15 +444,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @internal
      */
     setMute(value: boolean): void {
-        const isFirstCall = !this._setMuteCalled;
-        const stateChanged = this._muted !== value;
-
-        // Skip if state didn't change, unless this is the first call (to emit initial state)
-        if (!stateChanged && !isFirstCall) {
+        if (this._muted === value) {
             return;
         }
-
-        this._setMuteCalled = true;
 
         if (value) {
             this._hasBeenMuted = true;

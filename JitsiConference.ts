@@ -3546,16 +3546,6 @@ export default class JitsiConference extends Listenable {
         );
 
         emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
-
-        // Apply any pending mute state that arrived before the track was created
-        // Always call setMute when there's a pending state, even if it matches current state,
-        // because setMute() is designed to emit on the first call regardless of state change
-        const pendingMutedState = track._getPendingMuteState();
-
-        if (pendingMutedState !== undefined) {
-            track._clearPendingMuteState();
-            track.setMute(pendingMutedState);
-        }
     }
 
 
