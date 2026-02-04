@@ -352,11 +352,13 @@ export default class XMPP extends Listenable {
             /* eslint-enable camelcase */
 
             if (this.options.testing?.enableGracefulReconnect) {
+                logger.debug('Shard changed, attempting graceful reconnect');
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.SHARD_CHANGED_ERROR
                 );
             } else {
+                logger.error('Shard changed, kicking the user off the conference and forcing reload', JSON.stringify(details));
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR,
