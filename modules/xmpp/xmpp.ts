@@ -368,6 +368,12 @@ export default class XMPP extends Listenable {
             }
         });
 
+        this.connection.on(XmppConnection.Events.CONN_STATUS_CHANGED, status => {
+            if (status === XmppConnection.Status.RESUMING) {
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_RESUMING);
+            }
+        });
+
         this._initStrophePlugins();
 
         this.caps = new Caps(this.connection, /* clientNode */ 'https://jitsi.org/jitsi-meet');
@@ -1333,5 +1339,21 @@ export default class XMPP extends Listenable {
         }
 
         return false;
+    }
+
+    /**
+     * This method allows renewal of the tokens if they are expiring.
+     * @param token - The new token.
+     */
+    refreshToken(token: string): Promise<void> {
+        let serviceUrl = this.options.serviceUrl;
+
+        serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
+
+        return this.connection.refreshToken(serviceUrl);
+    }
+
+    cancelResume() {
+        this.connection.cancelResume();
     }
 }

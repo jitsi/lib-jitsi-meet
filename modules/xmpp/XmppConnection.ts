@@ -82,6 +82,15 @@ interface IInternalOptions {
     websocketKeepAliveUrl?: string;
 }
 
+const TOKEN_REFRESH = 'token_refresh';
+
+/**
+ * Adds one more status to Strophe.Status enum.
+ */
+enum ExtendedStatus {
+    RESUMING = 15
+}
+
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
  * @internal
@@ -128,7 +137,7 @@ export default class XmppConnection extends Listenable {
      * @returns {Strophe.Status}
      */
     static get Status() {
-        return Strophe.Status;
+        return { ...Strophe.Status, ...ExtendedStatus };
     }
 
     /**
@@ -395,8 +404,6 @@ export default class XmppConnection extends Listenable {
     _stropheConnectionCb(targetCallback: IConnectionStatusCallback, status: Strophe.Status, condition?: string, element?: Element): void {
         this._status = status;
 
-        let blockCallback = false;
-
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             this._maybeEnableStreamResume();
 
@@ -421,17 +428,24 @@ export default class XmppConnection extends Listenable {
         } else if (status === Strophe.Status.DISCONNECTED) {
             this.ping.stopInterval();
 
-            // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
-            blockCallback = this._tryResumingConnection();
-            if (!blockCallback) {
-                clearTimeout(this._wsKeepAlive);
+            // if resumption is scheduled skip disconnecting state event fire
+            if (this._tryResumingConnection(condition === TOKEN_REFRESH)) {
+
+                if (condition !== TOKEN_REFRESH) {
+                    // let's fire event that status changed to resuming
+                    // we do not fire it on refresh, as consumers should get
+                    // the event and execute refresh with a new token
+                    this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, ExtendedStatus.RESUMING);
+                }
+
+                return;
             }
+
+            clearTimeout(this._wsKeepAlive);
         }
 
-        if (!blockCallback) {
-            targetCallback(status, condition, element);
-            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
-        }
+        targetCallback(status, condition, element);
+        this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
     }
 
     /**
@@ -758,14 +772,22 @@ export default class XmppConnection extends Listenable {
      * the token is present it means the connection can be resumed.
      *
      * @private
-     * @returns {boolean}
+     * @returns {boolean} - Whether a resume attempt was scheduled or executed.
      */
-    _tryResumingConnection(): boolean {
+    _tryResumingConnection(force = false): boolean {
         const { streamManagement } = this._stropheConn;
         const resumeToken = streamManagement?.getResumeToken();
 
         if (resumeToken) {
-            this._resumeTask.schedule();
+            if (force) {
+                logger.info('Trying to resume XMPP connection immediately due to token refresh');
+
+                this._resumeTask.resumeConnection();
+
+                return true;
+            } else {
+                this._resumeTask.schedule();
+            }
 
             const r = this._resumeTask.retryCount <= MAX_CONNECTION_RETRIES;
 
@@ -777,5 +799,35 @@ export default class XmppConnection extends Listenable {
         }
 
         return false;
+    }
+
+    /**
+     * This method allows renewal of the tokens if they are expiring.
+     * @param token - The new token.
+     */
+    refreshToken(serviceUrl: string): Promise<void> {
+        this._stropheConn.service = serviceUrl;
+
+        // this will trigger a resume
+        this._stropheConn._doDisconnect(TOKEN_REFRESH);
+
+        return new Promise((resolve, reject) => {
+            const handler = status => {
+                if (status === Strophe.Status.CONNECTED && this._stropheConn.restored) {
+                    resolve();
+                }
+            };
+
+            this.addCancellableListener(XmppConnection.Events.CONN_STATUS_CHANGED, handler);
+
+            setTimeout(() => {
+                this.removeListener(XmppConnection.Events.CONN_STATUS_CHANGED, handler);
+                reject();
+            }, 3000);
+        });
+    }
+
+    cancelResume() {
+        this._resumeTask.cancelResume();
     }
 }

@@ -4435,7 +4435,14 @@ export default class JitsiConference extends Listenable {
      */
     public joinLobby(displayName: string, email: string): Promise<void> {
         if (this.room) {
-            return this.room.getLobby().join(displayName, email);
+            if (!this.room.getLobby()?.lobbyRoom?.joined) {
+                return this.room.getLobby().join(displayName, email);
+            } else {
+                logger.warn('Already joined the lobby');
+
+                return Promise.resolve();
+            }
+
         }
 
         return Promise.reject(new Error('The conference not started'));
