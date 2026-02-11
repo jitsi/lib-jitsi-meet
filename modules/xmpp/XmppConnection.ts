@@ -802,8 +802,9 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * This method allows renewal of the tokens if they are expiring.
-     * @param token - The new token.
+     * This method allows renewal of the tokens if they are expiring. The token is included in the service URL.
+     *
+     * @param {string} serviceUrl - The new service URL to connect to, if needed.
      */
     refreshToken(serviceUrl: string): Promise<void> {
         this._stropheConn.service = serviceUrl;
@@ -812,17 +813,21 @@ export default class XmppConnection extends Listenable {
         this._stropheConn._doDisconnect(TOKEN_REFRESH);
 
         return new Promise((resolve, reject) => {
-            const handler = status => {
-                if (status === Strophe.Status.CONNECTED && this._stropheConn.restored) {
-                    resolve();
+            let timeoutId: ReturnType<typeof setTimeout> = undefined;
+            const unsubscribe = this.addCancellableListener(
+                XmppConnection.Events.CONN_STATUS_CHANGED,
+                status => {
+                    if (status === Strophe.Status.CONNECTED && this._stropheConn.restored) {
+                        clearTimeout(timeoutId);
+                        unsubscribe();
+                        resolve();
+                    }
                 }
-            };
+            );
 
-            this.addCancellableListener(XmppConnection.Events.CONN_STATUS_CHANGED, handler);
-
-            setTimeout(() => {
-                this.removeListener(XmppConnection.Events.CONN_STATUS_CHANGED, handler);
-                reject();
+            timeoutId = setTimeout(() => {
+                unsubscribe();
+                reject(new Error('Token refresh timed out'));
             }, 3000);
         });
     }
