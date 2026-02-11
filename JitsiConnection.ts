@@ -163,13 +163,6 @@ export default class JitsiConnection {
     }
 
     /**
-     * Cancels the connection resume process if it is in progress.
-     */
-    cancelResume() {
-        this.xmpp.cancelResume();
-    }
-
-    /**
      * Creates and joins new conference.
      * @param name - The name of the conference; if null - a generated name will be
      * provided from the api
