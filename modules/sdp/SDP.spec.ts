@@ -1419,4 +1419,182 @@ a=rtcp-mux
             expect(media).toContain('a=candidate:2 1 tcp 2130706430 192.168.1.2 10001 typ host');
         });
     });
+
+    describe('cryptex support', () => {
+        describe('SDP to Jingle - session-level a=cryptex', () => {
+            it('should add cryptex="true" attribute to fingerprints when session has a=cryptex', () => {
+                const testSdp = [
+                    'v=0\r\n',
+                    'o=- 123456 2 IN IP4 0.0.0.0\r\n',
+                    's=-\r\n',
+                    't=0 0\r\n',
+                    'a=group:BUNDLE audio\r\n',
+                    'a=cryptex\r\n',
+                    'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',
+                    'c=IN IP4 0.0.0.0\r\n',
+                    'a=rtpmap:111 opus/48000/2\r\n',
+                    'a=mid:audio\r\n',
+                    'a=sendrecv\r\n',
+                    'a=ice-ufrag:test\r\n',
+                    'a=ice-pwd:testpwd\r\n',
+                    'a=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\n',
+                    'a=setup:actpass\r\n'
+                ].join('');
+
+                const sdp = new SDP(testSdp);
+                const accept = $iq({ to: 'peer', type: 'set' })
+                    .c('jingle', { xmlns: 'urn:xmpp:jingle:1', action: 'session-accept', sid: 'sid1' });
+
+                sdp.toJingle(accept, 'responder');
+
+                const fingerprint = accept.nodeTree.querySelector('fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]');
+
+                expect(fingerprint).not.toBeNull();
+                expect(fingerprint.getAttribute('cryptex')).toBe('true');
+                expect(fingerprint.getAttribute('hash')).toBe('sha-256');
+            });
+        });
+
+        describe('SDP to Jingle - media-level a=cryptex', () => {
+            it('should add cryptex="true" attribute to fingerprints when media has a=cryptex', () => {
+                const testSdp = [
+                    'v=0\r\n',
+                    'o=- 123456 2 IN IP4 0.0.0.0\r\n',
+                    's=-\r\n',
+                    't=0 0\r\n',
+                    'a=group:BUNDLE audio\r\n',
+                    'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',
+                    'c=IN IP4 0.0.0.0\r\n',
+                    'a=rtpmap:111 opus/48000/2\r\n',
+                    'a=mid:audio\r\n',
+                    'a=sendrecv\r\n',
+                    'a=cryptex\r\n',
+                    'a=ice-ufrag:test\r\n',
+                    'a=ice-pwd:testpwd\r\n',
+                    'a=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\n',
+                    'a=setup:actpass\r\n'
+                ].join('');
+
+                const sdp = new SDP(testSdp);
+                const accept = $iq({ to: 'peer', type: 'set' })
+                    .c('jingle', { xmlns: 'urn:xmpp:jingle:1', action: 'session-accept', sid: 'sid1' });
+
+                sdp.toJingle(accept, 'responder');
+
+                const fingerprint = accept.nodeTree.querySelector('fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]');
+
+                expect(fingerprint).not.toBeNull();
+                expect(fingerprint.getAttribute('cryptex')).toBe('true');
+            });
+        });
+
+        describe('SDP to Jingle - no cryptex', () => {
+            it('should not add cryptex attribute when a=cryptex is not present', () => {
+                const testSdp = [
+                    'v=0\r\n',
+                    'o=- 123456 2 IN IP4 0.0.0.0\r\n',
+                    's=-\r\n',
+                    't=0 0\r\n',
+                    'a=group:BUNDLE audio\r\n',
+                    'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',
+                    'c=IN IP4 0.0.0.0\r\n',
+                    'a=rtpmap:111 opus/48000/2\r\n',
+                    'a=mid:audio\r\n',
+                    'a=sendrecv\r\n',
+                    'a=ice-ufrag:test\r\n',
+                    'a=ice-pwd:testpwd\r\n',
+                    'a=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\n',
+                    'a=setup:actpass\r\n'
+                ].join('');
+
+                const sdp = new SDP(testSdp);
+                const accept = $iq({ to: 'peer', type: 'set' })
+                    .c('jingle', { xmlns: 'urn:xmpp:jingle:1', action: 'session-accept', sid: 'sid1' });
+
+                sdp.toJingle(accept, 'responder');
+
+                const fingerprint = accept.nodeTree.querySelector('fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]');
+
+                expect(fingerprint).not.toBeNull();
+                expect(fingerprint.hasAttribute('cryptex')).toBe(false);
+            });
+        });
+
+        describe('Jingle to SDP - cryptex attribute', () => {
+            it('should add session-level a=cryptex when Jingle fingerprint has cryptex="true"', () => {
+                const jingle = createStanzaElement(`
+                    <jingle xmlns="urn:xmpp:jingle:1">
+                        <content name="audio">
+                            <description media="audio" xmlns="urn:xmpp:jingle:apps:rtp:1">
+                                <payload-type id="111" name="opus" clockrate="48000" channels="2"/>
+                            </description>
+                            <transport xmlns="urn:xmpp:jingle:transports:ice-udp:1" ufrag="test" pwd="testpwd">
+                                <fingerprint xmlns="urn:xmpp:jingle:apps:dtls:0" cryptex="true" hash="sha-256" setup="actpass">AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99</fingerprint>
+                            </transport>
+                        </content>
+                    </jingle>
+                `);
+
+                const sdp = new SDP('');
+
+                sdp.fromJingle(jingle);
+
+                expect(sdp.session).toContain('a=cryptex');
+                expect(sdp.raw).toContain('a=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99');
+            });
+
+            it('should add session-level a=cryptex only once when multiple fingerprints have cryptex="true"', () => {
+                const jingle = createStanzaElement(`
+                    <jingle xmlns="urn:xmpp:jingle:1">
+                        <content name="audio">
+                            <description media="audio" xmlns="urn:xmpp:jingle:apps:rtp:1">
+                                <payload-type id="111" name="opus" clockrate="48000" channels="2"/>
+                            </description>
+                            <transport xmlns="urn:xmpp:jingle:transports:ice-udp:1" ufrag="test" pwd="testpwd">
+                                <fingerprint xmlns="urn:xmpp:jingle:apps:dtls:0" cryptex="true" hash="sha-256" setup="actpass">AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99</fingerprint>
+                            </transport>
+                        </content>
+                        <content name="video">
+                            <description media="video" xmlns="urn:xmpp:jingle:apps:rtp:1">
+                                <payload-type id="96" name="VP8" clockrate="90000"/>
+                            </description>
+                            <transport xmlns="urn:xmpp:jingle:transports:ice-udp:1" ufrag="test" pwd="testpwd">
+                                <fingerprint xmlns="urn:xmpp:jingle:apps:dtls:0" cryptex="true" hash="sha-256" setup="actpass">AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99</fingerprint>
+                            </transport>
+                        </content>
+                    </jingle>
+                `);
+
+                const sdp = new SDP('');
+
+                sdp.fromJingle(jingle);
+
+                const cryptexMatches = sdp.session.match(/a=cryptex/g);
+
+                expect(cryptexMatches).not.toBeNull();
+                expect(cryptexMatches.length).toBe(1);
+            });
+
+            it('should not add a=cryptex when Jingle fingerprint does not have cryptex attribute', () => {
+                const jingle = createStanzaElement(`
+                    <jingle xmlns="urn:xmpp:jingle:1">
+                        <content name="audio">
+                            <description media="audio" xmlns="urn:xmpp:jingle:apps:rtp:1">
+                                <payload-type id="111" name="opus" clockrate="48000" channels="2"/>
+                            </description>
+                            <transport xmlns="urn:xmpp:jingle:transports:ice-udp:1" ufrag="test" pwd="testpwd">
+                                <fingerprint xmlns="urn:xmpp:jingle:apps:dtls:0" hash="sha-256" setup="actpass">AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99</fingerprint>
+                            </transport>
+                        </content>
+                    </jingle>
+                `);
+
+                const sdp = new SDP('');
+
+                sdp.fromJingle(jingle);
+
+                expect(sdp.session).not.toContain('a=cryptex');
+            });
+        });
+    });
 });

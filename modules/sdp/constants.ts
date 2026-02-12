@@ -49,6 +49,7 @@ export interface IExtmapData {
 }
 
 export interface IFingerprintData {
+    cryptex?: string;
     fingerprint: string;
     hash: string;
     required: boolean;
