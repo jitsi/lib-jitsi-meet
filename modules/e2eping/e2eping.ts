@@ -142,7 +142,13 @@ class ParticipantWrapper {
             type: E2E_PING_REQUEST
         };
 
-        this.e2eping.sendMessage(requestMessage, this.id);
+        try {
+            this.e2eping.sendMessage(requestMessage, this.id);
+        } catch (e) {
+            logger.debug('Failed to send e2e ping request:', e);
+
+            return;
+        }
         this.requests[requestId] = {
             id: requestId,
             timeSent: window.performance.now()
@@ -365,7 +371,11 @@ export default class E2ePing {
                 type: E2E_PING_RESPONSE
             };
 
-            this.sendMessage(response, participantId);
+            try {
+                this.sendMessage(response, participantId);
+            } catch (e) {
+                logger.debug('Failed to send e2e ping response:', e);
+            }
         } else {
             logger.info(`Received an invalid e2e ping request from ${participantId}.`);
         }
