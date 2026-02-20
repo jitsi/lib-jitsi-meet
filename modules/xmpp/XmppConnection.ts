@@ -809,9 +809,6 @@ export default class XmppConnection extends Listenable {
     refreshToken(serviceUrl: string): Promise<void> {
         this._stropheConn.service = serviceUrl;
 
-        // this will trigger a resume
-        this._stropheConn._doDisconnect(TOKEN_REFRESH);
-
         return new Promise((resolve, reject) => {
             let timeoutId: ReturnType<typeof setTimeout> = undefined;
             const unsubscribe = this.addCancellableListener(
@@ -824,6 +821,9 @@ export default class XmppConnection extends Listenable {
                     }
                 }
             );
+
+            // this will trigger a resume
+            this._stropheConn._doDisconnect(TOKEN_REFRESH);
 
             timeoutId = setTimeout(() => {
                 unsubscribe();
