@@ -823,7 +823,7 @@ export default class XmppConnection extends Listenable {
             );
 
             // this will trigger a resume
-            this._stropheConn._doDisconnect(TOKEN_REFRESH);
+            this._stropheConn.streamManagement?._interceptDoDisconnect(TOKEN_REFRESH);
 
             timeoutId = setTimeout(() => {
                 unsubscribe();
