@@ -714,14 +714,15 @@ export default class RTC extends Listenable {
      * @param {string} to The id of the endpoint that should receive the
      *      message. If "" the message will be sent to all participants.
      * @param {object} payload The payload of the message.
-     * @throws NetworkError or InvalidStateError or Error if the operation
-     * fails or there is no data channel created.
+     * @throws NetworkError or InvalidStateError or Error if the operation fails
      */
     sendChannelMessage(to, payload) {
-        if (this._channel) {
+        // Match the pattern used in sendEndpointStatsMessage() below
+        if (this._channel && this._channel.isOpen()) {
             this._channel.sendMessage(to, payload);
         } else {
-            throw new Error('BridgeChannel has not been initialized yet');
+            // Silently drop the message - channel will open soon
+            logger.debug('BridgeChannel not open yet, dropping message to:', to);
         }
     }
 
