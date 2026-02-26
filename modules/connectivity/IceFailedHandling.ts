@@ -47,12 +47,22 @@ export default class IceFailedHandling {
         } else {
             logger.info(`Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`);
             RTCStats.sendStatsEntry(RTCStatsEvents.JVB_ICE_RESTARTED_EVENT);
-            this._conference._stopJvbSession({
-                reason: 'connectivity-error',
-                reasonDescription: 'ICE FAILED',
-                requestRestart: true,
-                sendSessionTerminate: true
-            });
+
+            // Refresh TURN credentials before requesting ICE restart so the new
+            // session-initiate from Jicofo uses fresh, valid credentials.
+            // This is best-effort: if it fails, proceed with existing credentials.
+            this._conference.xmpp.refreshIceServers()
+                .catch(error => {
+                    logger.warn('Failed to refresh TURN credentials before ICE restart, proceeding with existing', error);
+                })
+                .then(() => {
+                    this._conference._stopJvbSession({
+                        reason: 'connectivity-error',
+                        reasonDescription: 'ICE FAILED',
+                        requestRestart: true,
+                        sendSessionTerminate: true
+                    });
+                });
         }
     }
 

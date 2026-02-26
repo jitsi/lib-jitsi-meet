@@ -318,11 +318,6 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         // for a prosody module which implements this.
         // Or the new implementation https://modules.prosody.im/mod_external_services which will be in prosody 0.12
         //
-        // Currently, this doesn't work with updateIce and therefore credentials
-        // with a long validity have to be fetched before creating the
-        // peerconnection.
-        // TODO: implement refresh via updateIce as described in
-        //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
             $iq({ to: this.xmpp.options.hosts.domain,
                 type: 'get' })
@@ -353,6 +348,64 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     }
                 );
             });
+    }
+
+    /**
+     * Refreshes TURN credentials by re-fetching them from the XMPP server.
+     * Returns a Promise that resolves when fresh credentials have been received
+     * and the ICE config has been updated, or rejects on failure.
+     * This is used before ICE restarts to ensure the new session uses valid
+     * TURN credentials.
+     *
+     * @returns {Promise<boolean>} Resolves with true if credentials were updated,
+     * false if no credentials were found.
+     */
+    refreshIceServers() {
+        return new Promise((resolve, reject) => {
+            logger.info('Refreshing TURN credentials before ICE restart');
+
+            this.connection.sendIQ(
+                $iq({ to: this.xmpp.options.hosts.domain,
+                    type: 'get' })
+                    .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
+                v2Res => {
+                    const result = this.onReceiveStunAndTurnCredentials(v2Res);
+
+                    logger.info('TURN credentials refreshed successfully (extdisco:2)');
+                    resolve(result);
+                },
+                error => {
+                    handleStropheError(error, {
+                        domain: this.xmpp.options.hosts.domain,
+                        operation: 'refresh STUN/TURN credentials (extdisco:2)',
+                        userJid: this.connection.jid,
+                        xmlns: 'urn:xmpp:extdisco:2'
+                    });
+                    logger.warn('Refreshing TURN credentials with extdisco:2 failed, trying extdisco:1');
+
+                    this.connection.sendIQ(
+                        $iq({ to: this.xmpp.options.hosts.domain,
+                            type: 'get' })
+                            .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
+                        v1Res => {
+                            const result = this.onReceiveStunAndTurnCredentials(v1Res);
+
+                            logger.info('TURN credentials refreshed successfully (extdisco:1)');
+                            resolve(result);
+                        },
+                        err => {
+                            handleStropheError(err, {
+                                domain: this.xmpp.options.hosts.domain,
+                                operation: 'refresh STUN/TURN credentials (extdisco:1)',
+                                userJid: this.connection.jid,
+                                xmlns: 'urn:xmpp:extdisco:1'
+                            });
+                            logger.warn('Refreshing TURN credentials failed on both extdisco versions');
+                            reject(new Error('Failed to refresh TURN credentials'));
+                        }
+                    );
+                });
+        });
     }
 
     /**

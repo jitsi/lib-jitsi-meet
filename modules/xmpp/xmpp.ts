@@ -1201,6 +1201,18 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Refreshes TURN credentials by re-fetching them from the XMPP server.
+     * This should be called before ICE restarts to ensure fresh TURN credentials
+     * are available for the new session.
+     *
+     * @returns {Promise<boolean>} Resolves with true if credentials were updated,
+     * false if no credentials were found. Rejects if the fetch fails entirely.
+     */
+    public refreshIceServers(): Promise<boolean> {
+        return this.connection.jingle.refreshIceServers();
+    }
+
+    /**
      *
      */
     public getSessions(): object {
