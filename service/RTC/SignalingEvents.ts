@@ -1,0 +1,45 @@
+export enum SignalingEvents {
+
+    /**
+     * Event triggered when participant's muted status changes.
+     *
+     * @param {string} endpointId the track owner's identifier (MUC nickname)
+     * @param {MediaType} mediaType "audio" or "video"
+     * @param {boolean} isMuted the new muted state
+     */
+    PEER_MUTED_CHANGED = 'signaling.peerMuted',
+
+    /**
+     * Event triggered when participant's video type changes.
+     *
+     * @param {string} endpointId the video owner's ID (MUC nickname)
+     * @param {VideoType} videoType the new value
+     */
+    PEER_VIDEO_TYPE_CHANGED = 'signaling.peerVideoType',
+
+    /**
+     * Event triggered when source's muted status changes.
+     *
+     * @param {string} sourceName - The name of the source.
+     * @param {boolean} isMuted - The new muted state.
+     */
+    SOURCE_MUTED_CHANGED = 'signaling.sourceMuted',
+
+    /**
+     * Event triggered when presence for a source is received.
+     *
+     * @param {string} sourceName - The name of the source.
+     * @param {string} endpointId - The endpoint id.
+     * @param {boolean} muted - The new muted state.
+     * @param {string} videoType - The video type of the source.
+     */
+    SOURCE_UPDATED = 'signaling.sourceUpdated',
+
+    /**
+     * Event triggered when source's video type changes.
+     *
+     * @param {string} source - The name of the source.
+     * @param {VideoType} videoType - The new value.
+     */
+    SOURCE_VIDEO_TYPE_CHANGED = 'signaling.sourceVideoType'
+}

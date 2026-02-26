@@ -1,77 +1,37 @@
-/* global __dirname */
-
+const path = require('path');
 const process = require('process');
 
-const minimize
-    = process.argv.indexOf('-p') !== -1
-        || process.argv.indexOf('--optimize-minimize') !== -1;
+const sharedConfig = require('./webpack-shared-config');
 
-const config = {
-    devtool: 'source-map',
-    mode: minimize ? 'production' : 'development',
-    module: {
-        rules: [ {
-            // Version this build of the lib-jitsi-meet library.
+module.exports = (_env, argv) => {
+    // Despite what whe docs say calling webpack with no arguments results in mode not being set.
+    const mode = typeof argv.mode === 'undefined' ? 'production' : argv.mode;
+    const config
+        = sharedConfig(mode === 'production' /* minimize */, Boolean(process.env.ANALYZE_BUNDLE) /* analyzeBundle */);
 
-            loader: 'string-replace-loader',
-            options: {
-                flags: 'g',
-                replace:
-                    process.env.LIB_JITSI_MEET_COMMIT_HASH || 'development',
-                search: '{#COMMIT_HASH#}'
+    return [
+        { ...config,
+            entry: {
+                'lib-jitsi-meet': './index.js'
             },
-            test: `${__dirname}/JitsiMeetJS.js`
-        }, {
-            // Transpile ES2015 (aka ES6) to ES5.
-
-            exclude: [
-                new RegExp(`${__dirname}/node_modules/(?!js-utils)`)
-            ],
-            loader: 'babel-loader',
-            options: {
-                presets: [
-                    [
-                        '@babel/preset-env',
-
-                        // Tell babel to avoid compiling imports into CommonJS
-                        // so that webpack may do tree shaking.
-                        { modules: false }
-                    ],
-                    '@babel/preset-flow'
-                ],
-                plugins: [
-                    '@babel/plugin-transform-flow-strip-types',
-                    '@babel/plugin-proposal-class-properties',
-                    '@babel/plugin-proposal-export-namespace-from'
-                ]
+            output: { ...config.output,
+                library: 'JitsiMeetJS',
+                libraryTarget: 'umd',
+                path: path.join(process.cwd(), 'dist', 'umd') } },
+        {
+            entry: {
+                worker: './modules/e2ee/Worker.ts'
             },
-            test: /\.js$/
-        } ]
-    },
-    node: {
-        // Allow the use of the real filename of the module being executed. By
-        // default Webpack does not leak path-related information and provides a
-        // value that is a mock (/index.js).
-        __filename: true
-    },
-    optimization: {
-        concatenateModules: minimize
-    },
-    output: {
-        filename: `[name]${minimize ? '.min' : ''}.js`,
-        path: process.cwd(),
-        sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
-    }
+            mode,
+            module: config.module,
+            optimization: {
+                minimize: false
+            },
+            output: {
+                filename: 'lib-jitsi-meet.e2ee-worker.js',
+                path: path.join(process.cwd(), 'dist', 'umd')
+            },
+            resolve: config.resolve
+        }
+    ];
 };
-
-module.exports = [
-    Object.assign({}, config, {
-        entry: {
-            'lib-jitsi-meet': './index.js'
-        },
-        output: Object.assign({}, config.output, {
-            library: 'JitsiMeetJS',
-            libraryTarget: 'umd'
-        })
-    })
-];

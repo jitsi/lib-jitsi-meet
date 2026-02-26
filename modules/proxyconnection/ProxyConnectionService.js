@@ -1,16 +1,16 @@
-/* globals $ */
-
-import { getLogger } from 'jitsi-meet-logger';
+import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
-import * as MediaType from '../../service/RTC/MediaType';
-import VideoType from '../../service/RTC/VideoType';
+import { findFirst, getAttribute, parseXML } from '../../modules/util/XMLUtils';
+import { MediaType } from '../../service/RTC/MediaType';
+import { getSourceNameForJitsiTrack } from '../../service/RTC/SignalingLayer';
+import { VideoType } from '../../service/RTC/VideoType';
 import RTC from '../RTC/RTC';
 
 import ProxyConnectionPC from './ProxyConnectionPC';
 import { ACTIONS } from './constants';
 
-const logger = getLogger(__filename);
+const logger = getLogger('proxyconnection:ProxyConnectionService');
 
 /**
  * Instantiates a new ProxyConnectionPC and ensures only one exists at a given
@@ -22,24 +22,31 @@ export default class ProxyConnectionService {
      * Initializes a new {@code ProxyConnectionService} instance.
      *
      * @param {Object} options - Values to initialize the instance with.
-     * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied
-     * video should be returned as a desktop stream. Defaults to false.
-     * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
-     * for the peer connection.
-     * @param {Function} options.onRemoteStream - Callback to invoke when a
-     * remote video stream has been received and converted to a
-     * {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
-     * @param {Function} options.onSendMessage - Callback to invoke when a
-     * message has to be sent (signaled) out. The arguments passed in are the
-     * jid to send the message to and the message
+     * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied video should be returned as a desktop
+     * stream. Defaults to false.
+     * @param {Object} [options.pcConfig] - The {@code RTCConfiguration} to use for the WebRTC peer connection.
+     * @param {JitsiConnection} [options.jitsiConnection] - The {@code JitsiConnection} which will be used to fetch
+     * TURN credentials for the P2P connection.
+     * @param {Function} options.onRemoteStream - Callback to invoke when a remote video stream has been received and
+     * converted to a {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
+     * @param {Function} options.onSendMessage - Callback to invoke when a message has to be sent (signaled) out. The
+     * arguments passed in are the jid to send the message to and the message.
      */
     constructor(options = {}) {
+        const {
+            jitsiConnection,
+            ...otherOptions
+        } = options;
+
         /**
          * Holds a reference to the collection of all callbacks.
          *
          * @type {Object}
          */
-        this._options = options;
+        this._options = {
+            pcConfig: jitsiConnection && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
+            ...otherOptions
+        };
 
         /**
          * The active instance of {@code ProxyConnectionService}.
@@ -90,8 +97,8 @@ export default class ProxyConnectionService {
         }
 
         const iq = this._convertStringToXML(message.data.iq);
-        const $jingle = iq && iq.find('jingle');
-        const action = $jingle && $jingle.attr('action');
+        const jingleElement = findFirst(iq, 'jingle');
+        const action = getAttribute(jingleElement, 'action');
 
         if (action === ACTIONS.INITIATE) {
             this._peerConnection = this._createPeerConnection(peerJid, {
@@ -102,8 +109,8 @@ export default class ProxyConnectionService {
 
         // Truthy check for peer connection added to protect against possibly
         // receiving actions before an ACTIONS.INITIATE.
-        if (this._peerConnection) {
-            this._peerConnection.processMessage($jingle);
+        if (this._peerConnection && jingleElement) {
+            this._peerConnection.processMessage(jingleElement);
         }
 
         // Take additional steps to ensure the peer connection is cleaned up
@@ -114,7 +121,7 @@ export default class ProxyConnectionService {
             this._selfCloseConnection();
         }
 
-        return;
+
     }
 
     /**
@@ -130,6 +137,12 @@ export default class ProxyConnectionService {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
+        });
+
+        localTracks.forEach((localTrack, localTrackIndex) => {
+            const localSourceNameTrack = getSourceNameForJitsiTrack('peer', localTrack.getType(), localTrackIndex);
+
+            localTrack.setSourceName(localSourceNameTrack);
         });
 
         this._peerConnection.start(localTracks);
@@ -149,18 +162,18 @@ export default class ProxyConnectionService {
     }
 
     /**
-     * Transforms a stringified xML into a XML wrapped in jQuery.
+     * Transforms a stringified xML into a XML element.
      *
      * @param {string} xml - The XML in string form.
      * @private
-     * @returns {Object|null} A jQuery version of the xml. Null will be returned
+     * @returns {Object|null} An element version of the xml. Null will be returned
      * if an error is encountered during transformation.
      */
     _convertStringToXML(xml) {
         try {
-            const xmlDom = new DOMParser().parseFromString(xml, 'text/xml');
+            const xmlDom = parseXML(xml);
 
-            return $(xmlDom);
+            return xmlDom;
         } catch (e) {
             logger.error('Attempted to convert incorrectly formatted xml');
 
@@ -185,10 +198,10 @@ export default class ProxyConnectionService {
         }
 
         const pcOptions = {
-            iceConfig: this._options.iceConfig,
             onError: this._onFatalError,
             onRemoteStream: this._onRemoteStream,
             onSendMessage: this._onSendMessage,
+            pcConfig: this._options.pcConfig,
             peerJid,
             ...options
         };
@@ -205,7 +218,7 @@ export default class ProxyConnectionService {
      * attempted or started, and to which an iq with error details should be
      * sent.
      * @param {string} errorType - The constant indicating the type of the error
-     * that occured.
+     * that occurred.
      * @param {string} details - Optional additional data about the error.
      * @private
      * @returns {void}
@@ -219,8 +232,8 @@ export default class ProxyConnectionService {
             type: 'set'
         })
             .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: errorType
+                action: errorType,
+                xmlns: 'urn:xmpp:jingle:1'
             })
             .c('details')
             .t(details)
@@ -264,12 +277,13 @@ export default class ProxyConnectionService {
         // Grab the webrtc media stream and pipe it through the same processing
         // that would occur for a locally obtained media stream.
         const mediaStream = jitsiRemoteTrack.getOriginalStream();
-        const jitsiLocalTracks = RTC.newCreateLocalTracks(
+        const jitsiLocalTracks = RTC.createLocalTracks(
             [
                 {
                     deviceId:
                         `proxy:${this._peerConnection.getPeerJid()}`,
                     mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+                    sourceType: 'proxy',
                     stream: mediaStream,
                     track: mediaStream.getVideoTracks()[0],
                     videoType

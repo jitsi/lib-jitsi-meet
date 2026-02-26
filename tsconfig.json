@@ -1,0 +1,70 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "sourceMap": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "lib": [
+      "DOM",
+      "ES2021",
+      "ES2024.Promise"
+    ],
+    "outDir": "dist/esm/",
+    "stripInternal": true,
+    "noImplicitOverride": true
+  },
+  "exclude": [
+    "dist",
+    "doc",
+    "docs",
+    "types",
+    "**/*.spec.js",
+    "**/*.spec.ts",
+    "*.conf*.js",
+    "index.js",
+    "lib-jitsi-meet.*.js",
+    "webpack*.js",
+  ],
+  "typedocOptions": {
+    "entryPoints": [
+      "JitsiConference.ts",
+      "JitsiConferenceErrors.ts",
+      "JitsiConferenceEvents.ts",
+      "JitsiConnection.ts",
+      "JitsiConnectionErrors.ts",
+      "JitsiConnectionEvents.ts",
+      "JitsiMediaDevices.ts",
+      "JitsiMediaDevicesEvents.ts",
+      "JitsiMeetJS.ts",
+      "JitsiParticipant.ts",
+      "JitsiTrackError.ts",
+      "JitsiTrackErrors.ts",
+      "JitsiTrackEvents.ts",
+    ],
+    "excludeExternals": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "blockTags": [
+      "@noInheritDoc",
+      "@param",
+      "@return",
+      "@returns",
+      "@see",
+      "@throws",
+      "@deprecated",
+      "@code",
+      "@property",
+      "@type",
+    ],
+    "readme": "none",
+    "plugin": [
+      "typedoc-plugin-missing-exports",
+      "typedoc-plugin-no-inherit",
+      "typedoc-plugin-rename-defaults"
+    ]
+  }
+}

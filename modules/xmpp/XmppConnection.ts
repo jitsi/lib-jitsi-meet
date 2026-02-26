@@ -1,0 +1,838 @@
+import { getLogger } from '@jitsi/logger';
+import { $pres, Strophe } from 'strophe.js';
+
+import { MAX_CONNECTION_RETRIES } from '../../service/connectivity/Constants';
+import Listenable from '../util/Listenable';
+
+import ResumeTask from './ResumeTask';
+import LastSuccessTracker from './StropheLastSuccess';
+import './strophe.stream-management';
+import MucConnectionPlugin from './strophe.emuc';
+import JingleConnectionPlugin from './strophe.jingle';
+import PingConnectionPlugin, { IPingOptions } from './strophe.ping';
+import RayoConnectionPlugin from './strophe.rayo';
+
+const logger = getLogger('xmpp:XmppConnection');
+
+/**
+ * Extended ping options interface that includes domain property
+ */
+interface IXmppPingOptions extends IPingOptions {
+    domain?: string;
+}
+
+/**
+ * Interface for connection plugins
+ */
+interface IConnectionPlugin {
+    init: (connection: XmppConnection) => void;
+}
+
+/**
+ * IQ result callback type - result is typically an XML Element
+ */
+export type IQResultCallback = (result: Element) => void;
+
+/**
+ * IQ error callback type - error can be a string, Element, Error object, or undefined (timeout)
+ */
+export type ErrorCallback = (error: string | Element | Error | undefined) => void;
+
+/**
+ * Connection status callback type
+ */
+type IConnectionStatusCallback = (status: Strophe.Status, condition?: string, element?: Element) => void;
+
+/**
+ * @typedef DeferredSendIQ Object
+ * @property {Element} iq - The IQ to send.
+ * @property {function} resolve - The resolve method of the deferred Promise.
+ * @property {function} reject - The reject method of the deferred Promise.
+ * @property {number} timeout - The ID of the timeout task that needs to be cleared, before sending the IQ.
+ * @property {number} start - The timestamp when the deferred IQ was created.
+ */
+interface IDeferredSendIQ {
+    iq: Element | undefined;
+    reject: (error: string | Element | Error | undefined) => void;
+    resolve: (result: Element) => void;
+    start: number;
+    timeout: ReturnType<typeof setTimeout>;
+}
+
+/**
+ * Constructor options interface for XmppConnection
+ */
+interface IXmppConnectionOptions {
+    enableWebsocketResume?: boolean;
+    serviceUrl: string;
+    shard?: string;
+    websocketKeepAlive?: number;
+    websocketKeepAliveUrl?: string;
+    xmppPing?: IXmppPingOptions;
+}
+
+/**
+ * Internal options interface
+ */
+interface IInternalOptions {
+    enableWebsocketResume: boolean;
+    pingOptions?: IXmppPingOptions;
+    shard?: string;
+    websocketKeepAlive: number;
+    websocketKeepAliveUrl?: string;
+}
+
+const TOKEN_REFRESH = 'token_refresh';
+
+/**
+ * Adds one more status to Strophe.Status enum.
+ */
+enum ExtendedStatus {
+    RESUMING = 15
+}
+
+/**
+ * The lib-jitsi-meet layer for {@link Strophe.Connection}.
+ * @internal
+ */
+export default class XmppConnection extends Listenable {
+
+    private _options: IInternalOptions;
+    private _usesWebsocket: boolean;
+    private _rawInputTracker: LastSuccessTracker;
+    private _resumeTask: ResumeTask;
+    private _deferredIQs: IDeferredSendIQ[];
+    private _oneSuccessfulConnect: boolean;
+    private _status: Strophe.Status;
+    private _wsKeepAlive: Optional<ReturnType<typeof setTimeout>>;
+
+    /**
+     * @internal
+     */
+    _stropheConn: Strophe.Connection;
+    public ping: PingConnectionPlugin;
+    public jingle?: JingleConnectionPlugin;
+    public rayo?: RayoConnectionPlugin;
+    public emuc?: MucConnectionPlugin;
+    /**
+     * @internal
+     */
+    _breakoutMovingToMain?: string;
+
+    /**
+     * The list of {@link XmppConnection} events.
+     *
+     * @returns {Object}
+     */
+    static get Events() {
+        return {
+            CONN_SHARD_CHANGED: 'CONN_SHARD_CHANGED',
+            CONN_STATUS_CHANGED: 'CONN_STATUS_CHANGED'
+        };
+    }
+
+    /**
+     * The list of Xmpp connection statuses.
+     *
+     * @returns {Strophe.Status}
+     */
+    static get Status() {
+        return { ...Strophe.Status, ...ExtendedStatus };
+    }
+
+    /**
+     * Initializes new connection instance.
+     *
+     * @param {Object} options
+     * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
+     * @param {String} options.shard - The BOSH or WebSocket is connecting to this shard.
+     * Useful for detecting when shard changes.
+     * @param {String} [options.enableWebsocketResume=true] - True/false to control the stream resumption functionality.
+     * It will enable automatically by default if supported by the XMPP server.
+     * @param {Number} [options.websocketKeepAlive=60000] - The websocket keep alive interval.
+     * It's the interval + a up to a minute of jitter. Pass -1 to disable.
+     * The keep alive is HTTP GET request to {@link options.serviceUrl} or to {@link options.websocketKeepAliveUrl}.
+     * @param {Number} [options.websocketKeepAliveUrl] - The websocket keep alive url to use if any,
+     * if missing the serviceUrl url will be used.
+     * @param {Object} [options.xmppPing] - The xmpp ping settings.
+     */
+    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }: IXmppConnectionOptions) {
+        super();
+        this._options = {
+            enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
+            pingOptions: xmppPing,
+            shard,
+            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive),
+            websocketKeepAliveUrl
+        };
+
+        this._stropheConn = new Strophe.Connection(serviceUrl);
+
+        // The mechanisms priorities as defined by Strophe
+        // *      Mechanism       Priority
+        // *      ------------------------
+        // *      SCRAM-SHA-1     60
+        // *      PLAIN           50
+        // *      ANONYMOUS       20
+        this._stropheConn.registerSASLMechanisms([
+            Strophe.SASLAnonymous,
+            Strophe.SASLPlain,
+            Strophe.SASLSHA1
+        ]);
+        this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
+
+        // The default maxRetries is 5, which is too long.
+        this._stropheConn.maxRetries = 3;
+
+        this._rawInputTracker = new LastSuccessTracker();
+        this._rawInputTracker.startTracking(this, this._stropheConn);
+
+        this._resumeTask = new ResumeTask(this._stropheConn);
+
+        /**
+         * @typedef DeferredSendIQ Object
+         * @property {Element} iq - The IQ to send.
+         * @property {function} resolve - The resolve method of the deferred Promise.
+         * @property {function} reject - The reject method of the deferred Promise.
+         * @property {number} timeout - The ID of the timeout task that needs to be cleared, before sending the IQ.
+         */
+        /**
+         * Deferred IQs to be sent upon reconnect.
+         * @type {Array<DeferredSendIQ>}
+         * @private
+         */
+        this._deferredIQs = [];
+
+        // Ping plugin is mandatory for the Websocket mode to work correctly. It's used to detect when the connection
+        // is broken (WebSocket/TCP connection not closed gracefully).
+        this.addConnectionPlugin(
+            'ping',
+            new PingConnectionPlugin({
+                getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
+                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
+                pingOptions: xmppPing
+            }));
+
+        // tracks whether this is the initial connection or a reconnect
+        this._oneSuccessfulConnect = false;
+    }
+
+    /**
+     * A getter for the connected state.
+     *
+     * @returns {boolean}
+     */
+    get connected(): boolean {
+        const websocket = this._stropheConn?._proto?.socket;
+
+        return (this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED)
+            && (!this.isUsingWebSocket || (websocket && websocket.readyState === WebSocket.OPEN));
+    }
+
+    /**
+     * Retrieves the feature discovery plugin instance.
+     *
+     * @returns {Strophe.Connection.disco}
+     */
+    get disco() {
+        return this._stropheConn.disco;
+    }
+
+    /**
+     * A getter for the disconnecting state.
+     *
+     * @returns {boolean}
+     */
+    get disconnecting(): boolean {
+        return this._stropheConn.disconnecting === true;
+    }
+
+    /**
+     * A getter for the domain.
+     *
+     * @returns {Nullable<string>}
+     */
+    get domain(): Nullable<string> {
+        return this._stropheConn.domain;
+    }
+
+    /**
+     * Tells if Websocket is used as the transport for the current XMPP connection. Returns true for Websocket or false
+     * for BOSH.
+     * @returns {boolean}
+     */
+    get isUsingWebSocket(): boolean {
+        return this._usesWebsocket;
+    }
+
+    /**
+     * A getter for the JID.
+     *
+     * @returns {string|null}
+     */
+    get jid(): string | null {
+        return this._stropheConn.jid;
+    }
+
+    /**
+     * Returns headers for the last BOSH response received.
+     *
+     * @returns {string}
+     */
+    get lastResponseHeaders(): string {
+        return this._stropheConn._proto?.lastResponseHeaders;
+    }
+
+    /**
+     * A getter for the logger plugin instance.
+     *
+     * @returns {*}
+     */
+    get logger() {
+        return this._stropheConn.logger;
+    }
+
+    /**
+     * A getter for the connection options.
+     *
+     * @returns {*}
+     */
+    get options() {
+        return this._stropheConn.options;
+    }
+
+    /**
+     * A getter for the domain to be used for ping.
+     */
+    get pingDomain(): string | null {
+        return this._options.pingOptions?.domain || this.domain;
+    }
+
+    /**
+     * A getter for the service URL.
+     *
+     * @returns {string}
+     */
+    get service(): string {
+        return this._stropheConn.service;
+    }
+
+    /**
+     * Sets new value for shard.
+     * @param value the new shard value.
+     */
+    set shard(value: string) {
+        this._options.shard = value;
+
+        // shard setting changed so let's schedule a new keep-alive check if connected
+        if (this._oneSuccessfulConnect) {
+            this._maybeStartWSKeepAlive();
+        }
+    }
+
+    /**
+     * Returns the current connection status.
+     *
+     * @returns {Strophe.Status}
+     */
+    get status(): Strophe.Status {
+        return this._status;
+    }
+
+    /**
+     * Adds a connection plugin to this instance.
+     *
+     * @param {string} name - The name of the plugin or rather a key under which it will be stored on this connection
+     * instance.
+     * @param {IConnectionPlugin} plugin - The plugin to add.
+     */
+    addConnectionPlugin(name: string, plugin: IConnectionPlugin): void {
+        (this as unknown as Record<string, IConnectionPlugin>)[name] = plugin;
+        plugin.init(this);
+    }
+
+    /**
+     * See {@link Strophe.Connection.addHandler}
+     *
+     * @returns {Object} - handler for the connection.
+     */
+    addHandler(...args: Parameters<Strophe.Connection['addHandler']>): ReturnType<Strophe.Connection['addHandler']> {
+        return this._stropheConn.addHandler(...args);
+    }
+
+    /**
+     * See {@link Strophe.Connection.deleteHandler}
+     *
+     * @returns {void}
+     */
+    deleteHandler(...args: Parameters<Strophe.Connection['deleteHandler']>): ReturnType<Strophe.Connection['deleteHandler']> {
+        this._stropheConn.deleteHandler(...args);
+    }
+
+    /* eslint-disable max-params */
+    /**
+     * Wraps {@link Strophe.Connection.attach} method in order to intercept the connection status updates.
+     * See {@link Strophe.Connection.attach} for the params description.
+     *
+     * @returns {void}
+     */
+    attach(jid: string, sid: string, rid: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['attach']>): void {
+        this._stropheConn.attach(jid, sid, rid, this._stropheConnectionCb.bind(this, callback), ...args);
+    }
+
+    /**
+     * Wraps Strophe.Connection.connect method in order to intercept the connection status updates.
+     * See {@link Strophe.Connection.connect} for the params description.
+     *
+     * @returns {void}
+     */
+    connect(jid: string, pass: string, callback: IConnectionStatusCallback, ...args: Parameters<Strophe.Connection['connect']>): void {
+        this._stropheConn.connect(jid, pass, this._stropheConnectionCb.bind(this, callback), ...args);
+    }
+
+    /* eslint-enable max-params */
+
+    /**
+     * Handles {@link Strophe.Status} updates for the current connection.
+     *
+     * @param {function} targetCallback - The callback passed by the {@link XmppConnection} consumer to one of
+     * the connect methods.
+     * @param {Strophe.Status} status - The new connection status.
+     * @param {*} args - The rest of the arguments passed by Strophe.
+     * @private
+    */
+    _stropheConnectionCb(targetCallback: IConnectionStatusCallback, status: Strophe.Status, condition?: string, element?: Element): void {
+        this._status = status;
+
+        if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+            this._maybeEnableStreamResume();
+
+            // after connecting - immediately check whether shard changed,
+            // we need this only when using websockets as bosh checks headers from every response
+            if (this._usesWebsocket) {
+                if (this._oneSuccessfulConnect) {
+                    // on reconnect we do it immediately
+                    this._maybeStartWSKeepAlive(0);
+                } else {
+                    // delay it a bit to not interfere with the connection process
+                    // and to allow backend to correct any possible split brain issues
+                    // Store timeout so it can be cleared if needed
+                    this._maybeStartWSKeepAlive(5000);
+                }
+            }
+            this._oneSuccessfulConnect = true;
+
+            this._processDeferredIQs();
+            this._resumeTask.cancel();
+            this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
+        } else if (status === Strophe.Status.DISCONNECTED) {
+            this.ping.stopInterval();
+
+            // if resumption is scheduled skip disconnecting state event fire
+            if (this._tryResumingConnection(condition === TOKEN_REFRESH)) {
+
+                if (condition !== TOKEN_REFRESH) {
+                    // let's fire event that status changed to resuming
+                    // we do not fire it on refresh, as consumers should get
+                    // the event and execute refresh with a new token
+                    this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, ExtendedStatus.RESUMING);
+                }
+
+                return;
+            }
+
+            clearTimeout(this._wsKeepAlive);
+        }
+
+        targetCallback(status, condition, element);
+        this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+    }
+
+    /**
+     * Clears the list of IQs and rejects deferred Promises with an error.
+     *
+     * @private
+     */
+    _clearDeferredIQs(): void {
+        for (const deferred of this._deferredIQs) {
+            deferred.reject(new Error('disconnect'));
+        }
+        this._deferredIQs = [];
+    }
+
+    /**
+     * The method is meant to be used for testing. It's a shortcut for closing the WebSocket.
+     *
+     * @returns {void}
+     */
+    closeWebsocket(): void {
+        if (this._stropheConn?._proto) {
+            this._stropheConn._proto._closeSocket();
+            this._stropheConn._proto._onClose(null);
+        }
+    }
+
+    /**
+     * See {@link Strophe.Connection.disconnect}.
+     *
+     * @returns {void}
+     */
+    disconnect(...args: Parameters<Strophe.Connection['disconnect']>): void {
+        this._resumeTask.cancel();
+        clearTimeout(this._wsKeepAlive);
+        this._clearDeferredIQs();
+        this._stropheConn.disconnect(...args);
+    }
+
+    /**
+     * See {@link Strophe.Connection.flush}.
+     *
+     * @returns {void}
+     */
+    flush(...args: Parameters<Strophe.Connection['flush']>): void {
+        this._stropheConn.flush(...args);
+    }
+
+    /**
+     * See {@link LastRequestTracker.getTimeSinceLastSuccess}.
+     *
+     * @returns {number|null}
+     */
+    getTimeSinceLastSuccess(): number | null {
+        return this._rawInputTracker.getTimeSinceLastSuccess();
+    }
+
+    /**
+     * See {@link LastRequestTracker.getLastFailedMessage}.
+     *
+     * @returns {string|null}
+     */
+    getLastFailedMessage(): string | null {
+        return this._rawInputTracker.getLastFailedMessage();
+    }
+
+    /**
+     * Requests a resume token from the server if enabled and all requirements are met.
+     *
+     * @private
+     */
+    _maybeEnableStreamResume(): void {
+        if (!this._options.enableWebsocketResume) {
+
+            return;
+        }
+
+        const { streamManagement } = this._stropheConn;
+
+        if (!this.isUsingWebSocket) {
+            logger.warn('Stream resume enabled, but WebSockets are not enabled');
+        } else if (!streamManagement) {
+            logger.warn('Stream resume enabled, but Strophe streamManagement plugin is not installed');
+        } else if (!streamManagement.isSupported()) {
+            logger.warn('Stream resume enabled, but XEP-0198 is not supported by the server');
+        } else if (!streamManagement.getResumeToken()) {
+            logger.info('Enabling XEP-0198 stream management');
+            streamManagement.enable(/* resume */ true);
+        }
+    }
+
+    /**
+     * Starts the Websocket keep alive if enabled.
+     *
+     * @param {number|undefined} forcedTimeout - If provided, this timeout will be used instead of
+     * the configured one with added jitter.
+     *
+     * @private
+     * @returns {void}
+     */
+    _maybeStartWSKeepAlive(forcedTimeout?: number): void {
+        const { websocketKeepAlive } = this._options;
+
+        // if websocketKeepAlive is not set keepAlive is disabled
+        if (this._usesWebsocket && websocketKeepAlive > 0) {
+            this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
+            clearTimeout(this._wsKeepAlive);
+
+            const interval = forcedTimeout
+                ?? (/* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000));
+
+            logger.debug(`Scheduling next WebSocket keep-alive in ${interval}ms`);
+
+            this._wsKeepAlive = setTimeout(
+                () => this._keepAliveAndCheckShard()
+                    .then(() => this._maybeStartWSKeepAlive()),
+                interval);
+        }
+    }
+
+    /**
+     * Do a http GET to the shard and if shard change will throw an event.
+     *
+     * @private
+     * @returns {Promise}
+     */
+    _keepAliveAndCheckShard(): Promise<void> {
+        const { shard, websocketKeepAliveUrl } = this._options;
+        const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
+            : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
+
+        return fetch(url)
+            .then(response => {
+
+                // skips header checking if there is no info in options
+                if (!shard) {
+                    return;
+                }
+
+                const responseShard = response.headers.get('x-jitsi-shard');
+
+                !responseShard && logger.warn('No x-jitsi-shard header present in keep-alive response');
+
+                // Ignore if no shard header is present.
+                if (responseShard && responseShard !== shard) {
+                    logger.error(
+                        `Detected that shard changed from ${shard} to ${responseShard}`);
+                    this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
+                }
+            })
+            .catch(error => {
+                logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
+            });
+    }
+
+    /**
+     * Goes over the list of {@link DeferredSendIQ} tasks and sends them.
+     *
+     * @private
+     * @returns {void}
+     */
+    _processDeferredIQs(): void {
+        for (const deferred of this._deferredIQs) {
+            if (deferred.iq) {
+                clearTimeout(deferred.timeout);
+
+                const timeLeft = Date.now() - deferred.start;
+
+                this.sendIQ(
+                    deferred.iq,
+                    result => deferred.resolve(result),
+                    error => deferred.reject(error),
+                    timeLeft);
+            }
+        }
+
+        this._deferredIQs = [];
+    }
+
+    /**
+     * Send a stanza. This function is called to push data onto the send queue to go out over the wire.
+     *
+     * @param {Element|Strophe.Builder} stanza - The stanza to send.
+     * @returns {void}
+     */
+    send(stanza: Element | Strophe.Builder): void {
+        if (!this.connected) {
+            logger.error(`Trying to send stanza while not connected. Status:${this._status} Proto:${
+                this.isUsingWebSocket ? this._stropheConn?._proto?.socket?.readyState : 'bosh'
+            }`);
+            throw new Error('Not connected');
+        }
+        this._stropheConn.send(stanza);
+    }
+
+    /**
+     * Helper function to send IQ stanzas.
+     *
+     * @param {Element} elem - The stanza to send.
+     * @param {Function} callback - The callback function for a successful request.
+     * @param {Function} errback - The callback function for a failed or timed out request.  On timeout, the stanza will
+     * be null.
+     * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
+     * @returns {number} - The id used to send the IQ.
+     */
+    sendIQ(elem: Element, callback: Optional<IQResultCallback> = undefined, errback: Optional<ErrorCallback> = undefined, timeout: Optional<number> = undefined): number | undefined {
+        if (!this.connected) {
+            errback('Not connected');
+
+            return;
+        }
+
+        return this._stropheConn.sendIQ(elem, callback, errback, timeout);
+    }
+
+    /**
+     * Sends an IQ immediately if connected or puts it on the send queue otherwise(in contrary to other send methods
+     * which would fail immediately if disconnected).
+     *
+     * @param {Element} iq - The IQ to send.
+     * @param {Object} options - Options object
+     * @param {options.timeout} timeout - How long to wait for the response.
+     * The time when the connection is reconnecting is included, which means that
+     * the IQ may never be sent and still fail with a timeout.
+     */
+    sendIQ2(iq: Element, { timeout }: { timeout: number; }): Promise<Element> {
+        return new Promise((resolve, reject) => {
+            if (this.connected) {
+                this.sendIQ(
+                    iq,
+                    result => resolve(result),
+                    error => reject(error),
+                    timeout);
+            } else {
+                const deferred: IDeferredSendIQ = {
+                    iq,
+                    reject,
+                    resolve,
+                    start: Date.now(),
+                    timeout: setTimeout(() => {
+                        // clears the IQ on timeout and invalidates the deferred task
+                        deferred.iq = undefined;
+
+                        // Strophe calls with undefined on timeout
+                        reject(undefined);
+                    }, timeout)
+                };
+
+                this._deferredIQs.push(deferred);
+            }
+        });
+    }
+
+    /**
+     * Called by the ping plugin when ping fails too many times.
+     *
+     * @returns {void}
+     */
+    _onPingErrorThresholdExceeded(): void {
+        if (this.isUsingWebSocket) {
+            logger.warn('Ping error threshold exceeded - killing the WebSocket');
+            this.closeWebsocket();
+        }
+    }
+
+    /**
+     *  Helper function to send presence stanzas. The main benefit is for sending presence stanzas for which you expect
+     *  a responding presence stanza with the same id (for example when leaving a chat room).
+     *
+     * @param {Element} elem - The stanza to send.
+     * @param {Function} callback - The callback function for a successful request.
+     * @param {Function} errback - The callback function for a failed or timed out request. On timeout, the stanza will
+     * be null.
+     * @param {number} timeout - The time specified in milliseconds for a timeout to occur.
+     * @returns {number} - The id used to send the presence.
+     */
+    sendPresence(elem: Element, callback: IQResultCallback, errback: ErrorCallback, timeout: number): void {
+        if (!this.connected) {
+            errback('Not connected');
+
+            return;
+        }
+        this._stropheConn.sendPresence(elem, callback, errback, timeout);
+    }
+
+    /**
+     * The method gracefully closes the BOSH connection by using 'navigator.sendBeacon'.
+     *
+     * @returns {boolean} - true if the beacon was sent.
+     */
+    sendUnavailableBeacon(): boolean {
+        if (!navigator.sendBeacon || this._stropheConn.disconnecting || !this._stropheConn.connected) {
+            return false;
+        }
+
+        this._stropheConn._changeConnectStatus(Strophe.Status.DISCONNECTING);
+        this._stropheConn.disconnecting = true;
+
+        const body = this._stropheConn._proto._buildBody()
+            .attrs({
+                type: 'terminate'
+            });
+        const pres = $pres({
+            type: 'unavailable',
+            xmlns: Strophe.NS.CLIENT
+        });
+
+        body.cnode(pres.tree());
+
+        const res = navigator.sendBeacon(
+            this.service.indexOf('https://') === -1 ? `https:${this.service}` : this.service,
+            Strophe.serialize(body.tree()));
+
+        logger.info(`Successfully send unavailable beacon ${res}`);
+
+        this._stropheConn._proto._abortAllRequests();
+        this._stropheConn._doDisconnect();
+
+        return true;
+    }
+
+    /**
+     * Tries to use stream management plugin to resume dropped XMPP connection. The streamManagement plugin clears
+     * the resume token if any connection error occurs which would put it in unrecoverable state, so as long as
+     * the token is present it means the connection can be resumed.
+     *
+     * @private
+     * @returns {boolean} - Whether a resume attempt was scheduled or executed.
+     */
+    _tryResumingConnection(force = false): boolean {
+        const { streamManagement } = this._stropheConn;
+        const resumeToken = streamManagement?.getResumeToken();
+
+        if (resumeToken) {
+            if (force) {
+                logger.info('Trying to resume XMPP connection immediately due to token refresh');
+
+                this._resumeTask.resumeConnection();
+
+                return true;
+            } else {
+                this._resumeTask.schedule();
+            }
+
+            const r = this._resumeTask.retryCount <= MAX_CONNECTION_RETRIES;
+
+            if (!r) {
+                logger.warn(`Maximum resume tries reached (${MAX_CONNECTION_RETRIES}), giving up.`);
+            }
+
+            return r;
+        }
+
+        return false;
+    }
+
+    /**
+     * This method allows renewal of the tokens if they are expiring. The token is included in the service URL.
+     *
+     * @param {string} serviceUrl - The new service URL to connect to, if needed.
+     */
+    refreshToken(serviceUrl: string): Promise<void> {
+        this._stropheConn.service = serviceUrl;
+
+        return new Promise((resolve, reject) => {
+            let timeoutId: ReturnType<typeof setTimeout> = undefined;
+            const unsubscribe = this.addCancellableListener(
+                XmppConnection.Events.CONN_STATUS_CHANGED,
+                status => {
+                    if (status === Strophe.Status.CONNECTED && this._stropheConn.restored) {
+                        clearTimeout(timeoutId);
+                        unsubscribe();
+                        resolve();
+                    }
+                }
+            );
+
+            // this will trigger a resume
+            this._stropheConn.streamManagement?._interceptDoDisconnect(TOKEN_REFRESH);
+
+            timeoutId = setTimeout(() => {
+                unsubscribe();
+                reject(new Error('Token refresh timed out'));
+            }, 3000);
+        });
+    }
+
+    cancelResume() {
+        this._resumeTask.cancelResume();
+    }
+}

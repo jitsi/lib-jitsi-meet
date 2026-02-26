@@ -1,0 +1,29 @@
+name: Simple CI
+
+on: [pull_request]
+
+jobs:
+  run-ci:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+    - name: Check Node / npm versions
+      run: |
+        node -v
+        npm -v
+    - run: npm install
+    - run: npm pack
+    - name: Check git status
+      run: git status
+    - name: Check git diff
+      run: git diff
+    - name: Check if the git repository is clean
+      run: exit $( git status --porcelain --untracked-files=no | head -255 | wc -l )
+    - run: npm run lint
+    - run: npm run typedoc
+    - run: npm run test
