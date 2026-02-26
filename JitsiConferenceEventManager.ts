@@ -9,6 +9,7 @@ import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import RTCStats from './modules/RTCStats/RTCStats';
 import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
+import { onDataChannelOpened, sendConnectionTimes } from './modules/connectivity/ConnectionStats';
 import JibriSession from './modules/recording/JibriSession';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
@@ -173,25 +174,8 @@ export default class JitsiConferenceEventManager {
 
                 this.conference.isJvbConnectionInterrupted = false;
 
-                // TODO: Move all of the 'connectionTimes' logic to its own module.
-                Object.keys(chatRoom.connectionTimes).forEach(key => {
-                    const event
-                        = createConnectionStageReachedEvent(
-                            `conference_${key}`,
-                            { value: chatRoom.connectionTimes[key] });
-
-                    Statistics.sendAnalytics(event);
-                });
-
-                // TODO: Move all of the 'connectionTimes' logic to its own module.
-                Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
-                    const event
-                        = createConnectionStageReachedEvent(
-                            `xmpp_${key}`,
-                            { value: chatRoom.xmpp.connectionTimes[key] });
-
-                    Statistics.sendAnalytics(event);
-                });
+                sendConnectionTimes(chatRoom.connectionTimes, 'conference_');
+                sendConnectionTimes(chatRoom.xmpp.connectionTimes, 'xmpp_');
             });
 
         chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track: JitsiRemoteTrack, owner: string, sourceName: string, videoType: VideoType) => {
@@ -530,13 +514,8 @@ export default class JitsiConferenceEventManager {
 
         rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
             const now = window.performance.now();
-            const key = 'data.channel.opened';
 
-            // TODO: Move all of the 'connectionTimes' logic to its own module.
-            logger.info(`(TIME) ${key}:\t`, now);
-            conference.room.connectionTimes[key] = now;
-            Statistics.sendAnalytics(
-                createConnectionStageReachedEvent(key, { value: now }));
+            onDataChannelOpened(conference.room.connectionTimes, now);
 
             conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
         });
