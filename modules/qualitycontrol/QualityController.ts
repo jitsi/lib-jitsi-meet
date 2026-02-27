@@ -72,7 +72,7 @@ interface ITrackStats {
     qualityLimitationReason: QualityLimitationReason;
 }
 
-interface IInboundVideoStats {
+export interface IInboundVideoStats {
     bitrateDownload: number;
     fps: number;
     participantId: string;

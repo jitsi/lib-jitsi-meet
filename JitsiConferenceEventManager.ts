@@ -9,6 +9,7 @@ import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import RTCStats from './modules/RTCStats/RTCStats';
 import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
+import { IInboundVideoStats } from './modules/qualitycontrol/QualityController';
 import JibriSession from './modules/recording/JibriSession';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
@@ -621,7 +622,7 @@ export default class JitsiConferenceEventManager {
                 JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED, tpc, stats);
         });
 
-        conference.statistics.addInboundVideoStatsListener((tpc: TraceablePeerConnection, stats: Map<number, object>) => {
+        conference.statistics.addInboundVideoStatsListener((tpc: TraceablePeerConnection, stats: Map<number, IInboundVideoStats>) => {
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.INBOUND_VIDEO_STATS_RECEIVED, tpc, stats);
         });

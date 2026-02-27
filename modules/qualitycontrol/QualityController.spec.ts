@@ -404,6 +404,36 @@ describe('QualityController', () => {
                 { participantId: PARTICIPANT_2, ssrc: BAD_SSRC_2, stopped: false });
         });
 
+        it('fires stopped=false when all bad SSRCs recover simultaneously (all-clear cycle)', () => {
+            // Simulate two SSRCs both in the bad state reaching the threshold.
+            const twoSsrcs = new Map([
+                [ BAD_SSRC, { bitrateDownload: 500, fps: 0, participantId: PARTICIPANT_1 } ],
+                [ BAD_SSRC_2, { bitrateDownload: 300, fps: 0, participantId: PARTICIPANT_2 } ]
+            ]);
+
+            qualityController._processInboundVideoStats(tpc, twoSsrcs);
+            qualityController._processInboundVideoStats(tpc, twoSsrcs);
+            qualityController._processInboundVideoStats(tpc, twoSsrcs);
+
+            rtcStatsSpy.calls.reset();
+            analyticsSpy.calls.reset();
+
+            // Both SSRCs recover in the same cycle — RTPStatsCollector emits an empty map (all-clear).
+            qualityController._processInboundVideoStats(tpc, new Map());
+
+            // Both resolution events must fire.
+            expect(rtcStatsSpy).toHaveBeenCalledTimes(2);
+            expect(rtcStatsSpy).toHaveBeenCalledWith(
+                RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null,
+                { participantId: PARTICIPANT_1, ssrc: BAD_SSRC, stopped: false });
+            expect(rtcStatsSpy).toHaveBeenCalledWith(
+                RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null,
+                { participantId: PARTICIPANT_2, ssrc: BAD_SSRC_2, stopped: false });
+
+            // Tracker must be empty after the all-clear.
+            expect(qualityController._notDecodingVideoTracker.size).toBe(0);
+        });
+
         it('clears the tracker map on dispose without firing resolution events', () => {
             // Put one SSRC into the tracker with an active issue.
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);

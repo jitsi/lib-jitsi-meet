@@ -173,6 +173,14 @@ export default class StatsCollector {
          * @type {Map<number,SsrcStats}
          */
         this.ssrc2stats = new Map();
+
+        /**
+         * Tracks whether the previous stats cycle had any inbound video SSRCs in the bad state
+         * (bytes received, no frames decoded). Used to emit a final all-clear call to QualityController
+         * when the set transitions from non-empty to empty.
+         * @type {boolean}
+         */
+        this._hadBadInboundSsrcs = false;
     }
 
     /**
@@ -437,9 +445,12 @@ export default class StatsCollector {
             });
         this.conferenceStats.transport = [];
 
-        if (inboundVideoStats.size) {
+        // Emit when there are currently bad SSRCs, or when the previous cycle had bad SSRCs and this one has
+        // none (all-clear), so QualityController can fire resolution events and clean up its tracker.
+        if (inboundVideoStats.size || this._hadBadInboundSsrcs) {
             this.eventEmitter.emit(StatisticsEvents.INBOUND_VIDEO_STATS, this.peerconnection, inboundVideoStats);
         }
+        this._hadBadInboundSsrcs = inboundVideoStats.size > 0;
     }
 
     /**
