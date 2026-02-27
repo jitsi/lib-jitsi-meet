@@ -178,6 +178,19 @@ export enum AnalyticsEvents {
     NO_BYTES_SENT = 'track.no-bytes-sent',
 
     /**
+     * Indicates a change in the decoding state of a remote video stream that is receiving media bytes.
+     * Fired after the condition persists for at least 3 consecutive stats polling cycles (~30 seconds),
+     * and again when the condition resolves.
+     *
+     * Properties:
+     *      stopped: true when frame decoding has stopped while bytes are still received,
+     *               false when decoding resumes.
+     *      participantId: the ID of the participant whose video stream is affected.
+     *      ssrc: the SSRC of the affected stream.
+     */
+    REMOTE_VIDEO_DECODING = 'remote.video.decoding',
+
+    /**
      * Indicates that a track was unmuted (?).
      *
      * Properties:

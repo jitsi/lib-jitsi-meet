@@ -10,10 +10,12 @@ import {
     VIDEO_CODECS_BY_COMPLEXITY,
     VIDEO_QUALITY_LEVELS
 } from '../../service/RTC/StandardVideoQualitySettings';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
+import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 
@@ -31,6 +33,9 @@ const LIMITED_BY_CPU_TIMEOUT = 60000;
 
 // The min. value that lastN will be set to while trying to fix video qaulity issues.
 const MIN_LAST_N = 3;
+
+// Number of consecutive polling cycles (each ~10s) a stream must fail the decoding check before firing the event.
+const NOT_DECODING_THRESHOLD_CYCLES = 3;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
@@ -65,6 +70,18 @@ interface ITrackStats {
     encodeResolution: number;
     encodeTime: number;
     qualityLimitationReason: QualityLimitationReason;
+}
+
+interface IInboundVideoStats {
+    bitrateDownload: number;
+    fps: number;
+    participantId: string;
+}
+
+interface INotDecodingTracker {
+    consecutiveCycles: number;
+    isIssueActive: boolean;
+    participantId: string;
 }
 
 /* eslint-disable require-jsdoc */
@@ -113,6 +130,7 @@ export class QualityController {
     private _lastNRampupTime: number;
     private _lastNRampupTimeout: Optional<number>;
     private _limitedByCpuTimeout: Optional<number>;
+    private _notDecodingVideoTracker: Map<number, INotDecodingTracker>;
     private _receiveVideoController: ReceiveVideoController;
     private _sendVideoController: SendVideoController;
     private _timer: Optional<number>;
@@ -138,6 +156,7 @@ export class QualityController {
         this._encodeTimeStats = new Map();
         this._isLastNRampupBlocked = false;
         this._lastNRampupTime = options.lastNRampupTime;
+        this._notDecodingVideoTracker = new Map();
         this._receiveVideoController = new ReceiveVideoController(conference);
         this._sendVideoController = new SendVideoController(conference);
 
@@ -170,6 +189,10 @@ export class QualityController {
             JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED,
             (tpc: TraceablePeerConnection, stats: Map<number, IOutboundRtpStats>) =>
                 this._processOutboundRtpStats(tpc, stats));
+        this._conference.on(
+            JitsiConferenceEvents.INBOUND_VIDEO_STATS_RECEIVED,
+            (tpc: TraceablePeerConnection, stats: Map<number, IInboundVideoStats>) =>
+                this._processInboundVideoStats(tpc, stats));
     }
 
     /**
@@ -384,6 +407,60 @@ export class QualityController {
     }
 
     /**
+     * Processes inbound video stats for remote streams that are receiving bytes but decoding no frames.
+     * Only SSRCs already filtered to the problematic condition (bitrateDownload > 0, fps === 0) are passed in.
+     * Tracks each affected SSRC across consecutive polling cycles and fires RTCStats + Amplitude analytics events
+     * after NOT_DECODING_THRESHOLD_CYCLES consecutive bad cycles. Fires again with stopped=false when resolved.
+     *
+     * @param {TraceablePeerConnection} tpc - The peer connection where stats were captured.
+     * @param {Map<number, IInboundVideoStats>} stats - Per-SSRC stats for streams currently failing the check.
+     * @returns {void}
+     */
+    _processInboundVideoStats(tpc: TraceablePeerConnection, stats: Map<number, IInboundVideoStats>): void {
+        const activeSession = this._conference.getActiveMediaSession();
+
+        if (activeSession?.peerconnection !== tpc) {
+            return;
+        }
+
+        // Advance counters for SSRCs that are still in the problematic state.
+        for (const [ ssrc, { participantId } ] of stats) {
+            const tracker = this._notDecodingVideoTracker.get(ssrc)
+                ?? { consecutiveCycles: 0, isIssueActive: false, participantId };
+
+            tracker.consecutiveCycles++;
+
+            if (tracker.consecutiveCycles >= NOT_DECODING_THRESHOLD_CYCLES && !tracker.isIssueActive) {
+                tracker.isIssueActive = true;
+                logger.warn(`QualityController - remote video not decoding detected: ssrc=${ssrc}, participantId=${participantId}`);
+
+                const eventData = { participantId, ssrc, stopped: true };
+
+                RTCStats.sendStatsEntry(RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null, eventData);
+                Statistics.sendAnalytics(AnalyticsEvents.REMOTE_VIDEO_DECODING, eventData);
+            }
+
+            this._notDecodingVideoTracker.set(ssrc, tracker);
+        }
+
+        // Resolve any SSRCs that were being tracked but are no longer in the problematic state.
+        // An SSRC absent from the incoming stats means its condition has cleared (fps recovered or bytes stopped).
+        for (const [ ssrc, tracker ] of this._notDecodingVideoTracker) {
+            if (!stats.has(ssrc)) {
+                if (tracker.isIssueActive) {
+                    logger.info(`QualityController - remote video decoding resumed: ssrc=${ssrc}, participantId=${tracker.participantId}`);
+
+                    const eventData = { participantId: tracker.participantId, ssrc, stopped: false };
+
+                    RTCStats.sendStatsEntry(RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null, eventData);
+                    Statistics.sendAnalytics(AnalyticsEvents.REMOTE_VIDEO_DECODING, eventData);
+                }
+                this._notDecodingVideoTracker.delete(ssrc);
+            }
+        }
+    }
+
+    /**
      * Processes the outbound RTP stream stats as reported by the WebRTC peerconnection and makes runtime adjustments
      * to the client for better quality experience if the adaptive mode is enabled.
      *
@@ -522,6 +599,9 @@ export class QualityController {
 
         // Clear the encode time stats
         this._encodeTimeStats.clear();
+
+        // Clear the remote video decoding tracker
+        this._notDecodingVideoTracker.clear();
 
         logger.info('QualityController disposed, all timeouts cleared');
     }

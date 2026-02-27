@@ -36,4 +36,13 @@ export enum StatisticsEvents {
      * An event carrying the encode time stats for all the local video sources.
      */
     ENCODE_TIME_STATS = 'statistics.encode_time_stats',
+
+    /**
+     * An event carrying per-SSRC inbound video stats (download bitrate and framerate) for remote video tracks.
+     * Used to detect streams where media bytes are being received but no frames are decoded.
+     *
+     * @param {TraceablePeerConnection} tpc - The peer connection.
+     * @param {Map<number, { bitrateDownload: number, fps: number, participantId: string }>} stats - Stats per SSRC.
+     */
+    INBOUND_VIDEO_STATS = 'statistics.inbound_video_stats',
 }

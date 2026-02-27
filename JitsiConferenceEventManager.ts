@@ -621,6 +621,11 @@ export default class JitsiConferenceEventManager {
                 JitsiConferenceEvents.ENCODE_TIME_STATS_RECEIVED, tpc, stats);
         });
 
+        conference.statistics.addInboundVideoStatsListener((tpc: TraceablePeerConnection, stats: Map<number, object>) => {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.INBOUND_VIDEO_STATS_RECEIVED, tpc, stats);
+        });
+
         // if we are in startSilent mode we will not be sending/receiving so nothing to detect
         if (!conference.options.config.startSilent) {
             conference.statistics.addByteSentStatsListener((tpc: TraceablePeerConnection, stats: RTCEncodedAudioFrameMetadata) => {
