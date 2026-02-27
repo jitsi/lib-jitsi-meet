@@ -1063,6 +1063,8 @@ export default class XMPP extends Listenable {
                 JitsiConnectionErrors.PASSWORD_REQUIRED,
                 msg || this._parseConnectionFailedMessage(lastFailedRawMessage),
                 credentials);
+
+            this.connection.disconnect();
         }
     }
 
