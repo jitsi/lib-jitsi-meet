@@ -2738,7 +2738,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} [replyToId] - The ID of the message being replied to.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string): void {
+    private sendTextMessage(message: string, elementName: string = 'body', replyToId?: string): void {
         if (this.room) {
             this.room.sendMessage(message, elementName, replyToId);
         }
@@ -2765,7 +2765,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} [replyToId] - The ID of the message being replied to.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string): void {
+    private sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string): void {
         if (this.room) {
             this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId);
         }
@@ -4013,7 +4013,7 @@ export default class JitsiConference extends Listenable {
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails.
      * @deprecated Use 'sendMessage' instead. TODO: this should be private.
      */
-    public sendEndpointMessage(to: string, payload: object): void {
+    private sendEndpointMessage(to: string, payload: object): void {
         this.rtc.sendChannelMessage(to, payload);
     }
 
@@ -4033,7 +4033,7 @@ export default class JitsiConference extends Listenable {
      * @throws {NetworkError|InvalidStateError|Error} If the operation fails.
      * @deprecated Use 'sendMessage' instead. TODO: this should be private.
      */
-    public broadcastEndpointMessage(payload: object): void {
+    private broadcastEndpointMessage(payload: object): void {
         this.sendEndpointMessage('', payload);
     }
 
