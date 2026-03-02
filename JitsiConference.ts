@@ -1224,7 +1224,7 @@ export default class JitsiConference extends Listenable {
 
         this.p2pJingleSession.invite(localTracks)
             .then(() => {
-                this.p2pJingleSession.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
+                this.p2pJingleSession?.addEventListener(MediaSessionEvents.VIDEO_CODEC_CHANGED, () => {
                     this.eventEmitter.emit(JitsiConferenceEvents.VIDEO_CODEC_CHANGED);
                 });
             })
@@ -3546,16 +3546,6 @@ export default class JitsiConference extends Listenable {
         );
 
         emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
-
-        // Apply any pending mute state that arrived before the track was created
-        // Always call setMute when there's a pending state, even if it matches current state,
-        // because setMute() is designed to emit on the first call regardless of state change
-        const pendingMutedState = track._getPendingMuteState();
-
-        if (pendingMutedState !== undefined) {
-            track._clearPendingMuteState();
-            track.setMute(pendingMutedState);
-        }
     }
 
 
@@ -4445,7 +4435,14 @@ export default class JitsiConference extends Listenable {
      */
     public joinLobby(displayName: string, email: string): Promise<void> {
         if (this.room) {
-            return this.room.getLobby().join(displayName, email);
+            if (!this.room.getLobby()?.lobbyRoom?.joined) {
+                return this.room.getLobby().join(displayName, email);
+            } else {
+                logger.warn('Already joined the lobby');
+
+                return Promise.resolve();
+            }
+
         }
 
         return Promise.reject(new Error('The conference not started'));

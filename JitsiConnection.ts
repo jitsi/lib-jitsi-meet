@@ -156,8 +156,10 @@ export default class JitsiConnection {
      * This method allows renewal of the tokens if they are expiring.
      * @param token - The new token.
      */
-    setToken(token: string): void {
+    refreshToken(token: string): Promise<void> {
         this.token = token;
+
+        return this._xmpp.refreshToken(this.token);
     }
 
     /**

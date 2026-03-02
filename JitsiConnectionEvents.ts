@@ -41,6 +41,11 @@ export enum JitsiConnectionEvents {
     CONNECTION_REDIRECTED = 'connection.redirected',
 
     /**
+     * The connection is trying to resume, but token is expired.
+     */
+    CONNECTION_TOKEN_EXPIRED = 'connection.token_expired',
+
+    /**
      * Indicates that the display name is required over this connection and need to be supplied when
      * joining the room.
      * There are cases like lobby room where display name is required.
@@ -59,5 +64,6 @@ export const CONNECTION_DISCONNECTED = JitsiConnectionEvents.CONNECTION_DISCONNE
 export const CONNECTION_ESTABLISHED = JitsiConnectionEvents.CONNECTION_ESTABLISHED;
 export const CONNECTION_FAILED = JitsiConnectionEvents.CONNECTION_FAILED;
 export const CONNECTION_REDIRECTED = JitsiConnectionEvents.CONNECTION_REDIRECTED;
+export const CONNECTION_TOKEN_EXPIRED = JitsiConnectionEvents.CONNECTION_TOKEN_EXPIRED;
 export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
 export const PROPERTIES_UPDATED = JitsiConnectionEvents.PROPERTIES_UPDATED;

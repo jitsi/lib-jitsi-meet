@@ -8,6 +8,7 @@ describe( "/JitsiConnectionEvents members", () => {
         CONNECTION_ESTABLISHED,
         CONNECTION_FAILED,
         CONNECTION_REDIRECTED,
+        CONNECTION_TOKEN_EXPIRED,
         DISPLAY_NAME_REQUIRED,
         PROPERTIES_UPDATED,
         JitsiConnectionEvents,
@@ -19,6 +20,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( CONNECTION_ESTABLISHED ).toBe( 'connection.connectionEstablished' );
         expect( CONNECTION_FAILED ).toBe( 'connection.connectionFailed' );
         expect( CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
+        expect( CONNECTION_TOKEN_EXPIRED ).toBe( 'connection.token_expired' );
         expect( DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
         expect( PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
 
@@ -28,6 +30,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( JitsiConnectionEvents.CONNECTION_ESTABLISHED ).toBe( 'connection.connectionEstablished' );
         expect( JitsiConnectionEvents.CONNECTION_FAILED ).toBe( 'connection.connectionFailed' );
         expect( JitsiConnectionEvents.CONNECTION_REDIRECTED ).toBe( 'connection.redirected' );
+        expect( JitsiConnectionEvents.CONNECTION_TOKEN_EXPIRED ).toBe( 'connection.token_expired' );
         expect( JitsiConnectionEvents.DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
         expect( JitsiConnectionEvents.PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
     } );

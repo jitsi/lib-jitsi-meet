@@ -82,6 +82,15 @@ interface IInternalOptions {
     websocketKeepAliveUrl?: string;
 }
 
+const TOKEN_REFRESH = 'token_refresh';
+
+/**
+ * Adds one more status to Strophe.Status enum.
+ */
+enum ExtendedStatus {
+    RESUMING = 15
+}
+
 /**
  * The lib-jitsi-meet layer for {@link Strophe.Connection}.
  * @internal
@@ -128,7 +137,7 @@ export default class XmppConnection extends Listenable {
      * @returns {Strophe.Status}
      */
     static get Status() {
-        return Strophe.Status;
+        return { ...Strophe.Status, ...ExtendedStatus };
     }
 
     /**
@@ -395,8 +404,6 @@ export default class XmppConnection extends Listenable {
     _stropheConnectionCb(targetCallback: IConnectionStatusCallback, status: Strophe.Status, condition?: string, element?: Element): void {
         this._status = status;
 
-        let blockCallback = false;
-
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             this._maybeEnableStreamResume();
 
@@ -405,34 +412,40 @@ export default class XmppConnection extends Listenable {
             if (this._usesWebsocket) {
                 if (this._oneSuccessfulConnect) {
                     // on reconnect we do it immediately
-                    this._keepAliveAndCheckShard();
+                    this._maybeStartWSKeepAlive(0);
                 } else {
                     // delay it a bit to not interfere with the connection process
                     // and to allow backend to correct any possible split brain issues
                     // Store timeout so it can be cleared if needed
-                    this._wsKeepAlive = setTimeout(() => this._keepAliveAndCheckShard(), 5000);
+                    this._maybeStartWSKeepAlive(5000);
                 }
             }
             this._oneSuccessfulConnect = true;
 
-            this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
             this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
         } else if (status === Strophe.Status.DISCONNECTED) {
             this.ping.stopInterval();
 
-            // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
-            blockCallback = this._tryResumingConnection();
-            if (!blockCallback) {
-                clearTimeout(this._wsKeepAlive);
+            // if resumption is scheduled skip disconnecting state event fire
+            if (this._tryResumingConnection(condition === TOKEN_REFRESH)) {
+
+                if (condition !== TOKEN_REFRESH) {
+                    // let's fire event that status changed to resuming
+                    // we do not fire it on refresh, as consumers should get
+                    // the event and execute refresh with a new token
+                    this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, ExtendedStatus.RESUMING);
+                }
+
+                return;
             }
+
+            clearTimeout(this._wsKeepAlive);
         }
 
-        if (!blockCallback) {
-            targetCallback(status, condition, element);
-            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
-        }
+        targetCallback(status, condition, element);
+        this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
     }
 
     /**
@@ -526,24 +539,29 @@ export default class XmppConnection extends Listenable {
     /**
      * Starts the Websocket keep alive if enabled.
      *
+     * @param {number|undefined} forcedTimeout - If provided, this timeout will be used instead of
+     * the configured one with added jitter.
+     *
      * @private
      * @returns {void}
      */
-    _maybeStartWSKeepAlive(): void {
+    _maybeStartWSKeepAlive(forcedTimeout?: number): void {
         const { websocketKeepAlive } = this._options;
 
+        // if websocketKeepAlive is not set keepAlive is disabled
         if (this._usesWebsocket && websocketKeepAlive > 0) {
             this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
             clearTimeout(this._wsKeepAlive);
 
-            const intervalWithJitter = /* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000);
+            const interval = forcedTimeout
+                ?? (/* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000));
 
-            logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
+            logger.debug(`Scheduling next WebSocket keep-alive in ${interval}ms`);
 
             this._wsKeepAlive = setTimeout(
                 () => this._keepAliveAndCheckShard()
                     .then(() => this._maybeStartWSKeepAlive()),
-                intervalWithJitter);
+                interval);
         }
     }
 
@@ -568,7 +586,10 @@ export default class XmppConnection extends Listenable {
 
                 const responseShard = response.headers.get('x-jitsi-shard');
 
-                if (responseShard !== shard) {
+                !responseShard && logger.warn('No x-jitsi-shard header present in keep-alive response');
+
+                // Ignore if no shard header is present.
+                if (responseShard && responseShard !== shard) {
                     logger.error(
                         `Detected that shard changed from ${shard} to ${responseShard}`);
                     this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
@@ -751,14 +772,22 @@ export default class XmppConnection extends Listenable {
      * the token is present it means the connection can be resumed.
      *
      * @private
-     * @returns {boolean}
+     * @returns {boolean} - Whether a resume attempt was scheduled or executed.
      */
-    _tryResumingConnection(): boolean {
+    _tryResumingConnection(force = false): boolean {
         const { streamManagement } = this._stropheConn;
         const resumeToken = streamManagement?.getResumeToken();
 
         if (resumeToken) {
-            this._resumeTask.schedule();
+            if (force) {
+                logger.info('Trying to resume XMPP connection immediately due to token refresh');
+
+                this._resumeTask.resumeConnection();
+
+                return true;
+            } else {
+                this._resumeTask.schedule();
+            }
 
             const r = this._resumeTask.retryCount <= MAX_CONNECTION_RETRIES;
 
@@ -770,5 +799,40 @@ export default class XmppConnection extends Listenable {
         }
 
         return false;
+    }
+
+    /**
+     * This method allows renewal of the tokens if they are expiring. The token is included in the service URL.
+     *
+     * @param {string} serviceUrl - The new service URL to connect to, if needed.
+     */
+    refreshToken(serviceUrl: string): Promise<void> {
+        this._stropheConn.service = serviceUrl;
+
+        return new Promise((resolve, reject) => {
+            let timeoutId: ReturnType<typeof setTimeout> = undefined;
+            const unsubscribe = this.addCancellableListener(
+                XmppConnection.Events.CONN_STATUS_CHANGED,
+                status => {
+                    if (status === Strophe.Status.CONNECTED && this._stropheConn.restored) {
+                        clearTimeout(timeoutId);
+                        unsubscribe();
+                        resolve();
+                    }
+                }
+            );
+
+            // this will trigger a resume
+            this._stropheConn.streamManagement?._interceptDoDisconnect(TOKEN_REFRESH);
+
+            timeoutId = setTimeout(() => {
+                unsubscribe();
+                reject(new Error('Token refresh timed out'));
+            }, 3000);
+        });
+    }
+
+    cancelResume() {
+        this._resumeTask.cancelResume();
     }
 }
