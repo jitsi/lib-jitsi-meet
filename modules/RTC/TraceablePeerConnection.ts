@@ -2362,7 +2362,7 @@ export default class TraceablePeerConnection {
                         ? this._setEncodings(newTrack)
                         : Promise.resolve();
 
-                return configureEncodingsPromise.then(() => this.isP2P);
+                return configureEncodingsPromise.then(() => false);
             });
     }
 
