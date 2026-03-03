@@ -31,11 +31,11 @@ const logger = getLogger('qc:QualityController');
 // attempts to rectify the situation by attempting a codec switch.
 const LIMITED_BY_CPU_TIMEOUT = 60000;
 
-// The min. value that lastN will be set to while trying to fix video qaulity issues.
+// The min. value that lastN will be set to while trying to fix video quality issues.
 const MIN_LAST_N = 3;
 
 // Number of consecutive polling cycles (each ~10s) a stream must fail the decoding check before firing the event.
-const NOT_DECODING_THRESHOLD_CYCLES = 3;
+const NOT_DECODING_THRESHOLD_CYCLES = 6;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
