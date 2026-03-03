@@ -117,7 +117,7 @@ export interface IJoinConferenceOptions {
     conferenceOptions?: IConferenceOptions;
     connectionOptions?: IConnectionOptions;
     jaas?: {
-        release?: boolean;
+        release?: string; // backend release "1234"
         useStaging?: boolean;
     };
     tracks?: JitsiLocalTrack[];
@@ -460,6 +460,12 @@ const JitsiMeetJS = {
 
             const useStage = options.jaas?.useStaging ?? false;
             const jaasDomain = useStage ? 'staging.8x8.vc' : '8x8.vc';
+            let serviceUrl = `wss://${jaasDomain}/${appId}/xmpp-websocket?room=${roomName}`;
+
+            if (options.jaas?.release) {
+                serviceUrl = `${serviceUrl}&release=release-${options.jaas.release}`;
+            }
+
             const opts = {
                 analytics: {
                     rtcstatsEnabled: true,
@@ -471,7 +477,7 @@ const JitsiMeetJS = {
                     domain: jaasDomain,
                     muc: `conference.${appId}.${jaasDomain}`
                 },
-                serviceUrl: `wss://${jaasDomain}/${appId}/xmpp-websocket?room=${roomName}`,
+                serviceUrl,
                 websocketKeepAliveUrl: `https://${jaasDomain}/${appId}/_unlock?room=${roomName}`
             };
 
