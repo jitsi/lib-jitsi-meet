@@ -35,7 +35,7 @@ const LIMITED_BY_CPU_TIMEOUT = 60000;
 const MIN_LAST_N = 3;
 
 // Number of consecutive polling cycles (each ~10s) a stream must fail the decoding check before firing the event.
-const NOT_DECODING_THRESHOLD_CYCLES = 6;
+export const NOT_DECODING_THRESHOLD_CYCLES = 6;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',

@@ -7,7 +7,7 @@ import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
 import { nextTick } from '../util/TestUtils';
 
 import { MockConference, MockLocalTrack } from './MockClasses';
-import { FixedSizeArray, QualityController } from './QualityController';
+import { FixedSizeArray, NOT_DECODING_THRESHOLD_CYCLES, QualityController } from './QualityController';
 
 describe('QualityController', () => {
     let qualityController;
@@ -207,7 +207,8 @@ describe('QualityController', () => {
         let rtcStatsSpy;
         let analyticsSpy;
 
-        // Stats map representing one SSRC in the bad state: bytes received, no frames decoded.
+        const THRESHOLD = NOT_DECODING_THRESHOLD_CYCLES;
+
         const BAD_SSRC = 1001;
         const BAD_SSRC_2 = 2001;
         const PARTICIPANT_1 = 'participant-1';
@@ -215,6 +216,13 @@ describe('QualityController', () => {
 
         const makeBadStats = (ssrc, participantId) =>
             new Map([ [ ssrc, { bitrateDownload: 500, fps: 0, participantId } ] ]);
+
+        /** Drives {@code n} consecutive bad-state cycles for a single SSRC through the controller. */
+        const runBadCycles = (n: number, stats) => {
+            for (let i = 0; i < n; i++) {
+                qualityController._processInboundVideoStats(tpc, stats);
+            }
+        };
 
         beforeEach(() => {
             options = {
@@ -242,26 +250,23 @@ describe('QualityController', () => {
         });
 
         it('does not fire event after 1 bad cycle', () => {
-            qualityController._processInboundVideoStats(tpc, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+            runBadCycles(1, makeBadStats(BAD_SSRC, PARTICIPANT_1));
 
             expect(rtcStatsSpy).not.toHaveBeenCalled();
             expect(analyticsSpy).not.toHaveBeenCalled();
         });
 
-        it('does not fire event after 2 consecutive bad cycles', () => {
-            qualityController._processInboundVideoStats(tpc, makeBadStats(BAD_SSRC, PARTICIPANT_1));
-            qualityController._processInboundVideoStats(tpc, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+        it(`does not fire event after ${THRESHOLD - 1} consecutive bad cycles (one below threshold)`, () => {
+            runBadCycles(THRESHOLD - 1, makeBadStats(BAD_SSRC, PARTICIPANT_1));
 
             expect(rtcStatsSpy).not.toHaveBeenCalled();
             expect(analyticsSpy).not.toHaveBeenCalled();
         });
 
-        it('fires stopped=true for both RTCStats and analytics after exactly 3 consecutive bad cycles', () => {
+        it(`fires stopped=true for both RTCStats and analytics after exactly ${THRESHOLD} consecutive bad cycles`, () => {
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             const expectedData = { participantId: PARTICIPANT_1, ssrc: BAD_SSRC, stopped: true };
 
@@ -275,16 +280,13 @@ describe('QualityController', () => {
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
             // Trigger onset.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             rtcStatsSpy.calls.reset();
             analyticsSpy.calls.reset();
 
             // Additional bad cycles — issue is already active.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(2, stats);
 
             expect(rtcStatsSpy).not.toHaveBeenCalled();
             expect(analyticsSpy).not.toHaveBeenCalled();
@@ -294,9 +296,7 @@ describe('QualityController', () => {
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
             // Trigger onset.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             rtcStatsSpy.calls.reset();
             analyticsSpy.calls.reset();
@@ -313,9 +313,8 @@ describe('QualityController', () => {
         });
 
         it('does not fire stopped=false when the SSRC disappears before the issue was declared active', () => {
-            // Only 2 bad cycles — below the threshold.
-            qualityController._processInboundVideoStats(tpc, makeBadStats(BAD_SSRC, PARTICIPANT_1));
-            qualityController._processInboundVideoStats(tpc, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+            // THRESHOLD - 1 bad cycles — just below the threshold.
+            runBadCycles(THRESHOLD - 1, makeBadStats(BAD_SSRC, PARTICIPANT_1));
 
             // SSRC disappears without ever reaching the threshold.
             qualityController._processInboundVideoStats(tpc, new Map());
@@ -324,23 +323,21 @@ describe('QualityController', () => {
             expect(analyticsSpy).not.toHaveBeenCalled();
         });
 
-        it('resets the counter after one good cycle and requires 3 more bad cycles to fire again', () => {
+        it(`resets the counter after one good cycle and requires ${THRESHOLD} more bad cycles to fire again`, () => {
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
-            // 2 bad cycles.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            // THRESHOLD - 1 bad cycles (just below the threshold).
+            runBadCycles(THRESHOLD - 1, stats);
 
             // 1 good cycle resets the counter (SSRC absent from incoming stats).
             qualityController._processInboundVideoStats(tpc, new Map());
 
-            // 2 more bad cycles — not enough to cross the threshold again.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            // THRESHOLD - 1 more bad cycles — still not enough after the reset.
+            runBadCycles(THRESHOLD - 1, stats);
 
             expect(rtcStatsSpy).not.toHaveBeenCalled();
 
-            // The 3rd bad cycle after the reset should fire.
+            // The final bad cycle that reaches the threshold after the reset.
             qualityController._processInboundVideoStats(tpc, stats);
 
             expect(rtcStatsSpy).toHaveBeenCalledOnceWith(
@@ -352,9 +349,7 @@ describe('QualityController', () => {
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
             // First onset.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             // Resolution.
             qualityController._processInboundVideoStats(tpc, new Map());
@@ -363,9 +358,7 @@ describe('QualityController', () => {
             analyticsSpy.calls.reset();
 
             // Second onset.
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             expect(rtcStatsSpy).toHaveBeenCalledOnceWith(
                 RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null,
@@ -378,10 +371,8 @@ describe('QualityController', () => {
                 [ BAD_SSRC_2, { bitrateDownload: 300, fps: 0, participantId: PARTICIPANT_2 } ]
             ]);
 
-            // 3 bad cycles for both SSRCs.
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
+            // THRESHOLD bad cycles for both SSRCs.
+            runBadCycles(THRESHOLD, twoSsrcs);
 
             // Both SSRCs should have fired stopped=true.
             expect(rtcStatsSpy).toHaveBeenCalledTimes(2);
@@ -405,15 +396,13 @@ describe('QualityController', () => {
         });
 
         it('fires stopped=false when all bad SSRCs recover simultaneously (all-clear cycle)', () => {
-            // Simulate two SSRCs both in the bad state reaching the threshold.
             const twoSsrcs = new Map([
                 [ BAD_SSRC, { bitrateDownload: 500, fps: 0, participantId: PARTICIPANT_1 } ],
                 [ BAD_SSRC_2, { bitrateDownload: 300, fps: 0, participantId: PARTICIPANT_2 } ]
             ]);
 
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
-            qualityController._processInboundVideoStats(tpc, twoSsrcs);
+            // Reach the threshold for both SSRCs.
+            runBadCycles(THRESHOLD, twoSsrcs);
 
             rtcStatsSpy.calls.reset();
             analyticsSpy.calls.reset();
@@ -435,12 +424,10 @@ describe('QualityController', () => {
         });
 
         it('clears the tracker map on dispose without firing resolution events', () => {
-            // Put one SSRC into the tracker with an active issue.
+            // Reach the threshold so the issue is marked active before dispose.
             const stats = makeBadStats(BAD_SSRC, PARTICIPANT_1);
 
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
-            qualityController._processInboundVideoStats(tpc, stats);
+            runBadCycles(THRESHOLD, stats);
 
             expect(qualityController._notDecodingVideoTracker.size).toBe(1);
 
