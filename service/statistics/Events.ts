@@ -36,4 +36,17 @@ export enum StatisticsEvents {
      * An event carrying the encode time stats for all the local video sources.
      */
     ENCODE_TIME_STATS = 'statistics.encode_time_stats',
+
+    /**
+     * An event carrying per-SSRC inbound video stats for remote video streams that are receiving bytes but
+     * decoding no frames. Fired in two situations:
+     *   1. When at least one such stream exists (stats map is non-empty).
+     *   2. Once more with an empty map when the set of failing streams transitions from non-empty to empty,
+     *      giving consumers the opportunity to fire resolution events and clean up state.
+     * No event is emitted while all remote streams are healthy.
+     *
+     * @param {TraceablePeerConnection} tpc - The peer connection.
+     * @param {Map<number, { bitrateDownload: number, fps: number, participantId: string }>} stats - Stats per SSRC.
+     */
+    INBOUND_VIDEO_STATS = 'statistics.inbound_video_stats',
 }

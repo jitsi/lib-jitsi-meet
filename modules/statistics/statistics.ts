@@ -368,6 +368,23 @@ export default class Statistics {
     }
 
     /**
+     * Adds a listener for inbound video stats events. The event fires when at least one remote video stream is
+     * receiving bytes but decoding no frames, and once more with an empty map when all such streams recover.
+     * @param {Function} listener - The listener to add
+     */
+    addInboundVideoStatsListener(listener: (...args: any[]) => void): void {
+        this.eventEmitter.on(StatisticsEvents.INBOUND_VIDEO_STATS, listener);
+    }
+
+    /**
+     * Removes an inbound video stats listener.
+     * @param {Function} listener - The listener to remove
+     */
+    removeInboundVideoStatsListener(listener: (...args: any[]) => void): void {
+        this.eventEmitter.removeListener(StatisticsEvents.INBOUND_VIDEO_STATS, listener);
+    }
+
+    /**
      * Adds a listener for byte sent stats events.
      * @param {Function} listener - The listener to add
      */

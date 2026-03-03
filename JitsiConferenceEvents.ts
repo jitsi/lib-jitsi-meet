@@ -228,6 +228,16 @@ export enum JitsiConferenceEvents {
     FORWARDED_SOURCES_CHANGED = 'conference.forwardedSourcesChanged',
 
     /**
+     * Indicates that inbound video stats have been received for remote video streams that are receiving
+     * media bytes but decoding no frames. Fired when at least one such stream exists, and once more with an
+     * empty map when all previously-failing streams have recovered (all-clear signal).
+     *
+     * @param {TraceablePeerConnection} tpc - The peer connection.
+     * @param {Map<number, { bitrateDownload: number, fps: number, participantId: string }>} stats - Stats per SSRC.
+     */
+    INBOUND_VIDEO_STATS_RECEIVED = 'conference.inbound_video_stats_received',
+
+    /**
      * You are kicked from the conference.
      * @param {JitsiParticipant} the participant that initiated the kick.
      */

@@ -56,6 +56,17 @@ export enum RTCStatsEvents {
     REMOTE_SOURCE_SUSPENDED_EVENT = 'remoteSourceSuspended',
 
     /**
+     * Event that indicates a change in the decoding state of a remote video stream that is receiving media bytes.
+     *
+     * @param {object} data - The event data.
+     * @param {boolean} data.stopped - True when frame decoding has stopped while bytes are still received,
+     * false when decoding resumes.
+     * @param {string} data.participantId - The participant whose video stream is affected.
+     * @param {number} data.ssrc - The SSRC of the affected stream.
+     */
+    REMOTE_VIDEO_DECODING_EVENT = 'remoteVideoDecoding',
+
+    /**
      * Event emitted when any PeerConnection event is triggered.
      *
      * @param {object} event - The PeerConnection event.
