@@ -117,7 +117,7 @@ export interface IJoinConferenceOptions {
     conferenceOptions?: IConferenceOptions;
     connectionOptions?: IConnectionOptions;
     jaas?: {
-        release?: boolean;
+        release?: string; // backend release "1234"
         useStaging?: boolean;
     };
     tracks?: JitsiLocalTrack[];
