@@ -19,7 +19,7 @@
     "@jitsi/js-utils": "^2.6.7",
     "@jitsi/logger": "2.1.1",
     "@jitsi/precall-test": "1.0.6",
-    "@jitsi/rtcstats": "9.7.0",
+    "@jitsi/rtcstats": "9.7.1",
     "@testrtc/watchrtc-sdk": "1.38.2",
     "async-es": "3.2.4",
     "base64-js": "1.5.1",
