@@ -1418,10 +1418,11 @@ export default class ChatRoom extends Listenable {
 
             if (stamp) {
                 // the format is CCYYMMDDThh:mm:ss
-                const dateParts
-                    = stamp.match(/(\d{4})(\d{2})(\d{2}T\d{2}:\d{2}:\d{2})/);
+                const dateParts = stamp.match(/(\d{4})(\d{2})(\d{2}T\d{2}:\d{2}:\d{2})/);
 
-                stamp = `${dateParts[1]}-${dateParts[2]}-${dateParts[3]}Z`;
+                if (dateParts?.length === 4) {
+                    stamp = `${dateParts[1]}-${dateParts[2]}-${dateParts[3]}Z`;
+                }
             }
         }
 
