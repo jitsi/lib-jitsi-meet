@@ -960,7 +960,7 @@ export default class TraceablePeerConnection {
         if (codec === CodecMimeType.VP9
             && browser.supportsSVC()
             && this.isSpatialScalabilityOn()
-            && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
+            && !this.tpcUtils.getCodecSettings(codec).scalabilityModeEnabled) {
             scaleFactors = scaleFactors.map(() => undefined);
             bitrates = bitrates.map(() => undefined);
         }
@@ -1071,10 +1071,20 @@ export default class TraceablePeerConnection {
                 this.trace(
                     `create${logName}OnSuccess::preTransform`, TraceablePeerConnection.dumpSDP(resultSdp));
 
-                // Munge local description to add 3 SSRCs for video tracks when spatial scalability is enabled.
+                // Munge local description to add SSRCs for video tracks when spatial scalability is enabled.
+                // The number of SSRCs is determined dynamically based on the capture resolution.
                 if (this.isSpatialScalabilityOn() && browser.usesSdpMungingForSimulcast()) {
+                    // Build a map of mid to capture resolution for simulcast layer calculation
+                    const trackResolutionMap = new Map<string, number>();
+                    for (const track of this.getLocalVideoTracks()) {
+                        const mid = this.localTrackTransceiverMids.get(track.rtcId);
+                        if (mid) {
+                            trackResolutionMap.set(mid, track.getCaptureResolution());
+                        }
+                    }
+
                     // eslint-disable-next-line no-param-reassign
-                    resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
+                    resultSdp = this.simulcast.mungeLocalDescription(resultSdp, trackResolutionMap);
                     this.trace(`create${logName} OnSuccess::postTransform (simulcast)`,
                          TraceablePeerConnection.dumpSDP(resultSdp));
                 }
@@ -1282,7 +1292,7 @@ export default class TraceablePeerConnection {
      * <tt>false</tt> if it's turned off.
      */
     isSpatialScalabilityOn(): boolean {
-        const h264SimulcastEnabled = this.tpcUtils.codecSettings[CodecMimeType.H264].scalabilityModeEnabled;
+        const h264SimulcastEnabled = this.tpcUtils.getCodecSettings(CodecMimeType.H264).scalabilityModeEnabled;
 
         return !this.options.disableSimulcast
             && (this.codecSettings.codecList[0] !== CodecMimeType.H264 || h264SimulcastEnabled);
@@ -1461,7 +1471,7 @@ export default class TraceablePeerConnection {
     getTargetVideoBitrates(localTrack: JitsiLocalTrack): any {
         const currentCodec = this.tpcUtils.getConfiguredVideoCodec(localTrack);
 
-        return this.tpcUtils.codecSettings[currentCodec].maxBitratesVideo;
+        return this.tpcUtils.getCodecSettings(currentCodec).maxBitratesVideo;
     }
 
     /**

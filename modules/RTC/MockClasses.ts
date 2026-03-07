@@ -116,7 +116,6 @@ class MockRTCPeerConnection {
         ].join('') };
     }
 }
-
 /**
  * Mock {@link TraceablePeerConnection} - add things as needed, but only things useful for all tests.
  */
@@ -129,6 +128,14 @@ export class MockPeerConnection {
      */
     id: string;
     /**
+     * @internal
+     */
+    videoTransferActive: boolean;
+    /**
+     * @internal
+     */
+    _capScreenshareBitrate: boolean;
+    /**
      * Constructor.
      *
      * @param {string} id RTC id
@@ -140,6 +147,8 @@ export class MockPeerConnection {
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
         this._simulcast = simulcast;
+        this.videoTransferActive = false;
+        this._capScreenshareBitrate = false;
     }
 
     /**
@@ -226,7 +235,7 @@ export class MockPeerConnection {
     /**
      * {@link TraceablePeerConnection.processLocalSdpForTransceiverInfo}.
      *
-          * @returns {void}
+     * @returns {void}
      */
     processLocalSdpForTransceiverInfo(): void {
     }
