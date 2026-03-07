@@ -400,9 +400,14 @@ export default class XMPP extends Listenable {
         // they wanted to utilize the connected connection in an unload handler
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
-        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
-        const handleDisconnect = ev => {
-            // type-checking added as disconnect returns Promise<void> | boolean
+        const handleDisconnect = (ev: Event) => {
+            // Only disconnect on unload (user confirmed leaving).
+            // Do not disconnect on beforeunload as the user may cancel
+            // the browser close dialog and stay in the meeting.
+            if (ev.type === 'beforeunload') {
+                return;
+            }
+
             const result = this.disconnect(ev);
 
             if (result instanceof Promise) {
@@ -411,6 +416,8 @@ export default class XMPP extends Listenable {
                 });
             }
         };
+
+        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
 
         for (const event of events.split(' ')) {
             window.addEventListener(event, handleDisconnect);
