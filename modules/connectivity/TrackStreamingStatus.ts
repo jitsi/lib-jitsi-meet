@@ -434,14 +434,16 @@ export class TrackStreamingStatusImpl {
 
         const ssrc = this.track.getSsrc();
         const framesDecoded = data.framesDecoded.get(ssrc);
-
-        if (framesDecoded == null) {
-            return;
-        }
-
         const now = Date.now();
 
-        if (framesDecoded > (this._lastFramesDecoded ?? -1)) {
+        if (framesDecoded == null) {
+            // No SSRC in the stats report — the remote track exists but no RTP packets have been
+            // received yet. Seed _lastFramesDecodedAt on the first absent poll so the stall timer
+            // starts running. Subsequent absent polls will fall through to the freeze check below.
+            if (this._lastFramesDecodedAt === null) {
+                this._lastFramesDecodedAt = now;
+            }
+        } else if (framesDecoded > (this._lastFramesDecoded ?? -1)) {
             // Frames are advancing — track is healthy.
             this._lastFramesDecodedAt = now;
             this._lastFramesDecoded = framesDecoded;
@@ -455,7 +457,8 @@ export class TrackStreamingStatusImpl {
             return;
         }
 
-        // Check whether the stall has exceeded the configured frozen timeout.
+        // Frames are not advancing (SSRC absent or counter stalled). Declare frozen once the
+        // configured timeout has elapsed since we last saw frame progress.
         if (this._lastFramesDecodedAt !== null
                 && (now - this._lastFramesDecodedAt) >= this._getVideoFrozenTimeout()
                 && !this._statsTrackFrozen) {

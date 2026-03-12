@@ -364,11 +364,57 @@ describe('TrackStreamingStatusImpl._handleFramesDecodedUpdate', () => {
         expect(impl._lastFramesDecoded).toBeNull();
     });
 
-    it('ignores updates when the track SSRC is not in the map', () => {
-        const map = new Map([[99999, 100]]); // different SSRC
-
-        impl._handleFramesDecodedUpdate({ framesDecoded: map });
+    it('ignores updates when data.framesDecoded is null', () => {
+        impl._handleFramesDecodedUpdate({ framesDecoded: null });
         expect(impl._lastFramesDecoded).toBeNull();
+        expect(impl._lastFramesDecodedAt).toBeNull();
+    });
+
+    it('seeds _lastFramesDecodedAt on the first poll where the SSRC is absent', () => {
+        jasmine.clock().mockDate(new Date(5000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[99999, 100]]) }); // different SSRC
+
+        expect(impl._lastFramesDecoded).toBeNull(); // no count recorded
+        expect(impl._lastFramesDecodedAt).toBe(5000); // stall timer started
+    });
+
+    it('does not overwrite _lastFramesDecodedAt on subsequent absent polls', () => {
+        jasmine.clock().mockDate(new Date(5000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() }); // first absent poll
+
+        jasmine.clock().mockDate(new Date(6000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() }); // second absent poll
+
+        expect(impl._lastFramesDecodedAt).toBe(5000); // unchanged — first poll wins
+    });
+
+    it('declares frozen after timeout when SSRC never appears in stats', () => {
+        spyOn(impl, 'figureOutStreamingStatus').and.callThrough();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() }); // seeds timer
+
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() }); // triggers freeze
+
+        expect(impl._statsTrackFrozen).toBeTrue();
+        expect(impl.figureOutStreamingStatus).toHaveBeenCalled();
+    });
+
+    it('clears frozen state when SSRC eventually appears and frames start flowing', () => {
+        // Track was never-received: freeze after timeout
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() });
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map() });
+        expect(impl._statsTrackFrozen).toBeTrue();
+
+        // SSRC finally appears with real frames
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 2000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 150]]) });
+
+        expect(impl._statsTrackFrozen).toBeFalse();
+        expect(impl._lastFramesDecoded).toBe(150);
     });
 
     it('records framesDecoded = 0 at stream start (zero is not treated as absent)', () => {
