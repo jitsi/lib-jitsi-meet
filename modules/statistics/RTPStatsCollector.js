@@ -99,6 +99,14 @@ class SsrcStats {
     setEncodeStats(encodeStats) {
         this.encodeStats = encodeStats || {};
     }
+
+    /**
+     * Sets the framesDecoded counter for inbound video streams.
+     * @param {number} framesDecoded the value to set.
+     */
+    setFramesDecoded(framesDecoded) {
+        this.framesDecoded = typeof framesDecoded === 'number' ? framesDecoded : undefined;
+    }
 }
 
 /**
@@ -293,6 +301,9 @@ export default class StatsCollector {
         // Collects per-SSRC inbound video stats for remote decoding detection in QualityController.
         const inboundVideoStats = new Map();
 
+        // Collects per-SSRC framesDecoded counters for freeze detection in TrackStreamingStatus.
+        const framesDecodedMap = new Map();
+
         for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
             // process packet loss stats
             const loss = ssrcStats.loss;
@@ -330,6 +341,13 @@ export default class StatsCollector {
                         participantId
                     });
                 }
+            }
+
+            // Collect framesDecoded for all remote inbound video streams (used by TrackStreamingStatus for
+            // freeze detection on browsers where mute/unmute events are unreliable).
+            if (loss.isDownloadStream && !track.isLocal() && track.isVideoTrack()
+                    && typeof ssrcStats.framesDecoded === 'number') {
+                framesDecodedMap.set(ssrc, ssrcStats.framesDecoded);
             }
 
             let audioCodec;
@@ -439,6 +457,7 @@ export default class StatsCollector {
                 bitrate: this.conferenceStats.bitrate,
                 codec: codecs,
                 framerate: framerates,
+                framesDecoded: framesDecodedMap,
                 packetLoss: this.conferenceStats.packetLoss,
                 resolution: resolutions,
                 transport: this.conferenceStats.transport
@@ -659,7 +678,13 @@ export default class StatsCollector {
                         'download': this._calculateBitrate(now, before, 'bytesReceived'),
                         'upload': 0
                     });
-                } else if (before) {
+                }
+
+                if (now.type === 'inbound-rtp' && typeof now.framesDecoded === 'number') {
+                    ssrcStats.setFramesDecoded(now.framesDecoded);
+                }
+
+                if (now.type !== 'inbound-rtp' && before) {
                     byteSentStats[ssrc] = this.getNonNegativeValue(now.bytesSent);
                     ssrcStats.addBitrate({
                         'download': 0,

@@ -137,6 +137,25 @@ export class TrackStreamingStatusImpl {
     _onTrackVideoTypeChanged: () => void;
     _onLastNValueChanged: () => void;
     _onForwardedSourcesChanged: () => void;
+    _onConnectionStats: (tpc: any, data: any) => void;
+
+    /**
+     * The framesDecoded value from the most recent CONNECTION_STATS event for this track's SSRC.
+     * Used by the stats-based freeze detection path.
+     */
+    _lastFramesDecoded: Nullable<number>;
+
+    /**
+     * Timestamp (ms) of the last time framesDecoded was observed to have increased.
+     * Used to measure how long the track has been frozen.
+     */
+    _lastFramesDecodedAt: Nullable<number>;
+
+    /**
+     * True when the stats-based logic has concluded the video is currently frozen.
+     * Cleared when framesDecoded resumes advancing.
+     */
+    _statsTrackFrozen: boolean;
 
     /* eslint-disable max-params */
     /**
@@ -166,8 +185,8 @@ export class TrackStreamingStatusImpl {
             return TrackStreamingStatus.ACTIVE;
         }
 
-        // Logic when isVideoTrackFrozen is supported
-        if (browser.supportsVideoMuteOnConnInterrupted()) {
+        // Logic when isVideoTrackFrozen is supported (either via RTC mute events or stats-based detection)
+        if (browser.supportsVideoMuteOnConnInterrupted() || isVideoTrackFrozen) {
             if (!isVideoTrackFrozen) {
                 // If the video is playing we're good
                 return TrackStreamingStatus.ACTIVE;
@@ -194,7 +213,7 @@ export class TrackStreamingStatusImpl {
      * @private
      */
     static _getNewStateForP2PMode(isVideoMuted: boolean, isVideoTrackFrozen: boolean): TrackStreamingStatus {
-        if (!browser.supportsVideoMuteOnConnInterrupted()) {
+        if (!browser.supportsVideoMuteOnConnInterrupted() && !isVideoTrackFrozen) {
             // There's no way to detect problems in P2P when there's no video track frozen detection...
             return TrackStreamingStatus.ACTIVE;
         }
@@ -230,6 +249,9 @@ export class TrackStreamingStatusImpl {
         this.rtcMutedTimestamp = null;
         this.streamingStatusMap = {};
         this.trackTimer = null;
+        this._lastFramesDecoded = null;
+        this._lastFramesDecodedAt = null;
+        this._statsTrackFrozen = false;
 
         this.outOfForwardedSourcesTimeout = typeof options.outOfForwardedSourcesTimeout === 'number'
             ? options.outOfForwardedSourcesTimeout : DEFAULT_NOT_IN_FORWARDED_SOURCES_TIMEOUT;
@@ -292,6 +314,13 @@ export class TrackStreamingStatusImpl {
 
         this._onLastNValueChanged = this.figureOutStreamingStatus.bind(this);
         this.rtc.on(RTCEvents.LASTN_VALUE_CHANGED, this._onLastNValueChanged);
+
+        // On browsers where mute/unmute events are unreliable (Chrome >= M144, Firefox, Safari), use
+        // per-SSRC framesDecoded from the existing RTPStatsCollector polling cycle to detect frozen video.
+        if (!browser.supportsVideoMuteOnConnInterrupted() && this.track.isVideoTrack()) {
+            this._onConnectionStats = (_tpc: any, data: any) => this._handleFramesDecodedUpdate(data);
+            this.conference.statistics.addConnectionStatsListener(this._onConnectionStats);
+        }
     }
 
     /**
@@ -304,6 +333,9 @@ export class TrackStreamingStatusImpl {
 
             this.track.off(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onSignallingMuteChanged);
             this.track.off(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, this._onTrackVideoTypeChanged);
+        } else if (this.track.isVideoTrack()) {
+            this.conference.statistics.removeConnectionStatsListener(this._onConnectionStats);
+            this._statsTrackFrozen = false;
         }
 
         this.conference.off(JitsiConferenceEvents.FORWARDED_SOURCES_CHANGED, this._onForwardedSourcesChanged);
@@ -367,6 +399,12 @@ export class TrackStreamingStatusImpl {
      *       the remote track and allowing to set different timeout for local and remote tracks.
      */
     isVideoTrackFrozen(): boolean {
+        // Stats-based detection path: covers browsers where mute/unmute events are unreliable
+        // (Chrome >= M144, Firefox, Safari). Set/cleared by _handleFramesDecodedUpdate().
+        if (this._statsTrackFrozen) {
+            return true;
+        }
+
         if (!browser.supportsVideoMuteOnConnInterrupted()) {
             return false;
         }
@@ -376,6 +414,58 @@ export class TrackStreamingStatusImpl {
         const timeout = this._getVideoFrozenTimeout();
 
         return isVideoRTCMuted && typeof rtcMutedTimestamp === 'number' && (Date.now() - rtcMutedTimestamp) >= timeout;
+    }
+
+    /**
+     * Handles per-SSRC framesDecoded data from the CONNECTION_STATS event emitted by RTPStatsCollector.
+     * Used as a freeze-detection fallback on browsers where MediaStreamTrack mute/unmute events are
+     * unreliable (Chrome >= M144, Firefox, Safari).
+     *
+     * Detection logic: record the timestamp of the last framesDecoded increment. If the counter stops
+     * advancing for longer than the configured frozen timeout, declare the track frozen. Clear the frozen
+     * state as soon as frames start advancing again.
+     *
+     * @param data - The CONNECTION_STATS event payload.
+     */
+    _handleFramesDecodedUpdate(data: any): void {
+        if (this.track.isMuted() || data.framesDecoded == null) {
+            return;
+        }
+
+        const ssrc = this.track.getSsrc();
+        const framesDecoded = data.framesDecoded.get(ssrc);
+        const now = Date.now();
+
+        if (framesDecoded == null) {
+            // No SSRC in the stats report — the remote track exists but no RTP packets have been
+            // received yet. Seed _lastFramesDecodedAt on the first absent poll so the stall timer
+            // starts running. Subsequent absent polls will fall through to the freeze check below.
+            if (this._lastFramesDecodedAt === null) {
+                this._lastFramesDecodedAt = now;
+            }
+        } else if (framesDecoded > (this._lastFramesDecoded ?? -1)) {
+            // Frames are advancing — track is healthy.
+            this._lastFramesDecodedAt = now;
+            this._lastFramesDecoded = framesDecoded;
+
+            if (this._statsTrackFrozen) {
+                logger.debug(`Stats-based freeze cleared for ${this.track.getSourceName()}`);
+                this._statsTrackFrozen = false;
+                this.figureOutStreamingStatus();
+            }
+
+            return;
+        }
+
+        // Frames are not advancing (SSRC absent or counter stalled). Declare frozen once the
+        // configured timeout has elapsed since we last saw frame progress.
+        if (this._lastFramesDecodedAt !== null
+                && (now - this._lastFramesDecodedAt) >= this._getVideoFrozenTimeout()
+                && !this._statsTrackFrozen) {
+            logger.debug(`Stats-based freeze detected for ${this.track.getSourceName()}`);
+            this._statsTrackFrozen = true;
+            this.figureOutStreamingStatus();
+        }
     }
 
     /**

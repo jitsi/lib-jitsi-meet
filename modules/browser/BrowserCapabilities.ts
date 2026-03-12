@@ -153,10 +153,14 @@ export default class BrowserCapabilities extends BrowserDetection {
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
      *
-     * @returns {*|boolean} 'true' if the event is supported or 'false' otherwise.
+     * Chrome M144+ regression: mute/unmute events no longer fire for video tracks
+     * when frames stop flowing. See: https://issues.chromium.org/issues/489023910
+     *
+     * @returns {boolean} 'true' if the event is supported or 'false' otherwise.
      */
-    supportsVideoMuteOnConnInterrupted(): any | boolean {
-        return this.isChromiumBased() || this.isReactNative();
+    supportsVideoMuteOnConnInterrupted(): boolean {
+        return (this.isChromiumBased() && this.isVersionLessThan(144))
+            || this.isReactNative();
     }
 
     /**
