@@ -428,14 +428,14 @@ export class TrackStreamingStatusImpl {
      * @param data - The CONNECTION_STATS event payload.
      */
     _handleFramesDecodedUpdate(data: any): void {
-        if (this.track.isMuted() || !data.framesDecoded) {
+        if (this.track.isMuted() || data.framesDecoded == null) {
             return;
         }
 
         const ssrc = this.track.getSsrc();
         const framesDecoded = data.framesDecoded.get(ssrc);
 
-        if (!framesDecoded) {
+        if (framesDecoded == null) {
             return;
         }
 

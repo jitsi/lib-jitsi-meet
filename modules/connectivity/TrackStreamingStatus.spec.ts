@@ -371,6 +371,13 @@ describe('TrackStreamingStatusImpl._handleFramesDecodedUpdate', () => {
         expect(impl._lastFramesDecoded).toBeNull();
     });
 
+    it('records framesDecoded = 0 at stream start (zero is not treated as absent)', () => {
+        jasmine.clock().mockDate(new Date(1000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 0]]) });
+        expect(impl._lastFramesDecoded).toBe(0);
+        expect(impl._lastFramesDecodedAt).toBe(1000);
+    });
+
     it('records the first framesDecoded value and its timestamp', () => {
         jasmine.clock().mockDate(new Date(1000));
         const map = new Map([[SSRC, 50]]);
