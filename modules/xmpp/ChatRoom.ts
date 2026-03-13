@@ -2142,6 +2142,34 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Handles remote mute request from focus for audio, video, or desktop.
+     *
+     * @param iq - The IQ element containing the mute request.
+     * @param eventType - The event type to emit.
+     * @private
+     */
+    private _handleMuteRequest(iq: Element, eventType: string): void {
+        const from = iq.getAttribute('from');
+
+        if (from !== this.focusMucJid) {
+            logger.warn('Ignored mute from non focus peer');
+
+            return;
+        }
+        const mute = findFirst(iq, 'mute');
+
+        if (getText(mute) === 'true') {
+            this.eventEmitter.emit(eventType, getAttribute(mute, 'actor'));
+        } else {
+            // XXX Why do we support anything but muting? Why do we encode the
+            // value in the text of the element? Why do we use a separate XML
+            // namespace?
+            logger.warn('Ignoring a mute request which does not explicitly '
+                + 'specify a positive mute command.');
+        }
+    }
+
+    /**
      * Returns the pin for joining the conference with phone.
      */
     public getPhonePin(): Nullable<string> {
@@ -2197,24 +2225,7 @@ export default class ChatRoom extends Listenable {
      * @internal
      */
     onMute(iq: Element): void {
-        const from = iq.getAttribute('from');
-
-        if (from !== this.focusMucJid) {
-            logger.warn('Ignored mute from non focus peer');
-
-            return;
-        }
-        const mute = findFirst(iq, 'mute');
-
-        if (getText(mute) === 'true') {
-            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
-        } else {
-            // XXX Why do we support anything but muting? Why do we encode the
-            // value in the text of the element? Why do we use a separate XML
-            // namespace?
-            logger.warn('Ignoring a mute request which does not explicitly '
-                + 'specify a positive mute command.');
-        }
+        this._handleMuteRequest(iq, XMPPEvents.AUDIO_MUTED_BY_FOCUS);
     }
 
     /**
@@ -2224,24 +2235,7 @@ export default class ChatRoom extends Listenable {
      * @internal
      */
     onMuteVideo(iq: Element): void {
-        const from = iq.getAttribute('from');
-
-        if (from !== this.focusMucJid) {
-            logger.warn('Ignored mute from non focus peer');
-
-            return;
-        }
-        const mute = findFirst(iq, 'mute');
-
-        if (getText(mute) === 'true') {
-            this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
-        } else {
-            // XXX Why do we support anything but muting? Why do we encode the
-            // value in the text of the element? Why do we use a separate XML
-            // namespace?
-            logger.warn('Ignoring a mute request which does not explicitly '
-                + 'specify a positive mute command.');
-        }
+        this._handleMuteRequest(iq, XMPPEvents.VIDEO_MUTED_BY_FOCUS);
     }
 
     /**
@@ -2251,24 +2245,7 @@ export default class ChatRoom extends Listenable {
      * @internal
      */
     onMuteDesktop(iq: Element): void {
-        const from = iq.getAttribute('from');
-
-        if (from !== this.focusMucJid) {
-            logger.warn('Ignored mute from non focus peer');
-
-            return;
-        }
-        const mute = findFirst(iq, 'mute');
-
-        if (getText(mute) === 'true') {
-            this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
-        } else {
-            // XXX Why do we support anything but muting? Why do we encode the
-            // value in the text of the element? Why do we use a separate XML
-            // namespace?
-            logger.warn('Ignoring a mute request which does not explicitly '
-                + 'specify a positive mute command.');
-        }
+        this._handleMuteRequest(iq, XMPPEvents.DESKTOP_MUTED_BY_FOCUS);
     }
 
     /**
