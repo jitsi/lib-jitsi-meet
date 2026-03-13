@@ -2,7 +2,7 @@ import * as transform from 'sdp-transform';
 
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
-import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { getEffectiveSimulcastLayers, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 
 /**
  * This class handles SDP munging for enabling simulcast for local video streams in Unified plan. A set of random SSRCs
@@ -12,8 +12,8 @@ import { SIM_LAYERS, SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVide
  * to a given endpoint.
  */
 export default class SdpSimulcast {
-    private _numOfLayers: number;
     private _ssrcCache: Map<string, Array<number>>;
+    private _layersCache: Map<string, number>;
 
     /**
      * Creates a new instance.
@@ -22,7 +22,7 @@ export default class SdpSimulcast {
      */
     constructor() {
         this._ssrcCache = new Map();
-        this._numOfLayers = SIM_LAYERS.length;
+        this._layersCache = new Map();
     }
 
     /**
@@ -35,6 +35,7 @@ export default class SdpSimulcast {
     _fillSsrcsFromCache(mLine: transform.MediaDescription): any {
         const mid = mLine.mid;
         const cachedSsrcs = this._ssrcCache.get(mid);
+        const cachedNumLayers = this._layersCache.get(mid) || cachedSsrcs.length;
         const newSsrcs = this._parseSimLayers(mLine);
         const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], 'msid');
         const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], 'cname');
@@ -55,10 +56,13 @@ export default class SdpSimulcast {
             });
         }
 
-        mLine.ssrcGroups.push({
-            semantics: SSRC_GROUP_SEMANTICS.SIM,
-            ssrcs: cachedSsrcs.join(' ')
-        });
+        // Only add SIM group if we have more than one layer
+        if (cachedNumLayers > 1) {
+            mLine.ssrcGroups.push({
+                semantics: SSRC_GROUP_SEMANTICS.SIM,
+                ssrcs: cachedSsrcs.join(' ')
+            });
+        }
 
         return mLine;
     }
@@ -69,9 +73,10 @@ export default class SdpSimulcast {
      *
      * @param mLine
      * @param primarySsrc
+     * @param numLayers - Number of simulcast layers to generate (determined dynamically based on capture resolution)
      * @returns
      */
-    _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number): any {
+    _generateNewSsrcsForSimulcast(mLine: transform.MediaDescription, primarySsrc: number, numLayers: number): any {
         const cname = this._getSsrcAttribute(mLine, primarySsrc, 'cname');
         let msid = this._getSsrcAttribute(mLine, primarySsrc, 'msid');
 
@@ -91,10 +96,12 @@ export default class SdpSimulcast {
             });
         }
 
-        // Generate SIM layers.
+        // Generate SIM layers dynamically based on the number of layers needed.
+        // For example, if numLayers is 1, no additional SSRCs are generated (simulcast disabled).
+        // If numLayers is 2, one additional SSRC is generated. If numLayers is 3, two additional SSRCs are generated.
         const simSsrcs = [];
 
-        for (let i = 0; i < this._numOfLayers - 1; ++i) {
+        for (let i = 0; i < numLayers - 1; ++i) {
             const simSsrc = this._generateSsrc();
 
             mLine.ssrcs.push({
@@ -111,11 +118,14 @@ export default class SdpSimulcast {
             simSsrcs.push(simSsrc);
         }
 
-        mLine.ssrcGroups = mLine.ssrcGroups || [];
-        mLine.ssrcGroups.push({
-            semantics: SSRC_GROUP_SEMANTICS.SIM,
-            ssrcs: `${primarySsrc} ${simSsrcs.join(' ')}`
-        });
+        // Only add SIM group if we have more than one layer
+        if (numLayers > 1) {
+            mLine.ssrcGroups = mLine.ssrcGroups || [];
+            mLine.ssrcGroups.push({
+                semantics: SSRC_GROUP_SEMANTICS.SIM,
+                ssrcs: `${primarySsrc} ${simSsrcs.join(' ')}`
+            });
+        }
 
         return mLine;
     }
@@ -171,10 +181,14 @@ export default class SdpSimulcast {
      * endpoints.
      * NOTE: This needs to be called only when simulcast is enabled.
      *
-     * @param description
+     * @param description - The RTCSessionDescription to munge
+     * @param trackResolutionMap - Optional map of mid to capture resolution height for determining simulcast layers
      * @returns
      */
-    mungeLocalDescription(description: RTCSessionDescription): RTCSessionDescription {
+    mungeLocalDescription(
+        description: RTCSessionDescription,
+        trackResolutionMap?: Map<string, number>
+    ): RTCSessionDescription {
         if (!description?.sdp) {
             return description;
         }
@@ -209,14 +223,22 @@ export default class SdpSimulcast {
                 }
             }
 
+            // Determine number of layers dynamically based on capture resolution
+            const captureHeight = trackResolutionMap?.get(mid);
+            const effectiveLayers = captureHeight 
+                ? getEffectiveSimulcastLayers(captureHeight)
+                : getEffectiveSimulcastLayers(720); // Default to 3 layers if resolution unknown
+            const numLayers = effectiveLayers.length;
+
             if (this._ssrcCache.has(mid)) {
                 media = this._fillSsrcsFromCache(media);
             } else {
-                media = this._generateNewSsrcsForSimulcast(media, primarySsrc);
+                media = this._generateNewSsrcsForSimulcast(media, primarySsrc, numLayers);
                 const simulcastSsrcs = this._parseSimLayers(media);
 
-                // Update the SSRCs in the cache so that they can re-used for the same mid again.
+                // Cache both SSRCs and the number of layers for this mid
                 this._ssrcCache.set(mid, simulcastSsrcs);
+                this._layersCache.set(mid, numLayers);
             }
         }
 

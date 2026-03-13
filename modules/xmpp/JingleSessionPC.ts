@@ -2066,21 +2066,22 @@ export default class JingleSessionPC extends JingleSession {
 
                     msid = `remote-video-${idx} remote-video-${idx}`;
 
+                    // Add the main SSRC source element
+                    _addSourceElement(node, src, ssrc, msid);
+
                     if (rtx !== '-1') {
+                        // Add the RTX SSRC source element
                         _addSourceElement(node, src, rtx, msid);
+                        
+                        // Add the ssrc-group with FID semantics
+                        // Note: source elements inside ssrc-group should NOT have xmlns attribute
                         node.c('ssrc-group', {
                             semantics: SSRC_GROUP_SEMANTICS.FID,
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         })
-                            .c('source', {
-                                ssrc,
-                                xmlns: XEP.SOURCE_ATTRIBUTES
-                            })
+                            .c('source', { ssrc })
                             .up()
-                            .c('source', {
-                                ssrc: rtx,
-                                xmlns: XEP.SOURCE_ATTRIBUTES
-                            })
+                            .c('source', { ssrc: rtx })
                             .up()
                             .up();
                     }
@@ -2088,8 +2089,10 @@ export default class JingleSessionPC extends JingleSession {
                     const idx = ++this.numRemoteAudioSources;
 
                     msid = `remote-audio-${idx} remote-audio-${idx}`;
+                    
+                    // Add the audio SSRC source element
+                    _addSourceElement(node, src, ssrc, msid);
                 }
-                _addSourceElement(node, src, ssrc, msid);
                 this.peerconnection.remoteSources.set(source, ssrc);
             }
             node = node.up();

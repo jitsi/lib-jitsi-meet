@@ -193,3 +193,153 @@ export enum VIDEO_QUALITY_SETTINGS {
     // 3840x2160 or 4k.
     ULTRA = 'ultraHd'
 }
+
+// --- NEW CONSTANTS FOR THRESHOLDS ---
+const THRESHOLD_SD = 360;
+const THRESHOLD_HD = 720;
+
+/**
+ * Options for getEffectiveSimulcastLayers function.
+ */
+export interface ISimulcastLayerOptions {
+    /**
+     * The video codec being used (e.g., 'vp8', 'vp9', 'h264', 'av1').
+     */
+    codec?: string;
+
+    /**
+     * Browser information for applying browser-specific heuristics.
+     */
+    browser?: {
+        name: string;
+        version: string;
+    };
+
+    /**
+     * Force a specific number of layers (1, 2, or 3). Overrides resolution-based heuristics.
+     */
+    forceNumLayers?: number;
+
+    /**
+     * Configuration object that may contain custom thresholds or overrides from config.js.
+     */
+    config?: {
+        /**
+         * Custom threshold for SD (default 360).
+         */
+        sdThreshold?: number;
+
+        /**
+         * Custom threshold for HD (default 720).
+         */
+        hdThreshold?: number;
+
+        /**
+         * Enable/disable browser-specific layer reduction heuristics.
+         */
+        enableBrowserHeuristics?: boolean;
+    };
+}
+
+/**
+ * Returns the effective simulcast layers based on the capture resolution and optional configuration.
+ * This is the canonical function for determining how many simulcast layers to use.
+ * 
+ * Resolution-based heuristics (default):
+ * - < 360p: 1 layer (low quality only)
+ * - 360p-719p: 2 layers (low + standard)
+ * - >= 720p: 3 layers (low + standard + high)
+ * 
+ * Layers are returned in ascending quality order (lowest scaleFactor → highest):
+ * - Layer 0: scaleFactor 4.0 (lowest resolution)
+ * - Layer 1: scaleFactor 2.0 (medium resolution)
+ * - Layer 2: scaleFactor 1.0 (highest resolution)
+ * 
+ * @param {number} captureHeight - The height of the captured video in pixels.
+ * @param {ISimulcastLayerOptions} [opts] - Optional configuration for layer determination.
+ * @returns {Array<{rid: string, scaleFactor: number}>} The effective simulcast layers to use.
+ * 
+ * @example
+ * // Basic usage - resolution-based
+ * getEffectiveSimulcastLayers(720) // Returns all 3 layers
+ * getEffectiveSimulcastLayers(360) // Returns 2 layers
+ * getEffectiveSimulcastLayers(180) // Returns 1 layer
+ * 
+ * @example
+ * // Force specific number of layers
+ * getEffectiveSimulcastLayers(720, { forceNumLayers: 2 }) // Returns only 2 layers
+ * 
+ * @example
+ * // Custom thresholds via config
+ * getEffectiveSimulcastLayers(400, {
+ *   config: { sdThreshold: 480, hdThreshold: 1080 }
+ * }) // Returns 1 layer (400 < 480)
+ */
+export function getEffectiveSimulcastLayers(
+    captureHeight: number,
+    opts?: ISimulcastLayerOptions
+): Array<{ rid: string; scaleFactor: number }> {
+    const options = opts || {};
+    const config = options.config || {};
+    
+    // Use custom thresholds if provided, otherwise use defaults
+    const sdThreshold = config.sdThreshold ?? THRESHOLD_SD;
+    const hdThreshold = config.hdThreshold ?? THRESHOLD_HD;
+    
+    let numLayers: number;
+    
+    // If forceNumLayers is specified, use it (with bounds checking)
+    if (typeof options.forceNumLayers === 'number') {
+        numLayers = Math.max(1, Math.min(3, Math.floor(options.forceNumLayers)));
+
+        if (numLayers !== options.forceNumLayers) {
+            console.warn(
+                `[StandardVideoQualitySettings] forceNumLayers=${options.forceNumLayers} out of range. ` +
+                `Clamped to ${numLayers}.`
+            );
+        }
+    } else {
+        // Determine layers based on resolution thresholds
+        if (captureHeight < sdThreshold) {
+            numLayers = 1;
+        } else if (captureHeight < hdThreshold) {
+            numLayers = 2;
+        } else {
+            numLayers = 3;
+        }
+
+        // Apply browser-specific heuristics if enabled
+        if (config.enableBrowserHeuristics !== false && options.browser) {
+            const browserName = options.browser.name.toLowerCase();
+
+            // Chromium-based browsers may collapse simulcast layers at low resolutions
+            // Log this for observability
+            if ((browserName.includes('chrome') || browserName.includes('chromium') || browserName.includes('edge'))
+                && options.codec === 'vp8'
+                && captureHeight < 640
+                && numLayers > 1) {
+                console.info(
+                    `[StandardVideoQualitySettings] Chromium + VP8 + low resolution (${captureHeight}p). ` +
+                    `Keeping ${numLayers} layers but Chromium may collapse to fewer at runtime.`
+                );
+            }
+        }
+    }
+    
+    // Return the last N layers from SIM_LAYERS (highest quality layers)
+    // SIM_LAYERS are ordered {rid: '1', scale: 4.0} (low), {rid: '2', scale: 2.0} (mid), {rid: '3', scale: 1.0} (high)
+    // If numLayers=1, we want [{rid: '3', scale: 1.0}] (High)
+    // If numLayers=2, we want [{rid: '2', scale: 2.0}, {rid: '3', scale: 1.0}] (Mid, High)
+    const effectiveLayers = SIM_LAYERS.slice(SIM_LAYERS.length - numLayers);
+
+    // Log layer reduction for debugging
+    if (numLayers < 3) {
+        console.debug(
+            `[StandardVideoQualitySettings] getEffectiveSimulcastLayers: ` +
+            `captureHeight=${captureHeight}, numLayers=${numLayers}, ` +
+            `codec=${options.codec || 'unknown'}, forceNumLayers=${options.forceNumLayers}`
+        );
+    }
+
+    return effectiveLayers;
+}
