@@ -70,12 +70,12 @@ interface IAudioConstraints {
         chromeMediaSource?: string;
         chromeMediaSourceId?: string;
     };
-    optional?: {
+    optional?: Array<{
         autoGainControl?: boolean;
         channelCount?: number;
         echoCancellation?: boolean;
         noiseSuppression?: boolean;
-    };
+    }>;
 }
 
 /**
@@ -298,15 +298,6 @@ class ScreenObtainer {
                         let audioConstraints: boolean | IAudioConstraints = false;
 
                         if (screenShareAudio) {
-                            audioConstraints = {};
-                            const optionalConstraints = this._getAudioConstraints();
-
-                            if (typeof optionalConstraints !== 'boolean') {
-                                audioConstraints = {
-                                    optional: optionalConstraints
-                                };
-                            }
-
                             // Audio screen sharing for electron only works for screen type devices.
                             // i.e. when the user shares the whole desktop.
                             // Note. The documentation specifies that chromeMediaSourceId should not be present
@@ -314,10 +305,24 @@ class ScreenObtainer {
                             // at once. However we tested with chromeMediaSourceId present and it seems to be
                             // working properly.
                             if (streamType === 'screen') {
-                                (audioConstraints as IAudioConstraints).mandatory = {
-                                    chromeMediaSource: 'desktop'
+                                audioConstraints = {
+                                    mandatory: {
+                                        chromeMediaSource: 'desktop'
+                                    }
                                 };
+                                const optionalConstraints = this._getAudioConstraints();
+
+                                if (typeof optionalConstraints !== 'boolean') {
+                                    // Chromium requires each element in the legacy optional array to contain
+                                    // exactly one property. A multi-property object causes getUserMedia to
+                                    // throw "Malformed constraints object" (media_constraints_impl.cc).
+                                    (audioConstraints as IAudioConstraints).optional
+                                        = Object.entries(optionalConstraints)
+                                            .map(([ key, value ]) => ({ [key]: value })) as IAudioConstraints['optional'];
+                                }
                             }
+                            // For window/tab sources audioConstraints stays false —
+                            // desktop audio capture is not supported for non-screen sources on Electron.
                         }
 
                         const constraints: any = {

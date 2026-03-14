@@ -28,7 +28,10 @@ export default class E2EEcontext {
     constructor({ sharedKey } = {}) {
         this._worker = new Worker(
             new URL('./Worker.ts', import.meta.url),
-            { type: 'module', name: 'E2EE Worker' }
+            {
+                name: 'E2EE Worker',
+                type: 'module'
+            }
         );
 
         this._worker.onerror = e => logger.error(e);

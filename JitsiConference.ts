@@ -836,19 +836,6 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Restarts the media sessions. Used for recovering from network interface
-     * changes (e.g., WiFi to cellular handoff) without a page reload.
-     * Sends session-terminate with restart flag so Jicofo re-invites with
-     * a new session-initiate.
-     *
-     * @returns {void}
-     */
-    restartMediaSessions(): void {
-        this._iceRestarts = 0;
-        this._restartMediaSessions();
-    }
-
-    /**
      * Restarts all active media sessions.
      *
      * @returns {void}
@@ -3031,6 +3018,19 @@ export default class JitsiConference extends Listenable {
 
                 return Promise.reject(error);
             });
+    }
+
+    /**
+     * Restarts the media sessions. Used for recovering from network interface
+     * changes (e.g., WiFi to cellular handoff) without a page reload.
+     * Sends session-terminate with restart flag so Jicofo re-invites with
+     * a new session-initiate.
+     *
+     * @returns {void}
+     */
+    public restartMediaSessions(): void {
+        this._iceRestarts = 0;
+        this._restartMediaSessions();
     }
 
     /**
