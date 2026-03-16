@@ -52,6 +52,12 @@ const DEFAULT_MAX_STATS: number = 300;
 const ICE_CAND_GATHERING_TIMEOUT: number = 150;
 
 /**
+ * Time in ms to wait in ICE 'disconnected' state before forcing an ICE failure.
+ * Chrome may not transition to 'failed' on its own, leaving media frozen indefinitely.
+ */
+const ICE_DISCONNECTED_TIMEOUT: number = 10000;
+
+/**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
  * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
  * endpoint/participant.
@@ -177,6 +183,7 @@ export default class JingleSessionPC extends JingleSession {
     private wasConnected: boolean;
     private isReconnect: boolean;
     private wasstable: boolean;
+    private _iceDisconnectedTimeout: ReturnType<typeof setTimeout> | null;
     private webrtcIceUdpDisable: boolean;
     private webrtcIceTcpDisable: boolean;
     private remoteSourceMaxFrameHeights: ISourceFrameHeight[];
@@ -1518,6 +1525,11 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
+        if (this._iceDisconnectedTimeout) {
+            clearTimeout(this._iceDisconnectedTimeout);
+            this._iceDisconnectedTimeout = null;
+        }
+
         if (this.peerconnection) {
             this.peerconnection.onicecandidate = null;
             this.peerconnection.oniceconnectionstatechange = null;
@@ -1565,6 +1577,7 @@ export default class JingleSessionPC extends JingleSession {
          * @type {boolean}
          */
         this.wasstable = false;
+        this._iceDisconnectedTimeout = null;
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
 
@@ -1773,6 +1786,12 @@ export default class JingleSessionPC extends JingleSession {
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
                 this.isReconnect = false;
+
+                // Clear any pending disconnected timeout — ICE recovered.
+                if (this._iceDisconnectedTimeout) {
+                    clearTimeout(this._iceDisconnectedTimeout);
+                    this._iceDisconnectedTimeout = null;
+                }
                 break;
             case 'disconnected':
                 this.isReconnect = true;
@@ -1783,8 +1802,30 @@ export default class JingleSessionPC extends JingleSession {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_INTERRUPTED, this);
                 }
+
+                // Start a timer to force ICE failed if disconnected state
+                // persists. Chrome may never transition to 'failed' on its
+                // own, leaving media frozen with no recovery.
+                if (!this._iceDisconnectedTimeout && this.wasstable) {
+                    this._iceDisconnectedTimeout = setTimeout(() => {
+                        this._iceDisconnectedTimeout = null;
+                        const currentState = this.peerconnection?.iceConnectionState;
+
+                        if (currentState === 'disconnected') {
+                            logger.warn(`${this} ICE stuck in disconnected for `
+                                + `${ICE_DISCONNECTED_TIMEOUT}ms, forcing ICE failed`);
+                            this.room.eventEmitter.emit(
+                                XMPPEvents.CONNECTION_ICE_FAILED, this);
+                        }
+                    }, ICE_DISCONNECTED_TIMEOUT);
+                }
                 break;
             case 'failed':
+                // Clear disconnected timeout — failed state will handle recovery.
+                if (this._iceDisconnectedTimeout) {
+                    clearTimeout(this._iceDisconnectedTimeout);
+                    this._iceDisconnectedTimeout = null;
+                }
                 this.room.eventEmitter.emit(
                     XMPPEvents.CONNECTION_ICE_FAILED, this);
                 break;
@@ -1809,6 +1850,10 @@ export default class JingleSessionPC extends JingleSession {
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=982793
                 // for details) we use this workaround to recover from lost connections
                 if (icestate === 'disconnected') {
+                    if (this._iceDisconnectedTimeout) {
+                        clearTimeout(this._iceDisconnectedTimeout);
+                        this._iceDisconnectedTimeout = null;
+                    }
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this);
                 }

@@ -27,10 +27,14 @@ const logger = getLogger('qc:QualityController');
 
 // Period for which the client will wait for the cpu limitation flag to be reset in the peerconnection stats before it
 // attempts to rectify the situation by attempting a codec switch.
-const LIMITED_BY_CPU_TIMEOUT = 60000;
+const LIMITED_BY_CPU_TIMEOUT = 30000;
 
 // The min. value that lastN will be set to while trying to fix video qaulity issues.
 const MIN_LAST_N = 3;
+
+// Time in ms after which a permanently blocked lastN ramp-up is unblocked,
+// allowing recovery from transient CPU/bandwidth spikes in long sessions.
+const LAST_N_RAMPUP_UNBLOCK_TIMEOUT = 120000;
 
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
@@ -109,7 +113,7 @@ export class QualityController {
     private _conference: JitsiConference;
     private _enableAdaptiveMode: boolean;
     private _encodeTimeStats: Map<number, FixedSizeArray>;
-    private _isLastNRampupBlocked: boolean;
+    private _lastNRampupBlockedAt: number | null;
     private _lastNRampupTime: number;
     private _lastNRampupTimeout: Optional<number>;
     private _limitedByCpuTimeout: Optional<number>;
@@ -136,7 +140,7 @@ export class QualityController {
             p2p });
         this._enableAdaptiveMode = options.enableAdaptiveMode ?? true;
         this._encodeTimeStats = new Map();
-        this._isLastNRampupBlocked = false;
+        this._lastNRampupBlockedAt = null;
         this._lastNRampupTime = options.lastNRampupTime;
         this._receiveVideoController = new ReceiveVideoController(conference);
         this._sendVideoController = new SendVideoController(conference);
@@ -192,6 +196,22 @@ export class QualityController {
             }
             /* eslint-enable @typescript-eslint/no-invalid-this */
         };
+    }
+
+    /**
+     * Cancels any pending lastN ramp-up timeout and blocks future ramp-up attempts
+     * until the limitation clears for a sustained period.
+     */
+    _cancelLastNRampupAndBlock(): void {
+        if (this._lastNRampupTimeout) {
+            window.clearTimeout(this._lastNRampupTimeout);
+            this._lastNRampupTimeout = undefined;
+        }
+
+        // Always stamp the block time so the NONE-path cannot schedule a rampup
+        // immediately after lastN was just lowered. Also refreshes the window if
+        // limitation is ongoing, preventing premature unblock.
+        this._lastNRampupBlockedAt = Date.now();
     }
 
     /**
@@ -334,19 +354,29 @@ export class QualityController {
 
             if (qualityLimitationReason === QualityLimitationReason.NONE
                 && this.receiveVideoController.isLastNLimitedByCpu()) {
-                if (!this._lastNRampupTimeout && !this._isLastNRampupBlocked) {
+                // Unblock ramp-up after sustained period of no limitation. This prevents
+                // a single transient spike from permanently blocking lastN recovery.
+                if (this._lastNRampupBlockedAt !== null
+                        && Date.now() - this._lastNRampupBlockedAt > LAST_N_RAMPUP_UNBLOCK_TIMEOUT) {
+                    logger.info('QualityController - unblocking lastN ramp-up after '
+                        + `${LAST_N_RAMPUP_UNBLOCK_TIMEOUT / 1000}s of no limitation`);
+                    this._lastNRampupBlockedAt = null;
+                }
+
+                if (!this._lastNRampupTimeout && this._lastNRampupBlockedAt === null) {
                     RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, false);
 
-                    // Ramp up the number of received videos if CPU limitation no longer exists. If the cpu
-                    // limitation returns as a consequence, do not attempt to ramp up again, continue to
+                    // Ramp up the number of received videos if limitation no longer exists. If it
+                    // returns as a consequence, do not attempt to ramp up again, continue to
                     // increment the lastN value otherwise until it is equal to the channelLastN value.
                     this._lastNRampupTimeout = window.setTimeout(() => {
                         this._lastNRampupTimeout = undefined;
                         const updatedStats = this._encodeTimeStats.get(trackId);
                         const latestSourceStats: ISourceStats = updatedStats.get(updatedStats.size() - 1);
 
-                        if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU) {
-                            this._isLastNRampupBlocked = true;
+                        if (latestSourceStats.qualityLimitationReason === QualityLimitationReason.CPU
+                                || latestSourceStats.qualityLimitationReason === QualityLimitationReason.BANDWIDTH) {
+                            this._lastNRampupBlockedAt = Date.now();
                         } else {
                             this._lowerOrRaiseLastN(false /* raise */);
                         }
@@ -357,28 +387,28 @@ export class QualityController {
             return;
         }
 
-        // Do nothing if the limitation reason is bandwidth since the browser will dynamically adapt the outbound
-        // resolution based on available uplink bandwith. Otherwise,
-        // 1. Switch the codec to the lowest complexity one incrementally.
-        // 2. Switch to a lower lastN value, cutting the receive videos by half in every iteration until
-        // MIN_LAST_N value is reached.
-        // 3. Lower the receive resolution of individual streams up to 180p.
+        // CPU-only send-side: switch to a lower complexity codec.
         if (qualityLimitationReason === QualityLimitationReason.CPU) {
-            if (this._lastNRampupTimeout) {
-                window.clearTimeout(this._lastNRampupTimeout);
-                this._lastNRampupTimeout = undefined;
-                this._isLastNRampupBlocked = true;
-            }
             RTCStats.sendStatsEntry(RTCStatsEvents.ENCODER_CPU_RESTRICTED_EVENT, null, true);
             const codecSwitched = this._maybeSwitchVideoCodec(trackId);
 
-            if (!codecSwitched && !this._limitedByCpuTimeout) {
-                const lastNChanged = this._lowerOrRaiseLastN(true /* lower */);
+            if (codecSwitched || this._limitedByCpuTimeout) {
+                return;
+            }
+        }
 
-                if (!lastNChanged) {
-                    this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
-                    this._maybeLowerReceiveResolution();
-                }
+        // Shared receive-side adaptation for both CPU and bandwidth limitation:
+        // lower lastN → lower receive resolution → 180p floor.
+        // For bandwidth, the browser's GCC handles send-side (encoder resolution/bitrate).
+        if (qualityLimitationReason === QualityLimitationReason.CPU
+                || qualityLimitationReason === QualityLimitationReason.BANDWIDTH) {
+            this._cancelLastNRampupAndBlock();
+
+            const lastNChanged = this._lowerOrRaiseLastN(true /* lower */);
+
+            if (!lastNChanged) {
+                this.receiveVideoController.setReceiveResolutionLimitedByCpu(true);
+                this._maybeLowerReceiveResolution();
             }
         }
     }

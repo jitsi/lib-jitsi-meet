@@ -22,6 +22,12 @@ const logger = getLogger('connectivity:ConnectionQuality');
 const STATS_MESSAGE_TYPE = 'stats';
 
 /**
+ * Number of consecutive zero-bitrate samples (each ~10s apart) before we
+ * declare the conference a zero-media zombie.
+ */
+const ZERO_MEDIA_SAMPLE_THRESHOLD = 3;
+
+/**
  * The maximum bitrate to use as a measurement against the participant's current
  * bitrate. This cap helps in the cases where the participant's bitrate is high
  * but not enough to fulfill high targets, such as with 1080p.
@@ -94,6 +100,7 @@ export interface ILocalStats {
         upload?: number;
     };
     bitrate?: {
+        download: number;
         upload: number;
     };
     bridgeCount?: number;
@@ -120,6 +127,8 @@ export type IRemoteStats = Pick<
 export default class ConnectionQuality {
     private eventEmitter: EventEmitter;
     private _conference: JitsiConference;
+    private _consecutiveZeroBitrateSamples: number;
+    private _hadMediaFlow: boolean;
     private _localStats: ILocalStats;
     private _lastConnectionQualityUpdate: number;
     private _options: IConferenceOptions;
@@ -140,6 +149,18 @@ export default class ConnectionQuality {
          * The owning JitsiConference.
          */
         this._conference = conference;
+
+        /**
+         * Consecutive stats samples where both upload and download bitrate are 0,
+         * after media had previously been flowing. Used for zombie detection.
+         */
+        this._consecutiveZeroBitrateSamples = 0;
+
+        /**
+         * Whether any media (upload or download) has ever flowed on this
+         * connection. Once true, zero bitrate becomes meaningful.
+         */
+        this._hadMediaFlow = false;
 
         /**
          * Holds statistics about the local connection quality.
@@ -373,6 +394,14 @@ export default class ConnectionQuality {
             }
         }
 
+        // If media had been flowing but both upload and download are now 0,
+        // report 0 quality regardless of what the target calculation says.
+        if (this._hadMediaFlow
+            && (this._localStats.bitrate?.upload ?? 0) === 0
+            && (this._localStats.bitrate?.download ?? 0) === 0) {
+            return 0;
+        }
+
         // Make sure that the quality doesn't climb quickly
         if (this._lastConnectionQualityUpdate > 0) {
             const maxIncreasePerSecond = 2;
@@ -471,6 +500,33 @@ export default class ConnectionQuality {
                     videoType,
                     isMuted,
                     resolutionName));
+        }
+
+        // Zero-media zombie detection: if media was previously flowing but both
+        // upload and download have been 0 for several consecutive samples while
+        // ICE reports connected, the conference is in a zombie state.
+        const uploadBitrate = this._localStats.bitrate?.upload ?? 0;
+        const downloadBitrate = this._localStats.bitrate?.download ?? 0;
+
+        if (uploadBitrate > 0 || downloadBitrate > 0) {
+            this._hadMediaFlow = true;
+            this._consecutiveZeroBitrateSamples = 0;
+        } else if (this._hadMediaFlow && !this._conference.isConnectionInterrupted()) {
+            this._consecutiveZeroBitrateSamples++;
+
+            if (this._consecutiveZeroBitrateSamples >= ZERO_MEDIA_SAMPLE_THRESHOLD) {
+                logger.warn(`Zero media detected: ${this._consecutiveZeroBitrateSamples} consecutive`
+                    + ' zero-bitrate samples with ICE connected');
+
+                // Force quality to 0 so UI reflects the actual dead state
+                this._updateLocalConnectionQuality(0);
+
+                this.eventEmitter.emit(ConnectionQualityEvents.ZERO_MEDIA_DETECTED);
+
+                // Reset counter to avoid firing on the very next sample. Keep _hadMediaFlow
+                // true so re-detection works if recovery fails and media stays at zero.
+                this._consecutiveZeroBitrateSamples = 0;
+            }
         }
 
         this.eventEmitter.emit(ConnectionQualityEvents.LOCAL_STATS_UPDATED, this._localStats);

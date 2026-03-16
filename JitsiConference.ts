@@ -71,6 +71,7 @@ import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSu
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
+import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
     AnalyticsEvents,
@@ -278,6 +279,7 @@ export default class JitsiConference extends Listenable {
     private _videoSenderLimitReached?: boolean;
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
+    private _zeroMediaRecoveryAttempts: number;
     private _unsubscribers: Array<() => void>;
     private _xmpp: XMPP;
 
@@ -414,6 +416,33 @@ export default class JitsiConference extends Listenable {
          */
         this.connectionQuality = new ConnectionQuality(this, this.eventEmitter, options);
 
+        // When zero-media zombie state is detected, restart the media session
+        // to recover. This reuses the existing ICE failure recovery path
+        // (Jicofo re-invites with a new session-initiate).
+        // Capped at 3 attempts — if recovery consistently fails, stop thrashing
+        // and let the user or other recovery mechanisms (ICE failed, XMPP ping)
+        // take over. The counter resets when a new session successfully establishes.
+        this.eventEmitter.on(
+            ConnectionQualityEvents.ZERO_MEDIA_DETECTED,
+            () => {
+                const MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS = 3;
+
+                this._zeroMediaRecoveryAttempts++;
+                if (this._zeroMediaRecoveryAttempts > MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS) {
+                    logger.warn('Zero-media zombie detected but recovery attempts exhausted'
+                        + ` (${this._zeroMediaRecoveryAttempts - 1}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS}),`
+                        + ' giving up');
+
+                    return;
+                }
+
+                logger.warn('Zero-media zombie detected, restarting media sessions'
+                    + ` (attempt ${this._zeroMediaRecoveryAttempts}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS})`);
+                Statistics.sendAnalyticsAndLog(
+                    createConferenceEvent('zero.media.recovery', {}));
+                this._restartMediaSessions();
+            });
+
         /**
          * Reports average RTP statistics to the analytics module.
          * @type {AvgRTPStatsReporter}
@@ -519,6 +548,7 @@ export default class JitsiConference extends Listenable {
          * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
          */
         this._iceRestarts = 0;
+        this._zeroMediaRecoveryAttempts = 0;
         this._unsubscribers = [];
     }
 
@@ -1121,9 +1151,10 @@ export default class JitsiConference extends Listenable {
      * Resumes media transfer over the JVB connection.
      * @private
      */
-    private _resumeMediaTransferForJvbConnection(): void {
+    private _resumeMediaTransferForJvbConnection(): Promise<void> {
         logger.info('Resuming media transfer over the JVB connection...');
-        this.jvbJingleSession.setMediaTransferActive(true)
+
+        return this.jvbJingleSession.setMediaTransferActive(true)
             .then(() => {
                 logger.info('Resumed media transfer over the JVB connection!');
             })
@@ -1379,7 +1410,15 @@ export default class JitsiConference extends Listenable {
         // Swap remote tracks, but only if the P2P has been fully established
         if (wasP2PEstablished) {
             if (this.jvbJingleSession && !requestRestart) {
-                this._resumeMediaTransferForJvbConnection();
+                // Chain _addRemoteJVBTracks onto the media transfer promise to avoid
+                // a race where tracks are added before media transfer is actually enabled.
+                this._resumeMediaTransferForJvbConnection()
+                    .then(() => {
+                        if (this.jvbJingleSession) {
+                            this._addRemoteJVBTracks();
+                        }
+                    })
+                    .catch(err => logger.error('Failed to resume JVB media and add tracks', err));
             }
 
             // Remove remote P2P tracks
@@ -1427,13 +1466,8 @@ export default class JitsiConference extends Listenable {
         // Update P2P status and other affected events/states
         this._setP2PStatus(false);
 
-        if (wasP2PEstablished) {
-            // Add back remote JVB tracks
-            if (this.jvbJingleSession && !requestRestart) {
-                this._addRemoteJVBTracks();
-            } else {
-                logger.info('Not adding remote JVB tracks - no session yet');
-            }
+        if (wasP2PEstablished && (!this.jvbJingleSession || requestRestart)) {
+            logger.info('Not adding remote JVB tracks - no session yet or restart requested');
         }
     }
 
@@ -1935,6 +1969,7 @@ export default class JitsiConference extends Listenable {
         }
 
         if (jingleSession.isP2P === this.isP2PActive()) {
+            this._zeroMediaRecoveryAttempts = 0;
             this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_ESTABLISHED);
         }
 

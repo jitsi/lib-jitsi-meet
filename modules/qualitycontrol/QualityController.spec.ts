@@ -131,7 +131,7 @@ describe('QualityController', () => {
             qualityController._performQualityOptimizations(updatedStats);
 
             // Check that further ramp ups are blocked and lastN value is dropped to 3.
-            expect(qualityController._isLastNRampupBlocked).toBeTrue();
+            expect(qualityController._lastNRampupBlockedAt).not.toBeNull();
             expect(qualityController.receiveVideoController.setLastN).toHaveBeenCalledWith(3);
             rtc.forwardedSources = [ 'v1', 'v2', 'v3' ];
             qualityController.receiveVideoController._lastN = 3;
