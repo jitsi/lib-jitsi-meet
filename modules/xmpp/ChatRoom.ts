@@ -189,7 +189,8 @@ const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
  */
 function extractIdentityInformation(node: IPresenceNode, hiddenFromRecorderFeatureEnabled: boolean): IIdentity {
     const identity: IIdentity = {};
-    const userInfo = node.children.find(c => c.tagName === 'user');
+    const children = node.children ?? [];
+    const userInfo = children.find(c => c.tagName === 'user');
 
     if (userInfo) {
         identity.user = {};
@@ -200,15 +201,14 @@ function extractIdentityInformation(node: IPresenceNode, hiddenFromRecorderFeatu
         }
 
         for (const tag of tags) {
-            const child
-                = userInfo.children.find(c => c.tagName === tag);
+            const child = (userInfo.children ?? []).find(c => c.tagName === tag);
 
             if (child) {
                 identity.user[tag] = child.value;
             }
         }
     }
-    const groupInfo = node.children.find(c => c.tagName === 'group');
+    const groupInfo = children.find(c => c.tagName === 'group');
 
     if (groupInfo) {
         identity.group = groupInfo.value;
@@ -1091,8 +1091,10 @@ export default class ChatRoom extends Listenable {
         // All participant properties are in `participantProperties`, call the event handlers now.
         const participantId = Strophe.getResourceFromJid(from);
 
-        for (const [ key, value ] of participantProperties) {
-            this.participantPropertyListener(participantId, key, value);
+        if (this.participantPropertyListener) {
+            for (const [ key, value ] of participantProperties) {
+                this.participantPropertyListener(participantId, key, value);
+            }
         }
 
         // Trigger status message update if necessary
