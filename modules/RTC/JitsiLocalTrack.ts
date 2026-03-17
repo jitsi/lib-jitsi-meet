@@ -1097,11 +1097,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.stopStream();
 
         const initialSettings = this.track.getSettings();
-        const constraintsToApply = {
-            ...initialSettings,
-            ...constraints
-        };
-
+        const deviceId = initialSettings?.deviceId;
         const deviceIdKey = mediaType === MediaType.AUDIO ? 'micDeviceId' : 'cameraDeviceId';
         let mediaStreamData: IStreamInfo | undefined;
 
@@ -1109,8 +1105,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             logger.debug(`applyConstraints for track ${this} with constraints: ${JSON.stringify(constraints)}`);
 
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
-                constraints: { [mediaType]: constraintsToApply },
-                [deviceIdKey]: constraintsToApply.deviceId,
+                constraints: { [mediaType]: constraints },
+                ...(deviceId && { [deviceIdKey]: deviceId }),
                 devices: [ mediaType ]
             });
 
@@ -1128,7 +1124,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
             [ mediaStreamData ] = await RTCUtils.obtainAudioAndVideoPermissions({
                 constraints: { [mediaType]: initialSettings },
-                [deviceIdKey]: constraintsToApply.deviceId,
+                ...(deviceId && { [deviceIdKey]: deviceId }),
                 devices: [ mediaType ]
             });
         }
@@ -1138,7 +1134,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         logger.debug('Setting updated stream and track');
-
         this._setStream(mediaStreamData.stream);
         this.track = mediaStreamData.track;
 
