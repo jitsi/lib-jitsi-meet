@@ -597,6 +597,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._originalStream = this.stream;
         this._setStream(this._streamEffect.startEffect(this._originalStream));
         this.track = this.stream.getTracks()[0];
+        this._effectEnabled = true;
     }
 
     /**
@@ -611,6 +612,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this._setStream(this._originalStream);
             this._originalStream = null;
             this.track = this.stream ? this.stream.getTracks()[0] : null;
+            this._effectEnabled = false;
         }
     }
 
