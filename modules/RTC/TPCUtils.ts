@@ -833,7 +833,10 @@ export class TPCUtils {
      * @internal
      */
     mungeOpus(parsedSdp: SessionDescription, audioQuality?: IAppliedAudioQuality): SessionDescription {
-        if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
+        if (!audioQuality
+            || (typeof audioQuality.enableOpusDtx !== 'boolean'
+                && typeof audioQuality.stereo !== 'boolean'
+                && typeof audioQuality.opusMaxAverageBitrate !== 'number')) {
             return parsedSdp;
         }
 
