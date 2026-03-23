@@ -96,6 +96,7 @@ export interface ITPCOptions {
 
 export interface IAudioQuality {
     enableOpusDtx?: boolean;
+    opusMaxAverageBitrate?: number;
     opusMaxAverageBitrateMono?: number;
     opusMaxAverageBitrateStereo?: number;
     stereo?: boolean;
@@ -405,16 +406,24 @@ export default class TraceablePeerConnection {
 
         // Initialize audio quality from config
         if (this.options?.audioQuality) {
-            const stereo = this.options.audioQuality.stereo !== false;
-            // Use stereo bitrate if available, otherwise fallback to mono
-            const opusMaxAverageBitrate = stereo && this.options.audioQuality.opusMaxAverageBitrateStereo
-                ? this.options.audioQuality.opusMaxAverageBitrateStereo
-                : this.options.audioQuality.opusMaxAverageBitrateMono;
+            const audioQualityConfig = this.options.audioQuality;
+            const stereo = audioQualityConfig.stereo !== false;
+
+            // Determine maxaveragebitrate:
+            // - Prefer the explicit stereo/mono fields.
+            // - Fall back to the legacy opusMaxAverageBitrate if the new fields are unset.
+            const opusMaxAverageBitrate = stereo
+                ? (audioQualityConfig.opusMaxAverageBitrateStereo
+                    ?? audioQualityConfig.opusMaxAverageBitrateMono
+                    ?? audioQualityConfig.opusMaxAverageBitrate)
+                : (audioQualityConfig.opusMaxAverageBitrateMono
+                    ?? audioQualityConfig.opusMaxAverageBitrateStereo
+                    ?? audioQualityConfig.opusMaxAverageBitrate);
 
             const audioQuality = {
-                enableOpusDtx: this.options.audioQuality.enableOpusDtx,
-                opusMaxAverageBitrate,
-                stereo
+                enableOpusDtx: audioQualityConfig.enableOpusDtx,
+                stereo,
+                opusMaxAverageBitrate
             };
 
             this.audioQualityLocal = audioQuality;
