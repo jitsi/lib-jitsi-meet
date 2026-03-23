@@ -1166,6 +1166,18 @@ export default class JingleSessionPC extends JingleSession {
         const removedSsrcInfo = getSignaledSourceInfo(sdpDiffer);
 
         if (removedSsrcInfo.ssrcs.length) {
+            // Source-remove should never happen on a P2P connection. If it does, the browser has likely
+            // regenerated SSRCs for an existing source. Sending source-remove on P2P can cause the remote track to
+            // stop rendering (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729), so terminate the P2P session and
+            // fall back to JVB instead.
+            if (this.isP2P) {
+                logger.warn(`${this} Unexpected source-remove on P2P for ${removedSsrcInfo.mediaType}`
+                    + ` ssrcs=${removedSsrcInfo.ssrcs} - terminating P2P session`);
+                this.room.eventEmitter.emit(XMPPEvents.P2P_TERMINATION_REQUIRED, this);
+
+                return;
+            }
+
             // Log only the SSRCs instead of the full IQ.
             logger.info(`${this} Sending source-remove for ${removedSsrcInfo.mediaType}`
                 + ` ssrcs=${removedSsrcInfo.ssrcs}`);
