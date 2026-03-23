@@ -2109,7 +2109,7 @@ export default class TraceablePeerConnection {
                                     opusMaxAverageBitrate,
                                     stereo
                                 };
-                                logger.info(`${this} audio quality updated: stereo=${stereo}, bitrate=${opusMaxAverageBitrate}kbps`);
+                                logger.info(`${this} audio quality updated: stereo=${stereo}, bitrate=${opusMaxAverageBitrate}bps`);
 
                                 shouldRenegotiate = true;
                             }
