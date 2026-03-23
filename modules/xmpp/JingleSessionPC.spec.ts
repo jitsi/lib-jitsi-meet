@@ -1,5 +1,7 @@
 import { MockRTC } from '../RTC/MockClasses';
+import SDP from '../sdp/SDP';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import JingleSessionPC from './JingleSessionPC';
 import {JingleSessionState} from './JingleSessionState';
@@ -306,5 +308,96 @@ describe('JingleSessionPC', () => {
             expect(removeSsrcOwnersSpy).toHaveBeenCalledWith([ 1234, 5678, 4321, 8765 ]);
             expect(updateRemoteSourcesSpy).toHaveBeenCalledWith(sourceInfo, false);
         });
+    });
+});
+
+describe('notifyMySSRCUpdate - P2P source-remove triggers termination', () => {
+    const SID = 'sid12345';
+
+    // Minimal SDP helpers.
+    const SESSION = 'v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n';
+    const AUDIO = 'm=audio 9 RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=mid:0\r\na=sendrecv\r\na=ssrc:11 cname:c\r\n';
+
+    function buildVideoSdp(ssrc: number, sourceName: string): SDP {
+        return new SDP(
+            SESSION + AUDIO
+            + 'm=video 9 RTP/SAVPF 100\r\nc=IN IP4 0.0.0.0\r\na=mid:1\r\na=sendrecv\r\n'
+            + `a=ssrc:${ssrc} cname:c\r\n`
+            + `a=ssrc:${ssrc} msid:stream track\r\n`
+            + `a=ssrc:${ssrc} name:${sourceName}\r\n`
+        );
+    }
+
+    function buildRecvOnlySdp(): SDP {
+        return new SDP(
+            SESSION + AUDIO
+            + 'm=video 9 RTP/SAVPF 100\r\nc=IN IP4 0.0.0.0\r\na=mid:1\r\na=recvonly\r\n'
+        );
+    }
+
+    function createSession(isP2P: boolean): {
+        session: JingleSessionPC; connection: MockStropheConnection; chatRoom: MockChatRoom;
+    } {
+        const connection = new MockStropheConnection();
+
+        (connection as any).connected = true;
+
+        const session = new JingleSessionPC(SID, 'peer1', 'peer2', connection, { }, { }, isP2P, false);
+        const chatRoom = new MockChatRoom();
+
+        session.initialize(
+            chatRoom,
+            new MockRTC(),
+            { setSSRCOwner: () => { }, removeSSRCOwners: () => { } }, // eslint-disable-line no-empty-function
+            { });
+        (session as any).state = JingleSessionState.ACTIVE;
+
+        return { session,
+            connection,
+            chatRoom };
+    }
+
+    it('should emit P2P_TERMINATION_REQUIRED and skip source-remove IQ when SSRCs change on P2P', () => {
+        const { session, connection, chatRoom } = createSession(/* isP2P */ true);
+        const emitSpy = spyOn(chatRoom.eventEmitter, 'emit').and.callThrough();
+        const sendIQSpy = spyOn(connection, 'sendIQ');
+
+        // Simulate browser regenerating SSRCs for the same source during renegotiation.
+        const oldSDP = buildVideoSdp(100, 'endpointA-v0');
+        const newSDP = buildVideoSdp(200, 'endpointA-v0');
+
+        (session as any).notifyMySSRCUpdate(oldSDP, newSDP);
+
+        expect(emitSpy).toHaveBeenCalledWith(XMPPEvents.P2P_TERMINATION_REQUIRED, session);
+        expect(sendIQSpy).not.toHaveBeenCalled();
+    });
+
+    it('should send source-remove IQ and not emit P2P_TERMINATION_REQUIRED on JVB when SSRCs change', () => {
+        const { session, connection, chatRoom } = createSession(/* isP2P */ false);
+        const emitSpy = spyOn(chatRoom.eventEmitter, 'emit').and.callThrough();
+        const sendIQSpy = spyOn(connection, 'sendIQ');
+
+        const oldSDP = buildVideoSdp(100, 'endpointA-v0');
+        const newSDP = buildVideoSdp(200, 'endpointA-v0');
+
+        (session as any).notifyMySSRCUpdate(oldSDP, newSDP);
+
+        expect(sendIQSpy).toHaveBeenCalled();
+        expect(emitSpy).not.toHaveBeenCalledWith(XMPPEvents.P2P_TERMINATION_REQUIRED, jasmine.anything());
+    });
+
+    it('should not emit P2P_TERMINATION_REQUIRED when only a source-add occurs on P2P', () => {
+        const { session, connection, chatRoom } = createSession(/* isP2P */ true);
+        const emitSpy = spyOn(chatRoom.eventEmitter, 'emit').and.callThrough();
+        const sendIQSpy = spyOn(connection, 'sendIQ');
+
+        // Old SDP has no video SSRCs (recvonly); new SDP adds a source - pure source-add, no source-remove.
+        const oldSDP = buildRecvOnlySdp();
+        const newSDP = buildVideoSdp(100, 'endpointA-v0');
+
+        (session as any).notifyMySSRCUpdate(oldSDP, newSDP);
+
+        expect(emitSpy).not.toHaveBeenCalledWith(XMPPEvents.P2P_TERMINATION_REQUIRED, jasmine.anything());
+        expect(sendIQSpy).toHaveBeenCalled();
     });
 });
