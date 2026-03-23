@@ -190,21 +190,24 @@ const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
 function extractIdentityInformation(node: IPresenceNode, hiddenFromRecorderFeatureEnabled: boolean): IIdentity {
     const identity: IIdentity = {};
     const userInfo = node.children.find(c => c.tagName === 'user');
+    const HIDDEN_FROM_RECORDER = 'hidden-from-recorder';
 
     if (userInfo) {
         identity.user = {};
-        const tags = [ 'id', 'name', 'avatar' ];
 
-        if (hiddenFromRecorderFeatureEnabled) {
-            tags.push('hidden-from-recorder');
+        // Add all children from the user node except hidden-from-recorder
+        for (const child of userInfo.children) {
+            if (child.tagName && child.value !== undefined && child.tagName !== HIDDEN_FROM_RECORDER) {
+                identity.user[child.tagName] = child.value;
+            }
         }
 
-        for (const tag of tags) {
-            const child
-                = userInfo.children.find(c => c.tagName === tag);
+        // Separately check if we should add hidden-from-recorder
+        if (hiddenFromRecorderFeatureEnabled) {
+            const hiddenFromRecorder = userInfo.children.find(c => c.tagName === HIDDEN_FROM_RECORDER);
 
-            if (child) {
-                identity.user[tag] = child.value;
+            if (hiddenFromRecorder) {
+                identity.user[HIDDEN_FROM_RECORDER] = hiddenFromRecorder.value;
             }
         }
     }
