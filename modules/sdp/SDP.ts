@@ -521,8 +521,11 @@ export default class SDP {
                     sdp += parameters
                         .map(parameter => {
                             const name = getAttribute(parameter, 'name');
+                            const value = getAttribute(parameter, 'value');
 
-                            return (name ? `${name}=` : '') + getAttribute(parameter, 'value');
+                            // When name === value, this is a non-key=value fmtp format
+                            // (e.g. RED "111/111", DTMF "0-15") — output raw value only.
+                            return (name && name !== value ? `${name}=` : '') + value;
                         })
                         .join(';');
                     sdp += '\r\n';

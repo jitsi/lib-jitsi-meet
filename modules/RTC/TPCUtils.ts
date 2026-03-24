@@ -544,7 +544,7 @@ export class TPCUtils {
             // added any to remove the subsequrnt @ts-ignore comments
             const { encodings } = rtpSender.getParameters() as any;
 
-            if (encodings[0].codec) {
+            if (encodings?.[0]?.codec) {
                 return encodings[0].codec.mimeType.split('/')[1].toLowerCase();
             }
         }
@@ -556,12 +556,18 @@ export class TPCUtils {
         }
         const parsedSdp = transform.parse(sdp);
         const mLine = parsedSdp.media
-            .find(m => m.mid.toString() === this.pc.localTrackTransceiverMids.get(localVideoTrack.rtcId));
-        const payload = mLine.payloads.split(' ')[0];
-        const { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
+            ?.find(m => m.mid?.toString() === this.pc.localTrackTransceiverMids.get(localVideoTrack.rtcId));
 
-        if (codec) {
-            return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+        if (!mLine) {
+            return CodecMimeType.VP8;
+        }
+
+        const payload = mLine.payloads?.split(' ')[0];
+        const rtpEntry = payload && mLine.rtp?.find(rtp => rtp.payload === Number(payload));
+
+        if (rtpEntry?.codec) {
+            return Object.values(CodecMimeType).find(value => value === rtpEntry.codec.toLowerCase())
+                ?? CodecMimeType.VP8;
         }
 
         return CodecMimeType.VP8;

@@ -471,8 +471,13 @@ const SDPUtil = {
                 data.push({ name: key,
                     value });
             } else if (key) {
-                // rfc 4733 (DTMF) style stuff
-                data.push({ name: '',
+                // Non-key=value fmtp formats: RED redundancy ("111/111"),
+                // DTMF events ("0-15"), etc. Use the value as both name and
+                // value so the Jingle <parameter> element has a non-empty name
+                // attribute (JVB ignores parameters with no name).
+                // The fromJingle path detects name === value and omits the
+                // "name=" prefix when reconstructing the SDP fmtp line.
+                data.push({ name: key,
                     value: key });
             }
         }
