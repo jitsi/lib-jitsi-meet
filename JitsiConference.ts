@@ -194,6 +194,12 @@ const JINGLE_SI_TIMEOUT: number = 5000;
 const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
 
 /**
+ * Maximum number of zero-media recovery attempts before giving up.
+ * Shared by both whole-media and video-only zero-media detectors.
+ */
+const MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS: number = 3;
+
+/**
  * Checks if a given string is a valid video codec mime type.
  *
  * @param {string} codec the codec string that needs to be validated.
@@ -417,12 +423,24 @@ export default class JitsiConference extends Listenable {
          */
         this.connectionQuality = new ConnectionQuality(this, this.eventEmitter, options);
 
-        // When video-only zero media is detected (audio still flowing but video bitrate stuck at 0),
+        // When video-only zero media is detected (video bitrate stuck at 0 while video track is unmuted),
         // reconfigure sender constraints to recover video encoding.
         this.eventEmitter.addListener(
             ConnectionQualityEvents.VIDEO_ZERO_MEDIA_DETECTED,
             () => {
-                logger.warn('Video-only zero media detected, reconfiguring sender constraints');
+                this._zeroMediaRecoveryAttempts++;
+                this._lastZeroMediaRecoveryTime = Date.now();
+
+                if (this._zeroMediaRecoveryAttempts > MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS) {
+                    logger.warn('Video zero-media recovery attempts exhausted'
+                        + ` (${this._zeroMediaRecoveryAttempts - 1}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS}),`
+                        + ' giving up');
+
+                    return;
+                }
+
+                logger.warn('Video-only zero media detected, reconfiguring sender constraints'
+                    + ` (attempt ${this._zeroMediaRecoveryAttempts}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS})`);
                 this.qualityController?.sendVideoController.configureConstraintsForLocalSources();
             });
 
@@ -435,8 +453,6 @@ export default class JitsiConference extends Listenable {
         this.eventEmitter.on(
             ConnectionQualityEvents.ZERO_MEDIA_DETECTED,
             () => {
-                const MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS = 3;
-
                 this._zeroMediaRecoveryAttempts++;
                 this._lastZeroMediaRecoveryTime = Date.now();
 
@@ -3136,7 +3152,6 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     public restartMediaSessions(): void {
-        this._iceRestarts = 0;
         this._restartMediaSessions();
     }
 

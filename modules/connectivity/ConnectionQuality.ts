@@ -546,16 +546,17 @@ export default class ConnectionQuality {
         this.eventEmitter.emit(ConnectionQualityEvents.LOCAL_STATS_UPDATED, this._localStats);
         this._broadcastLocalStats();
 
-        // Video-only starvation detection: if there's an active local video track
-        // (camera or desktop) and video upload bitrate has been 0 for consecutive
-        // samples while audio flows, the video encoding may be stuck.
+        // Video-only starvation detection: if there's an active (unmuted) local video
+        // track and video upload bitrate has been 0 for consecutive samples,
+        // the video encoding may be stuck.
         const videoUpload = this._localStats.bitrate?.video?.upload ?? 0;
         const hasActiveVideoTrack = !isMuted;
 
         if (videoUpload > 0) {
             this._hadVideoMediaFlow = true;
             this._consecutiveZeroVideoBitrateSamples = 0;
-        } else if (this._hadVideoMediaFlow && hasActiveVideoTrack) {
+        } else if (this._hadVideoMediaFlow && hasActiveVideoTrack
+                && !this._conference.isConnectionInterrupted()) {
             this._consecutiveZeroVideoBitrateSamples++;
 
             if (this._consecutiveZeroVideoBitrateSamples >= ZERO_VIDEO_BITRATE_SAMPLE_THRESHOLD) {
