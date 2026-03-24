@@ -84,7 +84,7 @@ export class KeyHandler extends Listenable {
         // we'll continue to use the existing media sessions with an empty transform.
         if (!this._firstEnable && enabled) {
             this._firstEnable = true;
-            this.conference._restartMediaSessions();
+            this.conference.restartMediaSessions();
         }
 
         this.e2eeCtx.setEnabled(enabled);

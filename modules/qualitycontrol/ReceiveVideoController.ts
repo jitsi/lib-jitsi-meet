@@ -267,6 +267,23 @@ export default class ReceiveVideoController {
     }
 
     /**
+     * Force-resends the current receiver video constraints to both the bridge channel and P2P peer.
+     * This bypasses the equality check in {@link setReceiverConstraints} and is used to correct stale
+     * constraints (e.g., maxHeight:0) sent during a network interruption.
+     *
+     * @returns {void}
+     */
+    resendCurrentConstraints(): void {
+        this._rtc.setReceiverVideoConstraints(this._receiverVideoConstraints);
+
+        const p2pSession = this._conference.getMediaSessions().find(session => session.isP2P);
+
+        if (p2pSession && this._sourceReceiverConstraints.size) {
+            p2pSession.setReceiverVideoConstraint(this._sourceReceiverConstraints);
+        }
+    }
+
+    /**
      * Updates the receivedResolutioLimitedByCpu field.
      *
      * @param {boolean} enabled

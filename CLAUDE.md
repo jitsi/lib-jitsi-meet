@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Branching
+
+- **`main`** is the default branch, production branch, and PR target. Always branch from `main`.
+- `master` tracks upstream (jitsi/lib-jitsi-meet) and is far behind `main`. Do not branch from or target `master`.
+
 ## lib-jitsi-meet Architecture
 
 This is the JavaScript library for accessing Jitsi Meet server-side deployments. It provides WebRTC functionality, XMPP communication, and media handling for Jitsi Meet clients.
