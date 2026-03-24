@@ -422,8 +422,8 @@ export default class TraceablePeerConnection {
 
             const audioQuality = {
                 enableOpusDtx: audioQualityConfig.enableOpusDtx,
-                stereo,
-                opusMaxAverageBitrate
+                opusMaxAverageBitrate,
+                stereo
             };
 
             this.audioQualityLocal = audioQuality;
@@ -911,7 +911,7 @@ export default class TraceablePeerConnection {
      * @param {boolean} isLocal - Whether the description is local or remote.
      * @returns {RTCSessionDescription} - The munged description.
      */
-    private _mungeDescription(description: RTCSessionDescription, isLocal: boolean = true): RTCSessionDescription {
+    private _mungeDescription(description: RTCSessionDescription, _isLocal: boolean = true): RTCSessionDescription {
         this.trace('RTCSessionDescription::preTransform', TraceablePeerConnection.dumpSDP(description));
         let mungedSdp = transform.parse(description?.sdp);
         const audioQuality = this.audioQualityLocal;
