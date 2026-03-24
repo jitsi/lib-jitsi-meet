@@ -3047,11 +3047,11 @@ describe('TPCUtils', () => {
 
     describe('mungeOpus()', () => {
         let tpcUtils: TPCUtils;
-        let mockPeerConnection: MockPeerConnection;
+        let tpc: MockPeerConnection;
 
         beforeEach(() => {
-            mockPeerConnection = new MockPeerConnection();
-            tpcUtils = new TPCUtils(mockPeerConnection);
+            tpc = new MockPeerConnection();
+            tpcUtils = new TPCUtils(tpc);
         });
 
         it('skip when audioQuality is not provided or empty', () => {
@@ -3075,14 +3075,6 @@ describe('TPCUtils', () => {
         });
 
         describe('modifying stereo and bitrate', () => {
-            const sdp = {
-                media: [ {
-                    type: MediaType.AUDIO,
-                    rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
-                    fmtp: [ { payload: 111, config: '' } ]
-                } ]
-            };
-
             it('and stereo with bitrate', () => {
                 const sdp = {
                     media: [ {
