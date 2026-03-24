@@ -914,8 +914,7 @@ export default class TraceablePeerConnection {
     private _mungeDescription(description: RTCSessionDescription, isLocal: boolean = true): RTCSessionDescription {
         this.trace('RTCSessionDescription::preTransform', TraceablePeerConnection.dumpSDP(description));
         let mungedSdp = transform.parse(description?.sdp);
-
-        const audioQuality = isLocal ? this.audioQualityLocal : this.audioQualityRemote;
+        const audioQuality = this.audioQualityLocal;
 
         mungedSdp = this.tpcUtils.mungeOpus(mungedSdp, audioQuality);
         mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
