@@ -399,9 +399,24 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     private _queueSetMuted(muted: boolean): Promise<void> {
-        const setMuted = this._setMuted.bind(this, muted);
+        if (this.disposed) {
+            return Promise.reject(new JitsiTrackError(TRACK_IS_DISPOSED));
+        }
 
-        this._prevSetMuted = this._prevSetMuted.then(setMuted, setMuted);
+        // Wrap in try-catch to prevent synchronous exceptions from breaking
+        // the promise chain. A broken chain would permanently hang all
+        // subsequent mute/unmute operations for this track.
+        const safeSetMuted = () => {
+            try {
+                return this._setMuted(muted);
+            } catch (error) {
+                logger.error(`Synchronous error in _setMuted(${muted}):`, error);
+
+                return Promise.reject(error);
+            }
+        };
+
+        this._prevSetMuted = this._prevSetMuted.then(safeSetMuted, safeSetMuted);
 
         return this._prevSetMuted;
     }
@@ -665,6 +680,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
     override async dispose(): Promise<void> {
         if (this.disposed) {
             return;
+        }
+
+        // Wait for any queued mute/unmute operations to settle before
+        // disposing. Otherwise queued callbacks may execute on a
+        // partially-disposed track, accessing cleared references.
+        // Timeout after 5s to avoid blocking disposal if the chain is
+        // stuck (e.g., waiting on a GUM timeout).
+        try {
+            await Promise.race([
+                this._prevSetMuted,
+                new Promise<void>(resolve => setTimeout(resolve, 5000))
+            ]);
+        } catch {
+            // Ignore — we just need the chain to settle or time out
         }
 
         // Remove the effect instead of stopping it so that the original stream is restored

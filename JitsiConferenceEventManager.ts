@@ -546,11 +546,11 @@ export default class JitsiConferenceEventManager {
         });
 
         rtc.addListener(RTCEvents.VIDEO_SSRCS_REMAPPED, (msg: any) => {
-            this.conference.jvbJingleSession.processSourceMap(msg, MediaType.VIDEO);
+            this.conference.jvbJingleSession?.processSourceMap(msg, MediaType.VIDEO);
         });
 
         rtc.addListener(RTCEvents.AUDIO_SSRCS_REMAPPED, (msg: any) => {
-            this.conference.jvbJingleSession.processSourceMap(msg, MediaType.AUDIO);
+            this.conference.jvbJingleSession?.processSourceMap(msg, MediaType.AUDIO);
         });
 
         rtc.addListener(RTCEvents.BRIDGE_BWE_STATS_RECEIVED, (bwe: any) => {

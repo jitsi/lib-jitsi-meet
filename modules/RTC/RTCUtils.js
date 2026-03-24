@@ -407,7 +407,12 @@ class RTCUtils extends Listenable {
                 .then(stream => {
                     logger.info('onUserMediaSuccess');
                     this._updateGrantedPermissions(umDevices, stream);
-                    if (!timeoutExpired) {
+                    if (timeoutExpired) {
+                        // Stream arrived after timeout — stop all tracks to release
+                        // the device and prevent MediaStream memory leak.
+                        logger.warn('getUserMedia resolved after timeout, stopping leaked stream');
+                        stream.getTracks().forEach(t => t.stop());
+                    } else {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
