@@ -425,7 +425,7 @@ export class QualityController {
         const activeSession = this._conference.getActiveMediaSession();
 
         // Process stats only for the active media session.
-        if (activeSession.peerconnection !== tpc) {
+        if (!activeSession || activeSession.peerconnection !== tpc) {
             return;
         }
 
@@ -434,9 +434,15 @@ export class QualityController {
         for (const ssrc of stats.keys()) {
             const { codec, encodeTime, qualityLimitationReason, resolution, timestamp } = stats.get(ssrc);
             const track = tpc.getTrackBySSRC(ssrc);
+
+            if (!track) {
+                continue;
+            }
             const trackId = track.rtcId;
             let existingStats = statsPerTrack.get(trackId);
-            const encodeResolution = Math.min(resolution?.height, resolution?.width);
+            const encodeResolution = resolution
+                ? Math.min(resolution.height, resolution.width)
+                : 0;
             const ssrcStats = {
                 encodeResolution,
                 encodeTime,

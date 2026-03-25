@@ -9,20 +9,5 @@ export enum ConnectionQualityEvents {
      * Indicates that the connection statistics for a particular remote participant
      * were updated.
      */
-    REMOTE_STATS_UPDATED = 'cq.remote_stats_updated',
-
-    /**
-     * Indicates that video upload bitrate has been zero for consecutive samples
-     * while an active local video track exists and audio is still flowing.
-     * This suggests the video encoding may be stuck (e.g., due to stale
-     * constraints sent during a network interruption).
-     */
-    VIDEO_ZERO_MEDIA_DETECTED = 'cq.video_zero_media_detected',
-
-    /**
-     * Indicates that media was previously flowing but has been zero for an
-     * extended period while ICE remains connected — a zombie conference state.
-     * Listeners should trigger recovery (e.g. session restart).
-     */
-    ZERO_MEDIA_DETECTED = 'cq.zero_media_detected'
+    REMOTE_STATS_UPDATED = 'cq.remote_stats_updated'
 }

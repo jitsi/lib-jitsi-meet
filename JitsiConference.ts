@@ -71,7 +71,6 @@ import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSu
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
-import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
     AnalyticsEvents,
@@ -279,8 +278,6 @@ export default class JitsiConference extends Listenable {
     private _videoSenderLimitReached?: boolean;
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
-    private _zeroMediaRecoveryAttempts: number;
-    private _lastZeroMediaRecoveryTime: number;
     private _unsubscribers: Array<() => void>;
     private _xmpp: XMPP;
 
@@ -417,44 +414,6 @@ export default class JitsiConference extends Listenable {
          */
         this.connectionQuality = new ConnectionQuality(this, this.eventEmitter, options);
 
-        // When video-only zero media is detected (audio still flowing but video bitrate stuck at 0),
-        // reconfigure sender constraints to recover video encoding.
-        this.eventEmitter.addListener(
-            ConnectionQualityEvents.VIDEO_ZERO_MEDIA_DETECTED,
-            () => {
-                logger.warn('Video-only zero media detected, reconfiguring sender constraints');
-                this.qualityController?.sendVideoController.configureConstraintsForLocalSources();
-            });
-
-        // When zero-media zombie state is detected, restart the media session
-        // to recover. This reuses the existing ICE failure recovery path
-        // (Jicofo re-invites with a new session-initiate).
-        // Capped at 3 attempts — if recovery consistently fails, stop thrashing
-        // and let the user or other recovery mechanisms (ICE failed, XMPP ping)
-        // take over. The counter resets when a new session successfully establishes.
-        this.eventEmitter.on(
-            ConnectionQualityEvents.ZERO_MEDIA_DETECTED,
-            () => {
-                const MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS = 3;
-
-                this._zeroMediaRecoveryAttempts++;
-                this._lastZeroMediaRecoveryTime = Date.now();
-
-                if (this._zeroMediaRecoveryAttempts > MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS) {
-                    logger.warn('Zero-media zombie detected but recovery attempts exhausted'
-                        + ` (${this._zeroMediaRecoveryAttempts - 1}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS}),`
-                        + ' giving up');
-
-                    return;
-                }
-
-                logger.warn('Zero-media zombie detected, restarting media sessions'
-                    + ` (attempt ${this._zeroMediaRecoveryAttempts}/${MAX_ZERO_MEDIA_RECOVERY_ATTEMPTS})`);
-                Statistics.sendAnalyticsAndLog(
-                    createConferenceEvent('zero.media.recovery', {}));
-                this._restartMediaSessions();
-            });
-
         /**
          * Reports average RTP statistics to the analytics module.
          * @type {AvgRTPStatsReporter}
@@ -560,8 +519,6 @@ export default class JitsiConference extends Listenable {
          * Number of times ICE restarts that have been attempted after ICE connectivity with the JVB was lost.
          */
         this._iceRestarts = 0;
-        this._zeroMediaRecoveryAttempts = 0;
-        this._lastZeroMediaRecoveryTime = 0;
         this._unsubscribers = [];
     }
 
@@ -1454,19 +1411,24 @@ export default class JitsiConference extends Listenable {
         // Swap remote tracks, but only if the P2P has been fully established
         if (wasP2PEstablished) {
             if (this.jvbJingleSession && !requestRestart) {
-                // Chain _addRemoteJVBTracks onto the media transfer promise to avoid
-                // a race where tracks are added before media transfer is actually enabled.
+                // Capture P2P track references before session termination nulls p2pJingleSession.
+                const p2pRemoteTracks = this.p2pJingleSession.peerconnection.getRemoteTracks();
+
                 this._resumeMediaTransferForJvbConnection()
                     .then(() => {
+                        // Atomic swap in the same microtask to avoid an audio/video gap.
+                        this._removeRemoteTracks('P2P', p2pRemoteTracks);
                         if (this.jvbJingleSession) {
                             this._addRemoteJVBTracks();
                         }
                     })
-                    .catch(err => logger.error('Failed to resume JVB media and add tracks', err));
+                    .catch(err => {
+                        logger.error('Failed to resume JVB media and add tracks', err);
+                        this._removeRemoteTracks('P2P', p2pRemoteTracks);
+                    });
+            } else {
+                this._removeRemoteP2PTracks();
             }
-
-            // Remove remote P2P tracks
-            this._removeRemoteP2PTracks();
         }
 
         // Stop P2P stats
@@ -2021,16 +1983,6 @@ export default class JitsiConference extends Listenable {
         }
 
         if (jingleSession.isP2P === this.isP2PActive()) {
-            // Only reset zero-media counter after a 60s cooldown to prevent rapid
-            // ICE-reconnect-then-zero-media cycles. Without this, the counter resets
-            // every time ICE reconnects (~100ms), but media may still not flow —
-            // allowing the recovery loop to run indefinitely (87+ events observed).
-            const ZERO_MEDIA_COOLDOWN_MS = 60_000;
-            const timeSinceRecovery = Date.now() - (this._lastZeroMediaRecoveryTime || 0);
-
-            if (timeSinceRecovery > ZERO_MEDIA_COOLDOWN_MS) {
-                this._zeroMediaRecoveryAttempts = 0;
-            }
             this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_ESTABLISHED);
         }
 
@@ -3136,7 +3088,6 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     public restartMediaSessions(): void {
-        this._iceRestarts = 0;
         this._restartMediaSessions();
     }
 

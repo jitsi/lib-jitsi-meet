@@ -1793,8 +1793,15 @@ export default class TraceablePeerConnection {
             const trackIndex = getSourceIndexFromSourceName(sourceName);
             const mediaType = localTrack.getType();
             const mLines = media.filter(m => m.type === mediaType);
-            const ssrcGroups = mLines[trackIndex].ssrcGroups;
-            let ssrcs = mLines[trackIndex].ssrcs;
+            const mLine = mLines[trackIndex];
+
+            if (!mLine) {
+                logger.warn(`${this} No mLine for ${sourceName} at index ${trackIndex}, skipping`);
+                continue;
+            }
+
+            const ssrcGroups = mLine.ssrcGroups;
+            let ssrcs = mLine.ssrcs;
 
             if (ssrcs?.length) {
                 // Filter the ssrcs with 'cname' attribute.
@@ -2287,6 +2294,13 @@ export default class TraceablePeerConnection {
                                 && t.direction !== MediaDirection.RECVONLY)[trackIndex];
                 }
             }
+        }
+
+        // Fallback: when oldTrack is null (stale track replaced with null upstream)
+        // and no transceiver was found via source-based lookup, try finding one by media type.
+        if (!transceiver && !oldTrack && newTrack) {
+            transceiver = this.peerconnection.getTransceivers()
+                .find(t => t.receiver.track.kind === mediaType && t.direction !== MediaDirection.RECVONLY);
         }
 
         if (!transceiver) {
