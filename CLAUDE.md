@@ -2,10 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Git Branching
+## Repository & Git
 
+- **NEVER add AI as a co-author** in commits or PRs. No `Co-Authored-By` lines for any AI.
+
+This is **alfaz-studio/lib-jitsi-meet**, a fork of `jitsi/lib-jitsi-meet`. All work targets this fork, not upstream.
+
+- **`origin`** = `alfaz-studio/lib-jitsi-meet` — this is our remote. All PRs, pushes, and `gh` commands target here.
+- **`upstream`** = `jitsi/lib-jitsi-meet` — read-only reference for syncing upstream changes. Never push to or open PRs against upstream.
 - **`main`** is the default branch, production branch, and PR target. Always branch from `main`.
-- `master` tracks upstream (jitsi/lib-jitsi-meet) and is far behind `main`. Do not branch from or target `master`.
+- `master` tracks upstream and is far behind `main`. Do not branch from or target `master`.
+- After cloning, run `gh repo set-default alfaz-studio/lib-jitsi-meet` so `gh` commands target the fork (not upstream).
 
 ## lib-jitsi-meet Architecture
 

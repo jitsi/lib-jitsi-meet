@@ -1,0 +1,49 @@
+name: Codex Act
+
+on:
+  issue_comment: { types: [created] }
+  pull_request_review_comment: { types: [created] }
+
+concurrency:
+  group: codex-act-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  act:
+    name: Act on @codex comments
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    if: >-
+      github.actor != 'dependabot[bot]' && (
+        (
+          github.event_name == 'issue_comment' &&
+          contains(github.event.comment.body, '@codex') &&
+          github.event.issue.pull_request &&
+          contains(fromJSON('["MEMBER","OWNER","COLLABORATOR"]'), github.event.comment.author_association)
+        ) || (
+          github.event_name == 'pull_request_review_comment' &&
+          contains(github.event.comment.body, '@codex') &&
+          contains(fromJSON('["MEMBER","OWNER","COLLABORATOR"]'), github.event.comment.author_association)
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', github.event.issue.number) }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm install
+
+      - name: Codex autonomous edits
+        uses: gersmann/codex-review-action@v1
+        with:
+          mode: act
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
