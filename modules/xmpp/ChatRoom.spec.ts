@@ -915,5 +915,98 @@ describe('ChatRoom', () => {
                 undefined, // source (undefined when no display-name element)
                 null); // replyToId
         });
+        it('parses group message with XEP-0461 reply element correctly', () => {
+        const msgStr = '' +
+            '<message to="jid" from="fromjid" type="groupchat" id="msg-reply-1" xmlns="jabber:client">' +
+                '<body>That is a great point!</body>' +
+                '<reply to="msg-123" xmlns="urn:xmpp:reply:0"/>' +
+            '</message>';
+        const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+        room.onMessage(msg, 'fromjid');
+        expect(emitterSpy.calls.count()).toEqual(1);
+        expect(emitterSpy).toHaveBeenCalledWith(
+            XMPPEvents.MESSAGE_RECEIVED,
+            'fromjid',
+            'That is a great point!',
+            room.myroomjid,
+            null,        // stamp
+            undefined,   // displayName
+            false,       // isVisitorMessage
+            'msg-reply-1', // messageId
+            undefined,   // source
+            'msg-123');  // replyToId ← this is what we are testing
+        });
+
+        it('parses group message without reply element and passes null replyToId', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg-reply-2" xmlns="jabber:client">' +
+                    '<body>Hello everyone</body>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello everyone',
+                room.myroomjid,
+                null,        // stamp
+                undefined,   // displayName
+                false,       // isVisitorMessage
+                'msg-reply-2', // messageId
+                undefined,   // source
+                null);       // replyToId ← null when no reply element
+        });
+
+        it('ignores reply element with wrong namespace', () => {
+            // This test proves the namespace fix is necessary.
+            // Without the fix, this incorrectly returns 'msg-123'.
+            // With the fix, it correctly returns null.
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg-reply-3" xmlns="jabber:client">' +
+                    '<body>Hello everyone</body>' +
+                    '<reply to="msg-123" xmlns="urn:xmpp:some-other-extension:0"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello everyone',
+                room.myroomjid,
+                null,        // stamp
+                undefined,   // displayName
+                false,       // isVisitorMessage
+                'msg-reply-3', // messageId
+                undefined,   // source
+                null);       // replyToId ← null because namespace is wrong
+        });
+
+        it('parses group message with reply element but no to attribute', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg-reply-4" xmlns="jabber:client">' +
+                    '<body>Hello everyone</body>' +
+                    '<reply xmlns="urn:xmpp:reply:0"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello everyone',
+                room.myroomjid,
+                null,        // stamp
+                undefined,   // displayName
+                false,       // isVisitorMessage
+                'msg-reply-4', // messageId
+                undefined,   // source
+                null);       // replyToId ← null when no 'to' attribute
+        });
     });
 });

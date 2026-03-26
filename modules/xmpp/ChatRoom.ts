@@ -435,7 +435,10 @@ export default class ChatRoom extends Listenable {
      * @private
      */
     private _parseReplyMessage(msg: Element): string | null {
-        return getAttribute(findFirst(msg, ':scope>reply'), 'to');
+        return getAttribute(
+            findFirst(msg, ':scope>reply[*|xmlns="urn:xmpp:reply:0"]'),
+            'to'
+        );
     }
 
     /**
