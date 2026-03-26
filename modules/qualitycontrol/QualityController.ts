@@ -278,7 +278,17 @@ export class QualityController {
             }
         }
 
+        // No constraints set or all zeroed out (e.g. during session transitions) — nothing to lower.
+        if (maxHeight <= 0) {
+            return;
+        }
+
         const currentLevel = VIDEO_QUALITY_LEVELS.findIndex(lvl => lvl.height <= maxHeight);
+
+        // No matching level or already at the lowest — nothing to lower.
+        if (currentLevel < 0 || currentLevel >= VIDEO_QUALITY_LEVELS.length - 1) {
+            return;
+        }
 
         // Do not lower the resolution to less than 180p.
         if (VIDEO_QUALITY_LEVELS[currentLevel].height === 180) {
