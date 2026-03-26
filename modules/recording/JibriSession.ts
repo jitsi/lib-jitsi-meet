@@ -25,7 +25,9 @@ export interface IStartOptions {
 }
 
 export interface IStopOptions {
+    connection?: XmppConnection;
     focusMucJid: string;
+    mode?: string;
 }
 
 export interface IQOptions {
@@ -33,6 +35,7 @@ export interface IQOptions {
     appData?: string;
     broadcastId?: string;
     focusMucJid: string;
+    mode?: string;
     streamId?: string;
 }
 
@@ -228,11 +231,12 @@ export default class JibriSession {
 
         return new Promise((resolve, reject) => {
             this._connection?.sendIQ(
-                this._createIQ({
+                JibriSession._createIQ({
                     action: 'start',
                     appData,
                     broadcastId,
                     focusMucJid,
+                    mode: this._mode,
                     streamId
                 }),
                 (result: any) => {
@@ -260,23 +264,26 @@ export default class JibriSession {
      * Sends a message to actually stop the recording session.
      *
      * @param {Object} options - Additional arguments for stopping the recording.
+     * @param {XmppConnection} [options.connection] - The XMPP connection to use.
      * @param {Object} options.focusMucJid - The JID of the focus participant that controls recording.
+     * @param {string} [options.mode] - The recording mode of the session.
      * @returns Promise
      */
-    stop({ focusMucJid }: IStopOptions): Promise<any> {
+    static stop({ connection, focusMucJid, mode }: IStopOptions): Promise<any> {
         logger.info('Stopping recording session');
 
         return new Promise((resolve, reject) => {
-            this._connection?.sendIQ(
-                this._createIQ({
+            connection?.sendIQ(
+                JibriSession._createIQ({
                     action: 'stop',
-                    focusMucJid
+                    focusMucJid,
+                    mode
                 }),
                 resolve,
                 (error: any) => {
                     handleStropheError(error, {
                         operation: 'stop Jibri session request',
-                        userJid: this._connection?.jid
+                        userJid: connection?.jid
                     });
                     reject(error);
                 }
@@ -295,12 +302,13 @@ export default class JibriSession {
      * can be viewed.
      * @param {string} options.focusMucJid - The JID of the focus participant
      * that controls recording.
+     * @param {string} options.mode - The recording mode for the session we create this IQ for.
      * @param {streamId} options.streamId - Necessary for live streaming, this
      * is the stream key needed to start a live streaming session with the
      * streaming service provider.
      * @returns Object - The XMPP IQ message.
      */
-    _createIQ({ action, appData, broadcastId, focusMucJid, streamId }: IQOptions) {
+    static _createIQ({ action, appData, broadcastId, focusMucJid, mode, streamId }: IQOptions) {
         return $iq({
             to: focusMucJid,
             type: 'set'
@@ -308,7 +316,7 @@ export default class JibriSession {
         .c('jibri', {
             'action': action,
             'app_data': appData,
-            'recording_mode': this._mode,
+            'recording_mode': mode,
             'streamid': streamId,
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'you_tube_broadcast_id': broadcastId

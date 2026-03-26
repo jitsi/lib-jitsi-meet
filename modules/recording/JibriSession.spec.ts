@@ -422,11 +422,6 @@ describe('JibriSession', () => {
 
     describe('stop() method', () => {
         it('should successfully stop recording', async () => {
-            const session = new JibriSession({
-                connection: mockConnection,
-                mode: 'file'
-            });
-
             const mockSuccessResponse = document.createElement('iq');
 
             mockSuccessResponse.setAttribute('type', 'result');
@@ -436,7 +431,7 @@ describe('JibriSession', () => {
             });
 
             await expectAsync(
-                session.stop({ focusMucJid: 'focus@conference.example.com' })
+                JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'file' })
             ).toBeResolved();
 
             expect(sendIQSpy).toHaveBeenCalled();
@@ -449,11 +444,6 @@ describe('JibriSession', () => {
         });
 
         it('should handle error when stopping recording', async () => {
-            const session = new JibriSession({
-                connection: mockConnection,
-                mode: 'file'
-            });
-
             const mockErrorIq = document.createElement('iq');
             const errorEl = document.createElement('error');
 
@@ -469,7 +459,7 @@ describe('JibriSession', () => {
             });
 
             await expectAsync(
-                session.stop({ focusMucJid: 'focus@conference.example.com' })
+                JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'file' })
             ).toBeRejected();
 
             expect(sendStatsEntrySpy).toHaveBeenCalled();
@@ -482,17 +472,12 @@ describe('JibriSession', () => {
         });
 
         it('should handle timeout when stopping', async () => {
-            const session = new JibriSession({
-                connection: mockConnection,
-                mode: 'file'
-            });
-
             sendIQSpy.and.callFake((iq: any, successCallback: any, errorCallback: any) => {
                 errorCallback(null);
             });
 
             await expectAsync(
-                session.stop({ focusMucJid: 'focus@conference.example.com' })
+                JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'file' })
             ).toBeRejected();
 
             expect(sendStatsEntrySpy).toHaveBeenCalled();
@@ -504,17 +489,12 @@ describe('JibriSession', () => {
         });
 
         it('should handle string error when stopping', async () => {
-            const session = new JibriSession({
-                connection: mockConnection,
-                mode: 'stream'
-            });
-
             sendIQSpy.and.callFake((iq: any, successCallback: any, errorCallback: any) => {
                 errorCallback('Not connected');
             });
 
             await expectAsync(
-                session.stop({ focusMucJid: 'focus@conference.example.com' })
+                JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'stream' })
             ).toBeRejected();
 
             expect(sendStatsEntrySpy).toHaveBeenCalled();
@@ -525,11 +505,6 @@ describe('JibriSession', () => {
         });
 
         it('should call handleStropheError with correct context on error', async () => {
-            const session = new JibriSession({
-                connection: mockConnection,
-                mode: 'stream'
-            });
-
             const mockErrorIq = document.createElement('iq');
             const errorEl = document.createElement('error');
             const reasonEl = document.createElement('service-unavailable');
@@ -542,7 +517,7 @@ describe('JibriSession', () => {
             });
 
             await expectAsync(
-                session.stop({ focusMucJid: 'focus@conference.example.com' })
+                JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'stream' })
             ).toBeRejected();
 
             expect(sendStatsEntrySpy).toHaveBeenCalled();
@@ -556,11 +531,10 @@ describe('JibriSession', () => {
 
     describe('_createIQ method', () => {
         it('should create IQ with correct structure for start action', () => {
-            const session = new JibriSession({ mode: 'file' });
-
-            const iq = session._createIQ({
+            const iq = JibriSession._createIQ({
                 action: 'start',
-                focusMucJid: 'focus@conference.example.com'
+                focusMucJid: 'focus@conference.example.com',
+                mode: 'file'
             });
 
             const iqString = iq.toString();
@@ -574,11 +548,10 @@ describe('JibriSession', () => {
         });
 
         it('should create IQ with correct structure for stop action', () => {
-            const session = new JibriSession({ mode: 'stream' });
-
-            const iq = session._createIQ({
+            const iq = JibriSession._createIQ({
                 action: 'stop',
-                focusMucJid: 'focus@conference.example.com'
+                focusMucJid: 'focus@conference.example.com',
+                mode: 'stream'
             });
 
             const iqString = iq.toString();
@@ -588,13 +561,12 @@ describe('JibriSession', () => {
         });
 
         it('should include optional parameters when provided', () => {
-            const session = new JibriSession({ mode: 'stream' });
-
-            const iq = session._createIQ({
+            const iq = JibriSession._createIQ({
                 action: 'start',
                 appData: '{"service":"youtube"}',
                 broadcastId: 'broadcast-123',
                 focusMucJid: 'focus@conference.example.com',
+                mode: 'stream',
                 streamId: 'stream-key-456'
             });
 
@@ -642,7 +614,7 @@ describe('JibriSession', () => {
                 successCallback(stopResponse);
             });
 
-            await session.stop({ focusMucJid: 'focus@conference.example.com' });
+            await JibriSession.stop({ connection: mockConnection, focusMucJid: 'focus@conference.example.com', mode: 'file' });
 
             expect(sendIQSpy).toHaveBeenCalledTimes(2);
         });
