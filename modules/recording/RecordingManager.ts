@@ -173,11 +173,11 @@ class RecordingManager {
     stopRecording(sessionID: string): Promise<any> {
         const session = this.getSession(sessionID);
 
-        if (session) {
-            return session.stop({ focusMucJid: this._chatRoom.focusMucJid });
-        }
-
-        return Promise.reject(new Error('Could not find session'));
+        return JibriSession.stop({
+            connection: this._chatRoom.connection,
+            focusMucJid: this._chatRoom.focusMucJid,
+            mode: session?.getMode()
+        });
     }
 
     /**

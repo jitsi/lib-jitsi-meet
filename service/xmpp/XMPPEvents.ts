@@ -27,7 +27,7 @@ export enum XMPPEvents {
     AV_MODERATION_PARTICIPANT_APPROVED = 'xmpp.av_moderation.participant.approved',
 
     /**
-     * Event fired when we receive message that a new jid was approved.
+     * Event fired when we receive message that a new jid was rejected.
      */
     AV_MODERATION_PARTICIPANT_REJECTED = 'xmpp.av_moderation.participant.rejected',
 
