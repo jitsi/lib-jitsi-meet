@@ -97,7 +97,8 @@ describe('JitsiConference', () => {
                 true,                                // isVisitor
                 'msg123',                           // messageId
                 undefined,                          // source (undefined for visitor)
-                undefined                           // replyToId
+                undefined,                          // replyToId
+                undefined                           // isRetracted
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -109,7 +110,8 @@ describe('JitsiConference', () => {
                 true,                   // isVisitor
                 'msg123',              // messageId
                 undefined,             // source (undefined for visitor)
-                undefined              // replyToId
+                undefined,             // replyToId
+                undefined              // isRetracted
             );
         });
 
@@ -128,7 +130,8 @@ describe('JitsiConference', () => {
                 false,                               // isVisitor
                 'msg124',                           // messageId
                 'token',                            // source
-                undefined                           // replyToId
+                undefined,                          // replyToId
+                undefined                           // isRetracted
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -140,7 +143,8 @@ describe('JitsiConference', () => {
                 false,                  // isVisitor
                 'msg124',              // messageId
                 'token',               // source
-                undefined              // replyToId
+                undefined,             // replyToId
+                undefined              // isRetracted
             );
         });
 
@@ -159,7 +163,8 @@ describe('JitsiConference', () => {
                 false,                               // isVisitor
                 'msg125',                           // messageId
                 'guest',                            // source
-                undefined                           // replyToId
+                undefined,                          // replyToId
+                undefined                           // isRetracted
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -171,7 +176,8 @@ describe('JitsiConference', () => {
                 false,                  // isVisitor
                 'msg125',              // messageId
                 'guest',               // source
-                undefined              // replyToId
+                undefined,             // replyToId
+                undefined              // isRetracted
             );
         });
 
@@ -190,7 +196,8 @@ describe('JitsiConference', () => {
                 false,                               // isVisitor
                 'msg126',                           // messageId
                 undefined,                          // source
-                undefined                           // replyToId
+                undefined,                          // replyToId
+                undefined                           // isRetracted
             );
 
             expect(emitterSpy).toHaveBeenCalledWith(
@@ -202,7 +209,8 @@ describe('JitsiConference', () => {
                 false,                  // isVisitor
                 'msg126',              // messageId
                 undefined,             // source
-                undefined              // replyToId
+                undefined,             // replyToId
+                undefined              // isRetracted
             );
         });
 

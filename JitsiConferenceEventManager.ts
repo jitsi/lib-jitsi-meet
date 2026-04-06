@@ -383,12 +383,13 @@ export default class JitsiConferenceEventManager {
 
             // eslint-disable-next-line max-params
             (jid: string, txt: string, myJid: string, ts: number,
-                    displayName: string, isVisitor: boolean, messageId: string, source: string, replyToId?: string) => {
+                    displayName: string, isVisitor: boolean, messageId: string, source: string,
+                    replyToId?: string, isRetracted?: boolean) => {
                 const participantId = Strophe.getResourceFromJid(jid);
 
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.MESSAGE_RECEIVED,
-                    participantId, txt, ts, displayName, isVisitor, messageId, source, replyToId);
+                    participantId, txt, ts, displayName, isVisitor, messageId, source, replyToId, isRetracted);
             });
 
         this.chatRoomForwarder.forward(XMPPEvents.POLLS_RECEIVE_EVENT,
@@ -405,6 +406,21 @@ export default class JitsiConferenceEventManager {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.REACTION_RECEIVED,
                     participantId, reactionList, messageId);
+            });
+
+        chatRoom.addListener(
+            XMPPEvents.MESSAGE_RETRACTED,
+
+            // eslint-disable-next-line max-params
+            (messageId: string, retractedBy: string, stamp?: string,
+                    from?: string, nick?: string, displayName?: string) => {
+                // Use nick from <retracted> element (embedded by Prosody for history entries),
+                // fall back to extracting from the stanza's from JID
+                const participantId = nick || (from ? Strophe.getResourceFromJid(from) : undefined);
+
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.MESSAGE_RETRACTED,
+                    messageId, retractedBy, stamp, participantId, displayName);
             });
 
         chatRoom.addListener(
