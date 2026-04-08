@@ -396,6 +396,8 @@ export default class JitsiConferenceEventManager {
             JitsiConferenceEvents.POLL_RECEIVED);
         this.chatRoomForwarder.forward(XMPPEvents.POLLS_ANSWER_EVENT,
             JitsiConferenceEvents.POLL_ANSWER_RECEIVED);
+        this.chatRoomForwarder.forward(XMPPEvents.POLLS_DELETE_EVENT,
+            JitsiConferenceEvents.POLL_DELETED);
 
         chatRoom.addListener(
             XMPPEvents.REACTION_RECEIVED,

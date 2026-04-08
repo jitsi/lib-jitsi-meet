@@ -286,6 +286,11 @@ export enum XMPPEvents {
     POLLS_ANSWER_EVENT = 'xmpp.polls.answer.event',
 
     /**
+     * Event fired when a poll is deleted.
+     */
+    POLLS_DELETE_EVENT = 'xmpp.polls.delete.event',
+
+    /**
      * Event fired when we receive a message for polls.
      */
     POLLS_EVENT = 'xmpp.polls.event',
