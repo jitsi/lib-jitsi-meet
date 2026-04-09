@@ -3044,4 +3044,112 @@ describe('TPCUtils', () => {
             });
         });
     });
+
+    describe('mungeOpus()', () => {
+        let tpcUtils: TPCUtils;
+        let tpc: MockPeerConnection;
+
+        beforeEach(() => {
+            tpc = new MockPeerConnection();
+            tpcUtils = new TPCUtils(tpc);
+        });
+
+        it('skip when audioQuality is not provided or empty', () => {
+            const sdp = {
+                media: [ {
+                    type: MediaType.AUDIO,
+                    rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                    fmtp: [ { payload: 111, config: 'useinbandfec=1' } ]
+                } ]
+            };
+
+            let result = tpcUtils.mungeOpus(sdp, undefined);
+            expect(result.media[0].fmtp[0].config).toBe('useinbandfec=1');
+            expect(result.media[0].fmtp[0].config).not.toContain('stereo=');
+            expect(result.media[0].fmtp[0].config).not.toContain('maxaveragebitrate=');
+
+            result = tpcUtils.mungeOpus(sdp, {});
+            expect(result.media[0].fmtp[0].config).toBe('useinbandfec=1');
+            expect(result.media[0].fmtp[0].config).not.toContain('stereo=');
+            expect(result.media[0].fmtp[0].config).not.toContain('maxaveragebitrate=');
+        });
+
+        describe('modifying stereo and bitrate', () => {
+            it('and stereo with bitrate', () => {
+                const sdp = {
+                    media: [ {
+                        type: MediaType.AUDIO,
+                        rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                        fmtp: [ { payload: 111, config: '' } ]
+                    } ]
+                };
+
+                const result = tpcUtils.mungeOpus(sdp, { stereo: true, opusMaxAverageBitrate: 256000 });
+                expect(result.media[0].fmtp[0].config).toContain('stereo=1');
+                expect(result.media[0].fmtp[0].config).toContain('sprop-stereo=1');
+                expect(result.media[0].fmtp[0].config).toContain('maxaveragebitrate=256000');
+            });
+
+            it('and mono with bitrate', () => {
+                const sdp = {
+                    media: [ {
+                        type: MediaType.AUDIO,
+                        rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                        fmtp: [ { payload: 111, config: '' } ]
+                    } ]
+                };
+
+                const result = tpcUtils.mungeOpus(sdp, { stereo: false, opusMaxAverageBitrate: 64000 });
+                expect(result.media[0].fmtp[0].config).toContain('stereo=0');
+                expect(result.media[0].fmtp[0].config).toContain('sprop-stereo=0');
+                expect(result.media[0].fmtp[0].config).toContain('maxaveragebitrate=64000');
+            });
+
+            it('and bitrate only', () => {
+                const sdp = {
+                    media: [ {
+                        type: MediaType.AUDIO,
+                        rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                        fmtp: [ { payload: 111, config: '' } ]
+                    } ]
+                };
+
+                const result = tpcUtils.mungeOpus(sdp, { opusMaxAverageBitrate: 128000 });
+                expect(result.media[0].fmtp[0].config).toContain('maxaveragebitrate=128000');
+                expect(result.media[0].fmtp[0].config).not.toContain('stereo=');
+                expect(result.media[0].fmtp[0].config).not.toContain('sprop-stereo=');
+            });
+
+            it('and stereo only', () => {
+                const sdp = {
+                    media: [ {
+                        type: MediaType.AUDIO,
+                        rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                        fmtp: [ { payload: 111, config: '' } ]
+                    } ]
+                };
+
+                const result = tpcUtils.mungeOpus(sdp, { stereo: true });
+                expect(result.media[0].fmtp[0].config).toContain('stereo=1');
+                expect(result.media[0].fmtp[0].config).toContain('sprop-stereo=1');
+                expect(result.media[0].fmtp[0].config).not.toContain('maxaveragebitrate=');
+            });
+        });
+
+        it('keep existing fmtp config', () => {
+            const sdp = {
+                media: [ {
+                    type: MediaType.AUDIO,
+                    rtp: [ { codec: CodecMimeType.OPUS, payload: 111 } ],
+                    fmtp: [ { payload: 111, config: 'useinbandfec=1; dtx=0' } ]
+                } ]
+            };
+
+            const result = tpcUtils.mungeOpus(sdp, { stereo: true });
+            expect(result.media[0].fmtp[0].config).toContain('stereo=1');
+            expect(result.media[0].fmtp[0].config).toContain('sprop-stereo=1');
+            expect(result.media[0].fmtp[0].config).toContain('useinbandfec=1');
+            expect(result.media[0].fmtp[0].config).toContain('dtx=0');
+        });
+    });
 });
