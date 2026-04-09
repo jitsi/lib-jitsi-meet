@@ -407,7 +407,9 @@ export default class TraceablePeerConnection {
         // Initialize audio quality from config
         if (this.options?.audioQuality) {
             const audioQualityConfig = this.options.audioQuality;
-            const stereo = audioQualityConfig.stereo !== false;
+            const stereo = typeof audioQualityConfig.stereo === 'boolean'
+                ? audioQualityConfig.stereo
+                : undefined;
 
             // Determine maxaveragebitrate:
             // - Prefer the explicit stereo/mono fields.
