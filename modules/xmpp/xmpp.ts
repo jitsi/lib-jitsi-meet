@@ -664,6 +664,8 @@ export default class XMPP extends Listenable {
             }
 
             if (identity.type === 'room_metadata') {
+                // we will receive the turn info via metadata
+                this.sendDiscoInfo = false;
                 this.roomMetadataComponentAddress = identity.name;
                 this._components.push(this.roomMetadataComponentAddress);
             }
@@ -773,14 +775,11 @@ export default class XMPP extends Listenable {
             return;
         }
 
-        this.sendDiscoInfo = false;
-        const foundIceServers = this.connection.jingle.onReceiveStunAndTurnCredentials(msg) || false;
-
         const { features, identities } = parseDiscoInfo(msg);
 
         this._processDiscoInfoIdentities(identities, features);
 
-        if (foundIceServers || identities.size > 0 || features.size > 0) {
+        if (identities.size > 0 || features.size > 0) {
             this.connection._stropheConn.deleteHandler(this._sysMessageHandler);
             this._sysMessageHandler = null;
         }
