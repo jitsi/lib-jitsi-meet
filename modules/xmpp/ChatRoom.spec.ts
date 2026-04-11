@@ -1009,4 +1009,184 @@ describe('ChatRoom', () => {
                 null);       // replyToId ← null when no 'to' attribute
         });
     });
+
+    describe('onMessage - XEP-0359 stable message ID extraction', () => {
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                }),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            // roomjid is derived from bare JID, so 'room@conference.example.com'
+            room = new ChatRoom(
+                {}/* connection */,
+                'room@conference.example.com/nick',
+                'password',
+                xmpp,
+                {});
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('prefers stanza-id whose by matches the MUC bare JID', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                    '<stanza-id xmlns="urn:xmpp:sid:0" id="server-assigned-id" by="room@conference.example.com"/>' +
+                    '<origin-id xmlns="urn:xmpp:sid:0" id="client-origin-id"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'server-assigned-id', // stanza-id preferred
+                undefined,
+                null);
+        });
+
+        it('ignores stanza-id with non-matching by attribute and falls back to origin-id', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                    '<stanza-id xmlns="urn:xmpp:sid:0" id="other-server-id" by="other@conference.example.com"/>' +
+                    '<origin-id xmlns="urn:xmpp:sid:0" id="client-origin-id"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'client-origin-id', // origin-id used when stanza-id by doesn't match
+                undefined,
+                null);
+        });
+
+        it('falls back to origin-id when no stanza-id is present', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                    '<origin-id xmlns="urn:xmpp:sid:0" id="client-origin-id"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'client-origin-id', // origin-id fallback
+                undefined,
+                null);
+        });
+
+        it('falls back to stanza id attribute when no XEP-0359 elements are present', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="plain-stanza-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'plain-stanza-id', // stanza id attribute fallback
+                undefined,
+                null);
+        });
+
+        it('ignores stanza-id with wrong namespace', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                    '<stanza-id xmlns="urn:xmpp:wrong:0" id="wrong-ns-id" by="room@conference.example.com"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'fallback-id', // falls back to stanza id attr
+                undefined,
+                null);
+        });
+
+        it('selects the correct stanza-id among multiple stanza-id elements', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Hello</body>' +
+                    '<stanza-id xmlns="urn:xmpp:sid:0" id="other-server-id" by="other@server.example.com"/>' +
+                    '<stanza-id xmlns="urn:xmpp:sid:0" id="correct-muc-id" by="room@conference.example.com"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                'fromjid',
+                'Hello',
+                room.myroomjid,
+                null,
+                undefined,
+                false,
+                'correct-muc-id', // correct stanza-id by matching MUC JID
+                undefined,
+                null);
+        });
+
+        it('also works for private (chat) messages with stanza-id', () => {
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="chat" id="fallback-id" xmlns="jabber:client">' +
+                    '<body>Private hello</body>' +
+                    '<stanza-id xmlns="urn:xmpp:sid:0" id="server-assigned-id" by="room@conference.example.com"/>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, 'fromjid');
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                'fromjid',
+                'Private hello',
+                room.myroomjid,
+                null,
+                'server-assigned-id', // stanza-id preferred for private messages too
+                undefined,
+                false,
+                undefined,
+                null);
+        });
+    });
 });
