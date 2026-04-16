@@ -874,13 +874,17 @@ export default class TraceablePeerConnection {
      * @param {RTCSessionDescription} description - The description to be munged.
      * @returns {RTCSessionDescription} - The munged description.
      */
-    private _mungeDescription(description: RTCSessionDescription): RTCSessionDescription {
+    private _mungeDescription(description: RTCSessionDescription, isLocal: boolean = true): RTCSessionDescription {
         this.trace('RTCSessionDescription::preTransform', TraceablePeerConnection.dumpSDP(description));
         let mungedSdp = transform.parse(description?.sdp);
 
         mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
         mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
         mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
+
+        if (!isLocal) {
+            mungedSdp = this.tpcUtils._stripSdesMid(mungedSdp);
+        }
         const mungedDescription = new RTCSessionDescription({
             sdp: transform.write(mungedSdp),
             type: description.type
