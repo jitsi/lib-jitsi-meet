@@ -335,8 +335,8 @@ export class TPCUtils {
 
     /**
      * Removes the sdes:mid RTP header extension from the remote SDP for Firefox. Opting into sdes:mid negotiation
-     * was enabled on Chrome to fix OHTTP/SSRC demuxing issues (https://issues.webrtc.org/issues/502130956) but
-     * Firefox does not handle the sdes:mid header extension well, causing audio/video SSRC demuxing failures.
+     * was enabled on Chrome to fix SSRC demuxing issues (https://issues.webrtc.org/issues/502130956), but Firefox
+     * does not handle the sdes:mid header extension well, causing audio/video SSRC demuxing failures.
      *
      * @param {SessionDescription} parsedSdp - The parsed SDP that needs to be munged.
      * @returns {SessionDescription} The munged SDP.
