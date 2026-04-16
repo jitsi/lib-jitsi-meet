@@ -334,6 +334,31 @@ export class TPCUtils {
     }
 
     /**
+     * Removes the sdes:mid RTP header extension from the remote SDP for Firefox. Opting into sdes:mid negotiation
+     * was enabled on Chrome to fix SSRC demuxing issues (https://issues.webrtc.org/issues/502130956), but Firefox
+     * does not handle the sdes:mid header extension well, causing audio/video SSRC demuxing failures.
+     *
+     * @param {SessionDescription} parsedSdp - The parsed SDP that needs to be munged.
+     * @returns {SessionDescription} The munged SDP.
+     * @internal
+     */
+    _stripSdesMid(parsedSdp: SessionDescription): SessionDescription {
+        if (!browser.isFirefox()) {
+            return parsedSdp;
+        }
+
+        const mungedSdp = parsedSdp;
+
+        for (const mLine of mungedSdp.media) {
+            if (mLine.ext) {
+                mLine.ext = mLine.ext.filter(ext => ext.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid');
+            }
+        }
+
+        return mungedSdp;
+    }
+
+    /**
      * Returns the calculated active state of the stream encodings based on the frame height requested for the send
      * stream. All the encodings that have a resolution lower than the frame height requested will be enabled.
      *
