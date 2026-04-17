@@ -377,6 +377,13 @@ export default class JitsiTrack extends Listenable {
     }
 
     /**
+     * Returns the underlying capture MediaStreamTrack.
+     */
+    public getCaptureTrack(): MediaStreamTrack | null {
+        return this.track;
+    }
+
+    /**
      * Return the underlying WebRTC MediaStreamTrack label
      * @returns {string}
      */
