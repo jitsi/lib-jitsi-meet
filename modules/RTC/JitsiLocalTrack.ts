@@ -754,6 +754,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the underlying capture MediaStreamTrack.
+     */
+    public getCaptureTrack(): MediaStreamTrack | null {
+        if (this._originalStream) {
+            const kind = this.track?.kind;
+            const tracks = this._originalStream.getTracks().filter(t => t.kind === kind);
+
+            return tracks.length ? tracks[0] : this._originalStream.getTracks()[0] ?? null;
+        }
+
+        return this.track ?? null;
+    }
+
+    /**
      * Returns device id associated with track.
      *
      * @returns {string}
@@ -1053,16 +1067,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Applies media constraints to the current MediaStreamTrack.
+     * Applies constraints to the capture track (physical device).
      *
-     * @param {IAudioConstraints} constraints - Media constraints to apply.
-     * @returns {Promise<void>}
+     * @param {MediaTrackConstraints | IAudioConstraints} constraints - Media constraints to apply.
      */
-    async applyConstraints(constraints: IAudioConstraints): Promise<void> {
+    async applyConstraints(constraints: MediaTrackConstraints | IAudioConstraints): Promise<void> {
         const mediaType = this.getType();
 
         if (!this.isAudioTrack()) {
-            throw new Error(`Media ${mediaType} is not supported, track must be audio`);
+            const captureTrack = this.getCaptureTrack();
+
+            if (!captureTrack) {
+                return Promise.reject(new Error('No capture track available'));
+            }
+
+            return (captureTrack as any).applyConstraints(constraints) as Promise<void>;
         }
 
         const hasAudioMixEffect = typeof this._streamEffect?.setMuted === 'function';
