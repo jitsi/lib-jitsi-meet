@@ -1144,7 +1144,7 @@ export default class ChatRoom extends Listenable {
         }
 
         if (replyToId) {
-            msg.up().c('reply', { to: replyToId });
+            msg.c('reply', { to: replyToId, xmlns: 'urn:xmpp:reply:0' });
         }
 
         this.connection.send(msg);
@@ -1202,7 +1202,7 @@ export default class ChatRoom extends Listenable {
         }
 
         if (replyToId) {
-            msg.c('reply', { to: replyToId });
+            msg.c('reply', { to: replyToId, xmlns: 'urn:xmpp:reply:0' });
         }
 
         this.connection.send(msg);
