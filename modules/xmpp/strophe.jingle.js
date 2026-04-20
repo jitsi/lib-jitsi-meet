@@ -44,6 +44,47 @@ function _parseIceCandidates(transport) {
 }
 
 /**
+ * Parse service received over xep-0215 and add it to the list of ice servers.
+ * @param iceservers - the list of ice servers to add the parsed service to.
+ * @param param1
+ * @param param1.type
+ * @param param1.host
+ * @param param1.port
+ * @param param1.username
+ * @param param1.password
+ * @param param1.transport
+ * @private
+ */
+function _parseService(iceservers, { type, host, port, username, password, transport }) {
+    const dict = {};
+
+    switch (type) {
+    case 'stun': {
+        dict.urls = `stun:${host}`;
+        if (port) {
+            dict.urls += `:${port}`;
+        }
+        iceservers.push(dict);
+        break;
+    }
+    case 'turn':
+    case 'turns': {
+        dict.urls = `${type}:${host}`;
+        dict.username = username;
+        if (port) {
+            dict.urls += `:${port}`;
+        }
+        if (transport && transport !== 'udp') {
+            dict.urls += `?transport=${transport}`;
+        }
+        dict.credential = password;
+        iceservers.push(dict);
+        break;
+    }
+    }
+}
+
+/**
  *
  */
 export default class JingleConnectionPlugin extends ConnectionPlugin {
@@ -364,43 +405,18 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
     onReceiveStunAndTurnCredentials(res) {
         let iceservers = [];
 
-        findAll(res, ':scope>services>service').forEach(el => {
-            const dict = {};
-            const type = getAttribute(el, 'type');
-
-            switch (type) {
-            case 'stun': {
-                dict.urls = `stun:${getAttribute(el, 'host')}`;
-                const port = getAttribute(el, 'port');
-
-                if (port) {
-                    dict.urls += `:${port}`;
-                }
-                iceservers.push(dict);
-                break;
-            }
-            case 'turn':
-            case 'turns': {
-                dict.urls = `${type}:`;
-                dict.username = getAttribute(el, 'username');
-                dict.urls += getAttribute(el, 'host');
-                const turnPort = getAttribute(el, 'port');
-
-                if (turnPort) {
-                    dict.urls += `:${turnPort}`;
-                }
-                const transport = getAttribute(el, 'transport');
-
-                if (transport && transport !== 'udp') {
-                    dict.urls += `?transport=${transport}`;
-                }
-
-                dict.credential = getAttribute(el, 'password') || dict.credential;
-                iceservers.push(dict);
-                break;
-            }
-            }
-        });
+        if (Array.isArray(res?.services)) {
+            res.services.forEach(s => _parseService(iceservers, s));
+        } else {
+            findAll(res, ':scope>services>service').forEach(el => _parseService(iceservers, {
+                host: getAttribute(el, 'host'),
+                password: getAttribute(el, 'password'),
+                port: getAttribute(el, 'port'),
+                transport: getAttribute(el, 'transport'),
+                type: getAttribute(el, 'type'),
+                username: getAttribute(el, 'username')
+            }));
+        }
 
         const options = this.xmpp.options;
         const { iceServersOverride = [] } = options;
