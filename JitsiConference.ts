@@ -2775,7 +2775,7 @@ export default class JitsiConference extends Listenable {
    * @param {string} messageId - The ID of the message to attach the reaction to.
    * @param {string} receiverId - The intended recipient, if the message is private.
    */
-    public sendReaction(reaction: string, messageId: string, receiverId: string): void {
+    public sendReaction(reaction: string, messageId: string, receiverId?: string): void {
         if (this.room) {
             this.room.sendReaction(reaction, messageId, receiverId);
         }
