@@ -191,7 +191,7 @@ export default class Moderator extends Listenable {
             conferenceRequest.sessionId = sessionId;
         }
 
-        if (!config.iAmRecorder && !config.iAmSipGateway) {
+        if (!config.iAmRecorder || config.iAmSipGateway) {
             conferenceRequest.properties['visitors-version'] = 1;
 
             if (this.options.preferVisitor) {
@@ -412,9 +412,9 @@ export default class Moderator extends Listenable {
             // Reset the non-error timeout (because we've succeeded here).
             this.getNextTimeout(true);
 
-            // we want to ignore redirects when this is jibri (record/live-stream or a sip jibri)
+            // we want to ignore redirects when this is jibri (record/live-stream but not a sip jibri)
             // we ignore redirects when moving from a breakout room to the main room
-            if (conferenceRequest.vnode && !this.options.iAmRecorder && !this.options.iAmSipGateway) {
+            if (conferenceRequest.vnode && (!this.options.iAmRecorder || this.options.iAmSipGateway)) {
                 if (this.connection._breakoutMovingToMain === roomJid) {
                     logger.info('Skipping redirect as we are moving from breakout to main.');
 
