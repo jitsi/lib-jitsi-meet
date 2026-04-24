@@ -66,8 +66,10 @@ interface IXmppConnectionOptions {
     enableWebsocketResume?: boolean;
     serviceUrl: string;
     shard?: string;
+    token?: string;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: string;
+    websocketWarmUpUrl?: string;
     xmppPing?: IXmppPingOptions;
 }
 
@@ -78,8 +80,10 @@ interface IInternalOptions {
     enableWebsocketResume: boolean;
     pingOptions?: IXmppPingOptions;
     shard?: string;
+    token?: string;
     websocketKeepAlive: number;
     websocketKeepAliveUrl?: string;
+    websocketWarmUpUrl?: string;
 }
 
 const TOKEN_REFRESH = 'token_refresh';
@@ -100,11 +104,11 @@ export default class XmppConnection extends Listenable {
     private _options: IInternalOptions;
     private _usesWebsocket: boolean;
     private _rawInputTracker: LastSuccessTracker;
-    private _resumeTask: ResumeTask;
     private _deferredIQs: IDeferredSendIQ[];
     private _oneSuccessfulConnect: boolean;
     private _status: Strophe.Status;
     private _wsKeepAlive: Optional<ReturnType<typeof setTimeout>>;
+    _resumeTask: ResumeTask;
 
     /**
      * @internal
@@ -156,17 +160,32 @@ export default class XmppConnection extends Listenable {
      * if missing the serviceUrl url will be used.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
-    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }: IXmppConnectionOptions) {
+    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, websocketWarmUpUrl, serviceUrl, shard, xmppPing, token }: IXmppConnectionOptions) {
         super();
         this._options = {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
             pingOptions: xmppPing,
             shard,
+            token,
             websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive),
-            websocketKeepAliveUrl
+            websocketKeepAliveUrl,
+            websocketWarmUpUrl
         };
 
-        this._stropheConn = new Strophe.Connection(serviceUrl);
+        let customHeaders;
+
+        // Append token as URL param
+        if (token && !websocketWarmUpUrl) {
+            // eslint-disable-next-line no-param-reassign
+            serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
+
+            // this is used by bosh
+            customHeaders = {
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        this._stropheConn = new Strophe.Connection(serviceUrl, { customHeaders });
 
         // The mechanisms priorities as defined by Strophe
         // *      Mechanism       Priority
@@ -799,10 +818,28 @@ export default class XmppConnection extends Listenable {
     /**
      * This method allows renewal of the tokens if they are expiring. The token is included in the service URL.
      *
-     * @param {string} serviceUrl - The new service URL to connect to, if needed.
+     * @param {string} token - The new token.
      */
-    refreshToken(serviceUrl: string): Promise<void> {
-        this._stropheConn.service = serviceUrl;
+    async refreshToken(token: string): Promise<void> {
+        if (this._options.websocketWarmUpUrl) {
+            this._options.token = token;
+
+            const response = await fetch(this._options.websocketWarmUpUrl, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                method: 'POST'
+            });
+            const data = await response.json();
+            const { streamManagement } = this._stropheConn;
+
+            if (streamManagement) {
+                streamManagement._resumeToken = data.resumptionKey;
+            }
+        } else {
+            const serviceUrl = new URL(this._stropheConn.service);
+
+            serviceUrl.searchParams.set('token', token);
+            this._stropheConn.service = serviceUrl.toString();
+        }
 
         return new Promise((resolve, reject) => {
             let timeoutId: ReturnType<typeof setTimeout> = undefined;
