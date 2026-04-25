@@ -4352,13 +4352,17 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sets the key and index for End-to-End encryption.
+     * Sets the encryption key and key index for End-to-End encryption.
      *
-     * @param {CryptoKey} [keyInfo.encryptionKey] - encryption key.
-     * @param {Number} [keyInfo.index] - the index of the encryption key.
+     * @param {Uint8Array|ArrayBuffer|false} [keyInfo.encryptionKey] - Raw key material bytes fed
+     *   into the HKDF-SHA-256 derivation pipeline inside the E2EE worker.  Pass {@code false} to
+     *   disable encryption for this participant.
+     * @param {number} [keyInfo.index] - Key ring slot index (0–15).
+     * @param {string} [keyInfo.participantId] - ID of the participant whose context is being
+     *   updated.  When omitted the local participant's ID is used (configures the encode key).
      * @returns {void}
      */
-    public setMediaEncryptionKey(keyInfo: CryptoKey): void {
+    public setMediaEncryptionKey(keyInfo: { encryptionKey: Uint8Array | ArrayBuffer | false; index: number; participantId?: string; }): void {
         this._e2eEncryption.setEncryptionKey(keyInfo);
     }
 
