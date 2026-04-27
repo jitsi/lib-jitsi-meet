@@ -4367,6 +4367,18 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends an encrypted custom message through the OLM E2EE channel.
+     * Available only when e2ee.externallyManagedKey is true and OLM is supported.
+     *
+     * @param {string} participantId - Target participant ID, or '' for broadcast to all.
+     * @param {string} type - Application-defined message type (e.g. 'encedo:kyber-pub').
+     * @param {object} payload - Arbitrary JSON-serializable payload.
+     */
+    public sendOlmMessage(participantId: string, type: string, payload: object): void {
+        this._e2eEncryption?.sendOlmMessage(participantId, type, payload);
+    }
+
+    /**
      * Starts the participant verification process.
      *
      * @param {string} participantId The participant which will be marked as verified.

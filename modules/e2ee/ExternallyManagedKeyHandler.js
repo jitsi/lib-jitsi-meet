@@ -1,4 +1,11 @@
+import { getLogger } from '@jitsi/logger';
+
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+
 import { KeyHandler } from './KeyHandler';
+import { OlmAdapter } from './OlmAdapter';
+
+const logger = getLogger('e2ee:ExternallyManagedKeyHandler');
 
 /**
  * This module integrates {@link E2EEContext} with an external key provider in order to set the
@@ -24,6 +31,10 @@ import { KeyHandler } from './KeyHandler';
  * Per-sender mode enables asymmetric key distribution (each sender encrypts with their own
  * unique key) while still operating within the standard Jitsi SFU topology where the server
  * forwards a single encrypted stream per sender to all receivers.
+ *
+ * When OLM is available an {@link OlmAdapter} is created to provide an encrypted custom-message
+ * channel between participants (used by the host-app for ML-KEM key exchange and HSM attestation).
+ * The OLM channel is independent of media-key distribution; no keys are exchanged automatically.
  */
 export class ExternallyManagedKeyHandler extends KeyHandler {
     /**
@@ -39,6 +50,54 @@ export class ExternallyManagedKeyHandler extends KeyHandler {
         const sharedKey = e2ee.externallyManagedSharedKey !== false;
 
         super(conference, { sharedKey });
+
+        if (OlmAdapter.isSupported()) {
+            this._olmAdapter = new OlmAdapter(conference);
+
+            this._olmAdapter.on(
+                OlmAdapter.events.CUSTOM_MESSAGE_RECEIVED,
+                (from, type, payload) => {
+                    this.conference.eventEmitter.emit(
+                        JitsiConferenceEvents.OLM_MESSAGE_RECEIVED, from, type, payload);
+                });
+        }
+    }
+
+    /**
+     * Enables / disables E2EE.  When enabled, OLM sessions are established with
+     * all other participants to provide the custom-message transport.
+     *
+     * @param {boolean} enabled
+     */
+    async _setEnabled(enabled) {
+        if (!this._olmAdapter) {
+            return;
+        }
+
+        if (enabled) {
+            await this._olmAdapter.initSessions();
+            logger.debug('OLM sessions established for custom-message transport');
+        } else {
+            this._olmAdapter.clearAllParticipantsSessions();
+        }
+    }
+
+    /**
+     * Sends an encrypted custom message to a participant (or all if participantId is falsy)
+     * through the OLM E2EE channel.
+     *
+     * @param {string} participantId - Target participant ID, or '' / null for broadcast.
+     * @param {string} type - Application-defined message type (e.g. 'encedo:kyber-pub').
+     * @param {object} payload - Arbitrary JSON-serializable payload.
+     */
+    sendCustomMessage(participantId, type, payload) {
+        if (!this._olmAdapter) {
+            logger.warn('sendCustomMessage called but OLM is not available');
+
+            return;
+        }
+
+        this._olmAdapter.sendCustomMessage(participantId, type, payload);
     }
 
     /**
