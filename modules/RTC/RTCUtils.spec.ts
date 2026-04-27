@@ -85,6 +85,33 @@ describe('RTCUtils', () => {
             jasmine.clock().uninstall();
         });
 
+        it('emits the error event only once when timeout fires before gUM rejects', async () => {
+            jasmine.clock().install();
+
+            let rejectGum: ((reason: unknown) => void) | undefined;
+
+            getUserMediaSpy.and.returnValue(new Promise((_resolve, reject) => {
+                rejectGum = reject;
+            }));
+
+            const gumPromise = (RTCUtils as any)._getUserMedia([ 'audio' ], {}, 100);
+
+            // Trigger the timeout — emits once.
+            jasmine.clock().tick(150);
+            await expectAsync(gumPromise).toBeRejected();
+
+            expect(rtcStatsSpy).toHaveBeenCalledTimes(1);
+
+            // Now have the underlying gUM reject after the fact — must not emit a second event.
+            rejectGum?.(Object.assign(new Error('Late rejection'), { name: 'NotAllowedError' }));
+            await Promise.resolve();
+            await Promise.resolve();
+
+            expect(rtcStatsSpy).toHaveBeenCalledTimes(1);
+
+            jasmine.clock().uninstall();
+        });
+
         it('does not emit GET_USER_MEDIA_ERROR_EVENT when getUserMedia succeeds', async () => {
             const fakeStream = {
                 getAudioTracks: () => [],

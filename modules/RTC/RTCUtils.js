@@ -429,14 +429,16 @@ class RTCUtils extends Listenable {
                     logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
                     const jitsiError = new JitsiTrackError(error, constraints, umDevices);
 
-                    RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
-                        constraint: error.constraint,
-                        devices: umDevices,
-                        message: error.message,
-                        name: error.name
-                    });
-
                     if (!timeoutExpired) {
+                        // Skip emitting when the timeout already fired and reported the failure,
+                        // to avoid double-reporting a single gUM call.
+                        RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
+                            constraint: error.constraint,
+                            devices: umDevices,
+                            message: error.message,
+                            name: error.name
+                        });
+
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
