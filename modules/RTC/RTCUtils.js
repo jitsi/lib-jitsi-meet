@@ -9,6 +9,8 @@ import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
@@ -399,7 +401,16 @@ class RTCUtils extends Listenable {
                 gumTimeout = setTimeout(() => {
                     timeoutExpired = true;
                     gumTimeout = undefined;
-                    reject(new JitsiTrackError(JitsiTrackErrors.TIMEOUT));
+
+                    const timeoutError = new JitsiTrackError(JitsiTrackErrors.TIMEOUT);
+
+                    RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
+                        devices: umDevices,
+                        message: timeoutError.message,
+                        name: timeoutError.name
+                    });
+
+                    reject(timeoutError);
                 }, timeout);
             }
 
@@ -419,6 +430,15 @@ class RTCUtils extends Listenable {
                     const jitsiError = new JitsiTrackError(error, constraints, umDevices);
 
                     if (!timeoutExpired) {
+                        // Skip emitting when the timeout already fired and reported the failure,
+                        // to avoid double-reporting a single gUM call.
+                        RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
+                            constraint: error.constraint,
+                            devices: umDevices,
+                            message: error.message,
+                            name: error.name
+                        });
+
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
