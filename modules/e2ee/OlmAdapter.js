@@ -19,6 +19,7 @@ const logger = getLogger('e2ee:OlmAdapter');
 const REQ_TIMEOUT = 5 * 1000;
 const OLM_MESSAGE_TYPE = 'olm';
 const OLM_MESSAGE_TYPES = {
+    CUSTOM: 'custom',
     ERROR: 'error',
     KEY_INFO: 'key-info',
     KEY_INFO_ACK: 'key-info-ack',
@@ -37,6 +38,7 @@ const OLM_KEY_VERIFICATION_MAC_KEY_IDS = 'Jitsi-KEY_IDS';
 const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
+    CUSTOM_MESSAGE_RECEIVED: 'olm.custom_message_received',
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_SAS_AVAILABLE: 'olm.participant_sas_available',
@@ -237,6 +239,43 @@ export class OlmAdapter extends Listenable {
         this._mediaKey = key;
 
         return this._mediaKeyIndex;
+    }
+
+    /**
+     * Sends an encrypted custom message to the given participant (or all if participantId is falsy).
+     *
+     * @param {string} participantId - Target participant ID, or '' / null for broadcast to all.
+     * @param {string} type - Application-defined message type (e.g. 'encedo:kyber-pub').
+     * @param {object} payload - Arbitrary JSON-serializable payload.
+     */
+    sendCustomMessage(participantId, type, payload) {
+        const msg = JSON.stringify({ payload,
+            type });
+        const recipients = participantId
+            ? [ this._conf.getParticipantById(participantId) ].filter(Boolean)
+            : this._conf.getParticipants();
+
+        for (const participant of recipients) {
+            const pId = participant.getId();
+            const olmData = this._getParticipantOlmData(participant);
+
+            if (!olmData.session) {
+                logger.warn(`No OLM session with ${pId}, skipping custom message`);
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            const data = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    data: { ciphertext: olmData.session.encrypt(msg) },
+                    type: OLM_MESSAGE_TYPES.CUSTOM
+                }
+            };
+
+            this._sendMessage(data, pId);
+        }
     }
 
     /**
@@ -517,6 +556,20 @@ export class OlmAdapter extends Listenable {
         const olmData = this._getParticipantOlmData(participant);
 
         switch (msg.type) {
+        case OLM_MESSAGE_TYPES.CUSTOM: {
+            if (olmData.session) {
+                const { ciphertext } = msg.data;
+                const decrypted = olmData.session.decrypt(ciphertext.type, ciphertext.body);
+                const json = safeJsonParse(decrypted);
+
+                if (json.type) {
+                    this.eventEmitter.emit(OlmAdapterEvents.CUSTOM_MESSAGE_RECEIVED, pId, json.type, json.payload);
+                }
+            } else {
+                logger.debug(`Received custom message from ${pId} but we have no session for them!`);
+            }
+            break;
+        }
         case OLM_MESSAGE_TYPES.SESSION_INIT: {
             if (olmData.session) {
                 logger.warn(`Participant ${pId} already has a session`);
