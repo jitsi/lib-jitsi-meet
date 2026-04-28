@@ -1132,7 +1132,11 @@ export default class XMPP extends Listenable {
                 },
                 method: 'POST'
             })
-                .then(function(response) {
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Warmup request failed with status ${response.status}`);
+                    }
+
                     return response.json();
                 })
                 .then(data => {
@@ -1188,8 +1192,18 @@ export default class XMPP extends Listenable {
                     // 6. Trigger the actual WebSocket reconnect + resume stanza.
                     this.connection._resumeTask.resumeConnection();
                 })
-                .catch(function(err) {
-                    console.error('Request failed:', err);
+                .catch(err => {
+                    logger.warn('Warmup request failed, falling back to normal connect:', err);
+
+                    // The XmppConnection constructor omits the token from the service URL when
+                    // websocketWarmUpUrl is configured. Re-add it so the fallback connection is authenticated.
+                    const stropheConn = this.connection._stropheConn;
+                    const serviceUrl = new URL(stropheConn.service);
+
+                    serviceUrl.searchParams.set('token', this.token);
+                    stropheConn.service = serviceUrl.toString();
+
+                    this._connect(jid, password);
                 });
         } else {
             return this._connect(jid, password);
