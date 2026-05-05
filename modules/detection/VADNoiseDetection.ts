@@ -62,7 +62,7 @@ export default class VADNoiseDetection extends EventEmitter {
     /**
      * Timeout reference for processing VAD scores.
      */
-    private _processTimeout?: NodeJS.Timeout;
+    private _processTimeout?: ReturnType<typeof setTimeout>;
 
     /**
      * Creates <tt>VADNoiseDetection</tt>

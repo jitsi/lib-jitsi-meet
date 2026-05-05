@@ -812,7 +812,8 @@ export default class JitsiConference extends Listenable {
         Statistics.sendAnalytics(createConferenceEvent('joined', {
             ...connectionTimes,
             meetingId,
-            participantId: `${meetingId}.${this._statsCurrentId}`
+            participantId: `${meetingId}.${this._statsCurrentId}`,
+            supportsTurnInRoomMetadata: true
         }));
         this._conferenceJoinAnalyticsEventSent = Date.now();
     }

@@ -323,11 +323,6 @@ export default class XmppConnection extends Listenable {
      */
     set shard(value: string) {
         this._options.shard = value;
-
-        // shard setting changed so let's schedule a new keep-alive check if connected
-        if (this._oneSuccessfulConnect) {
-            this._maybeStartWSKeepAlive();
-        }
     }
 
     /**

@@ -18,7 +18,7 @@ import browser from '../browser';
 import SDPUtil from '../sdp/SDPUtil';
 
 import JitsiLocalTrack from './JitsiLocalTrack';
-import TraceablePeerConnection, { IAudioQuality, IRTCRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
+import TraceablePeerConnection, { IAppliedAudioQuality, IAudioQuality, IRTCRtpEncodingParameters, IVideoQuality } from './TraceablePeerConnection';
 
 const logger = getLogger('rtc:TPCUtils');
 const VIDEO_CODECS = [ CodecMimeType.AV1, CodecMimeType.H264, CodecMimeType.VP8, CodecMimeType.VP9 ];
@@ -331,6 +331,31 @@ export class TPCUtils {
         return localVideoTrack.getVideoType() === VideoType.DESKTOP
             && this.pc._capScreenshareBitrate
             && !browser.isWebKitBased();
+    }
+
+    /**
+     * Removes the sdes:mid RTP header extension from the remote SDP for Firefox. Opting into sdes:mid negotiation
+     * was enabled on Chrome to fix SSRC demuxing issues (https://issues.webrtc.org/issues/502130956), but Firefox
+     * does not handle the sdes:mid header extension well, causing audio/video SSRC demuxing failures.
+     *
+     * @param {SessionDescription} parsedSdp - The parsed SDP that needs to be munged.
+     * @returns {SessionDescription} The munged SDP.
+     * @internal
+     */
+    _stripSdesMid(parsedSdp: SessionDescription): SessionDescription {
+        if (!browser.isFirefox()) {
+            return parsedSdp;
+        }
+
+        const mungedSdp = parsedSdp;
+
+        for (const mLine of mungedSdp.media) {
+            if (mLine.ext) {
+                mLine.ext = mLine.ext.filter(ext => ext.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid');
+            }
+        }
+
+        return mungedSdp;
     }
 
     /**
@@ -828,13 +853,15 @@ export class TPCUtils {
      * if present.
      *
      * @param {SessionDescription} parsedSdp that needs to be munged.
+     * @param {IAppliedAudioQuality} audioQuality - The audio quality settings applied on the peer connection.
      * @returns {SessionDescription} the munged SDP.
      * @internal
      */
-    mungeOpus(parsedSdp: SessionDescription): SessionDescription {
-        const { audioQuality } = this.options;
-
-        if (!audioQuality?.enableOpusDtx && !audioQuality?.stereo && !audioQuality?.opusMaxAverageBitrate) {
+    mungeOpus(parsedSdp: SessionDescription, audioQuality?: IAppliedAudioQuality): SessionDescription {
+        if (!audioQuality
+            || (typeof audioQuality.enableOpusDtx !== 'boolean'
+                && typeof audioQuality.stereo !== 'boolean'
+                && typeof audioQuality.opusMaxAverageBitrate !== 'number')) {
             return parsedSdp;
         }
 
@@ -861,12 +888,13 @@ export class TPCUtils {
             const fmtpConfig = transform.parseParams(fmtpOpus.config);
             let sdpChanged = false;
 
-            if (audioQuality?.stereo) {
-                fmtpConfig.stereo = 1;
+            if (typeof audioQuality?.stereo === 'boolean') {
+                fmtpConfig.stereo = audioQuality.stereo ? 1 : 0;
+                fmtpConfig['sprop-stereo'] = audioQuality.stereo ? 1 : 0;
                 sdpChanged = true;
             }
 
-            if (audioQuality?.opusMaxAverageBitrate) {
+            if (typeof audioQuality?.opusMaxAverageBitrate === 'number') {
                 fmtpConfig.maxaveragebitrate = audioQuality.opusMaxAverageBitrate;
                 sdpChanged = true;
             }

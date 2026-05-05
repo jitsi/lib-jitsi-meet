@@ -24,7 +24,7 @@ export default class ResumeTask {
     private _stropheConn: Strophe.Connection;
     private _resumeRetryN: number;
     private _retryDelay: Optional<number>;
-    private _resumeTimeout: Optional<NodeJS.Timeout>;
+    private _resumeTimeout: Optional<ReturnType<typeof setTimeout>>;
     private _networkOnlineListener: Nullable<() => void>;
 
     /**

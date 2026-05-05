@@ -36,6 +36,17 @@ export enum RTCStatsEvents {
     ENCODER_CPU_RESTRICTED_EVENT = 'cpuRestricted',
 
     /**
+     * Event that indicates that a getUserMedia call has failed.
+     *
+     * @param {object} data - The data.
+     * @param {string} data.name - The error name (e.g. 'NotAllowedError', 'NotFoundError', 'OverconstrainedError').
+     * @param {string} data.message - The error message.
+     * @param {string} [data.constraint] - The failed constraint name, when applicable (OverconstrainedError).
+     * @param {Array<string>} data.devices - The media types that were requested (e.g. ['audio', 'video', 'desktop']).
+     */
+    GET_USER_MEDIA_ERROR_EVENT = 'getUserMediaError',
+
+    /**
      * Event that indicates that the JVB media session is restarted because of ICE failure.
      */
     JVB_ICE_RESTARTED_EVENT = 'jvbIceRestarted',
