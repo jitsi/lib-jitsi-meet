@@ -661,29 +661,30 @@ export class TPCUtils {
      */
     injectSsrcGroupForSimulcast(desc: RTCSessionDescription): RTCSessionDescription {
         const sdp = transform.parse(desc.sdp);
-        const video = sdp.media.find(mline => mline.type === 'video');
+        const videoMlines = sdp.media.filter(mline => mline.type === 'video');
+        let modified = false;
 
-        // Check if the browser supports RTX, add only the primary ssrcs to the SIM group if that is the case.
-        video.ssrcGroups = video.ssrcGroups || [];
-        const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
-
-        if (video.simulcast || video.simulcast_03) {
+        for (const video of videoMlines) {
+            if (!(video.simulcast || video.simulcast_03)) {
+                continue;
+            }
+            video.ssrcGroups = video.ssrcGroups || [];
+            if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
+                continue;
+            }
+            const fidGroups = video.ssrcGroups.filter(group => group.semantics === SSRC_GROUP_SEMANTICS.FID);
             const ssrcs = [];
 
             if (fidGroups?.length) {
                 fidGroups.forEach(group => {
                     ssrcs.push(group.ssrcs.split(' ')[0]);
                 });
-            } else {
+            } else if (video.ssrcs) {
                 video.ssrcs.forEach(ssrc => {
                     if (ssrc.attribute === 'msid') {
                         ssrcs.push(ssrc.id);
                     }
                 });
-            }
-            if (video.ssrcGroups.find(group => group.semantics === SSRC_GROUP_SEMANTICS.SIM)) {
-                // Group already exists, no need to do anything
-                return desc;
             }
 
             // Add a SIM group for every 3 FID groups.
@@ -694,7 +695,12 @@ export class TPCUtils {
                     semantics: SSRC_GROUP_SEMANTICS.SIM,
                     ssrcs: simSsrcs.join(' ')
                 });
+                modified = true;
             }
+        }
+
+        if (!modified) {
+            return desc;
         }
 
         return new RTCSessionDescription({
@@ -740,8 +746,13 @@ export class TPCUtils {
         const senderMids = Array.from(this.pc.localTrackTransceiverMids.values());
 
         mLines.forEach((mLine, idx) => {
-            // Make sure the simulcast recv line is only set on video descriptions that are associated with senders.
-            if (senderMids.find(sender => mLine.mid.toString() === sender.toString()) || idx === 0) {
+            // FF 110+: recvonly slots reserved for local senders that haven't been registered yet
+            // (e.g., secondary sources before replaceTrack runs) also need simulcast info.
+            const isSenderMline = Boolean(senderMids.find(sender => mLine.mid.toString() === sender.toString()))
+                || idx === 0
+                || (browser.supportsEncodingsConfig() && mLine.direction === MediaDirection.RECVONLY);
+
+            if (isSenderMline) {
                 if (!mLine.simulcast_03 || !mLine.simulcast) {
                     mLine.rids = rids;
 
