@@ -250,6 +250,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true on Firefox 110+, where RTCRtpTransceiverInit.sendEncodings is honored.
+     *
+     * @returns {boolean}
+     */
+    supportsEncodingsConfig(): boolean {
+        return this.isFirefox() && this.isVersionGreaterThan(109);
+    }
+
+    /**
      * Returns true if the browser supports the new Scalability Mode API for VP9/AV1 simulcast and full SVC. H.264
      * simulcast will also be supported by the jvb for this version because the bridge is able to read the Dependency
      * Descriptor RTP header extension to extract layers information for H.264 as well.

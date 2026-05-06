@@ -110,22 +110,16 @@ export default class LocalSdpMunger {
             mediaSection.ssrcs = mediaSection.ssrcs.filter(ssrc => ssrc.attribute !== 'cname');
         }
 
-        // On FF when the user has started muted create answer will generate a recv only SSRC. We don't want to signal
-        // this SSRC in order to reduce the load of the xmpp server for large calls. Therefore the SSRC needs to be
-        // removed from the SDP.
-        //
-        // For all other use cases (when the user has had media but then the user has stopped it) we want to keep the
-        // receive only SSRCs in the SDP. Otherwise source-remove will be triggered and the next time the user add a
-        // track we will reuse the SSRCs and send source-add with the same SSRCs. This is problematic because of issues
-        // on Chrome and FF (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729) when removing and then adding the
-        // same SSRC in the remote sdp the remote track is not rendered.
+        // FF generates phantom SSRCs for recvonly/inactive m-lines that should not be signaled. Only strip
+        // them on m-lines that have never carried a local sender track — preserving SSRCs on previously
+        // active sender slots avoids a source-remove on mute and the SSRC-reuse rendering issue
+        // (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729).
+        const mid = mediaSection._mLine.mid?.toString();
+        const midHasSentTrack = mid && this._tpc._midsWithSentTrack.has(mid);
+
         if (browser.isFirefox()
             && (mediaDirection === MediaDirection.RECVONLY || mediaDirection === MediaDirection.INACTIVE)
-            && (
-                (mediaType === MediaType.VIDEO && !this._tpc._hasHadVideoTrack)
-                || (mediaType === MediaType.AUDIO && !this._tpc._hasHadAudioTrack)
-            )
-        ) {
+            && !midHasSentTrack) {
             mediaSection.ssrcs = undefined;
             mediaSection.ssrcGroups = undefined;
         }

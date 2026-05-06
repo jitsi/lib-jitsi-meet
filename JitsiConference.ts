@@ -978,18 +978,32 @@ export default class JitsiConference extends Listenable {
    * @param {JingleSessionPC} jingleSession - The media session.
    * @param {Error} error - The error message.
    * @param {MediaType} mediaType - The media type of the track associated with the source that was rejected.
+   * @param {Object} _ctx - Unused context object passed by JingleSessionPC.
+   * @param {Array<string>} sourceNames - Source names of the rejected sources, when available.
    * @returns {void}
    */
-    private _removeLocalSourceOnReject(jingleSession: JingleSessionPC, error: Error, mediaType: MediaType): void {
+    private _removeLocalSourceOnReject(
+            jingleSession: JingleSessionPC,
+            error: Error,
+            mediaType: MediaType,
+            _ctx?: object,
+            sourceNames: string[] = []): void {
         if (!jingleSession) {
             return;
         }
         const errorReason = (error as { reason?: string; })?.reason;
 
-        logger.warn(`Source-add rejected on ${jingleSession}, reason="${errorReason}", message="${error?.message}"`);
-        const track = this.getLocalTracks(mediaType)[0];
+        logger.warn(`Source-add rejected on ${jingleSession}, reason="${errorReason}", message="${error?.message}"`
+            + `, sourceNames=${sourceNames.join(',')}`);
 
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track);
+        const localTracks = this.getLocalTracks(mediaType);
+        const rejectedTracks = sourceNames.length
+            ? localTracks.filter(t => sourceNames.includes(t.getSourceName()))
+            : localTracks.slice(0, 1);
+
+        for (const track of rejectedTracks) {
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track);
+        }
     }
 
     /**
