@@ -22,11 +22,12 @@ export interface IVideoConstraint {
 export default class SendVideoController {
     private _conference: JitsiConference;
     private _preferredSendMaxFrameHeight: number;
+
     /**
-     * Source name based sender constraints.
-     * @type {Map<string, number>};
+     * Per-session source-name sender constraints. WeakMap so ended sessions are released by the GC without
+     * explicit cleanup. Keyed by session, value is a map of sourceName -> maxHeight.
      */
-    private _sourceSenderConstraints: Map<string, number>;
+    private _sessionSenderConstraints: WeakMap<JingleSessionPC, Map<string, number>>;
 
     /**
      * Creates new instance for a given conference.
@@ -37,12 +38,19 @@ export default class SendVideoController {
     constructor(conference: JitsiConference) {
         this._conference = conference;
         this._preferredSendMaxFrameHeight = MAX_LOCAL_RESOLUTION;
+        this._sessionSenderConstraints = new WeakMap();
+    }
 
-        /**
-         * Source name based sender constraints.
-         * @type {Map<string, number>};
-         */
-        this._sourceSenderConstraints = new Map();
+    /**
+     * Returns the constraint map for the currently active session, or undefined when there is no active session.
+     *
+     * @returns {Map<string, number> | undefined}
+     * @private
+     */
+    private _activeSessionMap(): Map<string, number> | undefined {
+        const activeSession = this._conference.getActiveMediaSession();
+
+        return activeSession ? this._sessionSenderConstraints.get(activeSession) : undefined;
     }
 
     /**
@@ -81,10 +89,7 @@ export default class SendVideoController {
         if (!sourceName) {
             throw new Error('sourceName missing for calculating the sendMaxHeight for video tracks');
         }
-        const activeMediaSession = this._conference.getActiveMediaSession();
-        const remoteRecvMaxFrameHeight = activeMediaSession
-            ? this._sourceSenderConstraints.get(sourceName)
-            : undefined;
+        const remoteRecvMaxFrameHeight = this._activeSessionMap()?.get(sourceName);
 
         if (this._preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight !== undefined && remoteRecvMaxFrameHeight >= 0) {
             return Math.min(this._preferredSendMaxFrameHeight, remoteRecvMaxFrameHeight);
@@ -116,11 +121,29 @@ export default class SendVideoController {
      * @param {JingleSessionPC} mediaSession - the started media session.
      */
     onMediaSessionStarted(mediaSession: JingleSessionPC): void {
+        this._sessionSenderConstraints.set(mediaSession, new Map());
+
         mediaSession.addListener(
             MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
             (session: JingleSessionPC, sourceConstraints: Array<IVideoConstraint>) => {
-                session === this._conference.getActiveMediaSession()
-                    && sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
+                if (session !== this._conference.getActiveMediaSession()) {
+                    // Store constraints for inactive sessions so configureConstraintsForLocalSources picks up
+                    // the correct per-session values when this session later becomes active (e.g. JVB -> P2P).
+                    const sessionMap = this._sessionSenderConstraints.get(session);
+
+                    if (sessionMap) {
+                        for (const { sourceName, maxHeight } of sourceConstraints) {
+                            const height = Number(maxHeight);
+
+                            if (!Number.isFinite(height)) {
+                                continue;
+                            }
+                            sessionMap.set(sourceName, height === -1 ? MAX_LOCAL_RESOLUTION : height);
+                        }
+                    }
+                } else {
+                    sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
+                }
             });
     }
 
@@ -133,18 +156,17 @@ export default class SendVideoController {
     async onSenderConstraintsReceived(videoConstraints: IVideoConstraint): Promise<void> {
         const { maxHeight, sourceName } = videoConstraints;
         const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
+        const sessionMap = this._activeSessionMap();
 
         for (const track of localVideoTracks) {
-            // Propagate the sender constraint only if it has changed.
-            if (track.getSourceName() === sourceName
-                && this._sourceSenderConstraints.get(sourceName) !== maxHeight) {
-                this._sourceSenderConstraints.set(
-                    sourceName,
-                    maxHeight === -1
-                        ? Math.min(MAX_LOCAL_RESOLUTION, this._preferredSendMaxFrameHeight)
-                        : maxHeight);
-                logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
-                await this._propagateSendMaxFrameHeight(sourceName);
+            if (track.getSourceName() === sourceName) {
+                const normalizedHeight = maxHeight === -1 ? MAX_LOCAL_RESOLUTION : maxHeight;
+
+                if (sessionMap?.get(sourceName) !== normalizedHeight) {
+                    sessionMap?.set(sourceName, normalizedHeight);
+                    logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
+                    await this._propagateSendMaxFrameHeight(sourceName);
+                }
             }
         }
     }
@@ -159,7 +181,7 @@ export default class SendVideoController {
         this._preferredSendMaxFrameHeight = maxFrameHeight;
         const promises: Promise<void>[] = [];
 
-        for (const sourceName of this._sourceSenderConstraints.keys()) {
+        for (const sourceName of (this._activeSessionMap()?.keys() ?? [])) {
             promises.push(this._propagateSendMaxFrameHeight(sourceName));
         }
 
