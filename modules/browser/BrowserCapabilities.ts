@@ -1,4 +1,4 @@
-import BrowserDetection from '@jitsi/js-utils/browser-detection/BrowserDetection';
+import { BrowserDetection } from '@jitsi/js-utils/browser-detection';
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
