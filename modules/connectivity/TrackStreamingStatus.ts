@@ -428,6 +428,18 @@ export class TrackStreamingStatusImpl {
      * @param data - The CONNECTION_STATS event payload.
      */
     _handleFramesDecodedUpdate(data: any): void {
+        if (this.track.isP2P !== this.conference.isP2PActive()) {
+            this._lastFramesDecoded = null;
+            this._lastFramesDecodedAt = null;
+
+            if (this._statsTrackFrozen) {
+                this._statsTrackFrozen = false;
+                this.figureOutStreamingStatus();
+            }
+
+            return;
+        }
+
         if (this.track.isMuted() || data.framesDecoded == null) {
             return;
         }
