@@ -129,6 +129,10 @@ export class MockPeerConnection {
      */
     id: string;
     /**
+     * @internal
+     */
+    _midsWithSentTrack: Set<string>;
+    /**
      * Constructor.
      *
      * @param {string} id RTC id
@@ -140,6 +144,7 @@ export class MockPeerConnection {
         this._usesUnifiedPlan = usesUnifiedPlan;
         this.peerconnection = new MockRTCPeerConnection();
         this._simulcast = simulcast;
+        this._midsWithSentTrack = new Set<string>();
     }
 
     /**

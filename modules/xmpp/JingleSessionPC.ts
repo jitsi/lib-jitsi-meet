@@ -1129,6 +1129,7 @@ export default class JingleSessionPC extends JingleSession {
             const newMedia = sdpDiffer.getNewMedia();
             let ssrcs = [];
             let mediaType = null;
+            const sourceNames = new Set<string>();
 
             // It is assumed that sources are signaled one at a time.
             Object.keys(newMedia).forEach(mediaIndex => {
@@ -1137,11 +1138,19 @@ export default class JingleSessionPC extends JingleSession {
                 mediaType = newMedia[mediaIndex].mediaType;
                 if (signaledSsrcs?.length) {
                     ssrcs = ssrcs.concat(signaledSsrcs);
+                    signaledSsrcs.forEach(ssrcNum => {
+                        const sourceName = SDPUtil.parseSourceNameLine(newMedia[mediaIndex].ssrcs[ssrcNum].lines);
+
+                        if (sourceName) {
+                            sourceNames.add(sourceName);
+                        }
+                    });
                 }
             });
 
             return {
                 mediaType,
+                sourceNames: Array.from(sourceNames),
                 ssrcs
             };
         };
@@ -1216,7 +1225,13 @@ export default class JingleSessionPC extends JingleSession {
                     this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD, this, ctx);
                 },
                 this.newJingleErrorHandler(error => {
-                    this.room.eventEmitter.emit(XMPPEvents.SOURCE_ADD_ERROR, this, error, addedSsrcInfo.mediaType, ctx);
+                    this.room.eventEmitter.emit(
+                        XMPPEvents.SOURCE_ADD_ERROR,
+                        this,
+                        error,
+                        addedSsrcInfo.mediaType,
+                        ctx,
+                        addedSsrcInfo.sourceNames);
                 }),
                 IQ_TIMEOUT);
         }

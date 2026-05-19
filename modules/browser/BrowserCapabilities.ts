@@ -1,4 +1,4 @@
-import BrowserDetection from '@jitsi/js-utils/browser-detection/BrowserDetection';
+import { BrowserDetection } from '@jitsi/js-utils/browser-detection';
 
 /* Minimum required Chrome / Chromium version. This applies also to derivatives. */
 const MIN_REQUIRED_CHROME_VERSION = 72;
@@ -247,6 +247,15 @@ export default class BrowserCapabilities extends BrowserDetection {
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
         // For Chrome and others we rely on 'googRtt'.
         return !this.isFirefox();
+    }
+
+    /**
+     * Returns true on Firefox 110+, where RTCRtpTransceiverInit.sendEncodings is honored.
+     *
+     * @returns {boolean}
+     */
+    supportsEncodingsConfig(): boolean {
+        return this.isFirefox() && this.isVersionGreaterThan(109);
     }
 
     /**
