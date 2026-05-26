@@ -282,8 +282,8 @@ export default class BrowserCapabilities extends BrowserDetection {
     /**
      * Returns true if VP9 is supported by the client on the browser.
      *
-     * Firefox is supported on version 151+ where https://bugzilla.mozilla.org/show_bug.cgi?id=1633876 is fixed.
-     *
+     * Disabled on WebKit-based browsers (Safari/iOS). Firefox is supported on version 151+ (see:
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=1633876).
      * @returns {boolean}
      */
     supportsVP9(): boolean {
