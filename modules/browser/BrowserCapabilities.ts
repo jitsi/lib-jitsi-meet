@@ -280,17 +280,14 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
-     * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
-     * details.
+     * Returns true if VP9 is supported by the client on the browser.
+     *
+     * Firefox is supported on version 151+ where https://bugzilla.mozilla.org/show_bug.cgi?id=1633876 is fixed.
      *
      * @returns {boolean}
      */
     supportsVP9(): boolean {
-        // Keep this disabled for FF because simulcast is disabled by default.
-        // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
-        // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
-        return !(this.isWebKitBased() || this.isFirefox());
+        return !this.isWebKitBased() && !(this.isFirefox() && this.isVersionLessThan(151));
     }
 
     /**
