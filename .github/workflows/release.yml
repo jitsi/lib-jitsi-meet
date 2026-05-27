@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - name: Check Node / npm versions
+        run: |
+          node -v
+          npm -v
+      - run: npm install
+      - name: Compute release name
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV_RELEASE=$(gh api repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
+          # Latest tag looks like v123.0.0+abc1234 -> take the major and increment.
+          PREV_NUM=$(echo "$PREV_RELEASE" | sed -E 's/^v([0-9]+)\..*/\1/')
+          BUILD_NUMBER=$((PREV_NUM + 1))
+          REV=$(git rev-parse --short HEAD)
+          echo "prev=${PREV_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "name=v${BUILD_NUMBER}.0.0+${REV}" >> "$GITHUB_OUTPUT"
+      - name: Tag and push
+        run: |
+          git tag -a "${{ steps.release.outputs.name }}" -m "Tagged automatically by GitHub Actions"
+          git push origin "${{ steps.release.outputs.name }}"
+      - name: Pack
+        run: |
+          npm pack
+          mv lib-jitsi-meet-0.0.0.tgz lib-jitsi-meet.tgz
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_NAME: ${{ steps.release.outputs.name }}
+          PREV_RELEASE: ${{ steps.release.outputs.prev }}
+        run: |
+          temp_file=$(mktemp)
+          gh api repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="${RELEASE_NAME}" \
+            -f previous_tag_name="${PREV_RELEASE}" | jq -r .body > "$temp_file"
+          gh release create "${RELEASE_NAME}" *.tgz --notes-file "$temp_file"
+          rm "$temp_file"
