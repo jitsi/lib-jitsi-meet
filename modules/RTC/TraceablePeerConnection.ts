@@ -2564,7 +2564,7 @@ export default class TraceablePeerConnection {
             'setRemoteDescription::postTransform (correct ssrc order)',
              TraceablePeerConnection.dumpSDP(remoteDescription));
 
-        remoteDescription = this._mungeDescription(remoteDescription);
+        remoteDescription = this._mungeDescription(remoteDescription, false);
 
         return new Promise((resolve, reject) => {
             this.peerconnection.setRemoteDescription(remoteDescription)
