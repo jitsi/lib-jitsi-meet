@@ -42,6 +42,8 @@ jobs:
           echo "name=v${BUILD_NUMBER}.0.0+${REV}" >> "$GITHUB_OUTPUT"
       - name: Tag and push
         run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           git tag -a "${{ steps.release.outputs.name }}" -m "Tagged automatically by GitHub Actions"
           git push origin "${{ steps.release.outputs.name }}"
       - name: Pack
