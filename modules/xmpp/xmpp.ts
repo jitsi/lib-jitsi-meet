@@ -395,14 +395,14 @@ export default class XMPP extends Listenable {
 
         this.connection.addHandler(this._onPrivateMessage.bind(this), null, 'message', null, null);
 
-        // Setup a disconnect on unload as a way to facilitate API consumers. It
-        // sounds like they would want that. A problem for them though may be if
-        // they wanted to utilize the connected connection in an unload handler
-        // of their own. However, it should be fairly easy for them to do that
-        // by registering their unload handler before us.
-        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
-        const handleDisconnect = ev => {
-            // type-checking added as disconnect returns Promise<void> | boolean
+        // Only disconnect on unload (page is actually closing, user confirmed leaving).
+        // Do not register on beforeunload because the user may cancel the browser close
+        // dialog and stay in the meeting. The consuming app (jitsi-meet) is responsible
+        // for showing the confirmation dialog via beforeunload.
+        // For WebSocket: the browser closing the socket is detected by the server automatically.
+        // For BOSH: _cleanupXmppConnection switches to sync XHR / Beacon API on unload,
+        // both of which are designed to complete reliably as the page dies.
+        const handleDisconnect = (ev: Event) => {
             const result = this.disconnect(ev);
 
             if (result instanceof Promise) {
@@ -412,8 +412,15 @@ export default class XMPP extends Listenable {
             }
         };
 
-        for (const event of events.split(' ')) {
-            window.addEventListener(event, handleDisconnect);
+        window.addEventListener('unload', handleDisconnect);
+
+        // When beforeunload handlers are explicitly disabled by the deployment, the
+        // consuming app will not show a confirmation dialog, so beforeunload IS the
+        // confirmed leave signal and we must handle cleanup here too.
+        // The existing _disconnectInProgress guard in disconnect() safely prevents
+        // double-disconnect if both events fire in sequence.
+        if (this.options.disableBeforeUnloadHandlers) {
+            window.addEventListener('beforeunload', handleDisconnect);
         }
     }
 
