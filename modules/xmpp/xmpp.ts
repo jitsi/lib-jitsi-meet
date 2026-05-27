@@ -42,6 +42,7 @@ interface ICreateConnectionOptions {
     token?: string;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: string;
+    websocketWarmUpUrl?: string;
     xmppPing?: Record<string, unknown>;
 }
 
@@ -124,6 +125,7 @@ export interface IXMPPOptions {
     testing?: ITestingConfig;
     websocketKeepAlive?: number;
     websocketKeepAliveUrl?: string;
+    websocketWarmUpUrl?: string;
     xmppPing?: Record<string, unknown>;
 }
 
@@ -181,20 +183,17 @@ function createConnection({
     shard,
     token,
     websocketKeepAlive,
-    websocketKeepAliveUrl }: ICreateConnectionOptions): XmppConnection {
-
-    // Append token as URL param
-    if (token) {
-        // eslint-disable-next-line no-param-reassign
-        serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
-    }
+    websocketKeepAliveUrl,
+    websocketWarmUpUrl }: ICreateConnectionOptions): XmppConnection {
 
     return new XmppConnection({
         enableWebsocketResume,
         serviceUrl,
         shard,
+        token,
         websocketKeepAlive,
-        websocketKeepAliveUrl
+        websocketKeepAliveUrl,
+        websocketWarmUpUrl
     });
 }
 
@@ -337,7 +336,8 @@ export default class XMPP extends Listenable {
             token,
             websocketKeepAlive: options.websocketKeepAlive,
             websocketKeepAliveUrl: options.websocketKeepAliveUrl,
-            xmppPing
+            websocketWarmUpUrl: options.websocketWarmUpUrl,
+            xmppPing,
         });
 
         this.moderator = new Moderator(this);
@@ -1125,7 +1125,89 @@ export default class XMPP extends Listenable {
 
         this._startConnecting = true;
 
-        return this._connect(jid, password);
+        if (this.token && this.options.websocketWarmUpUrl) {
+            return fetch(this.options.websocketWarmUpUrl, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                },
+                method: 'POST'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Warmup request failed with status ${response.status}`);
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+                    const { streamManagement } = this.connection._stropheConn;
+
+                    // Wrap the callback the same way XmppConnection.connect() does so that
+                    // _stropheConnectionCb runs first and sets this.connection._status = CONNECTED.
+                    // Without this, this.connection.connected returns false even after a successful
+                    // resume because the connected getter reads _status, not the Strophe internal state.
+                    const wrappedCb = this.connection._stropheConnectionCb.bind(
+                        this.connection,
+                        this.connectionHandler.bind(this, {})
+                    );
+
+                    // 1. Simulate CONNECTED with no token → resets SM state and registers SM internal handlers.
+                    streamManagement.statusChanged(Strophe.Status.CONNECTED);
+
+                    // 2. Set the resume token before DISCONNECTED so the SM reset path is skipped.
+                    streamManagement._resumeToken = data.resumptionKey;
+
+                    // 3. Manually populate _resumeState — _interceptDoDisconnect requires this._c.connected
+                    //    to be true, which it isn't here. No real app handlers existed before, so empty arrays.
+                    //    addTimeds must be an explicit array (no || [] guard on line 344 of the SM plugin).
+                    streamManagement._resumeState = {
+                        addHandlers: [],
+                        addTimeds: [],
+                        handlers: [],
+                        removeHandlers: [],
+                        removeTimeds: [],
+                        timedHandlers: []
+                    };
+                    streamManagement._storedJid = data.jid;
+
+                    // 4. Simulate DISCONNECTED — with _resumeToken set, SM skips the state reset entirely.
+                    streamManagement.statusChanged(Strophe.Status.DISCONNECTED);
+
+                    // 5. Set connect args for resume. The 7th arg ('resume') causes _onStreamFeaturesAfterSASL
+                    //    to skip SASL and go straight to BINDREQUIRED so the SM plugin can send <resume/>.
+                    streamManagement._connectArgs = [
+                        Strophe.getDomainFromJid(data.jid),
+                        undefined,
+                        wrappedCb,
+                        undefined,
+                        undefined,
+                        undefined,
+                        'resume'
+                    ];
+
+                    this._resetState();
+                    this.sendDiscoInfo = true;
+                    this.sendDeploymentInfo = true;
+
+                    // 6. Trigger the actual WebSocket reconnect + resume stanza.
+                    this.connection._resumeTask.resumeConnection();
+                })
+                .catch(err => {
+                    logger.warn('Warmup request failed, falling back to normal connect:', err);
+
+                    // The XmppConnection constructor omits the token from the service URL when
+                    // websocketWarmUpUrl is configured. Re-add it so the fallback connection is authenticated.
+                    const stropheConn = this.connection._stropheConn;
+                    const serviceUrl = new URL(stropheConn.service);
+
+                    serviceUrl.searchParams.set('token', this.token);
+                    stropheConn.service = serviceUrl.toString();
+
+                    this._connect(jid, password);
+                });
+        } else {
+            return this._connect(jid, password);
+        }
     }
 
     /**
@@ -1361,10 +1443,6 @@ export default class XMPP extends Listenable {
     refreshToken(token: string): Promise<void> {
         this.token = token;
 
-        let serviceUrl = this.options.serviceUrl;
-
-        serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
-
-        return this.connection.refreshToken(serviceUrl);
+        return this.connection.refreshToken(token);
     }
 }
