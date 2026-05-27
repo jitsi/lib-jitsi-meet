@@ -1097,8 +1097,10 @@ export default class ChatRoom extends Listenable {
         // All participant properties are in `participantProperties`, call the event handlers now.
         const participantId = Strophe.getResourceFromJid(from);
 
-        for (const [ key, value ] of participantProperties) {
-            this.participantPropertyListener(participantId, key, value);
+        if (this.participantPropertyListener) {
+            for (const [ key, value ] of participantProperties) {
+                this.participantPropertyListener(participantId, key, value);
+            }
         }
 
         // Trigger status message update if necessary
