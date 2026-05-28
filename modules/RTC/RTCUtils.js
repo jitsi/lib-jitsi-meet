@@ -68,8 +68,19 @@ let disableAGC = false;
 let stereo = null;
 
 const featureDetectionAudioEl = document.createElement('audio');
-const isAudioOutputDeviceChangeAvailable
-    = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+let isAudioOutputDeviceChangeAvailable = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+
+// The presence of the setSinkId symbol does not imply a working implementation. Probe the API once against the system
+// default sink ('') and downgrade the availability flag if the probe rejects, so the rest of the code stops trying
+// to call setSinkId for the duration of the session.
+if (isAudioOutputDeviceChangeAvailable) {
+    featureDetectionAudioEl.setSinkId('')
+        .catch(error => {
+            isAudioOutputDeviceChangeAvailable = false;
+            logger.info(
+                `setSinkId probe rejected (${error?.name}); audio output device change disabled for this session`);
+        });
+}
 
 let availableDevices = [];
 let availableDevicesPollTimer;
@@ -350,17 +361,11 @@ class RTCUtils extends Listenable {
                 // we skip setting audio output if there was no explicit change
                 && audioOutputChanged) {
             return element.setSinkId(this.getAudioOutputDevice()).catch(ex => {
-                const err
-                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
                 logger.warn(
-                    'Failed to set audio output device for the element.'
-                        + ' Default audio output device will be used'
+                    'Failed to set audio output device for the element. Default audio output device will be used'
                         + ' instead',
                     element?.id,
-                    err);
-
-                throw err;
+                    new JitsiTrackError(ex, null, [ 'audiooutput' ]));
             });
         }
 
