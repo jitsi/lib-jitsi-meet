@@ -543,22 +543,26 @@ export default class JitsiTrack extends Listenable {
                 new Error('Audio output device change is not supported'));
         }
 
-        return (
-            Promise.all(
-                this.containers.map(
-                    element =>
-                        (element as HTMLAudioElement | HTMLVideoElement).setSinkId(audioOutputDeviceId)
-                            .catch(error => {
-                                logger.warn(
-                                    'Failed to change audio output device on element. Default or previously set'
-                                        + ' audio output device will be used.',
-                                    element,
-                                    error);
-                            }))
-            )
-                .then(() => {
+        // Use Promise.allSettled so a rejection on one container does not short-circuit the others and does not
+        // surface as an unhandled rejection (both callers — RTC._updateAudioOutputForAudioTracks and the
+        // AUDIO_OUTPUT_DEVICE_CHANGED listener on local tracks — invoke this fire-and-forget). The event is
+        // suppressed when every container failed so UI consumers do not show a sink change that did not happen.
+        return Promise.allSettled(
+            this.containers.map(element =>
+                (element as HTMLAudioElement | HTMLVideoElement).setSinkId(audioOutputDeviceId)
+                    .catch(error => {
+                        logger.warn(
+                            'Failed to change audio output device on element. Default or previously set audio'
+                                + ' output device will be used.',
+                            element,
+                            error);
+                        throw error;
+                    })))
+            .then(results => {
+                if (results.some(result => result.status === 'fulfilled')) {
                     this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, audioOutputDeviceId);
-                }));
+                }
+            });
     }
 
     /**
