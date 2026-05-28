@@ -534,15 +534,13 @@ export default class JitsiTrack extends Listenable {
      * @returns {Promise}
      */
     public setAudioOutput(audioOutputDeviceId: string): Promise<void> {
+        if (this.isVideoTrack()) {
+            return Promise.resolve();
+        }
+
         if (!RTCUtils.isDeviceChangeAvailable('output')) {
             return Promise.reject(
                 new Error('Audio output device change is not supported'));
-        }
-
-        // All audio communication is done through audio tracks, so ignore
-        // changing audio output for video tracks at all.
-        if (this.isVideoTrack()) {
-            return Promise.resolve();
         }
 
         return (
@@ -552,18 +550,14 @@ export default class JitsiTrack extends Listenable {
                         (element as HTMLAudioElement | HTMLVideoElement).setSinkId(audioOutputDeviceId)
                             .catch(error => {
                                 logger.warn(
-                                    'Failed to change audio output device on'
-                                        + ' element. Default or previously set'
+                                    'Failed to change audio output device on element. Default or previously set'
                                         + ' audio output device will be used.',
                                     element,
                                     error);
-                                throw error;
                             }))
             )
                 .then(() => {
-                    this.emit(
-                        JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
-                        audioOutputDeviceId);
+                    this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, audioOutputDeviceId);
                 }));
     }
 
