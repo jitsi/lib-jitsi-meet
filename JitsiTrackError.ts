@@ -29,7 +29,7 @@ const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {
     [JitsiTrackErrors.SCREENSHARING_USER_CANCELED]: 'User canceled screen sharing prompt',
     [JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]: 'Unknown error from screensharing',
     [JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]: 'Not supported',
-    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]: 'Unkown error from desktop picker',
+    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]: 'Unknown error from desktop picker',
     [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]: 'Failed to detect desktop picker',
     [JitsiTrackErrors.GENERAL]: 'Generic getUserMedia error',
     [JitsiTrackErrors.PERMISSION_DENIED]: 'User denied permission to use device(s): ',
@@ -140,14 +140,14 @@ export default class JitsiTrackError extends Error {
      */
     private getResolutionFromFailedConstraint(failedConstraintName: string, constraints: IGumOptions): string | number {
         if (constraints?.video?.mandatory) {
-            switch (failedConstraintName) {
-            case 'width':
-                return constraints.video.mandatory.minWidth;
-            case 'height':
-                return constraints.video.mandatory.minHeight;
-            default:
-                return constraints.video.mandatory[failedConstraintName] || '';
-            }
+           switch (failedConstraintName) {
+    case 'width':
+        return constraints.video.mandatory.minWidth ?? '';
+    case 'height':
+        return constraints.video.mandatory.minHeight ?? '';
+    default:
+        return constraints.video.mandatory[failedConstraintName] ?? '';
+}
         }
 
         return '';
