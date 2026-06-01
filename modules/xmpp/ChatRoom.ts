@@ -442,6 +442,40 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Extracts the stable message ID from a stanza per XEP-0359.
+     * Fallback priority:
+     *   1. {@code <stanza-id>} whose {@code by} matches the MUC bare JID
+     *   2. {@code <origin-id>}
+     *   3. The stanza's own {@code id} attribute
+     *   4. A freshly generated UUID
+     * 
+     * @param {Element} stanza - The message stanza.
+     * @returns {string} The resolved stable message ID.
+     * 
+     * @private
+     */
+    private _getStableMessageId(stanza: Element): string {
+        const stanzaIdElements = findAll(stanza, ':scope>stanza-id[*|xmlns="urn:xmpp:sid:0"]');
+
+        for (const el of stanzaIdElements) {
+            if (getAttribute(el, 'by') === this.roomjid) {
+                const id = getAttribute(el, 'id');
+
+                if (id) return id;
+            }
+        }
+
+        const originId = getAttribute(
+            findFirst(stanza, ':scope>origin-id[*|xmlns="urn:xmpp:sid:0"]'),
+            'id'
+        );
+
+        if (originId) return originId;
+
+        return getAttribute(stanza, 'id') || uuidv4();
+    }
+
+    /**
      * Joins the chat room.
      * @param {string} password - Password to unlock room on joining.
      * @returns {Promise} - resolved when join completes. At the time of this
@@ -1469,7 +1503,7 @@ export default class ChatRoom extends Listenable {
         }
 
         if (txt) {
-            const messageId = getAttribute(msg, 'id') || uuidv4();
+            const messageId = this._getStableMessageId(msg);
             const replyToId = this._parseReplyMessage(msg);
             const displayNameEl = findFirst(msg, ':scope>display-name[*|xmlns="http://jitsi.org/protocol/display-name"]');
             const isVisitorMessage = getAttribute(displayNameEl, 'source') === 'visitor';
