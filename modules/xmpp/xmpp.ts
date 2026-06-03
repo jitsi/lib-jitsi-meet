@@ -113,6 +113,7 @@ export interface IXMPPOptions {
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
     disableRtx?: boolean;
+    enableAudioTranslation?: boolean;
     enableOpusRed?: boolean;
     enableRemb?: boolean;
     enableTcc?: boolean;
@@ -242,6 +243,12 @@ export const FEATURE_JIBRI: string = 'http://jitsi.org/protocol/jibri';
  * @type {string}
  */
 export const FEATURE_TRANSCRIBER: string = 'http://jitsi.org/protocol/transcriber';
+
+/**
+ * The feature used to mark support for receiving AI audio translation.
+ * @type {string}
+ */
+export const FEATURE_AUDIO_TRANSLATION: string = 'http://jitsi.org/protocol/audio-translation';
 
 /**
  * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
@@ -478,6 +485,13 @@ export default class XMPP extends Listenable {
 
         // Advertise support for startMuted policy through room metadata.
         this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
+
+        // Advertise support for receiving AI audio translation. Opt-in: only
+        // when enabled, so Jicofo advertises translated sources solely to
+        // clients that can render them.
+        if (this.options.enableAudioTranslation) {
+            this.caps.addFeature(FEATURE_AUDIO_TRANSLATION);
+        }
     }
 
 
