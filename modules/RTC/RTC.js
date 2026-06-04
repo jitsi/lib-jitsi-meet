@@ -747,6 +747,26 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Requests that the bridge start translating remote audio into the given language.
+     * @param {string} language the target language (2-letter ISO code).
+     */
+    sendStartTranslationMessage(language) {
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendStartTranslationMessage(language);
+        }
+    }
+
+    /**
+     * Requests that the bridge stop translating remote audio into the given language.
+     * @param {string} language the target language (2-letter ISO code).
+     */
+    sendStopTranslationMessage(language) {
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendStopTranslationMessage(language);
+        }
+    }
+
+    /**
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.
