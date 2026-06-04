@@ -275,6 +275,34 @@ export default class BridgeChannel {
     }
 
     /**
+     * Requests that the bridge translate remote audio into the given language.
+     *
+     * @param {string} language - The target language (2-letter ISO code).
+     * @returns {void}
+     */
+    sendStartTranslationMessage(language: string): void {
+        logger.info(`Sending StartTranslation for language: ${language}`);
+        this._send({
+            colibriClass: 'StartTranslation',
+            language
+        });
+    }
+
+    /**
+     * Requests that the bridge stop translating remote audio into the given language.
+     *
+     * @param {string} language - The target language (2-letter ISO code).
+     * @returns {void}
+     */
+    sendStopTranslationMessage(language: string): void {
+        logger.info(`Sending StopTranslation for language: ${language}`);
+        this._send({
+            colibriClass: 'StopTranslation',
+            language
+        });
+    }
+
+    /**
      * Sends a 'ReceiverVideoConstraints' message via the bridge channel.
      *
      * @param {ReceiverVideoConstraints} constraints video constraints.

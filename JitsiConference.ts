@@ -67,7 +67,7 @@ import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
-import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
+import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
@@ -271,6 +271,14 @@ export default class JitsiConference extends Listenable {
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
+
+    /**
+     * The target language remote audio is currently being translated into for the
+     * local endpoint, or null when translation is off. When set, the bridge is
+     * asked to translate every speaker into this language and the local endpoint
+     * subscribes to both the original and the translated sources (dual).
+     */
+    private _receiverTranslationLanguage: string | null = null;
     private _conferenceJoinAnalyticsEventSent?: number;
     private _e2eEncryption?: E2EEncryption;
     private _liteModeContext?: LiteModeContext;
@@ -2088,6 +2096,45 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Recompute and apply the audio subscription while translation is active. For
+     * dual playback the local endpoint subscribes (Include) to every remote
+     * participant's original audio source(s) plus its translated source
+     * ({endpointId}-t-{language}). Called when translation is enabled and whenever
+     * the roster or remote sources change.
+     *
+     * @returns {void}
+     */
+    private _updateTranslationSubscription(): void {
+        const language = this._receiverTranslationLanguage;
+
+        if (!language) {
+            return;
+        }
+
+        const list: string[] = [];
+
+        for (const participant of this.getParticipants()) {
+            const audioSources = participant.getSources().get(MediaType.AUDIO);
+
+            if (audioSources) {
+                for (const sourceName of audioSources.keys()) {
+                    list.push(sourceName);
+                }
+            }
+
+            // The bridge-injected translated source is owned by the speaker and
+            // named deterministically; it is not in the participant's signaled
+            // sources, so construct it here.
+            list.push(`${participant.getId()}-t-${language}`);
+        }
+
+        this.qualityController.audioController.setAudioSubscriptionMode({
+            list,
+            mode: ReceiverAudioSubscription.INCLUDE
+        });
+    }
+
+    /**
    * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
    * decisions based on the video type of the local source.
    *
@@ -3263,6 +3310,59 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Enables or disables receiving translated audio. When a language is given, the
+     * bridge is asked to translate every remote speaker into that language and the
+     * local endpoint subscribes to both the original and the translated sources
+     * (dual: the app can duck the originals locally). Pass null to turn translation
+     * off and restore the default (originals only).
+     *
+     * @param {string|null} language - The target language (2-letter ISO code), or
+     * null to disable translation.
+     * @returns {void}
+     */
+    public setReceiverTranslationLanguage(language: string | null): void {
+        const previous = this._receiverTranslationLanguage;
+
+        if (previous === language) {
+            return;
+        }
+        this._receiverTranslationLanguage = language;
+
+        // Advertise the request in presence. A prosody module aggregates every
+        // receiver's audioTranslationLanguage into the room's translation metadata,
+        // which jicofo reads and forwards to the translation bridge over Colibri.
+        if (language) {
+            this.setLocalParticipantProperty('audioTranslationLanguage', language);
+        } else {
+            this.removeLocalParticipantProperty('audioTranslationLanguage');
+        }
+
+        // Bridge-channel control. Kept alongside the presence path during the
+        // control-plane migration; removed once the Colibri path is in place.
+        if (previous) {
+            this.rtc.sendStopTranslationMessage(previous);
+        }
+
+        if (language) {
+            this.rtc.sendStartTranslationMessage(language);
+            this._updateTranslationSubscription();
+        } else {
+            // Restore default delivery: all originals, no translated sources.
+            this.qualityController.audioController.setAudioSubscriptionMode({
+                mode: ReceiverAudioSubscription.ALL
+            });
+        }
+    }
+
+    /**
+     * @returns {string|null} the language remote audio is currently translated into
+     * for the local endpoint, or null if translation is off.
+     */
+    public getReceiverTranslationLanguage(): string | null {
+        return this._receiverTranslationLanguage;
+    }
+
+    /**
      * Mutes a participant.
      * @param {string} id The id of the participant to mute.
      */
@@ -3335,6 +3435,11 @@ export default class JitsiConference extends Listenable {
             JitsiConferenceEvents.USER_JOINED,
             id,
             participant);
+
+        // Translate the newly-joined speaker too, if translation is active.
+        if (this._receiverTranslationLanguage) {
+            this._updateTranslationSubscription();
+        }
 
         this._updateFeatures(participant);
 
@@ -3415,6 +3520,11 @@ export default class JitsiConference extends Listenable {
         if (participant) {
             this.participants.delete(id);
             this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+
+            // Drop the departed speaker from the translation subscription.
+            if (this._receiverTranslationLanguage) {
+                this._updateTranslationSubscription();
+            }
         }
 
         if (this.room !== null) { // Skip if we have left the room already.
@@ -3585,6 +3695,12 @@ export default class JitsiConference extends Listenable {
         );
 
         emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+
+        // A remote audio source just became known; refresh the translation
+        // subscription so its original source name is included (dual playback).
+        if (this._receiverTranslationLanguage && track.isAudioTrack()) {
+            this._updateTranslationSubscription();
+        }
     }
 
 
