@@ -109,11 +109,13 @@ interface IP2PConfig {
  * XMPP options interface
  */
 export interface IXMPPOptions {
+    audioTranslation?: {
+        enabled?: boolean;
+    };
     bosh?: string;
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
     disableRtx?: boolean;
-    enableAudioTranslation?: boolean;
     enableOpusRed?: boolean;
     enableRemb?: boolean;
     enableTcc?: boolean;
@@ -486,10 +488,11 @@ export default class XMPP extends Listenable {
         // Advertise support for startMuted policy through room metadata.
         this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
 
-        // Advertise support for receiving AI audio translation. Opt-in: only
-        // when enabled, so Jicofo advertises translated sources solely to
-        // clients that can render them.
-        if (this.options.enableAudioTranslation) {
+        // Advertise support for receiving AI audio translation. Opt-in, tied to
+        // the same config.audioTranslation setting that gates the client UI, so
+        // Jicofo advertises translated sources solely to clients that can render
+        // them.
+        if (this.options.audioTranslation?.enabled) {
             this.caps.addFeature(FEATURE_AUDIO_TRANSLATION);
         }
     }
