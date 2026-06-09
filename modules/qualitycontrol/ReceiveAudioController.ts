@@ -63,29 +63,39 @@ export class ReceiverAudioController {
      * @returns {void}
      */
     setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
-        if ((message.mode == ReceiverAudioSubscription.NONE || message.mode == ReceiverAudioSubscription.ALL)
-            && this._subscriptionMode == message.mode) {
+        const newList = message.list ?? [];
+
+        // No-op if neither the mode nor the source list changed. Note ALL may now
+        // carry a list (additive opt-in sources such as translated audio), so we
+        // must compare the list even for ALL.
+        if (this._subscriptionMode === message.mode && isEqual(this._sourceList, newList)) {
             logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode}, no change needed.`);
 
             return;
         }
-        this._subscriptionMode = message.mode;
-        if (message.mode == ReceiverAudioSubscription.INCLUDE
-            || message.mode == ReceiverAudioSubscription.EXCLUDE) {
 
-            if (!message.list?.length) {
+        this._subscriptionMode = message.mode;
+
+        switch (message.mode) {
+        case ReceiverAudioSubscription.INCLUDE:
+        case ReceiverAudioSubscription.EXCLUDE:
+            if (!newList.length) {
+                // An empty Include means nothing; an empty Exclude means everything.
                 this._subscriptionMode = message.mode == ReceiverAudioSubscription.INCLUDE
                     ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL;
-            } else if (this._subscriptionMode == message.mode && isEqual(this._sourceList, message.list)) {
-                logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode},`
-                    + ` sourceList: ${message.list.join(', ')}, no change needed.`);
-
-                return;
+                this._sourceList = [];
+            } else {
+                this._sourceList = newList;
             }
-            this._sourceList = message.list || [];
-        } else {
-            // Clear the source list for ALL or NONE modes.
+            break;
+        case ReceiverAudioSubscription.ALL:
+            // ALL delivers every regular source; the list adds opt-in sources
+            // (e.g. translated audio) on top.
+            this._sourceList = newList;
+            break;
+        default: // NONE
             this._sourceList = [];
+            break;
         }
 
         this._rtc.sendReceiverAudioSubscriptionMessage({
