@@ -290,6 +290,7 @@ export default class XMPP extends Listenable {
     public fileSharingComponentAddress: Optional<string>;
     public roomMetadataComponentAddress: Optional<string>;
     public pollsComponentAddress: Optional<string>;
+    public audioTranslationComponentAddress: Optional<string>;
 
 
     /**
@@ -613,6 +614,11 @@ export default class XMPP extends Listenable {
             if (identity.type === 'end_conference') {
                 this.endConferenceComponentAddress = identity.name;
                 this._components.push(this.endConferenceComponentAddress);
+            }
+
+            if (identity.type === 'audio_translation') {
+                this.audioTranslationComponentAddress = identity.name;
+                this._components.push(this.audioTranslationComponentAddress);
             }
 
             if (identity.type === 'speakerstats') {
