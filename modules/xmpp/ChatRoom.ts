@@ -1593,6 +1593,24 @@ export default class ChatRoom extends Listenable {
                     type = AUTH_ERROR_TYPES.NO_VISITORS_LOBBY;
                 }
 
+                // A breakout room refusing our own (re)join presence with a generic
+                // not-allowed. This happens on reconnect when our session is no longer a
+                // member of the breakout. Don't surface a hard CONFERENCE_FAILED ("you do
+                // not have permission to join the call") - route the user back to the main
+                // room via the normal move-to-room flow instead.
+                if (type === AUTH_ERROR_TYPES.GENERAL
+                        && from === this.myroomjid
+                        && this.getBreakoutRooms()?.isBreakoutRoom()) {
+                    const mainRoomJid = this.getBreakoutRooms().getMainRoomJid();
+
+                    if (mainRoomJid) {
+                        logger.warn(`Breakout join not-allowed for ${from}; moving back to main room ${mainRoomJid}`);
+                        this.eventEmitter.emit(XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, mainRoomJid);
+
+                        return;
+                    }
+                }
+
                 this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type, txt);
             }
         } else if (exists(pres, ':scope>error>service-unavailable')) {
