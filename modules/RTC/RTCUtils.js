@@ -110,7 +110,7 @@ function getConstraints(um = [], options = {}) {
     const constraints = cloneDeep(options.constraints || DEFAULT_CONSTRAINTS);
 
     if (um.indexOf('video') >= 0) {
-        if (!constraints.video) {
+        if (typeof constraints.video !== 'object' || constraints.video === null) {
             constraints.video = {};
         }
 
@@ -122,8 +122,14 @@ function getConstraints(um = [], options = {}) {
             constraints.video.width = { ideal: r.width };
         }
 
+        if (!constraints.video.height) {
+            constraints.video.height = cloneDeep(DEFAULT_CONSTRAINTS.video.height);
+        }
+        if (!constraints.video.width) {
+            constraints.video.width = cloneDeep(DEFAULT_CONSTRAINTS.video.width);
+        }
         if (!constraints.video.frameRate) {
-            constraints.video.frameRate = DEFAULT_CONSTRAINTS.video.frameRate;
+            constraints.video.frameRate = cloneDeep(DEFAULT_CONSTRAINTS.video.frameRate);
         }
 
         // Override the constraints on Safari because of the following webkit bug.
