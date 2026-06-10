@@ -69,7 +69,11 @@ import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
-import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
+import {
+    getMediaTypeFromSourceName,
+    getSourceNameForJitsiTrack,
+    isTranslatedSourceName
+} from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
@@ -3710,10 +3714,14 @@ export default class JitsiConference extends Listenable {
 
         const emitter = this.eventEmitter;
 
-        track.addEventListener(
+        // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
+        // sources), so skip the relay for them.
+        !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
             () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-        track.isAudioTrack() && track.addEventListener(
+        // Skip translated audio tracks. They share the participant id with the original source and would
+        // otherwise clobber the original speaker's levels on the conference-level event.
+        track.isAudioTrack() && !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
             (audioLevel: number, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
