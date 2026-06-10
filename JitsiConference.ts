@@ -273,12 +273,15 @@ export default class JitsiConference extends Listenable {
     private _signalingLayer: SignalingLayerImpl;
 
     /**
-     * The target language remote audio is currently being translated into for the
-     * local endpoint, or null when translation is off. When set, the bridge is
-     * asked to translate every speaker into this language and the local endpoint
-     * subscribes to both the original and the translated sources (dual).
+     * The language remote audio is translated into for the local endpoint, or null when off.
      */
     private _receiverTranslationLanguage: string | null = null;
+
+    /**
+     * Translation requests last advertised to the audio_translation module (endpointId -> language),
+     * used to send only the delta on roster changes.
+     */
+    private _translationRequests: Map<string, string> = new Map();
     private _conferenceJoinAnalyticsEventSent?: number;
     private _e2eEncryption?: E2EEncryption;
     private _liteModeContext?: LiteModeContext;
@@ -2096,15 +2099,49 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sends a translation request (or cancellation) for a single remote endpoint
-     * to the audio_translation prosody module. A null language cancels translation
-     * of that endpoint for the local receiver.
+     * Sends only the delta (vs. what was last advertised) of the desired translation
+     * requests to the audio_translation module: endpointId -> language to set, -> '' to cancel.
      *
-     * @param {string} endpointId - The remote endpoint whose audio to translate.
-     * @param {string|null} language - The target language (ISO 639-1), or null to cancel.
      * @returns {void}
      */
-    private _sendTranslationRequest(endpointId: string, language: string | null): void {
+    private _updateTranslationRequests(): void {
+        const language = this._receiverTranslationLanguage;
+        const desired = new Map<string, string>();
+
+        if (language) {
+            this.getParticipants().forEach(participant => {
+                desired.set(participant.getId(), language);
+            });
+        }
+
+        const delta: { [endpointId: string]: string; } = {};
+
+        desired.forEach((lang, endpointId) => {
+            if (this._translationRequests.get(endpointId) !== lang) {
+                delta[endpointId] = lang;
+            }
+        });
+        this._translationRequests.forEach((_lang, endpointId) => {
+            if (!desired.has(endpointId)) {
+                delta[endpointId] = '';
+            }
+        });
+
+        if (Object.keys(delta).length === 0) {
+            return;
+        }
+
+        this._translationRequests = desired;
+        this._sendTranslationRequestStanza(delta);
+    }
+
+    /**
+     * Sends a translation-request delta to the audio_translation module as a JSON map.
+     *
+     * @param {Object} delta - The changed endpointId -> language entries ('' to cancel).
+     * @returns {void}
+     */
+    private _sendTranslationRequestStanza(delta: { [endpointId: string]: string; }): void {
         const componentAddress = this.xmpp.audioTranslationComponentAddress;
 
         if (!componentAddress) {
@@ -2115,26 +2152,16 @@ export default class JitsiConference extends Listenable {
 
         const message = $msg({ to: componentAddress });
 
-        message.c('audio_translation', {
-            endpoint: endpointId,
-            language: language ?? ''
-        }).up();
+        message.c('audio_translation', { xmlns: 'http://jitsi.org/jitmeet' })
+            .t(JSON.stringify(delta))
+            .up();
 
         this.xmpp.connection.send(message);
     }
 
     /**
-     * Recompute and apply the audio subscription while translation is active. The
-     * receiver stays in ALL mode (so regular audio keeps flowing) and the list adds
-     * the opt-in translated sources, named by convention {regularSource}.{language}.
-     *
-     * The translated source name is derived from the conventional regular audio
-     * source name ({endpointId}-a0) rather than the signaled source, so the
-     * subscription can be pre-registered the moment translation is enabled, even
-     * before the speaker's source is signaled (keeps the request/discovery round
-     * trip off the critical path for late joiners / unmute). The bridge delivers a
-     * translated source only when its regular source is among the dominant
-     * speakers. Called when translation is enabled and whenever the roster changes.
+     * Subscribes (ALL + opt-in list) to the translated sources, named by convention
+     * {endpointId}-a0.{language} so they can be requested before the source is signaled.
      *
      * @returns {void}
      */
@@ -3331,14 +3358,10 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Enables or disables receiving translated audio. When a language is given, the
-     * bridge is asked to translate every remote speaker into that language and the
-     * local endpoint subscribes to both the original and the translated sources
-     * (dual: the app can duck the originals locally). Pass null to turn translation
-     * off and restore the default (originals only).
+     * Enables (or disables, when null) receiving translated audio for every remote
+     * speaker in the given language.
      *
-     * @param {string|null} language - The target language (2-letter ISO code), or
-     * null to disable translation.
+     * @param {string|null} language - The target language (2-letter ISO code), or null to disable.
      * @returns {void}
      */
     public setReceiverTranslationLanguage(language: string | null): void {
@@ -3349,18 +3372,11 @@ export default class JitsiConference extends Listenable {
         }
         this._receiverTranslationLanguage = language;
 
-        // Request (or cancel) translation per remote endpoint by sending a stanza
-        // to the audio_translation prosody module. We request by endpoint (not by
-        // source) because the source may not be signaled yet when translation is
-        // enabled; the endpoint id is always known from the roster.
-        this.getParticipants().forEach(participant => {
-            this._sendTranslationRequest(participant.getId(), language);
-        });
+        this._updateTranslationRequests();
 
         if (language) {
             this._updateTranslationSubscription();
         } else {
-            // Restore default delivery: all regular sources, no translated ones.
             this.qualityController.audioController.setAudioSubscriptionMode({
                 mode: ReceiverAudioSubscription.ALL
             });
@@ -3368,8 +3384,7 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * @returns {string|null} the language remote audio is currently translated into
-     * for the local endpoint, or null if translation is off.
+     * @returns {string|null} the language remote audio is translated into, or null if off.
      */
     public getReceiverTranslationLanguage(): string | null {
         return this._receiverTranslationLanguage;
@@ -3449,9 +3464,9 @@ export default class JitsiConference extends Listenable {
             id,
             participant);
 
-        // Request translation of the newly-joined speaker too, if active.
+        // Translate the newly-joined speaker too, if active (delta-only).
         if (this._receiverTranslationLanguage) {
-            this._sendTranslationRequest(id, this._receiverTranslationLanguage);
+            this._updateTranslationRequests();
             this._updateTranslationSubscription();
         }
 
@@ -3535,8 +3550,9 @@ export default class JitsiConference extends Listenable {
             this.participants.delete(id);
             this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
 
-            // Drop the departed speaker from the translation subscription.
+            // Drop the departed speaker from translation (delta-only).
             if (this._receiverTranslationLanguage) {
+                this._updateTranslationRequests();
                 this._updateTranslationSubscription();
             }
         }
