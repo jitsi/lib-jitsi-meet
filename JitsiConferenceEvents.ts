@@ -308,6 +308,15 @@ export enum JitsiConferenceEvents {
     NO_AUDIO_INPUT = 'conference.no_audio_input',
 
     /**
+     * A custom OLM message was received from a remote participant.
+     * Emitted only when e2ee.externallyManagedKey is true.
+     * @param {string} from - The sender participant ID.
+     * @param {string} type - Application-defined message type (e.g. 'encedo:kyber-pub').
+     * @param {object} payload - Arbitrary JSON payload.
+     */
+    OLM_MESSAGE_RECEIVED = 'conference.olm_message_received',
+
+    /**
      * Indicates that the conference has switched between JVB and P2P connections.
      * The first argument of this event is a <tt>boolean</tt> which when set to
      * <tt>true</tt> means that the conference is running on the P2P connection.
