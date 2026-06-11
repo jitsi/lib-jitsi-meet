@@ -790,6 +790,10 @@ export default class JitsiConference extends Listenable {
             for (const localTrack of this.rtc.localTracks) {
                 localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
             }
+
+            // (Re)establish the audio subscription on the bridge whenever the channel opens. Defaults to ALL
+            // until translation is enabled, at which point the Include list is sent instead.
+            this.qualityController.audioController.resendSubscription();
         });
     }
 
@@ -2164,7 +2168,7 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Subscribes (ALL + opt-in list) to the translated sources, named by convention
+     * Subscribes to the translated sources via an Include list, named by convention
      * {endpointId}-a0.{language} so they can be requested before the source is signaled.
      *
      * @returns {void}
@@ -2182,7 +2186,7 @@ export default class JitsiConference extends Listenable {
 
         this.qualityController.audioController.setAudioSubscriptionMode({
             list,
-            mode: ReceiverAudioSubscription.ALL
+            mode: ReceiverAudioSubscription.INCLUDE
         });
     }
 
@@ -3381,8 +3385,11 @@ export default class JitsiConference extends Listenable {
         if (language) {
             this._updateTranslationSubscription();
         } else {
+            // Disabling translation clears the opt-in set with an empty Include; the persistent ALL base
+            // (established on channel open) keeps regular audio flowing.
             this.qualityController.audioController.setAudioSubscriptionMode({
-                mode: ReceiverAudioSubscription.ALL
+                list: [],
+                mode: ReceiverAudioSubscription.INCLUDE
             });
         }
     }

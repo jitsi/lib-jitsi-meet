@@ -57,6 +57,19 @@ export class ReceiverAudioController {
     }
 
     /**
+     * Re-sends the current audio subscription to the bridge. Used when the bridge channel (re)opens so the
+     * bridge always learns the receiver's subscription (defaults to ALL until translation is enabled).
+     *
+     * @returns {void}
+     */
+    resendSubscription(): void {
+        this._rtc.sendReceiverAudioSubscriptionMessage({
+            list: this._sourceList,
+            mode: this._subscriptionMode
+        });
+    }
+
+    /**
      * Sets the audio subscription options.
      *
      * @param message The audio subscription message containing the mode and optional source list.
@@ -65,7 +78,7 @@ export class ReceiverAudioController {
     setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
         const newList = message.list ?? [];
 
-        // No-op if neither the mode nor the list changed (ALL may now carry a list).
+        // No-op if neither the mode nor the list changed.
         if (this._subscriptionMode === message.mode && isEqual(this._sourceList, newList)) {
             logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode}, no change needed.`);
 
@@ -76,18 +89,20 @@ export class ReceiverAudioController {
 
         switch (message.mode) {
         case ReceiverAudioSubscription.INCLUDE:
+            // Include carries its list verbatim, even when empty. An empty Include clears the opt-in set
+            // (e.g. when translation is disabled).
+            this._sourceList = newList;
+            break;
         case ReceiverAudioSubscription.EXCLUDE:
             if (!newList.length) {
-                // Empty Include means nothing; empty Exclude means everything.
-                this._subscriptionMode = message.mode == ReceiverAudioSubscription.INCLUDE
-                    ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL;
+                // Empty Exclude means everything.
+                this._subscriptionMode = ReceiverAudioSubscription.ALL;
                 this._sourceList = [];
             } else {
                 this._sourceList = newList;
             }
             break;
         case ReceiverAudioSubscription.ALL:
-            // ALL delivers every regular source; the list adds opt-in sources on top.
             this._sourceList = newList;
             break;
         default: // NONE
