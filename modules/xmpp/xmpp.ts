@@ -635,7 +635,7 @@ export default class XMPP extends Listenable {
                 this._components.push(this.endConferenceComponentAddress);
             }
 
-            if (identity.type === 'audio_translation') {
+            if (identity.type === 'audio-translation') {
                 this.audioTranslationComponentAddress = identity.name;
                 this._components.push(this.audioTranslationComponentAddress);
             }
