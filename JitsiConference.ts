@@ -282,7 +282,7 @@ export default class JitsiConference extends Listenable {
     private _receiverTranslationLanguage: string | null = null;
 
     /**
-     * Translation requests last advertised to the audio_translation module (endpointId -> language),
+     * Translation requests last advertised to the audio-translation module (endpointId -> language),
      * used to send only the delta on roster changes.
      */
     private _translationRequests: Map<string, string> = new Map();
@@ -2108,7 +2108,7 @@ export default class JitsiConference extends Listenable {
 
     /**
      * Sends only the delta (vs. what was last advertised) of the desired translation
-     * requests to the audio_translation module: endpointId -> language to set, -> '' to cancel.
+     * requests to the audio-translation module: endpointId -> language to set, -> '' to cancel.
      *
      * @returns {void}
      */
@@ -2144,7 +2144,7 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sends a translation-request delta to the audio_translation module as a JSON map.
+     * Sends a translation-request delta to the audio-translation module as a JSON map.
      *
      * @param {Object} delta - The changed endpointId -> language entries ('' to cancel).
      * @returns {void}
@@ -2153,14 +2153,14 @@ export default class JitsiConference extends Listenable {
         const componentAddress = this.xmpp.audioTranslationComponentAddress;
 
         if (!componentAddress) {
-            logger.warn('Cannot request audio translation: no audio_translation component discovered.');
+            logger.warn('Cannot request audio translation: no audio-translation component discovered.');
 
             return;
         }
 
         const message = $msg({ to: componentAddress });
 
-        message.c('audio_translation', { xmlns: 'http://jitsi.org/jitmeet' })
+        message.c('audio-translation', { xmlns: 'http://jitsi.org/jitmeet' })
             .t(JSON.stringify(delta))
             .up();
 
