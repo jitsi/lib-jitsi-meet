@@ -277,9 +277,17 @@ export default class JitsiConference extends Listenable {
     private _signalingLayer: SignalingLayerImpl;
 
     /**
-     * The language remote audio is translated into for the local endpoint, or null when off.
+     * The default language remote audio is translated into for every speaker, or null when off.
+     * Per-participant overrides in {@link _participantTranslationLanguages} take precedence over this.
      */
     private _receiverTranslationLanguage: string | null = null;
+
+    /**
+     * Per-participant translation overrides (endpointId -> language, or null to explicitly disable for
+     * that speaker). An entry present here wins over {@link _receiverTranslationLanguage}; an absent entry
+     * inherits the default. Set via {@link setParticipantTranslationLanguage}.
+     */
+    private _participantTranslationLanguages: Map<string, string | null> = new Map();
 
     /**
      * Translation requests last advertised to the audio-translation module (endpointId -> language),
@@ -2107,21 +2115,58 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Whether translation is active for any speaker, via the default language or a per-participant override.
+     *
+     * @returns {boolean}
+     */
+    private _isReceiverTranslationActive(): boolean {
+        return Boolean(this._receiverTranslationLanguage) || this._participantTranslationLanguages.size > 0;
+    }
+
+    /**
+     * Resolves the effective translation language for a speaker: the per-participant override if one is set
+     * (which may be null to disable), otherwise the default language.
+     *
+     * @param {string} endpointId - The speaker's endpoint id.
+     * @returns {string|null}
+     */
+    private _resolveTranslationLanguage(endpointId: string): string | null {
+        if (this._participantTranslationLanguages.has(endpointId)) {
+            return this._participantTranslationLanguages.get(endpointId) ?? null;
+        }
+
+        return this._receiverTranslationLanguage;
+    }
+
+    /**
+     * Builds the cumulative set of translated speakers: endpointId -> target language, for every remote
+     * participant whose effective language is set. Drives both the request stanza and the audio subscription.
+     *
+     * @returns {Map<string, string>}
+     */
+    private _buildDesiredTranslations(): Map<string, string> {
+        const desired = new Map<string, string>();
+
+        this.getParticipants().forEach(participant => {
+            const endpointId = participant.getId();
+            const language = this._resolveTranslationLanguage(endpointId);
+
+            if (language) {
+                desired.set(endpointId, language);
+            }
+        });
+
+        return desired;
+    }
+
+    /**
      * Sends only the delta (vs. what was last advertised) of the desired translation
      * requests to the audio-translation module: endpointId -> language to set, -> '' to cancel.
      *
      * @returns {void}
      */
     private _updateTranslationRequests(): void {
-        const language = this._receiverTranslationLanguage;
-        const desired = new Map<string, string>();
-
-        if (language) {
-            this.getParticipants().forEach(participant => {
-                desired.set(participant.getId(), language);
-            });
-        }
-
+        const desired = this._buildDesiredTranslations();
         const delta: { [endpointId: string]: string; } = {};
 
         desired.forEach((lang, endpointId) => {
@@ -2168,21 +2213,17 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Subscribes to the translated sources via an Include list, named by convention
-     * {endpointId}-a0.{language} so they can be requested before the source is signaled.
+     * Subscribes to the cumulative set of translated sources via an Include list, named by convention
+     * {endpointId}-a0.{language} so they can be requested before the source is signaled. An empty list
+     * (no active translations) clears the opt-in set.
      *
      * @returns {void}
      */
     private _updateTranslationSubscription(): void {
-        const language = this._receiverTranslationLanguage;
-
-        if (!language) {
-            return;
-        }
-
-        const list = this.getParticipants().map(
-            participant =>
-                `${getSourceNameForJitsiTrack(participant.getId(), MediaType.AUDIO, 0)}.${language}`);
+        const list = Array.from(
+            this._buildDesiredTranslations(),
+            ([ endpointId, language ]) =>
+                `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
         this.qualityController.audioController.setAudioSubscriptionMode({
             list,
@@ -3373,32 +3414,54 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     public setReceiverTranslationLanguage(language: string | null): void {
-        const previous = this._receiverTranslationLanguage;
-
-        if (previous === language) {
+        if (this._receiverTranslationLanguage === language) {
             return;
         }
         this._receiverTranslationLanguage = language;
 
+        // Rebuilds the cumulative request delta and the Include subscription (an empty Include when nothing
+        // is translated clears the opt-in set; the persistent ALL base keeps regular audio flowing).
         this._updateTranslationRequests();
-
-        if (language) {
-            this._updateTranslationSubscription();
-        } else {
-            // Disabling translation clears the opt-in set with an empty Include; the persistent ALL base
-            // (established on channel open) keeps regular audio flowing.
-            this.qualityController.audioController.setAudioSubscriptionMode({
-                list: [],
-                mode: ReceiverAudioSubscription.INCLUDE
-            });
-        }
+        this._updateTranslationSubscription();
     }
 
     /**
-     * @returns {string|null} the language remote audio is translated into, or null if off.
+     * @returns {string|null} the default language remote audio is translated into, or null if off.
      */
     public getReceiverTranslationLanguage(): string | null {
         return this._receiverTranslationLanguage;
+    }
+
+    /**
+     * Enables (or disables, when null) translated audio for a single remote speaker, overriding the default
+     * set via {@link setReceiverTranslationLanguage}. Sends the request-stanza delta and updates the
+     * cumulative audio subscription.
+     *
+     * @param {string} participantId - The speaker's endpoint id.
+     * @param {string|null} language - The target language (2-letter ISO code), or null to disable for this speaker.
+     * @returns {void}
+     */
+    public setParticipantTranslationLanguage(participantId: string, language: string | null): void {
+        const current = this._participantTranslationLanguages.has(participantId)
+            ? this._participantTranslationLanguages.get(participantId) ?? null
+            : undefined;
+
+        if (current === language) {
+            return;
+        }
+        this._participantTranslationLanguages.set(participantId, language);
+
+        this._updateTranslationRequests();
+        this._updateTranslationSubscription();
+    }
+
+    /**
+     * @param {string} participantId - The speaker's endpoint id.
+     * @returns {string|null} the effective translation language for the given speaker (the per-participant
+     * override if set, otherwise the default), or null if not translated.
+     */
+    public getParticipantTranslationLanguage(participantId: string): string | null {
+        return this._resolveTranslationLanguage(participantId);
     }
 
     /**
@@ -3475,8 +3538,8 @@ export default class JitsiConference extends Listenable {
             id,
             participant);
 
-        // Translate the newly-joined speaker too, if active (delta-only).
-        if (this._receiverTranslationLanguage) {
+        // Translate the newly-joined speaker too, if translation is active (delta-only).
+        if (this._isReceiverTranslationActive()) {
             this._updateTranslationRequests();
             this._updateTranslationSubscription();
         }
@@ -3561,8 +3624,10 @@ export default class JitsiConference extends Listenable {
             this.participants.delete(id);
             this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
 
-            // Drop the departed speaker from translation (delta-only).
-            if (this._receiverTranslationLanguage) {
+            // Drop the departed speaker from translation, including any per-participant override (delta-only).
+            const hadTranslationOverride = this._participantTranslationLanguages.delete(id);
+
+            if (hadTranslationOverride || this._translationRequests.has(id) || this._isReceiverTranslationActive()) {
                 this._updateTranslationRequests();
                 this._updateTranslationSubscription();
             }
