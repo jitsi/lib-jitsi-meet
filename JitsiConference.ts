@@ -67,7 +67,7 @@ import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
-import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from './service/RTC/ReceiverAudioSubscription';
+import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import {
     getMediaTypeFromSourceName,
@@ -2213,22 +2213,20 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Subscribes to the cumulative set of translated sources via an Include list, named by convention
-     * {endpointId}-a0.{language} so they can be requested before the source is signaled. An empty list
-     * (no active translations) clears the opt-in set.
+     * Subscribes to the cumulative set of translated sources by including them on top of the `all` baseline,
+     * named by convention {endpointId}-a0.{language} so they can be requested before the source is signaled.
+     * Keeping the baseline means the original audio still flows (and can be ducked); an empty include list
+     * (no active translations) clears the opt-in set. Resilient to the source not yet being signaled.
      *
      * @returns {void}
      */
     private _updateTranslationSubscription(): void {
-        const list = Array.from(
+        const include = Array.from(
             this._buildDesiredTranslations(),
             ([ endpointId, language ]) =>
                 `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
-        this.qualityController.audioController.setAudioSubscriptionMode({
-            list,
-            mode: ReceiverAudioSubscription.INCLUDE
-        });
+        this.qualityController.audioController.setIncludeSources(include);
     }
 
     /**

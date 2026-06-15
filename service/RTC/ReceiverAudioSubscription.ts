@@ -1,36 +1,25 @@
 /**
- * Enum representing the audio subscription options for remote audio streams. The Jitsi Vide Bridge will forward the
- * remote audio streams to the client based on the selected subscription option and also based on the route loudest
- * configuration described at
- * https://github.com/jitsi/jitsi-videobridge/blob/master/jvb/src/main/resources/reference.conf#L344
- */
-export enum ReceiverAudioSubscription {
-    /**
-     * Subscribe to all remote audio streams signaled in the conference.
-     */
-    ALL = 'All',
-
-    /**
-     * Subscribe to all remote audio streams signaled in the conference, except for the one that are explicitly
-     * excluded.
-     */
-    EXCLUDE = 'Exclude',
-
-    /**
-     * Subscribe only to the remote audio streams that are explicitly included in the subscription.
-     */
-    INCLUDE = 'Include',
-
-    /**
-     * Do not subscribe to any remote audio streams signaled in the conference.
-     */
-    NONE = 'None'
-}
-
-/**
- * Interface representing a message for audio subscription updates.
+ * Message describing which remote audio streams the local endpoint wants the Jitsi Videobridge to forward.
+ * The three fields combine rather than being mutually exclusive: `all` is the baseline (forward every regular
+ * source); `include` adds extra sources on top (e.g. bridge-injected translated audio that `all` never
+ * delivers); `exclude` drops specific sources. See the bridge's route-loudest configuration at
+ * https://github.com/jitsi/jitsi-videobridge/blob/master/jvb/src/main/resources/reference.conf
  */
 export interface IReceiverAudioSubscriptionMessage {
-    list?: string[];
-    mode: ReceiverAudioSubscription;
+    /**
+     * Whether to subscribe to every regular remote audio source (the baseline). Defaults to true; set to
+     * false to receive only the explicitly included sources (or nothing when `include` is empty).
+     */
+    all: boolean;
+
+    /**
+     * Source names to drop from the subscription.
+     */
+    exclude: string[];
+
+    /**
+     * Source names to additionally forward on top of the baseline (e.g. opt-in/translated sources that are
+     * not delivered by `all`).
+     */
+    include: string[];
 }
