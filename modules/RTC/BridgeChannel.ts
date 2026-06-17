@@ -365,6 +365,10 @@ export default class BridgeChannel {
                 break;
             }
             case 'EndpointMessage': {
+                if (!obj.msgPayload || typeof obj.msgPayload !== 'object') {
+                    logger.warn(`Dropping malformed EndpointMessage from ${obj.from}: missing msgPayload`);
+                    break;
+                }
                 emitter.emit(RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from, obj.msgPayload);
 
                 break;
