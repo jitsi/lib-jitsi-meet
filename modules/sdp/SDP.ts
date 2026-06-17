@@ -110,7 +110,7 @@ export default class SDP {
         const updatedMidIndices = [];
 
         for (const source of sourceMap.values()) {
-            const { mediaType, msid, ssrcList, groups } = source;
+            const { mediaType, mid, msid, ssrcList, groups } = source;
             let idx;
 
             if (isAdd) {
@@ -118,7 +118,7 @@ export default class SDP {
                 // Update the existing m-line if it exists, otherwise create a new m-line and add the sources.
                 idx = this.media.findIndex(mLine => mLine.includes(`m=${mediaType}`) && !mLine.includes('a=ssrc'));
                 if (!this.isP2P || idx === -1) {
-                    this.addMlineForNewSource(mediaType, true);
+                    this.addMlineForNewSource(mediaType, true, mid);
                     idx = this.media.length - 1;
                 }
             } else {
@@ -171,15 +171,18 @@ export default class SDP {
      *
      * @param {MediaType} mediaType media type of the new source that is being added.
      * @param {boolean} isRemote - Whether this is for a remote source.
+     * @param {string} [mid] - The mid to assign to the new m-line. When the bridge demuxes by mid (mid-based demuxing
+     * under SSRC rewriting) this must be the mid the bridge stamps on the source's packets. Defaults to the next m-line
+     * index.
      * @returns {void}
      */
-    public addMlineForNewSource(mediaType: MediaType, isRemote: boolean = false): void {
-        const mid = this.media.length;
+    public addMlineForNewSource(mediaType: MediaType, isRemote: boolean = false, mid?: string): void {
+        const newMid = mid ?? this.media.length.toString();
         const sdp = transform.parse(this.raw);
         const mline = cloneDeep(sdp.media.find(m => m.type === mediaType));
 
         // Edit media direction, mid and remove the existing ssrc lines in the m-line.
-        mline.mid = mid.toString();
+        mline.mid = newMid;
         mline.direction = isRemote ? MediaDirection.SENDONLY : MediaDirection.RECVONLY;
         mline.msid = undefined;
         mline.ssrcs = undefined;
@@ -190,7 +193,7 @@ export default class SDP {
         // We regenerate the BUNDLE group (since we added a new m-line).
         sdp.groups.forEach(group => {
             if (group.type === 'BUNDLE') {
-                group.mids = [ ...group.mids.split(' '), mid ].join(' ');
+                group.mids = [ ...group.mids.split(' '), newMid ].join(' ');
             }
         });
 

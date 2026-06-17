@@ -76,6 +76,7 @@ interface ITouchToneRequest {
 export interface ITPCSourceInfo {
     groups?: Array<ISsrcGroupInfo>;
     mediaType?: MediaType;
+    mid?: string;
     msid?: string;
     ssrcList?: Array<string>;
     ssrcs?: Array<string>;
