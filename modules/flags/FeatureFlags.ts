@@ -30,9 +30,13 @@ class FeatureFlags {
     /**
      * Checks if the client supports demuxing media forwarded by the bridge using the RTP sdes:mid header extension.
      * Requires SSRC rewriting, since the per-slot mids are signaled in the bridge's source-map messages. Limited to
-     * Chromium-based browsers: Firefox does not deliver received media on an m-line that negotiates sdes:mid even when
-     * the bridge stamps the matching mid (verified empirically), so it keeps the {@code TPCUtils._stripSdesMid}
-     * workaround and SSRC-only demuxing.
+     * Chromium-based browsers: Chrome routes each forwarded source to its own m-line by mid -- remote audio to the
+     * bridge's "a0" m-line and remote video to "v0" (verified via inbound-rtp). Firefox mid-demuxes video correctly but
+     * does NOT for audio: it folds the remote audio onto its own sendrecv audio m-line (mid 0) instead of the bridge's
+     * recvonly "a0" m-line, leaving "a0" orphaned. That orphan m-line's join-time SSRC reconciliation intermittently
+     * stalls audio reception past acceptable limits (manifests as the torture suite's "no media in 15s", audio-only,
+     * Firefox-only, under mid demux; absent when mid demux is off and there is no "a0" m-line). So Firefox keeps
+     * SSRC-only demuxing and the {@code TPCUtils._stripSdesMid} workaround.
      *
      * @returns {boolean}
      */
