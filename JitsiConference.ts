@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 import { $msg, Strophe } from 'strophe.js';
 
+import { JitsiAudioTranslationErrors } from './JitsiAudioTranslationErrors';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
@@ -95,6 +96,9 @@ export interface IConferenceOptions {
             rtcstatsEndpoint?: string;
         };
         applicationName?: string;
+        audioTranslation?: {
+            enabled?: boolean;
+        };
         avgRtpStatsN?: number;
         channelLastN?: number;
         confID?: string;
@@ -183,6 +187,12 @@ export interface IStopSessionOptions {
 }
 
 const logger = getLogger('core:JitsiConference');
+
+/**
+ * How long (ms) to keep an in-flight translation request around for error correlation. The component only
+ * replies on failure, so a request with no reply within this window is assumed to have succeeded.
+ */
+const TRANSLATION_REQUEST_TIMEOUT = 15000;
 
 /**
  * How long since Jicofo is supposed to send a session-initiate, before
@@ -294,6 +304,22 @@ export default class JitsiConference extends Listenable {
      * used to send only the delta on roster changes.
      */
     private _translationRequests: Map<string, string> = new Map();
+
+    /**
+     * In-flight translation-request deltas keyed by stanza id. The component only replies on failure
+     * (success is silent), so this maps an error reply back to the endpoints the failed request touched.
+     */
+    private _pendingTranslationRequests: Map<string, { [endpointId: string]: string; }> = new Map();
+
+    /**
+     * Whether the incoming error-reply handler for translation requests has been registered (once).
+     */
+    private _translationErrorHandlerRegistered = false;
+
+    /**
+     * Monotonic counter used to mint translation-request stanza ids for error correlation.
+     */
+    private _translationRequestSeq = 0;
     private _conferenceJoinAnalyticsEventSent?: number;
     private _e2eEncryption?: E2EEncryption;
     private _liteModeContext?: LiteModeContext;
@@ -800,8 +826,11 @@ export default class JitsiConference extends Listenable {
             }
 
             // (Re)establish the audio subscription on the bridge whenever the channel opens. Defaults to ALL
-            // until translation is enabled, at which point the Include list is sent instead.
-            this.qualityController.audioController.resendSubscription();
+            // until translation is enabled, at which point the Include list is sent instead. Only when the
+            // audio-translation feature is enabled — otherwise leave the bridge's default subscription untouched.
+            if (this.options.config.audioTranslation?.enabled) {
+                this.qualityController.audioController.resendSubscription();
+            }
         });
     }
 
@@ -2203,13 +2232,72 @@ export default class JitsiConference extends Listenable {
             return;
         }
 
-        const message = $msg({ to: componentAddress });
+        this._registerTranslationErrorHandler(componentAddress);
+
+        // Tag the request so a (failure-only) error reply from the component can be mapped back to it.
+        const id = `audio-translation-${++this._translationRequestSeq}`;
+
+        this._pendingTranslationRequests.set(id, delta);
+
+        // The component stays silent on success, so drop the pending entry after a grace period.
+        window.setTimeout(() => this._pendingTranslationRequests.delete(id), TRANSLATION_REQUEST_TIMEOUT);
+
+        const message = $msg({ id,
+            to: componentAddress });
 
         message.c('audio-translation', { xmlns: 'http://jitsi.org/jitmeet' })
             .t(JSON.stringify(delta))
             .up();
 
         this.xmpp.connection.send(message);
+    }
+
+    /**
+     * Registers (once) the handler for `<message type='error'>` replies from the audio-translation
+     * component, so request failures can be surfaced to the UI.
+     *
+     * @param {string} componentAddress - The audio-translation component JID.
+     * @returns {void}
+     */
+    private _registerTranslationErrorHandler(componentAddress: string): void {
+        if (this._translationErrorHandlerRegistered) {
+            return;
+        }
+        this._translationErrorHandlerRegistered = true;
+        this.xmpp.connection.addHandler(
+            this._onTranslationRequestError.bind(this), null, 'message', 'error', null, componentAddress);
+    }
+
+    /**
+     * Handles an error reply from the audio-translation component: maps it back to the failed request via
+     * the stanza id and emits {@link JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED} with the affected
+     * endpoints and the error condition. Returns true to keep the Strophe handler registered.
+     *
+     * @param {Element} stanza - The `<message type='error'>` stanza.
+     * @returns {boolean}
+     */
+    private _onTranslationRequestError(stanza: Element): boolean {
+        const id = getAttribute(stanza, 'id');
+        const requests = id ? this._pendingTranslationRequests.get(id) : undefined;
+
+        if (id) {
+            this._pendingTranslationRequests.delete(id);
+        }
+
+        const condition = findFirst(stanza, 'error')?.firstElementChild?.localName;
+        const error = (Object.values(JitsiAudioTranslationErrors) as string[]).includes(condition ?? '')
+            ? condition as JitsiAudioTranslationErrors
+            : JitsiAudioTranslationErrors.UNKNOWN;
+        const endpointIds = requests ? Object.keys(requests) : [];
+
+        logger.warn(`Audio translation request failed (${error}) for [${endpointIds.join(', ')}]`);
+        this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED, {
+            endpointIds,
+            error,
+            requests
+        });
+
+        return true;
     }
 
     /**
@@ -3460,6 +3548,23 @@ export default class JitsiConference extends Listenable {
      */
     public getParticipantTranslationLanguage(participantId: string): string | null {
         return this._resolveTranslationLanguage(participantId);
+    }
+
+    /**
+     * Turns off all audio translation: clears the default language and every per-participant override, then
+     * sends the resulting removals and clears the audio subscription's Include set.
+     *
+     * @returns {void}
+     */
+    public clearTranslation(): void {
+        if (this._receiverTranslationLanguage === null && this._participantTranslationLanguages.size === 0) {
+            return;
+        }
+        this._receiverTranslationLanguage = null;
+        this._participantTranslationLanguages.clear();
+
+        this._updateTranslationRequests();
+        this._updateTranslationSubscription();
     }
 
     /**
