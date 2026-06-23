@@ -1417,7 +1417,7 @@ export default class JitsiConference extends Listenable {
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
         const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this._hasVisitors && !this._transcribingEnabled;
+        && !this._hasVisitors && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
@@ -3509,6 +3509,9 @@ export default class JitsiConference extends Listenable {
         // is translated clears the opt-in set; the persistent ALL base keeps regular audio flowing).
         this._updateTranslationRequests();
         this._updateTranslationSubscription();
+
+        // Translated audio is delivered via the bridge, so P2P must be disabled while it is active.
+        this._maybeStartOrStopP2P();
     }
 
     /**
@@ -3539,6 +3542,9 @@ export default class JitsiConference extends Listenable {
 
         this._updateTranslationRequests();
         this._updateTranslationSubscription();
+
+        // Translated audio is delivered via the bridge, so P2P must be disabled while it is active.
+        this._maybeStartOrStopP2P();
     }
 
     /**
