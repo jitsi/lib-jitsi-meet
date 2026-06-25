@@ -3,7 +3,11 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
-import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
+import {
+    ILegacyReceiverAudioSubscriptionMessage,
+    IReceiverAudioSubscriptionMessage,
+    normalizeReceiverAudioSubscription
+} from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
 const logger = getLogger('qc:ReceiveAudioController');
@@ -107,15 +111,16 @@ export class ReceiverAudioController {
     }
 
     /**
-     * Sets the full audio subscription (all / include / exclude). No-op when nothing changed.
+     * Sets the full audio subscription (all / include / exclude). No-op when nothing changed. Also accepts the
+     * legacy { mode, list } message for backwards compatibility, normalising it to the current shape.
      *
-     * @param {IReceiverAudioSubscriptionMessage} message - The subscription to apply.
+     * @param {IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage} message - The
+     * subscription to apply.
      * @returns {void}
      */
-    setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
-        const all = message.all;
-        const exclude = message.exclude ?? [];
-        const include = message.include ?? [];
+    setAudioSubscriptionMode(
+            message: IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage): void {
+        const { all, exclude, include } = normalizeReceiverAudioSubscription(message);
 
         if (this._all === all && isEqual(this._exclude, exclude) && isEqual(this._include, include)) {
             logger.debug('Ignoring ReceiverAudioSubscription, no change needed.');

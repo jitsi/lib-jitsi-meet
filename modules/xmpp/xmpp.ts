@@ -511,7 +511,7 @@ export default class XMPP extends Listenable {
         // Advertise support for startMuted policy through room metadata.
         this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
 
-        // Advertise AI audio-translation support (opt-in via config.audioTranslation).
+        // Advertise AI audio-translation support (opt-in via the audioTranslation connection option).
         if (this.options.audioTranslation?.enabled) {
             this.caps.addFeature(FEATURE_AUDIO_TRANSLATION);
         }

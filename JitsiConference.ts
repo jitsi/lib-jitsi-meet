@@ -68,7 +68,10 @@ import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
-import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
+import {
+    ILegacyReceiverAudioSubscriptionMessage,
+    IReceiverAudioSubscriptionMessage
+} from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import {
     getMediaTypeFromSourceName,
@@ -1417,7 +1420,7 @@ export default class JitsiConference extends Listenable {
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
         const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this._hasVisitors && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
+        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
@@ -2149,7 +2152,8 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean}
      */
     private _isReceiverTranslationActive(): boolean {
-        return Boolean(this._receiverTranslationLanguage) || this._participantTranslationLanguages.size > 0;
+        return Boolean(this._receiverTranslationLanguage)
+            || Array.from(this._participantTranslationLanguages.values()).some(language => language !== null);
     }
 
     /**
@@ -3365,12 +3369,15 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sets the audio subscription mode for the local user.
+     * Sets the audio subscription mode for the local user. The legacy { mode, list } message is also accepted
+     * for backwards compatibility and normalised to the { all, include, exclude } shape.
      *
-     * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription mode to set.
+     * @param {IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage} message - The audio
+     * subscription to set.
      * @returns {void}
      */
-    public setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
+    public setAudioSubscriptionMode(
+            message: IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage): void {
         this.qualityController.audioController.setAudioSubscriptionMode(message);
     }
 

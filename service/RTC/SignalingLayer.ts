@@ -84,11 +84,11 @@ export function getSourceIndexFromSourceName(sourceName: SourceName): number {
  * convention {@code <regularSourceName>.<ISO-639-1-language>}, eg. endpointA-a0.en, whereas regular source
  * names never contain a dot.
  *
- * @param {SourceName} sourceName - The source name to check.
+ * @param {SourceName} sourceName - The source name to check (callers may pass a null/undefined source name).
  * @returns {boolean}
  */
-export function isTranslatedSourceName(sourceName: SourceName): boolean {
-    return Boolean(sourceName) && sourceName.includes('.');
+export function isTranslatedSourceName(sourceName?: SourceName | null): boolean {
+    return typeof sourceName === 'string' && sourceName.includes('.');
 }
 
 /**

@@ -266,13 +266,17 @@ export default class BridgeChannel {
      * @returns {void}
      */
     sendReceiverAudioSubscriptionMessage(message: IReceiverAudioSubscriptionMessage): void {
-        logger.info(`Sending ReceiverAudioSubscription all=${message.all} `
-            + `include=[${message.include.join(', ')}] exclude=[${message.exclude.join(', ')}]`);
+        const all = message.all ?? true;
+        const exclude = message.exclude ?? [];
+        const include = message.include ?? [];
+
+        logger.info(`Sending ReceiverAudioSubscription all=${all} `
+            + `include=[${include.join(', ')}] exclude=[${exclude.join(', ')}]`);
         this._send({
-            all: message.all,
+            all,
             colibriClass: 'ReceiverAudioSubscription',
-            exclude: message.exclude,
-            include: message.include
+            exclude,
+            include
         });
     }
 
