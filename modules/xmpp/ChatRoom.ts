@@ -1186,10 +1186,14 @@ export default class ChatRoom extends Listenable {
      * @param useDirectJid
      * @param replyToId
      */
-    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string): void {
+    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string, messageId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
-        const msg = $msg({ to: targetJid,
-            type: 'chat' });
+        const msgAttrs: Record<string, string> = { to: targetJid, type: 'chat' };
+
+        if (messageId) {
+            msgAttrs.id = messageId;
+        }
+        const msg = $msg(msgAttrs);
 
         // We are adding the message in packet. If this element is different
         // from 'body', we add our custom namespace for the same.
@@ -1209,6 +1213,63 @@ export default class ChatRoom extends Listenable {
         this.eventEmitter.emit(
             XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
     }
+
+    /* eslint-disable max-params */
+    /**
+     * Retracts a previously sent message.
+     *
+     * @param {string} messageId - The id of the message being retracted.
+     * @param {string} receiverId - The receiver if the message was private.
+     * @param {boolean} useDirectJid - Whether receiverId is already a JID.
+     */
+    public sendMessageRetraction(
+            messageId: string,
+            receiverId?: string,
+            useDirectJid: boolean = false): void {
+
+        if (!messageId) {
+            logger.warn('sendMessageRetraction: no messageId provided');
+
+            return;
+        }
+
+        let msg;
+
+        if (receiverId) {
+            const targetJid = useDirectJid
+                ? receiverId
+                : `${this.roomjid}/${receiverId}`;
+
+            msg = $msg({
+                to: targetJid,
+                type: 'chat'
+            });
+        } else {
+            msg = $msg({
+                to: this.roomjid,
+                type: 'groupchat'
+            });
+        }
+
+        msg.c('retract', {
+            id: messageId,
+            xmlns: 'urn:xmpp:message-retract:1'
+        })
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
+        })
+        .up()
+        .c('fallback', {
+            for: 'urn:xmpp:message-retract:1',
+            xmlns: 'urn:xmpp:fallback:0'
+        })
+        .up();
+
+        this.connection.send(msg);
+    }
+
+
     /* eslint-enable max-params */
 
     /**
@@ -1468,6 +1529,24 @@ export default class ChatRoom extends Listenable {
             }
         }
 
+        const retractEl = findFirst(msg, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
+
+        if (retractEl) {
+            const retractedMessageId = getAttribute(retractEl, 'id');
+
+            if (!retractedMessageId) {
+                logger.warn('MESSAGE_RETRACTED: missing retracted message id');
+
+                return true;
+
+            }
+
+            this.eventEmitter.emit(XMPPEvents.MESSAGE_RETRACTED,
+                from, retractedMessageId);
+
+            return true;
+        }
+
         if (txt) {
             const messageId = getAttribute(msg, 'id') || uuidv4();
             const replyToId = this._parseReplyMessage(msg);
@@ -1492,7 +1571,6 @@ export default class ChatRoom extends Listenable {
                         }
                     }
                 }
-
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
             } else if (type === 'groupchat') {
@@ -1512,6 +1590,8 @@ export default class ChatRoom extends Listenable {
                     from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source, replyToId);
             }
         }
+
+
     }
 
     /**

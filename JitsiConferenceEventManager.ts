@@ -421,6 +421,19 @@ export default class JitsiConferenceEventManager {
                     participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
+        chatRoom.addListener(
+            XMPPEvents.MESSAGE_RETRACTED,
+
+            (jid: string, messageId: string) => {
+                const participantId = Strophe.getResourceFromJid(jid);
+
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.MESSAGE_RETRACTED,
+                    participantId,
+                    messageId
+                );
+            });
+
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
             (jid: string, status: string) => {
                 const id = Strophe.getResourceFromJid(jid);

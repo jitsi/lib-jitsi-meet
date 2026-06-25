@@ -287,6 +287,11 @@ export enum JitsiConferenceEvents {
     MESSAGE_RECEIVED = 'conference.messageReceived',
 
     /**
+     * Event indicates that a message was retracted
+    */
+    MESSAGE_RETRACTED = 'conference.messageRetracted',
+
+    /**
      * Event fired when the conference metadata is updated.
      */
     METADATA_UPDATED = 'conference.metadata.updated',
