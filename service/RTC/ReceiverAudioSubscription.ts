@@ -37,18 +37,18 @@ export interface IReceiverAudioSubscriptionMessage {
      * Whether to subscribe to every regular remote audio source (the baseline). Defaults to true; set to
      * false to receive only the explicitly included sources (or nothing when `include` is empty).
      */
-    all: boolean;
+    all?: boolean;
 
     /**
-     * Source names to drop from the subscription.
+     * Source names to drop from the subscription. Defaults to an empty list.
      */
-    exclude: string[];
+    exclude?: string[];
 
     /**
      * Source names to additionally forward on top of the baseline (e.g. opt-in/translated sources that are
-     * not delivered by `all`).
+     * not delivered by `all`). Defaults to an empty list.
      */
-    include: string[];
+    include?: string[];
 }
 
 /**

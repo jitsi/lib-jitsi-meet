@@ -45,7 +45,7 @@ describe( "/service/RTC/ReceiverAudioSubscription", () => {
         } );
 
         it( "defaults missing fields on a current message", () => {
-            expect( normalizeReceiverAudioSubscription( {} as IReceiverAudioSubscriptionMessage ) )
+            expect( normalizeReceiverAudioSubscription( {} ) )
                 .toEqual( { all: true, exclude: [], include: [] } );
         } );
     } );

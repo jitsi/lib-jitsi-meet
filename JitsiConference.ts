@@ -315,9 +315,10 @@ export default class JitsiConference extends Listenable {
     private _pendingTranslationRequests: Map<string, { [endpointId: string]: string; }> = new Map();
 
     /**
-     * Whether the incoming error-reply handler for translation requests has been registered (once).
+     * The registered Strophe handler for translation-request error replies, or undefined when not registered.
+     * Stored so it can be removed from the (connection-scoped) handler list on {@link leave}.
      */
-    private _translationErrorHandlerRegistered = false;
+    private _translationErrorHandler?: ReturnType<Strophe.Connection['addHandler']>;
 
     /**
      * Monotonic counter used to mint translation-request stanza ids for error correlation.
@@ -2217,23 +2218,27 @@ export default class JitsiConference extends Listenable {
             return;
         }
 
-        this._translationRequests = desired;
-        this._sendTranslationRequestStanza(delta);
+        // Only commit the advertised state once the delta has actually been sent. Otherwise a request issued
+        // before the audio-translation component is discovered would be dropped: the desired state would be
+        // recorded as advertised, so subsequent deltas would compare against it and never re-send.
+        if (this._sendTranslationRequestStanza(delta)) {
+            this._translationRequests = desired;
+        }
     }
 
     /**
      * Sends a translation-request delta to the audio-translation module as a JSON map.
      *
      * @param {Object} delta - The changed endpointId -> language entries ('' to cancel).
-     * @returns {void}
+     * @returns {boolean} Whether the delta was sent (false when no component has been discovered yet).
      */
-    private _sendTranslationRequestStanza(delta: { [endpointId: string]: string; }): void {
+    private _sendTranslationRequestStanza(delta: { [endpointId: string]: string; }): boolean {
         const componentAddress = this.xmpp.audioTranslationComponentAddress;
 
         if (!componentAddress) {
             logger.warn('Cannot request audio translation: no audio-translation component discovered.');
 
-            return;
+            return false;
         }
 
         this._registerTranslationErrorHandler(componentAddress);
@@ -2254,6 +2259,8 @@ export default class JitsiConference extends Listenable {
             .up();
 
         this.xmpp.connection.send(message);
+
+        return true;
     }
 
     /**
@@ -2264,11 +2271,10 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     private _registerTranslationErrorHandler(componentAddress: string): void {
-        if (this._translationErrorHandlerRegistered) {
+        if (this._translationErrorHandler) {
             return;
         }
-        this._translationErrorHandlerRegistered = true;
-        this.xmpp.connection.addHandler(
+        this._translationErrorHandler = this.xmpp.connection.addHandler(
             this._onTranslationRequestError.bind(this), null, 'message', 'error', null, componentAddress);
     }
 
@@ -2810,6 +2816,13 @@ export default class JitsiConference extends Listenable {
         room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
         room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
         room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
+
+        // The translation error-reply handler is registered on the (connection-scoped) Strophe connection, which
+        // outlives this conference, so remove it here to avoid retaining the conference and emitting after leave.
+        if (this._translationErrorHandler) {
+            this.xmpp.connection?.deleteHandler(this._translationErrorHandler);
+            this._translationErrorHandler = undefined;
+        }
 
         this.eventManager.removeXMPPListeners();
 
