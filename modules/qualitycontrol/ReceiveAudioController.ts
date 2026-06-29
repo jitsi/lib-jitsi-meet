@@ -72,7 +72,8 @@ export class ReceiverAudioController {
     }
 
     /**
-     * Mutes or unmutes all remote audio. Muting drops the baseline (receive nothing); unmuting restores it.
+     * Mutes or unmutes all remote audio by toggling the baseline. The explicit include/exclude overlays (e.g.
+     * opted-in translated sources) are preserved so they are restored on unmute rather than lost across the cycle.
      *
      * @param {boolean} muted - Indicates whether the remote audio should be muted.
      * @returns {void}
@@ -80,8 +81,8 @@ export class ReceiverAudioController {
     muteRemoteAudio(muted: boolean): void {
         this.setAudioSubscriptionMode({
             all: !muted,
-            exclude: [],
-            include: []
+            exclude: this._exclude,
+            include: this._include
         });
     }
 
