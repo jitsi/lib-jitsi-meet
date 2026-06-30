@@ -16,7 +16,7 @@ export async function deriveKeys(material: CryptoKey): Promise<{ encryptionKey: 
         name: 'HKDF',
         salt: textEncoder.encode('JFrameEncryptionKey')
     }, material, {
-        length: 128,
+        length: 256,
         name: 'AES-GCM'
     }, false, [ 'encrypt', 'decrypt' ]);
 
