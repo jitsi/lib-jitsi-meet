@@ -1,5 +1,6 @@
 import { $iq } from 'strophe.js';
 
+import { MediaType } from '../../service/RTC/MediaType';
 import FeatureFlags from '../flags/FeatureFlags';
 import { expandSourcesFromJson } from '../xmpp/JingleHelperFunctions';
 import { findAll, findFirst } from '../util/XMLUtils';
@@ -1595,6 +1596,55 @@ a=rtcp-mux
 
                 expect(sdp.session).not.toContain('a=cryptex');
             });
+        });
+    });
+
+    describe('addMlineForNewSource', () => {
+        const baseSdp = [
+            'v=0\r\n',
+            'o=- 123 2 IN IP4 127.0.0.1\r\n',
+            's=-\r\n',
+            't=0 0\r\n',
+            'a=group:BUNDLE 0 1\r\n',
+            'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:111 opus/48000/2\r\n',
+            'a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n',
+            'a=mid:0\r\n',
+            'a=sendrecv\r\n',
+            'm=video 9 UDP/TLS/RTP/SAVPF 100\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:100 VP8/90000\r\n',
+            'a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n',
+            'a=mid:1\r\n',
+            'a=sendrecv\r\n'
+        ].join('');
+
+        it('uses the supplied mid for the new m-line and the BUNDLE group', () => {
+            const sdp = new SDP(baseSdp);
+
+            sdp.addMlineForNewSource(MediaType.AUDIO, true /* isRemote */, 'a0');
+
+            expect(sdp.raw).toContain('a=mid:a0\r\n');
+            expect(sdp.raw).toContain('a=group:BUNDLE 0 1 a0\r\n');
+
+            // The new m-line is the cloned audio section, set sendonly and carrying the negotiated sdes:mid extension
+            // (so the receiver demuxes the bridge-stamped mid).
+            const newMline = sdp.media[sdp.media.length - 1];
+
+            expect(newMline).toContain('a=mid:a0\r\n');
+            expect(newMline).toContain('a=sendonly\r\n');
+            expect(newMline).toContain('a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n');
+        });
+
+        it('falls back to the m-line index when no mid is supplied', () => {
+            const sdp = new SDP(baseSdp);
+
+            // Two m-lines exist (indices 0 and 1), so the next one defaults to mid "2".
+            sdp.addMlineForNewSource(MediaType.VIDEO, true /* isRemote */);
+
+            expect(sdp.raw).toContain('a=mid:2\r\n');
+            expect(sdp.raw).toContain('a=group:BUNDLE 0 1 2\r\n');
         });
     });
 });
