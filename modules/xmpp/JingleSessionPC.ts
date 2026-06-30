@@ -24,6 +24,7 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
+import { TraceParentExtension } from '../util/OTel';
 import { exists, findAll, findFirst, getAttribute } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
@@ -1041,7 +1042,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {function(error)} failure called when we receive an error response or when the request has timed out.
      * @returns {void}
      */
-    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void) {
+    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void, trace: TraceParentExtension) {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
@@ -1067,6 +1068,9 @@ export default class JingleSessionPC extends JingleSession {
         if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
             // @ts-ignore will be fixed after merge of sdp
             localSDP.initialLastN = this.options.channelLastN;
+        }
+        if (trace != null) {
+            accept.c(trace.ELEMENT, trace.asAttributes()).up();
         }
         localSDP.toJingle(
             accept,
@@ -1460,6 +1464,8 @@ export default class JingleSessionPC extends JingleSession {
             success: () => void,
             failure: (error: any) => void,
             localTracks: JitsiLocalTrack[] = []): void {
+        const trace = TraceParentExtension.fromElement(jingleOffer);
+
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -1487,7 +1493,7 @@ export default class JingleSessionPC extends JingleSession {
                 error => {
                     failure(error);
                     this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this, error);
-                });
+                }, trace);
             },
             failure,
             localTracks);
