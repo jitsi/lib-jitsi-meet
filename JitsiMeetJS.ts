@@ -1,6 +1,7 @@
 import Logger from '@jitsi/logger';
 import { merge } from 'lodash-es';
 
+import { JitsiAudioTranslationErrors } from './JitsiAudioTranslationErrors';
 import JitsiConference, { IConferenceOptions } from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
@@ -332,6 +333,7 @@ const JitsiMeetJS = {
         JitsiTrackError
     },
     errors: {
+        audioTranslation: JitsiAudioTranslationErrors,
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
         track: JitsiTrackErrors
