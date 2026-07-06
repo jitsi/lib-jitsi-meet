@@ -1215,7 +1215,6 @@ export default class ChatRoom extends Listenable {
             XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
     }
 
-    /* eslint-disable max-params */
     /**
      * Retracts a previously sent message.
      *
@@ -1257,13 +1256,16 @@ export default class ChatRoom extends Listenable {
             xmlns: 'urn:xmpp:message-retract:1'
         })
         .up()
-        .c('store', {
-            xmlns: 'urn:xmpp:hints'
-        })
-        .up()
         .c('fallback', {
             for: 'urn:xmpp:message-retract:1',
             xmlns: 'urn:xmpp:fallback:0'
+        })
+        .up()
+        .c('body')
+        .t('I retracted a previous message, but it\'s unsupported by your client.')
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
         })
         .up();
 
@@ -1591,8 +1593,6 @@ export default class ChatRoom extends Listenable {
                     from, txt, this.myroomjid, stamp, displayName, isVisitorMessage, messageId, source, replyToId);
             }
         }
-
-
     }
 
     /**
