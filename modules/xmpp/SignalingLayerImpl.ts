@@ -152,12 +152,21 @@ export default class SignalingLayerImpl extends SignalingLayer {
             }
 
             for (const sourceName of Object.keys(sourceInfoJSON)) {
+                let owner;
+
+                try {
+                    owner = getEndpointIdFromSourceName(sourceName);
+                } catch (e) {
+                    // Malformed name in untrusted presence: skip this entry, keep processing the rest.
+                    logger.warn(`Ignoring SourceInfo with invalid source name: ${sourceName}`);
+                    continue;
+                }
+
                 const negotiatedOwner = negotiatedOwners.get(sourceName);
 
                 // A sender may only advertise state for sources it owns. A not-yet-negotiated source has no
                 // negotiated owner and relies on the source name check alone.
-                if (getEndpointIdFromSourceName(sourceName) !== endpointId
-                        || (negotiatedOwner && negotiatedOwner !== endpointId)) {
+                if (owner !== endpointId || (negotiatedOwner && negotiatedOwner !== endpointId)) {
                     logger.warn(`Ignoring SourceInfo for ${sourceName} not owned by ${endpointId}`);
                     continue;
                 }

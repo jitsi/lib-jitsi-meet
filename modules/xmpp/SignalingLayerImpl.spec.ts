@@ -256,6 +256,20 @@ describe('SignalingLayerImpl', () => {
                 expect(emitterSpy).not.toHaveBeenCalledWith(
                     SignalingEvents.SOURCE_MUTED_CHANGED, jasmine.anything(), jasmine.anything());
             });
+
+            it('ignores an invalid source name and still processes valid entries in the same presence', () => {
+                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+
+                chatRoom.mockSourceInfoPresence('12345678', {
+                    'not-a-valid-source': { muted: true },
+                    '12345678-a0': { muted: true }
+                });
+
+                expect(emitterSpy).toHaveBeenCalledWith(
+                    SignalingEvents.SOURCE_MUTED_CHANGED, '12345678-a0', true);
+                expect(emitterSpy).not.toHaveBeenCalledWith(
+                    SignalingEvents.SOURCE_MUTED_CHANGED, 'not-a-valid-source', jasmine.anything());
+            });
         });
     });
     describe('getPeerMediaInfo', () => {
