@@ -4,7 +4,7 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getEndpointIdFromSourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -145,8 +145,23 @@ export default class SignalingLayerImpl extends SignalingLayer {
             const sourceInfoJSON = safeJsonParse(value);
             const emitEventsFromHere = this._doesEndpointSendNewSourceInfo(endpointId);
             const endpointSourceState = this._remoteSourceState[endpointId] || (this._remoteSourceState[endpointId] = {});
+            const negotiatedOwners = new Map<SourceName, EndpointId>();
+
+            for (const owner of this._ssrcOwners.values()) {
+                negotiatedOwners.set(owner.sourceName, owner.endpointId);
+            }
 
             for (const sourceName of Object.keys(sourceInfoJSON)) {
+                const negotiatedOwner = negotiatedOwners.get(sourceName);
+
+                // A sender may only advertise state for sources it owns. A not-yet-negotiated source has no
+                // negotiated owner and relies on the source name check alone.
+                if (getEndpointIdFromSourceName(sourceName) !== endpointId
+                        || (negotiatedOwner && negotiatedOwner !== endpointId)) {
+                    logger.warn(`Ignoring SourceInfo for ${sourceName} not owned by ${endpointId}`);
+                    continue;
+                }
+
                 let sourceChanged = false;
                 const mediaType = getMediaTypeFromSourceName(sourceName);
                 const newMutedState = Boolean(sourceInfoJSON[sourceName].muted);

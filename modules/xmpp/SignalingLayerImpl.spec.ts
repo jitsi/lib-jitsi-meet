@@ -191,13 +191,13 @@ describe('SignalingLayerImpl', () => {
                     }
                 };
 
-                chatRoom.mockSourceInfoPresence('endpoint1', sourceInfo);
+                chatRoom.mockSourceInfoPresence('12345678', sourceInfo);
 
                 // <audiomuted/> still included for backwards compat and ChatRoom will emit the presence event
                 chatRoom.emitPresenceListener({
                     tagName: 'audiomuted',
                     value: 'true'
-                }, 'endpoint1');
+                }, '12345678');
 
                 // Just once event though the legacy presence is there as well
                 expect(emitterSpy).toHaveBeenCalledTimes(1);
@@ -217,22 +217,44 @@ describe('SignalingLayerImpl', () => {
                     }
                 };
 
-                chatRoom.mockSourceInfoPresence('endpoint1', sourceInfo);
+                chatRoom.mockSourceInfoPresence('12345678', sourceInfo);
 
                 // <audiomuted/> still included for backwards compat and ChatRoom will emit the presence event
                 chatRoom.emitPresenceListener({
                     tagName: 'audiomuted',
                     value: 'true'
-                }, 'endpoint1');
+                }, '12345678');
 
                 expect(emitterSpy).toHaveBeenCalledTimes(2);
                 expect(emitterSpy.calls.argsFor(1)).toEqual([
                     SignalingEvents.SOURCE_UPDATED,
                     '12345678-a0',
-                    'endpoint1',
+                    '12345678',
                     true,
                     undefined
                 ]);
+            });
+
+            it('ignores SourceInfo advertised for a source owned by another endpoint', () => {
+                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+
+                chatRoom.mockSourceInfoPresence('endpoint2', { 'endpoint1-v0': { muted: true } });
+
+                expect(emitterSpy).not.toHaveBeenCalledWith(
+                    SignalingEvents.SOURCE_MUTED_CHANGED, jasmine.anything(), jasmine.anything());
+                expect(emitterSpy).not.toHaveBeenCalledWith(
+                    SignalingEvents.SOURCE_VIDEO_TYPE_CHANGED, jasmine.anything(), jasmine.anything());
+            });
+
+            it('ignores SourceInfo when the negotiated SSRC owner is a different endpoint', () => {
+                // The source name says 'attacker', but the source was negotiated as owned by 'victim'.
+                signalingLayer.setSSRCOwner(1234, 'victim', 'attacker-v0');
+                const emitterSpy = spyOn(signalingLayer.eventEmitter, 'emit');
+
+                chatRoom.mockSourceInfoPresence('attacker', { 'attacker-v0': { muted: true } });
+
+                expect(emitterSpy).not.toHaveBeenCalledWith(
+                    SignalingEvents.SOURCE_MUTED_CHANGED, jasmine.anything(), jasmine.anything());
             });
         });
     });
