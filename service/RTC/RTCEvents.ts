@@ -66,6 +66,14 @@ export enum RTCEvents {
     FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
+     * Per-poll inbound audio stats emitted by the {@code StatsCollector} on each stats cycle. The payload is the
+     * source {@code TraceablePeerConnection} and a {@code Map<ssrc, packetsReceived>} of the cumulative received
+     * packet count for every inbound audio SSRC. Consumed by {@link RemoteAudioWedgeDetector} so it can piggyback on
+     * the existing stats poll instead of running its own {@code getStats()} loop.
+     */
+    INBOUND_AUDIO_STATS = 'rtc.inbound_audio_stats',
+
+    /**
      * Event emitted when {@link RTC.setLastN} method is called to update with the new value set.
      * The first argument is the value passed to {@link RTC.setLastN}.
      */
