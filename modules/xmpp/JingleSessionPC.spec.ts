@@ -218,7 +218,7 @@ describe('JingleSessionPC', () => {
             expect(sourceInfo.get('source1').mid).toBe('a0');
         });
 
-        it('leaves mid undefined when no mid parameter is present', () => {
+        it('leaves mid null when no mid parameter is present', () => {
             const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>
                         <content name='audio'>
