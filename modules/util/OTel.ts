@@ -17,7 +17,7 @@ export class TraceParentExtension {
     }
 
     static fromElement(element: Element) {
-        const traceParentExtension = findFirst(element, `:scope ${ELEMENT}[*|xmlns="${NAMESPACE}"]`);
+        const traceParentExtension = findFirst(element, `:scope>${ELEMENT}[*|xmlns="${NAMESPACE}"]`);
 
         if (traceParentExtension == null) {
             return null;
