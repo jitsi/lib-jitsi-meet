@@ -38,10 +38,17 @@ class FeatureFlags {
      * Firefox-only, under mid demux; absent when mid demux is off and there is no "a0" m-line). So Firefox keeps
      * SSRC-only demuxing and the {@code TPCUtils._stripSdesMid} workaround.
      *
+     * Further limited to Chromium 148 and later: mid demux is a workaround for the audio-demux wedge, and that
+     * regression was introduced in Chromium 148. Earlier Chromium versions do not have the bug, so there is nothing to
+     * work around there.
+     *
      * @returns {boolean}
      */
     isRtpMidDemuxSupported(): boolean {
-        return this._rtpMidDemux && this._ssrcRewriting && browser.isChromiumBased();
+        return this._rtpMidDemux
+            && this._ssrcRewriting
+            && browser.isChromiumBased()
+            && browser.isEngineVersionGreaterThan(147);
     }
 
     /**
