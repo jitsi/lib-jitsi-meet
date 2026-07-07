@@ -109,6 +109,9 @@ interface IP2PConfig {
  * XMPP options interface
  */
 export interface IXMPPOptions {
+    audioTranslation?: {
+        enabled?: boolean;
+    };
     bosh?: string;
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
@@ -244,6 +247,12 @@ export const FEATURE_JIBRI: string = 'http://jitsi.org/protocol/jibri';
 export const FEATURE_TRANSCRIBER: string = 'http://jitsi.org/protocol/transcriber';
 
 /**
+ * The feature used to mark support for receiving AI audio translation.
+ * @type {string}
+ */
+export const FEATURE_AUDIO_TRANSLATION: string = 'http://jitsi.org/protocol/audio-translation';
+
+/**
  * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
  * to avoid additional signaling (disco-info).
  * @type {string}
@@ -283,6 +292,7 @@ export default class XMPP extends Listenable {
     public fileSharingComponentAddress: Optional<string>;
     public roomMetadataComponentAddress: Optional<string>;
     public pollsComponentAddress: Optional<string>;
+    public audioTranslationComponentAddress: Optional<string>;
 
 
     /**
@@ -505,6 +515,11 @@ export default class XMPP extends Listenable {
 
         // Advertise support for startMuted policy through room metadata.
         this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
+
+        // Advertise AI audio-translation support (opt-in via the audioTranslation connection option).
+        if (this.options.audioTranslation?.enabled) {
+            this.caps.addFeature(FEATURE_AUDIO_TRANSLATION);
+        }
     }
 
 
@@ -623,6 +638,11 @@ export default class XMPP extends Listenable {
             if (identity.type === 'end_conference') {
                 this.endConferenceComponentAddress = identity.name;
                 this._components.push(this.endConferenceComponentAddress);
+            }
+
+            if (identity.type === 'audio-translation') {
+                this.audioTranslationComponentAddress = identity.name;
+                this._components.push(this.audioTranslationComponentAddress);
             }
 
             if (identity.type === 'speakerstats') {

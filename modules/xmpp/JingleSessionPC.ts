@@ -9,10 +9,12 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents, createAudioWedgeRecoveryEvent } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
+import RemoteAudioWedgeDetector from '../RTC/RemoteAudioWedgeDetector';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/TraceablePeerConnection';
 import browser from '../browser';
@@ -183,6 +185,7 @@ export default class JingleSessionPC extends JingleSession {
     private _gatheringReported: boolean;
     private _xmppListeners: Array<() => void>;
     private _removeSenderVideoConstraintsChangeListener: Nullable<() => void>;
+    private _audioWedgeDetector: Nullable<RemoteAudioWedgeDetector>;
     private usesCodecSelectionAPI: boolean;
     private wasConnected: boolean;
     private isReconnect: boolean;
@@ -437,6 +440,8 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.establishmentDuration = undefined;
 
+        this._audioWedgeDetector = null;
+
         this._xmppListeners = [];
         this._xmppListeners.push(
             connection.addCancellableListener(
@@ -581,6 +586,28 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Starts the remote audio wedge watchdog for this session if applicable. The watchdog only runs against a JVB
+     * connection that uses SSRC rewriting, since that is the only configuration affected by the Chrome/WebRTC
+     * audio-demux wedge. It is started once the connection is established and is a no-op on subsequent ICE
+     * (re)connections.
+     *
+     * @returns {void}
+     */
+    private _maybeStartAudioWedgeDetector(): void {
+        if (this._audioWedgeDetector
+                || this.isP2P
+                || !FeatureFlags.isSsrcRewritingSupported()
+                || this.options.startSilent) {
+            return;
+        }
+
+        this._audioWedgeDetector = new RemoteAudioWedgeDetector(this.peerconnection, {
+            onWedgeDetected: track => this._recoverWedgedAudioSource(track)
+        });
+        this._audioWedgeDetector.start();
+    }
+
+    /**
      * Takes in a jingle offer iq, returns the new sdp offer that can be set as remote description in the
      * peerconnection.
      *
@@ -712,6 +739,85 @@ export default class JingleSessionPC extends JingleSession {
         sourceDescription.size && this.peerconnection.updateRemoteSources(sourceDescription, isAdd);
 
         return sourceDescription;
+    }
+
+    /**
+     * Recovers a remote audio source that the {@link RemoteAudioWedgeDetector} has flagged as wedged (mapped and
+     * unmuted, but receiving no inbound RTP). The recovery recycles just that source by synthesizing a source-remove
+     * followed by a source-add, reusing the same machinery as {@link processSourceMap}. The source-remove rejects the
+     * source's m-line (forcing Chrome to delete the stuck receive stream) and the source-add re-signals the same SSRC
+     * on a fresh m-line, which binds cleanly. Both operations are scoped to the single affected source.
+     *
+     * The recovery is gated by a guard that runs on the modification queue: the bridge can remap the slot (the same
+     * rewritten SSRC) to a different source, or remove it entirely, between detection and execution. The guard
+     * re-resolves the track by SSRC at execution time and skips the recovery if the SSRC is no longer mapped to the
+     * source that was detected as wedged - letting the normal sources-map flow own the slot and the watchdog re-detect
+     * on a later cycle. This prevents recycling a source with stale owner/source-name metadata.
+     *
+     * @param {JitsiRemoteTrack} track - The wedged remote audio track.
+     * @returns {void}
+     */
+    private _recoverWedgedAudioSource(track: JitsiRemoteTrack): void {
+        const ssrc = track.getSsrc();
+        const detectedSource = track.getSourceName();
+
+        if (typeof ssrc !== 'number' || !detectedSource) {
+            logger.warn(`${this} Cannot recover wedged audio source, missing ssrc/source-name`);
+
+            return;
+        }
+
+        const workFunction = (finishedCallback: (error?) => void) => {
+            // The slot may have been remapped or removed between detection and now. getTrackBySSRC always resolves to a
+            // remote track for a rewritten remote SSRC.
+            const currentTrack = this.peerconnection?.getTrackBySSRC(ssrc) as Nullable<JitsiRemoteTrack>;
+
+            if (!currentTrack || currentTrack.getSourceName() !== detectedSource) {
+                logger.warn(`${this} Skipping wedge recovery for audio source ${detectedSource} (ssrc=${ssrc}): the `
+                    + `slot was remapped or removed (now=${currentTrack?.getSourceName() ?? 'gone'}). The watchdog `
+                    + 'will re-detect if it is still wedged.');
+                finishedCallback();
+
+                return;
+            }
+
+            const source = currentTrack.getSourceName();
+            const owner = currentTrack.getParticipantId();
+
+            logger.warn(`${this} Recycling wedged remote audio source ${source} (ssrc=${ssrc}, owner=${owner})`);
+
+            // Builds a single-source Jingle "content" element for the wedged source, identical in shape to the ones
+            // produced by processSourceMap for an audio source-add.
+            const buildSourceNode = () => {
+                const src = { owner, source };
+                const msid = `remote-audio-${++this.numRemoteAudioSources}`;
+                const node = $build('content', {
+                    name: MediaType.AUDIO,
+                    xmlns: 'urn:xmpp:jingle:1'
+                }).c('description', {
+                    media: MediaType.AUDIO,
+                    xmlns: XEP.RTP_MEDIA
+                });
+
+                _addSourceElement(node, src, ssrc, `${msid} ${msid}`);
+
+                return node.up().node;
+            };
+
+            this._addOrRemoveRemoteStream(false /* remove */, buildSourceNode());
+            this._addOrRemoveRemoteStream(true /* add */, buildSourceNode());
+
+            Statistics.sendAnalytics(createAudioWedgeRecoveryEvent({
+                owner,
+                'source_name': source,
+                ssrc
+            }));
+
+            finishedCallback();
+        };
+
+        logger.debug(`${this} Queued wedge recovery task for audio source ${detectedSource} (ssrc=${ssrc})`);
+        this.modificationQueue.push(workFunction);
     }
 
     /**
@@ -1557,6 +1663,9 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
+        this._audioWedgeDetector?.stop();
+        this._audioWedgeDetector = null;
+
         if (this.peerconnection) {
             this.peerconnection.onicecandidate = null;
             this.peerconnection.oniceconnectionstatechange = null;
@@ -1766,6 +1875,8 @@ export default class JingleSessionPC extends JingleSession {
                     isStable = true;
                     this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTORED, this);
                 }
+
+                this._maybeStartAudioWedgeDetector();
 
                 // Add a workaround for an issue on chrome in Unified plan when the local endpoint is the offerer.
                 // The 'signalingstatechange' event for 'stable' is handled after the 'iceconnectionstatechange' event

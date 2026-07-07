@@ -293,6 +293,13 @@ export class MockPeerConnection {
     getLocalVideoTracks(): any[] {
         return [];
     }
+
+    /**
+     * {@link TraceablePeerConnection.getTrackBySSRC}.
+     */
+    getTrackBySSRC(): any {
+        return null;
+    }
 }
 
 /**

@@ -7,7 +7,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { getSourceIndexFromSourceName, isTranslatedSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -651,6 +651,55 @@ export default class TraceablePeerConnection {
     };
 
     /**
+     * Returns the transceiver direction to apply to a sender when a local track is added to or removed from this
+     * peerconnection via {@link replaceTrack}.
+     *
+     * On Firefox setting encoding.active=false does not stop the outgoing audio (unlike Chromium/WebKit), so an
+     * audio sender is suspended via the transceiver direction while audio transfer is inactive on this
+     * peerconnection (the JVB connection while the call is routed over P2P). Otherwise an audio track added on
+     * unmute would be sent over the suspended JVB connection and the remote peer would receive it twice (once over
+     * JVB, once over P2P). Only audio is handled this way: video keeps using encoding.active so that simulcast /
+     * screenshare SDP and the P2P video path are left untouched.
+     *
+     * @param {boolean} hasTrack - whether a local track is attached to the sender after the operation.
+     * @param {boolean} isFirefox - whether the client is Firefox.
+     * @param {MediaType} mediaType - the media type of the local track.
+     * @param {boolean} mediaTransferActive - whether media transfer is active for the track's media type.
+     * @returns {MediaDirection}
+     */
+    static getTransceiverDirection(
+            hasTrack: boolean,
+            isFirefox: boolean,
+            mediaType: Optional<MediaType>,
+            mediaTransferActive: boolean): MediaDirection {
+        if (hasTrack) {
+            return isFirefox && mediaType === MediaType.AUDIO && !mediaTransferActive
+                ? MediaDirection.INACTIVE
+                : MediaDirection.SENDRECV;
+        }
+
+        return isFirefox ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+    }
+
+    /**
+     * Returns the transceiver direction to apply to a Firefox sender when media transfer is suspended or resumed
+     * on this peerconnection (see {@link setMediaTransferActive}). Returns <tt>undefined</tt> when the direction
+     * should be left unchanged - i.e. when resuming a sender that has no local track attached, in which case the
+     * direction is set later by {@link replaceTrack} once a track is added.
+     *
+     * @param {boolean} enable - <tt>true</tt> when resuming media transfer, <tt>false</tt> when suspending it.
+     * @param {boolean} hasTrack - whether the sender has a local track attached.
+     * @returns {MediaDirection|undefined}
+     */
+    static getMediaTransferDirection(enable: boolean, hasTrack: boolean): Optional<MediaDirection> {
+        if (!enable) {
+            return MediaDirection.INACTIVE;
+        }
+
+        return hasTrack ? MediaDirection.SENDRECV : undefined;
+    }
+
+    /**
      * Handles remote track mute / unmute events.
      * @param {string} endpointId the track owner's identifier (MUC nickname)
      * @param {MediaType} mediaType "audio" or "video"
@@ -759,6 +808,20 @@ export default class TraceablePeerConnection {
         }
 
         await sender.setParameters(parameters);
+
+        // Firefox does not stop sending audio when only encoding.active is set to false, so an audio sender is
+        // suspended/resumed via the transceiver direction as well (see getMediaTransferDirection). Audio only -
+        // video keeps using encoding.active to avoid perturbing simulcast/screenshare SDP and the P2P video path.
+        if (browser.isFirefox() && sender.track?.kind === MediaType.AUDIO) {
+            const transceiver = this.peerconnection.getTransceivers().find(t => t.sender === sender);
+            const direction = TraceablePeerConnection.getMediaTransferDirection(enable, Boolean(sender.track));
+
+            // direction is undefined when resuming a sender with no local track attached; leave it untouched so it
+            // gets set by replaceTrack when a track is added/removed.
+            if (transceiver && direction) {
+                transceiver.direction = direction;
+            }
+        }
     };
 
 
@@ -1669,9 +1732,13 @@ export default class TraceablePeerConnection {
 
         const sourceName = this._signalingLayer.getTrackSourceName(trackSsrc);
         const peerMediaInfo = this._signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType, sourceName);
+
+        // Translated sources are never carried in presence, so peerMediaInfo defaults to muted. They represent
+        // actively flowing synthesized audio, so treat them as unmuted.
+        const muted = isTranslatedSourceName(sourceName) ? false : (peerMediaInfo?.muted ?? true);
         const trackDetails = {
             mediaType,
-            muted: peerMediaInfo?.muted ?? true,
+            muted,
             ssrc: trackSsrc,
             stream,
             track,
@@ -1809,12 +1876,23 @@ export default class TraceablePeerConnection {
         logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
             + `trackId=${toBeRemoved.getTrackId()}]`);
 
-        toBeRemoved.dispose();
         const participantId = toBeRemoved.getParticipantId();
+        const ssrc = toBeRemoved.getSsrc();
 
-        if (FeatureFlags.isSsrcRewritingSupported() && !participantId) {
-            return;
-        } else if (!FeatureFlags.isSsrcRewritingSupported()) {
+        toBeRemoved.dispose();
+
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            if (!participantId) {
+                return;
+            }
+
+            // Drop the SSRC->track entry so that a later source-add reusing the same rewritten SSRC (e.g. the wedge
+            // recovery recycling a source via source-remove then source-add) is not discarded as a duplicate by
+            // _createRemoteTrack. Guarded so a slot already remapped to a different current track is left alone.
+            if (this.remoteTracksBySsrc.get(ssrc) === toBeRemoved) {
+                this.remoteTracksBySsrc.delete(ssrc);
+            }
+        } else {
             const userTracksByMediaType = this.remoteTracks.get(participantId);
 
             if (!userTracksByMediaType) {
@@ -1857,8 +1935,14 @@ export default class TraceablePeerConnection {
             const trackIndex = getSourceIndexFromSourceName(sourceName);
             const mediaType = localTrack.getType();
             const mLines = media.filter(m => m.type === mediaType);
-            const ssrcGroups = mLines[trackIndex].ssrcGroups;
-            let ssrcs = mLines[trackIndex].ssrcs;
+            const mLine = mLines[trackIndex];
+
+            if (!mLine) {
+                continue;
+            }
+
+            const ssrcGroups = mLine.ssrcGroups;
+            let ssrcs = mLine.ssrcs;
 
             if (ssrcs?.length) {
                 // Filter the ssrcs with 'cname' attribute.
@@ -2440,8 +2524,15 @@ export default class TraceablePeerConnection {
                 // NOTE: If we return to the approach of not removing the track for FF and instead using the
                 // enabled property for muting the track, we may need to change the direction to
                 // RECVONLY if FF still sends the media even though the enabled flag is set to false.
-                transceiver.direction
-                    = newTrack || browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+                // On Firefox the transceiver direction (not encoding.active) is what suspends an audio sender
+                // while audio transfer is inactive on this peerconnection - the JVB connection during P2P (see
+                // getTransceiverDirection and _enableSenderEncodings).
+                const mediaTransferActive = mediaType === MediaType.VIDEO
+                    ? this.videoTransferActive
+                    : this.audioTransferActive;
+
+                transceiver.direction = TraceablePeerConnection.getTransceiverDirection(
+                    Boolean(newTrack), browser.isFirefox(), mediaType, mediaTransferActive);
 
                 // Configure simulcast encodings on Firefox when a track is added to the
                 // peerconnection for the first time.
