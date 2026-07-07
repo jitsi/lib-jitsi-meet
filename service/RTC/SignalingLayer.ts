@@ -80,6 +80,18 @@ export function getSourceIndexFromSourceName(sourceName: SourceName): number {
 }
 
 /**
+ * Checks whether the given source name belongs to a translated audio source. Translated sources follow the
+ * convention {@code <regularSourceName>.<ISO-639-1-language>}, eg. endpointA-a0.en, whereas regular source
+ * names never contain a dot.
+ *
+ * @param {SourceName} sourceName - The source name to check (callers may pass a null/undefined source name).
+ * @returns {boolean}
+ */
+export function isTranslatedSourceName(sourceName?: SourceName | null): boolean {
+    return typeof sourceName === 'string' && sourceName.includes('.');
+}
+
+/**
  * An object that carries the info about specific media type advertised by
  * participant in the signaling channel.
  * @typedef {Object} IPeerMediaInfo

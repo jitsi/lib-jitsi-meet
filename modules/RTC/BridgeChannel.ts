@@ -266,11 +266,17 @@ export default class BridgeChannel {
      * @returns {void}
      */
     sendReceiverAudioSubscriptionMessage(message: IReceiverAudioSubscriptionMessage): void {
-        logger.info(`Sending ReceiverAudioSubscription with mode: ${message.mode}`
-            + ` and ${message.list?.length ? 'list=' + message.list.join(', ') : 'no list'}`);
+        const all = message.all ?? true;
+        const exclude = message.exclude ?? [];
+        const include = message.include ?? [];
+
+        logger.info(`Sending ReceiverAudioSubscription all=${all} `
+            + `include=[${include.join(', ')}] exclude=[${exclude.join(', ')}]`);
         this._send({
+            all,
             colibriClass: 'ReceiverAudioSubscription',
-            ...message
+            exclude,
+            include
         });
     }
 
@@ -365,6 +371,10 @@ export default class BridgeChannel {
                 break;
             }
             case 'EndpointMessage': {
+                if (!obj.msgPayload || typeof obj.msgPayload !== 'object') {
+                    logger.warn(`Dropping malformed EndpointMessage from ${obj.from}: missing msgPayload`);
+                    break;
+                }
                 emitter.emit(RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from, obj.msgPayload);
 
                 break;
