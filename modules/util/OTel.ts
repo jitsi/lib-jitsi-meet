@@ -24,7 +24,13 @@ export class TraceParentExtension {
         }
 
         const traceId = getAttribute(traceParentExtension, TRACE_ID_ATTR_NAME);
+        if (traceId == null) {
+            return null;
+        }
         const parentId = getAttribute(traceParentExtension, PARENT_ID_ATTR_NAME);
+        if (parentId == null) {
+            return null;
+        }
 
         return new TraceParentExtension(traceId, parentId);
     }
