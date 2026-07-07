@@ -1042,7 +1042,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param {function(error)} failure called when we receive an error response or when the request has timed out.
      * @returns {void}
      */
-    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void, trace: TraceParentExtension) {
+    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void, trace?: TraceParentExtension) {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
