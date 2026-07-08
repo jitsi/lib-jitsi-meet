@@ -71,23 +71,33 @@ function getEndpointId(jidOrEndpointId: string): string {
  * @param {String} msid The "msid" attribute.
  */
 function _addSourceElement(description: any, s: any, ssrc_: number, msid: string): void {
-    description.c('source', {
+    const source = description.c('source', {
         name: s.source,
         ssrc: ssrc_,
         videoType: s.videoType?.toLowerCase(),
         xmlns: XEP.SOURCE_ATTRIBUTES
-    })
-        .c('parameter', {
-            name: 'msid',
-            value: msid
-        })
-        .up()
-        .c('ssrc-info', {
-            owner: s.owner,
-            xmlns: 'http://jitsi.org/jitmeet'
-        })
-        .up()
-        .up();
+    });
+
+    source.c('parameter', {
+        name: 'msid',
+        value: msid
+    }).up();
+
+    // The mid the bridge stamps on this source's packets (mid-based demuxing under SSRC rewriting). Used as the
+    // m-line's mid so the negotiated SDP matches the stamped extension.
+    if (s.mid) {
+        source.c('parameter', {
+            name: 'mid',
+            value: s.mid
+        }).up();
+    }
+
+    source.c('ssrc-info', {
+        owner: s.owner,
+        xmlns: 'http://jitsi.org/jitmeet'
+    }).up();
+
+    source.up();
 }
 
 /**
@@ -665,6 +675,7 @@ export default class JingleSessionPC extends JingleSession {
                     const ssrc = getAttribute(source, 'ssrc');
                     const sourceName = getAttribute(source, 'name');
                     const msid = getAttribute(findFirst(source, ':scope>parameter[name="msid"]'), 'value');
+                    const mid = getAttribute(findFirst(source, ':scope>parameter[name="mid"]'), 'value');
                     let videoType = getAttribute(source, 'videoType');
 
                     // If the videoType is DESKTOP_HIGH_FPS for remote tracks, we should treat it as DESKTOP.
@@ -678,6 +689,7 @@ export default class JingleSessionPC extends JingleSession {
                         sourceDescription.set(sourceName, {
                             groups: [],
                             mediaType,
+                            mid,
                             msid,
                             ssrcList: [ ssrc ],
                             videoType

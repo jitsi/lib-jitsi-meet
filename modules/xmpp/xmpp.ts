@@ -502,6 +502,11 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('http://jitsi.org/ssrc-rewriting-1');
         }
 
+        // Advertise support for demuxing forwarded media by the RTP sdes:mid header extension.
+        if (FeatureFlags.isRtpMidDemuxSupported()) {
+            this.caps.addFeature('http://jitsi.org/rtp-mid-demux');
+        }
+
         // Use "-1" as a version that we can bump later. This should match
         // the version added in moderator.js, this one here is mostly defined
         // for keeping stats, since it is not made available to jocofo at
