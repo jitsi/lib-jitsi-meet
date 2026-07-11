@@ -109,6 +109,9 @@ interface IP2PConfig {
  * XMPP options interface
  */
 export interface IXMPPOptions {
+    audioTranslation?: {
+        enabled?: boolean;
+    };
     bosh?: string;
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
@@ -244,6 +247,12 @@ export const FEATURE_JIBRI: string = 'http://jitsi.org/protocol/jibri';
 export const FEATURE_TRANSCRIBER: string = 'http://jitsi.org/protocol/transcriber';
 
 /**
+ * The feature used to mark support for receiving AI audio translation.
+ * @type {string}
+ */
+export const FEATURE_AUDIO_TRANSLATION: string = 'http://jitsi.org/protocol/audio-translation';
+
+/**
  * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
  * to avoid additional signaling (disco-info).
  * @type {string}
@@ -261,6 +270,8 @@ export default class XMPP extends Listenable {
     private _preComponentsMsgs: Element[];
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
+    private _unloadEventTypes: string[];
+    private _unloadHandler: Optional<(ev: Event) => void>;
     private _wasDisconnected: boolean;
     public connection: Nullable<XmppConnection>;
     public connectionTimes: Record<string, number>;
@@ -281,6 +292,7 @@ export default class XMPP extends Listenable {
     public fileSharingComponentAddress: Optional<string>;
     public roomMetadataComponentAddress: Optional<string>;
     public pollsComponentAddress: Optional<string>;
+    public audioTranslationComponentAddress: Optional<string>;
 
 
     /**
@@ -401,7 +413,8 @@ export default class XMPP extends Listenable {
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
         const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
-        const handleDisconnect = ev => {
+
+        this._unloadHandler = (ev: Event) => {
             // type-checking added as disconnect returns Promise<void> | boolean
             const result = this.disconnect(ev);
 
@@ -411,10 +424,29 @@ export default class XMPP extends Listenable {
                 });
             }
         };
+        this._unloadEventTypes = events.split(' ');
 
-        for (const event of events.split(' ')) {
-            window.addEventListener(event, handleDisconnect);
+        for (const event of this._unloadEventTypes) {
+            window.addEventListener(event, this._unloadHandler);
         }
+    }
+
+    /**
+     * Removes the beforeunload/unload listeners registered in the constructor. Without this each created connection
+     * would leak its listeners on the window object.
+     *
+     * @returns {void}
+     */
+    private _removeUnloadHandlers(): void {
+        if (!this._unloadHandler) {
+            return;
+        }
+
+        for (const event of this._unloadEventTypes) {
+            window.removeEventListener(event, this._unloadHandler);
+        }
+
+        this._unloadHandler = undefined;
     }
 
     /**
@@ -470,6 +502,11 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('http://jitsi.org/ssrc-rewriting-1');
         }
 
+        // Advertise support for demuxing forwarded media by the RTP sdes:mid header extension.
+        if (FeatureFlags.isRtpMidDemuxSupported()) {
+            this.caps.addFeature('http://jitsi.org/rtp-mid-demux');
+        }
+
         // Use "-1" as a version that we can bump later. This should match
         // the version added in moderator.js, this one here is mostly defined
         // for keeping stats, since it is not made available to jocofo at
@@ -478,6 +515,11 @@ export default class XMPP extends Listenable {
 
         // Advertise support for startMuted policy through room metadata.
         this.caps.addFeature('http://jitsi.org/start-muted-room-metadata');
+
+        // Advertise AI audio-translation support (opt-in via the audioTranslation connection option).
+        if (this.options.audioTranslation?.enabled) {
+            this.caps.addFeature(FEATURE_AUDIO_TRANSLATION);
+        }
     }
 
 
@@ -596,6 +638,11 @@ export default class XMPP extends Listenable {
             if (identity.type === 'end_conference') {
                 this.endConferenceComponentAddress = identity.name;
                 this._components.push(this.endConferenceComponentAddress);
+            }
+
+            if (identity.type === 'audio-translation') {
+                this.audioTranslationComponentAddress = identity.name;
+                this._components.push(this.audioTranslationComponentAddress);
             }
 
             if (identity.type === 'speakerstats') {
@@ -1237,6 +1284,11 @@ export default class XMPP extends Listenable {
      */
     public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean {
         logger.info(`XMPP disconnect triggered by the event=${ev?.type}`);
+
+        // Remove the window unload listeners registered in the constructor so we don't leak them when multiple
+        // connections are created over the lifetime of the page.
+        this._removeUnloadHandlers();
+
         if (this._disconnectInProgress) {
             return this._disconnectInProgress;
         } else if (!this.connection || !this._startConnecting) {

@@ -7,6 +7,13 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
+     * Event fired when the audio-translation component rejects a translation request (e.g. subscription limit
+     * reached, target speaker not in the room). The payload carries the affected endpoint ids and the error
+     * condition so the UI can notify the user and revert the optimistic language selection.
+     */
+    AUDIO_TRANSLATION_FAILED = 'conference.audio_translation_failed',
+
+    /**
      * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
      * call and the audio sender limit configured in Jicofo.
      */
