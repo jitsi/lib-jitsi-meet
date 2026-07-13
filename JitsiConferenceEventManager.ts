@@ -421,6 +421,17 @@ export default class JitsiConferenceEventManager {
                     participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
+        chatRoom?.addListener(XMPPEvents.MESSAGE_MODERATED, 
+            (messageId: string, moderatorJid?: string, reason?: string) => {
+                const moderatorId = moderatorJid ? Strophe.getResourceFromJid(moderatorJid) : undefined;
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.MESSAGE_MODERATED,
+                    messageId,
+                    moderatorId,
+                    reason
+                );
+            });
+
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
             (jid: string, status: string) => {
                 const id = Strophe.getResourceFromJid(jid);
