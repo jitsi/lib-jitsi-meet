@@ -16,6 +16,7 @@ describe( "/service/RTC/RTCEvents members", () => {
         expect( RTCEvents.DOMINANT_SPEAKER_CHANGED ).toBe( 'rtc.dominant_speaker_changed' );
         expect( RTCEvents.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
         expect( RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED ).toBe( 'rtc.sender_video_constraints_changed' );
+        expect( RTCEvents.INBOUND_AUDIO_STATS ).toBe( 'rtc.inbound_audio_stats' );
         expect( RTCEvents.LASTN_VALUE_CHANGED ).toBe( 'rtc.lastn_value_changed' );
         expect( RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED ).toBe( 'rtc.local_track_max_enabled_resolution_changed' );
         expect( RTCEvents.REMOTE_TRACK_ADDED ).toBe( 'rtc.remote_track_added' );
