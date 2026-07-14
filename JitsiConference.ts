@@ -2812,7 +2812,7 @@ export default class JitsiConference extends Listenable {
 
     /**
      * Sends a moderation request for a message.
-     * 
+     *
      * @param {string} messageId - The id of the message.
      * @param {string} [reason] - Optional moderation reason
      */

@@ -1210,7 +1210,6 @@ export default class ChatRoom extends Listenable {
             XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
     }
 
-    
     /* eslint-enable max-params */
 
     /**
@@ -1234,7 +1233,7 @@ export default class ChatRoom extends Listenable {
 
     /**
      * Sends a moderation request to retract a message.
-     * 
+     *
      * @param {string} messageId - The id of the message to moderate.
      * @param {string} [reason] - Optional moderation reason.
      */
@@ -1245,8 +1244,8 @@ export default class ChatRoom extends Listenable {
         });
 
         msg.c('apply-to', {
-            xmlns: 'urn:xmpp:fasten:0',
-            id: messageId
+            id: messageId,
+            xmlns: 'urn:xmpp:fasten:0'
         })
             .c('moderated', {
                 xmlns: 'urn:xmpp:message-moderate:1'
