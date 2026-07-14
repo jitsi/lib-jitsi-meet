@@ -68,23 +68,3 @@ export function getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
 export function getSessionIdFromIq(response: Element): Nullable<string> {
     return response?.getElementsByTagName('jibri')[0]?.getAttribute('session_id') ?? null;
 }
-
-/**
- * Returns the recording session ID from a presence, if it exists.
- *
- * @param {Element} presence - An XMPP presence update.
- * @returns {string|null|undefined} The session ID of the recording session.
- */
-export function getSessionId(presence: Element): Optional<Nullable<string>> {
-    return presence.getElementsByTagName('session_id')[0]?.textContent;
-}
-
-/**
- * Returns whether or not a presence is from the focus.
- *
- * @param {Element} presence - An XMPP presence update.
- * @returns {boolean} True if the presence is from the focus.
- */
-export function isFromFocus(presence: Element): boolean {
-    return presence.getAttribute('from')?.includes('focus') ?? false;
-}

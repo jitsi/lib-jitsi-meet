@@ -44,6 +44,8 @@ class MockTrack extends Listenable {
     private _streamingStatus: TrackStreamingStatus = TrackStreamingStatus.ACTIVE;
     private _enteredForwardedSourcesTimestamp: number | null = null;
 
+    public isP2P: boolean = false;
+
     constructor(sourceName: string, participantId: string, ssrc: number) {
         super();
         this._sourceName = sourceName;
@@ -109,6 +111,7 @@ function buildInstance(options: {
     isMuted?: boolean;
     isVideoTrack?: boolean;
     supportsVideoMuteOnConnInterrupted?: boolean;
+    trackIsP2P?: boolean;
 } = {}): {
     impl: TrackStreamingStatusImpl;
     mockTrack: MockTrack;
@@ -127,6 +130,9 @@ function buildInstance(options: {
     }
     if (options.p2pActive) {
         mockConference.setP2PActive(true);
+    }
+    if (options.trackIsP2P) {
+        mockTrack.isP2P = true;
     }
     if (options.inForwardedSources !== false) {
         // Default: track is in forwarded sources
@@ -519,6 +525,130 @@ describe('TrackStreamingStatusImpl._handleFramesDecodedUpdate', () => {
     });
 });
 
+describe('TrackStreamingStatusImpl._handleFramesDecodedUpdate cross-session guard', () => {
+    afterEach(() => {
+        jasmine.clock().uninstall();
+    });
+
+    it('does not freeze a JVB track while P2P is active even if no frames arrive past the timeout', () => {
+        jasmine.clock().install();
+        const { impl } = buildInstance({
+            p2pActive: true,
+            supportsVideoMuteOnConnInterrupted: false,
+            trackIsP2P: false
+        });
+
+        impl.init();
+
+        spyOn(impl, 'figureOutStreamingStatus').and.callThrough();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        expect(impl._statsTrackFrozen).toBeFalse();
+
+        impl.dispose();
+    });
+
+    it('does not freeze a P2P track while JVB is active', () => {
+        jasmine.clock().install();
+        const { impl } = buildInstance({
+            p2pActive: false,
+            supportsVideoMuteOnConnInterrupted: false,
+            trackIsP2P: true
+        });
+
+        impl.init();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        expect(impl._statsTrackFrozen).toBeFalse();
+
+        impl.dispose();
+    });
+
+    it('resets stall state on inactive-session polls so the next active poll does not trip a stale timer', () => {
+        jasmine.clock().install();
+        const { impl, mockConference } = buildInstance({
+            p2pActive: false,
+            supportsVideoMuteOnConnInterrupted: false,
+            trackIsP2P: false
+        });
+
+        impl.init();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+        expect(impl._lastFramesDecodedAt).toBe(0);
+
+        mockConference.setP2PActive(true);
+
+        jasmine.clock().mockDate(new Date(5000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+        expect(impl._lastFramesDecodedAt).toBeNull();
+        expect(impl._lastFramesDecoded).toBeNull();
+        expect(impl._statsTrackFrozen).toBeFalse();
+
+        impl.dispose();
+    });
+
+    it('clears _statsTrackFrozen and refigures status when the track session becomes inactive while frozen', () => {
+        jasmine.clock().install();
+        const { impl, mockConference } = buildInstance({
+            p2pActive: false,
+            supportsVideoMuteOnConnInterrupted: false,
+            trackIsP2P: false
+        });
+
+        impl.init();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+        expect(impl._statsTrackFrozen).toBeTrue();
+
+        mockConference.setP2PActive(true);
+        const figureSpy = spyOn(impl, 'figureOutStreamingStatus').and.callThrough();
+
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        expect(impl._statsTrackFrozen).toBeFalse();
+        expect(figureSpy).toHaveBeenCalled();
+
+        impl.dispose();
+    });
+
+    it('processes stats normally for a P2P track while P2P is active', () => {
+        jasmine.clock().install();
+        const { impl } = buildInstance({
+            p2pActive: true,
+            supportsVideoMuteOnConnInterrupted: false,
+            trackIsP2P: true
+        });
+
+        impl.init();
+
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 100]]) });
+
+        expect(impl._statsTrackFrozen).toBeTrue();
+
+        impl.dispose();
+    });
+});
+
 // ─────────────────────────────────────────────────────────
 // isVideoTrackFrozen
 // ─────────────────────────────────────────────────────────
@@ -681,7 +811,8 @@ describe('TrackStreamingStatusImpl end-to-end — P2P mode', () => {
         ({ impl, mockTrack, mockConference } = buildInstance({
             supportsVideoMuteOnConnInterrupted: false,
             p2pActive: true,
-            inForwardedSources: false
+            inForwardedSources: false,
+            trackIsP2P: true
         }));
         impl.init();
         impl.figureOutStreamingStatus();

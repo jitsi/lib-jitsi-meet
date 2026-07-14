@@ -4,7 +4,7 @@ import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import ChatRoom from '../xmpp/ChatRoom';
 
 import JibriSession from './JibriSession';
-import { getFocusRecordingUpdate, getHiddenDomainUpdate, isFromFocus } from './recordingXMLUtils';
+import { getFocusRecordingUpdate, getHiddenDomainUpdate } from './recordingXMLUtils';
 
 const logger = getLogger('recording:RecordingManager');
 
@@ -84,10 +84,13 @@ class RecordingManager {
      * @param {boolean} event.fromHiddenDomain - Whether or not the update comes
      * from a participant that is trusted but not visible, as would be the case
      * with the Jibri recorder participant.
+     * @param {boolean} event.isFocus - Whether or not the update comes from the
+     * conference focus.
      * @returns {void}
      */
-    onPresence({ fromHiddenDomain, presence }: { fromHiddenDomain: boolean; presence: Element; }): void {
-        if (isFromFocus(presence)) {
+    onPresence({ fromHiddenDomain, isFocus, presence }:
+    { fromHiddenDomain: boolean; isFocus: boolean; presence: Element; }): void {
+        if (isFocus) {
             this._handleFocusPresence(presence);
         } else if (fromHiddenDomain) {
             this._handleJibriPresence(presence);
