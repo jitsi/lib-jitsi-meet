@@ -405,6 +405,23 @@ export default class BridgeChannel {
                 logger.info(`Received ServerHello, version=${obj.version}.`);
                 break;
             }
+            case 'SyntheticSourceSendingChangeEvent': {
+                // `timestamp` is an RTP timestamp (48 kHz, wraps at 2^32), not epoch ms. Validated here
+                // like SenderSourceConstraints; malformed messages are logged and dropped.
+                if (typeof obj.sourceName === 'string' && typeof obj.sending === 'boolean'
+                        && typeof obj.timestamp === 'number') {
+                    logger.info(`SyntheticSourceSendingChangeEvent: ${obj.sourceName} `
+                        + `sending=${obj.sending} ts=${obj.timestamp}`);
+                    emitter.emit(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, {
+                        sending: obj.sending,
+                        sourceName: obj.sourceName,
+                        timestamp: obj.timestamp
+                    });
+                } else {
+                    logger.error(`Invalid SyntheticSourceSendingChangeEvent: ${JSON.stringify(obj)}`);
+                }
+                break;
+            }
             case 'VideoSourcesMap': {
                 logger.info(`Received VideoSourcesMap: ${JSON.stringify(obj.mappedSources)}`);
                 emitter.emit(RTCEvents.VIDEO_SSRCS_REMAPPED, obj);

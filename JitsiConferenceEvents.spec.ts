@@ -70,6 +70,8 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.TRACK_REMOVED ).toBe( 'conference.trackRemoved' );
         expect( JitsiConferenceEvents.TRACK_UNMUTE_REJECTED ).toBe( 'conference.trackUnmuteRejected' );
         expect( JitsiConferenceEvents.TRANSCRIPTION_STATUS_CHANGED ).toBe( 'conference.transcriptionStatusChanged' );
+        expect( JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED )
+            .toBe( 'conference.translatedSourceSendingChanged' );
         expect( JitsiConferenceEvents.USER_JOINED ).toBe( 'conference.userJoined' );
         expect( JitsiConferenceEvents.USER_LEFT ).toBe( 'conference.userLeft' );
         expect( JitsiConferenceEvents.USER_ROLE_CHANGED ).toBe( 'conference.roleChanged' );

@@ -459,6 +459,13 @@ export enum JitsiConferenceEvents {
     TRANSCRIPTION_STATUS_CHANGED = 'conference.transcriptionStatusChanged',
 
     /**
+     * Indicates that a translated audio source started or stopped being forwarded to the local endpoint. The
+     * listener receives { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz, wraps at
+     * 2^32) — not epoch ms.
+     */
+    TRANSLATED_SOURCE_SENDING_CHANGED = 'conference.translatedSourceSendingChanged',
+
+    /**
      * A new user joined the conference.
      */
     USER_JOINED = 'conference.userJoined',
