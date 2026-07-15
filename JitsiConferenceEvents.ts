@@ -14,6 +14,13 @@ export enum JitsiConferenceEvents {
     AUDIO_TRANSLATION_FAILED = 'conference.audio_translation_failed',
 
     /**
+     * Event fired when the set of remote participants translating the local participant's audio changes. The
+     * audio-translation component pushes this per-sender (only to the participant being translated), so the
+     * payload is the array of endpoint ids currently listening to a translation of the local participant.
+     */
+    AUDIO_TRANSLATION_LISTENERS_CHANGED = 'conference.audio_translation_listeners_changed',
+
+    /**
      * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
      * call and the audio sender limit configured in Jicofo.
      */

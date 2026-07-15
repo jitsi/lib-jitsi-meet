@@ -13,6 +13,8 @@ describe( "/JitsiConferenceEvents members", () => {
 
         expect( JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE ).toBe( 'conference.audio_input_state_changed' );
         expect( JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED ).toBe( 'conference.audio_translation_failed' );
+        expect( JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED )
+            .toBe( 'conference.audio_translation_listeners_changed' );
         expect( JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
