@@ -2347,16 +2347,22 @@ export default class JitsiConference extends Listenable {
 
         let listeners: string[] = [];
 
-        try {
-            const parsed = JSON.parse(child.textContent ?? '[]');
+        // A blank body means "no listeners" (an empty list), so only non-empty text is parsed; genuinely
+        // malformed JSON still falls into the catch below and is logged.
+        const text = (child.textContent ?? '').trim();
 
-            if (Array.isArray(parsed)) {
-                listeners = parsed.filter((id): id is string => typeof id === 'string');
+        if (text) {
+            try {
+                const parsed = JSON.parse(text);
+
+                if (Array.isArray(parsed)) {
+                    listeners = parsed.filter((id): id is string => typeof id === 'string');
+                }
+            } catch (e) {
+                logger.warn('Ignoring malformed translation-listeners payload', e);
+
+                return true;
             }
-        } catch (e) {
-            logger.warn('Ignoring malformed translation-listeners payload', e);
-
-            return true;
         }
 
         this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED, listeners);

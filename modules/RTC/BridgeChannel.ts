@@ -409,7 +409,8 @@ export default class BridgeChannel {
                 // `timestamp` is an RTP timestamp (48 kHz, wraps at 2^32), not epoch ms. Validated here
                 // like SenderSourceConstraints; malformed messages are logged and dropped.
                 if (typeof obj.sourceName === 'string' && typeof obj.sending === 'boolean'
-                        && typeof obj.timestamp === 'number') {
+                        && Number.isInteger(obj.timestamp)
+                        && obj.timestamp >= 0 && obj.timestamp <= 0xFFFFFFFF) {
                     logger.info(`SyntheticSourceSendingChangeEvent: ${obj.sourceName} `
                         + `sending=${obj.sending} ts=${obj.timestamp}`);
                     emitter.emit(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, {
