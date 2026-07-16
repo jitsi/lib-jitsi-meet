@@ -1,4 +1,6 @@
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import EventEmitter from '../util/EventEmitter';
 
 import RemoteAudioWedgeDetector from './RemoteAudioWedgeDetector';
 
@@ -20,52 +22,45 @@ function mockTrack(ssrc: number, source: string, muted = false): any {
 }
 
 /**
- * Builds a mock getStats() report (a Map keyed by report id) for the given inbound-rtp audio packet counts.
+ * Builds the per-SSRC inbound audio packet-count map the detector consumes.
  *
- * @param {Array<{packetsReceived: number; ssrc: number;}>} entries - The per-SSRC inbound-rtp entries.
- * @returns {Map<string, object>}
+ * @param {Array<{packetsReceived: number; ssrc: number;}>} entries - The per-SSRC packet counts.
+ * @returns {Map<number, number>}
  */
-function mockStats(entries: Array<{ packetsReceived: number; ssrc: number; }>): Map<string, any> {
-    const report = new Map();
+function toMap(entries: Array<{ packetsReceived: number; ssrc: number; }>): Map<number, number> {
+    const map = new Map<number, number>();
 
-    entries.forEach((entry, idx) => {
-        report.set(`inbound-rtp-${idx}`, {
-            kind: 'audio',
-            packetsReceived: entry.packetsReceived,
-            ssrc: entry.ssrc,
-            type: 'inbound-rtp'
-        });
-    });
+    entries.forEach(entry => map.set(entry.ssrc, entry.packetsReceived));
 
-    return report;
+    return map;
 }
 
 describe('RemoteAudioWedgeDetector', () => {
     let tracks: any[];
-    let statsEntries: Array<{ packetsReceived: number; ssrc: number; }>;
     let pc: any;
     let onWedgeDetected: jasmine.Spy;
     let detector: RemoteAudioWedgeDetector;
 
-    const POLL_INTERVAL_MS = 1000;
+    const TICK_MS = 1000;
     const WEDGE_TIMEOUT_MS = 3000;
 
     /**
-     * Runs a single detection poll.
+     * Feeds one batch of inbound audio packet counts through the detector's evaluation, as the stats poll would.
      *
-     * @returns {Promise<void>}
+     * @param {Array<{packetsReceived: number; ssrc: number;}>} entries - The per-SSRC packet counts.
+     * @returns {void}
      */
-    function poll(): Promise<void> {
-        return (detector as any)._check();
+    function poll(entries: Array<{ packetsReceived: number; ssrc: number; }>): void {
+        (detector as any)._evaluate(toMap(entries));
     }
 
     /**
-     * Advances the mocked clock by one poll interval.
+     * Advances the mocked clock by one tick.
      *
      * @returns {void}
      */
     function tick(): void {
-        jasmine.clock().tick(POLL_INTERVAL_MS);
+        jasmine.clock().tick(TICK_MS);
     }
 
     beforeEach(() => {
@@ -73,20 +68,18 @@ describe('RemoteAudioWedgeDetector', () => {
         jasmine.clock().mockDate(new Date(0));
 
         tracks = [];
-        statsEntries = [];
         pc = {
+            eventEmitter: new EventEmitter(),
             getRemoteTracks: (_endpointId: any, mediaType: MediaType) => {
                 expect(mediaType).toBe(MediaType.AUDIO);
 
                 return tracks;
-            },
-            getStats: jasmine.createSpy('getStats').and.callFake(() => Promise.resolve(mockStats(statsEntries)))
+            }
         };
         onWedgeDetected = jasmine.createSpy('onWedgeDetected');
 
         detector = new RemoteAudioWedgeDetector(pc, {
             onWedgeDetected,
-            pollIntervalMs: POLL_INTERVAL_MS,
             wedgeTimeoutMs: WEDGE_TIMEOUT_MS
         });
     });
@@ -96,249 +89,230 @@ describe('RemoteAudioWedgeDetector', () => {
         jasmine.clock().uninstall();
     });
 
-    it('does not call getStats() when there are no remote audio sources', async () => {
-        tracks = [];
-
-        await poll();
-        expect(pc.getStats).not.toHaveBeenCalled();
-    });
-
-    it('does not call getStats() when every remote audio source is muted', async () => {
-        tracks = [ mockTrack(111, 'source-A', true /* muted */), mockTrack(222, 'source-B', true /* muted */) ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 }, { packetsReceived: 0, ssrc: 222 } ];
-
-        await poll();
-        expect(pc.getStats).not.toHaveBeenCalled();
-    });
-
-    it('calls getStats() when at least one remote audio source is unmuted', async () => {
-        tracks = [ mockTrack(111, 'source-A', true /* muted */), mockTrack(222, 'source-B') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 }, { packetsReceived: 0, ssrc: 222 } ];
-
-        await poll();
-        expect(pc.getStats).toHaveBeenCalled();
-    });
-
-    it('stops calling getStats() once every source has received a packet', async () => {
+    it('does not fire on the first eligible zero sample', () => {
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 7, ssrc: 111 } ];
 
-        await poll(); // confirms the source healthy
-        expect(pc.getStats).toHaveBeenCalledTimes(1);
-
-        tick();
-        await poll(); // source is confirmed healthy -> no candidates -> getStats skipped
-        tick();
-        await poll();
-        expect(pc.getStats).toHaveBeenCalledTimes(1);
-    });
-
-    it('keeps polling while one source is silent even though another is healthy', async () => {
-        tracks = [ mockTrack(111, 'source-A'), mockTrack(222, 'source-B') ];
-        statsEntries = [ { packetsReceived: 7, ssrc: 111 }, { packetsReceived: 0, ssrc: 222 } ];
-
-        await poll();
-        tick();
-        await poll();
-        expect(pc.getStats).toHaveBeenCalledTimes(2);
-    });
-
-    it('resumes polling when a new source appears after all were healthy', async () => {
-        tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 7, ssrc: 111 } ];
-
-        await poll(); // source-A confirmed healthy
-        tick();
-        await poll(); // skipped
-        expect(pc.getStats).toHaveBeenCalledTimes(1);
-
-        // A new participant joins; its source has not been confirmed yet.
-        tracks = [ mockTrack(111, 'source-A'), mockTrack(222, 'source-B') ];
-        statsEntries = [ { packetsReceived: 7, ssrc: 111 }, { packetsReceived: 0, ssrc: 222 } ];
-        tick();
-        await poll();
-        expect(pc.getStats).toHaveBeenCalledTimes(2);
-    });
-
-    it('does not fire for a source that received packets and later reports zero (cumulative is monotonic)', async () => {
-        tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 7, ssrc: 111 } ];
-
-        await poll(); // healthy
-
-        // A subsequent (hypothetical) zero reading must never re-arm a confirmed-healthy source.
-        for (let i = 0; i < 5; i++) {
-            tick();
-            statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
-            await poll(); // eslint-disable-line no-await-in-loop
-        }
+        poll([ { packetsReceived: 0, ssrc: 111 } ]);
         expect(onWedgeDetected).not.toHaveBeenCalled();
     });
 
-    it('does not fire on the first eligible zero poll', async () => {
+    it('fires once the zero-RTP duration elapses while unmuted', () => {
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
 
-        await poll();
-        expect(onWedgeDetected).not.toHaveBeenCalled();
-    });
-
-    it('fires once the zero-RTP duration elapses while unmuted', async () => {
-        tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
-
-        // Polls while the timeout has not yet elapsed.
-        await poll(); // t=0, streak starts
+        poll(entries); // t=0, streak starts
         tick();
-        await poll(); // t=1000
+        poll(entries); // t=1000
         tick();
-        await poll(); // t=2000
+        poll(entries); // t=2000
         expect(onWedgeDetected).not.toHaveBeenCalled();
 
         tick();
-        await poll(); // t=3000, elapsed >= WEDGE_TIMEOUT_MS
+        poll(entries); // t=3000, elapsed >= WEDGE_TIMEOUT_MS
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
         expect(onWedgeDetected.calls.mostRecent().args[0]).toBe(tracks[0]);
     });
 
-    it('does not fire before the timeout elapses, even across many polls', async () => {
+    it('does not fire before the timeout elapses, even across many samples', () => {
         const detector2 = new RemoteAudioWedgeDetector(pc, {
             onWedgeDetected,
-            pollIntervalMs: POLL_INTERVAL_MS,
             wedgeTimeoutMs: 60000
         });
 
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
 
         for (let i = 0; i < 10; i++) {
-            await (detector2 as any)._check(); // eslint-disable-line no-await-in-loop
+            (detector2 as any)._evaluate(toMap([ { packetsReceived: 0, ssrc: 111 } ]));
             tick();
         }
         expect(onWedgeDetected).not.toHaveBeenCalled();
         detector2.stop();
     });
 
-    it('requires at least two samples even when the timeout is tiny', async () => {
+    it('requires at least two samples even when the timeout is tiny', () => {
         const detector2 = new RemoteAudioWedgeDetector(pc, {
             onWedgeDetected,
-            pollIntervalMs: POLL_INTERVAL_MS,
             wedgeTimeoutMs: 0
         });
 
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
 
-        // A single poll cannot fire (only one sample) even though the elapsed time already satisfies the timeout.
-        await (detector2 as any)._check();
+        // A single sample cannot fire (only one sample) even though the elapsed time already satisfies the timeout.
+        (detector2 as any)._evaluate(toMap([ { packetsReceived: 0, ssrc: 111 } ]));
         expect(onWedgeDetected).not.toHaveBeenCalled();
 
         tick();
-        await (detector2 as any)._check();
+        (detector2 as any)._evaluate(toMap([ { packetsReceived: 0, ssrc: 111 } ]));
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
         detector2.stop();
     });
 
-    it('does not fire when the source is receiving packets', async () => {
+    it('does not fire when the source is receiving packets', () => {
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 42, ssrc: 111 } ];
 
         for (let i = 0; i < 5; i++) {
-            await poll(); // eslint-disable-line no-await-in-loop
+            poll([ { packetsReceived: 42, ssrc: 111 } ]);
             tick();
         }
         expect(onWedgeDetected).not.toHaveBeenCalled();
     });
 
-    it('does not fire when the source is muted', async () => {
+    it('does not fire when the source is muted', () => {
         tracks = [ mockTrack(111, 'source-A', true /* muted */) ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
 
         for (let i = 0; i < 5; i++) {
-            await poll(); // eslint-disable-line no-await-in-loop
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
             tick();
         }
         expect(onWedgeDetected).not.toHaveBeenCalled();
     });
 
-    it('resets the streak clock once the source starts receiving, even after earlier zero polls', async () => {
+    it('does not fire for a source that received packets and later reports zero (cumulative is monotonic)', () => {
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
 
-        // Two zero polls accumulate, but the timeout has not elapsed.
-        await poll(); // t=0
-        tick();
-        await poll(); // t=1000
+        poll([ { packetsReceived: 7, ssrc: 111 } ]); // healthy
 
-        // Packets begin to flow; the source is demuxing correctly. Detection keys off the cumulative count, so once
-        // any packet is seen the source stays healthy even if the count later plateaus (e.g. DTX/silence) - the earlier
-        // zero polls must not carry over and trip the watchdog.
-        tick();
-        statsEntries = [ { packetsReceived: 5, ssrc: 111 } ];
-        await poll(); // t=2000, streak reset
-        tick();
-        statsEntries = [ { packetsReceived: 5, ssrc: 111 } ];
-        await poll(); // t=3000
-        tick();
-        await poll(); // t=4000
-        tick();
-        await poll(); // t=5000
+        // A subsequent (hypothetical) zero reading must never re-arm a confirmed-healthy source.
+        for (let i = 0; i < 5; i++) {
+            tick();
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+        }
         expect(onWedgeDetected).not.toHaveBeenCalled();
     });
 
-    it('does not re-fire for the same source during the cooldown window', async () => {
-        tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
+    it('fires for a silent source even when another source is healthy', () => {
+        tracks = [ mockTrack(111, 'source-A'), mockTrack(222, 'source-B') ];
+        const entries = [ { packetsReceived: 7, ssrc: 111 }, { packetsReceived: 0, ssrc: 222 } ];
 
-        await poll(); // t=0
+        poll(entries); // t=0
         tick();
-        await poll(); // t=1000
+        poll(entries); // t=1000
         tick();
-        await poll(); // t=2000
+        poll(entries); // t=2000
         tick();
-        await poll(); // t=3000, fires
+        poll(entries); // t=3000, source-B fires
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+        expect(onWedgeDetected.calls.mostRecent().args[0]).toBe(tracks[1]);
+    });
+
+    it('resets the streak clock once the source starts receiving, even after earlier zero samples', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        // Two zero samples accumulate, but the timeout has not elapsed.
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=0
+        tick();
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=1000
+
+        // Packets begin to flow; the source is demuxing correctly. Detection keys off the cumulative count, so once any
+        // packet is seen the source stays healthy even if the count later plateaus (e.g. DTX/silence) - the earlier zero
+        // samples must not carry over and trip the watchdog.
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=2000, streak reset
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=3000
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=4000
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=5000
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('does not re-fire for the same source during the cooldown window', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        poll(entries); // t=0
+        tick();
+        poll(entries); // t=1000
+        tick();
+        poll(entries); // t=2000
+        tick();
+        poll(entries); // t=3000, fires
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
 
-        // The (still-wedged) source keeps reporting zero packets, but the watchdog stays quiet for the cooldown
-        // window while the recycle renegotiation is assumed to be in flight.
+        // The (still-wedged) source keeps reporting zero packets, but the watchdog stays quiet for the cooldown window
+        // while the recycle renegotiation is assumed to be in flight.
         tick();
-        await poll(); // t=4000
+        poll(entries); // t=4000
         tick();
-        await poll(); // t=5000
+        poll(entries); // t=5000
         tick();
-        await poll(); // t=6000 (== fire time + cooldown), cooldown just elapsed; streak restarts here
+        poll(entries); // t=6000 (== fire time + cooldown), cooldown just elapsed; streak restarts here
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
     });
 
-    it('clears bookkeeping for SSRCs that are no longer mapped', async () => {
+    it('clears bookkeeping for SSRCs that are no longer mapped', () => {
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
 
-        await poll(); // t=0, streak starts
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=0, streak starts
         tick();
-        await poll(); // t=1000
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=1000
 
         // The source is remapped/removed before the timeout; its streak must not survive to wedge a later source that
         // reuses the SSRC.
         tick();
         tracks = [];
-        statsEntries = [];
-        await poll(); // t=2000
+        poll([]); // t=2000
 
         tracks = [ mockTrack(111, 'source-A') ];
-        statsEntries = [ { packetsReceived: 0, ssrc: 111 } ];
         tick();
-        await poll(); // t=3000, fresh streak starts here
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=3000, fresh streak starts here
         tick();
-        await poll(); // t=4000
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=4000
         expect(onWedgeDetected).not.toHaveBeenCalled();
 
         tick();
-        await poll(); // t=5000, elapsed since fresh streak (t=3000) is 2000 < timeout
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=5000, elapsed since fresh streak (t=3000) is 2000 < timeout
         expect(onWedgeDetected).not.toHaveBeenCalled();
 
         tick();
-        await poll(); // t=6000, elapsed since fresh streak is 3000 >= timeout
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=6000, elapsed since fresh streak is 3000 >= timeout
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    describe('stats event wiring', () => {
+        it('evaluates on INBOUND_AUDIO_STATS for its own peerconnection', () => {
+            tracks = [ mockTrack(111, 'source-A') ];
+            detector.start();
+
+            const entries = toMap([ { packetsReceived: 0, ssrc: 111 } ]);
+
+            pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, pc, entries); // t=0
+            tick();
+            pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, pc, entries); // t=1000
+            tick();
+            pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, pc, entries); // t=2000
+            tick();
+            pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, pc, entries); // t=3000, fires
+            expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+        });
+
+        it('ignores INBOUND_AUDIO_STATS emitted for a different peerconnection', () => {
+            tracks = [ mockTrack(111, 'source-A') ];
+            detector.start();
+
+            const otherPc = {};
+            const entries = toMap([ { packetsReceived: 0, ssrc: 111 } ]);
+
+            for (let i = 0; i < 5; i++) {
+                pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, otherPc, entries);
+                tick();
+            }
+            expect(onWedgeDetected).not.toHaveBeenCalled();
+        });
+
+        it('stops evaluating after stop()', () => {
+            tracks = [ mockTrack(111, 'source-A') ];
+            detector.start();
+            detector.stop();
+
+            const entries = toMap([ { packetsReceived: 0, ssrc: 111 } ]);
+
+            for (let i = 0; i < 5; i++) {
+                pc.eventEmitter.emit(RTCEvents.INBOUND_AUDIO_STATS, pc, entries);
+                tick();
+            }
+            expect(onWedgeDetected).not.toHaveBeenCalled();
+        });
     });
 });
