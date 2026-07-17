@@ -76,6 +76,7 @@ interface ITouchToneRequest {
 export interface ITPCSourceInfo {
     groups?: Array<ISsrcGroupInfo>;
     mediaType?: MediaType;
+    mid?: string;
     msid?: string;
     ssrcList?: Array<string>;
     ssrcs?: Array<string>;
@@ -1875,12 +1876,23 @@ export default class TraceablePeerConnection {
         logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
             + `trackId=${toBeRemoved.getTrackId()}]`);
 
-        toBeRemoved.dispose();
         const participantId = toBeRemoved.getParticipantId();
+        const ssrc = toBeRemoved.getSsrc();
 
-        if (FeatureFlags.isSsrcRewritingSupported() && !participantId) {
-            return;
-        } else if (!FeatureFlags.isSsrcRewritingSupported()) {
+        toBeRemoved.dispose();
+
+        if (FeatureFlags.isSsrcRewritingSupported()) {
+            if (!participantId) {
+                return;
+            }
+
+            // Drop the SSRC->track entry so that a later source-add reusing the same rewritten SSRC (e.g. the wedge
+            // recovery recycling a source via source-remove then source-add) is not discarded as a duplicate by
+            // _createRemoteTrack. Guarded so a slot already remapped to a different current track is left alone.
+            if (this.remoteTracksBySsrc.get(ssrc) === toBeRemoved) {
+                this.remoteTracksBySsrc.delete(ssrc);
+            }
+        } else {
             const userTracksByMediaType = this.remoteTracks.get(participantId);
 
             if (!userTracksByMediaType) {

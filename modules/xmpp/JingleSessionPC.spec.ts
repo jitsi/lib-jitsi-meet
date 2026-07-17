@@ -192,6 +192,58 @@ describe('JingleSessionPC', () => {
             expect(updateRemoteSourcesSpy).toHaveBeenCalledWith(sourceInfo, false);
         });
 
+        it('should parse the mid parameter when present', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='audio'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                    <parameter name='mid' value='a0'/>
+                                </source>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            expect(jingle).not.toBe(null);
+
+            if (!jingle) {
+                return;
+            }
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+            expect(sourceInfo.size).toBe(1);
+            expect(sourceInfo.get('source1').mid).toBe('a0');
+        });
+
+        it('leaves mid null when no mid parameter is present', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='audio'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            expect(jingle).not.toBe(null);
+
+            if (!jingle) {
+                return;
+            }
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+            expect(sourceInfo.get('source1').mid).toBeNull();
+        });
+
         it('should handle multiple ssrcs belonging to the same source', () => {
             const jingle = parseXML(
                     `<jingle xmlns='urn:xmpp:jingle:1'>

@@ -1186,15 +1186,17 @@ export default class ChatRoom extends Listenable {
      * @param elementName
      * @param useDirectJid
      * @param replyToId
+     * @param messageId
      */
     public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string, messageId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
         const msgAttrs: Record<string, string> = { to: targetJid, type: 'chat' };
 
         if (messageId) {
-            msgAttrs.id = messageId;
+            attrs.id = messageId;
         }
-        const msg = $msg(msgAttrs);
+
+        const msg = $msg(attrs);
 
         // We are adding the message in packet. If this element is different
         // from 'body', we add our custom namespace for the same.
@@ -1209,7 +1211,6 @@ export default class ChatRoom extends Listenable {
         if (replyToId) {
             msg.c('reply', { to: replyToId });
         }
-
         this.connection.send(msg);
         this.eventEmitter.emit(
             XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
