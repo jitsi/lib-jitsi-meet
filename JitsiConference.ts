@@ -3049,11 +3049,12 @@ export default class JitsiConference extends Listenable {
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @param {boolean} [useFullJid=false] - Whether to use the full JID.
    * @param {string} [replyToId] - The ID of the message being replied to.
+   * @param {string} [messageId] - The ID to set on the outgoing private message stanza.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string): void {
+    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string, messageId?: string): void {
         if (this.room) {
-            this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId);
+            this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId, messageId);
         }
     }
 
