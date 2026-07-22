@@ -320,6 +320,9 @@ export default class JitsiConference extends Listenable {
      */
     private _translationErrorHandler?: ReturnType<Strophe.Connection['addHandler']>;
 
+    // Stored so the (connection-scoped) translation-listeners handler can be removed on leave().
+    private _translationListenersHandler?: ReturnType<Strophe.Connection['addHandler']>;
+
     /**
      * Monotonic counter used to mint translation-request stanza ids for error correlation.
      */
@@ -2311,6 +2314,63 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Registers (once) the handler for translation-listeners pushes from the audio-translation component.
+     * Registered on join and independent of whether the local participant ever requests a translation, since
+     * the notification is about other participants translating this participant's audio.
+     *
+     * @returns {void}
+     */
+    private _registerTranslationListenersHandler(): void {
+        const componentAddress = this.xmpp.audioTranslationComponentAddress;
+
+        if (this._translationListenersHandler || !componentAddress) {
+            return;
+        }
+        this._translationListenersHandler = this.xmpp.connection.addHandler(
+            this._onTranslationListenersChanged.bind(this), null, 'message', null, null, componentAddress);
+    }
+
+    /**
+     * Handles a translation-listeners push from the audio-translation component and emits
+     * {@link JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED} with the endpoint ids currently
+     * listening to a translation of the local participant. Returns true to keep the handler registered.
+     *
+     * @param {Element} stanza - The message stanza from the component.
+     * @returns {boolean}
+     */
+    private _onTranslationListenersChanged(stanza: Element): boolean {
+        const child = findFirst(stanza, 'translation-listeners');
+
+        if (!child) {
+            return true; // Another message from the component (e.g. an error reply handled elsewhere).
+        }
+
+        let listeners: string[] = [];
+
+        // A blank body means "no listeners" (an empty list), so only non-empty text is parsed; genuinely
+        // malformed JSON still falls into the catch below and is logged.
+        const text = (child.textContent ?? '').trim();
+
+        if (text) {
+            try {
+                const parsed = JSON.parse(text);
+
+                if (Array.isArray(parsed)) {
+                    listeners = parsed.filter((id): id is string => typeof id === 'string');
+                }
+            } catch (e) {
+                logger.warn('Ignoring malformed translation-listeners payload', e);
+
+                return true;
+            }
+        }
+
+        this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED, listeners);
+
+        return true;
+    }
+
+    /**
      * Subscribes to the cumulative set of translated sources by including them on top of the `all` baseline,
      * named by convention {endpointId}-a0.{language} so they can be requested before the source is signaled.
      * Keeping the baseline means the original audio still flows (and can be ducked); an empty include list
@@ -2528,6 +2588,7 @@ export default class JitsiConference extends Listenable {
      */
     _onMucJoined(): void {
         this._numberOfParticipantsOnJoin = this.getParticipantCount();
+        this._registerTranslationListenersHandler();
         this._maybeStartOrStopP2P();
     }
 
@@ -2822,6 +2883,11 @@ export default class JitsiConference extends Listenable {
         if (this._translationErrorHandler) {
             this.xmpp.connection?.deleteHandler(this._translationErrorHandler);
             this._translationErrorHandler = undefined;
+        }
+
+        if (this._translationListenersHandler) {
+            this.xmpp.connection?.deleteHandler(this._translationListenersHandler);
+            this._translationListenersHandler = undefined;
         }
 
         this.eventManager.removeXMPPListeners();

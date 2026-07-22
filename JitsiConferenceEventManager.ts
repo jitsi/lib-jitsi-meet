@@ -576,6 +576,10 @@ export default class JitsiConferenceEventManager {
             conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
         });
 
+        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: any) => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
+        });
+
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
             (from: string, payload: any) => {
                 if (from === 'transcriber') {

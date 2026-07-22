@@ -654,31 +654,37 @@ export default class TraceablePeerConnection {
      * Returns the transceiver direction to apply to a sender when a local track is added to or removed from this
      * peerconnection via {@link replaceTrack}.
      *
-     * On Firefox setting encoding.active=false does not stop the outgoing audio (unlike Chromium/WebKit), so an
-     * audio sender is suspended via the transceiver direction while audio transfer is inactive on this
-     * peerconnection (the JVB connection while the call is routed over P2P). Otherwise an audio track added on
-     * unmute would be sent over the suspended JVB connection and the remote peer would receive it twice (once over
-     * JVB, once over P2P). Only audio is handled this way: video keeps using encoding.active so that simulcast /
-     * screenshare SDP and the P2P video path are left untouched.
+     * Two orthogonal Firefox workarounds share this helper:
+     *
+     * - On track addition: Firefox <= 153 does not honor <tt>encoding.active = false</tt> for audio senders
+     *   (https://bugzilla.mozilla.org/show_bug.cgi?id=1813848), so an audio sender is suspended via the transceiver
+     *   direction while audio transfer is inactive on this peerconnection (the JVB connection while the call is
+     *   routed over P2P). Otherwise an audio track added on unmute would be sent over the suspended JVB connection
+     *   and the remote peer would receive it twice (once over JVB, once over P2P). Only audio is handled this way:
+     *   video keeps using <tt>encoding.active</tt> so that simulcast / screenshare SDP and the P2P video path are
+     *   left untouched.
+     * - On track removal: Firefox does not rebuild the m-line if the direction goes to <tt>recvonly</tt>, so the
+     *   ssrcs from the removed track need to be preserved by keeping direction at <tt>sendrecv</tt>
+     *   (https://bugzilla.mozilla.org/show_bug.cgi?id=1768729). This still applies to all Firefox versions.
      *
      * @param {boolean} hasTrack - whether a local track is attached to the sender after the operation.
-     * @param {boolean} isFirefox - whether the client is Firefox.
      * @param {MediaType} mediaType - the media type of the local track.
      * @param {boolean} mediaTransferActive - whether media transfer is active for the track's media type.
      * @returns {MediaDirection}
      */
     static getTransceiverDirection(
             hasTrack: boolean,
-            isFirefox: boolean,
             mediaType: Optional<MediaType>,
             mediaTransferActive: boolean): MediaDirection {
         if (hasTrack) {
-            return isFirefox && mediaType === MediaType.AUDIO && !mediaTransferActive
+            return !browser.supportsRTCRtpEncodingParametersActiveForAudio()
+                    && mediaType === MediaType.AUDIO
+                    && !mediaTransferActive
                 ? MediaDirection.INACTIVE
                 : MediaDirection.SENDRECV;
         }
 
-        return isFirefox ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
+        return browser.isFirefox() ? MediaDirection.SENDRECV : MediaDirection.RECVONLY;
     }
 
     /**
@@ -809,10 +815,12 @@ export default class TraceablePeerConnection {
 
         await sender.setParameters(parameters);
 
-        // Firefox does not stop sending audio when only encoding.active is set to false, so an audio sender is
-        // suspended/resumed via the transceiver direction as well (see getMediaTransferDirection). Audio only -
-        // video keeps using encoding.active to avoid perturbing simulcast/screenshare SDP and the P2P video path.
-        if (browser.isFirefox() && sender.track?.kind === MediaType.AUDIO) {
+        // Firefox <= 153 does not stop sending audio when only encoding.active is set to false
+        // (https://bugzilla.mozilla.org/show_bug.cgi?id=1813848), so an audio sender is suspended/resumed via the
+        // transceiver direction as well (see getMediaTransferDirection). Gated on the browser capability so the
+        // workaround drops out once Firefox 154+ ships the fix. Audio only - video keeps using encoding.active to
+        // avoid perturbing simulcast/screenshare SDP and the P2P video path.
+        if (!browser.supportsRTCRtpEncodingParametersActiveForAudio() && sender.track?.kind === MediaType.AUDIO) {
             const transceiver = this.peerconnection.getTransceivers().find(t => t.sender === sender);
             const direction = TraceablePeerConnection.getMediaTransferDirection(enable, Boolean(sender.track));
 
@@ -2532,7 +2540,7 @@ export default class TraceablePeerConnection {
                     : this.audioTransferActive;
 
                 transceiver.direction = TraceablePeerConnection.getTransceiverDirection(
-                    Boolean(newTrack), browser.isFirefox(), mediaType, mediaTransferActive);
+                    Boolean(newTrack), mediaType, mediaTransferActive);
 
                 // Configure simulcast encodings on Firefox when a track is added to the
                 // peerconnection for the first time.
