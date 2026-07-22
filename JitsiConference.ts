@@ -3109,6 +3109,19 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a message retraction to the other participants in the conference.
+     *
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [receiverId] - The intended recipient if the message is private.
+     * @param {boolean} [useFullJid=false] - Whether receiverId is already a full JID.
+     */
+    public sendMessageRetraction(messageId: string, receiverId?: string, useFullJid = false): void {
+        if (this.room) {
+            this.room.sendMessageRetraction(messageId, receiverId, useFullJid);
+        }
+    }
+
+    /**
    * Sends private text message to another participant of the conference.
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
