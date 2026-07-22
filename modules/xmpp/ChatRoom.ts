@@ -1190,12 +1190,11 @@ export default class ChatRoom extends Listenable {
      */
     public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string, messageId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
-        const msgAttrs: Record<string, string> = { to: targetJid, type: 'chat' };
+        const attrs: Record<string, string> = { to: targetJid, type: 'chat' };
 
         if (messageId) {
             attrs.id = messageId;
         }
-
         const msg = $msg(attrs);
 
         // We are adding the message in packet. If this element is different
