@@ -19,6 +19,7 @@ const logger = getLogger('e2ee:OlmAdapter');
 const REQ_TIMEOUT = 5 * 1000;
 const OLM_MESSAGE_TYPE = 'olm';
 const OLM_MESSAGE_TYPES = {
+    CUSTOM: 'custom',
     ERROR: 'error',
     KEY_INFO: 'key-info',
     KEY_INFO_ACK: 'key-info-ack',
@@ -37,6 +38,7 @@ const OLM_KEY_VERIFICATION_MAC_KEY_IDS = 'Jitsi-KEY_IDS';
 const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
+    CUSTOM_MESSAGE_RECEIVED: 'olm.custom_message_received',
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated',
     PARTICIPANT_SAS_AVAILABLE: 'olm.participant_sas_available',
@@ -71,6 +73,8 @@ export class OlmAdapter extends Listenable {
     constructor(conference) {
         super();
 
+        console.log(`[encedo:olm] OlmAdapter.constructor olmSupported=${OlmAdapter.isSupported()}`);
+
         this._conf = conference;
         this._init = new Deferred();
         this._mediaKey = undefined;
@@ -87,7 +91,9 @@ export class OlmAdapter extends Listenable {
             this._conf.on(JitsiConferenceEvents.USER_LEFT, this._onParticipantLeft.bind(this));
             this._conf.on(JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
                 this._onParticipantPropertyChanged.bind(this));
+            console.log('[encedo:olm] OlmAdapter listeners attached (ENDPOINT_MESSAGE_RECEIVED, CONFERENCE_LEFT, USER_LEFT, PARTICIPANT_PROPERTY_CHANGED)');
         } else {
+            console.log('[encedo:olm] OlmAdapter NOT SUPPORTED — rejecting init');
             this._init.reject(new Error('Olm not supported'));
         }
     }
@@ -116,8 +122,11 @@ export class OlmAdapter extends Listenable {
         await this._init;
 
         const localParticipantId = this._conf.myUserId();
-        const e2eeParticipants = this._conf.getParticipants().filter(p => p.hasFeature(FEATURE_E2EE));
+        const allParticipants = this._conf.getParticipants();
+        const e2eeParticipants = allParticipants.filter(p => p.hasFeature(FEATURE_E2EE));
         const outgoingParticipants = e2eeParticipants.filter(p => localParticipantId < p.getId());
+
+        console.log(`[encedo:olm] initSessions localId=${localParticipantId} allParticipants=${allParticipants.length} e2eeParticipants=${e2eeParticipants.length} outgoing=${outgoingParticipants.map(p => p.getId())}`);
 
         // Send session-init to participants with higher IDs (outgoing sessions)
         const outgoingPromises = outgoingParticipants.map(participant =>
@@ -147,6 +156,8 @@ export class OlmAdapter extends Listenable {
             waitPromises.push(sessionPromise);
         }
 
+        console.log(`[encedo:olm] initSessions waiting for ${waitPromises.length} incoming sessions (10s timeout)`);
+
         if (waitPromises.length > 0) {
             logger.debug(`Waiting for ${waitPromises.length} sessions to be established`);
 
@@ -157,6 +168,7 @@ export class OlmAdapter extends Listenable {
             this._sessionReadyCallbacks.clear();
         }
 
+        console.log('[encedo:olm] initSessions done');
         logger.debug('All Olm sessions established (outgoing and incoming)');
         this._sessionInitialization.resolve();
         this._sessionInitialization = undefined;
@@ -237,6 +249,50 @@ export class OlmAdapter extends Listenable {
         this._mediaKey = key;
 
         return this._mediaKeyIndex;
+    }
+
+    /**
+     * Sends an encrypted custom message to the given participant (or all if participantId is falsy).
+     *
+     * @param {string} participantId - Target participant ID, or '' / null for broadcast to all.
+     * @param {string} type - Application-defined message type (e.g. 'encedo:kyber-pub').
+     * @param {object} payload - Arbitrary JSON-serializable payload.
+     */
+    sendCustomMessage(participantId, type, payload) {
+        const msg = JSON.stringify({ payload,
+            type });
+        const recipients = participantId
+            ? [ this._conf.getParticipantById(participantId) ].filter(Boolean)
+            : this._conf.getParticipants();
+
+        console.log(`[encedo:olm] sendCustomMessage type=${type} to=${participantId || 'ALL'} recipients=${recipients.length}`);
+
+        for (const participant of recipients) {
+            const pId = participant.getId();
+            const olmData = this._getParticipantOlmData(participant);
+
+            if (!olmData.session) {
+                logger.warn(`No OLM session with ${pId}, skipping custom message`);
+                console.log(`[encedo:olm] sendCustomMessage NO SESSION with ${pId}`);
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            const ciphertext = olmData.session.encrypt(msg);
+
+            console.log(`[encedo:olm] sendCustomMessage encrypted to=${pId} type=${type} ciphertextType=${ciphertext?.type} bodyLen=${ciphertext?.body?.length}`);
+
+            const data = {
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    data: { ciphertext },
+                    type: OLM_MESSAGE_TYPES.CUSTOM
+                }
+            };
+
+            this._sendMessage(data, pId);
+        }
     }
 
     /**
@@ -323,20 +379,24 @@ export class OlmAdapter extends Listenable {
      * @private
      */
     async _bootstrapOlm() {
+        console.log('[encedo:olm] _bootstrapOlm starting Olm.init()');
         logger.debug('Initializing Olm...');
 
         try {
             await Olm.init();
+            console.log('[encedo:olm] _bootstrapOlm Olm.init() done');
 
             this._olmAccount = new Olm.Account();
             this._olmAccount.create();
 
             this._idKeys = _safeJsonParse(this._olmAccount.identity_keys());
 
+            console.log(`[encedo:olm] _bootstrapOlm Olm v${Olm.get_library_version().join('.')} initialized, idKeys ready`);
             logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
             this._onIdKeysReady(this._idKeys);
         } catch (e) {
+            console.log(`[encedo:olm] _bootstrapOlm FAILED: ${e?.message || e}`);
             logger.error('Failed to initialize Olm', e);
             this._init.reject(e);
         }
@@ -500,11 +560,17 @@ export class OlmAdapter extends Listenable {
      * @private
      */
     async _onEndpointMessageReceived(participant, payload) {
+        const _from = participant?.getId?.();
+        const _muc = payload?.[JITSI_MEET_MUC_TYPE];
+
+        console.log(`[encedo:olm] _onEndpointMessageReceived ENTRY from=${_from} muc=${_muc} hasOlm=${!!payload?.olm}`);
+
         if (payload[JITSI_MEET_MUC_TYPE] !== OLM_MESSAGE_TYPE) {
             return;
         }
 
         if (!payload.olm) {
+            console.log(`[encedo:olm] _onEndpointMessageReceived MALFORMED from=${_from} (no olm field)`);
             logger.warn('Incorrectly formatted message');
 
             return;
@@ -516,8 +582,41 @@ export class OlmAdapter extends Listenable {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
 
+        console.log(`[encedo:olm] _onEndpointMessageReceived from=${pId} type=${msg.type}`);
+
         switch (msg.type) {
+        case OLM_MESSAGE_TYPES.CUSTOM: {
+            console.log(`[encedo:olm] CUSTOM msg from=${pId} hasSession=${!!olmData.session}`);
+            if (olmData.session) {
+                try {
+                    const { ciphertext } = msg.data;
+
+                    console.log(`[encedo:olm] CUSTOM decrypting from=${pId} ciphertextType=${ciphertext?.type} bodyLen=${ciphertext?.body?.length}`);
+                    const decrypted = olmData.session.decrypt(ciphertext.type, ciphertext.body);
+
+                    console.log(`[encedo:olm] CUSTOM decrypted from=${pId} len=${decrypted?.length} preview=${String(decrypted).slice(0, 80)}`);
+                    const json = safeJsonParse(decrypted);
+
+                    console.log(`[encedo:olm] CUSTOM parsed from=${pId} hasType=${!!json?.type} type=${json?.type}`);
+
+                    if (json.type) {
+                        console.log(`[encedo:olm] CUSTOM emitting CUSTOM_MESSAGE_RECEIVED from=${pId} type=${json.type}`);
+                        this.eventEmitter.emit(OlmAdapterEvents.CUSTOM_MESSAGE_RECEIVED, pId, json.type, json.payload);
+                        console.log(`[encedo:olm] CUSTOM emit returned from=${pId} type=${json.type}`);
+                    } else {
+                        console.log(`[encedo:olm] CUSTOM SKIPPING emit — no type field, raw=${decrypted?.slice?.(0, 200)}`);
+                    }
+                } catch (e) {
+                    console.log(`[encedo:olm] CUSTOM EXCEPTION from=${pId}: ${e?.message || e}`);
+                }
+            } else {
+                console.log(`[encedo:olm] CUSTOM NO SESSION from=${pId} — dropping message`);
+                logger.debug(`Received custom message from ${pId} but we have no session for them!`);
+            }
+            break;
+        }
         case OLM_MESSAGE_TYPES.SESSION_INIT: {
+            console.log(`[encedo:olm] SESSION_INIT received from=${pId} hasExistingSession=${!!olmData.session}`);
             if (olmData.session) {
                 logger.warn(`Participant ${pId} already has a session`);
 
@@ -543,12 +642,14 @@ export class OlmAdapter extends Listenable {
                     }
                 };
 
+                console.log(`[encedo:olm] SESSION_INIT sending SESSION_ACK to=${pId}`);
                 this._sendMessage(ack, pId);
                 this._onParticipantE2EEChannelReady(pId);
             }
             break;
         }
         case OLM_MESSAGE_TYPES.SESSION_ACK: {
+            console.log(`[encedo:olm] SESSION_ACK received from=${pId} hasExistingSession=${!!olmData.session} pendingUuid=${olmData.pendingSessionUuid} msgUuid=${msg.data.uuid}`);
             if (olmData.session) {
                 logger.warn(`Participant ${pId} already has a session`);
 
@@ -569,6 +670,7 @@ export class OlmAdapter extends Listenable {
                 olmData.session = session;
                 olmData.pendingSessionUuid = undefined;
 
+                console.log(`[encedo:olm] SESSION_ACK processed — session established with ${pId}`);
                 this._onParticipantE2EEChannelReady(pId);
 
                 this._reqs.delete(msg.data.uuid);
@@ -948,11 +1050,15 @@ export class OlmAdapter extends Listenable {
 
         switch (name) {
         case 'e2ee.enabled':
+            console.log(`[encedo:olm] _onParticipantPropertyChanged e2ee.enabled participantId=${participantId} newValue=${newValue} isE2EEEnabled=${this._conf.isE2EEEnabled()}`);
             if (newValue && this._conf.isE2EEEnabled()) {
                 const localParticipantId = this._conf.myUserId();
                 const participantFeatures = await participant.getFeatures();
+                const hasFeatureE2EE = participantFeatures.has(FEATURE_E2EE);
 
-                if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
+                console.log(`[encedo:olm] _onParticipantPropertyChanged localId=${localParticipantId} participantId=${participantId} hasFeatureE2EE=${hasFeatureE2EE} localLtParticipant=${localParticipantId < participantId}`);
+
+                if (hasFeatureE2EE && localParticipantId < participantId) {
                     let sessionEstablished = false;
 
                     try {
@@ -1041,6 +1147,7 @@ export class OlmAdapter extends Listenable {
      * @param {string} participantId - ID of the target participant.
      */
     _sendMessage(data, participantId) {
+        console.log(`[encedo:olm] _sendMessage to=${participantId} olmType=${data?.olm?.type}`);
         this._conf.sendMessage(data, participantId);
     }
 
@@ -1054,6 +1161,8 @@ export class OlmAdapter extends Listenable {
     _sendSessionInit(participant) {
         const pId = participant.getId();
         const olmData = this._getParticipantOlmData(participant);
+
+        console.log(`[encedo:olm] _sendSessionInit to=${pId} hasSession=${!!olmData.session} pendingUuid=${olmData.pendingSessionUuid}`);
 
         if (olmData.session) {
             logger.warn(`Tried to send session-init to ${pId} but we already have a session`);
@@ -1102,6 +1211,7 @@ export class OlmAdapter extends Listenable {
         });
         this._reqs.set(uuid, d);
 
+        console.log(`[encedo:olm] _sendSessionInit sending to=${pId} uuid=${uuid}`);
         this._sendMessage(init, pId);
 
         // Store the UUID for matching with the ACK.
