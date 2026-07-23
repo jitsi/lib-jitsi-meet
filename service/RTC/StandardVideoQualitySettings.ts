@@ -70,7 +70,10 @@ export const STANDARD_CODEC_SETTINGS = {
             standard: 800000,
             ultraHd: 8000000,
         },
-        scalabilityModeEnabled: browser.supportsScalabilityModeAPI()
+        scalabilityModeEnabled: browser.supportsScalabilityModeAPI(),
+
+        // Whether the Main/High profile H.264 payload types are stripped from the SDP on p2p connections.
+        stripHighProfile: true
     },
     vp8: {
         maxBitratesVideo: {
