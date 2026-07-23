@@ -4386,6 +4386,29 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sets multiple properties for the local participant in a single presence update.
+     * @param {Record<string, string | string[]>} properties - Object of property names to values.
+     * @returns {void}
+     */
+    public setLocalParticipantProperties(properties: Record<string, string | string[]>): void {
+        if (!this.room) {
+            return;
+        }
+
+        let changed = false;
+
+        for (const name of Object.keys(properties)) {
+            const wasChanged = this.room.addOrReplaceInPresence(`jitsi_participant_${name}`, { value: properties[name] });
+
+            changed = changed || Boolean(wasChanged);
+        }
+
+        if (changed) {
+            this.room.sendPresence();
+        }
+    }
+
+    /**
      * Removes a property for the local participant and sends the updated presence.
      * @param {string} name - The name of the property to remove.
      * @returns {void}
