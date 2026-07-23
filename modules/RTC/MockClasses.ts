@@ -133,6 +133,10 @@ export class MockPeerConnection {
      */
     _midsWithSentTrack: Set<string>;
     /**
+     * {@link TraceablePeerConnection.codecSettings}.
+     */
+    codecSettings?: { codecList: string[]; mediaType: MediaType; };
+    /**
      * Constructor.
      *
      * @param {string} id RTC id
@@ -192,6 +196,15 @@ export class MockPeerConnection {
      * @returns {boolean}
      */
     doesTrueSimulcast(): boolean {
+        return false;
+    }
+
+    /**
+     * {@link TraceablePeerConnection.usesCodecSelectionAPI}.
+     *
+     * @returns {boolean}
+     */
+    usesCodecSelectionAPI(): boolean {
         return false;
     }
 
