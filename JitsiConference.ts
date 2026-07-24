@@ -3125,6 +3125,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a moderation request for a message.
+     *
+     * @param {string} messageId - The id of the message.
+     * @param {string} [reason] - Optional moderation reason
+     */
+    public moderateMessage(messageId: string, reason?: string): void {
+        this.room?.moderateMessage(messageId, reason);
+    }
+
+    /**
    * Send presence command.
    * @param {string} name - The name of the command.
    * @param {Record<string, unknown>} values - With keys and values that will be sent.
