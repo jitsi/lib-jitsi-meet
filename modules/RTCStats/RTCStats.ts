@@ -22,9 +22,9 @@ const MAX_PENDING_STATS_ENTRIES = 100;
 
 /** A stats entry buffered while the trace was disconnected, replayed once it connects. */
 interface IPendingStatsEntry {
-    data?: Optional<any>;
-    pcId?: Optional<string>;
     statsType: RTCStatsEvents;
+    pcId: Optional<string>;
+    data: Optional<any>;
 }
 
 /**
