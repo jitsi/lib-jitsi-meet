@@ -1084,6 +1084,11 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
+            case 'etherpad':
+                if (member.isFocus) {
+                    this._processNode(node, from);
+                }
+                break;
             default: {
                 if (node.tagName.startsWith('jitsi_participant_')) {
                     participantProperties
