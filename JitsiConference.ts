@@ -18,6 +18,8 @@ import JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import { SS_DEFAULT_FRAME_RATE } from './modules/RTC/ScreenObtainer';
 import type TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import RTCStats from './modules/RTCStats/RTCStats';
+import { RTCStatsEvents } from './modules/RTCStats/RTCStatsEvents';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedHandling from './modules/connectivity/IceFailedHandling';
@@ -115,6 +117,7 @@ export interface IConferenceOptions {
         e2eping?: {
             enabled?: boolean;
         };
+        enableIceRestart?: boolean;
         enableNoAudioDetection?: boolean;
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
@@ -203,6 +206,12 @@ const TRANSLATION_REQUEST_TIMEOUT = 15000;
  * @type {number}
  */
 const JINGLE_SI_TIMEOUT: number = 5000;
+
+/**
+ * How long (ms) to wait for ICE to recover after an in-place ICE restart (triggered by an ICE failure) before
+ * falling back to a session restart.
+ */
+const JVB_ICE_RESTART_RECOVERY_TIMEOUT = 15000;
 
 /**
  * Default source language for transcribing the local participant.
@@ -1850,11 +1859,16 @@ export default class JitsiConference extends Listenable {
             // Use an exponential backoff timer for ICE restarts.
             const jitterDelay = getJitterDelay(this._iceRestarts, 1000 /* min. delay */);
 
-            this._delayedIceFailed = new IceFailedHandling(this);
             setTimeout(() => {
-                logger.error(`triggering ice restart after ${jitterDelay} `);
-                this._delayedIceFailed.start();
                 this._iceRestarts++;
+                if (this.isIceRestartSupported()) {
+                    logger.info(`Attempting an in-place ICE restart after ${jitterDelay}`);
+                    this._restartJvbIceWithFallback();
+                } else {
+                    logger.error(`triggering ice restart after ${jitterDelay} `);
+                    this._delayedIceFailed = new IceFailedHandling(this);
+                    this._delayedIceFailed.start();
+                }
             }, jitterDelay);
         } else if (this.jvbJingleSession === session) {
             logger.warn('ICE failed, force reloading the conference after failed attempts to re-establish ICE');
@@ -1867,6 +1881,34 @@ export default class JitsiConference extends Listenable {
                     }));
             this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.ICE_FAILED);
         }
+    }
+
+    /**
+     * Attempts an in-place ICE restart of the JVB session, falling back to the legacy session restart
+     * (session-terminate with a restart request, handled by Jicofo with a re-invite) if the request fails or if
+     * ICE doesn't recover within a timeout.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _restartJvbIceWithFallback(): void {
+        const fallback = (message: string) => {
+            logger.warn(`${message}, falling back to a session restart`);
+            this._delayedIceFailed = new IceFailedHandling(this);
+            this._delayedIceFailed.start();
+        };
+
+        this.restartJvbIce('ice-failed')
+            .then(() => {
+                setTimeout(() => {
+                    const iceState = this.jvbJingleSession?.getIceConnectionState();
+
+                    if (iceState !== 'connected' && iceState !== 'completed') {
+                        fallback(`ICE not recovered (state=${iceState}) after an in-place ICE restart`);
+                    }
+                }, JVB_ICE_RESTART_RECOVERY_TIMEOUT);
+            })
+            .catch(error => fallback(`In-place ICE restart request failed (${error?.message ?? error})`));
     }
 
     /**
@@ -2325,6 +2367,45 @@ export default class JitsiConference extends Listenable {
                 `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
         this.qualityController.audioController.setIncludeSources(include);
+    }
+
+    /**
+     * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
+     * configuration ('enableIceRestart').
+     *
+     * @returns {boolean}
+     */
+    public isIceRestartSupported(): boolean {
+        return Boolean(this.options.config.enableIceRestart);
+    }
+
+    /**
+     * Triggers a client-initiated in-place ICE restart of the JVB session. The client rotates its own local ICE
+     * credentials (as the offerer) and signals them to Jicofo, which relays them to the bridge; the bridge applies
+     * them to its existing ice4j Agent. Media keeps flowing throughout (make-before-break). See
+     * {@link JingleSessionPC.restartIce}. Trigger from the console: `APP.conference._room.restartJvbIce()`.
+     *
+     * @param {string} reason - Why the restart was triggered, for logs and analytics ('api', 'ice-failed', ...).
+     * @returns {Promise<void>} - Resolves when the restart's renegotiation completes and the new local transport
+     * has been signalled to Jicofo, rejects otherwise.
+     */
+    public restartJvbIce(reason: string = 'api'): Promise<void> {
+        if (!this.isIceRestartSupported()) {
+            return Promise.reject(new Error('ICE restart is not supported (disabled in config)'));
+        }
+
+        const session = this.jvbJingleSession;
+
+        if (!session) {
+            return Promise.reject(new Error('No JVB Jingle session'));
+        }
+
+        logger.info(`Requesting an in-place ICE restart of the JVB session, reason=${reason}`);
+        RTCStats.sendStatsEntry(RTCStatsEvents.ICE_RESTART_REQUESTED_EVENT, null, { reason });
+        Statistics.sendAnalytics(createJingleEvent(
+            AnalyticsEvents.ACTION_JINGLE_ICE_RESTART_REQUESTED, { reason }));
+
+        return session.restartIce();
     }
 
     /**

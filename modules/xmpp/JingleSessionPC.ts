@@ -9,7 +9,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import { AnalyticsEvents, createAudioWedgeRecoveryEvent } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
@@ -17,6 +17,8 @@ import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RemoteAudioWedgeDetector from '../RTC/RemoteAudioWedgeDetector';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/TraceablePeerConnection';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
@@ -52,6 +54,25 @@ const DEFAULT_MAX_STATS: number = 300;
  * @type {number} timeout in ms.
  */
 const ICE_CAND_GATHERING_TIMEOUT: number = 150;
+
+/**
+ * How long the media stats sampler runs after an in-place ICE restart started, in ms.
+ * @type {number}
+ */
+const ICE_RESTART_STATS_DURATION: number = 3000;
+
+/**
+ * The interval at which media stats are sampled during an ICE restart, in ms.
+ * @type {number}
+ */
+const ICE_RESTART_STATS_INTERVAL: number = 100;
+
+/**
+ * How long (ms), after applying the synthesized answer for an in-place ICE restart, to ignore a spuriously
+ * fired `negotiationneeded` event. See {@link JingleSessionPC._ignoreNegotiationNeededUntil}.
+ * @type {number}
+ */
+const ICE_RESTART_NEGOTIATION_NEEDED_GRACE_PERIOD: number = 3000;
 
 /**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
@@ -179,6 +200,9 @@ export default class JingleSessionPC extends JingleSession {
     private _cachedNewLocalSdp: Optional<SDP>;
     private _iceCheckingStartedTimestamp: Nullable<number>;
     private _gatheringStartedTimestamp: Nullable<number>;
+    private _iceRestartT0: Nullable<number>;
+    private _iceRestartStatsTimer: Nullable<number>;
+    private _ignoreNegotiationNeededUntil: number;
     private _sourceReceiverConstraints: Nullable<Map<string, number>>;
     private _localSendReceiveVideoActive: boolean;
     private _remoteSendReceiveVideoActive: boolean;
@@ -336,6 +360,36 @@ export default class JingleSessionPC extends JingleSession {
          * @private
          */
         this._gatheringStartedTimestamp = null;
+
+        /**
+         * Stores the result of {@link window.performance.now()} at the time when an in-place ICE restart started.
+         * Used as the reference point ("t+Xms") for the ICE restart instrumentation logs. Reset to null when the
+         * ICE restart stats sampler finishes.
+         * @type {Nullable<number>}
+         * @private
+         */
+        this._iceRestartT0 = null;
+
+        /**
+         * The id of the interval timer of the ICE restart stats sampler, if it is currently running.
+         * @type {Nullable<number>}
+         * @private
+         */
+        this._iceRestartStatsTimer = null;
+
+        /**
+         * A {@link window.performance.now()} timestamp until which the `negotiationneeded` handler should ignore
+         * events. Applying our synthesized answer during an in-place ICE restart (see {@link restartIce}) reaches
+         * `stable`, but the browser's own negotiation-needed check does not consider it fully reconciled with the
+         * offer it answers (unsurprisingly, since it is a patched copy of the bridge's offer, not a real
+         * `createAnswer()` output) and fires `negotiationneeded` right after. Without this guard, the generic
+         * handler below reacts by feeding our own answer back into `setRemoteDescription` as if it were a fresh
+         * offer and renegotiating on top of it — an uncoordinated second renegotiation racing our own restart,
+         * which manifested as several seconds of receiver/decoder churn before things settled.
+         * @type {number}
+         * @private
+         */
+        this._ignoreNegotiationNeededUntil = 0;
 
         /**
          * Receiver constraints (max height) set by the application per remote source. Will be used for p2p connection.
@@ -1035,6 +1089,212 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Starts a short-lived sampler which logs, every {@link ICE_RESTART_STATS_INTERVAL} ms for up to
+     * {@link ICE_RESTART_STATS_DURATION} ms after an ICE restart started, the number of audio/video bytes sent and
+     * received since the previous sample, video freeze/PLI/dropped-frame counters (to pin down whether a visible
+     * freeze is caused by receive-side packet loss around the pair cutover, as opposed to the send-side ICE
+     * mechanics), the currently selected ICE candidate pair (id and state) and the total number of STUN
+     * connectivity checks sent and responses received. This shows precisely when media stopped and resumed in each
+     * direction during the restart, and when connectivity checks for the new ICE generation started.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _startIceRestartStatsSampler(): void {
+        if (this._iceRestartStatsTimer !== null) {
+            window.clearInterval(this._iceRestartStatsTimer);
+            this._iceRestartStatsTimer = null;
+        }
+
+        const t0 = this._iceRestartT0 ?? window.performance.now();
+        let prev: Nullable<{
+            audioIn: number;
+            audioOut: number;
+            reqSent: number;
+            respRecv: number;
+            videoFramesDropped: number;
+            videoFreezeCount: number;
+            videoFreezeDurationMs: number;
+            videoIn: number;
+            videoOut: number;
+            videoPliCount: number;
+        }> = null;
+
+        const stop = () => {
+            if (this._iceRestartStatsTimer !== null) {
+                window.clearInterval(this._iceRestartStatsTimer);
+                this._iceRestartStatsTimer = null;
+            }
+            this._iceRestartT0 = null;
+        };
+
+        const sample = () => {
+            const now = window.performance.now();
+
+            if (now - t0 > ICE_RESTART_STATS_DURATION
+                    || this.state === JingleSessionState.ENDED
+                    || this.peerconnection?.signalingState === 'closed') {
+                logger.info(`${this} ICE restart t+${Math.round(now - t0)}ms: stats sampler done`);
+                stop();
+
+                return;
+            }
+
+            this.peerconnection.getStats().then(report => {
+                const cur = {
+                    audioIn: 0,
+                    audioOut: 0,
+                    reqSent: 0,
+                    respRecv: 0,
+                    videoFramesDropped: 0,
+                    videoFreezeCount: 0,
+                    videoFreezeDurationMs: 0,
+                    videoIn: 0,
+                    videoOut: 0,
+                    videoPliCount: 0
+                };
+                const pairsById = new Map<string, any>();
+                let selectedPairId: Nullable<string> = null;
+
+                report.forEach(stat => {
+                    switch (stat.type) {
+                    case 'outbound-rtp':
+                        cur[stat.kind === MediaType.AUDIO ? 'audioOut' : 'videoOut'] += stat.bytesSent ?? 0;
+                        break;
+                    case 'inbound-rtp':
+                        cur[stat.kind === MediaType.AUDIO ? 'audioIn' : 'videoIn'] += stat.bytesReceived ?? 0;
+                        if (stat.kind === MediaType.VIDEO) {
+                            cur.videoFramesDropped += stat.framesDropped ?? 0;
+                            cur.videoFreezeCount += stat.freezeCount ?? 0;
+                            cur.videoFreezeDurationMs += (stat.totalFreezesDuration ?? 0) * 1000;
+                            cur.videoPliCount += stat.pliCount ?? 0;
+                        }
+                        break;
+                    case 'candidate-pair':
+                        pairsById.set(stat.id, stat);
+                        cur.reqSent += stat.requestsSent ?? 0;
+                        cur.respRecv += stat.responsesReceived ?? 0;
+                        break;
+                    case 'transport':
+                        selectedPairId = stat.selectedCandidatePairId ?? selectedPairId;
+                        break;
+                    }
+                });
+
+                const pair = selectedPairId ? pairsById.get(selectedPairId) : undefined;
+                const pairStr = pair ? `${selectedPairId}/${pair.state}${pair.nominated ? '(nom)' : ''}` : 'none';
+                const d = (key: keyof typeof cur) => (prev === null ? cur[key] : cur[key] - prev[key]);
+
+                logger.info(`${this} ICE restart t+${Math.round(now - t0)}ms: `
+                    + `video out +${d('videoOut')}B in +${d('videoIn')}B `
+                    + `audio out +${d('audioOut')}B in +${d('audioIn')}B `
+                    + `video freezes +${d('videoFreezeCount')} (+${Math.round(d('videoFreezeDurationMs'))}ms) `
+                    + `pli +${d('videoPliCount')} framesDropped +${d('videoFramesDropped')} `
+                    + `pair=${pairStr} pairs=${pairsById.size} checks sent +${d('reqSent')} resp +${d('respRecv')}`
+                    + `${prev === null ? ' (baseline, absolute values)' : ''}`);
+                prev = cur;
+            })
+            .catch(error => {
+                logger.warn(`${this} ICE restart stats sampler failed: ${error}`);
+                stop();
+            });
+        };
+
+        // Sample periodically, and take an immediate baseline sample.
+        this._iceRestartStatsTimer = window.setInterval(sample, ICE_RESTART_STATS_INTERVAL);
+        sample();
+    }
+
+    /**
+     * Synthesizes the bridge's answer SDP for a client-offerer in-place ICE restart. The bridge does not run
+     * `createAnswer`, and its transport is unchanged, so we reuse its last offer (which carries its transport
+     * and its send SSRCs) as the answer, changing only:
+     *  - each media section's direction to the reciprocal of our just-created offer's direction for the same
+     *    `mid` (e.g. if we offer `recvonly` on the audio m-line because we're not sending audio, the bridge's
+     *    answer must be `sendonly`), otherwise `setRemoteDescription` rejects it with "Incompatible send
+     *    direction";
+     *  - the DTLS `setup` to `passive` (an answer cannot be `actpass`; the bridge is the DTLS server).
+     *
+     * @param {string} offerSdp - our just-created local offer SDP (source of the per-mid directions).
+     * @param {string} remoteSdp - the bridge's current (unchanged) remote offer SDP.
+     * @returns {string} the synthesized answer SDP.
+     */
+    private _synthesizeIceRestartAnswer(offerSdp: string, remoteSdp: string): string {
+        const reciprocal: { [key: string]: string; } = {
+            inactive: 'inactive',
+            recvonly: 'sendonly',
+            sendonly: 'recvonly',
+            sendrecv: 'sendrecv'
+        };
+        const directionRe = /^a=(sendrecv|sendonly|recvonly|inactive)$/;
+
+        // Map each mid in our offer to its media direction.
+        const offerDirByMid: { [key: string]: string; } = {};
+        let mid: Nullable<string> = null;
+
+        offerSdp.split('\r\n').forEach(line => {
+            if (line.startsWith('a=mid:')) {
+                mid = line.substring('a=mid:'.length).trim();
+            } else if (mid && directionRe.test(line)) {
+                offerDirByMid[mid] = line.substring('a='.length);
+            }
+        });
+
+        // Rewrite the bridge's offer into an answer.
+        let curMid: Nullable<string> = null;
+
+        const answerLines = remoteSdp.split('\r\n').map(line => {
+            if (line.startsWith('a=mid:')) {
+                curMid = line.substring('a=mid:'.length).trim();
+
+                return line;
+            }
+            if (line.startsWith('a=setup:')) {
+                return 'a=setup:passive';
+            }
+            if (directionRe.test(line) && curMid && offerDirByMid[curMid]) {
+                return `a=${reciprocal[offerDirByMid[curMid]]}`;
+            }
+
+            return line;
+        });
+
+        return answerLines.join('\r\n');
+    }
+
+    /**
+     * Sends a Jingle 'transport-info' carrying the full local transport (new ICE credentials and candidates)
+     * for a client-initiated in-place ICE restart. Jicofo relays this to the bridge via colibri2
+     * 'updateParticipant' (no bridge credential rotation), which applies it as an in-place ICE restart.
+     *
+     * @param {SDP} localSDP - the local session description with the new local transport.
+     * @returns {void}
+     */
+    private sendIceRestartTransportInfo(localSDP: SDP): void {
+        const transportInfo = $iq({ to: this.remoteJid, type: 'set' })
+            .c('jingle', {
+                action: 'transport-info',
+                initiator: this.initiatorJid,
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
+            });
+
+        localSDP.media.forEach((medialines, idx) => {
+            const mline = SDPUtil.parseMLine(medialines.split('\r\n')[0]);
+
+            transportInfo.c('content', {
+                creator: this.initiatorJid === this.localJid ? 'initiator' : 'responder',
+                name: mline.media
+            });
+            localSDP.transportToJingle(idx, transportInfo);
+            transportInfo.up();
+        });
+
+        logger.info(`${this} Sending transport-info with new local transport (in-place ICE restart)`);
+        this.connection.sendIQ(transportInfo, null, this.newJingleErrorHandler(), IQ_TIMEOUT);
+    }
+
+    /**
      * Sends Jingle 'session-accept' message.
      *
      * @param {function()} success callback called when we receive 'RESULT' packet for the 'session-accept'.
@@ -1442,6 +1702,111 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Performs a client-initiated in-place ICE restart of the JVB session. The client acts as the OFFERER
+     * (`createOffer({ iceRestart: true })` + `setLocalDescription`), which mints new local ICE credentials
+     * while libwebrtc keeps the currently selected pair alive for sending (make-before-break). Being the
+     * offerer is required: an answerer cannot self-initiate an ICE restart (it just loops on
+     * `negotiationneeded`). Since the bridge's transport is unchanged and the bridge doesn't run
+     * `createAnswer`, the answer is synthesized from the bridge's last offer via
+     * {@link _synthesizeIceRestartAnswer} (reciprocal directions + DTLS `setup:passive`) and applied with
+     * `setRemoteDescription`. The new local transport is then signalled to Jicofo with a `transport-info`,
+     * which relays it to the bridge (colibri2 `updateParticipant`); the bridge applies the new remote
+     * credentials to its existing ice4j Agent and re-runs connectivity checks (see `IceTransport.restartIce`
+     * / `Agent.restartIce`).
+     *
+     * Operates on the native RTCPeerConnection directly and is serialized through the modification queue.
+     * Grep the console for `ICE restart t+`.
+     *
+     * @returns {Promise<void>} - Resolves when the renegotiation completes and the new local transport has been
+     * signalled to Jicofo, rejects otherwise.
+     */
+    public restartIce(): Promise<void> {
+        if (this.isP2P) {
+            return Promise.reject(new Error('an in-place ICE restart is only supported for the JVB session'));
+        }
+
+        const t0 = window.performance.now();
+        const dt = () => Math.round(window.performance.now() - t0);
+        const pc = (this.peerconnection as any).peerconnection as RTCPeerConnection;
+
+        this._iceRestartT0 = t0;
+        this._startIceRestartStatsSampler();
+
+        const workFunction = (finishedCallback: (err?: Error) => void) => {
+            logger.info(`${this} ICE restart t+${dt()}ms: task starting, `
+                + `signalingState=${pc.signalingState} iceConnectionState=${pc.iceConnectionState}`);
+
+            // The bridge's transport does not change; snapshot it now to build the answer from.
+            const remoteSdp = pc.currentRemoteDescription?.sdp;
+
+            if (!remoteSdp) {
+                finishedCallback(new Error('no remote description'));
+
+                return;
+            }
+
+            // Client acts as the OFFERER (so libwebrtc keeps the selected pair alive — make-before-break;
+            // an answerer cannot self-initiate an ICE restart, it just loops on negotiationneeded).
+            pc.createOffer({ iceRestart: true })
+                .then(offer => {
+                    logger.info(`${this} ICE restart t+${dt()}ms: offer created (iceRestart), `
+                        + 'applying as local description');
+
+                    return pc.setLocalDescription(offer);
+                })
+                .then(() => {
+                    logger.info(`${this} ICE restart t+${dt()}ms: local offer set (new local ICE creds), `
+                        + `signalingState=${pc.signalingState}. Applying synthesized answer`);
+
+                    // The bridge doesn't run createAnswer, so synthesize its answer from its (unchanged)
+                    // last offer: keep its transport/SSRCs but set each m-line's direction to the reciprocal
+                    // of our just-created offer's direction, and the DTLS role to passive (bridge = server).
+                    const answerSdp = this._synthesizeIceRestartAnswer(pc.localDescription.sdp, remoteSdp);
+
+                    // Applying this synthesized answer reaches 'stable', but the browser's own negotiation-needed
+                    // check may not consider it fully reconciled with the offer it answers and fire
+                    // negotiationneeded right after; ignore that for a grace period (see
+                    // _ignoreNegotiationNeededUntil).
+                    this._ignoreNegotiationNeededUntil = window.performance.now()
+                        + ICE_RESTART_NEGOTIATION_NEEDED_GRACE_PERIOD;
+
+                    return pc.setRemoteDescription({ sdp: answerSdp, type: 'answer' } as RTCSessionDescriptionInit);
+                })
+                .then(() => {
+                    logger.info(`${this} ICE restart t+${dt()}ms: renegotiation complete `
+                        + `(signalingState=${pc.signalingState}), signaling new local transport to Jicofo`);
+                    this.sendIceRestartTransportInfo(new SDP(this.peerconnection.localDescription.sdp));
+                    Statistics.sendAnalytics(createJingleEvent(AnalyticsEvents.ACTION_JINGLE_ICE_RESTART_SUCCESS, {
+                        p2p: this.isP2P,
+                        value: this.sid
+                    }));
+                    RTCStats.sendStatsEntry(RTCStatsEvents.ICE_RESTART_APPLIED_EVENT);
+                    finishedCallback();
+                })
+                .catch((error: Error) => {
+                    logger.error(`${this} ICE restart failed at t+${dt()}ms `
+                        + `(signalingState=${pc.signalingState})`, error);
+                    finishedCallback(error);
+                });
+        };
+
+        logger.debug(`${this} Queued ICE restart task`);
+
+        return new Promise<void>((resolve, reject) => {
+            this.modificationQueue.push(workFunction, (error?: Error) => {
+                if (error) {
+                    if (!(error instanceof ClearedQueueError)) {
+                        logger.error(`${this} ICE restart task failed: ${error}`);
+                    }
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
      * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
      *
      * @param jingleOffer element pointing to the jingle element of the offer IQ
@@ -1666,6 +2031,12 @@ export default class JingleSessionPC extends JingleSession {
         this._audioWedgeDetector?.stop();
         this._audioWedgeDetector = null;
 
+        if (this._iceRestartStatsTimer !== null) {
+            window.clearInterval(this._iceRestartStatsTimer);
+            this._iceRestartStatsTimer = null;
+        }
+        this._iceRestartT0 = null;
+
         if (this.peerconnection) {
             this.peerconnection.onicecandidate = null;
             this.peerconnection.oniceconnectionstatechange = null;
@@ -1778,6 +2149,17 @@ export default class JingleSessionPC extends JingleSession {
             // XXX this is broken, candidate is not parsed.
             const candidate = ev.candidate;
             const now = window.performance.now();
+
+            if (this._iceRestartT0 !== null) {
+                const t = Math.round(now - this._iceRestartT0);
+
+                if (candidate) {
+                    logger.info(`${this} ICE restart t+${t}ms: local candidate gathered `
+                        + `(${candidate.type}/${candidate.protocol}, mid=${candidate.sdpMid})`);
+                } else {
+                    logger.info(`${this} ICE restart t+${t}ms: end of local candidate gathering`);
+                }
+            }
 
             if (candidate) {
                 if (this._gatheringStartedTimestamp === null) {
@@ -1973,6 +2355,13 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onnegotiationneeded = () => {
             const state = this.peerconnection.signalingState;
             const remoteDescription = this.peerconnection.remoteDescription;
+
+            if (window.performance.now() < this._ignoreNegotiationNeededUntil) {
+                logger.info(`${this} onnegotiationneeded fired on ${this.peerconnection}, ignoring `
+                    + '(within the grace period right after an in-place ICE restart)');
+
+                return;
+            }
 
             if (!this.isP2P
                 && state === 'stable'
