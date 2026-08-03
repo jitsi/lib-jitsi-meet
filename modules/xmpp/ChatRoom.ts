@@ -1127,12 +1127,19 @@ export default class ChatRoom extends Listenable {
      * @param message
      * @param elementName
      * @param replyToId
+     * @param messageId - Optional explicit stanza id
      */
-    public sendMessage(message: string, elementName: string, replyToId?: string): void {
-        const msg = $msg({
+    public sendMessage(message: string, elementName: string, replyToId?: string, messageId?: string): void {
+        const attrs: Record<string, string> = {
             to: this.roomjid,
             type: 'groupchat'
-        });
+        };
+
+        if (messageId) {
+            attrs.id = messageId;
+        }
+
+        const msg = $msg(attrs);
 
         // We are adding the message in a packet extension. If this element
         // is different from 'body', we add a custom namespace.
