@@ -1009,4 +1009,70 @@ describe('ChatRoom', () => {
                 null);       // replyToId ← null when no 'to' attribute
         });
     });
+
+    describe('onPresenceError - breakout room', () => {
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+        const MAIN_ROOM_JID = 'mainroom@muc.example.com';
+        const BREAKOUT_OCCUPANT_JID = 'breakoutroom@breakout.example.com/me';
+
+        // A breakout MUC refusing our (re)join presence: from is our own occupant JID,
+        // error is a generic <not-allowed/>. This is what a reconnecting client gets when
+        // its session is no longer a member of the breakout.
+        const notAllowedPresence = (from: string) => {
+            const presStr = '' +
+                `<presence to="user@example.com/res" from="${from}" type="error">` +
+                    '<error type="cancel">' +
+                        '<not-allowed xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>' +
+                    '</error>' +
+                '</presence>';
+
+            return new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                'breakoutroom@breakout.example.com',
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = BREAKOUT_OCCUPANT_JID;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('routes a breakout not-allowed back to the main room instead of failing the conference', () => {
+            room.getBreakoutRooms()._setIsBreakoutRoom(true);
+            room.getBreakoutRooms()._setMainRoomJid(MAIN_ROOM_JID);
+
+            room.onPresenceError(notAllowedPresence(BREAKOUT_OCCUPANT_JID), BREAKOUT_OCCUPANT_JID);
+
+            // The user should be moved back to the main meeting...
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, MAIN_ROOM_JID);
+
+            // ...and NOT shown a hard "you do not have permission" failure.
+            expect(emitterSpy).not.toHaveBeenCalledWith(
+                XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, jasmine.anything(), jasmine.anything());
+        });
+
+        it('still raises not-allowed for a non-breakout room', () => {
+            room.getBreakoutRooms()._setIsBreakoutRoom(false);
+
+            room.onPresenceError(notAllowedPresence(BREAKOUT_OCCUPANT_JID), BREAKOUT_OCCUPANT_JID);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, jasmine.anything(), jasmine.anything());
+            expect(emitterSpy).not.toHaveBeenCalledWith(
+                XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, jasmine.anything());
+        });
+    });
 });

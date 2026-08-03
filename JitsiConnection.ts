@@ -15,6 +15,9 @@ const logger = getLogger('core:JitsiConnection');
 
 export interface IConnectionOptions {
     analytics?: any;
+    audioTranslation?: {
+        enabled?: boolean;
+    };
     bridgeChannel?: {
         ignoreDomain?: string;
         preferSctp?: boolean;

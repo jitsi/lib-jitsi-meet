@@ -543,6 +543,23 @@ export const createAudioOutputProblemEvent
     };
 
 /**
+ * Creates an event indicating that the remote audio wedge watchdog detected a mapped, unmuted remote audio source
+ * that received no inbound RTP for the detection window and triggered a source recycle to recover it. Used to measure
+ * the residual wedge rate in the field (see the Chrome/WebRTC audio-demux wedge).
+ *
+ * @param attributes - The attributes to add to the event. Currently used fields:
+ *      sourceName: the source name of the wedged remote audio source.
+ *      ssrc: the SSRC of the wedged remote audio source.
+ */
+export const createAudioWedgeRecoveryEvent = (attributes: object) => {
+    return {
+        action: 'audio.wedge.recovery',
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
+
+/**
  * Creates an event which contains an information related to the bridge channel close event.
  *
  * @param code - A code from {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}

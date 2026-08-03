@@ -47,6 +47,20 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks whether the browser honors <tt>RTCRtpEncodingParameters.active = false</tt> for audio senders. Firefox
+     * versions <= 153 ignore this flag and keep transmitting audio even when the encoding is deactivated, which is
+     * why the transceiver-direction workaround exists in {@link TraceablePeerConnection.getTransceiverDirection} and
+     * {@link TraceablePeerConnection.getMediaTransferDirection}. The fix is tracked in
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=1813848 and ships in Firefox 154.
+     *
+     * @returns {boolean} <tt>true</tt> when the browser honors the flag (all non-Firefox browsers, and Firefox
+     * 154+), <tt>false</tt> when the workaround is required.
+     */
+    supportsRTCRtpEncodingParametersActiveForAudio(): boolean {
+        return !(this.isFirefox() && this.isVersionLessThan(154));
+    }
+
+    /**
      * Tells whether or not the <tt>MediaStream/tt> is removed from the <tt>PeerConnection</tt> and disposed on video
      * mute (in order to turn off the camera device). This is needed on Firefox because of the following bug
      * https://bugzilla.mozilla.org/show_bug.cgi?id=1735951
@@ -280,17 +294,14 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns true if VP9 is supported by the client on the browser. VP9 is currently disabled on Safari
-     * and older versions of Firefox because of issues. Please check https://bugs.webkit.org/show_bug.cgi?id=231074 for
-     * details.
+     * Returns true if VP9 is supported by the client on the browser.
      *
+     * Disabled on WebKit-based browsers (Safari/iOS). Firefox is supported on version 151+ (see:
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=1633876).
      * @returns {boolean}
      */
     supportsVP9(): boolean {
-        // Keep this disabled for FF because simulcast is disabled by default.
-        // For versions 136+ if the media.webrtc.simulcast.vp9.enabled config is set to true it will work.
-        // TODO: enable for FF with version 136+ once media.webrtc.simulcast.vp9.enabled is set to true by default.
-        return !(this.isWebKitBased() || this.isFirefox());
+        return !this.isWebKitBased() && !(this.isFirefox() && this.isVersionLessThan(151));
     }
 
     /**

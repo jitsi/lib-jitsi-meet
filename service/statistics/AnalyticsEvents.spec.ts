@@ -22,6 +22,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         createRttByRegionEvent,
         createTransportStatsEvent,
         createAudioOutputProblemEvent,
+        createAudioWedgeRecoveryEvent,
         createBridgeChannelClosedEvent,
         createTtfmEvent,
         AnalyticsEvents,
@@ -72,6 +73,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( typeof ( createRttByRegionEvent ) ).toBe( 'function' );
         expect( typeof ( createTransportStatsEvent ) ).toBe( 'function' );
         expect( typeof ( createAudioOutputProblemEvent ) ).toBe( 'function' );
+        expect( typeof ( createAudioWedgeRecoveryEvent ) ).toBe( 'function' );
         expect( typeof ( createBridgeChannelClosedEvent ) ).toBe( 'function' );
         expect( typeof ( createTtfmEvent ) ).toBe( 'function' );
     } );

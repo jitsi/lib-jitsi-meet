@@ -7,6 +7,20 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
+     * Event fired when the audio-translation component rejects a translation request (e.g. subscription limit
+     * reached, target speaker not in the room). The payload carries the affected endpoint ids and the error
+     * condition so the UI can notify the user and revert the optimistic language selection.
+     */
+    AUDIO_TRANSLATION_FAILED = 'conference.audio_translation_failed',
+
+    /**
+     * Event fired when the set of remote participants translating the local participant's audio changes. The
+     * audio-translation component pushes this per-sender (only to the participant being translated), so the
+     * payload is the array of endpoint ids currently listening to a translation of the local participant.
+     */
+    AUDIO_TRANSLATION_LISTENERS_CHANGED = 'conference.audio_translation_listeners_changed',
+
+    /**
      * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
      * call and the audio sender limit configured in Jicofo.
      */
@@ -450,6 +464,13 @@ export enum JitsiConferenceEvents {
      * @param {String} status - The new status.
      */
     TRANSCRIPTION_STATUS_CHANGED = 'conference.transcriptionStatusChanged',
+
+    /**
+     * Indicates that a translated audio source started or stopped being forwarded to the local endpoint. The
+     * listener receives { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz, wraps at
+     * 2^32) — not epoch ms.
+     */
+    TRANSLATED_SOURCE_SENDING_CHANGED = 'conference.translatedSourceSendingChanged',
 
     /**
      * A new user joined the conference.
