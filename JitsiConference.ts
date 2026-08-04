@@ -4974,6 +4974,41 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a message retraction to the lobby room.
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [id] - The participant id, if the message was private.
+     * @returns {void}
+     */
+    public sendLobbyMessageRetraction(messageId: string, id?: string): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.sendMessageRetraction(messageId, id);
+    }
+
+    /**
+     * Adds a message retraction listener to the lobby room.
+     * @param {Function} listener - called with (messageId, participantId).
+     * @returns {Optional<EventListener>}
+     */
+    public addLobbyMessageRetractionListener(
+            listener: (messageId: string, participantId: string) => void): Optional<EventListener> {
+        const lobby = this.room?.getLobby();
+
+        return lobby?.addMessageRetractionListener(listener) as Optional<EventListener>;
+    }
+
+    /**
+     * Removes a message retraction handler from the lobby room.
+     * @param {Function} handler - The handler function to remove.
+     * @returns {void}
+     */
+    public removeLobbyMessageRetractionHandler(handler: (messageId: string, participantId: string) => void): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.removeMessageRetractionHandler(handler);
+    }
+
+    /**
      * Denies an occupant in the lobby room access to the conference.
      * @param {string} id The participant id.
      * @returns {void}
