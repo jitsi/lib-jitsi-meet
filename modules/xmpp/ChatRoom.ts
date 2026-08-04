@@ -1084,6 +1084,11 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
+            case 'etherpad':
+                if (member.isFocus) {
+                    this._processNode(node, from);
+                }
+                break;
             default: {
                 if (node.tagName.startsWith('jitsi_participant_')) {
                     participantProperties
@@ -1638,7 +1643,12 @@ export default class ChatRoom extends Listenable {
                 // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
                 // because of no participants in the room, and we tried to create the room, without having
                 // permissions for that (only jicofo creates rooms)
-                if (txt === 'Room creation is restricted') {
+                if (txt === 'Room creation is restricted'
+                    // or case when using jwt, where we connected and then lost connection and restored it
+                    // and failed to join the call before jicofo leaves,
+                    // or send a conference-request and got a connection problem before joining but jicofo already left
+                    || exists(pres,
+                        ':scope>error[type="cancel"]>room-does-not-exist[*|xmlns="http://jitsi.org/jitmeet"]')) {
                     type = AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION;
 
                     if (!this.options.disableRoomCreationRetry) {

@@ -184,7 +184,8 @@ function createConnection({
     shard,
     token,
     websocketKeepAlive,
-    websocketKeepAliveUrl }: ICreateConnectionOptions): XmppConnection {
+    websocketKeepAliveUrl,
+    xmppPing }: ICreateConnectionOptions): XmppConnection {
 
     // Append token as URL param
     if (token) {
@@ -197,7 +198,8 @@ function createConnection({
         serviceUrl,
         shard,
         websocketKeepAlive,
-        websocketKeepAliveUrl
+        websocketKeepAliveUrl,
+        xmppPing
     });
 }
 
