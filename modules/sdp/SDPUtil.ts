@@ -851,6 +851,47 @@ const SDPUtil = {
     },
 
     /**
+     * Rewrites the ICE credentials of an SDP and removes every ICE candidate from it. Used to build the patched
+     * remote offer that an in-place ICE restart is applied with: the new ufrag/pwd must be applied on their own,
+     * with the candidates trickled in afterwards via `addIceCandidate()`.
+     *
+     * Applying the new candidates in the same `setRemoteDescription()` as the new credentials makes libwebrtc stamp
+     * them with the new ICE generation (candidate lines carry no credentials of their own), treat them as brand new
+     * candidates for the same remote address and synchronously tear down the selected candidate pair - which
+     * defeats the make-before-break the whole in-place restart exists for.
+     *
+     * Every other line, and the original line separators, are preserved verbatim.
+     *
+     * @param {string} sdp - The SDP to patch.
+     * @param {string} ufrag - The new ICE ufrag.
+     * @param {string} pwd - The new ICE pwd.
+     * @returns {string} - The patched SDP.
+     */
+    replaceIceCredentialsAndStripCandidates(sdp: string, ufrag: string, pwd: string): string {
+        const patched = [];
+
+        for (const line of sdp.split('\n')) {
+            // Preserve the original line separator ('\r\n' vs '\n').
+            const cr = line.endsWith('\r') ? '\r' : '';
+            const content = cr ? line.substring(0, line.length - 1) : line;
+
+            if (content.startsWith('a=candidate:') || content.startsWith('a=end-of-candidates')) {
+                continue;
+            }
+
+            if (content.startsWith('a=ice-ufrag:')) {
+                patched.push(`a=ice-ufrag:${ufrag}${cr}`);
+            } else if (content.startsWith('a=ice-pwd:')) {
+                patched.push(`a=ice-pwd:${pwd}${cr}`);
+            } else {
+                patched.push(line);
+            }
+        }
+
+        return patched.join('\n');
+    },
+
+    /**
      * Strips the given codec from the given mline. All related RTX payload
      * types are also stripped. If the resulting mline would have no codecs,
      * it's disabled.
