@@ -208,16 +208,8 @@ const JINGLE_SI_TIMEOUT: number = 5000;
 /**
  * How long (ms) to wait for ICE to recover after an in-place ICE restart (triggered by an ICE failure) before
  * falling back to a session restart.
- *
- * A restart that is going to work completes well inside a second (the signalling round trip is tens of ms and
- * the rest is ICE connectivity checks), so this only needs enough headroom to absorb a slow network. It is also
- * the only backstop for a restart the bridge never applied: the bridge answers a request it will not honour with
- * a plain response carrying no transport, which is not propagated back to us, so the restart simply never lands
- * and this timeout is what notices. Keep it well under the bridge's own restart timeout
- * (videobridge.ice.restart.timeout, 10s by default) so we stop waiting on a restart before the bridge gives up
- * on it, rather than after.
  */
-const JVB_ICE_RESTART_RECOVERY_TIMEOUT = 5000;
+const JVB_ICE_RESTART_RECOVERY_TIMEOUT = 15000;
 
 /**
  * Default source language for transcribing the local participant.
@@ -1909,17 +1901,11 @@ export default class JitsiConference extends Listenable {
 
         this.restartJvbIce('ice-failed')
             .then(() => {
-                logger.info('In-place ICE restart requested after an ICE failure, checking for recovery in '
-                    + `${JVB_ICE_RESTART_RECOVERY_TIMEOUT}ms`);
-
                 setTimeout(() => {
                     const iceState = this.jvbJingleSession?.getIceConnectionState();
 
-                    if (iceState === 'connected' || iceState === 'completed') {
-                        logger.info(`ICE recovered (state=${iceState}) after an in-place ICE restart`);
-                    } else {
-                        fallback(`ICE not recovered (state=${iceState}) `
-                            + `${JVB_ICE_RESTART_RECOVERY_TIMEOUT}ms after an in-place ICE restart`);
+                    if (iceState !== 'connected' && iceState !== 'completed') {
+                        fallback(`ICE not recovered (state=${iceState}) after an in-place ICE restart`);
                     }
                 }, JVB_ICE_RESTART_RECOVERY_TIMEOUT);
             })
