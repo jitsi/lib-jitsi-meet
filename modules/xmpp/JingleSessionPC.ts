@@ -1873,6 +1873,9 @@ export default class JingleSessionPC extends JingleSession {
                 logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: the answer was `
                     + `applied, signalingState=${pc.signalingState}`);
 
+                // The candidates must be added only now, after the offer/answer cycle has completed. Adding them
+                // together with the new credentials tears down the selected pair and breaks make-before-break, see
+                // SDPUtil.replaceIceCredentialsAndStripCandidates and https://issues.webrtc.org/issues/543082385
                 await this._addIceCandidatesToPeerConnection(candidates);
                 logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: `
                     + `${candidates.length} of the bridge's candidates were added`);

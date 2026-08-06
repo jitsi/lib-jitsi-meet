@@ -860,6 +860,8 @@ const SDPUtil = {
      * candidates for the same remote address and synchronously tear down the selected candidate pair - which
      * defeats the make-before-break the whole in-place restart exists for.
      *
+     * Reported upstream as https://issues.webrtc.org/issues/543082385
+     *
      * Every other line, and the original line separators, are preserved verbatim.
      *
      * @param {string} sdp - The SDP to patch.
