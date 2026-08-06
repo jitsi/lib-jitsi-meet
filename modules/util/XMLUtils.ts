@@ -154,3 +154,33 @@ export function findFirst(element: Element | Document, selector: string): Elemen
         return null;
     }
 }
+
+/**
+ * Matches the characters that are not allowed in an XML 1.0 document. Sending
+ * such characters (e.g. the START OF TEXT control character U+0002) in a
+ * message produces a malformed stanza which makes the server terminate the
+ * stream, dropping everyone from the meeting.
+ *
+ * The pattern is the inverse of the characters allowed by the XML 1.0
+ * specification:
+ *
+ *     #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+ *
+ * Encoding the allowed ranges (rather than denying a list of forbidden ones)
+ * keeps every permitted code point intact - including astral characters such
+ * as emoji, which are represented as surrogate pairs - while stripping lone
+ * surrogates (U+D800-U+DFFF), which are invalid in XML 1.0. The unicode flag
+ * makes the pattern operate on whole code points instead of surrogate halves.
+ */
+// eslint-disable-next-line no-control-regex
+const INVALID_XML_CHARS_REGEXP = /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+
+/**
+ * Removes the characters that are not allowed in an XML 1.0 document from the
+ * given string.
+ * @param text - The text to sanitize.
+ * @returns The text without the XML-invalid characters.
+ */
+export function stripXMLInvalidChars(text: string): string {
+    return text.replace(INVALID_XML_CHARS_REGEXP, '');
+}
