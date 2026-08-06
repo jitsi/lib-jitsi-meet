@@ -14,7 +14,7 @@ import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
-import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute, getText, stripXMLInvalidChars } from '../util/XMLUtils';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
@@ -1140,13 +1140,15 @@ export default class ChatRoom extends Listenable {
             type: 'groupchat'
         });
 
+        const cleanMessage = stripXMLInvalidChars(message);
+
         // We are adding the message in a packet extension. If this element
         // is different from 'body', we add a custom namespace.
         // e.g. for 'json-message' extension of message stanza.
         if (elementName === 'body') {
-            msg.c(elementName, {}, message);
+            msg.c(elementName, {}, cleanMessage);
         } else {
-            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, cleanMessage);
         }
 
         if (replyToId) {
@@ -1154,7 +1156,7 @@ export default class ChatRoom extends Listenable {
         }
 
         this.connection.send(msg);
-        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
+        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, cleanMessage);
     }
 
     /**
@@ -1204,13 +1206,15 @@ export default class ChatRoom extends Listenable {
 
         const msg = $msg(attrs);
 
+        const cleanMessage = stripXMLInvalidChars(message);
+
         // We are adding the message in packet. If this element is different
         // from 'body', we add our custom namespace for the same.
         // e.g. for 'json-message' message extension.
         if (elementName === 'body') {
-            msg.c(elementName, message).up();
+            msg.c(elementName, cleanMessage).up();
         } else {
-            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, cleanMessage)
                 .up();
         }
 
@@ -1219,7 +1223,7 @@ export default class ChatRoom extends Listenable {
         }
         this.connection.send(msg);
         this.eventEmitter.emit(
-            XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
+            XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, cleanMessage);
     }
     /* eslint-enable max-params */
 
@@ -1228,7 +1232,7 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     public setSubject(subject: string): void {
-        const valueToProcess = subject ? subject.trim() : subject;
+        const valueToProcess = subject ? stripXMLInvalidChars(subject.trim()) : subject;
 
         if (valueToProcess === this.subject) {
             // subject already set to the new value
@@ -1239,6 +1243,7 @@ export default class ChatRoom extends Listenable {
             type: 'groupchat' });
 
         msg.c('subject', valueToProcess);
+        this.subject = valueToProcess;
         this.connection.send(msg);
     }
 
