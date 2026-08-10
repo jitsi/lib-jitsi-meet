@@ -361,6 +361,63 @@ describe('JingleSessionPC', () => {
             expect(removeSsrcOwnersSpy).toHaveBeenCalledWith([ 1234, 5678, 4321, 8765 ]);
             expect(updateRemoteSourcesSpy).toHaveBeenCalledWith(sourceInfo, false);
         });
+
+        it('ignores a source whose ssrc is not a valid 32-bit decimal integer', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='video'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='(.+)+$' name='evil' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='99999999999999999999' name='big' owner='peer'>
+                                    <parameter name='msid' value='stream2'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='ok' owner='peer'>
+                                    <parameter name='msid' value='stream3'/>
+                                </source>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+
+            expect(sourceInfo.has('evil')).toBe(false);
+            expect(sourceInfo.has('big')).toBe(false);
+            expect(sourceInfo.get('ok').ssrcList).toEqual([ '1234' ]);
+            expect(setSsrcOwnerSpy).toHaveBeenCalledWith(1234, null, 'ok');
+            expect(setSsrcOwnerSpy).not.toHaveBeenCalledWith(NaN, jasmine.anything(), 'evil');
+        });
+
+        it('ignores an ssrc-group whose semantics is not a known value', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='video'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='5678' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <ssrc-group xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' semantics='(.+)+$'>
+                                    <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234'/>
+                                    <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='5678'/>
+                                </ssrc-group>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+
+            expect(sourceInfo.get('source1').groups).toEqual([]);
+        });
     });
 
     describe('_recoverWedgedAudioSource', () => {
