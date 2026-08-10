@@ -634,16 +634,21 @@ describe('JingleSessionPC in-place ICE restart', () => {
         const nativePc = {
             currentRemoteDescription: { sdp: REMOTE_OFFER },
             iceConnectionState: 'connected',
-            setRemoteDescription: jasmine.createSpy('setRemoteDescription').and.returnValue(Promise.resolve()),
             signalingState: 'stable'
         };
 
         tpc.peerconnection = nativePc;
         tpc.addIceCandidate = jasmine.createSpy('addIceCandidate').and.returnValue(Promise.resolve());
         Object.defineProperty(tpc, 'localDescription', { get: () => ({ sdp: LOCAL_ANSWER }) });
+        Object.defineProperty(tpc, 'remoteDescription', { get: () => ({ sdp: REMOTE_OFFER }) });
+        spyOn(tpc, 'setRemoteDescription').and.returnValue(Promise.resolve());
         spyOn(tpc, 'createAnswer').and.returnValue(Promise.resolve({ sdp: LOCAL_ANSWER,
             type: 'answer' }));
         spyOn(tpc, 'setLocalDescription').and.returnValue(Promise.resolve());
+
+        // The restart goes through _renegotiate(), which signals any SSRCs the browser regenerates. That is not
+        // what these tests are about, and it would try to send a source-update.
+        spyOn(session as any, 'notifyMySSRCUpdate');
 
         return { connection,
             nativePc,
@@ -710,9 +715,9 @@ describe('JingleSessionPC in-place ICE restart', () => {
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 1 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(1);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
 
-            const applied = nativePc.setRemoteDescription.calls.mostRecent().args[0];
+            const applied = tpc.setRemoteDescription.calls.mostRecent().args[0];
 
             expect(applied.type).toBe('offer');
             expect(applied.sdp).toContain('a=ice-ufrag:brnewfrag');
@@ -748,63 +753,63 @@ describe('JingleSessionPC in-place ICE restart', () => {
         });
 
         it('ignores a generation that is not newer than the last one applied', async () => {
-            const { connection, nativePc, session } = createJvbSession();
+            const { connection, session, tpc } = createJvbSession();
 
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 3 }));
             await drainQueue(session);
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(1);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
 
             // A duplicate and an out-of-order (older) push must both be dropped.
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 3 }));
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 2 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(1);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
             expect(connection.sentIQs.length).toBe(1);
 
             // A newer one is applied.
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 4 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(2);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(2);
             expect(connection.sentIQs.length).toBe(2);
         });
 
         it('ignores a transport with an invalid generation', async () => {
-            const { nativePc, session } = createJvbSession();
+            const { session, tpc } = createJvbSession();
 
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 'not-a-number' }));
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 0 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).not.toHaveBeenCalled();
+            expect(tpc.setRemoteDescription).not.toHaveBeenCalled();
         });
 
         it('ignores a transport with incomplete ICE credentials', async () => {
-            const { nativePc, session } = createJvbSession();
+            const { session, tpc } = createJvbSession();
 
             session.onBridgeIceRestartTransport(buildBridgeTransport({ pwd: null }));
             session.onBridgeIceRestartTransport(buildBridgeTransport({ ufrag: null }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).not.toHaveBeenCalled();
+            expect(tpc.setRemoteDescription).not.toHaveBeenCalled();
         });
 
         it('still applies a newer generation after one failed to apply', async () => {
-            const { nativePc, session } = createJvbSession();
+            const { session, tpc } = createJvbSession();
 
-            nativePc.setRemoteDescription.and.returnValue(Promise.reject(new Error('nope')));
+            tpc.setRemoteDescription.and.returnValue(Promise.reject(new Error('nope')));
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 1 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(1);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
 
             // The same generation is not retried, but a newer one still is.
-            nativePc.setRemoteDescription.and.returnValue(Promise.resolve());
+            tpc.setRemoteDescription.and.returnValue(Promise.resolve());
             session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 2 }));
             await drainQueue(session);
 
-            expect(nativePc.setRemoteDescription).toHaveBeenCalledTimes(2);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(2);
         });
     });
 });

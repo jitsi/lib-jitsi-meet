@@ -1844,11 +1844,8 @@ export default class JingleSessionPC extends JingleSession {
                     return;
                 }
 
-                // The native peer connection is used on purpose: the SDP we patch is the current remote
-                // description, i.e. the one TraceablePeerConnection has already transformed, so it must not go
-                // through the transformation pipeline a second time.
                 const pc = this.peerconnection.peerconnection;
-                const remoteSdp = pc.currentRemoteDescription?.sdp;
+                const remoteSdp = this.peerconnection.remoteDescription?.sdp;
 
                 if (!remoteSdp) {
                     throw new Error('there is no current remote description');
@@ -1863,15 +1860,13 @@ export default class JingleSessionPC extends JingleSession {
 
                 const patchedOffer = SDPUtil.replaceIceCredentialsAndStripCandidates(remoteSdp, ufrag, pwd);
 
-                await pc.setRemoteDescription({ sdp: patchedOffer, type: 'offer' });
+                // Drive the offer/answer through the regular renegotiation path rather than calling
+                // setRemoteDescription/createAnswer/setLocalDescription directly: it keeps
+                // TraceablePeerConnection's own view of the session consistent, and it signals any SSRCs the
+                // browser regenerates while answering, which would otherwise go unsignalled.
+                await this._renegotiate(patchedOffer);
                 logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: the patched offer `
-                    + `was applied (candidates stripped), signalingState=${pc.signalingState}`);
-
-                const answer = await this.peerconnection.createAnswer(this.mediaConstraints as RTCOfferOptions);
-
-                await this.peerconnection.setLocalDescription(answer);
-                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: the answer was `
-                    + `applied, signalingState=${pc.signalingState}`);
+                    + `was applied (candidates stripped) and answered, signalingState=${pc.signalingState}`);
 
                 // The candidates must be added only now, after the offer/answer cycle has completed. Adding them
                 // together with the new credentials tears down the selected pair and breaks make-before-break, see
