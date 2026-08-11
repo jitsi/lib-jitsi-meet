@@ -55,6 +55,30 @@ const DEFAULT_MAX_STATS: number = 300;
 const ICE_CAND_GATHERING_TIMEOUT: number = 150;
 
 /**
+ * Matches a plain decimal string (no sign, no separators). Used as the first check on a signaled ssrc attribute.
+ * @type {RegExp}
+ */
+const SSRC_PATTERN = /^\d+$/;
+
+/**
+ * The largest valid RTP SSRC, i.e. the unsigned 32-bit maximum (RFC 5576).
+ * @type {number}
+ */
+const MAX_SSRC = 0xFFFFFFFF;
+
+/**
+ * Checks that a signaled ssrc attribute is a plain decimal string within the unsigned 32-bit SSRC range (RFC 5576).
+ * Signaled ssrcs are validated before use since they end up in SDP text, string lookups, and {@code Number()}
+ * coercion (a digit string above the 32-bit range would lose integer precision when coerced).
+ *
+ * @param {string} ssrc - The raw ssrc attribute value.
+ * @returns {boolean} Whether the value is a valid SSRC.
+ */
+function isValidSsrc(ssrc: string): boolean {
+    return SSRC_PATTERN.test(ssrc) && Number(ssrc) <= MAX_SSRC;
+}
+
+/**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
  * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
  * endpoint/participant.
@@ -674,6 +698,14 @@ export default class JingleSessionPC extends JingleSession {
 
                 for (const source of sources) {
                     const ssrc = getAttribute(source, 'ssrc');
+
+                    if (!isValidSsrc(ssrc)) {
+                        logger.warn(`${this} Ignoring source with invalid ssrc=${ssrc}`);
+
+                        // eslint-disable-next-line no-continue
+                        continue;
+                    }
+
                     const sourceName = getAttribute(source, 'name');
                     const msid = getAttribute(findFirst(source, ':scope>parameter[name="msid"]'), 'value');
                     const mid = getAttribute(findFirst(source, ':scope>parameter[name="mid"]'), 'value');
@@ -719,12 +751,22 @@ export default class JingleSessionPC extends JingleSession {
 
                 findAll(description, ':scope>ssrc-group').forEach(group => {
                     const semantics = getAttribute(group, 'semantics');
+
+                    if (!Object.values(SSRC_GROUP_SEMANTICS).includes(semantics as SSRC_GROUP_SEMANTICS)) {
+                        logger.warn(`${this} Ignoring ssrc-group with unknown semantics=${semantics}`);
+
+                        return;
+                    }
+
                     const groupSsrcs = [];
 
                     findAll(group, ':scope>source').forEach(source => {
                         groupSsrcs.push(getAttribute(source, 'ssrc'));
                     });
 
+                    // A group's member ssrcs are only used if the group's ssrc set matches a source's (already
+                    // validated) ssrcList below, so a group referencing an invalid ssrc can never be attached and
+                    // does not need a separate numeric check here.
                     for (const [ sourceName, { ssrcList } ] of sourceDescription) {
                         if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
                             sourceDescription.get(sourceName).groups.push({
