@@ -8,6 +8,7 @@ import {
     TRACK_NO_STREAM_FOUND
 } from '../../JitsiTrackErrors';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import { CameraControlType } from '../../service/RTC/CameraControlType';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
@@ -75,23 +76,15 @@ export interface IAudioConstraints {
     noiseSuppression?: boolean;
 }
 
-export interface ICameraControls {
-    pan?: number;
-    tilt?: number;
-    zoom?: number;
-}
-
 export interface ICameraControlRange {
     max: number;
     min: number;
     step: number;
 }
 
-export interface ICameraControlCapabilities {
-    pan?: ICameraControlRange;
-    tilt?: ICameraControlRange;
-    zoom?: ICameraControlRange;
-}
+export type ICameraControls = Partial<Record<CameraControlType, number>>;
+
+export type ICameraControlCapabilities = Partial<Record<CameraControlType, ICameraControlRange>>;
 
 /**
  * Represents a single media track(either audio or video).
@@ -1213,7 +1206,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         const capabilities = this._getCameraSourceTrack()?.getCapabilities?.() ?? {};
         const result: ICameraControlCapabilities = {};
 
-        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+        for (const key of Object.values(CameraControlType)) {
             const range = (capabilities as any)[key];
 
             if (range && typeof range.min === 'number' && typeof range.max === 'number') {
@@ -1242,7 +1235,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         const settings = this._getCameraSourceTrack()?.getSettings?.() ?? {};
         const result: ICameraControls = {};
 
-        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+        for (const key of Object.values(CameraControlType)) {
             const value = (settings as any)[key];
 
             if (typeof value === 'number') {
@@ -1279,7 +1272,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         const control: ICameraControls = {};
 
-        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+        for (const key of Object.values(CameraControlType)) {
             if (typeof controls[key] === 'number') {
                 control[key] = controls[key];
             }
