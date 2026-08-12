@@ -8,22 +8,39 @@ describe('JitsiLocalTrack camera control', () => {
     const getCapabilities = (JitsiLocalTrack.prototype as any).getCameraControlCapabilities;
     const getSettings = (JitsiLocalTrack.prototype as any).getCameraControlSettings;
     const setControl = (JitsiLocalTrack.prototype as any).setCameraControl;
+    const getSourceTrack = (JitsiLocalTrack.prototype as any)._getCameraSourceTrack;
 
-    // Builds the minimal `this` context the camera-control methods touch.
-    function context({
-        isVideo = true,
-        videoType = VideoType.CAMERA,
-        capabilities = {},
-        settings = {},
-        applyConstraints = () => Promise.resolve()
-    }: any = {}): any {
+    // Builds a mock MediaStreamTrack with the given PTZ capabilities/settings.
+    function mockTrack({ capabilities = {}, settings = {}, applyConstraints = () => Promise.resolve() }: any = {}) {
         return {
+            applyConstraints: jasmine.createSpy('applyConstraints').and.callFake(applyConstraints),
+            getCapabilities: () => capabilities,
+            getSettings: () => settings
+        };
+    }
+
+    // Builds the minimal `this` context the camera-control methods touch. When `effect` is true, `this.track` is the
+    // effect output (no PTZ, like a virtual-background canvas capture) and the real camera lives in `_originalStream`.
+    function context({ isVideo = true, videoType = VideoType.CAMERA, effect = false, ...trackOptions }: any = {}): any {
+        const cameraTrack = mockTrack(trackOptions);
+
+        if (effect) {
+            return {
+                _effectEnabled: true,
+                _getCameraSourceTrack: getSourceTrack,
+                _originalStream: { getVideoTracks: () => [ cameraTrack ] },
+                isVideoTrack: () => isVideo,
+                track: mockTrack({ /* canvas output: no PTZ caps/settings */ }),
+                videoType
+            };
+        }
+
+        return {
+            _effectEnabled: false,
+            _getCameraSourceTrack: getSourceTrack,
             isVideoTrack: () => isVideo,
-            track: {
-                applyConstraints: jasmine.createSpy('applyConstraints').and.callFake(applyConstraints),
-                getCapabilities: () => capabilities,
-                getSettings: () => settings
-            },
+            stream: { getVideoTracks: () => [ cameraTrack ] },
+            track: cameraTrack,
             videoType
         };
     }
@@ -61,6 +78,13 @@ describe('JitsiLocalTrack camera control', () => {
             const ctx = context({ isVideo: false });
 
             expect(getCapabilities.call(ctx)).toEqual({});
+        });
+
+        it('reads capabilities from the camera source, not the effect output, when an effect is active', () => {
+            const ctx = context({ effect: true, capabilities: { zoom: { max: 4, min: 1, step: 1 } } });
+
+            // this.track (canvas output) has no caps; the camera source in _originalStream does.
+            expect(getCapabilities.call(ctx)).toEqual({ zoom: { max: 4, min: 1, step: 1 } });
         });
     });
 
@@ -106,6 +130,16 @@ describe('JitsiLocalTrack camera control', () => {
             const ctx = context({ applyConstraints: () => Promise.reject(new Error('out of range')) });
 
             await expectAsync(setControl.call(ctx, { zoom: 999 })).toBeRejectedWithError('out of range');
+        });
+
+        it('applies to the camera source, not the effect output, when an effect is active', async () => {
+            const ctx = context({ effect: true });
+            const cameraTrack = ctx._originalStream.getVideoTracks()[0];
+
+            await setControl.call(ctx, { zoom: 2 });
+
+            expect(cameraTrack.applyConstraints).toHaveBeenCalledWith({ advanced: [ { zoom: 2 } ] });
+            expect(ctx.track.applyConstraints).not.toHaveBeenCalled();
         });
     });
 });
