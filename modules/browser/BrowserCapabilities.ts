@@ -189,6 +189,20 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks whether the browser implements the MediaCapture camera pan/tilt/zoom (PTZ) constraints, via
+     * navigator.mediaDevices.getSupportedConstraints(). This reflects API support only, not whether a connected
+     * camera has PTZ hardware or whether the panTiltZoom permission has been granted - the caller combines this with
+     * the per-camera capabilities and the panTiltZoom permission for those.
+     *
+     * @returns {boolean}
+     */
+    supportsCameraPtz(): boolean {
+        const supported = navigator.mediaDevices?.getSupportedConstraints?.() ?? {};
+
+        return Boolean((supported as any).pan && (supported as any).tilt && (supported as any).zoom);
+    }
+
+    /**
      * Checks if the current browser supports setting codec preferences on the transceiver.
      *
      * @returns {boolean}

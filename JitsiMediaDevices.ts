@@ -7,6 +7,9 @@ import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone' as PermissionName;
+// The key under which the camera pan/tilt/zoom (panTiltZoom) permission is tracked in the permissions cache
+// and reported in the PERMISSIONS_CHANGED event. It is queried as { name: 'camera', panTiltZoom: true }.
+const CAMERA_PTZ_PERMISSION_KEY = 'panTiltZoom';
 const PERMISSION_GRANTED_STATUS = 'granted';
 const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 
@@ -56,8 +59,7 @@ export default class JitsiMediaDevices extends Listenable {
      */
     private _handlePermissionsChange(permissions: { [key: string]: boolean; }): void {
         const hasPermissionsChanged
-            = [ MediaType.AUDIO, MediaType.VIDEO ]
-                .some(type => type in permissions && permissions[type] !== this._permissions[type]);
+            = Object.keys(permissions).some(type => permissions[type] !== this._permissions[type]);
 
         if (hasPermissionsChanged) {
             this._permissions = {
@@ -147,6 +149,29 @@ export default class JitsiMediaDevices extends Listenable {
                 })
                 .catch(() => false));
 
+            // Track the panTiltZoom permission best-effort. It is intentionally not part of the support
+            // calculation above, because a browser that does not implement it (Firefox/Safari) would otherwise
+            // mark the whole permissions API as unsupported.
+            navigator.permissions.query({ name: VIDEO_PERMISSION_NAME,
+                panTiltZoom: true } as PermissionDescriptor)
+                .then(status => {
+                    this._handlePermissionsChange({
+                        [CAMERA_PTZ_PERMISSION_KEY]: this._parsePermissionState(status)
+                    });
+                    status.onchange = () => {
+                        try {
+                            this._handlePermissionsChange({
+                                [CAMERA_PTZ_PERMISSION_KEY]: this._parsePermissionState(status)
+                            });
+                        } catch (error) {
+                            // Nothing to do.
+                        }
+                    };
+                })
+                .catch(() => {
+                    // The panTiltZoom permission is not queryable on this browser.
+                });
+
             Promise.all(promises).then(results => resolve(results.every(supported => supported)));
 
         });
@@ -170,6 +195,26 @@ export default class JitsiMediaDevices extends Listenable {
      */
     getCameraPTZCapabilities(deviceId: string): Record<CameraControlType, boolean> {
         return RTC.getCameraPTZCapabilities(deviceId);
+    }
+
+    /**
+     * Returns the current state of the camera pan/tilt/zoom (panTiltZoom) permission. Used by the application to tell
+     * a denied permission apart from a camera that simply has no PTZ hardware (both surface as empty track
+     * capabilities): 'denied' means the user rejected it and the feature should stay disabled, 'prompt' means it can
+     * be requested, 'granted' means it is available.
+     *
+     * @returns {Promise<PermissionState>} - Resolves to 'granted', 'denied' or 'prompt'. Resolves to 'prompt' when the
+     * browser does not expose the panTiltZoom permission, so the caller falls back to capability probing.
+     */
+    getCameraPTZPermission(): Promise<PermissionState> {
+        if (!navigator.permissions) {
+            return Promise.resolve('prompt');
+        }
+
+        return navigator.permissions.query({ name: VIDEO_PERMISSION_NAME,
+            panTiltZoom: true } as PermissionDescriptor)
+            .then(status => status.state)
+            .catch(() => 'prompt' as PermissionState);
     }
 
     /**
