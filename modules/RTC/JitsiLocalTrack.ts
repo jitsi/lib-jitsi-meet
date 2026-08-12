@@ -75,6 +75,24 @@ export interface IAudioConstraints {
     noiseSuppression?: boolean;
 }
 
+export interface ICameraControls {
+    pan?: number;
+    tilt?: number;
+    zoom?: number;
+}
+
+export interface ICameraControlRange {
+    max: number;
+    min: number;
+    step: number;
+}
+
+export interface ICameraControlCapabilities {
+    pan?: ICameraControlRange;
+    tilt?: ICameraControlRange;
+    zoom?: ICameraControlRange;
+}
+
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
@@ -1161,5 +1179,94 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 audioAnalyser._trackAdded(this);
             }
         }
+    }
+
+    /**
+     * Returns the pan/tilt/zoom ranges supported by the underlying camera, read from the live
+     * MediaStreamTrack.getCapabilities(). A key is present only when the camera exposes that control (which also
+     * requires the panTiltZoom permission to have been granted at getUserMedia time for pan/tilt).
+     *
+     * @returns {ICameraControlCapabilities} - The supported ranges. Empty when the track is not a camera track or the
+     * camera exposes no pan/tilt/zoom controls.
+     */
+    getCameraControlCapabilities(): ICameraControlCapabilities {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return {};
+        }
+
+        const capabilities = this.track.getCapabilities?.() ?? {};
+        const result: ICameraControlCapabilities = {};
+
+        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+            const range = (capabilities as any)[key];
+
+            if (range && typeof range.min === 'number' && typeof range.max === 'number') {
+                result[key] = {
+                    max: range.max,
+                    min: range.min,
+                    step: typeof range.step === 'number' ? range.step : 1
+                };
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns the current pan/tilt/zoom values of the underlying camera, read from the live
+     * MediaStreamTrack.getSettings().
+     *
+     * @returns {ICameraControls} - The current values. A key is present only when the camera reports it.
+     */
+    getCameraControlSettings(): ICameraControls {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return {};
+        }
+
+        const settings = this.track.getSettings?.() ?? {};
+        const result: ICameraControls = {};
+
+        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+            const value = (settings as any)[key];
+
+            if (typeof value === 'number') {
+                result[key] = value;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Applies pan/tilt/zoom values to the underlying camera. Unlike {@link applyConstraints}, this is a lightweight
+     * operation: it calls MediaStreamTrack.applyConstraints() directly on the existing track and does not re-acquire
+     * the stream or renegotiate, since pan/tilt/zoom do not change the encoded stream. Only the provided controls are
+     * applied; the rest are left unchanged. The caller is responsible for clamping the values to the ranges reported
+     * by {@link getCameraControlCapabilities}.
+     *
+     * @param {ICameraControls} controls - The pan/tilt/zoom values to apply.
+     * @returns {Promise<void>} - Resolves when the constraints have been applied, rejects if the browser rejects them
+     * (e.g. the value is out of range or the page is not visible).
+     */
+    setCameraControl(controls: ICameraControls): Promise<void> {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return Promise.reject(new Error('Camera control is only supported on camera video tracks'));
+        }
+
+        const control: ICameraControls = {};
+
+        for (const key of [ 'pan', 'tilt', 'zoom' ] as const) {
+            if (typeof controls[key] === 'number') {
+                control[key] = controls[key];
+            }
+        }
+
+        if (!Object.keys(control).length) {
+            return Promise.resolve();
+        }
+
+        logger.debug(`setCameraControl for track ${this}: ${JSON.stringify(control)}`);
+
+        return this.track.applyConstraints({ advanced: [ control ] } as MediaTrackConstraints);
     }
 }

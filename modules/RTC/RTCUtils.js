@@ -85,6 +85,47 @@ if (isAudioOutputDeviceChangeAvailable) {
 let availableDevices = [];
 let availableDevicesPollTimer;
 
+// Per-camera pan/tilt/zoom support, keyed by deviceId. Populated best-effort during device enumeration by probing
+// InputDeviceInfo.getCapabilities(). Used by the application to decide whether to offer camera control for a device
+// without having to first acquire a stream from it. The values reflect what the browser reports at enumeration time;
+// pan/tilt in particular may only appear once the panTiltZoom permission has been granted, so the authoritative
+// capabilities for a live track come from JitsiLocalTrack.getCameraControlCapabilities().
+let cameraPTZSupport = new Map();
+
+/**
+ * Probes the pan/tilt/zoom support of every video input device in the given list via InputDeviceInfo.getCapabilities()
+ * and stores the result in {@link cameraPTZSupport}. Best-effort: browsers without InputDeviceInfo.getCapabilities()
+ * (or that throw) simply record no PTZ support for the device.
+ *
+ * @param {MediaDeviceInfo[]} devices - The enumerated devices.
+ * @returns {void}
+ */
+function probeCameraPTZSupport(devices) {
+    const support = new Map();
+
+    for (const device of devices) {
+        if (device.kind !== 'videoinput') {
+            continue; // eslint-disable-line no-continue
+        }
+
+        let capabilities = {};
+
+        try {
+            capabilities = typeof device.getCapabilities === 'function' ? device.getCapabilities() : {};
+        } catch (error) {
+            logger.warn(`Failed to read capabilities for camera ${device.deviceId}: ${error}`);
+        }
+
+        support.set(device.deviceId, {
+            pan: Boolean(capabilities.pan),
+            tilt: Boolean(capabilities.tilt),
+            zoom: Boolean(capabilities.zoom)
+        });
+    }
+
+    cameraPTZSupport = support;
+}
+
 /**
  * An empty function.
  */
@@ -385,14 +426,32 @@ class RTCUtils extends Listenable {
     enumerateDevices(callback) {
         navigator.mediaDevices.enumerateDevices()
             .then(devices => {
+                probeCameraPTZSupport(devices);
                 this._updateKnownDevices(devices);
                 callback(devices);
             })
             .catch(error => {
                 logger.warn(`Failed to  enumerate devices. ${error}`);
+                probeCameraPTZSupport([]);
                 this._updateKnownDevices([]);
                 callback([]);
             });
+    }
+
+    /**
+     * Returns the pan/tilt/zoom support that was detected for the camera with the given device id during the last
+     * device enumeration.
+     *
+     * @param {string} deviceId - The id of the 'videoinput' device.
+     * @returns {{ pan: boolean, tilt: boolean, zoom: boolean }} - The detected support. All false when the device is
+     * unknown or the browser does not expose camera capabilities.
+     */
+    getCameraPTZCapabilities(deviceId) {
+        return cameraPTZSupport.get(deviceId) ?? {
+            pan: false,
+            tilt: false,
+            zoom: false
+        };
     }
 
     /**
