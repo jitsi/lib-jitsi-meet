@@ -160,6 +160,18 @@ export default class JitsiMediaDevices extends Listenable {
     }
 
     /**
+     * Returns the pan/tilt/zoom support detected for the given camera device during the last device enumeration.
+     * Detection is best-effort and reflects what the browser exposes at enumeration time; pan/tilt may only be
+     * reported once the panTiltZoom permission has been granted for the camera.
+     *
+     * @param {string} deviceId - The id of the 'videoinput' device.
+     * @returns {{ pan: boolean, tilt: boolean, zoom: boolean }}
+     */
+    getCameraPTZCapabilities(deviceId: string): { pan: boolean; tilt: boolean; zoom: boolean; } {
+        return RTC.getCameraPTZCapabilities(deviceId);
+    }
+
+    /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
      * @param {string} [deviceType] - type of device to change. Default is
