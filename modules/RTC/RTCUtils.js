@@ -4,6 +4,7 @@ import 'webrtc-adapter';
 
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
+import { CameraControlType } from '../../service/RTC/CameraControlType';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
@@ -117,9 +118,9 @@ function probeCameraPTZSupport(devices) {
         }
 
         support.set(device.deviceId, {
-            pan: Boolean(capabilities.pan),
-            tilt: Boolean(capabilities.tilt),
-            zoom: Boolean(capabilities.zoom)
+            [CameraControlType.PAN]: Boolean(capabilities[CameraControlType.PAN]),
+            [CameraControlType.TILT]: Boolean(capabilities[CameraControlType.TILT]),
+            [CameraControlType.ZOOM]: Boolean(capabilities[CameraControlType.ZOOM])
         });
     }
 
@@ -448,9 +449,9 @@ class RTCUtils extends Listenable {
      */
     getCameraPTZCapabilities(deviceId) {
         return cameraPTZSupport.get(deviceId) ?? {
-            pan: false,
-            tilt: false,
-            zoom: false
+            [CameraControlType.PAN]: false,
+            [CameraControlType.TILT]: false,
+            [CameraControlType.ZOOM]: false
         };
     }
 

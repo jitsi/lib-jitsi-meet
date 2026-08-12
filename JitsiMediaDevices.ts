@@ -2,6 +2,7 @@ import { JitsiMediaDevicesEvents } from './JitsiMediaDevicesEvents';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import Listenable from './modules/util/Listenable';
+import { CameraControlType } from './service/RTC/CameraControlType';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 
@@ -165,9 +166,9 @@ export default class JitsiMediaDevices extends Listenable {
      * reported once the panTiltZoom permission has been granted for the camera.
      *
      * @param {string} deviceId - The id of the 'videoinput' device.
-     * @returns {{ pan: boolean, tilt: boolean, zoom: boolean }}
+     * @returns {Record<CameraControlType, boolean>}
      */
-    getCameraPTZCapabilities(deviceId: string): { pan: boolean; tilt: boolean; zoom: boolean; } {
+    getCameraPTZCapabilities(deviceId: string): Record<CameraControlType, boolean> {
         return RTC.getCameraPTZCapabilities(deviceId);
     }
 
