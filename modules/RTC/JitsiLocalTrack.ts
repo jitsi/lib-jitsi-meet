@@ -354,6 +354,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the camera MediaStreamTrack that pan/tilt/zoom must be read from and applied to. When a stream effect
+     * (e.g. virtual background) is active, {@link this.track} is the effect's output track (a canvas/insertable-streams
+     * capture) which has no pan/tilt/zoom; the actual camera is the source that feeds the effect and lives in
+     * {@link this._originalStream}. Panning/zooming that source flows through to the composited output.
+     *
+     * @private
+     * @returns {Optional<MediaStreamTrack>} - The camera source track, or undefined if unavailable.
+     */
+    private _getCameraSourceTrack(): Optional<MediaStreamTrack> {
+        const stream = this._effectEnabled ? this._originalStream : this.stream;
+
+        return stream?.getVideoTracks()[0] ?? this.track;
+    }
+
+    /**
      * Sets handlers to the MediaStreamTrack object that will detect camera issues.
      *
      * @private
@@ -1172,21 +1187,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 audioAnalyser._trackAdded(this);
             }
         }
-    }
-
-    /**
-     * Returns the camera MediaStreamTrack that pan/tilt/zoom must be read from and applied to. When a stream effect
-     * (e.g. virtual background) is active, {@link this.track} is the effect's output track (a canvas/insertable-streams
-     * capture) which has no pan/tilt/zoom; the actual camera is the source that feeds the effect and lives in
-     * {@link this._originalStream}. Panning/zooming that source flows through to the composited output.
-     *
-     * @private
-     * @returns {Optional<MediaStreamTrack>} - The camera source track, or undefined if unavailable.
-     */
-    private _getCameraSourceTrack(): Optional<MediaStreamTrack> {
-        const stream = this._effectEnabled ? this._originalStream : this.stream;
-
-        return stream?.getVideoTracks()[0] ?? this.track;
     }
 
     /**
