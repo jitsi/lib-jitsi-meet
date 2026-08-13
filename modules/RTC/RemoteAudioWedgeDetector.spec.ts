@@ -242,6 +242,57 @@ describe('RemoteAudioWedgeDetector', () => {
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
     });
 
+    it('stops recovering a source that recycling does not fix', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        // The source never receives anything however often it is recycled - it is not wedged, nothing is being sent to
+        // it - so recoveries must stop rather than churning a renegotiation every detection window for the whole call.
+        for (let i = 0; i < 100; i++) {
+            poll(entries);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives a source a fresh recovery budget when it moves to a new receive slot', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+
+        // A new SSRC for the same source name means a source-add created a new receive m-line for it, which is a fresh
+        // wedge opportunity rather than a continuation of the slot that was already recycled to no effect.
+        tracks = [ mockTrack(222, 'source-A') ];
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 222 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(4);
+    });
+
+    it('keeps an exhausted recovery budget with the slot when it is remapped to another source', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+
+        // The bridge remapped the slot to a different source. The m-line is the same one that recycling already failed
+        // to revive, so the new occupant must not earn a fresh budget on it.
+        tracks = [ mockTrack(111, 'source-B') ];
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+    });
+
     it('keeps a source that has received packets exempt after it is unmapped and remapped', () => {
         tracks = [ mockTrack(111, 'source-A') ];
 
