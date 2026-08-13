@@ -79,6 +79,7 @@ function getAnalyticsAttributesFromOptions(options) {
 
 interface ICreateLocalTrackOptions {
     cameraDeviceId?: string;
+    cameraPtz?: boolean;
     devices?: any[];
     fireSlowPromiseEvent?: boolean;
     micDeviceId?: string;
@@ -183,6 +184,7 @@ const JitsiMeetJS = {
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
+     * @param {boolean} options.cameraPtz whether to ask for the pan/tilt/zoom capabilities of the camera
      * @param {string} options.micDeviceId
      *
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiTrackError>} A promise that returns an array of created
