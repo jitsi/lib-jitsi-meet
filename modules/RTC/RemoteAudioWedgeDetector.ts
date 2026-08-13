@@ -76,6 +76,10 @@ export interface IRemoteAudioWedgeDetectorOptions {
  * time before it fires. Eligibility - unlike the cumulative packet count - is not monotonic (a participant can mute and
  * unmute), so the streak is reset whenever the source becomes muted, unmapped, or receives any packet; this is what the
  * repeated samples verify. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
+ *
+ * Evaluation is skipped entirely while media transfer is suspended on the peerconnection. A JVB session is kept alive
+ * but suspended for the duration of an active P2P session, and a suspended session receives no RTP at all by design, so
+ * every remote audio source on it would otherwise look permanently wedged.
  */
 export default class RemoteAudioWedgeDetector {
     private _pc: TraceablePeerConnection;
@@ -147,6 +151,15 @@ export default class RemoteAudioWedgeDetector {
      */
     private _evaluate(packetsBySsrc: Map<number, number>): void {
         const now = Date.now();
+
+        // Media transfer is suspended for the whole of an active P2P session, during which the session receives no RTP
+        // by design. Drop the streaks so the detection window starts over when it resumes rather than counting the
+        // suspended period against the sources.
+        if (!this._pc.audioTransferActive) {
+            this._eligibleZeroBySsrc.clear();
+
+            return;
+        }
 
         // A source can only be wedged if it is mapped, unmuted, not in a post-recovery cooldown, and has not yet been
         // confirmed healthy (received a packet).

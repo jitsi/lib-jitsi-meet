@@ -69,6 +69,7 @@ describe('RemoteAudioWedgeDetector', () => {
 
         tracks = [];
         pc = {
+            audioTransferActive: true,
             eventEmitter: new EventEmitter(),
             getRemoteTracks: (_endpointId: any, mediaType: MediaType) => {
                 expect(mediaType).toBe(MediaType.AUDIO);
@@ -238,6 +239,44 @@ describe('RemoteAudioWedgeDetector', () => {
         poll(entries); // t=5000
         tick();
         poll(entries); // t=6000 (== fire time + cooldown), cooldown just elapsed; streak restarts here
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fire while media transfer is suspended on the peerconnection', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        pc.audioTransferActive = false;
+
+        // A JVB session is suspended for the duration of an active P2P session and receives no RTP at all while it is,
+        // so its remote audio sources report zero packets indefinitely without being wedged.
+        for (let i = 0; i < 20; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('restarts the detection window when media transfer resumes', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        pc.audioTransferActive = false;
+        for (let i = 0; i < 5; i++) {
+            poll(entries); // t=0..4000, suspended
+            tick();
+        }
+
+        // The suspended period must not count towards the timeout: the first samples after resuming start a fresh
+        // streak rather than firing immediately on an elapsed-looking window.
+        pc.audioTransferActive = true;
+        poll(entries); // t=5000, fresh streak starts here
+        tick();
+        poll(entries); // t=6000
+        tick();
+        poll(entries); // t=7000
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=8000, elapsed since the fresh streak is 3000 >= timeout
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
     });
 
