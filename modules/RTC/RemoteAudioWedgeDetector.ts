@@ -95,7 +95,14 @@ export default class RemoteAudioWedgeDetector {
     /**
      * The set of SSRCs that have been observed receiving at least one RTP packet. Such a source is demuxing correctly
      * and cannot be wedged (the wedge is "never received anything", and the cumulative packet count is monotonic), so
-     * it is excluded from evaluation for the rest of its lifetime.
+     * it is excluded from evaluation for the rest of the peerconnection's lifetime.
+     *
+     * Entries are never dropped, not even when the SSRC stops being mapped. Under SSRC rewriting a rewritten SSRC gets
+     * exactly one receive m-line for the lifetime of the peerconnection: {@link TraceablePeerConnection.addRemoteSsrc}
+     * only reports an SSRC as new once, so a source-add (which creates the m-line) happens once per SSRC and every
+     * later appearance of that SSRC in a source map is an in-place remap onto the same m-line, transceiver and track.
+     * A remap therefore inherits an m-line that is already demuxing that SSRC correctly and cannot be wedged, whichever
+     * source now occupies it.
      */
     private _healthyBySsrc: Set<number>;
 
@@ -163,7 +170,6 @@ export default class RemoteAudioWedgeDetector {
 
         // A source can only be wedged if it is mapped, unmuted, not in a post-recovery cooldown, and has not yet been
         // confirmed healthy (received a packet).
-        const mappedSsrcs = new Set<number>();
         const candidates: Array<{ ssrc: number; track: JitsiRemoteTrack; }> = [];
 
         for (const track of this._pc.getRemoteTracks(undefined, MediaType.AUDIO)) {
@@ -172,7 +178,6 @@ export default class RemoteAudioWedgeDetector {
             if (typeof ssrc !== 'number') {
                 continue; // eslint-disable-line no-continue
             }
-            mappedSsrcs.add(ssrc);
 
             if (this._healthyBySsrc.has(ssrc) || track.isMuted()) {
                 continue; // eslint-disable-line no-continue
@@ -191,14 +196,6 @@ export default class RemoteAudioWedgeDetector {
                 ssrc,
                 track
             });
-        }
-
-        // Drop the confirmed-healthy mark for any SSRC that is no longer mapped (the source was removed/remapped), so a
-        // future source reusing the SSRC is re-evaluated from scratch.
-        for (const ssrc of this._healthyBySsrc) {
-            if (!mappedSsrcs.has(ssrc)) {
-                this._healthyBySsrc.delete(ssrc);
-            }
         }
 
         // Drop streak bookkeeping for any SSRC that is no longer a candidate (unmapped, muted, cooling down, or now

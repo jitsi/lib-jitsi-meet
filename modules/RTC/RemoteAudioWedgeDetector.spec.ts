@@ -242,6 +242,26 @@ describe('RemoteAudioWedgeDetector', () => {
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps a source that has received packets exempt after it is unmapped and remapped', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        poll([ { packetsReceived: 7, ssrc: 111 } ]); // healthy: the m-line demuxes this SSRC correctly
+
+        // Under SSRC rewriting a rewritten SSRC keeps its receive m-line for the lifetime of the peerconnection, so a
+        // later source remapped onto the same SSRC inherits an m-line that is known to demux it and cannot be wedged -
+        // even while it reports zero packets (the new owner may simply be silent).
+        tick();
+        tracks = [];
+        poll([]);
+
+        tracks = [ mockTrack(111, 'source-B') ];
+        for (let i = 0; i < 10; i++) {
+            tick();
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
     it('does not fire while media transfer is suspended on the peerconnection', () => {
         tracks = [ mockTrack(111, 'source-A') ];
         pc.audioTransferActive = false;
