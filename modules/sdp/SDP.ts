@@ -100,6 +100,23 @@ export default class SDP {
     }
 
     /**
+     * Removes every line of the given media section whose token (the text up to the first space) equals the provided
+     * prefix. Used to drop the {@code a=ssrc:} / {@code a=ssrc-group:} lines for a source that is being removed. The
+     * prefix is matched with a plain string comparison rather than a constructed RegExp so that a value carried in the
+     * signaling can never be interpreted as a pattern.
+     *
+     * @param {string} mediaSection - The media section (m-line block) to filter.
+     * @param {string} prefix - The full line token to remove, e.g. {@code a=ssrc:12345} or {@code a=ssrc-group:FID}.
+     * @returns {string} The media section with the matching lines removed.
+     */
+    private _removeLinesWithPrefix(mediaSection: string, prefix: string): string {
+        return mediaSection
+            .split('\r\n')
+            .filter(line => line !== prefix && !line.startsWith(`${prefix} `))
+            .join('\r\n');
+    }
+
+    /**
      * Adds or removes the sources from the SDP.
      *
      * @param {Map<SourceName, ITPCSourceInfo>} sourceMap - The map of the sources that are being added/removed.
@@ -142,11 +159,10 @@ export default class SDP {
                 });
             } else {
                 ssrcList.forEach(ssrc => {
-                    this.media[idx] = this.media[idx].replace(new RegExp(`a=ssrc:${ssrc}.*\r\n`, 'g'), '');
+                    this.media[idx] = this._removeLinesWithPrefix(this.media[idx], `a=ssrc:${ssrc}`);
                 });
                 groups?.forEach(group => {
-                    this.media[idx] = this.media[idx]
-                        .replace(new RegExp(`a=ssrc-group:${group.semantics}.*\r\n`, 'g'), '');
+                    this.media[idx] = this._removeLinesWithPrefix(this.media[idx], `a=ssrc-group:${group.semantics}`);
                 });
 
                 if (!this.isP2P) {

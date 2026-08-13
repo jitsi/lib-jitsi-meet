@@ -3162,11 +3162,12 @@ export default class JitsiConference extends Listenable {
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @param {string} [replyToId] - The ID of the message being replied to.
+   * @param {string} [messageId] - Optional explicit id to stamp on the outgoing stanza.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string): void {
+    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string, messageId?: string): void {
         if (this.room) {
-            this.room.sendMessage(message, elementName, replyToId);
+            this.room.sendMessage(message, elementName, replyToId, messageId);
         }
     }
 
