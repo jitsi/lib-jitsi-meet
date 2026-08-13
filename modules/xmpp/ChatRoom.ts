@@ -10,6 +10,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { COMMIT_HASH } from '../../version';
 import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
@@ -345,6 +346,13 @@ export default class ChatRoom extends Listenable {
                 'value': options.statsId
             });
         }
+
+        // Advertise the version of the library, so that the server can log it (e.g. when a client does not advertise
+        // a capability that the deployment requires).
+        this.presMap.nodes.push({
+            'tagName': 'jitsi_participant_clientVersion',
+            'value': COMMIT_HASH
+        });
 
         this.presenceUpdateTime = Date.now();
     }

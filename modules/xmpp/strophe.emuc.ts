@@ -3,7 +3,7 @@ import { Strophe } from 'strophe.js';
 
 import { CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
-import { exists, findFirst, getAttribute } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute } from '../util/XMLUtils';
 
 import ChatRoom, { IChatRoomOptions } from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
@@ -60,6 +60,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/desktop', 'iq', 'set', null, null);
         this.connection.addHandler(this.onVisitors.bind(this),
             'jitsi:visitors', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onClientRequirements.bind(this),
+            'jitsi:client-requirements', 'iq', 'set', null, null);
     }
 
     /**
@@ -270,6 +272,46 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
                 this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
             }
         }
+
+        return true;
+    }
+
+    /**
+     * A client-requirements IQ is received. It signals that this client does not advertise capabilities that the
+     * deployment requires. With an action of 'reject' the client is not invited to the conference (it stays in the MUC
+     * and can still use the features which do not need a media session, e.g. chat).
+     *
+     * @param iq The received iq.
+     * @returns {boolean}
+     */
+    onClientRequirements(iq: Element): boolean {
+        const from = iq.getAttribute('from');
+        const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
+        if (!room) {
+            return true;
+        }
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const requirements = findFirst(iq, ':scope>client-requirements[*|xmlns="jitsi:client-requirements"]');
+
+        if (!requirements) {
+            return true;
+        }
+
+        const action = getAttribute(requirements, 'action');
+        const features = findAll(requirements, ':scope>missing-feature').map(feature => {
+            return {
+                details: getAttribute(feature, 'details') ?? undefined,
+                feature: getAttribute(feature, 'var'),
+                level: getAttribute(feature, 'level'),
+                name: getAttribute(feature, 'name') ?? undefined,
+                url: getAttribute(feature, 'url') ?? undefined
+            };
+        });
+
+        logger.warn(`Received client requirements: action=${action}, features=${JSON.stringify(features)}`);
+        this.xmpp.eventEmitter.emit(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED, { action, features });
 
         return true;
     }
