@@ -140,6 +140,7 @@ function emptyFuncton() {
  * @param {Array} um - An array of user media types to get. The accepted types are "video", "audio", and "desktop."
  * @param {Object} options - Various values to be added to the constraints.
  * @param {string} options.cameraDeviceId - The device id for the video capture device to get video from.
+ * @param {boolean} options.cameraPtz - Whether to ask for the pan/tilt/zoom capabilities of the camera.
  * @param {Object} options.constraints - Default constraints object to use as a base for the returned constraints.
  * @param {Object} options.desktopStream - The desktop source id from which to capture a desktop sharing video.
  * @param {string} options.facingMode - Which direction the camera is pointing to (applicable on mobile)
@@ -194,6 +195,15 @@ function getConstraints(um = [], options = {}) {
             constraints.video.deviceId = { exact: options.cameraDeviceId };
         } else if (browser.isMobileDevice()) {
             constraints.video.facingMode = options.facingMode || CameraFacingMode.USER;
+        }
+
+        // The pan/tilt/zoom capabilities of a camera are only exposed on a track that asked for them, and asking
+        // prompts the user for a permission separate from the camera one. Denying it still resolves with a working
+        // camera, just without the capabilities.
+        if (options.cameraPtz && browser.supportsCameraPtz()) {
+            constraints.video[CameraControlType.PAN] = true;
+            constraints.video[CameraControlType.TILT] = true;
+            constraints.video[CameraControlType.ZOOM] = true;
         }
     } else {
         constraints.video = false;
