@@ -236,6 +236,7 @@ export default class ChatRoom extends Listenable {
     private eventsForwarder: EventEmitterForwarder;
     private lobby?: Lobby;
     private avModeration: AVModeration;
+    private shadowBannedJids: Set<string> = new Set();
     private breakoutRooms: BreakoutRooms;
     private fileSharing: FileSharing;
     private polls: Polls;
@@ -439,6 +440,26 @@ export default class ChatRoom extends Listenable {
             findFirst(msg, ':scope>reply[*|xmlns="urn:xmpp:reply:0"]'),
             'to'
         );
+    }
+
+    /**
+     *
+     * @param jid
+     * @param action
+     */
+    private _sendChatModerationMessage(jid: string, action: 'mute' | 'unmute'): void {
+        const msg = $msg({
+            to: this.roomjid,
+            type: 'groupchat'
+        });
+
+        msg.c('chat-moderation', {
+            action,
+            jid: Strophe.getResourceFromJid(jid),
+            xmlns: 'http://jitsi.org/jitmeet',
+        }).up();
+
+        this.connection.send(msg);
     }
 
     /**
@@ -1492,6 +1513,55 @@ export default class ChatRoom extends Listenable {
             }
         }
 
+        const chatModerationNode = findFirst(msg, ':scope>chat-moderation[*|xmlns="http://jitsi.org/jitmeet"]');
+
+        if (chatModerationNode) {
+            // A plain groupchat message isn't server-gated to moderators the way
+            // kick()/setAffiliation() IQs are — this check is what stops a
+            // non-moderator from forging a mute directive. Note: getMemberRole()
+            // only tracks *other* members — the local user's own role is tracked
+            // separately via this.role, so we special-case the reflected copy of
+            // our own stanza (from === this.myroomjid).
+            const getRoleForOccupant = (occupantJid: string): Nullable<string> => {
+                if (occupantJid === this.myroomjid) {
+                    return this.role;
+                }
+
+                const occupantResource = Strophe.getResourceFromJid(occupantJid);
+
+                return Object.entries(this.members)
+                    .find(([ memberJid ]) => Strophe.getResourceFromJid(memberJid) === occupantResource)
+                    ?.[1].role ?? null;
+            };
+
+            const senderRole = getRoleForOccupant(from);
+
+            if (senderRole !== 'moderator') {
+                logger.warn(`Ignoring chat-moderation stanza from non-moderator ${from}`);
+
+                return true;
+            }
+
+            const targetResource = getAttribute(chatModerationNode, 'jid');
+            const action = getAttribute(chatModerationNode, 'action');
+
+            if (!targetResource || !action) {
+                logger.warn('Ignoring malformed chat-moderation stanza: missing jid or action');
+
+                return true;
+            }
+
+            if (action === 'mute') {
+                this.shadowBannedJids.add(targetResource);
+                this.eventEmitter.emit(XMPPEvents.CHAT_PARTICIPANT_MUTED, `${this.roomjid}/${targetResource}`);
+            } else if (action === 'unmute') {
+                this.shadowBannedJids.delete(targetResource);
+                this.eventEmitter.emit(XMPPEvents.CHAT_PARTICIPANT_UNMUTED, `${this.roomjid}/${targetResource}`);
+            }
+
+            return true;
+        }
+
         if (txt) {
             const messageId = getAttribute(msg, 'id') || uuidv4();
             const replyToId = this._parseReplyMessage(msg);
@@ -1520,6 +1590,12 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
             } else if (type === 'groupchat') {
+                const fromResource = Strophe.getResourceFromJid(from);
+
+                if (from !== this.myroomjid && this.shadowBannedJids.has(fromResource)) {
+                    return true;
+                }
+
                 const displayName = displayNameEl ? getText(displayNameEl) : undefined;
                 let sourceAttrValue = getAttribute(displayNameEl, 'source');
 
@@ -1728,6 +1804,34 @@ export default class ChatRoom extends Listenable {
                     userJid: this.connection.jid
                 });
             }, undefined);
+    }
+
+    /**
+     *
+     * @param jid
+     */
+    public muteChatParticipant(jid: string): void {
+        if (!this.isModerator()) {
+            logger.error('Cannot mute chat, not a moderator');
+
+            return;
+        }
+
+        this._sendChatModerationMessage(jid, 'mute');
+    }
+
+    /**
+     *
+     * @param jid
+     */
+    public unmuteChatParticipant(jid: string): void {
+        if (!this.isModerator()) {
+            logger.error('Cannot unmute chat, not a moderator');
+
+            return;
+        }
+
+        this._sendChatModerationMessage(jid, 'unmute');
     }
 
     /* eslint-disable max-params */

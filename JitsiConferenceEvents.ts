@@ -104,6 +104,16 @@ export enum JitsiConferenceEvents {
     BRIDGE_BWE_STATS_RECEIVED = 'conference.bridgeBweStatsReceived',
 
     /**
+     * Event fired when a moderator shadow-mutes a participant's chat.
+     */
+    CHAT_PARTICIPANT_MUTED = 'conference.chatParticipantMuted',
+
+    /**
+     * Event fired when a moderator restores a participant's chat.
+     */
+    CHAT_PARTICIPANT_UNMUTED = 'conference.chatParticipantUnmuted',
+
+    /**
      * UTC conference timestamp when first participant joined.
      */
     CONFERENCE_CREATED_TIMESTAMP = 'conference.createdTimestamp',

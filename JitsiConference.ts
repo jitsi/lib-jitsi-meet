@@ -3755,6 +3755,50 @@ export default class JitsiConference extends Listenable {
         this.room.muteParticipant(participant.getJid(), true, mediaType);
     }
 
+    /**
+     * Shadow-mutes a participant's chat messages so they are not delivered
+     * to the rest of the conference. The participant is not notified.
+     *
+     * @param {string} id - The id of the participant to mute.
+     * @returns {void}
+     */
+    public muteChatParticipant(id: string): void {
+        if (!this.isModerator()) {
+            logger.error(`Cannot mute chat participant ${id}, not a moderator`);
+
+            return;
+        }
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.muteChatParticipant(participant.getJid());
+    }
+
+    /**
+     * Restores a shadow-muted participant's chat.
+     *
+     * @param {string} id - The id of the participant to unmute.
+     * @returns {void}
+     */
+    public unmuteChatParticipant(id: string): void {
+        if (!this.isModerator()) {
+            logger.error(`Cannot unmute chat participant ${id}, not a moderator`);
+
+            return;
+        }
+
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.unmuteChatParticipant(participant.getJid());
+    }
 
     /* eslint-disable max-params */
 
