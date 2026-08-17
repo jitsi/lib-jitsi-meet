@@ -66,6 +66,7 @@ import XMPP, {
 } from './modules/xmpp/xmpp';
 import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
+import { IceRestartReason } from './service/RTC/IceRestartReason';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import {
@@ -1899,7 +1900,7 @@ export default class JitsiConference extends Listenable {
             this._delayedIceFailed.start();
         };
 
-        this.restartJvbIce('ice-failed')
+        this.restartJvbIce(IceRestartReason.ICE_FAILED)
             .then(() => {
                 setTimeout(() => {
                     const iceState = this.jvbJingleSession?.getIceConnectionState();
@@ -2444,10 +2445,10 @@ export default class JitsiConference extends Listenable {
      * {@link JingleSessionPC.onBridgeIceRestartTransport}, so the promise returned here settling only means that
      * the request itself was accepted. Trigger from the console: `APP.conference._room.restartJvbIce()`.
      *
-     * @param {string} reason - Why the restart was triggered, for logs and analytics ('api', 'ice-failed', ...).
+     * @param {IceRestartReason} reason - Why the restart was triggered, for logs and analytics.
      * @returns {Promise<void>} - Resolves when Jicofo has accepted the request, rejects otherwise.
      */
-    public restartJvbIce(reason: string = 'api'): Promise<void> {
+    public restartJvbIce(reason: IceRestartReason = IceRestartReason.API): Promise<void> {
         if (!this.isIceRestartSupported()) {
             return Promise.reject(new Error('ICE restart is not supported (disabled in config)'));
         }

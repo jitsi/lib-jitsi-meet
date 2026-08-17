@@ -2,6 +2,7 @@ import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
 import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
+import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import JingleSessionPC from './JingleSessionPC';
@@ -731,7 +732,7 @@ describe('JingleSessionPC in-place ICE restart', () => {
         it('sends a session-info with a bridge-session requesting an ICE restart', async () => {
             const { connection, session } = createJvbSession();
 
-            await session.restartIce('api');
+            await session.restartIce(IceRestartReason.API);
 
             expect(connection.sentIQs.length).toBe(1);
 
@@ -752,7 +753,7 @@ describe('JingleSessionPC in-place ICE restart', () => {
 
             (session as any)._bridgeSessionId = null;
 
-            await expectAsync(session.restartIce('api')).toBeRejected();
+            await expectAsync(session.restartIce(IceRestartReason.API)).toBeRejected();
             expect(connection.sentIQs.length).toBe(0);
         });
 
@@ -761,7 +762,7 @@ describe('JingleSessionPC in-place ICE restart', () => {
 
             (session as any).isP2P = true;
 
-            await expectAsync(session.restartIce('api')).toBeRejected();
+            await expectAsync(session.restartIce(IceRestartReason.API)).toBeRejected();
         });
     });
 

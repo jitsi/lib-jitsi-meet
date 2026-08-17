@@ -5,6 +5,7 @@ import { $build, $iq, Strophe } from 'strophe.js';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
@@ -1764,11 +1765,11 @@ export default class JingleSessionPC extends JingleSession {
      *
      * Grep the logs for `[ice-restart]` to follow a restart end to end.
      *
-     * @param {string} reason - why the restart was requested, for the logs.
+     * @param {IceRestartReason} reason - why the restart was requested, for the logs.
      * @returns {Promise<void>} - resolves when Jicofo has acknowledged the request, rejects if it did not accept
      * it (which is the signal to fall back to a full session restart).
      */
-    public restartIce(reason: string = 'api'): Promise<void> {
+    public restartIce(reason: IceRestartReason = IceRestartReason.API): Promise<void> {
         if (this.isP2P) {
             return Promise.reject(new Error('an in-place ICE restart is only supported for the JVB session'));
         }
