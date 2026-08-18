@@ -2279,6 +2279,49 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Handle a client-requirements IQ from the focus. It signals that this client does not advertise capabilities
+     * that the deployment requires. With an action of 'reject' the client is not invited to the conference, so it can
+     * not send or receive media, but it stays in the room and can still use the features which do not need a media
+     * session (e.g. chat).
+     *
+     * @param iq The received iq.
+     * @internal
+     */
+    onClientRequirements(iq: Element): void {
+        const from = iq.getAttribute('from');
+
+        if (from !== this.focusMucJid) {
+            logger.warn('Ignored client requirements from non focus peer');
+
+            return;
+        }
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const requirements = findFirst(iq, ':scope>client-requirements[*|xmlns="jitsi:client-requirements"]');
+
+        if (!requirements) {
+            return;
+        }
+
+        const action = getAttribute(requirements, 'action');
+        const features = findAll(requirements, ':scope>missing-feature').map(feature => {
+            return {
+                details: getAttribute(feature, 'details') ?? undefined,
+                feature: getAttribute(feature, 'var'),
+                level: getAttribute(feature, 'level'),
+                name: getAttribute(feature, 'name') ?? undefined,
+                url: getAttribute(feature, 'url') ?? undefined
+            };
+        });
+
+        logger.warn(`Received client requirements: action=${action}, features=${JSON.stringify(features)}`);
+        this.eventEmitter.emit(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED, {
+            action,
+            features
+        });
+    }
+
+    /**
      * Handle remote video mute request from focus.
      *
      * @param iq
