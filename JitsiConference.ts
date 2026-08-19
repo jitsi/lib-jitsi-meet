@@ -3185,6 +3185,19 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a message retraction to the other participants in the conference.
+     *
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [receiverId] - The intended recipient if the message is private.
+     * @param {boolean} [useFullJid=false] - Whether receiverId is already a full JID.
+     */
+    public sendMessageRetraction(messageId: string, receiverId?: string, useFullJid = false): void {
+        if (this.room) {
+            this.room.sendMessageRetraction(messageId, receiverId, useFullJid);
+        }
+    }
+
+    /**
    * Sends private text message to another participant of the conference.
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
@@ -5063,6 +5076,41 @@ export default class JitsiConference extends Listenable {
         if (this.room) {
             return this.room.getLobby().removeMessageHandler(handler);
         }
+    }
+
+    /**
+     * Sends a message retraction to the lobby room.
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [id] - The participant id, if the message was private.
+     * @returns {void}
+     */
+    public sendLobbyMessageRetraction(messageId: string, id?: string): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.sendMessageRetraction(messageId, id);
+    }
+
+    /**
+     * Adds a message retraction listener to the lobby room.
+     * @param {Function} listener - called with (messageId, participantId).
+     * @returns {Optional<EventListener>}
+     */
+    public addLobbyMessageRetractionListener(
+            listener: (messageId: string, participantId: string) => void): Optional<EventListener> {
+        const lobby = this.room?.getLobby();
+
+        return lobby?.addMessageRetractionListener(listener) as Optional<EventListener>;
+    }
+
+    /**
+     * Removes a message retraction handler from the lobby room.
+     * @param {Function} handler - The handler function to remove.
+     * @returns {void}
+     */
+    public removeLobbyMessageRetractionHandler(handler: (messageId: string, participantId: string) => void): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.removeMessageRetractionHandler(handler);
     }
 
     /**

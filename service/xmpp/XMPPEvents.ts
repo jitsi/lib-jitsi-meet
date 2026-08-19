@@ -200,6 +200,10 @@ export enum XMPPEvents {
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',
 
+    // Designates an event indicating that an XMPP message in the MUC was
+    // retracted.
+    MESSAGE_RETRACTED = 'xmpp.message_retracted',
+
     // Designates an event indicating that a participant was denied access to a conference from the lobby XMPP MUC.
     MUC_DENIED_ACCESS = 'xmpp.muc_denied access',
 
