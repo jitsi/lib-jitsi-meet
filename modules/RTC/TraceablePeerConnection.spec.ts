@@ -1,6 +1,7 @@
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
+import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
 import TraceablePeerConnection from './TraceablePeerConnection';
@@ -13,47 +14,67 @@ describe('TraceablePeerConnection', () => {
     // transmitting over the suspended JVB connection, and the remote peer would receive the source twice - once
     // over P2P and once over JVB.
     describe('getTransceiverDirection', () => {
-        // Arguments: (hasTrack, isFirefox, mediaType, mediaTransferActive). The fix is audio-only: a Firefox AUDIO
-        // sender is set inactive while audio transfer is suspended (FF ignores encoding.active for audio). Video
-        // is never set inactive here - it keeps using encoding.active so simulcast/screenshare and the P2P video
-        // path are untouched.
-        it('suspends a Firefox audio sender whose audio transfer is inactive (the duplicate-audio bug)', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(true, true, MediaType.AUDIO, false))
+        // Arguments: (hasTrack, mediaType, mediaTransferActive). The two browser conditions are looked up inside
+        // the helper via the browser singleton; each test stubs the specific combination it exercises.
+        /**
+         * Stubs the two browser checks the helper reads.
+         *
+         * @param {boolean} isFirefox - value returned from browser.isFirefox().
+         * @param {boolean} audioActiveSupported - value returned from supportsRTCRtpEncodingParametersActiveForAudio.
+         * @returns {void}
+         */
+        function stubBrowser(isFirefox: boolean, audioActiveSupported: boolean): void {
+            spyOn(browser, 'isFirefox').and.returnValue(isFirefox);
+            spyOn(browser, 'supportsRTCRtpEncodingParametersActiveForAudio').and.returnValue(audioActiveSupported);
+        }
+
+        it('suspends an audio sender that needs the audio-active workaround while audio transfer is inactive', () => {
+            stubBrowser(true /* isFirefox */, false /* audioActiveSupported */);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.AUDIO, false))
                 .toBe(MediaDirection.INACTIVE);
         });
 
-        it('sends from a Firefox audio sender when audio transfer is active', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(true, true, MediaType.AUDIO, true))
+        it('sends from an audio sender when audio transfer is active', () => {
+            stubBrowser(true, false);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.AUDIO, true))
                 .toBe(MediaDirection.SENDRECV);
         });
 
-        it('does NOT suspend a Firefox VIDEO sender even when video transfer is inactive '
-            + '(video is left on encoding.active; avoids breaking P2P video/screenshare)', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(true, true, MediaType.VIDEO, false))
+        it('does not suspend a video sender even when video transfer is inactive', () => {
+            stubBrowser(true, false);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.VIDEO, false))
                 .toBe(MediaDirection.SENDRECV);
         });
 
-        it('keeps a non-Firefox audio sender at sendrecv even when audio transfer is inactive '
-            + '(it relies on encoding.active to stop media)', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(true, false, MediaType.AUDIO, false))
+        it('keeps an audio sender at sendrecv when the audio-active workaround is not needed', () => {
+            stubBrowser(false /* isFirefox */, true /* audioActiveSupported */);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.AUDIO, false))
+                .toBe(MediaDirection.SENDRECV);
+        });
+
+        it('keeps a Firefox audio sender at sendrecv when the audio-active workaround is not needed', () => {
+            stubBrowser(true /* isFirefox */, true /* audioActiveSupported (Firefox 154+) */);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.AUDIO, false))
                 .toBe(MediaDirection.SENDRECV);
         });
 
         it('sends from a non-Firefox sender when media transfer is active', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(true, false, MediaType.AUDIO, true))
+            stubBrowser(false, true);
+            expect(TraceablePeerConnection.getTransceiverDirection(true, MediaType.AUDIO, true))
                 .toBe(MediaDirection.SENDRECV);
         });
 
-        it('keeps the direction at sendrecv for Firefox when a track is removed '
-            + '(preserves the ssrcs for FF, regardless of media type or transfer state)', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(false, true, MediaType.AUDIO, false))
+        it('keeps the direction at sendrecv for Firefox when a track is removed', () => {
+            stubBrowser(true /* isFirefox */, true /* audioActiveSupported */);
+            expect(TraceablePeerConnection.getTransceiverDirection(false, MediaType.AUDIO, false))
                 .toBe(MediaDirection.SENDRECV);
-            expect(TraceablePeerConnection.getTransceiverDirection(false, true, MediaType.VIDEO, false))
+            expect(TraceablePeerConnection.getTransceiverDirection(false, MediaType.VIDEO, false))
                 .toBe(MediaDirection.SENDRECV);
         });
 
         it('sets the direction to recvonly for non-Firefox when a track is removed', () => {
-            expect(TraceablePeerConnection.getTransceiverDirection(false, false, MediaType.VIDEO, true))
+            stubBrowser(false /* isFirefox */, true /* audioActiveSupported */);
+            expect(TraceablePeerConnection.getTransceiverDirection(false, MediaType.VIDEO, true))
                 .toBe(MediaDirection.RECVONLY);
         });
     });

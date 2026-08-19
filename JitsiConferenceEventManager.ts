@@ -430,6 +430,16 @@ export default class JitsiConferenceEventManager {
                     messageId,
                     moderatorId,
                     reason
+        chatRoom.addListener(
+            XMPPEvents.MESSAGE_RETRACTED,
+
+            (jid: string, messageId: string) => {
+                const participantId = Strophe.getResourceFromJid(jid);
+
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.MESSAGE_RETRACTED,
+                    participantId,
+                    messageId
                 );
             });
 
@@ -573,6 +583,10 @@ export default class JitsiConferenceEventManager {
 
         rtc.addListener(RTCEvents.BRIDGE_BWE_STATS_RECEIVED, (bwe: any) => {
             conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
+        });
+
+        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: any) => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
         });
 
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,

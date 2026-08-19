@@ -64,4 +64,97 @@ describe('SDPUtil', () => {
             expect(newPayloadTypes[0]).toEqual(103);
         });
     });
+
+    describe('replaceIceCredentialsAndStripCandidates', () => {
+        // A bundled 2 m-line remote offer as it comes from the bridge, with per m-line ICE credentials and both
+        // trickled and in-SDP candidates.
+        const OFFER = [
+            'v=0',
+            'o=- 1 2 IN IP4 127.0.0.1',
+            's=-',
+            't=0 0',
+            'a=group:BUNDLE 0 1',
+            'a=msid-semantic: WMS *',
+            'm=audio 10000 UDP/TLS/RTP/SAVPF 111',
+            'c=IN IP4 10.0.0.1',
+            'a=mid:0',
+            'a=rtpmap:111 opus/48000/2',
+            'a=ice-ufrag:oldfrag',
+            'a=ice-pwd:oldpwdoldpwdoldpwdoldpwd',
+            'a=candidate:1 1 udp 2130706431 10.0.0.1 10000 typ host generation 0',
+            'a=candidate:2 1 udp 1694498815 1.2.3.4 10000 typ srflx generation 0',
+            'a=end-of-candidates',
+            'a=fingerprint:sha-256 AA:BB',
+            'a=setup:actpass',
+            'a=sendonly',
+            'm=video 10000 UDP/TLS/RTP/SAVPF 100',
+            'c=IN IP4 10.0.0.1',
+            'a=mid:1',
+            'a=rtpmap:100 VP8/90000',
+            'a=ice-ufrag:oldfrag',
+            'a=ice-pwd:oldpwdoldpwdoldpwdoldpwd',
+            'a=candidate:1 1 udp 2130706431 10.0.0.1 10000 typ host generation 0',
+            'a=end-of-candidates',
+            'a=fingerprint:sha-256 AA:BB',
+            'a=setup:actpass',
+            'a=sendonly',
+            ''
+        ].join('\r\n');
+
+        it('replaces every ICE ufrag and pwd', () => {
+            const patched = SDPUtil.replaceIceCredentialsAndStripCandidates(OFFER, 'newfrag', 'newpwd');
+            const lines = patched.split('\r\n');
+
+            expect(lines.filter(l => l.startsWith('a=ice-ufrag:'))).toEqual([
+                'a=ice-ufrag:newfrag',
+                'a=ice-ufrag:newfrag'
+            ]);
+            expect(lines.filter(l => l.startsWith('a=ice-pwd:'))).toEqual([
+                'a=ice-pwd:newpwd',
+                'a=ice-pwd:newpwd'
+            ]);
+            expect(patched).not.toContain('oldfrag');
+            expect(patched).not.toContain('oldpwd');
+        });
+
+        it('strips every candidate and end-of-candidates line', () => {
+            const patched = SDPUtil.replaceIceCredentialsAndStripCandidates(OFFER, 'newfrag', 'newpwd');
+
+            expect(patched).not.toContain('a=candidate:');
+            expect(patched).not.toContain('a=end-of-candidates');
+        });
+
+        it('leaves every other line untouched', () => {
+            const patched = SDPUtil.replaceIceCredentialsAndStripCandidates(OFFER, 'newfrag', 'newpwd');
+            const isIceLine = line => line.startsWith('a=candidate:')
+                || line.startsWith('a=end-of-candidates')
+                || line.startsWith('a=ice-ufrag:')
+                || line.startsWith('a=ice-pwd:');
+
+            expect(patched.split('\r\n').filter(l => !isIceLine(l)))
+                .toEqual(OFFER.split('\r\n').filter(l => !isIceLine(l)));
+        });
+
+        it('preserves the CRLF line endings', () => {
+            const patched = SDPUtil.replaceIceCredentialsAndStripCandidates(OFFER, 'newfrag', 'newpwd');
+
+            expect(patched.split('\n').every(l => l === '' || l.endsWith('\r'))).toBe(true);
+            expect(patched.endsWith('\r\n')).toBe(true);
+        });
+
+        it('handles an SDP with LF line endings', () => {
+            const lfOffer = OFFER.replace(/\r\n/g, '\n');
+            const patched = SDPUtil.replaceIceCredentialsAndStripCandidates(lfOffer, 'newfrag', 'newpwd');
+
+            expect(patched).not.toContain('\r');
+            expect(patched).toContain('a=ice-ufrag:newfrag\n');
+            expect(patched).not.toContain('a=candidate:');
+        });
+
+        it('is a no-op for an SDP with no ICE lines', () => {
+            const noIce = 'v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n';
+
+            expect(SDPUtil.replaceIceCredentialsAndStripCandidates(noIce, 'newfrag', 'newpwd')).toEqual(noIce);
+        });
+    });
 });

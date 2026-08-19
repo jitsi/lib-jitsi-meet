@@ -22,6 +22,13 @@ const DEFAULT_WEDGE_TIMEOUT_MS = 15000;
  */
 const MIN_SAMPLES = 2;
 
+/**
+ * The maximum number of recoveries to trigger for a receive slot (a rewritten SSRC). Recycling the source is only a fix
+ * for the wedge; if the slot still receives nothing after this many attempts it is not wedged (the sender is silent, or
+ * the bridge is not forwarding it), and further recycles are pure renegotiation churn.
+ */
+const MAX_RECOVERY_ATTEMPTS = 2;
+
 interface IEligibleZeroState {
 
     /**
@@ -33,6 +40,20 @@ interface IEligibleZeroState {
      * The timestamp (Date.now()) of the first eligible zero-RTP sample in the current streak.
      */
     since: number;
+}
+
+interface IRecoveryState {
+
+    /**
+     * The number of recoveries triggered for the slot so far.
+     */
+    attempts: number;
+
+    /**
+     * The timestamp (Date.now()) until which detection is suppressed for the slot, so the watchdog does not re-fire
+     * while a recycle renegotiation is in flight.
+     */
+    cooldownUntil: number;
 }
 
 export interface IRemoteAudioWedgeDetectorOptions {
@@ -76,6 +97,17 @@ export interface IRemoteAudioWedgeDetectorOptions {
  * time before it fires. Eligibility - unlike the cumulative packet count - is not monotonic (a participant can mute and
  * unmute), so the streak is reset whenever the source becomes muted, unmapped, or receives any packet; this is what the
  * repeated samples verify. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
+ *
+ * Evaluation is skipped entirely while media transfer is suspended on the peerconnection. A JVB session is kept alive
+ * but suspended for the duration of an active P2P session, and a suspended session receives no RTP at all by design, so
+ * every remote audio source on it would otherwise look permanently wedged.
+ *
+ * Recoveries are capped at {@link MAX_RECOVERY_ATTEMPTS} per receive slot, i.e. per rewritten SSRC - the identity a
+ * recovery preserves, since recycling the source hands it a new m-line and msid. Zero inbound RTP is not exclusive to
+ * the wedge - a bridge that discards silence forwards nothing at all for a sender that is digitally silent from the
+ * start of its stream - and recycling cannot fix a slot that is receiving nothing because nothing is being sent to it.
+ * The cap bounds that case to a couple of renegotiations instead of one every detection window for the rest of the
+ * call.
  */
 export default class RemoteAudioWedgeDetector {
     private _pc: TraceablePeerConnection;
@@ -91,16 +123,28 @@ export default class RemoteAudioWedgeDetector {
     /**
      * The set of SSRCs that have been observed receiving at least one RTP packet. Such a source is demuxing correctly
      * and cannot be wedged (the wedge is "never received anything", and the cumulative packet count is monotonic), so
-     * it is excluded from evaluation for the rest of its lifetime.
+     * it is excluded from evaluation for the rest of the peerconnection's lifetime.
+     *
+     * Entries are never dropped, not even when the SSRC stops being mapped. Under SSRC rewriting a rewritten SSRC gets
+     * exactly one receive m-line for the lifetime of the peerconnection: {@link TraceablePeerConnection.addRemoteSsrc}
+     * only reports an SSRC as new once, so a source-add (which creates the m-line) happens once per SSRC and every
+     * later appearance of that SSRC in a source map is an in-place remap onto the same m-line, transceiver and track.
+     * A remap therefore inherits an m-line that is already demuxing that SSRC correctly and cannot be wedged, whichever
+     * source now occupies it.
      */
     private _healthyBySsrc: Set<number>;
 
     /**
-     * Maps a source name to the timestamp (Date.now()) until which detection is suppressed for that source. Used as a
-     * cooldown after a recovery is triggered so the watchdog does not re-fire while the recycle renegotiation is in
-     * flight and the re-added source (same SSRC, fresh m-line/track) starts receiving.
+     * Maps a receive slot (rewritten SSRC) to the state of the recoveries triggered for it: the cooldown that keeps the
+     * watchdog quiet while a recycle renegotiation is in flight and the re-added source (same SSRC, fresh m-line/track)
+     * starts receiving, and the attempt count that stops it recycling a slot that recycling cannot fix.
+     *
+     * Keyed on the SSRC rather than on the source name or the m-line. The m-line cannot carry the count because a
+     * recovery replaces it (source-remove then source-add mints a fresh msid), so a per-m-line budget would reset on
+     * every attempt and never converge. The SSRC is what a recovery preserves, and it also keeps an exhausted budget
+     * with the slot when the bridge remaps it to a different source, whose receive path is just as dead.
      */
-    private _cooldownUntilBySource: Map<string, number>;
+    private _recoveryStateBySsrc: Map<number, IRecoveryState>;
 
     /**
      * Creates a new {@code RemoteAudioWedgeDetector}. The detector is inert until {@link start} is called.
@@ -115,7 +159,7 @@ export default class RemoteAudioWedgeDetector {
         this._started = false;
         this._eligibleZeroBySsrc = new Map();
         this._healthyBySsrc = new Set();
-        this._cooldownUntilBySource = new Map();
+        this._recoveryStateBySsrc = new Map();
     }
 
     /**
@@ -148,9 +192,17 @@ export default class RemoteAudioWedgeDetector {
     private _evaluate(packetsBySsrc: Map<number, number>): void {
         const now = Date.now();
 
+        // Media transfer is suspended for the whole of an active P2P session, during which the session receives no RTP
+        // by design. Drop the streaks so the detection window starts over when it resumes rather than counting the
+        // suspended period against the sources.
+        if (!this._pc.audioTransferActive) {
+            this._eligibleZeroBySsrc.clear();
+
+            return;
+        }
+
         // A source can only be wedged if it is mapped, unmuted, not in a post-recovery cooldown, and has not yet been
         // confirmed healthy (received a packet).
-        const mappedSsrcs = new Set<number>();
         const candidates: Array<{ ssrc: number; track: JitsiRemoteTrack; }> = [];
 
         for (const track of this._pc.getRemoteTracks(undefined, MediaType.AUDIO)) {
@@ -159,33 +211,21 @@ export default class RemoteAudioWedgeDetector {
             if (typeof ssrc !== 'number') {
                 continue; // eslint-disable-line no-continue
             }
-            mappedSsrcs.add(ssrc);
 
             if (this._healthyBySsrc.has(ssrc) || track.isMuted()) {
                 continue; // eslint-disable-line no-continue
             }
 
-            const cooldownUntil = this._cooldownUntilBySource.get(track.getSourceName());
+            const recovery = this._recoveryStateBySsrc.get(ssrc);
 
-            if (cooldownUntil !== undefined) {
-                if (now < cooldownUntil) {
-                    continue; // eslint-disable-line no-continue
-                }
-                this._cooldownUntilBySource.delete(track.getSourceName());
+            if (recovery && (recovery.attempts >= MAX_RECOVERY_ATTEMPTS || now < recovery.cooldownUntil)) {
+                continue; // eslint-disable-line no-continue
             }
 
             candidates.push({
                 ssrc,
                 track
             });
-        }
-
-        // Drop the confirmed-healthy mark for any SSRC that is no longer mapped (the source was removed/remapped), so a
-        // future source reusing the SSRC is re-evaluated from scratch.
-        for (const ssrc of this._healthyBySsrc) {
-            if (!mappedSsrcs.has(ssrc)) {
-                this._healthyBySsrc.delete(ssrc);
-            }
         }
 
         // Drop streak bookkeeping for any SSRC that is no longer a candidate (unmapped, muted, cooling down, or now
@@ -224,16 +264,30 @@ export default class RemoteAudioWedgeDetector {
             state.samples++;
 
             if (state.samples >= MIN_SAMPLES && now - state.since >= this._wedgeTimeoutMs) {
-                logger.warn(`Detected wedged remote audio source ${track.getSourceName()} (ssrc=${ssrc}, owner=`
+                const sourceName = track.getSourceName();
+                const attempts = (this._recoveryStateBySsrc.get(ssrc)?.attempts ?? 0) + 1;
+
+                logger.warn(`Detected wedged remote audio source ${sourceName} (ssrc=${ssrc}, owner=`
                     + `${track.getParticipantId()}): zero inbound RTP for ${now - state.since}ms `
-                    + 'while continuously mapped and unmuted. Triggering recovery.');
+                    + `while continuously mapped and unmuted. Triggering recovery (attempt ${attempts} of `
+                    + `${MAX_RECOVERY_ATTEMPTS}).`);
                 this._eligibleZeroBySsrc.delete(ssrc);
 
                 // Suppress further detection for this source while the recycle renegotiation completes. Until then the
                 // source is still wedged (so it would immediately re-fire), and once recovery re-adds it (same SSRC,
-                // fresh m-line/track) the new receiver reads zero for a moment before media flows. Keying the cooldown
-                // off the stable source name covers the remove/re-add transition.
-                this._cooldownUntilBySource.set(track.getSourceName(), now + this._wedgeTimeoutMs);
+                // fresh m-line/track) the new receiver reads zero for a moment before media flows. Keying the state
+                // off the SSRC, which the re-add preserves, covers the remove/re-add transition.
+                this._recoveryStateBySsrc.set(ssrc, {
+                    attempts,
+                    cooldownUntil: now + this._wedgeTimeoutMs
+                });
+
+                if (attempts >= MAX_RECOVERY_ATTEMPTS) {
+                    logger.warn(`Remote audio source ${sourceName} (ssrc=${ssrc}) has been recycled `
+                        + `${attempts} times without receiving any RTP; it is not recoverable by recycling. No `
+                        + 'further recovery will be attempted for it on this m-line.');
+                }
+
                 this._onWedgeDetected(track);
             }
         }
@@ -267,6 +321,6 @@ export default class RemoteAudioWedgeDetector {
         }
         this._eligibleZeroBySsrc.clear();
         this._healthyBySsrc.clear();
-        this._cooldownUntilBySource.clear();
+        this._recoveryStateBySsrc.clear();
     }
 }

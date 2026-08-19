@@ -13,6 +13,8 @@ describe( "/JitsiConferenceEvents members", () => {
 
         expect( JitsiConferenceEvents.AUDIO_INPUT_STATE_CHANGE ).toBe( 'conference.audio_input_state_changed' );
         expect( JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED ).toBe( 'conference.audio_translation_failed' );
+        expect( JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED )
+            .toBe( 'conference.audio_translation_listeners_changed' );
         expect( JitsiConferenceEvents.AUDIO_UNMUTE_PERMISSIONS_CHANGED ).toBe( 'conference.audio_unmute_permissions_changed' );
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
@@ -70,6 +72,8 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.TRACK_REMOVED ).toBe( 'conference.trackRemoved' );
         expect( JitsiConferenceEvents.TRACK_UNMUTE_REJECTED ).toBe( 'conference.trackUnmuteRejected' );
         expect( JitsiConferenceEvents.TRANSCRIPTION_STATUS_CHANGED ).toBe( 'conference.transcriptionStatusChanged' );
+        expect( JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED )
+            .toBe( 'conference.translatedSourceSendingChanged' );
         expect( JitsiConferenceEvents.USER_JOINED ).toBe( 'conference.userJoined' );
         expect( JitsiConferenceEvents.USER_LEFT ).toBe( 'conference.userLeft' );
         expect( JitsiConferenceEvents.USER_ROLE_CHANGED ).toBe( 'conference.roleChanged' );

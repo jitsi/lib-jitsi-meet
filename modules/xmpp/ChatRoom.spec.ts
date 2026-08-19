@@ -523,13 +523,6 @@ describe('ChatRoom', () => {
                 '<body>string message</body>' +
                 '</message>');
         });
-        it('sends a object msg with elementName body correctly', () => {
-            room.sendMessage({ object: 'message' } as any, 'body');
-            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
-                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
-                '<body object="message"/>' +
-                '</message>');
-        });
         it('sends a string msg with elementName json-message correctly', () => {
             room.sendMessage('string message', 'json-message');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
@@ -537,12 +530,133 @@ describe('ChatRoom', () => {
                 '<json-message xmlns="http://jitsi.org/jitmeet">string message</json-message>' +
                 '</message>');
         });
-        it('sends a object msg with elementName json-message correctly', () => {
-            room.sendMessage({ object: 'message' } as any, 'json-message');
+        it('strips XML-invalid control characters from the message', () => {
+            room.sendMessage('hello\u0002world', 'body');
             expect(connectionSpy.calls.argsFor(0).toString()).toBe(
                 '<message to="jid" type="groupchat" xmlns="jabber:client">' +
-                '<json-message object="message" xmlns="http://jitsi.org/jitmeet"/>' +
+                '<body>helloworld</body>' +
                 '</message>');
+        });
+        it('preserves XML-valid whitespace characters in the message', () => {
+            room.sendMessage('line1\tline2\nline3', 'body');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<body>line1\tline2\nline3</body>' +
+                '</message>');
+        });
+        it('strips XML-invalid control characters from json-message stanzas', () => {
+            room.sendMessage('{"text":"hello\u0002world"}', 'json-message');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<json-message xmlns="http://jitsi.org/jitmeet">{&quot;text&quot;:&quot;helloworld&quot;}</json-message>' +
+                '</message>');
+        });
+        it('strips lone surrogates from the message', () => {
+            room.sendMessage('hello\uD800world', 'body');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<body>helloworld</body>' +
+                '</message>');
+        });
+        it('preserves astral characters (surrogate pairs) in the message', () => {
+            room.sendMessage('hello😀world', 'body');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<body>hello😀world</body>' +
+                '</message>');
+        });
+    });
+
+    describe('sendPrivateMessage', () => {
+        let room: ChatRoom;
+        let connectionSpy: jasmine.Spy;
+
+        beforeEach(() => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                // eslint-disable-next-line no-empty-function
+                { send: () => {} } as any as XmppConnection /* connection */,
+                'jid',
+                'password',
+                xmpp as any as XMPP,
+                {} /* options */);
+            connectionSpy = spyOn(room.connection, 'send');
+        });
+        it('sends a string msg with elementName body correctly', () => {
+            room.sendPrivateMessage('pid', 'string message', 'body');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid/pid" type="chat" xmlns="jabber:client">' +
+                '<body>string message</body>' +
+                '</message>');
+        });
+        it('strips XML-invalid control characters from the message', () => {
+            room.sendPrivateMessage('pid', 'hello\u0002world', 'body');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid/pid" type="chat" xmlns="jabber:client">' +
+                '<body>helloworld</body>' +
+                '</message>');
+        });
+    });
+
+    describe('setSubject', () => {
+        let room: ChatRoom;
+        let connectionSpy: jasmine.Spy;
+
+        beforeEach(() => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                // eslint-disable-next-line no-empty-function
+                { send: () => {} } as any as XmppConnection /* connection */,
+                'jid',
+                'password',
+                xmpp as any as XMPP,
+                {} /* options */);
+            connectionSpy = spyOn(room.connection, 'send');
+        });
+        it('sends the trimmed subject correctly', () => {
+            room.setSubject('  Hello room  ');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<subject>Hello room</subject>' +
+                '</message>');
+        });
+        it('strips XML-invalid control characters from the subject', () => {
+            room.setSubject('hello\u0002world');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<subject>helloworld</subject>' +
+                '</message>');
+        });
+        it('preserves XML-valid whitespace in the subject', () => {
+            room.setSubject('line1\tline2\nline3');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<subject>line1\tline2\nline3</subject>' +
+                '</message>');
+        });
+        it('does not resend an identical subject', () => {
+            room.setSubject('Hello');
+            room.setSubject('Hello');
+            expect(connectionSpy.calls.count()).toBe(1);
+        });
+        it('does not resend a subject that only differs by invalid characters', () => {
+            room.setSubject('hello\u0002world');
+            room.setSubject('helloworld');
+            expect(connectionSpy.calls.count()).toBe(1);
         });
     });
 

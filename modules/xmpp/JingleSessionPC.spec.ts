@@ -2,6 +2,7 @@ import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
 import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
+import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 import JingleSessionPC from './JingleSessionPC';
@@ -361,6 +362,63 @@ describe('JingleSessionPC', () => {
             expect(removeSsrcOwnersSpy).toHaveBeenCalledWith([ 1234, 5678, 4321, 8765 ]);
             expect(updateRemoteSourcesSpy).toHaveBeenCalledWith(sourceInfo, false);
         });
+
+        it('ignores a source whose ssrc is not a valid 32-bit decimal integer', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='video'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='(.+)+$' name='evil' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='99999999999999999999' name='big' owner='peer'>
+                                    <parameter name='msid' value='stream2'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='ok' owner='peer'>
+                                    <parameter name='msid' value='stream3'/>
+                                </source>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+
+            expect(sourceInfo.has('evil')).toBe(false);
+            expect(sourceInfo.has('big')).toBe(false);
+            expect(sourceInfo.get('ok').ssrcList).toEqual([ '1234' ]);
+            expect(setSsrcOwnerSpy).toHaveBeenCalledWith(1234, null, 'ok');
+            expect(setSsrcOwnerSpy).not.toHaveBeenCalledWith(NaN, jasmine.anything(), 'evil');
+        });
+
+        it('ignores an ssrc-group whose semantics is not a known value', () => {
+            const jingle = parseXML(
+                    `<jingle xmlns='urn:xmpp:jingle:1'>
+                        <content name='video'>
+                            <description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='5678' name='source1' owner='peer'>
+                                    <parameter name='msid' value='stream1'/>
+                                </source>
+                                <ssrc-group xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' semantics='(.+)+$'>
+                                    <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='1234'/>
+                                    <source xmlns='urn:xmpp:jingle:apps:rtp:ssma:0' ssrc='5678'/>
+                                </ssrc-group>
+                            </description>
+                        </content>
+                    </jingle>`
+            );
+
+            const sourceAddElem = findAll(jingle.documentElement, ':scope>content');
+
+            sourceInfo = jingleSession._processSourceMapFromJingle(sourceAddElem, true);
+
+            expect(sourceInfo.get('source1').groups).toEqual([]);
+        });
     });
 
     describe('_recoverWedgedAudioSource', () => {
@@ -525,5 +583,291 @@ describe('notifyMySSRCUpdate - P2P source-remove triggers termination', () => {
 
         expect(emitSpy).not.toHaveBeenCalledWith(XMPPEvents.P2P_TERMINATION_REQUIRED, jasmine.anything());
         expect(sendIQSpy).toHaveBeenCalled();
+    });
+});
+
+describe('JingleSessionPC in-place ICE restart', () => {
+    const SID = 'sid12345';
+    const BRIDGE_SESSION_ID = 'bridge-session-1';
+
+    // The remote (bridge) offer, as it would be found in pc.currentRemoteDescription.
+    const REMOTE_OFFER = [
+        'v=0',
+        'o=- 1 2 IN IP4 127.0.0.1',
+        's=-',
+        't=0 0',
+        'a=group:BUNDLE 0',
+        'm=audio 10000 UDP/TLS/RTP/SAVPF 111',
+        'c=IN IP4 10.0.0.1',
+        'a=mid:0',
+        'a=ice-ufrag:oldfrag',
+        'a=ice-pwd:oldpwdoldpwdoldpwdoldpwd',
+        'a=candidate:1 1 udp 2130706431 10.0.0.1 10000 typ host generation 0',
+        'a=setup:actpass',
+        'a=sendonly',
+        ''
+    ].join('\r\n');
+
+    // The local answer, as it would be found in pc.localDescription after the restart.
+    const LOCAL_ANSWER = [
+        'v=0',
+        'o=- 1 2 IN IP4 127.0.0.1',
+        's=-',
+        't=0 0',
+        'a=group:BUNDLE 0',
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111',
+        'c=IN IP4 0.0.0.0',
+        'a=mid:0',
+        'a=ice-ufrag:mynewfrag',
+        'a=ice-pwd:mynewpwdmynewpwdmynewpwd',
+        'a=fingerprint:sha-256 AA:BB',
+        'a=setup:active',
+        'a=recvonly',
+        ''
+    ].join('\r\n');
+
+    /**
+     * Builds the <transport> element of an in-place ICE restart 'transport-info'.
+     *
+     * @param {Object} options - Overrides for the transport attributes.
+     * @returns {Element}
+     */
+    function buildBridgeTransport({
+        generation = 1,
+        ufrag = 'brnewfrag',
+        pwd = 'brnewpwd',
+        numCandidates = 2
+    }: {
+        generation?: unknown; numCandidates?: number; pwd?: Nullable<string>; ufrag?: Nullable<string>;
+    } = {}): Element {
+        const candidates = [];
+
+        for (let i = 0; i < numCandidates; i++) {
+            candidates.push(`<candidate component="1" foundation="${i + 1}" generation="0" id="cand${i}" `
+                + `ip="10.0.0.${i + 1}" network="0" port="${10000 + i}" priority="2130706431" protocol="udp" `
+                + 'type="host"/>');
+        }
+
+        const attributes = [ `ice-generation="${generation}"` ];
+
+        ufrag !== null && attributes.push(`ufrag="${ufrag}"`);
+        pwd !== null && attributes.push(`pwd="${pwd}"`);
+
+        const iq = parseXML(
+            '<jingle action="transport-info" initiator="focus" sid="sid12345" xmlns="urn:xmpp:jingle:1">'
+            + '<content name="audio">'
+            + `<transport xmlns="urn:xmpp:jingle:transports:ice-udp:1" ${attributes.join(' ')}>`
+            + candidates.join('')
+            + '</transport>'
+            + '</content>'
+            + '</jingle>');
+
+        return findFirst(iq, 'content>transport');
+    }
+
+    /**
+     * Creates a JVB session with a peer connection mocked up for an ICE restart.
+     *
+     * @returns {Object}
+     */
+    function createJvbSession() {
+        const connection = new MockStropheConnection();
+
+        (connection as any).connected = true;
+
+        const session = new JingleSessionPC(SID, 'peer1', 'focus', connection, { }, { }, false, false);
+
+        session.initialize(
+            new MockChatRoom(),
+            new MockRTC(),
+            { setSSRCOwner: () => { }, removeSSRCOwners: () => { } }, // eslint-disable-line no-empty-function
+            { });
+        (session as any).state = JingleSessionState.ACTIVE;
+        (session as any)._bridgeSessionId = BRIDGE_SESSION_ID;
+
+        // The modification queue starts paused; it is normally resumed when the offer is accepted.
+        (session as any).modificationQueue.resume();
+
+        const tpc = session.peerconnection as any;
+        const nativePc = {
+            currentRemoteDescription: { sdp: REMOTE_OFFER },
+            iceConnectionState: 'connected',
+            signalingState: 'stable'
+        };
+
+        tpc.peerconnection = nativePc;
+        tpc.addIceCandidate = jasmine.createSpy('addIceCandidate').and.returnValue(Promise.resolve());
+        Object.defineProperty(tpc, 'localDescription', { get: () => ({ sdp: LOCAL_ANSWER }) });
+        Object.defineProperty(tpc, 'remoteDescription', { get: () => ({ sdp: REMOTE_OFFER }) });
+        spyOn(tpc, 'setRemoteDescription').and.returnValue(Promise.resolve());
+        spyOn(tpc, 'createAnswer').and.returnValue(Promise.resolve({ sdp: LOCAL_ANSWER,
+            type: 'answer' }));
+        spyOn(tpc, 'setLocalDescription').and.returnValue(Promise.resolve());
+
+        // The restart goes through _renegotiate(), which signals any SSRCs the browser regenerates. That is not
+        // what these tests are about, and it would try to send a source-update.
+        spyOn(session as any, 'notifyMySSRCUpdate');
+
+        return { connection,
+            nativePc,
+            session,
+            tpc };
+    }
+
+    /**
+     * Resolves once every task queued on the session's modification queue has run.
+     *
+     * @param {JingleSessionPC} session - The session.
+     * @returns {Promise<void>}
+     */
+    function drainQueue(session: JingleSessionPC): Promise<void> {
+        return new Promise<void>(resolve => {
+            (session as any).modificationQueue.push(
+                finished => finished(),
+                () => resolve());
+        });
+    }
+
+    describe('restartIce', () => {
+        it('sends a session-info with a bridge-session requesting an ICE restart', async () => {
+            const { connection, session } = createJvbSession();
+
+            await session.restartIce(IceRestartReason.API);
+
+            expect(connection.sentIQs.length).toBe(1);
+
+            const iq = connection.sentIQs[0].tree();
+
+            expect(findFirst(iq, 'jingle').getAttribute('action')).toBe('session-info');
+            expect(findFirst(iq, 'jingle').getAttribute('sid')).toBe(SID);
+
+            const bridgeSession = findFirst(iq, 'jingle>bridge-session');
+
+            expect(bridgeSession.getAttribute('xmlns')).toBe('http://jitsi.org/protocol/focus');
+            expect(bridgeSession.getAttribute('id')).toBe(BRIDGE_SESSION_ID);
+            expect(bridgeSession.getAttribute('ice-restart')).toBe('true');
+        });
+
+        it('rejects without sending anything when no bridge session is known', async () => {
+            const { connection, session } = createJvbSession();
+
+            (session as any)._bridgeSessionId = null;
+
+            await expectAsync(session.restartIce(IceRestartReason.API)).toBeRejected();
+            expect(connection.sentIQs.length).toBe(0);
+        });
+
+        it('rejects for a P2P session', async () => {
+            const { session } = createJvbSession();
+
+            (session as any).isP2P = true;
+
+            await expectAsync(session.restartIce(IceRestartReason.API)).toBeRejected();
+        });
+    });
+
+    describe('onBridgeIceRestartTransport', () => {
+        it('applies the patched offer, answers it and only then adds the candidates', async () => {
+            const { nativePc, session, tpc } = createJvbSession();
+
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 1 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
+
+            const applied = tpc.setRemoteDescription.calls.mostRecent().args[0];
+
+            expect(applied.type).toBe('offer');
+            expect(applied.sdp).toContain('a=ice-ufrag:brnewfrag');
+            expect(applied.sdp).toContain('a=ice-pwd:brnewpwd');
+            expect(applied.sdp).not.toContain('a=candidate:');
+
+            expect(tpc.createAnswer).toHaveBeenCalledTimes(1);
+            expect(tpc.setLocalDescription).toHaveBeenCalledTimes(1);
+            expect(tpc.addIceCandidate).toHaveBeenCalledTimes(2);
+
+            // The candidates must be added after the offer/answer, not as part of it.
+            expect(tpc.addIceCandidate.calls.first().invocationOrder)
+                .toBeGreaterThan(tpc.setLocalDescription.calls.first().invocationOrder);
+        });
+
+        it('signals the new local ICE credentials back tagged with the same generation', async () => {
+            const { connection, session } = createJvbSession();
+
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 7 }));
+            await drainQueue(session);
+
+            expect(connection.sentIQs.length).toBe(1);
+
+            const iq = connection.sentIQs[0].tree();
+
+            expect(findFirst(iq, 'jingle').getAttribute('action')).toBe('transport-info');
+
+            const transport = findFirst(iq, 'jingle>content>transport');
+
+            expect(transport.getAttribute('ice-generation')).toBe('7');
+            expect(transport.getAttribute('ufrag')).toBe('mynewfrag');
+            expect(transport.getAttribute('pwd')).toBe('mynewpwdmynewpwdmynewpwd');
+        });
+
+        it('ignores a generation that is not newer than the last one applied', async () => {
+            const { connection, session, tpc } = createJvbSession();
+
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 3 }));
+            await drainQueue(session);
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
+
+            // A duplicate and an out-of-order (older) push must both be dropped.
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 3 }));
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 2 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
+            expect(connection.sentIQs.length).toBe(1);
+
+            // A newer one is applied.
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 4 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(2);
+            expect(connection.sentIQs.length).toBe(2);
+        });
+
+        it('ignores a transport with an invalid generation', async () => {
+            const { session, tpc } = createJvbSession();
+
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 'not-a-number' }));
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 0 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).not.toHaveBeenCalled();
+        });
+
+        it('ignores a transport with incomplete ICE credentials', async () => {
+            const { session, tpc } = createJvbSession();
+
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ pwd: null }));
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ ufrag: null }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).not.toHaveBeenCalled();
+        });
+
+        it('still applies a newer generation after one failed to apply', async () => {
+            const { session, tpc } = createJvbSession();
+
+            tpc.setRemoteDescription.and.returnValue(Promise.reject(new Error('nope')));
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 1 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(1);
+
+            // The same generation is not retried, but a newer one still is.
+            tpc.setRemoteDescription.and.returnValue(Promise.resolve());
+            session.onBridgeIceRestartTransport(buildBridgeTransport({ generation: 2 }));
+            await drainQueue(session);
+
+            expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(2);
+        });
     });
 });

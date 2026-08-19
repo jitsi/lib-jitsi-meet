@@ -260,9 +260,20 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-info': {
-            const candidates = _parseIceCandidates(findFirst(iq, 'jingle>content>transport'));
+            const transportElement = findFirst(iq, 'jingle>content>transport');
+            const candidates = _parseIceCandidates(transportElement);
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
+
+            // A transport tagged with an ice-generation is the transport of a new ICE agent that the bridge
+            // created in response to an in-place ICE restart request. It replaces the remote ICE credentials
+            // and its candidates have to be added only after the offer/answer completes, so it is applied as a
+            // single atomic operation instead of going through the generic candidate handling.
+            if (transportElement?.getAttribute('ice-generation')) {
+                sess.onBridgeIceRestartTransport(transportElement);
+                break;
+            }
+
             this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, jingleElement);
             break;
         }
