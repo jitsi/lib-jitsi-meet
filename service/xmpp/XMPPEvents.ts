@@ -75,6 +75,19 @@ export enum XMPPEvents {
 
     CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
 
+    /**
+     * Event fired when a moderator's chat-mute directive for a participant is
+     * received and applied. The muted participant's messages will stop being
+     * delivered to the rest of the room.
+     */
+    CHAT_PARTICIPANT_MUTED = 'xmpp.chat_participant_muted',
+
+    /**
+     * Event fired when a moderator's chat-unmute directive for a participant is
+     * received and applied, restoring delivery of their messages to the room.
+     */
+    CHAT_PARTICIPANT_UNMUTED = 'xmpp.chat_participant_unmuted',
+
     // The conference properties (as advertised by jicofo) have changed
     CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
 

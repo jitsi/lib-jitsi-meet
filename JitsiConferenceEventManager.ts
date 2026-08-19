@@ -421,6 +421,26 @@ export default class JitsiConferenceEventManager {
                     participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
+        chatRoom.addListener(
+            XMPPEvents.CHAT_PARTICIPANT_MUTED,
+            (jid: string) => {
+                const participantId = Strophe.getResourceFromJid(jid);
+
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.CHAT_PARTICIPANT_MUTED,
+                    participantId);
+            });
+
+        chatRoom.addListener(
+            XMPPEvents.CHAT_PARTICIPANT_UNMUTED,
+            (jid: string) => {
+                const participantId = Strophe.getResourceFromJid(jid);
+
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.CHAT_PARTICIPANT_UNMUTED,
+                    participantId);
+            });
+
         chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
             (jid: string, status: string) => {
                 const id = Strophe.getResourceFromJid(jid);
