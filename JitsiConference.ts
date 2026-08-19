@@ -4455,18 +4455,20 @@ export default class JitsiConference extends Listenable {
      * Sets a property for the local participant.
      * @param {string} name - The name of the property.
      * @param {string} value - The value of the property.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {void}
      */
-    public setLocalParticipantProperty(name: string, value: string | string[]): void {
-        this.sendCommand(`jitsi_participant_${name}`, { value });
+    public setLocalParticipantProperty(name: string, value: string | string[], useRawKeys = false): void {
+        this.sendCommand(useRawKeys ? name : `jitsi_participant_${name}`, { value });
     }
 
     /**
      * Sets multiple properties for the local participant in a single presence update.
      * @param {Record<string, string | string[]>} properties - Object of property names to values.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {void}
      */
-    public setLocalParticipantProperties(properties: Record<string, string | string[]>): void {
+    public setLocalParticipantProperties(properties: Record<string, string | string[]>, useRawKeys = false): void {
         if (!this.room) {
             return;
         }
@@ -4474,7 +4476,8 @@ export default class JitsiConference extends Listenable {
         let changed = false;
 
         for (const name of Object.keys(properties)) {
-            const wasChanged = this.room.addOrReplaceInPresence(`jitsi_participant_${name}`, { value: properties[name] });
+            const tagName = useRawKeys ? name : `jitsi_participant_${name}`;
+            const wasChanged = this.room.addOrReplaceInPresence(tagName, { value: properties[name] });
 
             changed = changed || Boolean(wasChanged);
         }
@@ -4487,10 +4490,11 @@ export default class JitsiConference extends Listenable {
     /**
      * Removes a property for the local participant and sends the updated presence.
      * @param {string} name - The name of the property to remove.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {void}
      */
-    public removeLocalParticipantProperty(name: string): void {
-        this.removeCommand(`jitsi_participant_${name}`);
+    public removeLocalParticipantProperty(name: string, useRawKeys = false): void {
+        this.removeCommand(useRawKeys ? name : `jitsi_participant_${name}`);
         if (this.room) {
             this.room.sendPresence();
         }
@@ -4510,11 +4514,13 @@ export default class JitsiConference extends Listenable {
     /**
      * Gets a local participant property.
      * @param {string} name - The name of the property to retrieve.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {string|undefined} The value of the property if it exists, otherwise undefined.
      */
-    public getLocalParticipantProperty(name: string): Optional<string> {
+    public getLocalParticipantProperty(name: string, useRawKeys = false): Optional<string> {
+        const tagName = useRawKeys ? name : `jitsi_participant_${name}`;
         const property = this.room.presMap.nodes.find(prop =>
-            prop.tagName === `jitsi_participant_${name}`
+            prop.tagName === tagName
         );
 
         return property ? property.value : undefined;
