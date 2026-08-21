@@ -4,6 +4,7 @@ import 'webrtc-adapter';
 
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
+import { CameraControlType } from '../../service/RTC/CameraControlType';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
@@ -85,6 +86,47 @@ if (isAudioOutputDeviceChangeAvailable) {
 let availableDevices = [];
 let availableDevicesPollTimer;
 
+// Per-camera pan/tilt/zoom support, keyed by deviceId. Populated best-effort during device enumeration by probing
+// InputDeviceInfo.getCapabilities(). Used by the application to decide whether to offer camera control for a device
+// without having to first acquire a stream from it. The values reflect what the browser reports at enumeration time;
+// pan/tilt in particular may only appear once the panTiltZoom permission has been granted, so the authoritative
+// capabilities for a live track come from JitsiLocalTrack.getCameraControlCapabilities().
+let cameraPTZSupport = new Map();
+
+/**
+ * Probes the pan/tilt/zoom support of every video input device in the given list via InputDeviceInfo.getCapabilities()
+ * and stores the result in {@link cameraPTZSupport}. Best-effort: browsers without InputDeviceInfo.getCapabilities()
+ * (or that throw) simply record no PTZ support for the device.
+ *
+ * @param {MediaDeviceInfo[]} devices - The enumerated devices.
+ * @returns {void}
+ */
+function probeCameraPTZSupport(devices) {
+    const support = new Map();
+
+    for (const device of devices) {
+        if (device.kind !== 'videoinput') {
+            continue; // eslint-disable-line no-continue
+        }
+
+        let capabilities = {};
+
+        try {
+            capabilities = typeof device.getCapabilities === 'function' ? device.getCapabilities() : {};
+        } catch (error) {
+            logger.warn(`Failed to read capabilities for camera ${device.deviceId}: ${error}`);
+        }
+
+        support.set(device.deviceId, {
+            [CameraControlType.PAN]: Boolean(capabilities[CameraControlType.PAN]),
+            [CameraControlType.TILT]: Boolean(capabilities[CameraControlType.TILT]),
+            [CameraControlType.ZOOM]: Boolean(capabilities[CameraControlType.ZOOM])
+        });
+    }
+
+    cameraPTZSupport = support;
+}
+
 /**
  * An empty function.
  */
@@ -98,6 +140,7 @@ function emptyFuncton() {
  * @param {Array} um - An array of user media types to get. The accepted types are "video", "audio", and "desktop."
  * @param {Object} options - Various values to be added to the constraints.
  * @param {string} options.cameraDeviceId - The device id for the video capture device to get video from.
+ * @param {boolean} options.cameraPtz - Whether to ask for the pan/tilt/zoom capabilities of the camera.
  * @param {Object} options.constraints - Default constraints object to use as a base for the returned constraints.
  * @param {Object} options.desktopStream - The desktop source id from which to capture a desktop sharing video.
  * @param {string} options.facingMode - Which direction the camera is pointing to (applicable on mobile)
@@ -152,6 +195,15 @@ function getConstraints(um = [], options = {}) {
             constraints.video.deviceId = { exact: options.cameraDeviceId };
         } else if (browser.isMobileDevice()) {
             constraints.video.facingMode = options.facingMode || CameraFacingMode.USER;
+        }
+
+        // The pan/tilt/zoom capabilities of a camera are only exposed on a track that asked for them, and asking
+        // prompts the user for a permission separate from the camera one. Denying it still resolves with a working
+        // camera, just without the capabilities.
+        if (options.cameraPtz && browser.supportsCameraPtz()) {
+            constraints.video[CameraControlType.PAN] = true;
+            constraints.video[CameraControlType.TILT] = true;
+            constraints.video[CameraControlType.ZOOM] = true;
         }
     } else {
         constraints.video = false;
@@ -385,14 +437,32 @@ class RTCUtils extends Listenable {
     enumerateDevices(callback) {
         navigator.mediaDevices.enumerateDevices()
             .then(devices => {
+                probeCameraPTZSupport(devices);
                 this._updateKnownDevices(devices);
                 callback(devices);
             })
             .catch(error => {
                 logger.warn(`Failed to  enumerate devices. ${error}`);
+                probeCameraPTZSupport([]);
                 this._updateKnownDevices([]);
                 callback([]);
             });
+    }
+
+    /**
+     * Returns the pan/tilt/zoom support that was detected for the camera with the given device id during the last
+     * device enumeration.
+     *
+     * @param {string} deviceId - The id of the 'videoinput' device.
+     * @returns {{ pan: boolean, tilt: boolean, zoom: boolean }} - The detected support. All false when the device is
+     * unknown or the browser does not expose camera capabilities.
+     */
+    getCameraPTZCapabilities(deviceId) {
+        return cameraPTZSupport.get(deviceId) ?? {
+            [CameraControlType.PAN]: false,
+            [CameraControlType.TILT]: false,
+            [CameraControlType.ZOOM]: false
+        };
     }
 
     /**
