@@ -33,6 +33,7 @@ import FeatureFlags from './modules/flags/FeatureFlags';
 import { LiteModeContext } from './modules/litemode/LiteModeContext';
 import { QualityController } from './modules/qualitycontrol/QualityController';
 import { IReceiverVideoConstraints } from './modules/qualitycontrol/ReceiveVideoController';
+import { SyntheticAudioService } from './modules/qualitycontrol/SyntheticAudioSubscription';
 import JibriSession from './modules/recording/JibriSession';
 import RecordingManager, { IRecordingOptions } from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
@@ -1431,8 +1432,12 @@ export default class JitsiConference extends Listenable {
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
+        // Translated and voice-agent audio are bridge-injected, so either being active requires JVB.
+        const hasAgentAudioSubscription = this.qualityController.audioController
+            .getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS).sources.length > 0;
         const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
+        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0
+        && !hasAgentAudioSubscription;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
@@ -2416,6 +2421,8 @@ export default class JitsiConference extends Listenable {
      * named by convention {endpointId}-a0.{language} so they can be requested before the source is signaled.
      * Keeping the baseline means the original audio still flows (and can be ducked); an empty include list
      * (no active translations) clears the opt-in set. Resilient to the source not yet being signaled.
+     * Managed as the audio-translation service's synthetic subscription, so it co-exists with other
+     * synthetic subscribers (e.g. voice agents).
      *
      * @returns {void}
      */
@@ -2425,7 +2432,26 @@ export default class JitsiConference extends Listenable {
             ([ endpointId, language ]) =>
                 `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
-        this.qualityController.audioController.setIncludeSources(include);
+        this.qualityController.audioController
+            .getSyntheticSubscription(SyntheticAudioService.AUDIO_TRANSLATION)
+            .setSources(include);
+    }
+
+    /**
+     * Replaces the set of voice-agent synthetic audio sources this receiver subscribes to (the source names
+     * come from the `agents` room metadata; subscribing is what makes an agent audible, after user consent).
+     * Managed as the voice-agents service's synthetic subscription, so it co-exists with audio translation.
+     *
+     * @param {Array<string>} sourceNames - The full desired set of agent source names; empty unsubscribes all.
+     * @returns {void}
+     */
+    public setAgentAudioSubscription(sourceNames: string[]): void {
+        this.qualityController.audioController
+            .getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS)
+            .setSources(sourceNames);
+
+        // Agent audio is delivered via the bridge, so P2P must be disabled while it is subscribed.
+        this._maybeStartOrStopP2P();
     }
 
     /**

@@ -1,6 +1,8 @@
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
 
 describe('JitsiConference', () => {
     describe('JitsiConferenceEvents message handling', () => {
@@ -264,6 +266,108 @@ describe('JitsiConference', () => {
                 false,                        // isVisitor
                 undefined                     // replyToId
             );
+        });
+    });
+
+    describe('audio subscriptions (translation + voice agents)', () => {
+        let conference: any;
+        let sent: any[];
+
+        const participant = (id: string) => ({
+            getBotType: () => undefined,
+            getId: () => id,
+            hasFeature: () => false
+        });
+        const lastInclude = () => sent[sent.length - 1].include.sort();
+
+        beforeEach(() => {
+            sent = [];
+
+            // A fake conference over the REAL prototype (so the real translation/agent subscription wiring
+            // runs) with a REAL ReceiverAudioController over a captured bridge channel. Only the XMPP
+            // request stanza is stubbed out.
+            conference = Object.create(JitsiConference.prototype);
+            conference._receiverTranslationLanguage = null;
+            conference._participantTranslationLanguages = new Map();
+            conference._translationRequests = new Map();
+            conference.getParticipants = () => [ participant('aaaaaaaa'), participant('bbbbbbbb') ];
+            conference._sendTranslationRequestStanza = () => true;
+
+            // P2P management (translation forces JVB) is out of scope here and needs a full conference.
+            conference._maybeStartOrStopP2P = () => { /* stubbed */ };
+            conference.qualityController = {
+                audioController: new ReceiverAudioController({
+                    rtc: { sendReceiverAudioSubscriptionMessage: (message: any) => sent.push(message) }
+                } as any)
+            };
+        });
+
+        it('subscribes to every speaker\'s translated source for the default language', () => {
+            conference.setReceiverTranslationLanguage('en');
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'bbbbbbbb-a0.en' ]);
+            expect(sent[sent.length - 1].all).toBe(true);
+        });
+
+        it('honors a per-participant language override', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setParticipantTranslationLanguage('aaaaaaaa', 'de');
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.de', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('clearTranslation empties the translation subscription', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.clearTranslation();
+
+            expect(lastInclude()).toEqual([]);
+        });
+
+        it('translation and voice-agent subscriptions co-exist', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'agent001-a0', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('clearing translation keeps the agent subscription intact', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            conference.clearTranslation();
+
+            expect(lastInclude()).toEqual([ 'agent001-a0' ]);
+        });
+
+        it('unsubscribing agents keeps the translation subscription intact', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            conference.setAgentAudioSubscription([]);
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('an active agent subscription forces JVB (no P2P), like translation does', () => {
+            // P2P is only ever a 1:1 topology.
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+
+            conference.setAgentAudioSubscription([]);
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference.setReceiverTranslationLanguage('en');
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+        });
+
+        it('subscribing agent audio triggers the P2P re-evaluation', () => {
+            const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
+
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+
+            expect(p2pSpy).toHaveBeenCalled();
         });
     });
 });

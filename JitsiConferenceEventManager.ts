@@ -577,6 +577,9 @@ export default class JitsiConferenceEventManager {
         });
 
         rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: any) => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED, change);
+
+            // Deprecated alias, kept until consumers migrate to SYNTHETIC_SOURCE_SENDING_CHANGED.
             conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
         });
 

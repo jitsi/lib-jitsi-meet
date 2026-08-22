@@ -424,6 +424,13 @@ export enum JitsiConferenceEvents {
     SUSPEND_DETECTED = 'conference.suspendDetected',
 
     /**
+     * Indicates that a synthetic (bridge-injected) audio source started or stopped sending — e.g. a
+     * translated stream or a voice agent's audio. The listener receives { sourceName, sending, timestamp };
+     * timestamp is an RTP timestamp (48 kHz, wraps at 2^32) — not epoch ms.
+     */
+    SYNTHETIC_SOURCE_SENDING_CHANGED = 'conference.syntheticSourceSendingChanged',
+
+    /**
      * Event indicates that local user is talking while he muted himself
      */
     TALK_WHILE_MUTED = 'conference.talk_while_muted',
@@ -474,6 +481,9 @@ export enum JitsiConferenceEvents {
      * Indicates that a translated audio source started or stopped being forwarded to the local endpoint. The
      * listener receives { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz, wraps at
      * 2^32) — not epoch ms.
+     *
+     * @deprecated Use {@link SYNTHETIC_SOURCE_SENDING_CHANGED}: the event fires for every synthetic source
+     * (translated audio, voice agents), not only translations. Both events currently carry the same payload.
      */
     TRANSLATED_SOURCE_SENDING_CHANGED = 'conference.translatedSourceSendingChanged',
 
