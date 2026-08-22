@@ -430,6 +430,9 @@ export default class JitsiConferenceEventManager {
                     messageId,
                     moderatorId,
                     reason
+                );
+            });
+
         chatRoom.addListener(
             XMPPEvents.MESSAGE_RETRACTED,
 
