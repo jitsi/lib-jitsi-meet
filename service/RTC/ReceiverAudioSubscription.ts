@@ -98,3 +98,22 @@ export function normalizeReceiverAudioSubscription(
         include: message.include ?? []
     };
 }
+
+/**
+ * The synthetic-audio subscription services. Synthetic sources are bridge-injected audio streams (never sent
+ * by a client): they are excluded from the `all` baseline and forwarded only on an explicit `include`, so
+ * each consuming feature manages its own opt-in set.
+ */
+export enum SyntheticAudioService {
+    /**
+     * Bridge-side live audio translation: one synthetic source per (speaker, language), named
+     * `{endpointId}-a0.{language}`.
+     */
+    AUDIO_TRANSLATION = 'audio-translation',
+
+    /**
+     * Voice agents (bot participants): one synthetic source per agent, named `{agentId}-a0` and advertised
+     * through room metadata.
+     */
+    VOICE_AGENTS = 'voice-agents'
+}
