@@ -1,4 +1,6 @@
 /* eslint-disable max-len */
+import transform from 'sdp-transform';
+
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
@@ -205,6 +207,58 @@ describe('TPCUtils', () => {
                     'a=rtcp-mux'
                 ].join('\r\n')}\r\n`;
             }
+        });
+    });
+
+    describe('mungeCodecOrder()', () => {
+        const sdpStr = [
+            'v=0',
+            'o=- 814997227879783433 5 IN IP4 127.0.0.1',
+            's=-',
+            't=0 0',
+            'm=video 9 RTP/SAVPF 100 102 96',
+            'c=IN IP4 0.0.0.0',
+            'a=rtpmap:100 H264/90000',
+            'a=fmtp:100 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f',
+            'a=rtpmap:102 H264/90000',
+            'a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640028',
+            'a=rtpmap:96 VP8/90000',
+            'a=mid:0',
+            ''
+        ].join('\r\n');
+
+        const createTpcUtils = (videoQuality = {}) => {
+            const pc = new MockPeerConnection('1', true, false /* simulcast */);
+
+            pc.codecSettings = {
+                codecList: [ CodecMimeType.H264, CodecMimeType.VP8 ],
+                mediaType: MediaType.VIDEO
+            };
+
+            return new TPCUtils(pc, {
+                isP2P: true,
+                videoQuality
+            });
+        };
+
+        it('strips the high profile H.264 payload types on p2p by default', () => {
+            const tpcUtils = createTpcUtils();
+            const mungedSdp = tpcUtils.mungeCodecOrder(transform.parse(sdpStr));
+            const mLine = mungedSdp.media.find(m => m.type === 'video');
+
+            expect(mLine.rtp.some(pt => pt.payload === 100)).toBe(true);
+            expect(mLine.rtp.some(pt => pt.payload === 102)).toBe(false);
+            expect(mLine.fmtp.some(f => f.payload === 102)).toBe(false);
+        });
+
+        it('keeps the high profile H.264 payload types when videoQuality.h264.stripHighProfile is disabled', () => {
+            const tpcUtils = createTpcUtils({ h264: { stripHighProfile: false } });
+            const mungedSdp = tpcUtils.mungeCodecOrder(transform.parse(sdpStr));
+            const mLine = mungedSdp.media.find(m => m.type === 'video');
+
+            expect(mLine.rtp.some(pt => pt.payload === 100)).toBe(true);
+            expect(mLine.rtp.some(pt => pt.payload === 102)).toBe(true);
+            expect(mLine.fmtp.some(f => f.payload === 102)).toBe(true);
         });
     });
 
