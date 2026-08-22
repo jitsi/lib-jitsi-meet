@@ -22,6 +22,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.CALL_ENDED ).toBe( 'xmpp.callended.jingle' );
         expect( XMPPEvents.CHAT_ERROR_RECEIVED ).toBe( 'xmpp.chat_error_received' );
         expect( XMPPEvents.SETTINGS_ERROR_RECEIVED ).toBe( 'xmpp.settings_error_received' );
+        expect( XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED ).toBe( 'xmpp.client_requirements_received' );
         expect( XMPPEvents.CONFERENCE_PROPERTIES_CHANGED ).toBe( 'xmpp.conference_properties_changed' );
         expect( XMPPEvents.CONNECTION_ESTABLISHED ).toBe( 'xmpp.connection.connected' );
         expect( XMPPEvents.CONNECTION_FAILED ).toBe( 'xmpp.connection.failed' );

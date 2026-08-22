@@ -104,6 +104,14 @@ export enum JitsiConferenceEvents {
     BRIDGE_BWE_STATS_RECEIVED = 'conference.bridgeBweStatsReceived',
 
     /**
+     * Event fired when jicofo signals that this client does not advertise capabilities that the deployment requires.
+     * The payload is an object with an 'action' field ('reject' or 'warn') and a 'features' field, which lists the
+     * missing capabilities. With 'reject' the client is not invited to the conference, i.e. it can not send or receive
+     * media, but it stays in the room and can still use the features which do not need a media session (e.g. chat).
+     */
+    CLIENT_REQUIREMENTS_NOT_MET = 'conference.client_requirements_not_met',
+
+    /**
      * UTC conference timestamp when first participant joined.
      */
     CONFERENCE_CREATED_TIMESTAMP = 'conference.createdTimestamp',

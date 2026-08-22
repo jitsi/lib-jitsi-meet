@@ -19,6 +19,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.AUTH_STATUS_CHANGED ).toBe( 'conference.auth_status_changed' );
         expect( JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED ).toBe( 'conference.beforeStatisticsDisposed' );
         expect( JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED ).toBe( 'conference.bridgeBweStatsReceived' );
+        expect( JitsiConferenceEvents.CLIENT_REQUIREMENTS_NOT_MET ).toBe( 'conference.client_requirements_not_met' );
         expect( JitsiConferenceEvents.CONFERENCE_ERROR ).toBe( 'conference.error' );
         expect( JitsiConferenceEvents.CONFERENCE_FAILED ).toBe( 'conference.failed' );
         expect( JitsiConferenceEvents.CONFERENCE_JOIN_IN_PROGRESS ).toBe( 'conference.join_in_progress' );

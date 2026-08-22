@@ -10,6 +10,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import { COMMIT_HASH } from '../../version';
 import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
@@ -345,6 +346,13 @@ export default class ChatRoom extends Listenable {
                 'value': options.statsId
             });
         }
+
+        // Advertise the version of the library, so that the server can log it (e.g. when a client does not advertise
+        // a capability that the deployment requires).
+        this.presMap.nodes.push({
+            'tagName': 'jitsi_participant_clientVersion',
+            'value': COMMIT_HASH
+        });
 
         this.presenceUpdateTime = Date.now();
     }
@@ -2342,6 +2350,49 @@ export default class ChatRoom extends Listenable {
             logger.warn('Ignoring a mute request which does not explicitly '
                 + 'specify a positive mute command.');
         }
+    }
+
+    /**
+     * Handle a client-requirements IQ from the focus. It signals that this client does not advertise capabilities
+     * that the deployment requires. With an action of 'reject' the client is not invited to the conference, so it can
+     * not send or receive media, but it stays in the room and can still use the features which do not need a media
+     * session (e.g. chat).
+     *
+     * @param iq The received iq.
+     * @internal
+     */
+    onClientRequirements(iq: Element): void {
+        const from = iq.getAttribute('from');
+
+        if (from !== this.focusMucJid) {
+            logger.warn('Ignored client requirements from non focus peer');
+
+            return;
+        }
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const requirements = findFirst(iq, ':scope>client-requirements[*|xmlns="jitsi:client-requirements"]');
+
+        if (!requirements) {
+            return;
+        }
+
+        const action = getAttribute(requirements, 'action');
+        const features = findAll(requirements, ':scope>missing-feature').map(feature => {
+            return {
+                details: getAttribute(feature, 'details') ?? undefined,
+                feature: getAttribute(feature, 'var'),
+                level: getAttribute(feature, 'level'),
+                name: getAttribute(feature, 'name') ?? undefined,
+                url: getAttribute(feature, 'url') ?? undefined
+            };
+        });
+
+        logger.warn(`Received client requirements: action=${action}, features=${JSON.stringify(features)}`);
+        this.eventEmitter.emit(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED, {
+            action,
+            features
+        });
     }
 
     /**

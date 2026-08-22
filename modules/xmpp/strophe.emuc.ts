@@ -60,6 +60,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/desktop', 'iq', 'set', null, null);
         this.connection.addHandler(this.onVisitors.bind(this),
             'jitsi:visitors', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onClientRequirements.bind(this),
+            'jitsi:client-requirements', 'iq', 'set', null, null);
     }
 
     /**
@@ -256,6 +258,12 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             return true;
         }
 
+        if (from !== room.roomjid) {
+            logger.warn(`Ignoring a visitors IQ from an unexpected sender: ${from}`);
+
+            return true;
+        }
+
         // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
         const visitors = findFirst(iq, ':scope>visitors[*|xmlns="jitsi:visitors"]');
         const response = findFirst(visitors, ':scope>promotion-response');
@@ -270,6 +278,25 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
                 this.xmpp.eventEmitter.emit(XMPPEvents.VISITORS_REJECTION);
             }
         }
+
+        return true;
+    }
+
+    /**
+     * A client-requirements IQ is received, pass it to the room.
+     *
+     * @param iq The received iq.
+     * @returns {boolean}
+     */
+    onClientRequirements(iq: Element): boolean {
+        const from = iq.getAttribute('from');
+        const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
+        if (!room) {
+            return true;
+        }
+
+        room.onClientRequirements(iq);
 
         return true;
     }

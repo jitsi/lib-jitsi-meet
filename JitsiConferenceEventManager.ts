@@ -723,6 +723,9 @@ export default class JitsiConferenceEventManager {
                 conference.eventEmitter.emit(JitsiConferenceEvents.AV_MODERATION_REJECTED, { mediaType: value });
             });
 
+        this._addConferenceXMPPListener(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED,
+            (value: unknown) => conference.eventEmitter.emit(JitsiConferenceEvents.CLIENT_REQUIREMENTS_NOT_MET, value));
+
         this._addConferenceXMPPListener(XMPPEvents.VISITORS_MESSAGE,
             (value: string) => conference.eventEmitter.emit(JitsiConferenceEvents.VISITORS_MESSAGE, value));
         this._addConferenceXMPPListener(XMPPEvents.VISITORS_REJECTION,
