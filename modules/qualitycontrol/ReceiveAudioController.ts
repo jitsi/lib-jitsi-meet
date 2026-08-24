@@ -3,94 +3,136 @@ import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
-import { IReceiverAudioSubscriptionMessage, ReceiverAudioSubscription } from '../../service/RTC/ReceiverAudioSubscription';
+import {
+    ILegacyReceiverAudioSubscriptionMessage,
+    IReceiverAudioSubscriptionMessage,
+    normalizeReceiverAudioSubscription
+} from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
 const logger = getLogger('qc:ReceiveAudioController');
 
 /**
- * Controller for managing audio subscriptions in a Jitsi conference. It allows subscribing to remote audio streams
- * based on different modes such as ALL, EXCLUDE, INCLUDE, and NONE.
+ * Controller for the local endpoint's remote-audio subscription. The subscription sent to the bridge combines
+ * three dimensions: `all` (the baseline — forward every regular source), `include` (extra opt-in sources on
+ * top, e.g. bridge-injected translated audio) and `exclude` (sources to drop). The default is `all: true`.
  */
 export class ReceiverAudioController {
     private _rtc: RTC;
 
     /**
-     * The list of remote audio sources that the local endpoint is subscribed/unsubscribed to.
-     * This is used when the subscription mode is set to INCLUDE or EXCLUDE.
+     * Whether the baseline subscription to every regular remote source is active. Defaults to true.
      */
-    private _sourceList: string[];
+    private _all: boolean;
 
     /**
-     * The audio subscription options for remote audio streams.
+     * Source names dropped from the subscription.
      */
-    private _subscriptionMode: ReceiverAudioSubscription;
+    private _exclude: string[];
+
+    /**
+     * Source names additionally forwarded on top of the baseline (e.g. translated sources).
+     */
+    private _include: string[];
 
     /**
      * Creates a new instance of the ReceiverAudioController.
      */
     constructor(conference: JitsiConference) {
         this._rtc = conference.rtc;
-        this._sourceList = [];
-        this._subscriptionMode = ReceiverAudioSubscription.ALL;
+        this._all = true;
+        this._exclude = [];
+        this._include = [];
     }
 
     /**
-     * Gets the current audio subscription option.
+     * Gets the current audio subscription.
      *
-     * @returns {ReceiverAudioSubscription} The current audio subscription option.
+     * @returns {IReceiverAudioSubscriptionMessage} The current audio subscription.
      */
-    get audioSubscription(): ReceiverAudioSubscription {
-        return this._subscriptionMode;
+    get audioSubscription(): IReceiverAudioSubscriptionMessage {
+        return {
+            all: this._all,
+            exclude: [ ...this._exclude ],
+            include: [ ...this._include ]
+        };
     }
 
     /**
-     * Mutes or unmutes the remote audio streams based on the provided parameter.
+     * Sends the current subscription to the bridge.
      *
-     * @param {boolean} muted - Indicates whether the remote audio should be muted or not.
+     * @returns {void}
+     */
+    private _send(): void {
+        this._rtc.sendReceiverAudioSubscriptionMessage({
+            all: this._all,
+            exclude: this._exclude,
+            include: this._include
+        });
+    }
+
+    /**
+     * Mutes or unmutes all remote audio by toggling the baseline. The explicit include/exclude overlays (e.g.
+     * opted-in translated sources) are preserved so they are restored on unmute rather than lost across the cycle.
+     *
+     * @param {boolean} muted - Indicates whether the remote audio should be muted.
      * @returns {void}
      */
     muteRemoteAudio(muted: boolean): void {
         this.setAudioSubscriptionMode({
-            mode: muted ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL
+            all: !muted,
+            exclude: this._exclude,
+            include: this._include
         });
     }
 
     /**
-     * Sets the audio subscription options.
+     * Re-sends the current audio subscription to the bridge. Used when the bridge channel (re)opens so the
+     * bridge always learns the receiver's subscription (the default { all: true } until includes are added).
      *
-     * @param message The audio subscription message containing the mode and optional source list.
      * @returns {void}
      */
-    setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
-        if ((message.mode == ReceiverAudioSubscription.NONE || message.mode == ReceiverAudioSubscription.ALL)
-            && this._subscriptionMode == message.mode) {
-            logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode}, no change needed.`);
+    resendSubscription(): void {
+        this._send();
+    }
+
+    /**
+     * Replaces the set of additionally-included sources (e.g. translated sources), preserving the `all`
+     * baseline and any excludes.
+     *
+     * @param {Array<string>} include - The full set of source names to include on top of the baseline.
+     * @returns {void}
+     */
+    setIncludeSources(include: string[]): void {
+        this.setAudioSubscriptionMode({
+            all: this._all,
+            exclude: this._exclude,
+            include
+        });
+    }
+
+    /**
+     * Sets the full audio subscription (all / include / exclude). No-op when nothing changed. Also accepts the
+     * legacy { mode, list } message for backwards compatibility, normalising it to the current shape.
+     *
+     * @param {IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage} message - The
+     * subscription to apply.
+     * @returns {void}
+     */
+    setAudioSubscriptionMode(
+            message: IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage): void {
+        const { all, exclude, include } = normalizeReceiverAudioSubscription(message);
+
+        if (this._all === all && isEqual(this._exclude, exclude) && isEqual(this._include, include)) {
+            logger.debug('Ignoring ReceiverAudioSubscription, no change needed.');
 
             return;
         }
-        this._subscriptionMode = message.mode;
-        if (message.mode == ReceiverAudioSubscription.INCLUDE
-            || message.mode == ReceiverAudioSubscription.EXCLUDE) {
 
-            if (!message.list?.length) {
-                this._subscriptionMode = message.mode == ReceiverAudioSubscription.INCLUDE
-                    ? ReceiverAudioSubscription.NONE : ReceiverAudioSubscription.ALL;
-            } else if (this._subscriptionMode == message.mode && isEqual(this._sourceList, message.list)) {
-                logger.debug(`Ignoring ReceiverAudioSubscription with mode: ${message.mode},`
-                    + ` sourceList: ${message.list.join(', ')}, no change needed.`);
-
-                return;
-            }
-            this._sourceList = message.list || [];
-        } else {
-            // Clear the source list for ALL or NONE modes.
-            this._sourceList = [];
-        }
-
-        this._rtc.sendReceiverAudioSubscriptionMessage({
-            list: this._sourceList,
-            mode: this._subscriptionMode
-        });
+        this._all = all;
+        this._exclude = exclude;
+        this._include = include;
+        this._send();
     }
+
 }

@@ -6,6 +6,7 @@ import browser from '../browser';
 class FeatureFlags {
     private _runInLiteMode: boolean;
     private _ssrcRewriting: boolean;
+    private _rtpMidDemux: boolean;
 
     /**
      * Configures the module.
@@ -13,10 +14,41 @@ class FeatureFlags {
      * @param {object} flags - The feature flags.
      * @param {Optional<boolean>} flags.runInLiteMode - Enables lite mode for testing to disable media decoding.
      * @param {Optional<boolean>} flags.ssrcRewritingEnabled - Use SSRC rewriting.
+     * @param {Optional<boolean>} flags.rtpMidDemuxEnabled - Allow the bridge to demux forwarded media by the RTP
+     * sdes:mid header extension (requires SSRC rewriting).
      */
-    init(flags: { runInLiteMode?: Optional<boolean>; ssrcRewritingEnabled?: Optional<boolean>; }) {
+    init(flags: {
+        rtpMidDemuxEnabled?: Optional<boolean>;
+        runInLiteMode?: Optional<boolean>;
+        ssrcRewritingEnabled?: Optional<boolean>;
+    }) {
         this._runInLiteMode = Boolean(flags.runInLiteMode);
         this._ssrcRewriting = Boolean(flags.ssrcRewritingEnabled);
+        this._rtpMidDemux = Boolean(flags.rtpMidDemuxEnabled);
+    }
+
+    /**
+     * Checks if the client supports demuxing media forwarded by the bridge using the RTP sdes:mid header extension.
+     * Requires SSRC rewriting, since the per-slot mids are signaled in the bridge's source-map messages. Limited to
+     * Chromium-based browsers: Chrome routes each forwarded source to its own m-line by mid -- remote audio to the
+     * bridge's "a0" m-line and remote video to "v0" (verified via inbound-rtp). Firefox mid-demuxes video correctly but
+     * does NOT for audio: it folds the remote audio onto its own sendrecv audio m-line (mid 0) instead of the bridge's
+     * recvonly "a0" m-line, leaving "a0" orphaned. That orphan m-line's join-time SSRC reconciliation intermittently
+     * stalls audio reception past acceptable limits (manifests as the torture suite's "no media in 15s", audio-only,
+     * Firefox-only, under mid demux; absent when mid demux is off and there is no "a0" m-line). So Firefox keeps
+     * SSRC-only demuxing and the {@code TPCUtils._stripSdesMid} workaround.
+     *
+     * Further limited to Chromium 148 and later: mid demux is a workaround for the audio-demux wedge, and that
+     * regression was introduced in Chromium 148. Earlier Chromium versions do not have the bug, so there is nothing to
+     * work around there.
+     *
+     * @returns {boolean}
+     */
+    isRtpMidDemuxSupported(): boolean {
+        return this._rtpMidDemux
+            && this._ssrcRewriting
+            && browser.isChromiumBased()
+            && browser.isEngineVersionGreaterThan(147);
     }
 
     /**

@@ -68,8 +68,19 @@ let disableAGC = false;
 let stereo = null;
 
 const featureDetectionAudioEl = document.createElement('audio');
-const isAudioOutputDeviceChangeAvailable
-    = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+let isAudioOutputDeviceChangeAvailable = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+
+// The presence of the setSinkId symbol does not imply a working implementation. Probe the API once against the system
+// default sink ('') and downgrade the availability flag if the probe rejects, so the rest of the code stops trying
+// to call setSinkId for the duration of the session.
+if (isAudioOutputDeviceChangeAvailable) {
+    featureDetectionAudioEl.setSinkId('')
+        .catch(error => {
+            isAudioOutputDeviceChangeAvailable = false;
+            logger.info(
+                `setSinkId probe rejected (${error?.name}); audio output device change disabled for this session`);
+        });
+}
 
 let availableDevices = [];
 let availableDevicesPollTimer;
@@ -99,7 +110,7 @@ function getConstraints(um = [], options = {}) {
     const constraints = cloneDeep(options.constraints || DEFAULT_CONSTRAINTS);
 
     if (um.indexOf('video') >= 0) {
-        if (!constraints.video) {
+        if (typeof constraints.video !== 'object' || constraints.video === null) {
             constraints.video = {};
         }
 
@@ -111,8 +122,14 @@ function getConstraints(um = [], options = {}) {
             constraints.video.width = { ideal: r.width };
         }
 
+        if (!constraints.video.height) {
+            constraints.video.height = cloneDeep(DEFAULT_CONSTRAINTS.video.height);
+        }
+        if (!constraints.video.width) {
+            constraints.video.width = cloneDeep(DEFAULT_CONSTRAINTS.video.width);
+        }
         if (!constraints.video.frameRate) {
-            constraints.video.frameRate = DEFAULT_CONSTRAINTS.video.frameRate;
+            constraints.video.frameRate = cloneDeep(DEFAULT_CONSTRAINTS.video.frameRate);
         }
 
         // Override the constraints on Safari because of the following webkit bug.
@@ -350,17 +367,11 @@ class RTCUtils extends Listenable {
                 // we skip setting audio output if there was no explicit change
                 && audioOutputChanged) {
             return element.setSinkId(this.getAudioOutputDevice()).catch(ex => {
-                const err
-                    = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
                 logger.warn(
-                    'Failed to set audio output device for the element.'
-                        + ' Default audio output device will be used'
+                    'Failed to set audio output device for the element. Default audio output device will be used'
                         + ' instead',
                     element?.id,
-                    err);
-
-                throw err;
+                    new JitsiTrackError(ex, null, [ 'audiooutput' ]));
             });
         }
 

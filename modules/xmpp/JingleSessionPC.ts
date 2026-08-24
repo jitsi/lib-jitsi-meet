@@ -5,16 +5,21 @@ import { $build, $iq, Strophe } from 'strophe.js';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
+import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
-import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
+import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
+import RemoteAudioWedgeDetector from '../RTC/RemoteAudioWedgeDetector';
 import { SS_DEFAULT_FRAME_RATE } from '../RTC/ScreenObtainer';
 import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/TraceablePeerConnection';
+import RTCStats from '../RTCStats/RTCStats';
+import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
@@ -22,6 +27,7 @@ import { SDPDiffer } from '../sdp/SDPDiffer';
 import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
+import { TraceParentExtension } from '../util/OTel';
 import { exists, findAll, findFirst, getAttribute } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
@@ -52,6 +58,49 @@ const DEFAULT_MAX_STATS: number = 300;
 const ICE_CAND_GATHERING_TIMEOUT: number = 150;
 
 /**
+ * How long the media stats sampler runs after an in-place ICE restart started, in ms.
+ * @type {number}
+ */
+const ICE_RESTART_STATS_DURATION: number = 3000;
+
+/**
+ * The interval at which media stats are sampled during an ICE restart, in ms.
+ * @type {number}
+ */
+const ICE_RESTART_STATS_INTERVAL: number = 100;
+
+/**
+ * The prefix used by all the logs of the in-place ICE restart flow, so that a whole restart can be extracted from
+ * a log file with a single grep.
+ * @type {string}
+ */
+const ICE_RESTART_LOG_PREFIX: string = '[ice-restart]';
+
+/**
+ * Matches a plain decimal string (no sign, no separators). Used as the first check on a signaled ssrc attribute.
+ * @type {RegExp}
+ */
+const SSRC_PATTERN = /^\d+$/;
+
+/**
+ * The largest valid RTP SSRC, i.e. the unsigned 32-bit maximum (RFC 5576).
+ * @type {number}
+ */
+const MAX_SSRC = 0xFFFFFFFF;
+
+/**
+ * Checks that a signaled ssrc attribute is a plain decimal string within the unsigned 32-bit SSRC range (RFC 5576).
+ * Signaled ssrcs are validated before use since they end up in SDP text, string lookups, and {@code Number()}
+ * coercion (a digit string above the 32-bit range would lose integer precision when coerced).
+ *
+ * @param {string} ssrc - The raw ssrc attribute value.
+ * @returns {boolean} Whether the value is a valid SSRC.
+ */
+function isValidSsrc(ssrc: string): boolean {
+    return SSRC_PATTERN.test(ssrc) && Number(ssrc) <= MAX_SSRC;
+}
+
+/**
  * Reads the endpoint ID given a string which represents either the endpoint's full JID, or the endpoint ID itself.
  * @param {String} jidOrEndpointId A string which is either the full JID of a participant, or the ID of an
  * endpoint/participant.
@@ -69,23 +118,33 @@ function getEndpointId(jidOrEndpointId: string): string {
  * @param {String} msid The "msid" attribute.
  */
 function _addSourceElement(description: any, s: any, ssrc_: number, msid: string): void {
-    description.c('source', {
+    const source = description.c('source', {
         name: s.source,
         ssrc: ssrc_,
         videoType: s.videoType?.toLowerCase(),
         xmlns: XEP.SOURCE_ATTRIBUTES
-    })
-        .c('parameter', {
-            name: 'msid',
-            value: msid
-        })
-        .up()
-        .c('ssrc-info', {
-            owner: s.owner,
-            xmlns: 'http://jitsi.org/jitmeet'
-        })
-        .up()
-        .up();
+    });
+
+    source.c('parameter', {
+        name: 'msid',
+        value: msid
+    }).up();
+
+    // The mid the bridge stamps on this source's packets (mid-based demuxing under SSRC rewriting). Used as the
+    // m-line's mid so the negotiated SDP matches the stamped extension.
+    if (s.mid) {
+        source.c('parameter', {
+            name: 'mid',
+            value: s.mid
+        }).up();
+    }
+
+    source.c('ssrc-info', {
+        owner: s.owner,
+        xmlns: 'http://jitsi.org/jitmeet'
+    }).up();
+
+    source.up();
 }
 
 /**
@@ -122,6 +181,7 @@ interface IJingleSessionPCOptions {
     p2p?: object;
     startSilent?: boolean;
     testing?: {
+        debugIceRestart?: boolean;
         enableCodecSelectionAPI?: boolean;
         failICE?: boolean;
     };
@@ -167,12 +227,16 @@ export default class JingleSessionPC extends JingleSession {
     private _cachedNewLocalSdp: Optional<SDP>;
     private _iceCheckingStartedTimestamp: Nullable<number>;
     private _gatheringStartedTimestamp: Nullable<number>;
+    private _iceRestartT0: Nullable<number>;
+    private _iceRestartStatsTimer: Nullable<number>;
+    private _lastIceGeneration: number;
     private _sourceReceiverConstraints: Nullable<Map<string, number>>;
     private _localSendReceiveVideoActive: boolean;
     private _remoteSendReceiveVideoActive: boolean;
     private _gatheringReported: boolean;
     private _xmppListeners: Array<() => void>;
     private _removeSenderVideoConstraintsChangeListener: Nullable<() => void>;
+    private _audioWedgeDetector: Nullable<RemoteAudioWedgeDetector>;
     private usesCodecSelectionAPI: boolean;
     private wasConnected: boolean;
     private isReconnect: boolean;
@@ -325,6 +389,32 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringStartedTimestamp = null;
 
         /**
+         * Stores the result of {@link window.performance.now()} at the time when an in-place ICE restart started.
+         * Used as the reference point ("t+Xms") for the ICE restart instrumentation logs. Reset to null when the
+         * ICE restart stats sampler finishes.
+         * @type {Nullable<number>}
+         * @private
+         */
+        this._iceRestartT0 = null;
+
+        /**
+         * The id of the interval timer of the ICE restart stats sampler, if it is currently running.
+         * @type {Nullable<number>}
+         * @private
+         */
+        this._iceRestartStatsTimer = null;
+
+        /**
+         * The highest ICE generation of a bridge transport that was applied to this session, as carried by the
+         * `ice-generation` attribute of the `<transport>` of an in-place ICE restart 'transport-info'. Zero means
+         * no in-place ICE restart has been applied yet (the initial transport carries no generation). Used as a
+         * monotonic guard against duplicate or reordered pushes, see {@link onBridgeIceRestartTransport}.
+         * @type {number}
+         * @private
+         */
+        this._lastIceGeneration = 0;
+
+        /**
          * Receiver constraints (max height) set by the application per remote source. Will be used for p2p connection.
          *
          * @type {Map<string, number>}
@@ -426,6 +516,8 @@ export default class JingleSessionPC extends JingleSession {
          * @type {number}
          */
         this.establishmentDuration = undefined;
+
+        this._audioWedgeDetector = null;
 
         this._xmppListeners = [];
         this._xmppListeners.push(
@@ -571,6 +663,28 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Starts the remote audio wedge watchdog for this session if applicable. The watchdog only runs against a JVB
+     * connection that uses SSRC rewriting, since that is the only configuration affected by the Chrome/WebRTC
+     * audio-demux wedge. It is started once the connection is established and is a no-op on subsequent ICE
+     * (re)connections.
+     *
+     * @returns {void}
+     */
+    private _maybeStartAudioWedgeDetector(): void {
+        if (this._audioWedgeDetector
+                || this.isP2P
+                || !FeatureFlags.isSsrcRewritingSupported()
+                || this.options.startSilent) {
+            return;
+        }
+
+        this._audioWedgeDetector = new RemoteAudioWedgeDetector(this.peerconnection, {
+            onWedgeDetected: track => this._recoverWedgedAudioSource(track)
+        });
+        this._audioWedgeDetector.start();
+    }
+
+    /**
      * Takes in a jingle offer iq, returns the new sdp offer that can be set as remote description in the
      * peerconnection.
      *
@@ -636,8 +750,17 @@ export default class JingleSessionPC extends JingleSession {
 
                 for (const source of sources) {
                     const ssrc = getAttribute(source, 'ssrc');
+
+                    if (!isValidSsrc(ssrc)) {
+                        logger.warn(`${this} Ignoring source with invalid ssrc=${ssrc}`);
+
+                        // eslint-disable-next-line no-continue
+                        continue;
+                    }
+
                     const sourceName = getAttribute(source, 'name');
                     const msid = getAttribute(findFirst(source, ':scope>parameter[name="msid"]'), 'value');
+                    const mid = getAttribute(findFirst(source, ':scope>parameter[name="mid"]'), 'value');
                     let videoType = getAttribute(source, 'videoType');
 
                     // If the videoType is DESKTOP_HIGH_FPS for remote tracks, we should treat it as DESKTOP.
@@ -651,6 +774,7 @@ export default class JingleSessionPC extends JingleSession {
                         sourceDescription.set(sourceName, {
                             groups: [],
                             mediaType,
+                            mid,
                             msid,
                             ssrcList: [ ssrc ],
                             videoType
@@ -679,12 +803,22 @@ export default class JingleSessionPC extends JingleSession {
 
                 findAll(description, ':scope>ssrc-group').forEach(group => {
                     const semantics = getAttribute(group, 'semantics');
+
+                    if (!Object.values(SSRC_GROUP_SEMANTICS).includes(semantics as SSRC_GROUP_SEMANTICS)) {
+                        logger.warn(`${this} Ignoring ssrc-group with unknown semantics=${semantics}`);
+
+                        return;
+                    }
+
                     const groupSsrcs = [];
 
                     findAll(group, ':scope>source').forEach(source => {
                         groupSsrcs.push(getAttribute(source, 'ssrc'));
                     });
 
+                    // A group's member ssrcs are only used if the group's ssrc set matches a source's (already
+                    // validated) ssrcList below, so a group referencing an invalid ssrc can never be attached and
+                    // does not need a separate numeric check here.
                     for (const [ sourceName, { ssrcList } ] of sourceDescription) {
                         if (isEqual(ssrcList.slice().sort(), groupSsrcs.slice().sort())) {
                             sourceDescription.get(sourceName).groups.push({
@@ -700,6 +834,85 @@ export default class JingleSessionPC extends JingleSession {
         sourceDescription.size && this.peerconnection.updateRemoteSources(sourceDescription, isAdd);
 
         return sourceDescription;
+    }
+
+    /**
+     * Recovers a remote audio source that the {@link RemoteAudioWedgeDetector} has flagged as wedged (mapped and
+     * unmuted, but receiving no inbound RTP). The recovery recycles just that source by synthesizing a source-remove
+     * followed by a source-add, reusing the same machinery as {@link processSourceMap}. The source-remove rejects the
+     * source's m-line (forcing Chrome to delete the stuck receive stream) and the source-add re-signals the same SSRC
+     * on a fresh m-line, which binds cleanly. Both operations are scoped to the single affected source.
+     *
+     * The recovery is gated by a guard that runs on the modification queue: the bridge can remap the slot (the same
+     * rewritten SSRC) to a different source, or remove it entirely, between detection and execution. The guard
+     * re-resolves the track by SSRC at execution time and skips the recovery if the SSRC is no longer mapped to the
+     * source that was detected as wedged - letting the normal sources-map flow own the slot and the watchdog re-detect
+     * on a later cycle. This prevents recycling a source with stale owner/source-name metadata.
+     *
+     * @param {JitsiRemoteTrack} track - The wedged remote audio track.
+     * @returns {void}
+     */
+    private _recoverWedgedAudioSource(track: JitsiRemoteTrack): void {
+        const ssrc = track.getSsrc();
+        const detectedSource = track.getSourceName();
+
+        if (typeof ssrc !== 'number' || !detectedSource) {
+            logger.warn(`${this} Cannot recover wedged audio source, missing ssrc/source-name`);
+
+            return;
+        }
+
+        const workFunction = (finishedCallback: (error?) => void) => {
+            // The slot may have been remapped or removed between detection and now. getTrackBySSRC always resolves to a
+            // remote track for a rewritten remote SSRC.
+            const currentTrack = this.peerconnection?.getTrackBySSRC(ssrc) as Nullable<JitsiRemoteTrack>;
+
+            if (!currentTrack || currentTrack.getSourceName() !== detectedSource) {
+                logger.warn(`${this} Skipping wedge recovery for audio source ${detectedSource} (ssrc=${ssrc}): the `
+                    + `slot was remapped or removed (now=${currentTrack?.getSourceName() ?? 'gone'}). The watchdog `
+                    + 'will re-detect if it is still wedged.');
+                finishedCallback();
+
+                return;
+            }
+
+            const source = currentTrack.getSourceName();
+            const owner = currentTrack.getParticipantId();
+
+            logger.warn(`${this} Recycling wedged remote audio source ${source} (ssrc=${ssrc}, owner=${owner})`);
+
+            // Builds a single-source Jingle "content" element for the wedged source, identical in shape to the ones
+            // produced by processSourceMap for an audio source-add.
+            const buildSourceNode = () => {
+                const src = { owner, source };
+                const msid = `remote-audio-${++this.numRemoteAudioSources}`;
+                const node = $build('content', {
+                    name: MediaType.AUDIO,
+                    xmlns: 'urn:xmpp:jingle:1'
+                }).c('description', {
+                    media: MediaType.AUDIO,
+                    xmlns: XEP.RTP_MEDIA
+                });
+
+                _addSourceElement(node, src, ssrc, `${msid} ${msid}`);
+
+                return node.up().node;
+            };
+
+            this._addOrRemoveRemoteStream(false /* remove */, buildSourceNode());
+            this._addOrRemoveRemoteStream(true /* add */, buildSourceNode());
+
+            Statistics.sendAnalytics(createAudioWedgeRecoveryEvent({
+                owner,
+                'source_name': source,
+                ssrc
+            }));
+
+            finishedCallback();
+        };
+
+        logger.debug(`${this} Queued wedge recovery task for audio source ${detectedSource} (ssrc=${ssrc})`);
+        this.modificationQueue.push(workFunction);
     }
 
     /**
@@ -917,13 +1130,230 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Starts a short-lived sampler which logs, every {@link ICE_RESTART_STATS_INTERVAL} ms for up to
+     * {@link ICE_RESTART_STATS_DURATION} ms after an ICE restart started, the number of audio/video bytes sent and
+     * received since the previous sample, video freeze/PLI/dropped-frame counters (to pin down whether a visible
+     * freeze is caused by receive-side packet loss around the pair cutover, as opposed to the send-side ICE
+     * mechanics), the currently selected ICE candidate pair (id and state) and the total number of STUN
+     * connectivity checks sent and responses received. This shows precisely when media stopped and resumed in each
+     * direction during the restart, and when connectivity checks for the new ICE generation started.
+     *
+     * This is diagnostic-only and is off unless the `testing.debugIceRestart` config option is set.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _startIceRestartStatsSampler(): void {
+        if (!this.options?.testing?.debugIceRestart) {
+            return;
+        }
+
+        if (this._iceRestartStatsTimer !== null) {
+            window.clearInterval(this._iceRestartStatsTimer);
+            this._iceRestartStatsTimer = null;
+        }
+
+        const t0 = this._iceRestartT0 ?? window.performance.now();
+        let prev: Nullable<{
+            audioIn: number;
+            audioOut: number;
+            reqSent: number;
+            respRecv: number;
+            videoFramesDropped: number;
+            videoFreezeCount: number;
+            videoFreezeDurationMs: number;
+            videoIn: number;
+            videoOut: number;
+            videoPliCount: number;
+        }> = null;
+
+        const stop = () => {
+            if (this._iceRestartStatsTimer !== null) {
+                window.clearInterval(this._iceRestartStatsTimer);
+                this._iceRestartStatsTimer = null;
+            }
+            this._iceRestartT0 = null;
+        };
+
+        const sample = () => {
+            const now = window.performance.now();
+
+            if (now - t0 > ICE_RESTART_STATS_DURATION
+                    || this.state === JingleSessionState.ENDED
+                    || this.peerconnection?.signalingState === 'closed') {
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} t+${Math.round(now - t0)}ms: stats sampler done`);
+                stop();
+
+                return;
+            }
+
+            this.peerconnection.getStats().then(report => {
+                const cur = {
+                    audioIn: 0,
+                    audioOut: 0,
+                    reqSent: 0,
+                    respRecv: 0,
+                    videoFramesDropped: 0,
+                    videoFreezeCount: 0,
+                    videoFreezeDurationMs: 0,
+                    videoIn: 0,
+                    videoOut: 0,
+                    videoPliCount: 0
+                };
+                const pairsById = new Map<string, any>();
+                let selectedPairId: Nullable<string> = null;
+
+                report.forEach(stat => {
+                    switch (stat.type) {
+                    case 'outbound-rtp':
+                        cur[stat.kind === MediaType.AUDIO ? 'audioOut' : 'videoOut'] += stat.bytesSent ?? 0;
+                        break;
+                    case 'inbound-rtp':
+                        cur[stat.kind === MediaType.AUDIO ? 'audioIn' : 'videoIn'] += stat.bytesReceived ?? 0;
+                        if (stat.kind === MediaType.VIDEO) {
+                            cur.videoFramesDropped += stat.framesDropped ?? 0;
+                            cur.videoFreezeCount += stat.freezeCount ?? 0;
+                            cur.videoFreezeDurationMs += (stat.totalFreezesDuration ?? 0) * 1000;
+                            cur.videoPliCount += stat.pliCount ?? 0;
+                        }
+                        break;
+                    case 'candidate-pair':
+                        pairsById.set(stat.id, stat);
+                        cur.reqSent += stat.requestsSent ?? 0;
+                        cur.respRecv += stat.responsesReceived ?? 0;
+                        break;
+                    case 'transport':
+                        selectedPairId = stat.selectedCandidatePairId ?? selectedPairId;
+                        break;
+                    }
+                });
+
+                const pair = selectedPairId ? pairsById.get(selectedPairId) : undefined;
+                const pairStr = pair ? `${selectedPairId}/${pair.state}${pair.nominated ? '(nom)' : ''}` : 'none';
+                const d = (key: keyof typeof cur) => (prev === null ? cur[key] : cur[key] - prev[key]);
+
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} t+${Math.round(now - t0)}ms: `
+                    + `video out +${d('videoOut')}B in +${d('videoIn')}B `
+                    + `audio out +${d('audioOut')}B in +${d('audioIn')}B `
+                    + `video freezes +${d('videoFreezeCount')} (+${Math.round(d('videoFreezeDurationMs'))}ms) `
+                    + `pli +${d('videoPliCount')} framesDropped +${d('videoFramesDropped')} `
+                    + `pair=${pairStr} pairs=${pairsById.size} checks sent +${d('reqSent')} resp +${d('respRecv')}`
+                    + `${prev === null ? ' (baseline, absolute values)' : ''}`);
+                prev = cur;
+            })
+            .catch(error => {
+                logger.warn(`${this} ${ICE_RESTART_LOG_PREFIX} stats sampler failed: ${error}`);
+                stop();
+            });
+        };
+
+        // Sample periodically, and take an immediate baseline sample.
+        this._iceRestartStatsTimer = window.setInterval(sample, ICE_RESTART_STATS_INTERVAL);
+        sample();
+    }
+
+    /**
+     * Parses the `<candidate>` elements of a Jingle transport into {@link RTCIceCandidate} instances.
+     *
+     * @param {Element[]} candidateElements - the `<candidate>` elements.
+     * @returns {RTCIceCandidate[]}
+     * @private
+     */
+    private _parseIceCandidates(candidateElements: Element[]): RTCIceCandidate[] {
+        return candidateElements.map(candidate => {
+            let line = SDPUtil.candidateFromJingle(candidate);
+
+            line = line.replace('\r\n', '').replace('a=', '');
+
+            // FIXME this code does not care to handle
+            // non-bundle transport
+            return new RTCIceCandidate({
+                candidate: line,
+                sdpMLineIndex: 0,
+
+                // FF comes up with more complex names like audio-23423,
+                // Given that it works on both Chrome and FF without
+                // providing it, let's leave it like this for the time
+                // being...
+                // sdpMid: 'audio',
+                sdpMid: ''
+            });
+        });
+    }
+
+    /**
+     * Adds the given ICE candidates to the peer connection. The caller is responsible for the serialization with
+     * the rest of the peer connection operations (i.e. this is meant to be called from within a modification
+     * queue task).
+     *
+     * @param {RTCIceCandidate[]} iceCandidates - the candidates to add.
+     * @returns {Promise<void>} - resolves once all of the candidates have been added (or have failed to be added,
+     * which is only logged).
+     * @private
+     */
+    private _addIceCandidatesToPeerConnection(iceCandidates: RTCIceCandidate[]): Promise<void> {
+        return Promise.all(iceCandidates.map(iceCandidate => this.peerconnection.addIceCandidate(iceCandidate)
+            .then(
+                () => logger.debug(`${this} addIceCandidate ok!`),
+                err => logger.error(`${this} addIceCandidate failed!`, err))))
+            .then(() => undefined);
+    }
+
+    /**
+     * Sends a Jingle 'transport-info' carrying the local transport (the ICE credentials that the browser rotated
+     * to while answering the bridge's ICE restart offer), tagged with the `ice-generation` of that restart round.
+     * Jicofo's regular 'transport-info' handling relays it to the bridge, which needs it because it is the
+     * controlling agent: its outgoing connectivity checks have to be authenticated with our new credentials.
+     *
+     * @param {SDP} localSDP - the local session description with the new local transport.
+     * @param {number} generation - the ICE generation of the restart round these credentials belong to.
+     * @returns {void}
+     */
+    private _sendIceRestartTransportInfo(localSDP: SDP, generation: number): void {
+        const transportInfo = $iq({ to: this.remoteJid, type: 'set' })
+            .c('jingle', {
+                action: 'transport-info',
+                initiator: this.initiatorJid,
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
+            });
+
+        localSDP.media.forEach((medialines, idx) => {
+            const mline = SDPUtil.parseMLine(medialines.split('\r\n')[0]);
+
+            transportInfo.c('content', {
+                creator: this.initiatorJid === this.localJid ? 'initiator' : 'responder',
+                name: mline.media
+            });
+            localSDP.transportToJingle(idx, transportInfo);
+
+            // transportToJingle() leaves the cursor back on <content>, so tag the <transport> it just appended
+            // directly rather than through the builder.
+            const transportEl = transportInfo.node?.lastElementChild;
+
+            if (transportEl?.tagName === 'transport') {
+                transportEl.setAttribute('ice-generation', String(generation));
+            } else {
+                logger.warn(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: could not tag the transport `
+                    + 'with the ICE generation');
+            }
+
+            transportInfo.up();
+        });
+
+        logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: signalling our new local ICE `
+            + `credentials (ufrag=${SDPUtil.getUfrag(localSDP.raw)})`);
+        this.connection.sendIQ(transportInfo, null, this.newJingleErrorHandler(), IQ_TIMEOUT);
+    }
+
+    /**
      * Sends Jingle 'session-accept' message.
      *
      * @param {function()} success callback called when we receive 'RESULT' packet for the 'session-accept'.
      * @param {function(error)} failure called when we receive an error response or when the request has timed out.
      * @returns {void}
      */
-    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void) {
+    private _sendSessionAccept(success: () => void, failure: (error: IJingleError) => void, trace?: TraceParentExtension) {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp, this.isP2P);
@@ -949,6 +1379,9 @@ export default class JingleSessionPC extends JingleSession {
         if (typeof this.options.channelLastN === 'number' && this.options.channelLastN >= 0) {
             // @ts-ignore will be fixed after merge of sdp
             localSDP.initialLastN = this.options.channelLastN;
+        }
+        if (trace != null) {
+            accept.c(trace.ELEMENT, trace.asAttributes()).up();
         }
         localSDP.toJingle(
             accept,
@@ -1324,6 +1757,196 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Asks Jicofo to restart ICE for this endpoint on the bridge, by sending a Jingle 'session-info' carrying a
+     * `<bridge-session ice-restart="true"/>`. Jicofo forwards the request to the bridge over colibri2; the bridge
+     * creates a NEW ICE agent with fresh credentials while the old one keeps carrying media, and its transport
+     * comes back to us as a 'transport-info' tagged with an `ice-generation`, handled by
+     * {@link onBridgeIceRestartTransport} - that is where the restart is actually applied.
+     *
+     * Grep the logs for `[ice-restart]` to follow a restart end to end.
+     *
+     * @param {IceRestartReason} reason - why the restart was requested, for the logs.
+     * @returns {Promise<void>} - resolves when Jicofo has acknowledged the request, rejects if it did not accept
+     * it (which is the signal to fall back to a full session restart).
+     */
+    public restartIce(reason: IceRestartReason = IceRestartReason.API): Promise<void> {
+        if (this.isP2P) {
+            return Promise.reject(new Error('an in-place ICE restart is only supported for the JVB session'));
+        }
+
+        if (!this._bridgeSessionId) {
+            return Promise.reject(new Error('no bridge session ID is known for this session'));
+        }
+
+        if (!this._assertNotEnded()) {
+            return Promise.reject(new Error('the session has ended'));
+        }
+
+        this._iceRestartT0 = window.performance.now();
+        this._startIceRestartStatsSampler();
+
+        const sessionInfo = $iq({ to: this.remoteJid, type: 'set' })
+            .c('jingle', {
+                action: 'session-info',
+                initiator: this.initiatorJid,
+                sid: this.sid,
+                xmlns: 'urn:xmpp:jingle:1'
+            })
+            .c('bridge-session', {
+                'ice-restart': true,
+                'id': this._bridgeSessionId,
+                'xmlns': 'http://jitsi.org/protocol/focus'
+            })
+            .up();
+
+        logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} requesting an in-place ICE restart, reason=${reason}, `
+            + `bridgeSession=${this._bridgeSessionId}, lastAppliedGeneration=${this._lastIceGeneration}`);
+        Statistics.sendAnalytics(createJingleEvent(
+            AnalyticsEvents.ACTION_JINGLE_ICE_RESTART_REQUESTED, {
+                p2p: this.isP2P,
+                reason
+            }));
+        RTCStats.sendStatsEntry(RTCStatsEvents.ICE_RESTART_REQUESTED_EVENT, null, { reason });
+
+        return new Promise<void>((resolve, reject) => {
+            this.connection.sendIQ(
+                sessionInfo,
+                () => {
+                    logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} the ICE restart request was accepted`);
+                    resolve();
+                },
+                this.newJingleErrorHandler(error => {
+                    logger.warn(`${this} ${ICE_RESTART_LOG_PREFIX} the ICE restart request was rejected: `
+                        + `${JSON.stringify(error)}`);
+                    reject(new Error(error?.reason ?? error?.msg ?? 'the ICE restart request was rejected'));
+                }),
+                IQ_TIMEOUT);
+        });
+    }
+
+    /**
+     * Applies the bridge's new ICE transport for an in-place ICE restart. Called for a Jingle 'transport-info'
+     * whose `<transport>` carries an `ice-generation` attribute, which marks it as the transport of a NEW ICE
+     * agent the bridge created in response to {@link restartIce} (as opposed to plain trickled candidates).
+     *
+     * The whole thing runs as a single modification queue task:
+     *  1. the generation is checked against the last one applied, and anything not strictly newer is dropped
+     *     (pushes can be duplicated or reordered);
+     *  2. a patched offer is built from the current remote description with the bridge's new ICE credentials
+     *     substituted in and ALL candidate lines stripped;
+     *  3. that offer is applied and answered with a real `createAnswer()` - we stay the answerer, so the restart
+     *     is entirely local and needs no signalling round trip on the critical path. The browser rotates our own
+     *     ICE credentials as part of answering;
+     *  4. only THEN are the bridge's new candidates trickled in with `addIceCandidate()`. Adding them as part of
+     *     the offer in step 2 would make libwebrtc destroy and rebuild the selected candidate pair synchronously,
+     *     which is exactly the media freeze the make-before-break design exists to avoid;
+     *  5. our new local ICE credentials are signalled back, tagged with the same generation - the bridge is the
+     *     controlling agent and needs them to authenticate its connectivity checks.
+     *
+     * @param {Element} transportEl - the `<transport>` element of the incoming 'transport-info'.
+     * @returns {void}
+     */
+    public onBridgeIceRestartTransport(transportEl: Element): void {
+        const generation = Number(transportEl.getAttribute('ice-generation'));
+        const ufrag = transportEl.getAttribute('ufrag');
+        const pwd = transportEl.getAttribute('pwd');
+        const candidates = this._parseIceCandidates(findAll(transportEl, ':scope>candidate'));
+
+        if (!Number.isInteger(generation) || generation <= 0) {
+            logger.error(`${this} ${ICE_RESTART_LOG_PREFIX} ignoring a bridge transport with an invalid ICE `
+                + `generation (${transportEl.getAttribute('ice-generation')})`);
+
+            return;
+        }
+
+        if (!ufrag || !pwd) {
+            logger.error(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: ignoring a bridge transport with `
+                + 'incomplete ICE credentials');
+
+            return;
+        }
+
+        logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: received the bridge's new transport, `
+            + `ufrag=${ufrag}, candidates=${candidates.length}`);
+
+        if (this._iceRestartT0 === null) {
+            this._iceRestartT0 = window.performance.now();
+            this._startIceRestartStatsSampler();
+        }
+
+        const t0 = this._iceRestartT0;
+        const dt = () => Math.round(window.performance.now() - t0);
+
+        const workFunction = async (finishedCallback: (err?: Error) => void) => {
+            try {
+                if (generation <= this._lastIceGeneration) {
+                    logger.warn(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: ignoring a stale bridge `
+                        + `transport, generation ${this._lastIceGeneration} has already been applied`);
+                    finishedCallback();
+
+                    return;
+                }
+
+                const pc = this.peerconnection.peerconnection;
+                const remoteSdp = this.peerconnection.remoteDescription?.sdp;
+
+                if (!remoteSdp) {
+                    throw new Error('there is no current remote description');
+                }
+
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: applying, `
+                    + `signalingState=${pc.signalingState}, iceConnectionState=${pc.iceConnectionState}`);
+                this._lastIceGeneration = generation;
+
+                // Allow the candidates the browser gathers for the new generation to be signalled.
+                this.lasticecandidate = false;
+
+                const patchedOffer = SDPUtil.replaceIceCredentialsAndStripCandidates(remoteSdp, ufrag, pwd);
+
+                // Drive the offer/answer through the regular renegotiation path rather than calling
+                // setRemoteDescription/createAnswer/setLocalDescription directly: it keeps
+                // TraceablePeerConnection's own view of the session consistent, and it signals any SSRCs the
+                // browser regenerates while answering, which would otherwise go unsignalled.
+                await this._renegotiate(patchedOffer);
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: the patched offer `
+                    + `was applied (candidates stripped) and answered, signalingState=${pc.signalingState}`);
+
+                // The candidates must be added only now, after the offer/answer cycle has completed. Adding them
+                // together with the new credentials tears down the selected pair and breaks make-before-break, see
+                // SDPUtil.replaceIceCredentialsAndStripCandidates and https://issues.webrtc.org/issues/543082385
+                await this._addIceCandidatesToPeerConnection(candidates);
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: `
+                    + `${candidates.length} of the bridge's candidates were added`);
+
+                this._sendIceRestartTransportInfo(
+                    new SDP(this.peerconnection.localDescription.sdp), generation);
+
+                Statistics.sendAnalytics(createJingleEvent(AnalyticsEvents.ACTION_JINGLE_ICE_RESTART_SUCCESS, {
+                    p2p: this.isP2P,
+                    value: this.sid
+                }));
+                RTCStats.sendStatsEntry(RTCStatsEvents.ICE_RESTART_APPLIED_EVENT, null, { generation });
+                logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: done`);
+                finishedCallback();
+            } catch (error) {
+                logger.error(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation} t+${dt()}ms: failed`, error);
+                finishedCallback(error as Error);
+            } finally {
+                // The stats sampler, when it is enabled, owns _iceRestartT0 and resets it when it is done.
+                if (this._iceRestartStatsTimer === null) {
+                    this._iceRestartT0 = null;
+                }
+            }
+        };
+
+        this.modificationQueue.push(workFunction, (error?: Error) => {
+            if (error && !(error instanceof ClearedQueueError)) {
+                logger.error(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: the task failed: ${error}`);
+            }
+        });
+    }
+
+    /**
      * Accepts incoming Jingle 'session-initiate' and should send 'session-accept' in result.
      *
      * @param jingleOffer element pointing to the jingle element of the offer IQ
@@ -1342,6 +1965,8 @@ export default class JingleSessionPC extends JingleSession {
             success: () => void,
             failure: (error: any) => void,
             localTracks: JitsiLocalTrack[] = []): void {
+        const trace = TraceParentExtension.fromElement(jingleOffer);
+
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -1369,7 +1994,7 @@ export default class JingleSessionPC extends JingleSession {
                 error => {
                     failure(error);
                     this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_ERROR, this, error);
-                });
+                }, trace);
             },
             failure,
             localTracks);
@@ -1385,30 +2010,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        const iceCandidates: RTCIceCandidate[] = [];
-
-        findAll(elem, ':scope>content>transport>candidate')
-            .forEach(candidate => {
-                let line = SDPUtil.candidateFromJingle(candidate);
-
-                line = line.replace('\r\n', '').replace('a=', '');
-
-                // FIXME this code does not care to handle
-                // non-bundle transport
-                const rtcCandidate = new RTCIceCandidate({
-                    candidate: line,
-                    sdpMLineIndex: 0,
-
-                    // FF comes up with more complex names like audio-23423,
-                    // Given that it works on both Chrome and FF without
-                    // providing it, let's leave it like this for the time
-                    // being...
-                    // sdpMid: 'audio',
-                    sdpMid: ''
-                });
-
-                iceCandidates.push(rtcCandidate);
-            });
+        const iceCandidates = this._parseIceCandidates(findAll(elem, ':scope>content>transport>candidate'));
 
         if (!iceCandidates.length) {
             logger.error(`${this} No ICE candidates to add ?`, elem[0]?.outerHTML);
@@ -1421,12 +2023,7 @@ export default class JingleSessionPC extends JingleSession {
         // the assumption that candidates are spawned after the offer/answer
         // and XMPP preserves order).
         const workFunction = finishedCallback => {
-            for (const iceCandidate of iceCandidates) {
-                this.peerconnection.addIceCandidate(iceCandidate)
-                    .then(
-                        () => logger.debug(`${this} addIceCandidate ok!`),
-                        err => logger.error(`${this} addIceCandidate failed!`, err));
-            }
+            this._addIceCandidatesToPeerConnection(iceCandidates);
 
             finishedCallback();
             logger.debug(`${this} ICE candidates task finished`);
@@ -1545,6 +2142,15 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
+        this._audioWedgeDetector?.stop();
+        this._audioWedgeDetector = null;
+
+        if (this._iceRestartStatsTimer !== null) {
+            window.clearInterval(this._iceRestartStatsTimer);
+            this._iceRestartStatsTimer = null;
+        }
+        this._iceRestartT0 = null;
+
         if (this.peerconnection) {
             this.peerconnection.onicecandidate = null;
             this.peerconnection.oniceconnectionstatechange = null;
@@ -1658,6 +2264,19 @@ export default class JingleSessionPC extends JingleSession {
             const candidate = ev.candidate;
             const now = window.performance.now();
 
+            if (this._iceRestartT0 !== null && this.options?.testing?.debugIceRestart) {
+                const t = Math.round(now - this._iceRestartT0);
+
+                if (candidate) {
+                    logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${this._lastIceGeneration} t+${t}ms: `
+                        + `local candidate gathered (${candidate.type}/${candidate.protocol}, `
+                        + `mid=${candidate.sdpMid})`);
+                } else {
+                    logger.info(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${this._lastIceGeneration} t+${t}ms: `
+                        + 'end of local candidate gathering');
+                }
+            }
+
             if (candidate) {
                 if (this._gatheringStartedTimestamp === null) {
                     this._gatheringStartedTimestamp = now;
@@ -1754,6 +2373,8 @@ export default class JingleSessionPC extends JingleSession {
                     isStable = true;
                     this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTORED, this);
                 }
+
+                this._maybeStartAudioWedgeDetector();
 
                 // Add a workaround for an issue on chrome in Unified plan when the local endpoint is the offerer.
                 // The 'signalingstatechange' event for 'stable' is handled after the 'iceconnectionstatechange' event

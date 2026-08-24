@@ -25,6 +25,17 @@
 export enum AnalyticsEvents {
 
     /**
+     * The "action" value for Jingle events which indicates that an in-place ICE restart was requested.
+     */
+    ACTION_JINGLE_ICE_RESTART_REQUESTED = 'ice-restart.requested',
+
+    /**
+     * The "action" value for Jingle events which indicates that an in-place ICE restart completed successfully,
+     * i.e. the renegotiation completed and the new local transport was signalled.
+     */
+    ACTION_JINGLE_ICE_RESTART_SUCCESS = 'ice-restart.success',
+
+    /**
      * The "action" value for Jingle events which indicates that the Jingle session
      * was restarted (TODO: verify/fix the documentation)
      */
@@ -541,6 +552,23 @@ export const createAudioOutputProblemEvent
             type: AnalyticsEvents.TYPE_OPERATIONAL
         };
     };
+
+/**
+ * Creates an event indicating that the remote audio wedge watchdog detected a mapped, unmuted remote audio source
+ * that received no inbound RTP for the detection window and triggered a source recycle to recover it. Used to measure
+ * the residual wedge rate in the field (see the Chrome/WebRTC audio-demux wedge).
+ *
+ * @param attributes - The attributes to add to the event. Currently used fields:
+ *      sourceName: the source name of the wedged remote audio source.
+ *      ssrc: the SSRC of the wedged remote audio source.
+ */
+export const createAudioWedgeRecoveryEvent = (attributes: object) => {
+    return {
+        action: 'audio.wedge.recovery',
+        attributes,
+        type: AnalyticsEvents.TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an event which contains an information related to the bridge channel close event.

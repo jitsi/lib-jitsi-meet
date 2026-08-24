@@ -1,6 +1,7 @@
 import Logger from '@jitsi/logger';
 import { merge } from 'lodash-es';
 
+import { JitsiAudioTranslationErrors } from './JitsiAudioTranslationErrors';
 import JitsiConference, { IConferenceOptions } from './JitsiConference';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
@@ -34,6 +35,7 @@ import Deferred from './modules/util/Deferred';
 import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
+import { IceRestartReason } from './service/RTC/IceRestartReason';
 import { MediaType } from './service/RTC/MediaType';
 import { VideoType } from './service/RTC/VideoType';
 import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
@@ -157,6 +159,7 @@ const JitsiMeetJS = {
      * Constants used throughout the library.
      */
     constants: {
+        iceRestartReason: IceRestartReason,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         trackStreamingStatus: TrackStreamingStatus,
@@ -332,6 +335,7 @@ const JitsiMeetJS = {
         JitsiTrackError
     },
     errors: {
+        audioTranslation: JitsiAudioTranslationErrors,
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
         track: JitsiTrackErrors
