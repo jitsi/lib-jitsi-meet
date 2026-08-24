@@ -2197,6 +2197,40 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Enables or disables chat shadow-ban for a participant.
+     *
+     * @param jid The JID of the participant.
+     * @param enabled Whether shadow-ban should be enabled.
+     */
+    public setChatShadowBan(jid: string, enabled: boolean): void {
+        logger.info('set chat shadow-ban', enabled, jid);
+
+        const shadowBanIQ = $iq({
+            to: this.roomjid,
+            type: 'set'
+        })
+            .c('shadow-ban', {
+                jid: Strophe.getBareJidFromJid(jid),
+                xmlns: 'http://jitsi.org/jitmeet/shadow-ban'
+            })
+            .t(enabled.toString())
+            .up();
+
+        this.connection.sendIQ(
+            shadowBanIQ,
+            result => logger.info('set chat shadow-ban', result),
+            error => {
+                handleStropheError(error, {
+                    enabled,
+                    operation: 'set chat shadow-ban',
+                    participantJid: jid,
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            });
+    }
+
+    /**
      * Handle remote mute reqyest from focus.
      *
      * @param iq
