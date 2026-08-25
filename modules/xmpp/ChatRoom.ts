@@ -264,6 +264,7 @@ export default class ChatRoom extends Listenable {
     public connectionTimes: Record<string, number>;
     public transcriptionStatus: string;
     public membersOnlyEnabled?: boolean;
+    public shadowBanSupported?: boolean;
     public visitorsSupported?: boolean;
 
     /* eslint-disable max-params */
@@ -637,6 +638,16 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
+            // Shadow-ban support is advertised as a plain disco#info feature (not a
+            // roominfo field), so check the <feature var="..."/> list directly.
+            const shadowBanSupported = findAll(result,
+                ':scope>query>feature[var="http://jitsi.org/jitmeet/shadow-ban"]').length === 1;
+
+            if (shadowBanSupported !== this.shadowBanSupported) {
+                this.shadowBanSupported = shadowBanSupported;
+                this.eventEmitter.emit(XMPPEvents.MUC_SHADOW_BAN_SUPPORTED_CHANGED, shadowBanSupported);
             }
 
             this.initialDiscoRoomInfoReceived = true;

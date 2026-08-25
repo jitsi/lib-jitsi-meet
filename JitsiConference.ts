@@ -4994,6 +4994,15 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Returns <tt>true</tt> if the room supports chat shadow-ban.
+     *
+     * @returns {boolean} whether the conference room has shadow-ban support.
+     */
+    public isShadowBanSupported(): boolean {
+        return Boolean(this.room?.shadowBanSupported);
+    }
+
+    /**
      * Enables lobby by moderators
      *
      * @returns {Promise} resolves when lobby room is joined or rejects with the error.
