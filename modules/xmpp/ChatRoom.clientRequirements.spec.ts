@@ -121,6 +121,54 @@ describe('ChatRoom.onClientRequirements', () => {
         expect(emitted.length).toBe(0);
     });
 
+    it('ignores an IQ with no action', () => {
+        const iq = createIq('reject', [ {
+            'level': 'hard',
+            'var': 'feature-1'
+        } ]);
+
+        iq.querySelector('client-requirements')?.removeAttribute('action');
+        room.onClientRequirements(iq);
+
+        expect(emitted.length).toBe(0);
+    });
+
+    it('ignores an IQ with an unknown action', () => {
+        room.onClientRequirements(createIq('somethingNew', [ {
+            'level': 'hard',
+            'var': 'feature-1'
+        } ]));
+
+        expect(emitted.length).toBe(0);
+    });
+
+    it('ignores a missing-feature with no var or level', () => {
+        room.onClientRequirements(createIq('warn', [ {
+            'level': 'soft'
+        }, {
+            'var': 'feature-2'
+        }, {
+            'level': 'soft',
+            'var': 'feature-3'
+        } ]));
+
+        expect(emitted.length).toBe(1);
+        expect(emitted[0][1].features.length).toBe(1);
+        expect(emitted[0][1].features[0].feature).toBe('feature-3');
+    });
+
+    it('ignores an IQ when no missing-feature is valid', () => {
+        room.onClientRequirements(createIq('reject', [ { 'level': 'hard' } ]));
+
+        expect(emitted.length).toBe(0);
+    });
+
+    it('ignores an IQ with no missing-feature elements', () => {
+        room.onClientRequirements(createIq('warn', []));
+
+        expect(emitted.length).toBe(0);
+    });
+
     it('ignores an IQ with no client-requirements element', () => {
         room.onClientRequirements($iq({
             from: FOCUS_JID,

@@ -73,6 +73,56 @@ export interface IChatRoomOptions {
     statsId?: string;
 }
 
+/**
+ * The action of a client-requirements IQ: the client is not invited to the conference.
+ */
+export const CLIENT_REQUIREMENTS_ACTION_REJECT = 'reject';
+
+/**
+ * The action of a client-requirements IQ: the client is invited, but a capability that the deployment expects is
+ * missing.
+ */
+export const CLIENT_REQUIREMENTS_ACTION_WARN = 'warn';
+
+/**
+ * A capability which this client does not advertise, but the deployment requires.
+ */
+export interface IMissingFeature {
+
+    /**
+     * Text (in English) from the server, which describes how to add support for the capability.
+     */
+    details?: string;
+
+    /**
+     * The XMPP feature (the disco#info 'var'), e.g. 'http://jitsi.org/ssrc-rewriting-1'.
+     */
+    feature: string;
+
+    /**
+     * How severe the missing capability is, 'hard' or 'soft'. With 'hard' the client is not invited.
+     */
+    level: string;
+
+    /**
+     * A stable symbolic name for the capability, e.g. 'SSRC_REWRITING_V1'.
+     */
+    name?: string;
+
+    /**
+     * A URL with more information.
+     */
+    url?: string;
+}
+
+/**
+ * The capabilities which this client does not advertise, and what the server did about it.
+ */
+export interface IClientRequirements {
+    action: typeof CLIENT_REQUIREMENTS_ACTION_REJECT | typeof CLIENT_REQUIREMENTS_ACTION_WARN;
+    features: IMissingFeature[];
+}
+
 // Presence map structure
 interface IPresenceMap {
     length?: number;
@@ -2291,7 +2341,7 @@ export default class ChatRoom extends Listenable {
         const from = iq.getAttribute('from');
 
         if (from !== this.focusMucJid) {
-            logger.warn('Ignored client requirements from non focus peer');
+            logger.warn(`Ignored client requirements from non focus peer: ${from}`);
 
             return;
         }
@@ -2303,16 +2353,44 @@ export default class ChatRoom extends Listenable {
             return;
         }
 
+        // Ignore an action that we do not know, so that a client which does not understand a future action does not
+        // act on it.
         const action = getAttribute(requirements, 'action');
-        const features = findAll(requirements, ':scope>missing-feature').map(feature => {
-            return {
-                details: getAttribute(feature, 'details') ?? undefined,
-                feature: getAttribute(feature, 'var'),
-                level: getAttribute(feature, 'level'),
-                name: getAttribute(feature, 'name') ?? undefined,
-                url: getAttribute(feature, 'url') ?? undefined
-            };
+
+        if (action !== CLIENT_REQUIREMENTS_ACTION_REJECT && action !== CLIENT_REQUIREMENTS_ACTION_WARN) {
+            logger.warn(`Ignored client requirements with an unexpected action: ${action}`);
+
+            return;
+        }
+
+        // The 'var' and 'level' attributes are required. Ignore an element without them, because a consumer can not
+        // do anything with it.
+        const features: IMissingFeature[] = [];
+
+        findAll(requirements, ':scope>missing-feature').forEach(element => {
+            const feature = getAttribute(element, 'var');
+            const level = getAttribute(element, 'level');
+
+            if (!feature || !level) {
+                logger.warn(`Ignored a missing-feature element with no 'var' or 'level': ${feature}, ${level}`);
+
+                return;
+            }
+
+            features.push({
+                details: getAttribute(element, 'details') ?? undefined,
+                feature,
+                level,
+                name: getAttribute(element, 'name') ?? undefined,
+                url: getAttribute(element, 'url') ?? undefined
+            });
         });
+
+        if (!features.length) {
+            logger.warn('Ignored client requirements with no valid missing-feature elements.');
+
+            return;
+        }
 
         logger.warn(`Received client requirements: action=${action}, features=${JSON.stringify(features)}`);
         this.eventEmitter.emit(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED, {
