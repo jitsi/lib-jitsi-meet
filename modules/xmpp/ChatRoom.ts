@@ -1299,7 +1299,6 @@ export default class ChatRoom extends Listenable {
         this.connection.send(msg);
     }
 
-
     /* eslint-enable max-params */
 
     /**
@@ -1319,6 +1318,37 @@ export default class ChatRoom extends Listenable {
 
         msg.c('subject', valueToProcess);
         this.subject = valueToProcess;
+        this.connection.send(msg);
+    }
+
+    /**
+     * Sends a moderation request to retract a message.
+     *
+     * @param {string} messageId - The id of the message to moderate.
+     * @param {string} [reason] - Optional moderation reason.
+     */
+    public moderateMessage(messageId: string, reason?: string): void {
+        const msg = $msg({
+            to: this.roomjid,
+            type: 'groupchat'
+        });
+
+        msg.c('apply-to', {
+            id: messageId,
+            xmlns: 'urn:xmpp:fasten:0'
+        })
+            .c('moderated', {
+                xmlns: 'urn:xmpp:message-moderate:1'
+            })
+            .c('retract', {
+                xmlns: 'urn:xmpp:message-retract:1'
+            })
+            .up();
+
+        if (reason) {
+            msg.c('reason', {}, reason).up();
+        }
+
         this.connection.send(msg);
     }
 
@@ -1554,9 +1584,29 @@ export default class ChatRoom extends Listenable {
             // e.g. - subtitles should not be displayed if delayed.
             if (parsedJson && stamp === null) {
                 this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                    from, parsedJson);
+                    from, parsedJson, stamp !== null);
 
                 return;
+            }
+        }
+
+        const applyToEl = findFirst(msg, ':scope>apply-to[*|xmlns="urn:xmpp:fasten:0"]');
+
+        if (applyToEl) {
+            const moderatedEl = findFirst(applyToEl, ':scope>moderated[*|xmlns="urn:xmpp:message-moderate:1"]');
+
+            if (moderatedEl) {
+                const retractEl = findFirst(moderatedEl, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
+
+                if (retractEl) {
+                    const messageId = getAttribute(applyToEl, 'id');
+                    const moderator = getAttribute(moderatedEl, 'by');
+                    const reason = getText(findFirst(moderatedEl, 'reason'));
+
+                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, moderator, reason);
+
+                    return true;
+                }
             }
         }
 

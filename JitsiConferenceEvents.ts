@@ -296,6 +296,11 @@ export enum JitsiConferenceEvents {
     MEMBERS_ONLY_CHANGED = 'conference.membersOnlyChanged',
 
     /**
+     * Event fired when a chat message is moderated.
+     */
+    MESSAGE_MODERATED = 'conference.message_moderated',
+
+    /**
      * New text message was received.
      */
     MESSAGE_RECEIVED = 'conference.messageReceived',
