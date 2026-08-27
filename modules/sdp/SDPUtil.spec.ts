@@ -52,6 +52,51 @@ describe('SDPUtil', () => {
         });
     });
 
+    describe('strip high profile video codec', () => {
+        it('should only remove the payload types that signal a high profile', () => {
+            const sdp = SampleSdpStrings.multiProfileVideoSdp;
+            const videoMLine = sdp.media.find(m => m.type === 'video');
+
+            SDPUtil.stripCodec(videoMLine, 'VP9', true /* high profile */);
+            SDPUtil.stripCodec(videoMLine, 'H264', true /* high profile */);
+
+            const payloadTypes = videoMLine.payloads.split(' ').map(Number);
+
+            // Firefox does not signal 'profile-id' for VP9 which implies profile 0, therefore the payload type and
+            // its RTX have to be kept, otherwise Firefox ends up sending a codec that was not negotiated.
+            expect(payloadTypes).toContain(98);
+            expect(payloadTypes).toContain(99);
+
+            // Same for H264 payload types that signal the baseline profile or no profile at all.
+            expect(payloadTypes).toContain(108);
+            expect(payloadTypes).toContain(109);
+            expect(payloadTypes).toContain(102);
+            expect(payloadTypes).toContain(103);
+
+            // The high profile payload types and their RTX are removed.
+            expect(payloadTypes).not.toContain(100);
+            expect(payloadTypes).not.toContain(101);
+            expect(payloadTypes).not.toContain(114);
+            expect(payloadTypes).not.toContain(115);
+
+            // The other codecs are not touched.
+            expect(payloadTypes).toContain(45);
+            expect(payloadTypes).toContain(96);
+        });
+
+        it('should keep VP9 when profile 0 is signaled explicitly', () => {
+            const sdp = SampleSdpStrings.multiCodecVideoSdp;
+            const videoMLine = sdp.media.find(m => m.type === 'video');
+
+            SDPUtil.stripCodec(videoMLine, 'VP9', true /* high profile */);
+
+            const payloadTypes = videoMLine.payloads.split(' ').map(Number);
+
+            expect(payloadTypes).toContain(98);
+            expect(payloadTypes).toContain(99);
+        });
+    });
+
     describe('strip Audio Codec', () => {
         it('should remove an audio codec', () => {
             const sdp = SampleSdpStrings.multiCodecVideoSdp;
