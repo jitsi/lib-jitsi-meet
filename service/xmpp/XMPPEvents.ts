@@ -201,9 +201,18 @@ export enum XMPPEvents {
      */
     MEETING_ID_SET = 'xmpp.meeting_id_set',
 
+    /**
+     * Event fired when a message is moderated.
+     */
+    MESSAGE_MODERATED = 'xmpp.message_moderated',
+
     // Designates an event indicating that an XMPP message in the MUC was
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',
+
+    // Designates an event indicating that an XMPP message in the MUC was
+    // retracted.
+    MESSAGE_RETRACTED = 'xmpp.message_retracted',
 
     // Designates an event indicating that a participant was denied access to a conference from the lobby XMPP MUC.
     MUC_DENIED_ACCESS = 'xmpp.muc_denied access',

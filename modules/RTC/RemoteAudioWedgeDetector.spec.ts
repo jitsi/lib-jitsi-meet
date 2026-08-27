@@ -69,6 +69,7 @@ describe('RemoteAudioWedgeDetector', () => {
 
         tracks = [];
         pc = {
+            audioTransferActive: true,
             eventEmitter: new EventEmitter(),
             getRemoteTracks: (_endpointId: any, mediaType: MediaType) => {
                 expect(mediaType).toBe(MediaType.AUDIO);
@@ -238,6 +239,115 @@ describe('RemoteAudioWedgeDetector', () => {
         poll(entries); // t=5000
         tick();
         poll(entries); // t=6000 (== fire time + cooldown), cooldown just elapsed; streak restarts here
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops recovering a source that recycling does not fix', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        // The source never receives anything however often it is recycled - it is not wedged, nothing is being sent to
+        // it - so recoveries must stop rather than churning a renegotiation every detection window for the whole call.
+        for (let i = 0; i < 100; i++) {
+            poll(entries);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives a source a fresh recovery budget when it moves to a new receive slot', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+
+        // A new SSRC for the same source name means a source-add created a new receive m-line for it, which is a fresh
+        // wedge opportunity rather than a continuation of the slot that was already recycled to no effect.
+        tracks = [ mockTrack(222, 'source-A') ];
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 222 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(4);
+    });
+
+    it('keeps an exhausted recovery budget with the slot when it is remapped to another source', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+
+        // The bridge remapped the slot to a different source. The m-line is the same one that recycling already failed
+        // to revive, so the new occupant must not earn a fresh budget on it.
+        tracks = [ mockTrack(111, 'source-B') ];
+        for (let i = 0; i < 100; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps a source that has received packets exempt after it is unmapped and remapped', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+
+        poll([ { packetsReceived: 7, ssrc: 111 } ]); // healthy: the m-line demuxes this SSRC correctly
+
+        // Under SSRC rewriting a rewritten SSRC keeps its receive m-line for the lifetime of the peerconnection, so a
+        // later source remapped onto the same SSRC inherits an m-line that is known to demux it and cannot be wedged -
+        // even while it reports zero packets (the new owner may simply be silent).
+        tick();
+        tracks = [];
+        poll([]);
+
+        tracks = [ mockTrack(111, 'source-B') ];
+        for (let i = 0; i < 10; i++) {
+            tick();
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('does not fire while media transfer is suspended on the peerconnection', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        pc.audioTransferActive = false;
+
+        // A JVB session is suspended for the duration of an active P2P session and receives no RTP at all while it is,
+        // so its remote audio sources report zero packets indefinitely without being wedged.
+        for (let i = 0; i < 20; i++) {
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('restarts the detection window when media transfer resumes', () => {
+        tracks = [ mockTrack(111, 'source-A') ];
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        pc.audioTransferActive = false;
+        for (let i = 0; i < 5; i++) {
+            poll(entries); // t=0..4000, suspended
+            tick();
+        }
+
+        // The suspended period must not count towards the timeout: the first samples after resuming start a fresh
+        // streak rather than firing immediately on an elapsed-looking window.
+        pc.audioTransferActive = true;
+        poll(entries); // t=5000, fresh streak starts here
+        tick();
+        poll(entries); // t=6000
+        tick();
+        poll(entries); // t=7000
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=8000, elapsed since the fresh streak is 3000 >= timeout
         expect(onWedgeDetected).toHaveBeenCalledTimes(1);
     });
 

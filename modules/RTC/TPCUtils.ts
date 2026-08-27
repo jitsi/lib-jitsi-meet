@@ -433,7 +433,7 @@ export class TPCUtils {
             if (!this.pc.isSpatialScalabilityOn() || this._isRunningInFullSvcMode(codec)) {
                 const { maxBitrate } = this._calculateActiveEncodingParams(localVideoTrack, codec, newHeight);
 
-                return idx === 0 ? maxBitrate : 0;
+                return idx === 0 ? maxBitrate : undefined;
             }
 
             // Multiple video streams.
