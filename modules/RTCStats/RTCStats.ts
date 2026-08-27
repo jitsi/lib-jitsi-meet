@@ -5,6 +5,7 @@ import traceInit from '@jitsi/rtcstats/trace-ws';
 import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiConnection from '../../JitsiConnection';
+import { COMMIT_HASH } from '../../version';
 import Settings from '../settings/Settings';
 import EventEmitter from '../util/EventEmitter';
 
@@ -98,6 +99,7 @@ class RTCStats {
 
         this.sendIdentity({
             confName: name,
+            libJitsiMeetVersion: COMMIT_HASH,
             ...options
         });
 
@@ -192,6 +194,7 @@ class RTCStats {
                 displayName,
                 endpointId,
                 isBreakoutRoom,
+                libJitsiMeetVersion: COMMIT_HASH,
                 localId,
                 meetingUniqueId
             };
