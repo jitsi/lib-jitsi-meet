@@ -157,6 +157,20 @@ describe('ChatRoom.onClientRequirements', () => {
         expect(emitted[0][1].features[0].feature).toBe('feature-3');
     });
 
+    it('ignores a missing-feature with an unexpected level', () => {
+        room.onClientRequirements(createIq('warn', [ {
+            'level': 'somethingNew',
+            'var': 'feature-1'
+        }, {
+            'level': 'soft',
+            'var': 'feature-2'
+        } ]));
+
+        expect(emitted.length).toBe(1);
+        expect(emitted[0][1].features.length).toBe(1);
+        expect(emitted[0][1].features[0].feature).toBe('feature-2');
+    });
+
     it('ignores an IQ when no missing-feature is valid', () => {
         room.onClientRequirements(createIq('reject', [ { 'level': 'hard' } ]));
 

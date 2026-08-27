@@ -74,15 +74,37 @@ export interface IChatRoomOptions {
 }
 
 /**
- * The action of a client-requirements IQ: the client is not invited to the conference.
+ * What the server did about the capabilities which this client does not advertise.
  */
-export const CLIENT_REQUIREMENTS_ACTION_REJECT = 'reject';
+export enum ClientRequirementsAction {
+
+    /**
+     * The client is not invited to the conference, so it can not send or receive media. It stays in the room and can
+     * still use the features which do not need a media session (e.g. chat).
+     */
+    REJECT = 'reject',
+
+    /**
+     * The client is invited as usual, but a capability which the deployment expects is missing.
+     */
+    WARN = 'warn'
+}
 
 /**
- * The action of a client-requirements IQ: the client is invited, but a capability that the deployment expects is
- * missing.
+ * How severe a missing capability is.
  */
-export const CLIENT_REQUIREMENTS_ACTION_WARN = 'warn';
+export enum MissingFeatureLevel {
+
+    /**
+     * The client is not invited to the conference.
+     */
+    HARD = 'hard',
+
+    /**
+     * The client is invited, but the deployment expects the capability.
+     */
+    SOFT = 'soft'
+}
 
 /**
  * A capability which this client does not advertise, but the deployment requires.
@@ -100,9 +122,9 @@ export interface IMissingFeature {
     feature: string;
 
     /**
-     * How severe the missing capability is, 'hard' or 'soft'. With 'hard' the client is not invited.
+     * How severe the missing capability is. With [MissingFeatureLevel.HARD] the client is not invited.
      */
-    level: string;
+    level: MissingFeatureLevel;
 
     /**
      * A stable symbolic name for the capability, e.g. 'SSRC_REWRITING_V1'.
@@ -119,7 +141,7 @@ export interface IMissingFeature {
  * The capabilities which this client does not advertise, and what the server did about it.
  */
 export interface IClientRequirements {
-    action: typeof CLIENT_REQUIREMENTS_ACTION_REJECT | typeof CLIENT_REQUIREMENTS_ACTION_WARN;
+    action: ClientRequirementsAction;
     features: IMissingFeature[];
 }
 
@@ -2355,9 +2377,9 @@ export default class ChatRoom extends Listenable {
 
         // Ignore an action that we do not know, so that a client which does not understand a future action does not
         // act on it.
-        const action = getAttribute(requirements, 'action');
+        const action = getAttribute(requirements, 'action') as ClientRequirementsAction;
 
-        if (action !== CLIENT_REQUIREMENTS_ACTION_REJECT && action !== CLIENT_REQUIREMENTS_ACTION_WARN) {
+        if (!Object.values(ClientRequirementsAction).includes(action)) {
             logger.warn(`Ignored client requirements with an unexpected action: ${action}`);
 
             return;
@@ -2369,10 +2391,11 @@ export default class ChatRoom extends Listenable {
 
         findAll(requirements, ':scope>missing-feature').forEach(element => {
             const feature = getAttribute(element, 'var');
-            const level = getAttribute(element, 'level');
+            const level = getAttribute(element, 'level') as MissingFeatureLevel;
 
-            if (!feature || !level) {
-                logger.warn(`Ignored a missing-feature element with no 'var' or 'level': ${feature}, ${level}`);
+            if (!feature || !Object.values(MissingFeatureLevel).includes(level)) {
+                logger.warn('Ignored a missing-feature element with no var or an unexpected level: '
+                    + `${feature}, ${level}`);
 
                 return;
             }
