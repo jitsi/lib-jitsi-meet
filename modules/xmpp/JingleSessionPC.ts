@@ -12,6 +12,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { COMMIT_HASH } from '../../version';
 import JitsiLocalTrack from '../RTC/JitsiLocalTrack';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RemoteAudioWedgeDetector from '../RTC/RemoteAudioWedgeDetector';
@@ -1113,6 +1114,15 @@ export default class JingleSessionPC extends JingleSession {
         }
         if (trace != null) {
             accept.c(trace.ELEMENT, trace.asAttributes()).up();
+        }
+
+        // Report the version of the library to the focus, which uses it for logging. Only for the session with the
+        // focus, a peer does not need it.
+        if (!this.isP2P) {
+            accept.c('client-version', {
+                version: COMMIT_HASH,
+                xmlns: 'http://jitsi.org/protocol/focus'
+            }).up();
         }
         localSDP.toJingle(
             accept,
