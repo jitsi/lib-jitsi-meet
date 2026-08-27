@@ -927,9 +927,13 @@ const SDPUtil = {
                     const codec = highProfileCodecs.get(item.payload);
 
                     if (codec) {
+                        // Firefox does not signal 'profile-id' for VP9 at all and Chrome omits it for the H.264
+                        // baseline profile. Both default to the low profile when the parameter is missing, therefore
+                        // these payload types have to be preserved.
                         return codec.toLowerCase() === CodecMimeType.VP9
-                            ? !item.config.includes('profile-id=0')
-                            : !item.config.includes('profile-level-id=42');
+                            ? item.config.includes('profile-id=') && !item.config.includes('profile-id=0')
+                            : item.config.includes('profile-level-id=')
+                                && !item.config.includes('profile-level-id=42');
                     }
 
                     return false;
