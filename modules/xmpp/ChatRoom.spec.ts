@@ -1189,4 +1189,51 @@ describe('ChatRoom', () => {
                 XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, jasmine.anything());
         });
     });
+
+    describe('onPresenceError - room time limit', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const OCCUPANT_JID = `${ROOM_JID}/me`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        // What mod_time_restricted replies with once the room hit its configured
+        // limit: our join presence bounced with a plain 'cancel'/<resource-constraint/>,
+        // no <text/>.
+        const resourceConstraintPresence = () => {
+            const presStr = ''
+                + `<presence to="user@example.com/res" from="${OCCUPANT_JID}" type="error">`
+                    + '<error type="cancel" by="muc.example.com">'
+                        + '<resource-constraint xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>'
+                    + '</error>'
+                + '</presence>';
+
+            return new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = OCCUPANT_JID;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('emits ROOM_TIME_LIMIT_ERROR instead of a generic connect error', () => {
+            room.onPresenceError(resourceConstraintPresence(), OCCUPANT_JID);
+
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.ROOM_TIME_LIMIT_ERROR);
+            expect(emitterSpy).not.toHaveBeenCalledWith(XMPPEvents.ROOM_CONNECT_ERROR);
+        });
+    });
 });
