@@ -5,8 +5,6 @@ import * as exported from "./JitsiTrackErrors";
 describe( "/JitsiTrackErrors members", () => {
     const {
         CONSTRAINT_FAILED,
-        ELECTRON_DESKTOP_PICKER_ERROR,
-        ELECTRON_DESKTOP_PICKER_NOT_FOUND,
         GENERAL,
         NOT_FOUND,
         PERMISSION_DENIED,
@@ -25,8 +23,6 @@ describe( "/JitsiTrackErrors members", () => {
 
     it( "known members", () => {
         expect( CONSTRAINT_FAILED ).toBe( 'gum.constraint_failed' );
-        expect( ELECTRON_DESKTOP_PICKER_ERROR ).toBe( 'gum.electron_desktop_picker_error' );
-        expect( ELECTRON_DESKTOP_PICKER_NOT_FOUND ).toBe( 'gum.electron_desktop_picker_not_found' );
         expect( GENERAL ).toBe( 'gum.general' );
         expect( NOT_FOUND ).toBe( 'gum.not_found' );
         expect( PERMISSION_DENIED ).toBe( 'gum.permission_denied' );
@@ -43,8 +39,6 @@ describe( "/JitsiTrackErrors members", () => {
         expect( JitsiTrackErrors ).toBeDefined();
 
         expect( JitsiTrackErrors.CONSTRAINT_FAILED ).toBe( 'gum.constraint_failed' );
-        expect( JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR ).toBe( 'gum.electron_desktop_picker_error' );
-        expect( JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND ).toBe( 'gum.electron_desktop_picker_not_found' );
         expect( JitsiTrackErrors.GENERAL ).toBe( 'gum.general' );
         expect( JitsiTrackErrors.NOT_FOUND ).toBe( 'gum.not_found' );
         expect( JitsiTrackErrors.PERMISSION_DENIED ).toBe( 'gum.permission_denied' );

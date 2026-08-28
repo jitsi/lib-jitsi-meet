@@ -11,18 +11,6 @@ export enum JitsiTrackErrors {
     CONSTRAINT_FAILED = 'gum.constraint_failed',
 
     /**
-     * A generic error which indicates an error occurred while selecting
-     * a DesktopCapturerSource from the electron app.
-     */
-    ELECTRON_DESKTOP_PICKER_ERROR = 'gum.electron_desktop_picker_error',
-
-    /**
-     * An error which indicates a custom desktop picker could not be detected
-     * for the electron app.
-     */
-    ELECTRON_DESKTOP_PICKER_NOT_FOUND = 'gum.electron_desktop_picker_not_found',
-
-    /**
      * Generic getUserMedia error.
      */
     GENERAL = 'gum.general',
@@ -90,8 +78,6 @@ export enum JitsiTrackErrors {
 
 // exported for backward compatibility
 export const CONSTRAINT_FAILED = JitsiTrackErrors.CONSTRAINT_FAILED;
-export const ELECTRON_DESKTOP_PICKER_ERROR = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR;
-export const ELECTRON_DESKTOP_PICKER_NOT_FOUND = JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND;
 export const GENERAL = JitsiTrackErrors.GENERAL;
 export const NOT_FOUND = JitsiTrackErrors.NOT_FOUND;
 export const PERMISSION_DENIED = JitsiTrackErrors.PERMISSION_DENIED;
