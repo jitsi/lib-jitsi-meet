@@ -229,6 +229,10 @@ export default class JitsiConferenceEventManager {
             JitsiConferenceEvents.CONFERENCE_FAILED,
             JitsiConferenceErrors.CONFERENCE_MAX_USERS);
 
+        this.chatRoomForwarder.forward(XMPPEvents.ROOM_TIME_LIMIT_ERROR,
+            JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.CONFERENCE_TIME_LIMIT);
+
         this.chatRoomForwarder.forward(XMPPEvents.PASSWORD_REQUIRED,
             JitsiConferenceEvents.CONFERENCE_FAILED,
             JitsiConferenceErrors.PASSWORD_REQUIRED);

@@ -366,6 +366,13 @@ export enum XMPPEvents {
      */
     ROOM_METADATA_UPDATED = 'xmpp.room-metadata.updated',
 
+    /**
+     * Indicates that the room cannot be joined because it has reached the time limit
+     * configured for it on the server (mod_time_restricted replies to the join presence
+     * with a 'cancel'/'resource-constraint' error once the limit is hit).
+     */
+    ROOM_TIME_LIMIT_ERROR = 'xmpp.room_time_limit_error',
+
     // Designates an event indicating that we sent an XMPP message to the MUC.
     SENDING_CHAT_MESSAGE = 'xmpp.sending_chat_message',
 

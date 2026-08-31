@@ -1839,6 +1839,13 @@ export default class ChatRoom extends Listenable {
 
                 this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type, txt);
             }
+        } else if (exists(pres,
+            ':scope>error[type="cancel"]>resource-constraint[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
+            // The room reached the time limit configured on the server (mod_time_restricted
+            // destroyed it and now refuses to let it be re-created), so this is a dead end -
+            // there is nothing to retry and no credentials that would help.
+            logger.warn('Room time limit reached', pres);
+            this.eventEmitter.emit(XMPPEvents.ROOM_TIME_LIMIT_ERROR);
         } else if (exists(pres, ':scope>error>service-unavailable')) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);

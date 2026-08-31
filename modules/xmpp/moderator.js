@@ -2,7 +2,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
-import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR } from '../../JitsiConnectionErrors';
+import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR, TIME_LIMIT_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
@@ -14,6 +14,17 @@ import { handleStropheError } from './StropheErrorHandler';
 
 
 const logger = getLogger('xmpp:Moderator');
+
+/**
+ * The XMPP error condition Prosody refuses a room with once it has used up the
+ * time it was allowed (see mod_time_restricted). We never see it on our own
+ * join presence: jicofo is the one that creates the room, so jicofo is the one
+ * that gets refused, and it relays the failure back to us in its answer to the
+ * conference request. Over HTTP that answer is a plain-text body rather than a
+ * stanza, hence the substring match - the condition name is distinctive enough
+ * that finding it anywhere in a rejected conference request means this.
+ */
+const TIME_LIMIT_CONDITION = 'resource-constraint';
 
 /**
  * Exponential backoff timer.
@@ -328,6 +339,13 @@ export default class Moderator extends Listenable {
                                 .then(text => {
                                     logger.warn(`Received HTTP ${response.status} ${
                                         response.statusText}. Body: ${text}`);
+
+                                    if (text.indexOf(TIME_LIMIT_CONDITION) !== -1) {
+                                        this._handleTimeLimitError(roomJid, reject);
+
+                                        return;
+                                    }
+
                                     const sessionError = response.status === 400
                                         && text.indexOf('400 invalid-session') > 0;
                                     const notAuthorized = response.status === 403;
@@ -447,6 +465,25 @@ export default class Moderator extends Listenable {
     }
 
     /**
+     * Fails the conference request because the room has used up the time it was
+     * allowed. Unlike the generic failure this is not worth a retry or a
+     * "try again later" - the meeting is over and re-running the request would
+     * be refused identically - so it gets its own connection error for the app
+     * to explain properly.
+     *
+     * @param roomJid - The room jid the request was for.
+     * @param {Function} errorCallback - Rejects the pending request.
+     * @private
+     */
+    _handleTimeLimitError(roomJid, errorCallback) {
+        logger.warn(`Conference ${roomJid} has reached its time limit, giving up.`);
+
+        this.xmpp.eventEmitter.emit(CONNECTION_FAILED, TIME_LIMIT_ERROR);
+
+        errorCallback();
+    }
+
+    /**
      * Handles error response for conference IQ.
      * @param roomJid
      * @param sessionError
@@ -531,6 +568,16 @@ export default class Moderator extends Listenable {
                 errorMsg);
 
             errorCallback();
+
+            return;
+        }
+
+        // Same refusal as the HTTP path above, this time as a real stanza. Jicofo
+        // may pass the condition through as an element or only describe it in the
+        // error text, so accept either.
+        if (exists(error, `:scope>error>${TIME_LIMIT_CONDITION}`)
+                || (getText(findFirst(error, ':scope>error>text')) || '').indexOf(TIME_LIMIT_CONDITION) !== -1) {
+            this._handleTimeLimitError(roomJid, errorCallback);
 
             return;
         }

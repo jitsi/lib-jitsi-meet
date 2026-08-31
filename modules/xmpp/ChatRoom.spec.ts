@@ -1,4 +1,4 @@
-import { $pres } from 'strophe.js';
+import { $pres, Strophe } from 'strophe.js';
 
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
@@ -1202,6 +1202,139 @@ describe('ChatRoom', () => {
                 XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, jasmine.anything(), jasmine.anything());
             expect(emitterSpy).not.toHaveBeenCalledWith(
                 XMPPEvents.BREAKOUT_ROOMS_MOVE_TO_ROOM, jasmine.anything());
+        });
+    });
+
+    describe('onPresenceError - room time limit', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const OCCUPANT_JID = `${ROOM_JID}/me`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        // What mod_time_restricted replies with once the room hit its configured
+        // limit: our join presence bounced with a plain 'cancel'/<resource-constraint/>,
+        // no <text/>.
+        const resourceConstraintPresence = () => {
+            const presStr = ''
+                + `<presence to="user@example.com/res" from="${OCCUPANT_JID}" type="error">`
+                    + '<error type="cancel" by="muc.example.com">'
+                        + '<resource-constraint xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>'
+                    + '</error>'
+                + '</presence>';
+
+            return new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = OCCUPANT_JID;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('emits ROOM_TIME_LIMIT_ERROR instead of a generic connect error', () => {
+            room.onPresenceError(resourceConstraintPresence(), OCCUPANT_JID);
+
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.ROOM_TIME_LIMIT_ERROR);
+            expect(emitterSpy).not.toHaveBeenCalledWith(XMPPEvents.ROOM_CONNECT_ERROR);
+        });
+    });
+
+    describe('onMessage - json-message sender identity', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const OCCUPANT_JID = `${ROOM_JID}/abc123`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        // The payload mod_time_restricted broadcasts. Any json-message would do
+        // here — what is under test is the identity the room reports for the
+        // sender, which is the only thing consumers can use to tell a
+        // server-originated message from a participant's.
+        const jsonMessage = (from: string, delayed = false) => {
+            const msgStr = ''
+                + `<message to="user@example.com/res" from="${from}" xmlns="jabber:client">`
+                    + '<json-message xmlns="http://jitsi.org/jitmeet">'
+                        + '{"type":"time_restricted","durationSeconds":300,"elapsedSeconds":0}'
+                    + '</json-message>'
+                    + (delayed
+                        ? '<delay xmlns="urn:xmpp:delay" stamp="2026-01-01T00:00:00Z"/>'
+                        : '')
+                + '</message>';
+
+            return new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {}, // eslint-disable-line no-empty-function
+                tryParseJSONAndVerify: XMPP.prototype.tryParseJSONAndVerify
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = OCCUPANT_JID;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('reports the bare room JID for a message the server sent as the room', () => {
+            room.onMessage(jsonMessage(ROOM_JID), ROOM_JID);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.JSON_MESSAGE_RECEIVED,
+                ROOM_JID,
+                jasmine.objectContaining({ type: 'time_restricted' }),
+                false);
+
+            // A bare JID has no resource, which is what makes the downstream
+            // endpoint id null. Consumers of NON_PARTICIPANT_MESSAGE_RECEIVED
+            // rely on that to accept server-originated messages only.
+            expect(Strophe.getResourceFromJid(ROOM_JID)).toBeNull();
+        });
+
+        it('keeps the occupant nick in the from of a message an occupant sent', () => {
+            // The MUC stamps from as room@host/nick on everything it reflects; a
+            // client cannot assert a bare room JID. So a participant trying to
+            // forge the same payload always arrives with a resource, and the
+            // endpoint id derived from it is non-null.
+            room.onMessage(jsonMessage(OCCUPANT_JID), OCCUPANT_JID);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.JSON_MESSAGE_RECEIVED,
+                OCCUPANT_JID,
+                jasmine.objectContaining({ type: 'time_restricted' }),
+                false);
+
+            expect(Strophe.getResourceFromJid(OCCUPANT_JID)).toEqual('abc123');
+        });
+
+        it('drops a delayed json-message so room history cannot replay one', () => {
+            room.onMessage(jsonMessage(ROOM_JID, true /* delayed */), ROOM_JID);
+
+            expect(emitterSpy).not.toHaveBeenCalledWith(
+                XMPPEvents.JSON_MESSAGE_RECEIVED,
+                jasmine.anything(),
+                jasmine.anything(),
+                jasmine.anything());
         });
     });
 });

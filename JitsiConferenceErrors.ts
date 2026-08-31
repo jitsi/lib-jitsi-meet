@@ -31,6 +31,12 @@ export enum JitsiConferenceErrors {
     CONFERENCE_MAX_USERS = 'conference.max_users',
 
     /**
+     * Indicates that the conference cannot be joined because it has reached the time
+     * limit configured for it on the server.
+     */
+    CONFERENCE_TIME_LIMIT = 'conference.time_limit',
+
+    /**
      * Indicates that a connection error occurred when trying to join a conference.
      */
     CONNECTION_ERROR = 'conference.connectionError',
@@ -129,6 +135,7 @@ export const CHAT_ERROR = JitsiConferenceErrors.CHAT_ERROR;
 export const SETTINGS_ERROR = JitsiConferenceErrors.SETTINGS_ERROR;
 export const CONFERENCE_DESTROYED = JitsiConferenceErrors.CONFERENCE_DESTROYED;
 export const CONFERENCE_MAX_USERS = JitsiConferenceErrors.CONFERENCE_MAX_USERS;
+export const CONFERENCE_TIME_LIMIT = JitsiConferenceErrors.CONFERENCE_TIME_LIMIT;
 export const CONNECTION_ERROR = JitsiConferenceErrors.CONNECTION_ERROR;
 export const NOT_ALLOWED_ERROR = JitsiConferenceErrors.NOT_ALLOWED_ERROR;
 export const MEMBERS_ONLY_ERROR = JitsiConferenceErrors.MEMBERS_ONLY_ERROR;
