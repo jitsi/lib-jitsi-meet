@@ -173,6 +173,21 @@ describe('ChatRoom', () => {
                 {} /* options */);
             emitterSpy = spyOn(room.eventEmitter, 'emit');
         });
+        it('does not throw for a participant property when no listener is set', () => {
+            // The lobby room never gets a participant property listener. An exception here would make Strophe remove
+            // all the handlers of the connection.
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
+                    '<jitsi_participant_someProperty>some-value</jitsi_participant_someProperty>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            expect(() => room.onPresence(pres)).not.toThrow();
+        });
+
         it('parses status correctly', () => {
             const presStr = '' +
                 '<presence to="tojid" from="fromjid">' +

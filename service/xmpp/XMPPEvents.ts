@@ -75,6 +75,11 @@ export enum XMPPEvents {
 
     CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
 
+    /**
+     * Jicofo signaled that this client does not advertise capabilities that the deployment requires.
+     */
+    CLIENT_REQUIREMENTS_RECEIVED = 'xmpp.client_requirements_received',
+
     // The conference properties (as advertised by jicofo) have changed
     CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
 
