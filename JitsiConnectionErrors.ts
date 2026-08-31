@@ -46,7 +46,15 @@ export enum JitsiConnectionErrors {
     /**
      * Indicates that the connection was dropped, because of conference being moved to a new shard.
      */
-    SHARD_CHANGED_ERROR = 'connection.shardChangedError'
+    SHARD_CHANGED_ERROR = 'connection.shardChangedError',
+
+    /**
+     * Indicates the conference cannot be created because it has reached the time
+     * limit configured for it on the server. Raised from the conference-request
+     * to jicofo: jicofo creates the room on our behalf, so it is jicofo that is
+     * refused and relays the refusal back to us.
+     */
+    TIME_LIMIT_ERROR = 'connection.timeLimitError'
 }
 
 // exported for backward compatibility
@@ -57,3 +65,4 @@ export const OTHER_ERROR = JitsiConnectionErrors.OTHER_ERROR;
 export const PASSWORD_REQUIRED = JitsiConnectionErrors.PASSWORD_REQUIRED;
 export const SERVER_ERROR = JitsiConnectionErrors.SERVER_ERROR;
 export const SHARD_CHANGED_ERROR = JitsiConnectionErrors.SHARD_CHANGED_ERROR;
+export const TIME_LIMIT_ERROR = JitsiConnectionErrors.TIME_LIMIT_ERROR;
