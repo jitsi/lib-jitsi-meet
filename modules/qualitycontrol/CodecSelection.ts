@@ -202,7 +202,8 @@ export class CodecSelection {
             return;
         }
 
-        let localPreferredCodecOrder = this.codecPreferenceOrder.jvb;
+        const connectionType = session.isP2P ? 'p2p' : 'jvb';
+        let localPreferredCodecOrder = this.codecPreferenceOrder[connectionType];
 
         // E2EE is curently supported only for VP8 codec.
         if (this.conference.isE2EEEnabled()) {
@@ -250,7 +251,7 @@ export class CodecSelection {
             return;
         }
 
-        session.setVideoCodecs(selectedCodecOrder, this.screenshareCodec?.jvb as CodecMimeType);
+        session.setVideoCodecs(selectedCodecOrder, this.screenshareCodec?.[connectionType] as CodecMimeType);
     }
 
     /**
