@@ -265,6 +265,7 @@ export default class ChatRoom extends Listenable {
     public transcriptionStatus: string;
     public membersOnlyEnabled?: boolean;
     public visitorsSupported?: boolean;
+    public messageModerationSupported?: boolean;
 
     /* eslint-disable max-params */
 
@@ -637,6 +638,16 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
+            const messageModerationEl = findFirst(result,
+                ':scope>query>x[type="result"]>field[var="muc#roominfo_messageModerationEnabled"]>value');
+            const messageModerationSupported = getText(messageModerationEl) === '1';
+
+            if (messageModerationSupported !== this.messageModerationSupported) {
+                this.messageModerationSupported = messageModerationSupported;
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED, messageModerationSupported);
             }
 
             this.initialDiscoRoomInfoReceived = true;
@@ -1588,11 +1599,20 @@ export default class ChatRoom extends Listenable {
                 const retractEl = findFirst(moderatedEl, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
 
                 if (retractEl) {
+                    // Moderation is applied by the room, which sends it from the bare room
+                    // jid. A stanza that still carries a resource is an occupant's own
+                    // request, relayed because the room is not handling moderation, and
+                    // there is nothing here that can stand in for the room's decision.
+                    if (Strophe.getResourceFromJid(from)) {
+                        logger.warn(`Ignoring message moderation relayed from an occupant: ${from}`);
+
+                        return true;
+                    }
+
                     const messageId = getAttribute(applyToEl, 'id');
-                    const moderator = getAttribute(moderatedEl, 'by');
                     const reason = getText(findFirst(moderatedEl, 'reason'));
 
-                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, moderator, reason);
+                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, reason);
 
                     return true;
                 }

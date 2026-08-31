@@ -248,6 +248,10 @@ export enum XMPPEvents {
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
 
+    // Designates an event indicating that the MUC support for server side message
+    // moderation has changed.
+    MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED = 'xmpp.muc_message_moderation_supported_changed',
+
     // Designates an event indicating that the MUC role of a participant has
     // changed.
     MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',

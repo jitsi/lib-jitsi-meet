@@ -4982,6 +4982,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Returns <tt>true</tt> when the room handles message moderation and editing
+     * server side. Clients should only offer those actions when it does.
+     *
+     * @returns {boolean} whether the room applies message moderation.
+     */
+    public isMessageModerationSupported(): boolean {
+        return Boolean(this.room?.messageModerationSupported);
+    }
+
+    /**
      * Enables lobby by moderators
      *
      * @returns {Promise} resolves when lobby room is joined or rejects with the error.
