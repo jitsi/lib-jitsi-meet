@@ -430,6 +430,35 @@ describe('TrackStreamingStatusImpl._handleFramesDecodedUpdate', () => {
         expect(impl._lastFramesDecodedAt).toBe(1000);
     });
 
+    it('treats a counter that restarted as decoding rather than as frozen', () => {
+        // A long-running stream, then the decoder is re-created and its counter restarts from zero.
+        jasmine.clock().mockDate(new Date(1000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 20000]]) });
+
+        jasmine.clock().mockDate(new Date(2000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 5]]) });
+
+        expect(impl._lastFramesDecoded).toBe(5);
+        expect(impl._lastFramesDecodedAt).toBe(2000);
+        expect(impl._statsTrackFrozen).toBeFalse();
+    });
+
+    it('does not stay frozen while a restarted counter climbs back to its previous value', () => {
+        jasmine.clock().mockDate(new Date(0));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 20000]]) });
+
+        // Nothing arrives for long enough to be declared frozen.
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 1));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 20000]]) });
+        expect(impl._statsTrackFrozen).toBeTrue();
+
+        // The decoder comes back with a counter well below where the old one left off.
+        jasmine.clock().mockDate(new Date(DEFAULT_RTC_MUTE_TIMEOUT + 2000));
+        impl._handleFramesDecodedUpdate({ framesDecoded: new Map([[SSRC, 30]]) });
+
+        expect(impl._statsTrackFrozen).toBeFalse();
+    });
+
     it('records the first framesDecoded value and its timestamp', () => {
         jasmine.clock().mockDate(new Date(1000));
         const map = new Map([[SSRC, 50]]);
