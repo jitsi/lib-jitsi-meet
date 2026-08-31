@@ -403,4 +403,49 @@ describe('Codec Selection', () => {
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'av1', 'vp9', 'vp8' ], 'vp9');
         });
     });
+
+    describe('When the session is p2p', () => {
+        let p2pSession;
+
+        beforeEach(() => {
+            options = {
+                jvb: {
+                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ],
+                    screenshareCodec: 'AV1'
+                },
+                p2p: {
+                    preferenceOrder: [ 'VP8', 'VP9' ],
+                    screenshareCodec: 'VP9'
+                }
+            };
+
+            p2pSession = new JingleSessionPC(
+                SID,
+                'peer1',
+                'peer2',
+                connection,
+                { },
+                { },
+                /* isP2P */ true,
+                /* isInitiator */ false);
+
+            p2pSession.initialize(
+                /* ChatRoom */ new MockChatRoom(),
+                /* RTC */ rtc,
+                /* Signaling layer */ conference._signalingLayer,
+                /* options */ { });
+
+            qualityController = new QualityController(conference, options);
+            spyOn(p2pSession, 'setVideoCodecs');
+        });
+
+        it('uses the p2p preference order and not the jvb one', () => {
+            participant1 = new MockParticipant('remote-1');
+            conference.addParticipant(participant1, [ 'vp9', 'vp8' ]);
+
+            qualityController.codecController.selectPreferredCodec(p2pSession);
+
+            expect(p2pSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9' ], 'vp9');
+        });
+    });
 });
