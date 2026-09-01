@@ -336,6 +336,7 @@ export default class ChatRoom extends Listenable {
     public connectionTimes: Record<string, number>;
     public transcriptionStatus: string;
     public membersOnlyEnabled?: boolean;
+    public shadowBanSupported?: boolean;
     public visitorsSupported?: boolean;
 
     /* eslint-disable max-params */
@@ -709,6 +710,16 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
+            // Shadow-ban support is advertised as a plain disco#info feature (not a
+            // roominfo field), so check the <feature var="..."/> list directly.
+            const shadowBanSupported = findAll(result,
+                ':scope>query>feature[var="http://jitsi.org/jitmeet/shadow-ban"]').length === 1;
+
+            if (shadowBanSupported !== this.shadowBanSupported) {
+                this.shadowBanSupported = shadowBanSupported;
+                this.eventEmitter.emit(XMPPEvents.MUC_SHADOW_BAN_SUPPORTED_CHANGED, shadowBanSupported);
             }
 
             this.initialDiscoRoomInfoReceived = true;
@@ -2441,6 +2452,40 @@ export default class ChatRoom extends Listenable {
                     mediaType,
                     mute,
                     operation: 'set mute participant',
+                    participantJid: jid,
+                    roomJid: this.roomjid,
+                    userJid: this.connection.jid
+                });
+            });
+    }
+
+    /**
+     * Enables or disables chat shadow-ban for a participant.
+     *
+     * @param jid The JID of the participant.
+     * @param enabled Whether shadow-ban should be enabled.
+     */
+    public setChatShadowBan(jid: string, enabled: boolean): void {
+        logger.info('set chat shadow-ban', enabled, jid);
+
+        const shadowBanIQ = $iq({
+            to: this.roomjid,
+            type: 'set'
+        })
+            .c('shadow-ban', {
+                jid: Strophe.getBareJidFromJid(jid),
+                xmlns: 'http://jitsi.org/jitmeet/shadow-ban'
+            })
+            .t(enabled.toString())
+            .up();
+
+        this.connection.sendIQ(
+            shadowBanIQ,
+            result => logger.info('set chat shadow-ban', result),
+            error => {
+                handleStropheError(error, {
+                    enabled,
+                    operation: 'set chat shadow-ban',
                     participantJid: jid,
                     roomJid: this.roomjid,
                     userJid: this.connection.jid

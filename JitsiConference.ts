@@ -3779,6 +3779,28 @@ export default class JitsiConference extends Listenable {
         this.room.muteParticipant(participant.getJid(), true, mediaType);
     }
 
+    /**
+     * Enables or disables chat shadow-ban for a participant.
+     *
+     * A shadow-banned participant remains in the conference and can continue
+     * sending messages from their perspective, but their messages are dropped
+     * by the Prosody shadow-ban module before being delivered to other
+     * participants.
+     *
+     * @param {string} id - The id of the participant to shadow-ban or unban.
+     * @param {boolean} enabled - Whether the chat shadow-ban should be enabled.
+     * @returns {void}
+     */
+    public setChatShadowBan(id: string, enabled: boolean): void {
+        const participant = this.getParticipantById(id);
+
+        if (!participant) {
+            return;
+        }
+
+        this.room.setChatShadowBan(participant.getJid(), enabled);
+    }
+
 
     /* eslint-disable max-params */
 
@@ -4979,6 +5001,15 @@ export default class JitsiConference extends Listenable {
      */
     public isVisitorsSupported(): boolean {
         return Boolean(this.room?.visitorsSupported);
+    }
+
+    /**
+     * Returns <tt>true</tt> if the room supports chat shadow-ban.
+     *
+     * @returns {boolean} whether the conference room has shadow-ban support.
+     */
+    public isShadowBanSupported(): boolean {
+        return Boolean(this.room?.shadowBanSupported);
     }
 
     /**

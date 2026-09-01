@@ -257,6 +257,9 @@ export enum XMPPEvents {
     // changed.
     MUC_ROLE_CHANGED = 'xmpp.muc_role_changed',
 
+    // Designates an event indicating that the MUC shadow-ban support has changed.
+    MUC_SHADOW_BAN_SUPPORTED_CHANGED = 'xmpp.muc_shadow_ban_supported_changed',
+
     // Designates an event indicating that the MUC visitors support has changed.
     MUC_VISITORS_SUPPORTED_CHANGED = 'xmpp.muc_visitors_supported_changed',
 
