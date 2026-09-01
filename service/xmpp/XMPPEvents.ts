@@ -197,6 +197,11 @@ export enum XMPPEvents {
     MEETING_ID_SET = 'xmpp.meeting_id_set',
 
     /**
+     * Event fired when a message is corrected by its author (XEP-0308).
+     */
+    MESSAGE_CORRECTED = 'xmpp.message_corrected',
+
+    /**
      * Event fired when a message is moderated.
      */
     MESSAGE_MODERATED = 'xmpp.message_moderated',

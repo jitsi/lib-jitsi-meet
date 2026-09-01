@@ -1249,6 +1249,62 @@ export default class ChatRoom extends Listenable {
      * @param {string} receiverId - The receiver if the message was private.
      * @param {boolean} useDirectJid - Whether receiverId is already a JID.
      */
+    /**
+     * Sends a correction of a previously sent message (XEP-0308). The correction is
+     * an ordinary message carrying the new body, plus a <replace/> naming the message
+     * it corrects, so it is archived and replayed to anyone joining later.
+     *
+     * @param {string} messageId - The id of the message being corrected.
+     * @param {string} message - The new text.
+     * @param {string} [receiverId] - Set for a private message, the recipient.
+     * @param {boolean} [useDirectJid=false] - Whether receiverId is a full jid.
+     */
+    public sendMessageCorrection(
+            messageId: string,
+            message: string,
+            receiverId?: string,
+            useDirectJid: boolean = false): void {
+
+        if (!messageId) {
+            logger.warn('sendMessageCorrection: no messageId provided');
+
+            return;
+        }
+
+        let msg;
+
+        if (receiverId) {
+            const targetJid = useDirectJid
+                ? receiverId
+                : `${this.roomjid}/${receiverId}`;
+
+            msg = $msg({
+                to: targetJid,
+                type: 'chat'
+            });
+        } else {
+            msg = $msg({
+                to: this.roomjid,
+                type: 'groupchat'
+            });
+        }
+
+        msg.c('body')
+        .t(stripXMLInvalidChars(message))
+        .up()
+        .c('replace', {
+            id: messageId,
+            xmlns: 'urn:xmpp:message-correct:0'
+        })
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
+        })
+        .up();
+
+        this.connection.send(msg);
+    }
+
     public sendMessageRetraction(
             messageId: string,
             receiverId?: string,
@@ -1617,6 +1673,24 @@ export default class ChatRoom extends Listenable {
                     return true;
                 }
             }
+        }
+
+        const replaceEl = findFirst(msg, ':scope>replace[*|xmlns="urn:xmpp:message-correct:0"]');
+
+        if (replaceEl) {
+            const correctedMessageId = getAttribute(replaceEl, 'id');
+            const newText = getText(findFirst(msg, ':scope>body'));
+
+            if (!correctedMessageId || !newText) {
+                logger.warn('MESSAGE_CORRECTED: missing corrected message id or body');
+
+                return true;
+            }
+
+            this.eventEmitter.emit(XMPPEvents.MESSAGE_CORRECTED,
+                from, correctedMessageId, newText, stamp);
+
+            return true;
         }
 
         const retractEl = findFirst(msg, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
