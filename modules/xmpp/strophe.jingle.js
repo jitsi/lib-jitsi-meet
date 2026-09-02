@@ -220,7 +220,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         switch (action) {
         case 'session-initiate': {
-            logger.info('(TIME) received session-initiate:\t', now);
+            const bridgeSessionId = getAttribute(
+                findFirst(jingleElement, ':scope>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]'), 'id');
+
+            logger.info(`(TIME) received session-initiate:\t${now}, bridgeSessionId=${bridgeSessionId}`);
 
             isP2P && logger.debug(`Received ${action} from ${fromJid}`);
             const pcConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
